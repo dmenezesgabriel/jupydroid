@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.ServerConnection
 import kotlinx.coroutines.flow.first
@@ -239,7 +240,7 @@ class TwoSpacesAtOnceDeviceTest {
     val context: Context get() = InstrumentationRegistry.getInstrumentation().targetContext
     val baseDir: File get() = baseSpaceDir(context)
     val probeRoot by lazy { PrivateRootUnderTest(context, PROBE_SPACE.id) }
-    val probeLauncher by lazy { spaceServerLauncher(context) }
+    val probeLauncher by lazy { spaceServerLauncher(context) { SpaceSettings() } }
 
     /** What [killWhatTheProbeLeft] kills: every process of every probe tree a test logged. */
     val probeProcessesSeen = mutableListOf<LiveProcess>()

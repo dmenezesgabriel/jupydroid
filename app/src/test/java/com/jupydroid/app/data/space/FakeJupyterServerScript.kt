@@ -8,8 +8,8 @@ import java.io.File
  *
  * It ignores the `-m jupyter_server ...` arguments and does the two things the launcher observes of
  * a real server: it writes a `jpserver-*.json` into `$JUPYTER_RUNTIME_DIR` and stays alive. It also
- * records its cwd, as the Space sees it, and its pid beside that file. `FAKE_PROOT_ROOT` prefixes the in-root
- * runtime dir where real proot would translate it.
+ * records its cwd, as the Space sees it, its arguments one per line, and its pid beside that file.
+ * `FAKE_PROOT_ROOT` prefixes the in-root runtime dir where real proot would translate it.
  */
 object FakeJupyterServerScript {
   /**
@@ -21,6 +21,7 @@ object FakeJupyterServerScript {
     """
     runtime="${'$'}FAKE_PROOT_ROOT${'$'}JUPYTER_RUNTIME_DIR"
     echo "${'$'}{PWD#${'$'}FAKE_PROOT_ROOT}" > "${'$'}runtime/cwd"
+    printf '%s\n' "${'$'}@" > "${'$'}runtime/args"
     echo ${'$'}${'$'} > "${'$'}runtime/pid"
     echo '{"port": $port}' > "${'$'}runtime/jpserver-1.json"
     exec /bin/sleep 30

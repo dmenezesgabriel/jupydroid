@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.spaces
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import kotlinx.coroutines.CancellationException
@@ -30,7 +31,7 @@ data class SpacesPanelState(
 )
 
 /**
- * The Spaces panel's asks of [SpaceRepository] - list, create, rename and delete - and of
+ * The Spaces panel's asks of [SpaceRepository] - list, create, rename, configure and delete - and of
  * [SpaceServers]: run, stop, and which are running.
  *
  * **One act at a time.** [busy] is raised before the act launches, so a second tap in the same
@@ -70,6 +71,18 @@ class SpacesViewModel(private val spaceRepository: SpaceRepository, private val 
 
   /** Renames the Space [id] to [name]; its directory keeps the id. */
   fun rename(id: String, name: String) = act { spaceRepository.rename(id, name) }
+
+  /**
+   * Saves [settings] as the Space [id]'s, for its next start. Refused while the Space runs: nothing
+   * is applied to a running process, and a save it would not honour until some later restart is a
+   * change the row would misreport. The port refuses an invalid value in its own words.
+   */
+  fun configure(id: String, settings: SpaceSettings) = act {
+    check(id !in spaceServers.running.value) {
+      "Space '$id' is running; expected it stopped before its settings change"
+    }
+    spaceRepository.configure(id, settings)
+  }
 
   /** Starts the Space [id]'s server; the act lasts until it serves. */
   fun run(id: String) = act { spaceServers.run(id) }

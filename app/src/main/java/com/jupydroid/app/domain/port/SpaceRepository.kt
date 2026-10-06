@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.model.SpaceSettings
 
 /**
  * The Spaces on this device: what is there, and how one is made, renamed or removed.
@@ -42,6 +43,17 @@ interface SpaceRepository {
    * @throws IllegalArgumentException when no Space has that id.
    */
   suspend fun rename(id: String, name: String): SpaceConfig
+
+  /**
+   * Replaces the Space [id]'s settings with [settings] and answers with its updated record.
+   *
+   * Writes the settings and nothing else. It does not ask whether the Space is running: this port
+   * holds records, not processes, and a running server simply reads them at its next start.
+   *
+   * @throws IllegalArgumentException when no Space has that id, or when [settings] fails
+   *   [com.jupydroid.app.domain.model.requireValidSpaceSettings].
+   */
+  suspend fun configure(id: String, settings: SpaceSettings): SpaceConfig
 
   /**
    * Removes the Space [id] and everything inside it.

@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.DEFAULT_IDLE_SHUTDOWN_MINUTES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,7 +19,8 @@ import org.junit.Test
  * gate's to prove.
  */
 class JupyterServerTerminalShellTest {
-  private val args = jupyterServerArgs(rootDir = "/home/jupydroid", token = "t")
+  private val args =
+    jupyterServerArgs(rootDir = "/home/jupydroid", token = "t", idleShutdownMinutes = DEFAULT_IDLE_SHUTDOWN_MINUTES)
 
   @Test
   fun theShellIsPinnedRatherThanSearchedFor() {

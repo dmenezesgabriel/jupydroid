@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasProgressBarRangeInfo
@@ -21,7 +22,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.MAX_IDLE_SHUTDOWN_MINUTES
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -302,6 +305,49 @@ class SpacesHomeScreenTest {
     compose.onNodeWithContentDescription(runBase).assertIsEnabled()
   }
 
+  /**
+   * Settings is the mirror of Open: offered only while the row is stopped, base included, since
+   * nothing is applied to a running process.
+   */
+  @Test
+  fun settingsIsEnabledExactlyWhileTheRowIsStopped() {
+    val servers = FakeSpaceServers()
+    runBlocking { servers.run(BASE_SPACE.id) }
+    show(FakeSpaceRepository(listOf(base, thesis)), servers)
+
+    compose.onNodeWithContentDescription(settingsBase).assertIsNotEnabled()
+    compose.onNodeWithContentDescription(settingsThesis).assertIsEnabled()
+  }
+
+  @Test
+  fun theSettingsDialogShowsTheStoredIdleShutdownAndSavesTheNewOne() {
+    val repository = FakeSpaceRepository(listOf(base, thesis.copy(settings = SpaceSettings(idleShutdownMinutes = 7))))
+    show(repository)
+
+    compose.onNodeWithContentDescription(settingsThesis).performClick()
+    compose.onNodeWithTag(IDLE_SHUTDOWN_FIELD_TAG).assertTextContains("7")
+    compose.onNodeWithTag(IDLE_SHUTDOWN_FIELD_TAG).performTextReplacement("2")
+    compose.onNodeWithText(SAVE_SETTINGS).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      runBlocking { repository.spaces().last().settings.idleShutdownMinutes == 2 }
+    }
+  }
+
+  /** What the port would refuse cannot be saved: past a day, below zero, or not a number at all. */
+  @Test
+  fun anIdleShutdownOutsideTheRangeCannotBeSaved() {
+    show(FakeSpaceRepository(listOf(base, thesis)))
+    compose.onNodeWithContentDescription(settingsThesis).performClick()
+
+    listOf("${MAX_IDLE_SHUTDOWN_MINUTES + 1}", "-1", "", "two").forEach { typed ->
+      compose.onNodeWithTag(IDLE_SHUTDOWN_FIELD_TAG).performTextReplacement(typed)
+      compose.onNodeWithText(SAVE_SETTINGS).assertIsNotEnabled()
+    }
+    compose.onNodeWithTag(IDLE_SHUTDOWN_FIELD_TAG).performTextReplacement("0")
+    compose.onNodeWithText(SAVE_SETTINGS).assertIsEnabled()
+  }
+
   /** The dialog's button, not its title - both say "Delete" (`ExplorerScreenTest.confirmDelete`). */
   private fun confirmDelete() = compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
 
@@ -326,6 +372,8 @@ class SpacesHomeScreenTest {
     val openThesis = "Open $THESIS (space-1)"
     val runBase = "Run ${BASE_SPACE.name} (${BASE_SPACE.id})"
     val stopBase = "Stop ${BASE_SPACE.name} (${BASE_SPACE.id})"
+    val settingsBase = "Settings ${BASE_SPACE.name} (${BASE_SPACE.id})"
+    val settingsThesis = "Settings $THESIS (space-1)"
     const val TIMEOUT_MILLIS = 5_000L
     val base: SpaceConfig = defaultSpaceConfig(BASE_SPACE.id, Instant.EPOCH)
     val thesis = SpaceConfig(id = "space-1", name = THESIS, created = Instant.EPOCH)

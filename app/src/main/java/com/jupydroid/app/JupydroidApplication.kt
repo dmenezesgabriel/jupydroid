@@ -53,6 +53,7 @@ import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookExporter
+import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -95,11 +96,15 @@ class JupydroidApplication : Application() {
     // Built here rather than defaulted inside the container, because the servers watch their
     // processes' exits on it and are built before the container is.
     val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
+    // and a create copies the bundled image into the new Space's own directory. One instance,
+    // shared by the home that writes a Space's settings and the servers that read them at start.
+    val spaceRepository = DiskSpaceRepository(spacesDir(this), spaceImageInstaller(this))
     // The servers are built once and shared: the gateways start base's and the idle backstop stops
     // it, and two entries for one Space would be two processes pretending to be one.
-    val servers = spaceServers(this, applicationScope)
+    val servers = spaceServers(this, applicationScope, spaceRepository)
     migrateNotebooksOnce(notebookWorkspace(this))
-    return containerFor(servers, applicationScope, DiskRecentDocumentsFile(filesDir))
+    return containerFor(servers, spaceRepository, applicationScope, DiskRecentDocumentsFile(filesDir))
   }
 
   /**
@@ -142,6 +147,7 @@ class JupydroidApplication : Application() {
   @Suppress("LongMethod")
   private fun containerFor(
     servers: JupyterSpaceServers?,
+    spaceRepository: SpaceRepository,
     applicationScope: CoroutineScope,
     recentsFile: DiskRecentDocumentsFile,
   ) = AppContainer(
@@ -151,9 +157,7 @@ class JupydroidApplication : Application() {
     // for every Space, since it already keeps one process per Space it is asked about.
     languageServer = baseSpaceLanguageServerPort(this) ?: FakeLanguageServerPort(),
     spaceServers = servers ?: FakeSpaceServers(),
-    // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
-    // and a create copies the bundled image into the new Space's own directory.
-    spaceRepository = DiskSpaceRepository(spacesDir(this), spaceImageInstaller(this)),
+    spaceRepository = spaceRepository,
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
     // state, not a Contents API file.
     editorSettings = DiskEditorSettingsRepository(filesDir),

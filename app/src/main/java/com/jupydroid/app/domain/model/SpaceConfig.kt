@@ -27,6 +27,8 @@ const val SPACE_ID_PREFIX: String = "space-"
  * @property created when the Space was made - the one field nothing but [SpaceRepository] writes.
  * @property requestedPackages what was asked for by name, which is not what is installed: a later
  *   and removes these, and pip's own answer is the record of what landed.
+ * @property settings what every process of the Space honours from its next start - edited from the
+ *   home only while the Space is stopped, so nothing is ever applied to a running process.
  * @property extra anything a later version of the app puts in `config.json` that this one does not
  *   model, kept verbatim so writing cannot shred it. `Container.extraData` is the same nested
  *   object (`Container.java:370-373`, `:306`) - an explicit field rather than nbformat's
@@ -38,8 +40,48 @@ data class SpaceConfig(
   val created: Instant,
   val pythonVersion: String = BUNDLED_PYTHON_VERSION,
   val requestedPackages: List<String> = emptyList(),
+  val settings: SpaceSettings = SpaceSettings(),
   val extra: JsonObject = JsonObject(emptyMap()),
 )
+
+/** Five minutes: the timers every Space's server ran on before a Space could choose its own. */
+const val DEFAULT_IDLE_SHUTDOWN_MINUTES: Int = 5
+
+/**
+ * A day. The ceiling keeps a typo from meaning a year, and keeps the minutes times 60 well inside an
+ * `Int` when they become the server's seconds.
+ */
+const val MAX_IDLE_SHUTDOWN_MINUTES: Int = 24 * 60
+
+/** Every idle shutdown a Space may hold, `0` (never) included - the port's rule and the dialog's. */
+val IDLE_SHUTDOWN_MINUTES_RANGE: IntRange = 0..MAX_IDLE_SHUTDOWN_MINUTES
+
+/**
+ * What a person set about how one Space runs, kept apart from its identity in [SpaceConfig].
+ *
+ * One value rather than a parameter per field, so the port's `configure` takes whatever the
+ * settings grow into without its signature changing.
+ *
+ * @property idleShutdownMinutes how long the Space's server and its kernels may sit idle before they
+ *   stop themselves; `0` means never. It becomes both of `jupyter_server`'s own timers, which read
+ *   `0` the same way (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`,
+ *   `shutdown_no_activity_timeout`; `services/kernels/kernelmanager.py`, `cull_idle_timeout`).
+ */
+data class SpaceSettings(val idleShutdownMinutes: Int = DEFAULT_IDLE_SHUTDOWN_MINUTES)
+
+/**
+ * Refuses settings no Space may hold, whatever asks - the fake and the disk adapter both call it,
+ * so a caller that is refused by one is refused by the other.
+ *
+ * ```
+ * requireValidSpaceSettings(SpaceSettings(idleShutdownMinutes = 2))
+ * ```
+ */
+fun requireValidSpaceSettings(settings: SpaceSettings) {
+  require(settings.idleShutdownMinutes in IDLE_SHUTDOWN_MINUTES_RANGE) {
+    "idle shutdown of ${settings.idleShutdownMinutes} minutes; expected $IDLE_SHUTDOWN_MINUTES_RANGE, where 0 is never"
+  }
+}
 
 /**
  * The id the next created Space takes: one above the highest number on disk.

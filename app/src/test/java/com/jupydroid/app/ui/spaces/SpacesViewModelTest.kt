@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import kotlinx.coroutines.CompletableDeferred
@@ -237,6 +238,50 @@ class SpacesViewModelTest {
 
     assertTrue(model.uiState.value.failure!!.contains("space-1"))
     assertEquals(listOf(BASE_SPACE.id, "space-1"), ids(model))
+  }
+
+  @Test
+  fun configureStoresTheSettingsAndTheRowCarriesThem() = runTest {
+    val model = SpacesViewModel(repository, servers)
+    model.create("Thesis")
+    advanceUntilIdle()
+
+    model.configure("space-1", SpaceSettings(idleShutdownMinutes = 2))
+    advanceUntilIdle()
+
+    assertEquals(2, model.uiState.value.spaces.last().settings.idleShutdownMinutes)
+    assertEquals(2, repository.spaces().last().settings.idleShutdownMinutes)
+  }
+
+  /**
+   * Nothing is applied to a running process, so a running Space's settings are refused rather
+   * than saved for a start the person did not ask for. The message names the Space.
+   */
+  @Test
+  fun configuringARunningSpaceIsRefusedAndWritesNothing() = runTest {
+    val model = SpacesViewModel(repository, servers)
+    model.create("Thesis")
+    advanceUntilIdle()
+    model.run("space-1")
+    advanceUntilIdle()
+
+    model.configure("space-1", SpaceSettings(idleShutdownMinutes = 2))
+    advanceUntilIdle()
+
+    assertTrue(model.uiState.value.failure.toString(), model.uiState.value.failure!!.contains("space-1"))
+    assertEquals(SpaceSettings(), repository.spaces().last().settings)
+  }
+
+  /** The port's own refusal of an out-of-range value reaches the panel as the port worded it. */
+  @Test
+  fun anOutOfRangeIdleShutdownSurfacesThePortsMessage() = runTest {
+    val model = SpacesViewModel(repository, servers)
+    advanceUntilIdle()
+
+    model.configure(BASE_SPACE.id, SpaceSettings(idleShutdownMinutes = -1))
+    advanceUntilIdle()
+
+    assertTrue(model.uiState.value.failure.toString(), model.uiState.value.failure!!.contains("-1"))
   }
 }
 

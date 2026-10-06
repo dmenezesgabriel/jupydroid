@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 import kotlinx.coroutines.CoroutineDispatcher
@@ -17,6 +18,7 @@ import java.security.SecureRandom
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -30,7 +32,9 @@ import kotlin.time.Duration.Companion.seconds
  * hoping it is still free a moment later.
  *
  * Every per-Space input - the environment, the runtime dir, the Contents API root - is derived
- * from the Space [start] is handed, so one launcher serves whichever Space it is asked for.
+ * from the Space [start] is handed, so one launcher serves whichever Space it is asked for. Its
+ * settings are read at every start, never kept: a Space configured on the home after its last run
+ * starts with what was saved, whether the home's Run or a cell's restart is what starts it.
  *
  * [stop] asks the server to stop with `POST api/shutdown`, JupyterLab's own stop
  * (`jupyterlab@7f0e690 packages/mainmenu-extension/src/index.ts`, `CommandIDs.shutdown`). No signal
@@ -46,6 +50,8 @@ class JupyterServerLauncher(
   private val runtimeFor: (Space) -> SpaceRuntime,
   /** Where a Space's server writes its runtime files and roots its Contents API. */
   private val dirsFor: (Space) -> SpaceDirs,
+  /** The Space's settings as stored now - asked once per [start]. */
+  private val settingsFor: suspend (Space) -> SpaceSettings,
   private val startTimeout: Duration = START_TIMEOUT,
   private val stopTimeout: Duration = STOP_TIMEOUT,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
@@ -69,10 +75,11 @@ class JupyterServerLauncher(
   override suspend fun start(space: Space): ServerConnection {
     stop()
     val dirs = dirsFor(space)
+    val settings = settingsFor(space)
     val started = withContext(ioDispatcher) {
       dirs.ensure()
       JupyterRuntimeFile.clear(dirs.runtime) // a stale file would advertise a dead port
-      jupyterServerProcess(runtimeFor(space), dirs.runtime, dirs.inRoot(dirs.workspace), token).start()
+      jupyterServerProcess(runtimeFor(space), dirs.runtime, dirs.inRoot(dirs.workspace), token, settings).start()
     }
     process = started
     val reported = awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
@@ -183,6 +190,7 @@ internal fun jupyterServerProcess(
   runtimeDir: File,
   rootDir: String,
   token: String,
+  settings: SpaceSettings,
 ): ProcessBuilder = runtime.processBuilder(
   // JUPYTER_RUNTIME_DIR and the faulthandler both come from SpaceRuntime.environment(),
   // so every Space process - not just the server - agrees on where runtime files live.
@@ -192,7 +200,7 @@ internal fun jupyterServerProcess(
   // downstream is written against that. A terminal is the client that proves it: `PtyWithClients`
   // inherits this cwd whenever the POST carries none (`terminado/management.py:225-232`). See
   // [JupyterServerWorkingDirTest].
-  jupyterServerArgs(rootDir, token),
+  jupyterServerArgs(rootDir, token, settings.idleShutdownMinutes),
 )
   .redirectErrorStream(true)
   .redirectOutput(jupyterServerLogFile(runtimeDir))
@@ -208,7 +216,7 @@ internal fun jupyterServerLogFile(runtimeDir: File): File = File(runtimeDir, "ju
  * unset for eight steps, which left the Contents API rooted at whatever cwd `ProcessBuilder` gave
  * it, and nothing noticed because nothing but the app read the files.
  */
-internal fun jupyterServerArgs(rootDir: String, token: String): List<String> = listOf(
+internal fun jupyterServerArgs(rootDir: String, token: String, idleShutdownMinutes: Int): List<String> = listOf(
   "-m", "jupyter_server",
   "--ServerApp.ip=127.0.0.1",
   "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
@@ -240,10 +248,11 @@ internal fun jupyterServerArgs(rootDir: String, token: String): List<String> = l
   // and idle kernels are culled first by `MappingKernelManager.cull_idle_timeout`. Culling
   // skips kernels with a connected websocket (`cull_connected` defaults False), so an open
   // notebook keeps its kernel no matter how long it idles - and once every kernel is gone the
-  // server follows within ~a minute. A closed notebook's kernel survives at most ~6 min so the
-  // reattach window stays useful; the 60 s cull poll is what makes that measurable.
-  "--ServerApp.shutdown_no_activity_timeout=300",
-  "--MappingKernelManager.cull_idle_timeout=300",
+  // server follows within ~a minute. Both timers take the Space's one idle setting, since
+  // neither fires without the other, and both read `0` as never; a closed notebook's kernel
+  // survives at most the setting plus the 60 s cull poll, which is what makes it measurable.
+  "--ServerApp.shutdown_no_activity_timeout=${idleShutdownMinutes.minutes.inWholeSeconds}",
+  "--MappingKernelManager.cull_idle_timeout=${idleShutdownMinutes.minutes.inWholeSeconds}",
   "--MappingKernelManager.cull_interval=60",
   "--no-browser",
   // DEBUG until the app is feature-complete, because the server's own account is the half of

@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.SpaceSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -48,6 +49,7 @@ class JupyterSpaceServersExitTest {
   private fun launcher() = JupyterServerLauncher(
     runtimeFor = { SpaceRuntime(root, nativeDir) },
     dirsFor = { SpaceDirs(root) },
+    settingsFor = { SpaceSettings() },
     startTimeout = EXIT_TIMEOUT,
   )
 

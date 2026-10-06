@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.DEFAULT_IDLE_SHUTDOWN_MINUTES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,7 +25,8 @@ class JupyterServerRootDirTest {
 
   @Test
   fun theServerIsRootedAtTheWorkspace() {
-    val args = jupyterServerArgs(rootDir = "/home/jupydroid", token = "t")
+    val args =
+      jupyterServerArgs(rootDir = "/home/jupydroid", token = "t", idleShutdownMinutes = DEFAULT_IDLE_SHUTDOWN_MINUTES)
 
     assertTrue("expected a root_dir argument, got $args", args.contains("--ServerApp.root_dir=/home/jupydroid"))
   }
@@ -40,7 +42,12 @@ class JupyterServerRootDirTest {
 
   @Test
   fun theOtherArgumentsAreStillThere() {
-    val args = jupyterServerArgs(rootDir = "/home/jupydroid", token = "secret")
+    val args =
+      jupyterServerArgs(
+        rootDir = "/home/jupydroid",
+        token = "secret",
+        idleShutdownMinutes = DEFAULT_IDLE_SHUTDOWN_MINUTES,
+      )
 
     assertTrue(args.contains("--IdentityProvider.token=secret"))
     assertTrue(args.contains("--KernelManager.transport=ipc"))
@@ -52,6 +59,12 @@ class JupyterServerRootDirTest {
    */
   @Test
   fun theServerIsAllowedToRunAsTheRootProotReports() {
-    assertTrue(jupyterServerArgs(rootDir = "/home/jupydroid", token = "t").contains("--allow-root"))
+    assertTrue(
+      jupyterServerArgs(
+        rootDir = "/home/jupydroid",
+        token = "t",
+        idleShutdownMinutes = DEFAULT_IDLE_SHUTDOWN_MINUTES,
+      ).contains("--allow-root"),
+    )
   }
 }

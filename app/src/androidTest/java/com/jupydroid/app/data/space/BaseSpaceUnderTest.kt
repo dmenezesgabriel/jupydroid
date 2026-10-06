@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import androidx.test.platform.app.InstrumentationRegistry
+import com.jupydroid.app.data.disk.DiskSpaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,9 +34,11 @@ object BaseSpaceUnderTest {
    * run at all, which is what the `Assume` in each test class reads.
    */
   val servers: JupyterSpaceServers? by lazy {
+    val context = InstrumentationRegistry.getInstrumentation().targetContext
     spaceServers(
-      InstrumentationRegistry.getInstrumentation().targetContext,
+      context,
       CoroutineScope(SupervisorJob() + Dispatchers.IO),
+      DiskSpaceRepository(spacesDir(context), spaceImageInstaller(context)),
     )
   }
 

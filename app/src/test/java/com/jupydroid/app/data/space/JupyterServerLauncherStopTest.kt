@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.SpaceSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
@@ -123,6 +124,7 @@ class JupyterServerLauncherStopTest {
     return JupyterServerLauncher(
       runtimeFor = { SpaceRuntime(root, nativeDir) },
       dirsFor = { SpaceDirs(root) },
+      settingsFor = { SpaceSettings() },
       startTimeout = 10.seconds,
       stopTimeout = stopTimeout,
       log = log,

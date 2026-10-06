@@ -6,10 +6,12 @@ import com.jupydroid.app.data.space.SpaceImageInstaller
 import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.domain.model.inSpaceOrder
 import com.jupydroid.app.domain.model.nextSpaceId
 import com.jupydroid.app.domain.model.requireDeletableSpace
+import com.jupydroid.app.domain.model.requireValidSpaceSettings
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.SpaceRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -79,10 +81,12 @@ class DiskSpaceRepository(
       created
     }
 
-  override suspend fun rename(id: String, name: String): SpaceConfig = withContext(ioDispatcher) {
-    val renamed = scan().spaceWithId(id).copy(name = name)
-    write(renamed)
-    renamed
+  override suspend fun rename(id: String, name: String): SpaceConfig = rewrite(id) { it.copy(name = name) }
+
+  /** Refused before the scan, so an invalid value never reaches the file. */
+  override suspend fun configure(id: String, settings: SpaceSettings): SpaceConfig {
+    requireValidSpaceSettings(settings)
+    return rewrite(id) { it.copy(settings = settings) }
   }
 
   /**
@@ -123,7 +127,13 @@ class DiskSpaceRepository(
     }
   }
 
-  private fun write(config: SpaceConfig) = writeInto(spaceDirIn(spacesDir, config.id), config)
+  /** Reads the Space [id] as the file has it now, then writes back what [change] makes of it. */
+  private suspend fun rewrite(id: String, change: (SpaceConfig) -> SpaceConfig): SpaceConfig =
+    withContext(ioDispatcher) {
+      val changed = change(scan().spaceWithId(id))
+      writeInto(spaceDirIn(spacesDir, id), changed)
+      changed
+    }
 
   private fun writeInto(directory: File, config: SpaceConfig) {
     File(directory, SPACE_CONFIG_FILE_NAME)
@@ -158,14 +168,23 @@ private data class StoredSpaceConfig(
   val created: String? = null,
   val pythonVersion: String = BUNDLED_PYTHON_VERSION,
   val requestedPackages: List<String> = emptyList(),
+  val settings: StoredSpaceSettings = StoredSpaceSettings(),
   val extra: JsonObject = JsonObject(emptyMap()),
 )
+
+/**
+ * [SpaceSettings] as the file holds them, nested so the settings read as one group by eye. Every
+ * field defaults, by [StoredSpaceConfig]'s own rule.
+ */
+@Serializable
+private data class StoredSpaceSettings(val idleShutdownMinutes: Int = SpaceSettings().idleShutdownMinutes)
 
 private fun SpaceConfig.stored() = StoredSpaceConfig(
   name = name,
   created = created.toString(),
   pythonVersion = pythonVersion,
   requestedPackages = requestedPackages,
+  settings = StoredSpaceSettings(idleShutdownMinutes = settings.idleShutdownMinutes),
   extra = extra,
 )
 
@@ -175,5 +194,6 @@ private fun StoredSpaceConfig.toDomain(default: SpaceConfig) = default.copy(
   created = created?.let { runCatching { Instant.parse(it) }.getOrNull() } ?: default.created,
   pythonVersion = pythonVersion,
   requestedPackages = requestedPackages,
+  settings = SpaceSettings(idleShutdownMinutes = settings.idleShutdownMinutes),
   extra = extra,
 )

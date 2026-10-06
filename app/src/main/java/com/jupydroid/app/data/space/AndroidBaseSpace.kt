@@ -3,9 +3,12 @@ package com.jupydroid.app.data.space
 import android.content.Context
 import android.os.Build
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
+import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.CoroutineScope
 import java.io.File
@@ -41,12 +44,17 @@ fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_S
  */
 fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir(context))
 
-/** Runs jupyter_server in whichever Space `start` is handed, on loopback, under proot. */
-fun spaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServerLauncher(
-  runtimeFor = { space -> spaceRuntime(context, space) },
-  dirsFor = { space -> spaceDirs(context, space) },
-  log = LogcatSpaceLifecycleLog,
-)
+/**
+ * Runs jupyter_server in whichever Space `start` is handed, on loopback, under proot, with the
+ * settings [settingsFor] answers at that start.
+ */
+fun spaceServerLauncher(context: Context, settingsFor: suspend (Space) -> SpaceSettings): JupyterServerLauncher =
+  JupyterServerLauncher(
+    runtimeFor = { space -> spaceRuntime(context, space) },
+    dirsFor = { space -> spaceDirs(context, space) },
+    settingsFor = settingsFor,
+    log = LogcatSpaceLifecycleLog,
+  )
 
 /**
  * Every Space's server, each brought up on first use - or null where no Space can run.
@@ -59,15 +67,16 @@ fun spaceServerLauncher(context: Context): JupyterServerLauncher = JupyterServer
  * `JupyterServerLauncher.start` begins with `stop()` - see [SpaceServer]. Only base installs on
  * first use: any other Space had the image copied into it when it was created
  * (`DiskSpaceRepository`). [watchScope] is where each server's exit is waited on, so it must
- * outlive every screen.
+ * outlive every screen. Each start reads the Space's settings from [spaceRepository] - the same
+ * record the home's Settings writes - so what was saved is what the next start honours.
  */
-fun spaceServers(context: Context, watchScope: CoroutineScope): JupyterSpaceServers? {
+fun spaceServers(context: Context, watchScope: CoroutineScope, spaceRepository: SpaceRepository): JupyterSpaceServers? {
   if (runCatching { deviceAbi() }.isFailure) return null
   return JupyterSpaceServers { id, reportRunning ->
     SpaceServer(
       space = spaceWithId(id),
       installSpace = if (id == BASE_SPACE.id) ({ baseSpaceInstaller(context).installIfNeeded() }) else ({}),
-      launcher = spaceServerLauncher(context),
+      launcher = spaceServerLauncher(context) { space -> spaceRepository.spaces().spaceWithId(space.id).settings },
       watchScope = watchScope,
       reportRunning = reportRunning,
       log = LogcatSpaceLifecycleLog,

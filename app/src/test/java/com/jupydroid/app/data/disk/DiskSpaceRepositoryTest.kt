@@ -5,6 +5,7 @@ import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.data.space.tarZst
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceRepositoryContract
 import kotlinx.coroutines.test.runTest
@@ -190,6 +191,28 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
 
     assertEquals("Dissertation", read.name)
     assertEquals(BUNDLED_PYTHON_VERSION, read.pythonVersion)
+  }
+
+  /** A Space's settings are in its own `config.json`, so the next launch reads what was saved. */
+  @Test
+  fun settingsSurviveTheNextLaunch() = runTest {
+    val created = repository().create("Thesis")
+
+    openStore().configure(created.id, SpaceSettings(idleShutdownMinutes = 2))
+
+    assertEquals(2, openStore().spaces().single { it.id == created.id }.settings.idleShutdownMinutes)
+  }
+
+  /** A config written before Spaces had settings reads the default and keeps its name. */
+  @Test
+  fun aConfigWithNoSettingsReadsTheDefaultSettings() = runTest {
+    val created = repository().create("Thesis")
+    File(File(spacesDir, created.id), SPACE_CONFIG_FILE_NAME).writeText("""{"name":"Thesis"}""")
+
+    val read = openStore().spaces().single { it.id == created.id }
+
+    assertEquals("Thesis", read.name)
+    assertEquals(SpaceSettings(), read.settings)
   }
 
   /** A hand-edited `created` nobody can parse falls back to the directory's own mtime. */

@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.DEFAULT_IDLE_SHUTDOWN_MINUTES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -170,7 +171,11 @@ class SpaceRuntimeTest {
   @Test
   fun environment_namesTheShellTheServerPinsForTerminals() {
     assertEquals(SPACE_SHELL, runtime.environment()["SHELL"])
-    assertTrue(jupyterServerArgs("/home/jupydroid", "t").any { "[\"$SPACE_SHELL\"]" in it })
+    assertTrue(
+      jupyterServerArgs("/home/jupydroid", "t", DEFAULT_IDLE_SHUTDOWN_MINUTES).any {
+        "[\"$SPACE_SHELL\"]" in it
+      },
+    )
   }
 
   /**

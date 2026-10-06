@@ -2,10 +2,12 @@ package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.domain.model.inSpaceOrder
 import com.jupydroid.app.domain.model.nextSpaceId
 import com.jupydroid.app.domain.model.requireDeletableSpace
+import com.jupydroid.app.domain.model.requireValidSpaceSettings
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.SpaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,15 +39,22 @@ class FakeSpaceRepository(initial: List<SpaceConfig> = listOf(defaultSpaceConfig
     return created
   }
 
-  override suspend fun rename(id: String, name: String): SpaceConfig {
-    val renamed = spaces.value.spaceWithId(id).copy(name = name)
-    spaces.value = spaces.value.map { if (it.id == id) renamed else it }
-    return renamed
+  override suspend fun rename(id: String, name: String): SpaceConfig = replace(id) { it.copy(name = name) }
+
+  override suspend fun configure(id: String, settings: SpaceSettings): SpaceConfig {
+    requireValidSpaceSettings(settings)
+    return replace(id) { it.copy(settings = settings) }
   }
 
   override suspend fun delete(id: String) {
     requireDeletableSpace(id)
     spaces.value.spaceWithId(id)
     spaces.value = spaces.value.filterNot { it.id == id }
+  }
+
+  private fun replace(id: String, change: (SpaceConfig) -> SpaceConfig): SpaceConfig {
+    val changed = change(spaces.value.spaceWithId(id))
+    spaces.value = spaces.value.map { if (it.id == id) changed else it }
+    return changed
   }
 }

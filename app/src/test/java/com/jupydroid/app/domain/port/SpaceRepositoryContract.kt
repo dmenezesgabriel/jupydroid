@@ -1,7 +1,10 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.DEFAULT_IDLE_SHUTDOWN_MINUTES
+import com.jupydroid.app.domain.model.MAX_IDLE_SHUTDOWN_MINUTES
 import com.jupydroid.app.domain.model.SPACE_ID_PREFIX
+import com.jupydroid.app.domain.model.SpaceSettings
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -118,6 +121,65 @@ abstract class SpaceRepositoryContract {
 
     assertTrue("expected IllegalArgumentException, was $refusal", refusal is IllegalArgumentException)
     assertTrue("message must name the id, was '${refusal?.message}'", refusal?.message?.contains("space-99") == true)
+  }
+
+  /** Five minutes, the timers every server ran on before a Space could choose its own. */
+  @Test
+  fun aNewSpaceIdlesOutAfterTheDefaultFiveMinutes() = runTest {
+    val created = repository().create("Thesis")
+
+    assertEquals(DEFAULT_IDLE_SHUTDOWN_MINUTES, created.settings.idleShutdownMinutes)
+    assertEquals(5, DEFAULT_IDLE_SHUTDOWN_MINUTES)
+  }
+
+  /** Configuring writes the settings and nothing else - the name, the id and `created` stay. */
+  @Test
+  fun configuringChangesTheSettingsAndLeavesEverythingElseAlone() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+
+    val configured = repository.configure(created.id, SpaceSettings(idleShutdownMinutes = 2))
+
+    assertEquals(created.copy(settings = SpaceSettings(idleShutdownMinutes = 2)), configured)
+    assertEquals(configured, repository.spaces().single { it.id == created.id })
+  }
+
+  /** The base Space is configured like any other: only deleting and renaming it are refused. */
+  @Test
+  fun theBaseSpaceCanBeConfigured() = runTest {
+    val repository = repository()
+
+    repository.configure(BASE_SPACE.id, SpaceSettings(idleShutdownMinutes = 0))
+
+    assertEquals(0, repository.spaces().single().settings.idleShutdownMinutes)
+  }
+
+  @Test
+  fun configuringAnUnknownIdSaysWhichId() = runTest {
+    val refusal = runCatching { repository().configure("space-99", SpaceSettings()) }.exceptionOrNull()
+
+    assertTrue("expected IllegalArgumentException, was $refusal", refusal is IllegalArgumentException)
+    assertTrue("message must name the id, was '${refusal?.message}'", refusal?.message?.contains("space-99") == true)
+  }
+
+  /** A minute count outside `0..1440` is refused by name, and the stored record is not touched. */
+  @Test
+  fun anIdleShutdownOutsideTheRangeIsRefusedAndNothingIsWritten() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+
+    listOf(-1, MAX_IDLE_SHUTDOWN_MINUTES + 1).forEach { minutes ->
+      val refusal = runCatching {
+        repository.configure(created.id, SpaceSettings(idleShutdownMinutes = minutes))
+      }.exceptionOrNull()
+
+      assertTrue("expected IllegalArgumentException, was $refusal", refusal is IllegalArgumentException)
+      assertTrue(
+        "message must name $minutes, was '${refusal?.message}'",
+        refusal?.message?.contains("$minutes") == true,
+      )
+    }
+    assertEquals(created, repository.spaces().single { it.id == created.id })
   }
 
   @Test

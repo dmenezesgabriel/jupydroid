@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.SpaceSettings
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -32,6 +33,9 @@ class JupyterServerLauncherSpaceTest {
   private val nativeDir by lazy { FakeProotScript.installIn(tempFolder.newFolder("native")) }
   private val spaceOne = Space(id = "space-1", name = "One", kernels = emptyList())
 
+  /** What the launcher's `settingsFor` answers right now - a test changes it between starts. */
+  private var spaceOneSettings = SpaceSettings()
+
   /**
    * Killed by pid rather than through `stop()`: nothing answers `api/shutdown` at the port these
    * fakes report, so `stop()` would wait out its whole timeout. `JupyterServerLauncherStopTest`
@@ -39,6 +43,33 @@ class JupyterServerLauncherSpaceTest {
    */
   @After
   fun killTheServer() {
+    killSpaceOnesServer()
+  }
+
+  /**
+   * A setting is read **at each start**, never at construction: a launcher lives for the process,
+   * and a Space configured on the home after its first run must start differently next time. Both
+   * of a Space's start paths - the home's Run and a cell's restart after an idle stop - go through
+   * `start`, so this is the one place both are held to it.
+   */
+  @Test
+  fun eachStartReadsTheSpacesIdleShutdownAsItIsThen() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    spaceOneSettings = SpaceSettings(idleShutdownMinutes = 2)
+    launcher.start(spaceOne)
+    val first = serverArgs()
+    killSpaceOnesServer()
+
+    spaceOneSettings = SpaceSettings(idleShutdownMinutes = 0)
+    launcher.start(spaceOne)
+
+    assertTrue(first.toString(), "--ServerApp.shutdown_no_activity_timeout=120" in first)
+    assertTrue(serverArgs().toString(), "--ServerApp.shutdown_no_activity_timeout=0" in serverArgs())
+  }
+
+  private fun serverArgs(): List<String> = File(spaceOneDir(), "run/args").readLines()
+
+  private fun killSpaceOnesServer() {
     File(spaceOneDir(), "run/pid").takeIf { it.isFile }?.readText()?.trim()?.toLong()
       ?.let { pid -> ProcessHandle.of(pid).ifPresent { it.destroyForcibly() } }
   }
@@ -88,6 +119,7 @@ class JupyterServerLauncherSpaceTest {
     return JupyterServerLauncher(
       runtimeFor = { space -> SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir) },
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
+      settingsFor = { spaceOneSettings },
       startTimeout = 10.seconds,
     )
   }

@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.DEFAULT_IDLE_SHUTDOWN_MINUTES
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.ServerConnection
 import kotlinx.coroutines.flow.filterIsInstance
@@ -145,7 +146,7 @@ class ProotRuntimeProbeDeviceTest {
     /**
      * The shipped command line, read inside the root, with the cull shortened so a test can watch it.
      */
-    fun serverArgs(): List<String> = jupyterServerArgs(IN_ROOT_HOME, TOKEN).map {
+    fun serverArgs(): List<String> = jupyterServerArgs(IN_ROOT_HOME, TOKEN, DEFAULT_IDLE_SHUTDOWN_MINUTES).map {
       // traitlets refuses a flag given twice, so the shipped value is replaced rather than overridden.
       when (it.substringBefore("=")) {
         "--MappingKernelManager.cull_idle_timeout" -> "--MappingKernelManager.cull_idle_timeout=$CULL_IDLE_SECONDS"

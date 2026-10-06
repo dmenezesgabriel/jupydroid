@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.SpaceSettings
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
@@ -56,5 +57,6 @@ class JupyterServerWorkingDirTest {
     runtimeDir = dirs.runtime,
     rootDir = dirs.inRoot(dirs.workspace),
     token = "t",
+    settings = SpaceSettings(),
   )
 }

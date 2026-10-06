@@ -141,17 +141,17 @@ amends ADR-0072, which forbids a stored environment per Space.
 
 ## Open decisions
 
-- **How the launcher reads settings.** A server starts from the home's Run, and also again from a
-  cell after an idle stop (JD-005). Both paths must see the same settings, so the launch reads the
-  Space's `config.json` at each start rather than being handed values by the caller. Settle in T1
-  against `SpaceServer` and `spaceServers`, and test both start paths.
+- **How the launcher reads settings — settled in T1.** `JupyterServerLauncher.start` asks its
+  `settingsFor` on every start, and `spaceServers` answers from the `SpaceRepository` the home writes
+  through. Both start paths go through `SpaceServer.connection()` → `start`, so neither caller hands
+  in values. Held by `JupyterServerLauncherSpaceTest.eachStartReadsTheSpacesIdleShutdownAsItIsThen`.
 - **`pylsp`.** It is not a child of the server, so it does not inherit its environment.
   `startPylsp` builds its own through `SpaceRuntime`. Decide in T2 whether it gets the user's
   variables too. Probably yes, so that `import` resolves the same in the editor as in the kernel.
 - **Where the script's output goes**, between `run/` and `tmp/`, and the timeout's length. SageMaker
   uses 5 minutes, and the home has a progress state already. Settle in T4.
-- **The idle field's unit and range.** SageMaker's minimum is 60 minutes, while ours defaults to
-  5 minutes. `0` means never. Settle in T1.
+- **The idle field's unit and range — settled in T1.** Whole minutes, `0..1440`, default 5, `0`
+  meaning never; written as seconds to both timers. The ceiling keeps a typo from meaning a year.
 
 ## Surface
 
@@ -169,7 +169,7 @@ amends ADR-0072, which forbids a stored environment per Space.
 
 ## Tasks
 
-- [ ] T1 — **Settings** on a stopped row opens the Space's settings with **idle shutdown** as the
+- [x] T1 — **Settings** on a stopped row opens the Space's settings with **idle shutdown** as the
   first field. `SpaceRepository.configure` runs across domain, port, disk, fake and UI. The launch
   reads it into `jupyterServerArgs`'s two timers. Open decisions 1 and 4 are settled
 - [ ] T2 — **Environment variables**: added, edited and removed in settings, with a derived name

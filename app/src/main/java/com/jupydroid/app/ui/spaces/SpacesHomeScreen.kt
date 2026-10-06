@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -55,6 +56,10 @@ import java.time.Instant
  * JupyterLab* (ADR-0074): the row's state is the one gate, so a Space is never entered stopped.
  * [onOpen] receives the Space's id, which the workspace carries on its key.
  *
+ * **Settings is Open's mirror, enabled only while the row reads Stopped**, base included: a Space's
+ * settings are read at its next start, so nothing is ever applied to a running process. It opens
+ * [SpaceSettingsDialog].
+ *
  * **Progress is a bar across the screen's top, not a modal**, which is VS Code's choice for its
  * profiles over Winlator's full-screen preloader: an inline bar leaves the list readable while an
  * act runs
@@ -95,6 +100,7 @@ fun SpacesHomeScreen(
   var creating by remember { mutableStateOf(false) }
   var renaming by remember { mutableStateOf<SpaceConfig?>(null) }
   var deleting by remember { mutableStateOf<SpaceConfig?>(null) }
+  var configuring by remember { mutableStateOf<SpaceConfig?>(null) }
   Scaffold(
     modifier = modifier.fillMaxSize(),
     topBar = {
@@ -131,6 +137,7 @@ fun SpacesHomeScreen(
           onOpen = { onOpen(it.id) },
           onRun = { viewModel.run(it.id) },
           onStop = { viewModel.stop(it.id) },
+          onSettings = { configuring = it },
           onRename = { renaming = it },
           onDelete = { deleting = it },
         ),
@@ -146,6 +153,16 @@ fun SpacesHomeScreen(
     SpaceNameDialog(heading = "Rename Space", currentName = space.name, onDone = { renaming = null }) {
       viewModel.rename(space.id, it)
     }
+  }
+  configuring?.let { space ->
+    SpaceSettingsDialog(
+      space = space,
+      onSave = {
+        configuring = null
+        viewModel.configure(space.id, it)
+      },
+      onDismiss = { configuring = null },
+    )
   }
   deleting?.let { space ->
     DeleteFileDialog(
@@ -191,6 +208,7 @@ private class SpaceRowActs(
   val onOpen: (SpaceConfig) -> Unit,
   val onRun: (SpaceConfig) -> Unit,
   val onStop: (SpaceConfig) -> Unit,
+  val onSettings: (SpaceConfig) -> Unit,
   val onRename: (SpaceConfig) -> Unit,
   val onDelete: (SpaceConfig) -> Unit,
 )
@@ -225,6 +243,9 @@ private fun SpaceRow(space: SpaceConfig, now: Instant, isRunning: Boolean, actsE
       modifier = Modifier.semantics { contentDescription = "Open ${space.name} (${space.id})" },
     ) {
       Text("Open")
+    }
+    IconButton(onClick = { acts.onSettings(space) }, enabled = actsEnabled && !isRunning) {
+      Icon(Icons.Filled.Settings, contentDescription = "Settings ${space.name} (${space.id})")
     }
     onRename?.let {
       // Named with the id, as the row is: "Rename Thesis" would not say which of two Thesis rows.
