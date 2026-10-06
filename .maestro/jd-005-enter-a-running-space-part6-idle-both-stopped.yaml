@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# Back after the app was left past the idle grace: the backstop stopped both running Spaces, so
+# both rows read Stopped and no `pylsp` is left - the `ps` half of that is the driver's.
+# Not stopped first: a relaunch would read Stopped whatever the backstop did.
+- launchApp:
+    stopApp: false
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Run Thesis \\(space-1\\)"
+- assertNotVisible: ".*Running.*"
+- takeScreenshot: 09-back-both-stopped

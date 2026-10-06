@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# The demo's cold start: Thesis was created a part ago, so both rows read Stopped and neither Open
+# answers a press - the gate is a press that does not leave the home, because Open's own node
+# reports enabled whatever the button's state (`open-base-space.yaml`). Run Thesis enables Thesis's
+# Open alone, and the entered workspace lists Thesis's own `home/jupydroid` - empty, so none of
+# base's notebooks. The notebook made here is the file the driver's `run-as` reads back.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Run Base \\(base\\)"
+- assertVisible: "Run Thesis \\(space-1\\)"
+- assertNotVisible: ".*Running.*"
+- takeScreenshot: 02-cold-both-stopped
+- tapOn: "Open Base \\(base\\)"
+- tapOn: "Open Thesis \\(space-1\\)"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Files"
+- assertVisible: "Run Thesis \\(space-1\\)"
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- assertVisible: "Run Base \\(base\\)"
+- takeScreenshot: 03-thesis-running-base-stopped
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+# The driver seeded base with this notebook; Thesis's tree is a different directory.
+- assertNotVisible: "Real Kernel.ipynb"
+- takeScreenshot: 04-thesis-lists-its-own-empty-workspace
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- takeScreenshot: 05-notebook-created-in-thesis
+# Opening records the recent into Thesis's list - part 5 checks base never shows it.
+- tapOn: "Untitled.ipynb"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 06-untitled-open-in-thesis

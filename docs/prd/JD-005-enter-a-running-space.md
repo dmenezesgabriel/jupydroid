@@ -187,7 +187,7 @@ its kernel, not its Space*.
 - [x] T4 — Terminals and `pylsp` run on the entered Space, and the backstop stops every Space's `pylsp`
 - [x] T5 — A new notebook records the entered Space's default kernel (`KernelSpecs.specs(space).default`)
   in `metadata.kernelspec.name`, at the explorer, the launcher and the import
-- [ ] T6 — The demo on SM-X216B, and the ADR
+- [x] T6 — The demo on SM-X216B, and the ADR
 
 ## Out of scope
 

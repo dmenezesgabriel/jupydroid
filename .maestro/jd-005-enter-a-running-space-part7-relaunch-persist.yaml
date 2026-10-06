@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# After a kill every row reads Stopped: no server outlives its app (CLOSED-001), and the home
+# reads the processes rather than a remembered state. That the notebooks and the shell's
+# `terminal-saw` are still on disk is the driver's `run-as` half.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Run Thesis \\(space-1\\)"
+- assertNotVisible: ".*Running.*"
+- takeScreenshot: 10-relaunched-both-stopped

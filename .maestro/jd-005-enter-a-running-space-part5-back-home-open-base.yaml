@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# Left inside Thesis at the end of the shell part, the app comes back where it was, and Back
+# reaches the home with Thesis still Running. Base is then run and entered: it lists its own
+# notebook and none of Thesis's three - not in the listing, and not in its Recents.
+- launchApp:
+    stopApp: false
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+# A run notebook can still be dirty when Back lands: the save-before-close gate answers it with a
+# dialog (`SaveBeforeCloseGate`), and Discard leaves it rather than cancelling back into the
+# editor. Absent whenever autosave already flushed - the `when` covers both.
+- runFlow:
+    when:
+      visible: "Discard"
+    commands:
+      - tapOn: "Discard"
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 10000
+- assertVisible: "Run Base \\(base\\)"
+- takeScreenshot: 07-home-thesis-still-running
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Real Kernel.ipynb"
+    timeout: 10000
+- assertNotVisible: "Untitled.ipynb"
+- assertNotVisible: "Thesis Kernel.ipynb"
+- assertNotVisible: "Diagnostics.ipynb"
+- takeScreenshot: 08-base-lists-its-own-and-not-thesiss
+- pressKey: Home
