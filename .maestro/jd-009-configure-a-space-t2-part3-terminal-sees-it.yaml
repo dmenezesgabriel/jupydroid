@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# The terminal inherits the server's environment too: `printenv GREETING` answers the value itself.
+# The answer is tee'd into the workspace rather than read off the canvas - cross-cutting.md §8.6
+# forbids gating on the terminal's per-row Text column, which this device reports as text="" - and
+# the driver's wait_for_workspace_text greps it. `printenv` rather than `echo $GREETING`: Maestro
+# evaluates `${…}` in inputText as JavaScript, so the braced length form cannot be typed at all.
+#
+# `stopApp: false` keeps the Space part 2 entered; at two panes a terminal is reached from a
+# launcher card, and the rail's `+` opens one (SidePanelBar draws the bar's own reach only at one
+# pane).
+- launchApp:
+    stopApp: false
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap settles the IME's connection before typing - the first keystrokes can race it otherwise
+# (p4i-terminal-tablet measured `ech` of `echo` eaten).
+- tapOn:
+    id: "terminal-input"
+- inputText: "printenv GREETING | tee greeting-env.txt"
+- pressKey: Enter
+# The screenshot is evidence, not the gate - the driver greps the tee'd file. The wait gives the
+# shell a beat to answer so the frame shows it.
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 09-terminal-reads-greeting

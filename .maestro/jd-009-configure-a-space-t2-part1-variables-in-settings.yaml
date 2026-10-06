@@ -1,0 +1,68 @@
+appId: com.jupydroid.app
+---
+# Thesis is created as T1's part 1 creates it. In its Settings: a variable is added, a derived
+# name is refused **by name** with Save held, the refused row is removed, and the one good
+# variable is saved. A held control is proven by pressing it - the dialog stays open - because
+# the node Maestro finds reports enabled whatever the button's state (t1 part 1's finding).
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- tapOn: "Add variable"
+- tapOn:
+    id: "space-variable-name-0"
+- inputText: "GREETING"
+- tapOn:
+    id: "space-variable-value-0"
+- inputText: "hello"
+- takeScreenshot: 01-greeting-typed
+- tapOn: "Add variable"
+- tapOn:
+    id: "space-variable-name-1"
+- inputText: "HOME"
+- tapOn:
+    id: "space-variable-value-1"
+- inputText: "/tmp"
+- extendedWaitUntil:
+    visible: "'HOME' is derived from the Space's directory and cannot be set"
+    timeout: 5000
+# The keyboard covers the dialog's button row while a field is focused; dismissing it is what a
+# person does to reach Save at all.
+- hideKeyboard
+- takeScreenshot: 02-home-refused-by-name
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Idle shutdown \\(minutes\\)"
+- takeScreenshot: 03-save-held-while-home-refused
+- tapOn: "Remove variable HOME"
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- takeScreenshot: 04-saved
+# Reopened, the stored row reads back as it was saved - the dialog is the store's own view of it.
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible:
+      id: "space-variable-name-0"
+      text: "GREETING"
+    timeout: 5000
+- assertVisible:
+    id: "space-variable-value-0"
+    text: "hello"
+- takeScreenshot: 05-reopened-with-the-stored-row
+- tapOn: "Cancel"

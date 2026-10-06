@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# The saved variable reaches the kernel through the server's own environment: a cell that prints
+# len(os.environ['GREETING']) prints 5, a value the cell's source cannot satisfy, scoped under
+# "Cell output" besides (scripts/check_maestro_output_assertions.py). The unrun error cell's
+# diagnostic then proves a pylsp spawned for the document - the run opened the session the sync
+# gate rides on - and the driver reads both processes' environments off /proc while they live.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- takeScreenshot: 06-thesis-running
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Env.ipynb"
+    timeout: 10000
+- tapOn: "Env.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "5"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 07-kernel-reads-greeting
+- extendedWaitUntil:
+    visible: ".*diagnostic on line 1: error, undefined name 'never_defined_lsp_name'.*"
+    timeout: 60000
+- takeScreenshot: 08-pylsp-marks-the-unrun-name
