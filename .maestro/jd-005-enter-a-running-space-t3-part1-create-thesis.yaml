@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# Thesis is created. The driver then seeds Thesis's own `home/jupydroid` with a notebook and a
+# marker file base does not hold - a seed force-stops the app, so nothing is run yet.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- takeScreenshot: 01-thesis-created

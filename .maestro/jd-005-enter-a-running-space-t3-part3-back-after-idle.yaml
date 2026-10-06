@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# Thesis's server was stopped by the idle backstop while the app was left. The workspace stays
+# entered, and the next run starts Thesis's server again - not base's.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 10000
+- takeScreenshot: 05-back-still-in-thesis
+# Empty the notebook of results first, so what comes back can only have been recomputed.
+- tapOn: "Kernel actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Clear Outputs of All Cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible:
+    text: "True"
+    childOf: {text: "Cell output"}
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "True"
+      childOf: {text: "Cell output"}
+    timeout: 180000
+- takeScreenshot: 06-thesis-cell-runs-again-on-thesis

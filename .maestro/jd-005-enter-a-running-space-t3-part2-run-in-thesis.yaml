@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# The kernel side belongs to the entered Space: a cell run in Thesis runs on Thesis's server, so
+# `~/thesis-only.txt` - seeded into Thesis's home alone - exists for it. Base is never run, so no
+# base server can have answered.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- assertVisible: "Run Base \\(base\\)"
+- takeScreenshot: 02-thesis-running-base-stopped
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Thesis Kernel.ipynb"
+    timeout: 10000
+- tapOn: "Thesis Kernel.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "True"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 03-thesis-cell-sees-thesiss-home
+- tapOn: "Sessions and Tabs"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 04-running-panel-lists-thesiss-session
+- pressKey: Home
