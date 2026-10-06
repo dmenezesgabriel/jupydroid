@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# Base, uncapped, in a fresh app - relaunching stops Thesis's processes with the app, so base's
+# kernel is the only one the driver can find. The same cell prints how many workers OpenBLAS
+# started at its own default: any positive count, which the driver holds equal to the cores less
+# the calling thread.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- tapOn: "Run Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 120000
+- tapOn: "Open Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Threads.ipynb"
+    timeout: 10000
+- tapOn: "Threads.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "[1-9][0-9]*"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 07-base-numpy-started-workers

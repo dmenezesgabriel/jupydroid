@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# Thesis, capped at 1: the cell counts the kernel's threads before and after `import numpy`, and
+# OpenBLAS capped at one thread starts no workers, so it prints 0 - scoped under "Cell output", so
+# the source cannot satisfy it. The driver then reads the kernel's environment and thread count off
+# /proc while the app is still in front.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- takeScreenshot: 05-thesis-running
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Threads.ipynb"
+    timeout: 10000
+- tapOn: "Threads.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "0"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 06-thesis-numpy-started-no-threads
