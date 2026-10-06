@@ -1,8 +1,10 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.coroutines.test.runTest
@@ -36,19 +38,42 @@ class DiskNotebookRepositoryTest {
   // The id *is* the file name now, suffix included - `Contents.IModel.path`.
   private fun notebookFile(id: String): File = File(tempFolder.root, id)
 
+  /**
+   * A created notebook's `kernelspec` carries `language` too, which `_updateSpec` writes
+   * (`Notebook.withKernelSpec`) and [NotebookFile] does not model - so it is read the way the
+   * repository reads it, ignoring what it does not model.
+   */
+  private val createdFileJson = Json { ignoreUnknownKeys = true }
+
   @Test
   fun createNotebook_writesNbformatFileThatRoundTrips() = runTest {
     val repository = repository()
 
-    val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
+    val created = repository.createNotebook(title = "Untitled", kernel = BASE_SPACE.kernels.single())
 
     assertTrue(notebookFile(created.id).exists())
-    val decoded = Json.decodeFromString<NotebookFile>(notebookFile(created.id).readText())
+    val decoded = createdFileJson.decodeFromString<NotebookFile>(notebookFile(created.id).readText())
     assertEquals(4, decoded.nbformat)
     assertEquals(5, decoded.nbformatMinor)
     assertEquals("python3", decoded.metadata.kernelspec?.name)
     assertTrue(decoded.cells.isEmpty())
-    assertEquals(created, repository.readNotebook(created.id).withoutPreserved())
+    assertEquals(created.withoutPreserved(), repository.readNotebook(created.id).withoutPreserved())
+  }
+
+  /**
+   * nbformat v4 requires `display_name` beside `name` in `metadata.kernelspec`, and the writer could
+   * only supply `python3`'s. A notebook created for any other kernel was written without one, and
+   * this repository then refused to read its own file.
+   */
+  @Test
+  fun createNotebook_writesTheKernelsDisplayNameSoAnyKernelReadsBack() = runTest {
+    val repository = repository()
+
+    val created = repository.createNotebook("Thesis", KernelSpec("xpython", "Python 3.13 (XPython)", "python"))
+
+    val decoded = createdFileJson.decodeFromString<NotebookFile>(notebookFile(created.id).readText())
+    assertEquals("Python 3.13 (XPython)", decoded.metadata.kernelspec?.displayName)
+    assertEquals("xpython", repository.readNotebook(created.id).kernelId)
   }
 
   @Test
@@ -85,7 +110,7 @@ class DiskNotebookRepositoryTest {
   @Test
   fun saveAndRead_keepsCellOutputsAndExecutionCounts() = runTest {
     val repository = repository()
-    val notebook = repository.createNotebook("With Outputs", "python3")
+    val notebook = repository.createNotebook("With Outputs", BASE_SPACE.kernels.single())
     val ran = notebook.copy(
       cells = listOf(
         Cell(

@@ -3,6 +3,7 @@ package com.jupydroid.app.di
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
@@ -138,7 +139,7 @@ class AppContainerTest {
   fun fakeNotebookRepository_roundTrips() = runTest {
     val repository = FakeNotebookRepository()
 
-    val created = repository.createNotebook(title = "Untitled", kernelId = "python3")
+    val created = repository.createNotebook(title = "Untitled", kernel = BASE_SPACE.kernels.single())
     assertEquals("Untitled", repository.readNotebook(created.id).title)
   }
 

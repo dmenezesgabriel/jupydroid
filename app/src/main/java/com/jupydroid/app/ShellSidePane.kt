@@ -158,6 +158,8 @@ fun ShellSidePane(
           ExplorerScreen(
             workspaceRepository = spacePorts.workspaceRepository,
             notebookRepository = spacePorts.notebookRepository,
+            kernelSpecs = spacePorts.kernelSpecs,
+            space = spacePorts.space,
             recentDocuments = spacePorts.recentDocuments,
             explorerSettings = appContainer.explorerSettings,
             // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -

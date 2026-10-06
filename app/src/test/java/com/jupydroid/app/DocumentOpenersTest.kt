@@ -4,9 +4,12 @@ import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.KernelSessionModel
-import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -63,7 +66,7 @@ class DocumentOpenersTest {
     assertNotNull(opened)
     assertEquals(setOf(BASE_SPACE.id), servers.running.value)
     assertEquals(listOf(SpacesHome, Explorer(BASE_SPACE.id)), backStack)
-    assertEquals("Imported", repositories.of(BASE_SPACE.id).readNotebook(opened!!).title)
+    assertEquals("Imported", repositories.of(BASE_SPACE.id).notebookRepository.readNotebook(opened!!).title)
   }
 
   /** Inside a workspace an import stays in the Space already entered, rather than switching to base. */
@@ -79,8 +82,25 @@ class DocumentOpenersTest {
     assertNotNull(opened)
     assertEquals(emptySet<String>(), servers.running.value)
     assertEquals(listOf(SpacesHome, Explorer("space-1")), backStack)
-    assertEquals("Imported", repositories.of("space-1").readNotebook(opened!!).title)
-    assertTrue("written into base too", runCatching { repositories.of(BASE_SPACE.id).readNotebook(opened) }.isFailure)
+    assertEquals("Imported", repositories.of("space-1").notebookRepository.readNotebook(opened!!).title)
+    assertTrue(
+      "written into base too",
+      runCatching {
+        repositories.of(BASE_SPACE.id).notebookRepository.readNotebook(opened)
+      }.isFailure,
+    )
+  }
+
+  /** The import records the entered Space's default kernel; Thesis declares only `xpython`. */
+  @Test
+  fun anImportRecordsTheEnteredSpacesDefaultKernel() = runTest {
+    val backStack = mutableListOf<NavKey>(SpacesHome, Explorer("space-1"))
+    val thesis = Space("space-1", "Thesis", listOf(KernelSpec("xpython", "Python 3.13 (XPython)", "python")))
+    val repositories = SpaceRepositories(mapOf(thesis.id to thesis))
+
+    val opened = backStack.importNotebook("Imported", repositories::of, FakeSpaceServers())
+
+    assertEquals("xpython", repositories.of("space-1").notebookRepository.readNotebook(opened!!).kernelId)
   }
 
   @Test
@@ -93,11 +113,16 @@ class DocumentOpenersTest {
     assertEquals(listOf<NavKey>(SpacesHome), backStack)
   }
 
-  /** One fake repository per Space id, the shape `AppContainer.portsOf` gives the real ones. */
-  private class SpaceRepositories {
-    private val bySpace = mutableMapOf<String, FakeNotebookRepository>()
+  /**
+   * One set of fake ports per Space id, the shape `AppContainer.portsOf` gives the real ones. A Space
+   * not named in [spaces] is [spaceWithId]'s, declaring base's kernels.
+   */
+  private class SpaceRepositories(private val spaces: Map<String, Space> = emptyMap()) {
+    private val bySpace = mutableMapOf<String, EnteredSpacePorts>()
 
-    fun of(spaceId: String): NotebookRepository = bySpace.getOrPut(spaceId) { FakeNotebookRepository() }
+    fun of(spaceId: String): EnteredSpacePorts = bySpace.getOrPut(spaceId) {
+      EnteredSpacePorts(FakeNotebookRepository(), space = spaces[spaceId] ?: spaceWithId(spaceId))
+    }
   }
 
   /** Servers whose only answer to `run` is no. */

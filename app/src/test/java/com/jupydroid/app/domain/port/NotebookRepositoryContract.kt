@@ -1,7 +1,9 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.KernelSpec
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -35,12 +37,25 @@ abstract class NotebookRepositoryContract {
   @Test
   fun savingANotebookKeepsTheEdit() = runTest {
     val repository = repository()
-    val edited = repository.createNotebook(title = "Edited", kernelId = "python3")
+    val edited = repository.createNotebook(title = "Edited", kernel = BASE_SPACE.kernels.single())
 
     repository.saveNotebook(
       repository.readNotebook(edited.id).copy(cells = listOf(Cell("c1", CellKind.CODE, "x = 1"))),
     )
 
     assertEquals(listOf("x = 1"), repository.readNotebook(edited.id).cells.map { it.source })
+  }
+
+  /** A new notebook records the kernel it was created for, whichever the Space's default is. */
+  @Test
+  fun aNewNotebookRecordsItsKernel() = runTest {
+    val repository = repository()
+
+    val created = repository.createNotebook(
+      title = "Thesis",
+      kernel = KernelSpec("xpython", "Python 3.13 (XPython)", "python"),
+    )
+
+    assertEquals("xpython", repository.readNotebook(created.id).kernelId)
   }
 }

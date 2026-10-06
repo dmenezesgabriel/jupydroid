@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.fake
 
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,16 +18,16 @@ class FakeNotebookRepository : NotebookRepository {
   private val notebooks = MutableStateFlow<Map<String, Notebook>>(emptyMap())
   private val written = MutableStateFlow<Map<String, Instant>>(emptyMap())
 
-  override suspend fun createNotebook(title: String, kernelId: String): Notebook {
+  override suspend fun createNotebook(title: String, kernel: KernelSpec): Notebook {
     // The id *is* the name, as it is on disk. It was a UUID here long after the disk
     // repository stopped minting them, so a fake-backed test could pass with an id no real
     // notebook could ever have - and `idBeside` reads a folder out of that id.
     val notebook = Notebook(
       id = title,
       title = title,
-      kernelId = kernelId,
+      kernelId = kernel.name,
       cells = emptyList(),
-    )
+    ).withKernelSpec(kernel.name, kernel)
     put(notebook)
     return notebook
   }

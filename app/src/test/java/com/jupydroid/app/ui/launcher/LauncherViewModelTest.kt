@@ -3,9 +3,11 @@ package com.jupydroid.app.ui.launcher
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
@@ -52,8 +54,15 @@ class LauncherViewModelTest {
       var next = 0
       { ++next }
     },
-  ): LauncherViewModel =
-    LauncherViewModel(notebookRepository, workspaceRepository, terminalGateway, kernelGateway, space, consoleOrdinal)
+  ): LauncherViewModel = LauncherViewModel(
+    notebookRepository,
+    workspaceRepository,
+    terminalGateway,
+    kernelGateway,
+    FakeKernelSpecs(),
+    space,
+    consoleOrdinal,
+  )
 
   private fun card(command: LauncherCommand): LauncherItem = LAUNCHER_ITEMS.single { it.command == command }
 
@@ -80,6 +89,19 @@ class LauncherViewModelTest {
 
     assertEquals(LaunchedDocument.CreatedNotebook("Untitled.ipynb"), launched)
     assertTrue(File(workspace.root, "Untitled.ipynb").exists())
+  }
+
+  /** The card records the entered Space's default kernel; Thesis declares only `xpython`, so a constant cannot pass. */
+  @Test
+  fun launchingANotebookRecordsTheEnteredSpacesDefaultKernel() = runTest {
+    val notebooks = DiskNotebookRepository(workspace.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler))
+    val thesis = Space("space-1", "Thesis", listOf(KernelSpec("xpython", "Python 3.13 (XPython)", "python")))
+    val viewModel = viewModel(notebookRepository = notebooks, space = thesis)
+
+    viewModel.launch(card(LauncherCommand.NEW_NOTEBOOK), "") {}
+    advanceUntilIdle()
+
+    assertEquals("xpython", notebooks.readNotebook("Untitled.ipynb").kernelId)
   }
 
   @Test
@@ -260,8 +282,8 @@ class LauncherViewModelTest {
  */
 private class GatedNotebookRepository(private val delegate: NotebookRepository, val gate: CompletableDeferred<Unit>) :
   NotebookRepository by delegate {
-  override suspend fun createNotebook(title: String, kernelId: String) =
-    delegate.createNotebook(title, kernelId).also { gate.await() }
+  override suspend fun createNotebook(title: String, kernel: KernelSpec) =
+    delegate.createNotebook(title, kernel).also { gate.await() }
 }
 
 /** Counts creates so "the second tap never asked" is asserted, not assumed. */

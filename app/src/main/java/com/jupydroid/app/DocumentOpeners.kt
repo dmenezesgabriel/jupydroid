@@ -6,10 +6,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
-import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.port.KernelSessionModel
-import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.launch
@@ -149,7 +148,7 @@ internal fun ImportedNotebookEffect(
 ) {
   LaunchedEffect(importTitle) {
     importTitle?.let { title ->
-      backStack.importNotebook(title, { appContainer.portsOf(it).notebookRepository }, appContainer.spaceServers)
+      backStack.importNotebook(title, appContainer::portsOf, appContainer.spaceServers)
         ?.let(openDocument)
       onImportConsumed()
     }
@@ -161,21 +160,24 @@ internal fun ImportedNotebookEffect(
  * lands in, and enter that Space. **Inside a workspace it stays in the Space entered**, since the
  * workspace never switches Space in place. **From the home it runs base first**, because a Space is
  * only entered running (the home's Open is gated on it). A refused run or create opens nothing and
- * returns null, the `runCatching` [openNewTerminal] gives a refused mint.
+ * returns null, the `runCatching` [openNewTerminal] gives a refused mint. The notebook records that
+ * Space's default kernel, asked after the run so a running server answers it, as
+ * `ExplorerViewModel.create` does.
  *
  * ```
- * backStack.importNotebook("Imported", { appContainer.portsOf(it).notebookRepository }, spaceServers)
+ * backStack.importNotebook("Imported", appContainer::portsOf, spaceServers)
  * ```
  */
 internal suspend fun MutableList<NavKey>.importNotebook(
   title: String,
-  notebookRepositoryOf: (spaceId: String) -> NotebookRepository,
+  portsOf: (spaceId: String) -> EnteredSpacePorts,
   spaceServers: SpaceServers,
 ): String? {
   val spaceId = enteredSpaceId()
   return runCatching {
     if (!isInWorkspace()) spaceServers.run(spaceId)
-    notebookRepositoryOf(spaceId).createNotebook(title, DEFAULT_KERNEL_ID)
+    val ports = portsOf(spaceId)
+    ports.notebookRepository.createNotebook(title, ports.kernelSpecs.specs(ports.space).defaultSpec)
   }.getOrNull()?.let { notebook ->
     enterWorkspace(spaceId)
     notebook.id

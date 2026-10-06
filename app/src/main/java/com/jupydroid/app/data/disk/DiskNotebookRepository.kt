@@ -2,6 +2,7 @@
 
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.incrementedFileName
@@ -44,9 +45,10 @@ class DiskNotebookRepository(
    * this exact name - by jupyter_server's own `increment_filename`, so `Untitled.ipynb`,
    * `Untitled1.ipynb`, with the counter on the stem.
    */
-  override suspend fun createNotebook(title: String, kernelId: String): Notebook = withContext(ioDispatcher) {
+  override suspend fun createNotebook(title: String, kernel: KernelSpec): Notebook = withContext(ioDispatcher) {
     val free = incrementedFileName("${title.trim()}$NOTEBOOK_SUFFIX") { fileFor(it).exists() }
-    val notebook = Notebook(id = free, title = free, kernelId = kernelId, cells = emptyList())
+    val notebook = Notebook(id = free, title = free, kernelId = kernel.name, cells = emptyList())
+      .withKernelSpec(kernel.name, kernel)
     writeFile(notebook)
     notebook
   }

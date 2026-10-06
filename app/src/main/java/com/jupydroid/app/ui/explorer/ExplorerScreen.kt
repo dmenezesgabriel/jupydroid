@@ -42,11 +42,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.model.shownWhileBrowsing
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -81,6 +83,10 @@ import kotlin.time.Duration.Companion.seconds
 fun ExplorerScreen(
   workspaceRepository: WorkspaceRepository,
   notebookRepository: NotebookRepository,
+  /** The entered Space's kernelspec catalogue, asked for the default a new notebook records. */
+  kernelSpecs: KernelSpecs,
+  /** The entered Space. */
+  space: Space,
   recentDocuments: RecentDocumentsRepository,
   /**
    * Where the Recents section's collapse lives between launches - the reference stores a view's
@@ -125,7 +131,7 @@ fun ExplorerScreen(
   onBack: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
   viewModel: ExplorerViewModel =
-    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository) },
+    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository, kernelSpecs, space) },
   /**
    * The Recents section's own state holder - a record of what was opened, which is `docmanager`'s
    * in the reference and never `filebrowser`'s. Two here because they are two things, not because

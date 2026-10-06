@@ -3,6 +3,10 @@ package com.jupydroid.app.ui.explorer
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeKernelSpecs
+import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -208,6 +212,23 @@ class ExplorerViewModelTest {
 
     assertTrue("Untitled.ipynb" in viewModel.uiState.value.entries.map { it.name })
     assertEquals("Untitled.ipynb", notebooks.readNotebook("Untitled.ipynb").id)
+  }
+
+  /**
+   * A new notebook records the entered Space's default kernel, not a constant: JupyterLab's
+   * `createNew` falls back to the server's own default (`jupyterlab@7f0e690
+   * packages/notebook-extension/src/index.ts`). The Space here declares only `xpython`, so a
+   * hardcoded `python3` cannot pass.
+   */
+  @Test
+  fun aNewNotebookRecordsTheEnteredSpacesDefaultKernel() = runTest {
+    val notebooks = DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler))
+    val thesis = Space("space-1", "Thesis", listOf(KernelSpec("xpython", "Python 3.13 (XPython)", "python")))
+    val viewModel = explorer(notebooks, space = thesis)
+
+    viewModel.create(NewItem.NOTEBOOK)
+
+    assertEquals("xpython", notebooks.readNotebook("Untitled.ipynb").kernelId)
   }
 
   /**
@@ -468,7 +489,8 @@ class ExplorerViewModelTest {
     notebooks: NotebookRepository =
       DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
     workspace: WorkspaceRepository = disk(),
-  ) = ExplorerViewModel(workspace, notebooks)
+    space: Space = BASE_SPACE,
+  ) = ExplorerViewModel(workspace, notebooks, FakeKernelSpecs(), space)
 
   private fun TestScope.disk() = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
 

@@ -22,7 +22,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
@@ -476,6 +478,8 @@ class ExplorerScreenTest {
           // would eat `WorkspaceEntry` rows. The repository is unused by the screen save to
           // construct the ViewModel, so the DiskNotebookRepository(temp.root) is inert here.
           notebookRepository = DiskNotebookRepository(temp.root),
+          kernelSpecs = FakeKernelSpecs(),
+          space = BASE_SPACE,
           recentDocuments = FakeRecentDocumentsRepository(recents),
           explorerSettings = FakeExplorerSettingsRepository(),
           onOpenFile = onOpenFile,

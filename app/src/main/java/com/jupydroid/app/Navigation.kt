@@ -459,6 +459,7 @@ fun MainNavigation(
                   spacePorts.workspaceRepository,
                   spacePorts.terminalGateway,
                   spacePorts.kernelGateway,
+                  spacePorts.kernelSpecs,
                   spacePorts.space,
                   consoleOrdinal = { consoleOrdinal.incrementAndGet() },
                 )

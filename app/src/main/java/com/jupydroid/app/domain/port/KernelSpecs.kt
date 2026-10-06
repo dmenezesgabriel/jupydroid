@@ -13,6 +13,21 @@ data class KernelSpecModels(val default: String, val specs: List<KernelSpec>) {
   fun named(name: String): KernelSpec? = specs.firstOrNull { it.name == name }
 
   /**
+   * The spec [default] names - what a new notebook records when no kernel is chosen, as
+   * `createNew` falls back to the server's default (`jupyterlab@7f0e690
+   * packages/notebook-extension/src/index.ts`). A default the catalogue does not list is refused
+   * rather than written: the notebook would claim a kernel nothing can start.
+   *
+   * ```
+   * KernelSpecModels("python3", listOf(python3)).defaultSpec   // python3
+   * ```
+   */
+  val defaultSpec: KernelSpec
+    get() = checkNotNull(named(default)) {
+      "default kernel '$default' is not among the specs ${specs.map { it.name }}; expected one of them"
+    }
+
+  /**
    * `Private.getDefaultKernel` (`sessioncontext.tsx:1912-1966`), minus its `autoStartDefault`
    * half - the shipped setting defaults false and this app has no setting of its own, so a
    * preference that resolves to nothing answers **null**, which is what "show the picker" means

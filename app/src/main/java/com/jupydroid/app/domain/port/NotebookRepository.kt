@@ -1,5 +1,6 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Notebook
 
 /**
@@ -10,7 +11,15 @@ import com.jupydroid.app.domain.model.Notebook
  * `changes` - is their one home. See ADR-0070.
  */
 interface NotebookRepository {
-  suspend fun createNotebook(title: String, kernelId: String): Notebook
+  /**
+   * A new notebook named [title], recording [kernel] in `metadata.kernelspec` - its name and its
+   * `display_name`, both of which nbformat v4 requires.
+   *
+   * ```
+   * repository.createNotebook("Untitled", kernelSpecs.specs(space).defaultSpec)
+   * ```
+   */
+  suspend fun createNotebook(title: String, kernel: KernelSpec): Notebook
 
   suspend fun readNotebook(id: String): Notebook
 

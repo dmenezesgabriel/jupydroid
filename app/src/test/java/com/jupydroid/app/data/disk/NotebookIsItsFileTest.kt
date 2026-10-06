@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.BASE_SPACE
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -27,7 +28,7 @@ class NotebookIsItsFileTest {
 
   @Test
   fun creatingANotebookNamesTheFileAfterIt() = runTest {
-    repository.createNotebook("Analysis of sales", "python3")
+    repository.createNotebook("Analysis of sales", BASE_SPACE.kernels.single())
 
     assertTrue("Analysis of sales.ipynb" in temp.root.list()!!.toList())
   }
@@ -35,7 +36,7 @@ class NotebookIsItsFileTest {
   /** The id is the *path*, suffix and all - `Contents.IModel.path`, which is what the browser lists. */
   @Test
   fun theIdIsTheFileName() = runTest {
-    val notebook = repository.createNotebook("Analysis of sales", "python3")
+    val notebook = repository.createNotebook("Analysis of sales", BASE_SPACE.kernels.single())
 
     assertEquals("Analysis of sales.ipynb", notebook.id)
     assertEquals("Analysis of sales.ipynb", notebook.title)
@@ -44,9 +45,9 @@ class NotebookIsItsFileTest {
   /** Creating with a name already taken gets a suffix: the user asked for a new notebook. */
   @Test
   fun creatingWithATakenNameIsSuffixed() = runTest {
-    repository.createNotebook("Untitled", "python3")
+    repository.createNotebook("Untitled", BASE_SPACE.kernels.single())
 
-    val second = repository.createNotebook("Untitled", "python3")
+    val second = repository.createNotebook("Untitled", BASE_SPACE.kernels.single())
 
     assertEquals("Untitled1.ipynb", second.id)
     assertTrue(File(temp.root, "Untitled.ipynb").exists())

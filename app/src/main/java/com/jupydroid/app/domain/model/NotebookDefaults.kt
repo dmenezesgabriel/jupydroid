@@ -1,12 +1,12 @@
 package com.jupydroid.app.domain.model
 
 /**
- * The kernel a new notebook is created against when nothing is being chosen.
+ * The id of the one kernelspec the shipped rootfs declares, `python3`.
  *
- * A Jupyter server decides what a *new* notebook runs from its kernelspec list; the server this
- * app ships has one kernel, `python3`. Shared by every screen that creates a notebook, so the id
- * is not carried as a private copy per screen - `HomeViewModel` had one until the explorer grew a
- * `createNotebook` of its own.
+ * A *new* notebook does not read this: it records its Space's own default from `KernelSpecs`
+ * (`ExplorerViewModel.create`), since a Space's catalogue is a property of its rootfs. This names
+ * what that catalogue holds while nothing has been installed into it - [BASE_SPACE]'s declared list
+ * and the `display_name` the writer may add (`data/disk/NotebookJsonWriter.kt`).
  */
 const val DEFAULT_KERNEL_ID = "python3"
 

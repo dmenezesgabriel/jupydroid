@@ -2,10 +2,10 @@ package com.jupydroid.app.ui.launcher
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.untitledNotebookIn
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -48,6 +48,8 @@ class LauncherViewModel(
   private val workspaceRepository: WorkspaceRepository,
   private val terminalGateway: TerminalGateway,
   private val kernelGateway: KernelGateway,
+  /** Asked for [space]'s default kernel, the one a new notebook records, as `ExplorerViewModel.create` does. */
+  private val kernelSpecs: KernelSpecs,
   /** The entered Space, whose server a standalone console's kernel runs on. */
   private val space: Space,
   /**
@@ -96,7 +98,7 @@ class LauncherViewModel(
 
   private suspend fun run(item: LauncherItem, cwd: String): LaunchedDocument = when (item.command) {
     LauncherCommand.NEW_NOTEBOOK -> LaunchedDocument.CreatedNotebook(
-      notebookRepository.createNotebook(untitledNotebookIn(cwd), DEFAULT_KERNEL_ID).id,
+      notebookRepository.createNotebook(untitledNotebookIn(cwd), kernelSpecs.specs(space).defaultSpec).id,
     )
 
     LauncherCommand.NEW_CONSOLE -> mintConsole(cwd)

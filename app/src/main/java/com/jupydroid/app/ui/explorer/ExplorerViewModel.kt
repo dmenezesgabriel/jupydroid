@@ -2,11 +2,12 @@ package com.jupydroid.app.ui.explorer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.untitledNotebookIn
 import com.jupydroid.app.domain.port.FileNameTakenException
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.ROOT_LABEL
@@ -32,7 +33,7 @@ import kotlinx.coroutines.launch
  * directory would re-ask a question it already answers.
  *
  * ```
- * ExplorerViewModel(workspaceRepository).open(entry)
+ * ExplorerViewModel(workspaceRepository, notebookRepository, kernelSpecs, space).open(entry)
  * ```
  */
 class ExplorerViewModel(
@@ -43,6 +44,10 @@ class ExplorerViewModel(
    * server writes content into it (`services/contents/manager.py:605-607`).
    */
   private val notebookRepository: NotebookRepository,
+  /** Asked for [space]'s default kernel, the one a new notebook records - see [create]. */
+  private val kernelSpecs: KernelSpecs,
+  /** The entered Space, whose default kernel a new notebook records. */
+  private val space: Space,
   private val rootLabel: String = ROOT_LABEL,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(ExplorerUiState())
@@ -146,6 +151,11 @@ class ExplorerViewModel(
    * with its counting space, `Untitled.ipynb` written as real nbformat so that opening it is not
    * an error. A notebook goes through the notebook repository rather than
    * `createFile("ipynb")` for that last reason - an empty file with an `.ipynb` name is not one.
+   *
+   * The notebook records [space]'s default kernel, which is what `createNew` falls back to when no
+   * kernel is named (`jupyterlab@7f0e690 packages/notebook-extension/src/index.ts`). The kernel's
+   * own name and never the Space: the notebook belongs to the Space by living in its tree, and a
+   * Space-qualified name would fail to start anywhere else.
    */
   fun create(item: NewItem) = relistAfter {
     val directory = _uiState.value.path
@@ -154,7 +164,7 @@ class ExplorerViewModel(
       NewItem.FOLDER -> workspaceRepository.createFolder(directory)
       NewItem.NOTEBOOK -> notebookRepository.createNotebook(
         untitledNotebookIn(directory),
-        DEFAULT_KERNEL_ID,
+        kernelSpecs.specs(space).defaultSpec,
       ).id
     }
   }

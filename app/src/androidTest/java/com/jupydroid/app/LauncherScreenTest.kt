@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
@@ -35,6 +36,7 @@ class LauncherScreenTest {
     FakeWorkspaceRepository(),
     FakeTerminalGateway(),
     FakeKernelGateway(),
+    FakeKernelSpecs(),
     BASE_SPACE,
   ) { 1 }
 
