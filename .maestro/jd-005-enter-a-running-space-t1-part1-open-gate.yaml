@@ -1,0 +1,62 @@
+appId: com.jupydroid.app
+---
+# Open is enabled only while its row reads Running: on a cold start neither Base nor Thesis can be
+# opened, running Thesis enables Thesis's Open and not Base's, and Open enters that Space. The
+# workspace's ports are still base's at this point, so the flow asserts the gate and the entry, not
+# what the explorer lists.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- assertNotVisible: "Working on Spaces"
+- assertNotVisible: ".*Running.*"
+- takeScreenshot: 01-both-stopped-neither-opens
+# Pressed rather than read: the node Maestro finds by Open's name is a child that reports enabled
+# whatever the button's state, so the gate is shown by a press that does not leave the home.
+- tapOn: "Open Base \\(base\\)"
+- tapOn: "Open Thesis \\(space-1\\)"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Files"
+- assertVisible: "Run Thesis \\(space-1\\)"
+
+- tapOn: "Run Thesis \\(space-1\\)"
+# Run lasts until the server serves, and the row's state comes from the process, not the tap.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- assertVisible: "Run Base \\(base\\)"
+- takeScreenshot: 02-thesis-running-only-thesis-opens
+- tapOn: "Open Base \\(base\\)"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Files"
+
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- assertNotVisible: "Open Thesis \\(space-1\\)"
+- takeScreenshot: 03-thesis-entered
+
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 10000
+- assertVisible: "Run Base \\(base\\)"
+- takeScreenshot: 04-home-thesis-still-running
