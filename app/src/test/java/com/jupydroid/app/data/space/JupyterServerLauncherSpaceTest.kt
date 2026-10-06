@@ -2,6 +2,7 @@ package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.SpaceSettings
+import com.jupydroid.app.domain.model.spaceProcessVariables
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -87,6 +88,26 @@ class JupyterServerLauncherSpaceTest {
     assertTrue(serverEnv().toString(), "GREETING=bye" in serverEnv())
   }
 
+  /**
+   * The cap reaches the server as both names OpenBLAS reads, and no cap as neither - beside the
+   * derived set rather than clobbered by it.
+   */
+  @Test
+  fun aThreadCapGivesTheServerBothNamesAndNoCapGivesNeither() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    spaceOneSettings = SpaceSettings(threadCap = 1)
+    launcher.start(spaceOne)
+    val capped = serverEnv()
+    killSpaceOnesServer()
+
+    spaceOneSettings = SpaceSettings()
+    launcher.start(spaceOne)
+
+    assertTrue(capped.toString(), "OPENBLAS_NUM_THREADS=1" in capped && "OMP_NUM_THREADS=1" in capped)
+    assertTrue(serverEnv().toString(), serverEnv().none { it.startsWith("OPENBLAS_NUM_THREADS=") })
+    assertTrue(serverEnv().toString(), serverEnv().none { it.startsWith("OMP_NUM_THREADS=") })
+  }
+
   private fun serverArgs(): List<String> = File(spaceOneDir(), "run/args").readLines()
 
   private fun serverEnv(): List<String> = File(spaceOneDir(), "run/env").readLines()
@@ -140,7 +161,7 @@ class JupyterServerLauncherSpaceTest {
     installInterpreter(spaceOneDir())
     return JupyterServerLauncher(
       runtimeFor = { space, settings ->
-        SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir, variables = settings.environmentVariables)
+        SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir, variables = settings.spaceProcessVariables())
       },
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
       settingsFor = { spaceOneSettings },

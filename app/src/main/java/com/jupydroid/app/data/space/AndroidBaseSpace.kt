@@ -5,6 +5,7 @@ import android.os.Build
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.SpaceSettings
+import com.jupydroid.app.domain.model.spaceProcessVariables
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
@@ -50,7 +51,7 @@ fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir
  */
 fun spaceServerLauncher(context: Context, settingsFor: suspend (Space) -> SpaceSettings): JupyterServerLauncher =
   JupyterServerLauncher(
-    runtimeFor = { space, settings -> spaceRuntime(context, space, settings.environmentVariables) },
+    runtimeFor = { space, settings -> spaceRuntime(context, space, settings.spaceProcessVariables()) },
     dirsFor = { space -> spaceDirs(context, space) },
     settingsFor = settingsFor,
     log = LogcatSpaceLifecycleLog,
@@ -105,7 +106,7 @@ fun baseSpaceLanguageServerPort(context: Context, spaceRepository: SpaceReposito
   return StdioLanguageServer(
     installSpace = { baseSpaceInstaller(context).installIfNeeded() },
     spawn = { space, _ ->
-      val variables = spaceRepository.storedSettingsOf(space).environmentVariables
+      val variables = spaceRepository.storedSettingsOf(space).spaceProcessVariables()
       startPylsp(spaceRuntime(context, space, variables), spaceDirs(context, space))
     },
     log = LogcatSpaceLifecycleLog,

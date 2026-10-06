@@ -32,6 +32,29 @@ val DERIVED_VARIABLE_NAMES: Set<String> = setOf(
   "PROOT_TMP_DIR",
 )
 
+/**
+ * The names [SpaceSettings.threadCap] is written as, which a person's own variables may not set
+ * around it. Both OpenBLAS builds in the shipped rootfs read them
+ * (`usr/lib/python3.12/site-packages/numpy.libs/libscipy_openblas64_-*.so`,
+ * `scipy.libs/libscipy_openblas-*.so`), `OPENBLAS_NUM_THREADS` first; `OMP_NUM_THREADS` is the
+ * one any OpenMP library reads too.
+ */
+val THREAD_CAP_VARIABLE_NAMES: List<String> = listOf("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS")
+
+/**
+ * Everything a Space's settings put in its processes' environment: the person's own variables,
+ * and the thread cap as each of [THREAD_CAP_VARIABLE_NAMES]. `SpaceRuntime` lays it under the
+ * derived set.
+ *
+ * ```
+ * SpaceSettings(threadCap = 1).spaceProcessVariables()   // OPENBLAS_NUM_THREADS=1, OMP_NUM_THREADS=1
+ * ```
+ */
+fun SpaceSettings.spaceProcessVariables(): Map<String, String> {
+  val cap = threadCap ?: return environmentVariables
+  return environmentVariables + THREAD_CAP_VARIABLE_NAMES.associateWith { cap.toString() }
+}
+
 /** What a variable's name must look like: the portable shell name (POSIX.1-2017 §3.235). */
 const val VARIABLE_NAME_SHAPE: String = "[A-Za-z_][A-Za-z0-9_]*"
 
@@ -45,11 +68,13 @@ private val VARIABLE_NAME = Regex(VARIABLE_NAME_SHAPE)
  *
  * ```
  * variableNameRefusal("HOME")       // "'HOME' is derived from the Space's directory and cannot be set"
+ * variableNameRefusal("OMP_NUM_THREADS")   // "'OMP_NUM_THREADS' is set by the Space's thread cap ..."
  * variableNameRefusal("GREETING")   // null
  * ```
  */
 fun variableNameRefusal(name: String): String? = when {
   name in DERIVED_VARIABLE_NAMES -> "'$name' is derived from the Space's directory and cannot be set"
+  name in THREAD_CAP_VARIABLE_NAMES -> "'$name' is set by the Space's thread cap and cannot be set"
   !VARIABLE_NAME.matches(name) -> "variable name '$name'; expected $VARIABLE_NAME_SHAPE"
   else -> null
 }

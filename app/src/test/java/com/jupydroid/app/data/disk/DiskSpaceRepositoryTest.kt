@@ -213,7 +213,16 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
     assertEquals(mapOf("GREETING" to "hello"), read.environmentVariables)
   }
 
-  /** Settings written before a Space had variables keep their idle time and read no variables. */
+  @Test
+  fun aThreadCapSurvivesTheNextLaunch() = runTest {
+    val created = repository().create("Thesis")
+
+    openStore().configure(created.id, SpaceSettings(threadCap = 1))
+
+    assertEquals(1, openStore().spaces().single { it.id == created.id }.settings.threadCap)
+  }
+
+  /** Settings written before a Space had variables or a cap keep their idle time and read neither. */
   @Test
   fun settingsWithNoVariablesReadNone() = runTest {
     val created = repository().create("Thesis")
@@ -222,7 +231,7 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
 
     val read = openStore().spaces().single { it.id == created.id }.settings
 
-    assertEquals(SpaceSettings(idleShutdownMinutes = 2, environmentVariables = emptyMap()), read)
+    assertEquals(SpaceSettings(idleShutdownMinutes = 2, environmentVariables = emptyMap(), threadCap = null), read)
   }
 
   /** A config written before Spaces had settings reads the default and keeps its name. */

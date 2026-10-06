@@ -57,6 +57,16 @@ const val MAX_IDLE_SHUTDOWN_MINUTES: Int = 24 * 60
 val IDLE_SHUTDOWN_MINUTES_RANGE: IntRange = 0..MAX_IDLE_SHUTDOWN_MINUTES
 
 /**
+ * The most threads OpenBLAS can run: the numpy and scipy wheels' OpenBLAS is built with
+ * `NUM_THREADS=64` (`MacPython/openblas-libs@2b6df42 tools/build_steps.sh`), and clamps any larger
+ * request to it, so a higher cap would promise what no library honours.
+ */
+const val MAX_THREAD_CAP: Int = 64
+
+/** Every thread cap a Space may hold - the port's rule and the dialog's. */
+val THREAD_CAP_RANGE: IntRange = 1..MAX_THREAD_CAP
+
+/**
  * What a person set about how one Space runs, kept apart from its identity in [SpaceConfig].
  *
  * One value rather than a parameter per field, so the port's `configure` takes whatever the
@@ -69,11 +79,15 @@ val IDLE_SHUTDOWN_MINUTES_RANGE: IntRange = 0..MAX_IDLE_SHUTDOWN_MINUTES
  * @property environmentVariables the person's own variables, in the order they were added, given to
  *   the Space's server - and so to its kernels and terminals, which inherit its environment - and to
  *   its `pylsp`. Layered *under* the derived set, and no name may be one of
- *   [DERIVED_VARIABLE_NAMES].
+ *   [DERIVED_VARIABLE_NAMES] or [THREAD_CAP_VARIABLE_NAMES].
+ * @property threadCap how many threads the numeric libraries may each run, written as every name in
+ *   [THREAD_CAP_VARIABLE_NAMES] ([spaceProcessVariables]); null leaves each library its own
+ *   default, which on OpenBLAS is one thread per core.
  */
 data class SpaceSettings(
   val idleShutdownMinutes: Int = DEFAULT_IDLE_SHUTDOWN_MINUTES,
   val environmentVariables: Map<String, String> = emptyMap(),
+  val threadCap: Int? = null,
 )
 
 /**
@@ -87,6 +101,9 @@ data class SpaceSettings(
 fun requireValidSpaceSettings(settings: SpaceSettings) {
   require(settings.idleShutdownMinutes in IDLE_SHUTDOWN_MINUTES_RANGE) {
     "idle shutdown of ${settings.idleShutdownMinutes} minutes; expected $IDLE_SHUTDOWN_MINUTES_RANGE, where 0 is never"
+  }
+  require(settings.threadCap == null || settings.threadCap in THREAD_CAP_RANGE) {
+    "thread cap of ${settings.threadCap}; expected $THREAD_CAP_RANGE, or none for the libraries' default"
   }
   settings.environmentVariables.forEach { (name, value) ->
     val refusal = variableNameRefusal(name) ?: variableValueRefusal(name, value)

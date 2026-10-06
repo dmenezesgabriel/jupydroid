@@ -3,6 +3,7 @@ package com.jupydroid.app.domain.port
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.DEFAULT_IDLE_SHUTDOWN_MINUTES
 import com.jupydroid.app.domain.model.MAX_IDLE_SHUTDOWN_MINUTES
+import com.jupydroid.app.domain.model.MAX_THREAD_CAP
 import com.jupydroid.app.domain.model.SPACE_ID_PREFIX
 import com.jupydroid.app.domain.model.SpaceSettings
 import kotlinx.coroutines.test.runTest
@@ -180,6 +181,48 @@ abstract class SpaceRepositoryContract {
       )
     }
     assertEquals(created, repository.spaces().single { it.id == created.id })
+  }
+
+  @Test
+  fun aConfiguredThreadCapIsStored() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+
+    repository.configure(created.id, SpaceSettings(threadCap = 1))
+
+    assertEquals(1, repository.spaces().single { it.id == created.id }.settings.threadCap)
+  }
+
+  /** A cap outside `1..64` is refused by value, and the stored record is not touched. */
+  @Test
+  fun aThreadCapOutsideTheRangeIsRefusedAndNothingIsWritten() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+
+    listOf(0, MAX_THREAD_CAP + 1).forEach { cap ->
+      val refusal = runCatching { repository.configure(created.id, SpaceSettings(threadCap = cap)) }.exceptionOrNull()
+
+      assertTrue("expected IllegalArgumentException, was $refusal", refusal is IllegalArgumentException)
+      assertTrue("message must name $cap, was '${refusal?.message}'", refusal?.message?.contains("$cap") == true)
+    }
+    assertEquals(created, repository.spaces().single { it.id == created.id })
+  }
+
+  /** The cap's names are the cap's: a variable cannot set one around it. */
+  @Test
+  fun aThreadCapNameIsRefusedAsAVariable() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+
+    val refusal = runCatching {
+      repository.configure(created.id, SpaceSettings(environmentVariables = mapOf("OMP_NUM_THREADS" to "8")))
+    }.exceptionOrNull()
+
+    assertTrue("expected IllegalArgumentException, was $refusal", refusal is IllegalArgumentException)
+    assertTrue(
+      "message must name it, was '${refusal?.message}'",
+      refusal?.message?.contains("'OMP_NUM_THREADS'") == true,
+    )
   }
 
   /** A Space's own variables are stored in the order they were given, and read back as written. */

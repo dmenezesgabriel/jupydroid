@@ -23,7 +23,7 @@ Who: a human on **`SM-X216B`**. Cells run, so rule 2 requires the arm64 tablet. 
    cannot match the cell's own source.
 6. In a fresh kernel, run `import os; n = len(os.listdir('/proc/self/task')); import numpy; print(len(os.listdir('/proc/self/task')) - n)`.
    It prints `0`, because OpenBLAS capped at 1 starts no workers. The same cell on base, uncapped,
-   prints the core count minus one. T3 measures both before this step is trusted.
+   prints the core count minus one: `7` on this tablet's 8 cores, as T3 measured.
 7. In a terminal, `echo ${#GREETING}` prints `5`.
 8. Close the notebook's tab and return to the home with the app in front. Within ~3 min Thesis reads
    Stopped by itself (2 min idle + the 60 s cull poll); base, at its default, does not.
@@ -176,7 +176,7 @@ amends ADR-0072, which forbids a stored environment per Space.
 - [x] T2 — **Environment variables**: added, edited and removed in settings, with a derived name
   refused by name. They are layered under the derived environment in `SpaceRuntime`, so the server,
   kernels and terminals see them. `pylsp` is settled
-- [ ] T3 — **Thread cap**: one number written as `OPENBLAS_NUM_THREADS` and `OMP_NUM_THREADS`, both
+- [x] T3 — **Thread cap**: one number written as `OPENBLAS_NUM_THREADS` and `OMP_NUM_THREADS`, both
   locked in the editor. On device, the kernel's `/proc/self/task` count after a matmul is measured
   capped and uncapped
 - [ ] T4 — **Startup script**: run under proot in the Space's environment before the server on every
