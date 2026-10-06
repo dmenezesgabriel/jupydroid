@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# Thesis -> Settings: it opens at the default 5, a day and a minute cannot be saved, 2 is saved.
+# Save's state is shown by pressing it, for the reason part 1 gives: a held Save leaves the
+# dialog open, a live one closes it.
+- launchApp:
+    stopApp: false
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- assertVisible:
+    id: "space-idle-shutdown-field"
+    text: "5"
+- tapOn:
+    id: "space-idle-shutdown-field"
+- eraseText: 10
+- inputText: "1441"
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Idle shutdown \\(minutes\\)"
+- takeScreenshot: 04-past-a-day-cannot-be-saved
+- tapOn:
+    id: "space-idle-shutdown-field"
+- eraseText: 10
+- inputText: "2"
+- takeScreenshot: 05-two-minutes-typed
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- takeScreenshot: 06-saved

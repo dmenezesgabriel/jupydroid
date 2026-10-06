@@ -1,0 +1,43 @@
+appId: com.jupydroid.app
+---
+# Cold start with Thesis created: both rows read Stopped and both offer Settings. Running base
+# takes base's Settings away and leaves Thesis's - Settings is Open's mirror.
+#
+# Pressed rather than read, as the Open gate is: the node Maestro finds by the control's name is
+# a child that reports enabled whatever the button's state, so `enabled: false` could never fail.
+# A held Settings opens no dialog; a live one does.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- assertNotVisible: ".*Running.*"
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- takeScreenshot: 01-base-stopped-settings-opens
+- tapOn: "Cancel"
+- tapOn: "Run Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 60000
+- tapOn: "Settings Base \\(base\\)"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Idle shutdown \\(minutes\\)"
+- takeScreenshot: 02-base-running-its-settings-held
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- takeScreenshot: 03-thesis-stopped-its-settings-open
+- tapOn: "Cancel"

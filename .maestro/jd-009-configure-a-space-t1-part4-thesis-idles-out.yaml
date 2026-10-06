@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# The app stays in front and nothing is opened. Thesis, at 2 minutes, stops itself within its
+# 120 s plus the 60 s cull poll; base, at 300 s, is still running when it does.
+- launchApp:
+    stopApp: false
+- assertVisible: "Stop Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 200000
+- assertVisible: "Stop Base \\(base\\)"
+- takeScreenshot: 10-thesis-stopped-itself-base-still-running

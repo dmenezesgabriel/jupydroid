@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# After a kill: Thesis's Settings still reads 2 and base's the default 5. Then both run - the
+# driver reads each server's timers off its command line.
+- launchApp
+- extendedWaitUntil:
+    visible: "Settings Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- assertVisible:
+    id: "space-idle-shutdown-field"
+    text: "2"
+- takeScreenshot: 07-thesis-still-two-after-relaunch
+- tapOn: "Cancel"
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- assertVisible:
+    id: "space-idle-shutdown-field"
+    text: "5"
+- takeScreenshot: 08-base-at-the-default
+- tapOn: "Cancel"
+- tapOn: "Run Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 60000
+- tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 60000
+- takeScreenshot: 09-both-running
