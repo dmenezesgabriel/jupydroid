@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# The driver sends a VIEW intent for an `.ipynb` while Thesis is still entered. The app is already
+# running, so the flow does not launch it: a launch would cold-start the home, and the import would
+# then land in base. Inside a workspace the import stays in the Space entered
+# (`DocumentOpenersTest.anImportInsideAWorkspaceStaysInTheEnteredSpace`).
+- extendedWaitUntil:
+    visible: ".*Intro to NumPy.ipynb.*"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 05-import-opened-in-thesis

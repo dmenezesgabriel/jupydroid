@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# A new notebook made inside Thesis records Thesis's default kernel, from the explorer's New menu
+# and from the Launcher's card. The file's `metadata.kernelspec` is the driver's to read with
+# `run-as`: a screen cannot show what was written.
+#
+# Thesis was copied from base, so its default is `python3` like base's. What this flow can tell
+# apart is where the file lands and that it reads back with a `display_name`; which default is
+# asked for is `ExplorerViewModelTest.aNewNotebookRecordsTheEnteredSpacesDefaultKernel`'s.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- takeScreenshot: 02-thesis-entered-empty
+
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- takeScreenshot: 03-explorer-made-untitled
+
+- tapOn:
+    id: "launcher-card-NEW_NOTEBOOK"
+- extendedWaitUntil:
+    visible: ".*Untitled1.ipynb.*"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 04-launcher-made-untitled1
