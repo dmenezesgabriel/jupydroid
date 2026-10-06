@@ -74,7 +74,7 @@ class SaveFailureBannerTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = {
+            enteredSpacePorts = { _, _ ->
               EnteredSpacePorts(
                 notebookRepository = VanishedNotebookRepository(readable),
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),

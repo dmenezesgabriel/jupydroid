@@ -7,8 +7,11 @@ import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
+import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
+import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
+import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
@@ -20,6 +23,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
+import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 
@@ -80,4 +84,22 @@ class EnteredSpacePorts(
   val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
   /** `notebook:export-to-format`, over this Space's own nbconvert, which resolves paths in its root. */
   val notebookExporter: NotebookExporter = FakeNotebookExporter(),
-)
+  /**
+   * This Space's shells, on its own `jupyter_server`. Its fake echoes what is typed, so the terminal
+   * screen composes and takes input on a device with no Space; only the shell is missing.
+   */
+  terminalGateway: TerminalGateway = FakeTerminalGateway(),
+  /**
+   * The app's one count of open shells, across every Space - what `IdleServerStopper` reads, so a
+   * shell open in any Space keeps the app from being left idle. Not a `val`, like
+   * [kernelSessionRegistry]: plumbing for [terminalGateway], not a port.
+   */
+  activeTerminals: ActiveTerminals = ActiveTerminals(),
+) {
+  /**
+   * `terminal:create-new`, which JupyterLab adds to `'main'` as a `MainAreaWidget` rather than to a
+   * panel (`packages/terminal-extension/src/index.ts:523-524`) - counted under [space], since every
+   * Space's server names its first shell `"1"` (`ActiveTerminals`).
+   */
+  val terminalGateway: TerminalGateway = ActivityTrackedTerminalGateway(terminalGateway, activeTerminals, space.id)
+}

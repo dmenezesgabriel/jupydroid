@@ -285,8 +285,10 @@ interface LanguageServerPort {
   val diagnostics: SharedFlow<PublishDiagnostics>
 
   /**
-   * `shutdown` + `exit`, the process ended - the rule for a subprocess this app owns: it dies
-   * with the Space, never outliving it. A [space] whose server never ran stops as a no-op.
+   * `shutdown` + `exit` to every Space's server, each process ended - the rule for a subprocess
+   * this app owns: it dies with the Spaces, never outliving them. What leaving the app idle does,
+   * beside `SpaceServers.stopAll`; nothing running stops as a no-op, and the next ask starts its
+   * Space's server again.
    */
-  suspend fun stop(space: Space)
+  suspend fun stopAll()
 }

@@ -170,6 +170,26 @@ class SpacesHomeNavigationTest {
     assertEquals(emptyList<String>(), runningIn(BASE_SPACE.id))
   }
 
+  /**
+   * A shell opened inside Thesis runs on Thesis's terminal port, and base's list stays empty - so
+   * Thesis's Running panel shows it and base's never does.
+   */
+  @Test
+  fun aTerminalOpenedInAnotherSpaceIsListedThereAndNotInBase() {
+    startApp(twoPane = false)
+    compose.enterSpace(THESIS_NAME, THESIS_ID)
+    waitForText(THESIS_FILE)
+
+    compose.onNodeWithContentDescription("New terminal").performClick()
+    compose.waitUntil(TIMEOUT_MILLIS) { terminalsIn(THESIS_ID).isNotEmpty() }
+
+    assertEquals(listOf("1"), terminalsIn(THESIS_ID))
+    assertEquals(emptyList<String>(), terminalsIn(BASE_SPACE.id))
+  }
+
+  private fun terminalsIn(spaceId: String): List<String> =
+    runBlocking { container.portsOf(spaceId).terminalGateway.running().map { it.name } }
+
   private fun runningIn(spaceId: String): List<String> =
     runBlocking { container.portsOf(spaceId).kernelSessions.running().map { it.path } }
 
@@ -190,7 +210,7 @@ class SpacesHomeNavigationTest {
 
   private val container by lazy {
     AppContainer(
-      enteredSpacePorts = { spaceId ->
+      enteredSpacePorts = { spaceId, _ ->
         EnteredSpacePorts(
           notebookRepository = DiskNotebookRepository(workspaceOf(spaceId)),
           workspaceRepository = DiskWorkspaceRepository(workspaceOf(spaceId)),

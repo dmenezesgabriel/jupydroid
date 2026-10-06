@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
@@ -73,7 +72,7 @@ class NotebookCompletion(
     toCompletionResult(
       synced,
       cellId,
-      languageServer.completion(BASE_SPACE, synced.uri, position),
+      languageServer.completion(document.space, synced.uri, position),
       code,
       cursorOffset,
     )

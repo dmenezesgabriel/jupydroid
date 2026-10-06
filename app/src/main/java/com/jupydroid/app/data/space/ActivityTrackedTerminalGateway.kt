@@ -22,19 +22,22 @@ import kotlinx.coroutines.flow.onEach
  *
  * ```
  * val terminals = ActiveTerminals()
- * val gateway = ActivityTrackedTerminalGateway(FakeTerminalGateway(), terminals)
+ * val gateway = ActivityTrackedTerminalGateway(FakeTerminalGateway(), terminals, spaceId = "base")
  * gateway.open() // terminals.open emits 1
  * ```
  */
 class ActivityTrackedTerminalGateway(
   private val gateway: TerminalGateway,
   private val activeTerminals: ActiveTerminals,
+  /** The Space whose server [gateway] talks to - what its names are counted under. */
+  private val spaceId: String,
 ) : TerminalGateway {
-  override suspend fun open(cwd: String?): TerminalSession = gateway.open(cwd).also { activeTerminals.minted(it.name) }
+  override suspend fun open(cwd: String?): TerminalSession =
+    gateway.open(cwd).also { activeTerminals.minted(spaceId, it.name) }
 
   /** The server's list is the truth the counter approximates - every ask re-aligns it. */
   override suspend fun running(): List<TerminalSession> =
-    gateway.running().also { activeTerminals.reconciled(it.map(TerminalSession::name)) }
+    gateway.running().also { activeTerminals.reconciled(spaceId, it.map(TerminalSession::name)) }
 
   /**
    * [TerminalEvent.Ended] is where a death that was never a [close] surfaces - a shell that
@@ -52,7 +55,7 @@ class ActivityTrackedTerminalGateway(
 
   override suspend fun close(session: TerminalSession) {
     gateway.close(session)
-    activeTerminals.ended(session.name)
+    activeTerminals.ended(spaceId, session.name)
   }
 
   private suspend fun reconcile() {
@@ -64,6 +67,6 @@ class ActivityTrackedTerminalGateway(
       // A refused list keeps the last belief, as `keepingLastGood` keeps the panel's rows.
       return
     }
-    activeTerminals.reconciled(names)
+    activeTerminals.reconciled(spaceId, names)
   }
 }

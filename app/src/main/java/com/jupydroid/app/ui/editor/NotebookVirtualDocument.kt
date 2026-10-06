@@ -22,7 +22,7 @@ import java.net.URI
  *
  * ```
  * val document = NotebookVirtualDocument(notebookId, cells)
- * languageServer.changeDocument(BASE_SPACE, document.uri, document.text)
+ * languageServer.changeDocument(space, document.uri, document.text)
  * document.positionOf(cellId, cursorOffset)
  * ```
  */

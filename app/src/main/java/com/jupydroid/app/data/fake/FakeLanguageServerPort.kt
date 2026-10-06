@@ -107,7 +107,7 @@ class FakeLanguageServerPort : LanguageServerPort {
   val opened = mutableListOf<String>()
   val changes = mutableListOf<String>()
   val closed = mutableListOf<String>()
-  var stops = 0
+  var stopAllCalls = 0
     private set
 
   /**
@@ -170,8 +170,8 @@ class FakeLanguageServerPort : LanguageServerPort {
     return renameAnswer ?: probeRename(uri, newName)
   }
 
-  override suspend fun stop(space: Space) {
-    stops++
+  override suspend fun stopAll() {
+    stopAllCalls++
   }
 
   private companion object {

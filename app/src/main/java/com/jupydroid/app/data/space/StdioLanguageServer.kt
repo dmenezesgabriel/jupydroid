@@ -99,6 +99,18 @@ class StdioLanguageServer(
       documents[uri] = SyncedDocument(version = 0, text = text)
       channel.notify("textDocument/didOpen", LspWire.didOpenParams(uri, languageId, text))
     }
+
+    /** `shutdown` then `exit`, the grace, then a destroy for a process that would not go. */
+    suspend fun shutDown() = withContext(ioDispatcher + NonCancellable) {
+      withTimeoutOrNull(shutdownGrace) {
+        runCatching { channel.request("shutdown", buildJsonObject {}) }
+        runCatching { channel.notify("exit", buildJsonObject {}) }
+        process.waitFor(shutdownGrace.inWholeMilliseconds, TimeUnit.MILLISECONDS)
+      }
+      diagnosticsPump.cancel()
+      channel.close()
+      if (process.isAlive) process.destroy()
+    }
   }
 
   override suspend fun capabilities(space: Space): LanguageCapabilities = pool.serverFor(space).capabilities
@@ -285,18 +297,10 @@ class StdioLanguageServer(
     }
   }
 
-  override suspend fun stop(space: Space) {
-    val server = pool.remove(space) ?: return
-    log.reached("lsp.stop", mapOf("space" to space.id))
-    withContext(ioDispatcher + NonCancellable) {
-      withTimeoutOrNull(shutdownGrace) {
-        runCatching { server.channel.request("shutdown", buildJsonObject {}) }
-        runCatching { server.channel.notify("exit", buildJsonObject {}) }
-        server.process.waitFor(shutdownGrace.inWholeMilliseconds, TimeUnit.MILLISECONDS)
-      }
-      server.diagnosticsPump.cancel()
-      server.channel.close()
-      if (server.process.isAlive) server.process.destroy()
+  override suspend fun stopAll() {
+    pool.removeAll().forEach { (spaceId, server) ->
+      log.reached("lsp.stop", mapOf("space" to spaceId))
+      server.shutDown()
     }
   }
 
@@ -330,8 +334,13 @@ class StdioLanguageServer(
       startServer(space)
     }
 
-    /** Out of the map without a shutdown - the caller owns the graceful `shutdown`/`exit` pair. */
-    suspend fun remove(space: Space): RunningServer? = startup.withLock { servers.remove(space.id) }
+    /**
+     * Every server out of the map without a shutdown - the caller owns the graceful
+     * `shutdown`/`exit` pair. Under the one lock, so no handshake lands between two removes.
+     */
+    suspend fun removeAll(): Map<String, RunningServer> = startup.withLock {
+      servers.toMap().also { servers.clear() }
+    }
 
     /**
      * Spawns, handshakes and registers a fresh server for [space] - called under [startup]'s

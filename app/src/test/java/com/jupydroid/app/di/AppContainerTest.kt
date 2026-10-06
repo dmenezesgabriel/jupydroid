@@ -1,11 +1,13 @@
 package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -74,6 +76,35 @@ class AppContainerTest {
     assertEquals(emptySet<String>(), container.spaceServers.running.value)
   }
 
+  /**
+   * The language server dies with the Spaces, every Space's and not base's alone: Thesis's `pylsp`
+   * left behind keeps an interpreter alive for an app nobody is using.
+   */
+  @Test
+  fun leavingTheAppIdle_stopsEverySpacesLanguageServer() = runTest {
+    val languageServer = FakeLanguageServerPort()
+    val container = AppContainer(languageServer = languageServer, applicationScope = backgroundScope)
+
+    container.idleServerStopper.onAppStopped()
+    advanceTimeBy(31.seconds)
+    runCurrent()
+
+    assertEquals(1, languageServer.stopAllCalls)
+  }
+
+  /**
+   * Each Space's shells are its own server's, and every one of them holds the app awake: a shell in
+   * Thesis is not in base's list, and base's empty list does not erase it from the count.
+   */
+  @Test
+  fun eachSpacesTerminalsAreItsOwnAndAllKeepTheAppAwake() = runTest {
+    val container = AppContainer()
+    container.portsOf("space-1").terminalGateway.open(cwd = null)
+
+    assertEquals(emptyList<String>(), container.portsOf("base").terminalGateway.running().map { it.name })
+    assertEquals(1, container.activeTerminals.open.first())
+  }
+
   /** A device with no Space wiring still lists the base Space, as every installed device holds it. */
   @Test
   fun container_defaultsSpaceRepositoryToAFakeHoldingBase() = runTest {
@@ -90,7 +121,7 @@ class AppContainerTest {
   fun portsOf_buildsEachSpacesSetOnceAndKeepsThemApart() {
     val built = mutableListOf<String>()
     val container = AppContainer(
-      enteredSpacePorts = { spaceId ->
+      enteredSpacePorts = { spaceId, _ ->
         built += spaceId
         EnteredSpacePorts(FakeNotebookRepository())
       },

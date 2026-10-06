@@ -19,7 +19,7 @@ class ActivityTrackedTerminalGatewayTest {
   @Test
   fun openIncrementsTheCount() = runTest {
     val activeTerminals = ActiveTerminals()
-    val gateway = ActivityTrackedTerminalGateway(FakeTerminalGateway(), activeTerminals)
+    val gateway = ActivityTrackedTerminalGateway(FakeTerminalGateway(), activeTerminals, spaceId = "base")
 
     gateway.open()
 
@@ -29,7 +29,7 @@ class ActivityTrackedTerminalGatewayTest {
   @Test
   fun closeDecrementsTheCount() = runTest {
     val activeTerminals = ActiveTerminals()
-    val gateway = ActivityTrackedTerminalGateway(FakeTerminalGateway(), activeTerminals)
+    val gateway = ActivityTrackedTerminalGateway(FakeTerminalGateway(), activeTerminals, spaceId = "base")
     val session = gateway.open()
 
     gateway.close(session)
@@ -40,7 +40,7 @@ class ActivityTrackedTerminalGatewayTest {
   @Test
   fun openStillForwardsToTheWrappedGateway() = runTest {
     val fake = FakeTerminalGateway()
-    val gateway = ActivityTrackedTerminalGateway(fake, ActiveTerminals())
+    val gateway = ActivityTrackedTerminalGateway(fake, ActiveTerminals(), spaceId = "base")
 
     gateway.open(cwd = "notebooks")
 
@@ -50,7 +50,7 @@ class ActivityTrackedTerminalGatewayTest {
   @Test
   fun runningStillForwardsToTheWrappedGateway() = runTest {
     val fake = FakeTerminalGateway()
-    val gateway = ActivityTrackedTerminalGateway(fake, ActiveTerminals())
+    val gateway = ActivityTrackedTerminalGateway(fake, ActiveTerminals(), spaceId = "base")
     val session = gateway.open()
 
     assertEquals(listOf(session), gateway.running())
@@ -66,7 +66,7 @@ class ActivityTrackedTerminalGatewayTest {
   fun anEndedAttachReconcilesAwayTheDeadShell() = runTest {
     val fake = FakeTerminalGateway()
     val activeTerminals = ActiveTerminals()
-    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals)
+    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals, spaceId = "base")
     val session = gateway.open()
 
     val collected = async { gateway.attach(session).toList() }
@@ -87,7 +87,7 @@ class ActivityTrackedTerminalGatewayTest {
   fun aSocketEndOnALiveShellKeepsItsHold() = runTest {
     val fake = FakeTerminalGateway()
     val activeTerminals = ActiveTerminals()
-    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals)
+    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals, spaceId = "base")
     val session = gateway.open()
 
     val collected = async { gateway.attach(session).toList() }
@@ -103,7 +103,7 @@ class ActivityTrackedTerminalGatewayTest {
   fun aShellEndedElsewhereDropsOnTheNextList() = runTest {
     val fake = FakeTerminalGateway()
     val activeTerminals = ActiveTerminals()
-    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals)
+    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals, spaceId = "base")
     gateway.open()
 
     fake.close(TerminalSession("1"))
@@ -117,7 +117,7 @@ class ActivityTrackedTerminalGatewayTest {
   fun anEndedObservedAfterCloseStillCountsOnce() = runTest {
     val fake = FakeTerminalGateway()
     val activeTerminals = ActiveTerminals()
-    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals)
+    val gateway = ActivityTrackedTerminalGateway(fake, activeTerminals, spaceId = "base")
     val session = gateway.open()
 
     val collected = async { gateway.attach(session).toList() }
@@ -126,5 +126,21 @@ class ActivityTrackedTerminalGatewayTest {
     collected.await()
 
     assertEquals(0, activeTerminals.open.first())
+  }
+
+  /**
+   * Two Spaces' gateways report into the app's one counter, and each server names its first shell
+   * `"1"`: listing Thesis's terminals must leave base's shell counted.
+   */
+  @Test
+  fun listingOneSpacesTerminalsKeepsAnotherSpacesShellCounted() = runTest {
+    val activeTerminals = ActiveTerminals()
+    val base = ActivityTrackedTerminalGateway(FakeTerminalGateway(), activeTerminals, spaceId = "base")
+    val thesis = ActivityTrackedTerminalGateway(FakeTerminalGateway(), activeTerminals, spaceId = "space-1")
+    base.open()
+
+    thesis.running()
+
+    assertEquals(1, activeTerminals.open.first())
   }
 }

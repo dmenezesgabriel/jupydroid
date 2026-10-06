@@ -24,8 +24,10 @@ Who: a human on **`SM-X216B`**. A cell runs, so rule 2 requires the arm64 tablet
    `import os; print(os.path.exists(os.path.expanduser('~/thesis-only.txt')))`, which prints `True`.
    `HOME` is the in-root `/home/jupydroid` in every Space (`SpaceRuntime.kt`), so a check on its
    path cannot tell two Spaces apart.
-6. Open a terminal and run `echo cwd=$(pwd)`. It prints a path inside space-1's root. Typing `os.` in a
-   cell completes, and `ps -A` shows a `pylsp` under space-1's root and none under base's.
+6. Open a terminal and run `ls ~ > ~/terminal-saw`. The file lands in space-1's home and lists
+   `thesis-only.txt`, and none appears in base's. `pwd` cannot tell two Spaces apart, for step 5's
+   reason. A never-run cell's undefined name gets `pylsp`'s error mark, and `ps -A` shows a `pylsp`
+   under space-1's root and none under base's.
 7. Back to the home. Thesis still reads Running. **Run** base and **Open** it: base's notebooks are
    back, and the notebook from step 4 is not among its recents.
 8. Leave the app for more than 30 s. Both rows read Stopped, and `ps -A` shows no `pylsp` left.
@@ -182,7 +184,7 @@ its kernel, not its Space*.
 - [x] T3 — The kernel side binds to the entered Space's server: gateway, sessions, specs, debugger and
   exporter. The `ui/editor` and launcher call sites take the entered `Space` in place of `BASE_SPACE`.
   Open decisions 2 and 3 are settled
-- [ ] T4 — Terminals and `pylsp` run on the entered Space, and the backstop stops every Space's `pylsp`
+- [x] T4 — Terminals and `pylsp` run on the entered Space, and the backstop stops every Space's `pylsp`
 - [ ] T5 — A new notebook records the entered Space's default kernel (`KernelSpecs.specs(space).default`)
   in `metadata.kernelspec.name`, at the explorer, the launcher and the import
 - [ ] T6 — The demo on SM-X216B, and the ADR

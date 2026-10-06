@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.LanguageLocation
 import com.jupydroid.app.domain.port.LanguageServerPort
@@ -48,7 +47,7 @@ class NotebookDefinition(
     return try {
       val synced = document.sync(cells.withLiveSource(cellId, code))
       synced.positionOf(cellId, cursorOffset)?.let { position ->
-        languageServer.definition(BASE_SPACE, synced.uri, position)
+        languageServer.definition(document.space, synced.uri, position)
           .firstNotNullOfOrNull(synced::definitionTarget)
       }
     } catch (cancelled: CancellationException) {

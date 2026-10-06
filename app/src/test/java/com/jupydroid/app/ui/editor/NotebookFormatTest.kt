@@ -41,7 +41,31 @@ class NotebookFormatTest {
     server = RecordingFormatServer()
     val gateway: KernelGateway = FakeKernelGateway()
     session = NotebookKernelSession(gateway, BASE_SPACE) { "Analysis.ipynb" }
-    format = NotebookFormat(session, server, NotebookLanguageDocument(server) { "Analysis.ipynb" }, { OPTIONS })
+    format =
+      NotebookFormat(session, server, NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" }, { OPTIONS })
+  }
+
+  /**
+   * The entered Space's `pylsp` answers the range format, never base's - `StdioLanguageServer`
+   * runs one per Space.
+   */
+  @Test
+  fun theAskGoesToTheDocumentsSpace() = runTest {
+    val recording = SpaceRecordingLanguageServer(server)
+    val asked =
+      NotebookFormat(
+        session,
+        recording,
+        NotebookLanguageDocument(recording, THESIS_SPACE) {
+          "Analysis.ipynb"
+        },
+        { OPTIONS },
+      )
+    session.open()
+
+    asked.formatted(cells(), "cell-2", "x=1")
+
+    assertEquals(setOf(THESIS_SPACE.id), recording.spaceIds.toSet())
   }
 
   @Test
@@ -81,7 +105,7 @@ class NotebookFormatTest {
     val format = NotebookFormat(
       session,
       server,
-      NotebookLanguageDocument(server) { "Analysis.ipynb" },
+      NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" },
       { LanguageFormatOptions(tabSize = 2, insertSpaces = true) },
     )
 

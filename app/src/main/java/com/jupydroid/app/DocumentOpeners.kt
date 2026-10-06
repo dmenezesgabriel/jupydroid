@@ -102,10 +102,10 @@ internal fun rememberDocumentOpener(
  * flushing an edit, nothing here has to outlive the composition that asked for it.
  */
 @Composable
-internal fun rememberNewTerminal(backStack: MutableList<NavKey>, appContainer: AppContainer): (String) -> Unit {
+internal fun rememberNewTerminal(backStack: MutableList<NavKey>, terminalGateway: TerminalGateway): (String) -> Unit {
   val scope = rememberCoroutineScope()
-  return remember(backStack, appContainer, scope) {
-    { cwd -> scope.launch { backStack.openNewTerminal(appContainer.terminalGateway, cwd) } }
+  return remember(backStack, terminalGateway, scope) {
+    { cwd -> scope.launch { backStack.openNewTerminal(terminalGateway, cwd) } }
   }
 }
 

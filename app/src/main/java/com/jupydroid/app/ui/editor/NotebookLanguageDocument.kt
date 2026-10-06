@@ -1,7 +1,7 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.LanguageServerPort
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +26,11 @@ import kotlinx.coroutines.sync.withLock
  */
 class NotebookLanguageDocument(
   private val languageServer: LanguageServerPort,
+  /**
+   * The entered Space, whose own `pylsp` holds this document - `StdioLanguageServer` runs one per
+   * Space, so every ask about this document names it too.
+   */
+  val space: Space,
   /** The notebook's workspace name, read lazily - see `NotebookKernel`'s own provider. */
   private val notebookId: () -> String,
 ) {
@@ -49,8 +54,8 @@ class NotebookLanguageDocument(
   suspend fun sync(cells: List<Cell>): NotebookVirtualDocument = syncLock.withLock {
     val document = NotebookVirtualDocument(notebookId(), cells)
     _synced.value?.takeIf { it.uri != document.uri }
-      ?.let { languageServer.closeDocument(BASE_SPACE, it.uri) }
-    languageServer.changeDocument(BASE_SPACE, document.uri, document.text)
+      ?.let { languageServer.closeDocument(space, it.uri) }
+    languageServer.changeDocument(space, document.uri, document.text)
     _synced.value = document
     document
   }

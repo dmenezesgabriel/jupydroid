@@ -135,7 +135,7 @@ class OpenDocumentMarkingTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = {
+            enteredSpacePorts = { _, _ ->
               EnteredSpacePorts(
                 notebookRepository = repository,
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),

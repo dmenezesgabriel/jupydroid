@@ -172,7 +172,7 @@ class NotebookKernel(
    * it on every ask, and the diagnostics watch both keeps it synced with the cells and maps
    * `publishDiagnostics` ranges back through its mirror - one truth for both feeds.
    */
-  private val languageDocument = NotebookLanguageDocument(languageServer) { uiState.value.notebookId }
+  private val languageDocument = NotebookLanguageDocument(languageServer, space) { uiState.value.notebookId }
 
   private val completion = NotebookCompletion(session, kernelGateway, languageServer, languageDocument)
 

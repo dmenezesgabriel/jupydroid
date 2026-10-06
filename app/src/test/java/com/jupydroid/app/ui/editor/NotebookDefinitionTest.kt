@@ -39,7 +39,23 @@ class NotebookDefinitionTest {
     server = RecordingDefinitionServer()
     val gateway: KernelGateway = FakeKernelGateway()
     session = NotebookKernelSession(gateway, BASE_SPACE) { "Analysis.ipynb" }
-    definition = NotebookDefinition(session, server, NotebookLanguageDocument(server) { "Analysis.ipynb" })
+    definition = NotebookDefinition(session, server, NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" })
+  }
+
+  /**
+   * The entered Space's `pylsp` answers the definition, never base's - `StdioLanguageServer`
+   * runs one per Space.
+   */
+  @Test
+  fun theAskGoesToTheDocumentsSpace() = runTest {
+    val recording = SpaceRecordingLanguageServer(server)
+    val asked =
+      NotebookDefinition(session, recording, NotebookLanguageDocument(recording, THESIS_SPACE) { "Analysis.ipynb" })
+    session.open()
+
+    asked.at(cells("cell-1"), "cell-1", "x = 1", 0)
+
+    assertEquals(setOf(THESIS_SPACE.id), recording.spaceIds.toSet())
   }
 
   @Test
@@ -119,7 +135,7 @@ class NotebookDefinitionTest {
     val definition = NotebookDefinition(
       session,
       server,
-      NotebookLanguageDocument(server) { "Go to Definition.ipynb" },
+      NotebookLanguageDocument(server, BASE_SPACE) { "Go to Definition.ipynb" },
     )
     server.answer =
       listOf(location("file:///jupyterdroid/notebooks/Go%20to%20Definition.ipynb.py", 0, 4, 0, 17))

@@ -7,14 +7,11 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
-import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
-import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -23,7 +20,6 @@ import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
-import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import kotlinx.coroutines.CoroutineScope
@@ -39,27 +35,19 @@ import kotlin.time.Duration.Companion.seconds
  */
 class AppContainer(
   /**
-   * Builds the ports of the Space named by its argument - called once per Space, through [portsOf].
+   * Builds the ports of the Space named by its first argument - called once per Space, through
+   * [portsOf] - and hands its terminals the app's one count of open shells, the second.
    * Its default hands every Space the fakes, which is what a test that never enters one needs.
    */
-  private val enteredSpacePorts: (
-    String,
-  ) -> EnteredSpacePorts = { EnteredSpacePorts(FakeNotebookRepository(), space = spaceWithId(it)) },
+  private val enteredSpacePorts: (String, ActiveTerminals) -> EnteredSpacePorts = { spaceId, terminals ->
+    EnteredSpacePorts(FakeNotebookRepository(), space = spaceWithId(spaceId), activeTerminals = terminals)
+  },
   /**
    * The Space's `pylsp` over stdio - one process per Space, started on the port's first call and
    * stopped beside the server. Its fake answers canned completions so the popup composes
    * on a device with no Space.
    */
   val languageServer: LanguageServerPort = FakeLanguageServerPort(),
-  /**
-   * The Space's shells - `terminal:create-new`, which JupyterLab adds to `'main'` as a
-   * `MainAreaWidget` rather than to a panel (`packages/terminal-extension/src/index.ts:523-524`).
-   *
-   * Its fake echoes what is typed, so the terminal screen composes and takes input on a device
-   * with no Space; only the shell is missing. Wrapped below in [ActivityTrackedTerminalGateway]
-   * so [idleServerStopper] can see a terminal it opened without touching this port at all.
-   */
-  terminalGateway: TerminalGateway = FakeTerminalGateway(),
   /**
    * Every Space's server, several at once, and which are running - what the home's Run and Stop
    * act on and its Running/Stopped reads.
@@ -106,7 +94,10 @@ class AppContainer(
    */
   val activeCellRuns = ActiveCellRuns()
 
-  /** How many terminals this process has opened and not yet closed. Read by [idleServerStopper]. */
+  /**
+   * How many terminals this process has opened and not yet closed, in every Space. Moved by each
+   * Space's [EnteredSpacePorts.terminalGateway], read by [idleServerStopper].
+   */
   val activeTerminals = ActiveTerminals()
 
   /**
@@ -114,8 +105,6 @@ class AppContainer(
    * notebook's `EditorViewModel` - see [NotebookBreakpoints]'s own doc for why.
    */
   val notebookBreakpoints = NotebookBreakpoints()
-
-  val terminalGateway: TerminalGateway = ActivityTrackedTerminalGateway(terminalGateway, activeTerminals)
 
   private val portsBySpace = ConcurrentHashMap<String, EnteredSpacePorts>()
 
@@ -128,7 +117,8 @@ class AppContainer(
    * appContainer.portsOf(backStack.enteredSpaceId()).notebookRepository
    * ```
    */
-  fun portsOf(spaceId: String): EnteredSpacePorts = portsBySpace.computeIfAbsent(spaceId, enteredSpacePorts)
+  fun portsOf(spaceId: String): EnteredSpacePorts =
+    portsBySpace.computeIfAbsent(spaceId) { enteredSpacePorts(it, activeTerminals) }
 
   /**
    * Stop every running Space's server when the app goes away - but only once nothing is still running,
@@ -142,10 +132,11 @@ class AppContainer(
     cellsInFlight = activeCellRuns.inFlight,
     terminalsOpen = activeTerminals.open,
     // The rule for a subprocess the Space owns: the language server dies with the Space too -
-    // backgrounded with nothing running, it must not keep ~60 MB of interpreter alive alone.
+    // every Space's, as every server goes - so backgrounded with nothing running, none of them
+    // keeps ~60 MB of interpreter alive alone.
     stopServer = {
       spaceServers.stopAll()
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     },
     grace = IDLE_STOP_GRACE,
   )

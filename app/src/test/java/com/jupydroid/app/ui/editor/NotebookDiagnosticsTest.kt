@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.emitDiagnostics
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Space
@@ -42,7 +43,7 @@ class NotebookDiagnosticsTest {
   fun setUp() {
     uiState = MutableStateFlow(EditorUiState(cells = listOf(code("c1", "x = 1"), code("c2", "print(undef_name)"))))
     server = RecordingSyncServer()
-    document = NotebookLanguageDocument(server) { "Analysis.ipynb" }
+    document = NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" }
     diagnostics = NotebookDiagnostics(uiState, server, document, scope)
   }
 

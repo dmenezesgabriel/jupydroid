@@ -103,13 +103,14 @@ class LauncherNavigationTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = {
+            enteredSpacePorts = { _, activeTerminals ->
               EnteredSpacePorts(
                 notebookRepository = repository,
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                terminalGateway = terminals,
+                activeTerminals = activeTerminals,
               )
             },
-            terminalGateway = terminals,
           ),
           importTitle = null,
           onImportConsumed = {},

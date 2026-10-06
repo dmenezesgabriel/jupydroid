@@ -45,7 +45,23 @@ class NotebookRenameTest {
     server = RecordingRenameServer()
     val gateway: KernelGateway = FakeKernelGateway()
     session = NotebookKernelSession(gateway, BASE_SPACE) { "Analysis.ipynb" }
-    rename = NotebookRename(session, server, NotebookLanguageDocument(server) { "Analysis.ipynb" })
+    rename = NotebookRename(session, server, NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" })
+  }
+
+  /**
+   * The entered Space's `pylsp` answers the rename, never base's - `StdioLanguageServer`
+   * runs one per Space.
+   */
+  @Test
+  fun theAskGoesToTheDocumentsSpace() = runTest {
+    val recording = SpaceRecordingLanguageServer(server)
+    val asked =
+      NotebookRename(session, recording, NotebookLanguageDocument(recording, THESIS_SPACE) { "Analysis.ipynb" })
+    session.open()
+
+    asked.renamed(cells(), "cell-2", "answer = total([1, 2])", 9, "summed")
+
+    assertEquals(setOf(THESIS_SPACE.id), recording.spaceIds.toSet())
   }
 
   @Test

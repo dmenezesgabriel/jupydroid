@@ -163,7 +163,7 @@ fun MainNavigation(
   val launcherIsFill = remember { mutableStateOf(false) }
 
   val openDocument = rememberDocumentOpener(backStack, appContainer, openDocuments)
-  val newTerminal = rememberNewTerminal(backStack, appContainer)
+  val newTerminal = rememberNewTerminal(backStack, spacePorts.terminalGateway)
 
   val openLauncher: () -> Unit = {
     launcherIsFill.value = false
@@ -440,7 +440,7 @@ fun MainNavigation(
           tabbedPane {
             TerminalPaneScreen(
               session = TerminalSession(terminal.name),
-              terminalGateway = appContainer.terminalGateway,
+              terminalGateway = spacePorts.terminalGateway,
               // `term.onTitleChange` → `title.label` - the tab, so the strip's map is what hears it.
               onTitleChanged = { title ->
                 if (title == null) liveTabTitles.remove(terminal) else liveTabTitles[terminal] = title
@@ -457,7 +457,7 @@ fun MainNavigation(
                 LauncherViewModel(
                   spacePorts.notebookRepository,
                   spacePorts.workspaceRepository,
-                  appContainer.terminalGateway,
+                  spacePorts.terminalGateway,
                   spacePorts.kernelGateway,
                   spacePorts.space,
                   consoleOrdinal = { consoleOrdinal.incrementAndGet() },

@@ -42,7 +42,23 @@ class NotebookHoverTest {
     server = RecordingHoverServer()
     val gateway: KernelGateway = FakeKernelGateway()
     session = NotebookKernelSession(gateway, BASE_SPACE) { "Analysis.ipynb" }
-    hover = NotebookHover(session, server, NotebookLanguageDocument(server) { "Analysis.ipynb" })
+    hover = NotebookHover(session, server, NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" })
+  }
+
+  /**
+   * The entered Space's `pylsp` answers the hover, never base's - `StdioLanguageServer`
+   * runs one per Space.
+   */
+  @Test
+  fun theAskGoesToTheDocumentsSpace() = runTest {
+    val recording = SpaceRecordingLanguageServer(server)
+    val asked =
+      NotebookHover(session, recording, NotebookLanguageDocument(recording, THESIS_SPACE) { "Analysis.ipynb" })
+    session.open()
+
+    asked.at(cells("cell-1"), "cell-1", "compute_total(values)", 3)
+
+    assertEquals(setOf(THESIS_SPACE.id), recording.spaceIds.toSet())
   }
 
   @Test

@@ -43,7 +43,31 @@ class NotebookCompletionTest {
     gateway = RecordingCompletionGateway()
     server = RecordingLanguageServer()
     session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
-    completion = NotebookCompletion(session, gateway, server, NotebookLanguageDocument(server) { "Analysis.ipynb" })
+    completion =
+      NotebookCompletion(session, gateway, server, NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" })
+  }
+
+  /**
+   * The entered Space's `pylsp` answers the completion, never base's - `StdioLanguageServer`
+   * runs one per Space.
+   */
+  @Test
+  fun theAskGoesToTheDocumentsSpace() = runTest {
+    val recording = SpaceRecordingLanguageServer(server)
+    val asked =
+      NotebookCompletion(
+        session,
+        gateway,
+        recording,
+        NotebookLanguageDocument(recording, THESIS_SPACE) {
+          "Analysis.ipynb"
+        },
+      )
+    session.open()
+
+    asked.at(cells("cell-1"), "cell-1", "pri", 3)
+
+    assertEquals(setOf(THESIS_SPACE.id), recording.spaceIds.toSet())
   }
 
   @Test

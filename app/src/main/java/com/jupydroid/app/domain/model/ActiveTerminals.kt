@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 /**
- * The names of the terminals this process believes alive, and their count.
+ * The names of the terminals this process believes alive in each Space, and their count.
  *
  * **A set of names, not an integer - because a terminal's end arrives by more roads than
  * `close`.** A shell that exits reports `["disconnect", 1]` and is gone from the server's list
@@ -22,30 +22,35 @@ import kotlinx.coroutines.flow.update
  * count must outlive one server instance. Name-reuse across generations is harmless - the
  * server mints `"%d"` and a re-minted name is a live name.
  *
+ * **Keyed by Space as well as by name**, because every Space's server mints `"1"` first: one set of
+ * bare names would count base's `"1"` and Thesis's `"1"` as a single shell, and [reconciled] with
+ * Thesis's list would erase base's - letting `IdleServerStopper` stop base under an open shell
+ * (`ActiveTerminalsTest.reconcilingOneSpaceKeepsAnothersTerminals`).
+ *
  * Owned by `AppContainer`, moved by `ActivityTrackedTerminalGateway`, read by `IdleServerStopper`.
  *
  * ```
  * val terminals = ActiveTerminals()
- * terminals.minted("1") // a shell now exists
- * terminals.ended("1")  // it doesn't anymore
+ * terminals.minted("base", "1") // a shell now exists in base
+ * terminals.ended("base", "1")  // it doesn't anymore
  * ```
  */
 class ActiveTerminals {
-  private val live = MutableStateFlow<Set<String>>(emptySet())
+  private val liveBySpace = MutableStateFlow<Map<String, Set<String>>>(emptyMap())
 
-  /** How many terminals this process believes alive - a `Flow`, the set being the only state. */
-  val open: Flow<Int> = live.map { it.size }.distinctUntilChanged()
+  /** How many terminals this process believes alive across every Space - a `Flow`, the map being the only state. */
+  val open: Flow<Int> = liveBySpace.map { spaces -> spaces.values.sumOf { it.size } }.distinctUntilChanged()
 
-  fun minted(name: String) {
-    live.update { it + name }
+  fun minted(spaceId: String, name: String) {
+    liveBySpace.update { it + (spaceId to it[spaceId].orEmpty() + name) }
   }
 
-  fun ended(name: String) {
-    live.update { it - name }
+  fun ended(spaceId: String, name: String) {
+    liveBySpace.update { it + (spaceId to it[spaceId].orEmpty() - name) }
   }
 
-  /** The server's own answer: whatever it still lists is the whole of what is alive. */
-  fun reconciled(names: Collection<String>) {
-    live.value = names.toSet()
+  /** [spaceId]'s server's own answer: whatever it still lists is the whole of what is alive *there*. */
+  fun reconciled(spaceId: String, names: Collection<String>) {
+    liveBySpace.update { it + (spaceId to names.toSet()) }
   }
 }

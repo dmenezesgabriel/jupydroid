@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageServerPort
@@ -50,7 +49,7 @@ class NotebookFormat(
     return try {
       val synced = document.sync(cells.withLiveSource(cellId, code))
       synced.rangeOf(cellId)
-        ?.let { range -> languageServer.rangeFormatting(BASE_SPACE, synced.uri, range, formattingOptions()) }
+        ?.let { range -> languageServer.rangeFormatting(document.space, synced.uri, range, formattingOptions()) }
         ?.let { edits -> synced.cellSourceAfterEdits(cellId, edits) }
     } catch (cancelled: CancellationException) {
       throw cancelled

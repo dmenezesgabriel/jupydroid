@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.LanguagePosition
 import com.jupydroid.app.domain.port.LanguageServerException
@@ -83,7 +82,7 @@ class NotebookRename(
     position: LanguagePosition,
     newName: String,
   ): RenameAnswer {
-    val edits = languageServer.rename(BASE_SPACE, synced.uri, position, newName).changes[synced.uri]
+    val edits = languageServer.rename(document.space, synced.uri, position, newName).changes[synced.uri]
     return when {
       edits == null -> RenameAnswer.Refused(NO_RESULT)
       else -> synced.cellSourcesAfterEdits(edits)

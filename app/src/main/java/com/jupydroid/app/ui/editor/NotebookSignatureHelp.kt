@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
@@ -35,7 +34,7 @@ class NotebookSignatureHelp(
     return try {
       val synced = document.sync(cells.withLiveSource(cellId, code))
       synced.positionOf(cellId, cursorOffset)
-        ?.let { languageServer.signatureHelp(BASE_SPACE, synced.uri, it) }
+        ?.let { languageServer.signatureHelp(document.space, synced.uri, it) }
     } catch (cancelled: CancellationException) {
       throw cancelled
     } catch (failed: Exception) {

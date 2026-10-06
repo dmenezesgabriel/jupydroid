@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Space
@@ -27,7 +28,7 @@ class NotebookLanguageDocumentTest {
   @Before
   fun setUp() {
     server = RecordingSyncServer()
-    document = NotebookLanguageDocument(server) { notebookId }
+    document = NotebookLanguageDocument(server, BASE_SPACE) { notebookId }
   }
 
   @Test
@@ -74,6 +75,22 @@ class NotebookLanguageDocumentTest {
 
     assertEquals(listOf("file:///jupyterdroid/notebooks/Analysis.ipynb.py"), server.closes)
     assertEquals("file:///jupyterdroid/notebooks/Renamed.ipynb.py", server.syncs.last().uri)
+  }
+
+  /**
+   * The document lives on the entered Space's `pylsp`: its opens, changes and the close a rename
+   * causes all name that Space, never base.
+   */
+  @Test
+  fun everySyncAndCloseNamesTheSpaceTheDocumentWasBuiltFor() = runTest {
+    val recording = SpaceRecordingLanguageServer(server)
+    val thesisDocument = NotebookLanguageDocument(recording, THESIS_SPACE) { notebookId }
+    thesisDocument.sync(listOf(code("c1", "x = 1")))
+    notebookId = "Renamed.ipynb"
+
+    thesisDocument.sync(listOf(code("c1", "x = 1")))
+
+    assertEquals(listOf("space-1", "space-1", "space-1"), recording.spaceIds)
   }
 
   /** The syncs the adapter would hear, recorded for the tests to assert on. */

@@ -40,7 +40,24 @@ class NotebookSignatureHelpTest {
     server = RecordingSignatureServer()
     val gateway: KernelGateway = FakeKernelGateway()
     session = NotebookKernelSession(gateway, BASE_SPACE) { "Analysis.ipynb" }
-    signatureHelp = NotebookSignatureHelp(session, server, NotebookLanguageDocument(server) { "Analysis.ipynb" })
+    signatureHelp =
+      NotebookSignatureHelp(session, server, NotebookLanguageDocument(server, BASE_SPACE) { "Analysis.ipynb" })
+  }
+
+  /**
+   * The entered Space's `pylsp` answers the signature help, never base's - `StdioLanguageServer`
+   * runs one per Space.
+   */
+  @Test
+  fun theAskGoesToTheDocumentsSpace() = runTest {
+    val recording = SpaceRecordingLanguageServer(server)
+    val asked =
+      NotebookSignatureHelp(session, recording, NotebookLanguageDocument(recording, THESIS_SPACE) { "Analysis.ipynb" })
+    session.open()
+
+    asked.at(cells("cell-1"), "cell-1", "os.path.join(", 13)
+
+    assertEquals(setOf(THESIS_SPACE.id), recording.spaceIds.toSet())
   }
 
   @Test

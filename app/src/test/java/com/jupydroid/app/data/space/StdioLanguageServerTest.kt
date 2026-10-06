@@ -311,11 +311,11 @@ class StdioLanguageServerTest {
   }
 
   @Test
-  fun stop_sendsShutdownThenExitAndTheProcessIsGone() = runBlocking {
+  fun stopAll_sendsShutdownThenExitAndTheProcessIsGone() = runBlocking {
     val server = ScriptedLanguageServer().also(servers::add)
     val languageServer = languageServer { server }
     languageServer.capabilities(BASE_SPACE)
-    languageServer.stop(BASE_SPACE)
+    languageServer.stopAll()
 
     val methods = server.snapshot().mapNotNull { it["method"]?.jsonPrimitive?.content }
     assertTrue(methods.indexOf("shutdown") < methods.indexOf("exit"))
@@ -323,8 +323,8 @@ class StdioLanguageServerTest {
   }
 
   @Test
-  fun stop_whenNeverStarted_isANoOp() = runBlocking {
-    languageServer().stop(BASE_SPACE)
+  fun stopAll_whenNeverStarted_isANoOp() = runBlocking {
+    languageServer().stopAll()
     assertTrue(servers.isEmpty())
   }
 
@@ -354,9 +354,18 @@ class StdioLanguageServerTest {
     languageServer.capabilities(other)
 
     assertEquals(2, servers.size)
-    languageServer.stop(BASE_SPACE)
-    assertFalse(servers[0].isAlive)
-    assertTrue(servers[1].isAlive)
+    assertTrue(servers.all { it.isAlive })
+  }
+
+  @Test
+  fun stopAll_endsEverySpacesServerGracefully() = runBlocking {
+    val languageServer = languageServer()
+    languageServer.capabilities(BASE_SPACE)
+    languageServer.capabilities(Space(id = "other", name = "Other", kernels = emptyList()))
+    languageServer.stopAll()
+
+    assertEquals(listOf(false, false), servers.map { it.isAlive })
+    assertEquals(listOf(1, 1), servers.map { it.sent("exit").size })
   }
 
   @Test

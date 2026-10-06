@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageServerPort
@@ -44,7 +43,7 @@ class NotebookHover(
     return try {
       val synced = document.sync(cells.withLiveSource(cellId, code))
       synced.positionOf(cellId, cursorOffset)
-        ?.let { languageServer.hover(BASE_SPACE, synced.uri, it) }
+        ?.let { languageServer.hover(document.space, synced.uri, it) }
     } catch (cancelled: CancellationException) {
       throw cancelled
     } catch (failed: Exception) {

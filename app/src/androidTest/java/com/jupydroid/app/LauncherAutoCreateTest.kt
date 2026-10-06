@@ -124,7 +124,7 @@ class LauncherAutoCreateTest {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
-            enteredSpacePorts = {
+            enteredSpacePorts = { _, _ ->
               EnteredSpacePorts(
                 notebookRepository = repository,
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),

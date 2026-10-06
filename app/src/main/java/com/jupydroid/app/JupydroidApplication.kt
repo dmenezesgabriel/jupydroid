@@ -44,7 +44,7 @@ import com.jupydroid.app.data.space.spaceServers
 import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
-import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.spaceWithId
@@ -53,6 +53,7 @@ import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookExporter
+import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -115,6 +116,7 @@ class JupydroidApplication : Application() {
     spaceId: String,
     servers: JupyterSpaceServers?,
     recentsFile: DiskRecentDocumentsFile,
+    activeTerminals: ActiveTerminals,
   ): EnteredSpacePorts {
     val workspace = notebookWorkspaceIn(spaceDirIn(spacesDir(this), spaceId))
     val kernels = SpaceBackedPorts(servers?.server(spaceId), spaceWithId(spaceId))
@@ -130,6 +132,8 @@ class JupydroidApplication : Application() {
       kernelSpecs = kernels.specs,
       kernelDebugger = kernels.debugger,
       notebookExporter = kernels.exporter,
+      terminalGateway = kernels.terminals,
+      activeTerminals = activeTerminals,
     )
   }
 
@@ -141,12 +145,11 @@ class JupydroidApplication : Application() {
     applicationScope: CoroutineScope,
     recentsFile: DiskRecentDocumentsFile,
   ) = AppContainer(
-    enteredSpacePorts = { id -> enteredSpacePortsOf(id, servers, recentsFile) },
+    enteredSpacePorts = { id, terminals -> enteredSpacePortsOf(id, servers, recentsFile, terminals) },
     // Off the servers, unlike the kernels: `pylsp` is a direct stdio process - it never passes
-    // through `jupyter_server`, so it shares only the condition, not the launcher's life. Base's
-    // alone for now, like the terminals below: the backstop stops base's `pylsp` and no other.
+    // through `jupyter_server`, so it shares only the condition, not the launcher's life. One port
+    // for every Space, since it already keeps one process per Space it is asked about.
     languageServer = baseSpaceLanguageServerPort(this) ?: FakeLanguageServerPort(),
-    terminalGateway = servers?.server(BASE_SPACE.id)?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway(),
     spaceServers = servers ?: FakeSpaceServers(),
     // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
     // and a create copies the bundled image into the new Space's own directory.
@@ -201,6 +204,9 @@ class JupydroidApplication : Application() {
     val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
 
     val exporter: NotebookExporter = server?.let(::baseSpaceNotebookExporter) ?: FakeNotebookExporter()
+
+    /** `api/terminals` and their sockets, on the same server - so a shell runs inside this Space. */
+    val terminals: TerminalGateway = server?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway()
   }
 
   /**

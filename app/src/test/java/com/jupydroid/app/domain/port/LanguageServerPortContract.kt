@@ -154,15 +154,16 @@ abstract class LanguageServerPortContract {
 
   /** The rule, contract-side: stopping never complains, and a stopped server may start again. */
   @Test
-  fun stop_thenUseRestartsLazily() = runBlocking {
+  fun stopAll_thenUseRestartsLazily() = runBlocking {
     val languageServer = languageServer()
+    languageServer.stopAll()
     languageServer.capabilities(BASE_SPACE)
-    languageServer.stop(BASE_SPACE)
+    languageServer.stopAll()
 
     val items = languageServer.completion(BASE_SPACE, URI, LanguagePosition(line = 0, character = 0))
 
     assertTrue(items.isNotEmpty())
-    languageServer.stop(BASE_SPACE)
+    languageServer.stopAll()
   }
 
   /**

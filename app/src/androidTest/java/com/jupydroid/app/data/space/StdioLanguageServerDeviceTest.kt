@@ -76,7 +76,7 @@ class StdioLanguageServerDeviceTest {
       assertEquals("pylsp must name join a function (CompletionItemKind 3)", 3, join.kind)
       assertTrue("pylsp must send sortText for ordering - got ${join.sortText}", !join.sortText.isNullOrEmpty())
     } finally {
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     }
   }
 
@@ -101,7 +101,7 @@ class StdioLanguageServerDeviceTest {
         pushed.diagnostics.any { it.message.contains("never_defined_lsp_name") },
       )
     } finally {
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     }
   }
 
@@ -136,7 +136,7 @@ class StdioLanguageServerDeviceTest {
       val nothing = languageServer.hover(BASE_SPACE, uri, LanguagePosition(line = 2, character = 0))
       assertEquals("an empty line has no symbol to describe", null, nothing)
     } finally {
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     }
   }
 
@@ -169,7 +169,7 @@ class StdioLanguageServerDeviceTest {
       assertTrue("expected a join( signature - got ${signature.label}", signature.label.startsWith("join("))
       assertEquals("path", signature.parameters.first().label)
     } finally {
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     }
   }
 
@@ -209,7 +209,7 @@ class StdioLanguageServerDeviceTest {
       assertEquals("the name in `def compute_total` starts at character 4", 4, target.range.start.character)
       assertEquals("and ends at 17 - the probe's exact range", 17, target.range.end.character)
     } finally {
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     }
   }
 
@@ -247,7 +247,7 @@ class StdioLanguageServerDeviceTest {
         edits.any { it.newText.contains("x = 1") && it.newText.contains("y = 2") },
       )
     } finally {
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     }
   }
 
@@ -285,7 +285,7 @@ class StdioLanguageServerDeviceTest {
         newTexts.any { it.contains("def summed") && it.contains("summed([1, 2])") },
       )
     } finally {
-      languageServer.stop(BASE_SPACE)
+      languageServer.stopAll()
     }
   }
 
@@ -293,7 +293,7 @@ class StdioLanguageServerDeviceTest {
   @Test(timeout = 60_000)
   fun stopOnANeverStartedServerIsANoOp() = runBlocking {
     val languageServer = baseSpaceLanguageServerPort(context)!!
-    languageServer.stop(BASE_SPACE)
+    languageServer.stopAll()
   }
 
   /** No syscall was refused while the adapter ran a session - [LanguageServerDeviceTest]'s bar. */

@@ -51,7 +51,7 @@ class SettingsNavigationTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = {
+            enteredSpacePorts = { _, _ ->
               EnteredSpacePorts(
                 notebookRepository = DiskNotebookRepository(temp.root),
                 workspaceRepository = DiskWorkspaceRepository(temp.root),
