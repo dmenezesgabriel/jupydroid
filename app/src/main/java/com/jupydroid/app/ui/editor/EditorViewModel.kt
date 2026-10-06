@@ -13,6 +13,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.pathAfterRename
@@ -129,6 +130,11 @@ class EditorViewModel(
    * (`sessioncontext.tsx:1927`). Defaulted the way [kernelSessions] is.
    */
   private val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
+  /**
+   * The entered Space - whose server runs [kernel] and whose catalogue the saved `kernelspec.name`
+   * resolves against. Defaulted to base for the tests that drive the editor alone.
+   */
+  private val space: Space = BASE_SPACE,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -159,6 +165,7 @@ class EditorViewModel(
     NotebookKernel(
       _uiState,
       kernelGateway,
+      space,
       viewModelScope,
       activeCellRuns,
       // `context.save()` when autosave is on, model-dirty when it is not: a run's outputs are a
@@ -266,7 +273,7 @@ class EditorViewModel(
   private suspend fun seedKernelPreference() {
     val preference = notebook?.kernelPreference ?: return
     kernel.kernelPreference = preference
-    if (kernelSpecs.specs(BASE_SPACE).preferredKernelName(preference) != null) return
+    if (kernelSpecs.specs(space).preferredKernelName(preference) != null) return
     _uiState.update { it.copy(kernelPickRequired = it.kernelPickRequired + 1) }
   }
 

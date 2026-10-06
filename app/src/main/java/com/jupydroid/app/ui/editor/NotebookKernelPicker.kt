@@ -1,6 +1,6 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.kernelPickerGroups
 import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelPreference
@@ -27,6 +27,8 @@ import kotlinx.coroutines.launch
 class NotebookKernelPicker(
   private val uiState: MutableStateFlow<EditorUiState>,
   private val session: NotebookKernelSession,
+  /** The entered Space, whose catalogue the dialog lists. */
+  private val space: Space,
   private val kernelSpecs: KernelSpecs,
   private val kernelSessions: KernelSessions,
   private val scope: CoroutineScope,
@@ -41,7 +43,7 @@ class NotebookKernelPicker(
   fun open() {
     scope.launch {
       val groups = kernelPickerGroups(
-        specs = kernelSpecs.specs(BASE_SPACE),
+        specs = kernelSpecs.specs(space),
         running = kernelSessions.running(),
         preference = session.kernelPreference ?: KernelPreference(),
         kernelId = session.opened?.kernelId,

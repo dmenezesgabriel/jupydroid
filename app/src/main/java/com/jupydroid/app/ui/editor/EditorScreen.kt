@@ -35,9 +35,11 @@ import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.NotebookBreakpoints
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
@@ -79,6 +81,8 @@ fun EditorScreen(
    * `specsManager.specs` in the reference. Defaulted as [kernelSessions] is.
    */
   kernelSpecs: KernelSpecs = FakeKernelSpecs(),
+  /** The entered Space, whose server runs this notebook's kernel. Defaulted as [kernelSpecs] is. */
+  space: Space = BASE_SPACE,
   /** `notebook:export-to-format` - see [NotebookExport]. Not a kernel act. */
   notebookExporter: NotebookExporter,
   /** Where an exported file goes next, from the report that says it was written. */
@@ -178,6 +182,7 @@ fun EditorScreen(
       languageServer,
       kernelSessions,
       kernelSpecs,
+      space,
     )
   },
 ) {

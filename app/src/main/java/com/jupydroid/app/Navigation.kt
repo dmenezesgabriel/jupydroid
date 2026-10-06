@@ -25,7 +25,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.MatchedLine
-import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.console.ConsoleScreen
@@ -166,20 +165,6 @@ fun MainNavigation(
   val openDocument = rememberDocumentOpener(backStack, appContainer, openDocuments)
   val newTerminal = rememberNewTerminal(backStack, appContainer)
 
-  /**
-   * `running:kernel-open-session` - `docmanager:open` for a document row, `console:open` for a
-   * console one (`running-extension/src/kernels.tsx:260-264`). The console arm can only *reveal*:
-   * `entry<Console>` draws from the single `consoleSession` holder, so a console row with no tab
-   * already open cannot be synthesised into one - which is `openConsole`'s own constraint.
-   */
-  val openRunningSession: (KernelSessionModel) -> Unit = { session ->
-    if (session.type == "console") {
-      orderedTabs.filterIsInstance<Console>().firstOrNull { it.sessionPath == session.path }
-        ?.let(backStack::activateMainAreaTab)
-    } else {
-      openDocument(session.path)
-    }
-  }
   val openLauncher: () -> Unit = {
     launcherIsFill.value = false
     backStack.openLauncher()
@@ -366,7 +351,7 @@ fun MainNavigation(
             onActivateTab = backStack::activateMainAreaTab,
             // The same gate the strip's ✕ runs through - a panel row's close is the identical act.
             onCloseTab = closeTab,
-            onOpenSession = openRunningSession,
+            onOpenSession = { backStack.openRunningSession(it, orderedTabs, openDocument) },
             // `terminal:open` - the stack's open-or-reveal reattaches to the named shell's socket.
             onOpenTerminal = { backStack.openTerminal(it.name) },
             browseRequest = browseRequest,
@@ -413,12 +398,13 @@ fun MainNavigation(
               notebookId = editor.notebookId,
               notebookRepository = spacePorts.notebookRepository,
               workspaceRepository = spacePorts.workspaceRepository,
-              kernelGateway = appContainer.kernelGateway,
-              kernelDebugger = appContainer.kernelDebugger,
-              kernelSessions = appContainer.kernelSessions,
-              kernelSpecs = appContainer.kernelSpecs,
+              kernelGateway = spacePorts.kernelGateway,
+              kernelDebugger = spacePorts.kernelDebugger,
+              kernelSessions = spacePorts.kernelSessions,
+              kernelSpecs = spacePorts.kernelSpecs,
+              space = spacePorts.space,
               languageServer = appContainer.languageServer,
-              notebookExporter = appContainer.notebookExporter,
+              notebookExporter = spacePorts.notebookExporter,
               documentSharer = spacePorts.documentSharer,
               applicationScope = appContainer.applicationScope,
               activeCellRuns = appContainer.activeCellRuns,
@@ -472,7 +458,8 @@ fun MainNavigation(
                   spacePorts.notebookRepository,
                   spacePorts.workspaceRepository,
                   appContainer.terminalGateway,
-                  appContainer.kernelGateway,
+                  spacePorts.kernelGateway,
+                  spacePorts.space,
                   consoleOrdinal = { consoleOrdinal.incrementAndGet() },
                 )
               },
@@ -487,7 +474,7 @@ fun MainNavigation(
             consoleSession?.let { session ->
               ConsoleScreen(
                 viewModel = viewModel {
-                  ConsoleViewModel(appContainer.kernelGateway, session, appContainer.kernelSessions)
+                  ConsoleViewModel(spacePorts.kernelGateway, session, spacePorts.kernelSessions)
                 },
                 editorSettingsRepository = appContainer.editorSettings,
               )

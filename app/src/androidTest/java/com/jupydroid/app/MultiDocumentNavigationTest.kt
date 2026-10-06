@@ -145,9 +145,9 @@ class MultiDocumentNavigationTest {
               EnteredSpacePorts(
                 notebookRepository = repository,
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                kernelGateway = gateway,
               )
             },
-            kernelGateway = gateway,
           ),
           importTitle = null,
           onImportConsumed = {},

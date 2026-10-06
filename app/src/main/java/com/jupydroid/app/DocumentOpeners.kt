@@ -8,6 +8,7 @@ import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
+import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -38,6 +39,25 @@ internal fun MutableList<NavKey>.openDocument(path: String, openDocuments: OpenD
   } else {
     openFile(openedAs)
   }
+}
+
+/**
+ * `running:kernel-open-session` - `docmanager:open` for a document row, `console:open` for a
+ * console one (`running-extension/src/kernels.tsx:260-264`). The console arm can only *reveal*:
+ * `entry<Console>` draws from the single `consoleSession` holder, so a console row with no tab
+ * already open cannot be synthesised into one - which is `openConsole`'s own constraint.
+ *
+ * ```
+ * backStack.openRunningSession(row, orderedTabs, openDocument)
+ * ```
+ */
+internal fun MutableList<NavKey>.openRunningSession(
+  session: KernelSessionModel,
+  openTabs: List<NavKey>,
+  openDocument: (String) -> Unit,
+) {
+  if (session.type != "console") return openDocument(session.path)
+  openTabs.filterIsInstance<Console>().firstOrNull { it.sessionPath == session.path }?.let(::activateMainAreaTab)
 }
 
 /**

@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalEvent
@@ -116,4 +117,36 @@ class DocumentOpenersTest {
     override suspend fun resize(session: TerminalSession, rows: Int, cols: Int) = Unit
     override suspend fun close(session: TerminalSession) = Unit
   }
+
+  /** A console row reveals the console tab already open on its path, which moves to the top. */
+  @Test
+  fun aRunningConsoleRowRevealsItsOpenTab() {
+    val console = Console("console-1-x")
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), console, Terminal("1"))
+    val opened = mutableListOf<String>()
+
+    backStack.openRunningSession(runningRow("console-1-x", "console"), backStack.toList(), opened::add)
+
+    assertEquals(console, backStack.last())
+    assertEquals(emptyList<String>(), opened)
+  }
+
+  @Test
+  fun aRunningNotebookRowOpensItsDocument() {
+    val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id))
+    val opened = mutableListOf<String>()
+
+    backStack.openRunningSession(runningRow("Analysis.ipynb", "notebook"), backStack.toList(), opened::add)
+
+    assertEquals(listOf("Analysis.ipynb"), opened)
+  }
+
+  private fun runningRow(path: String, type: String) = KernelSessionModel(
+    serverSessionId = "ss1",
+    kernelId = "k1",
+    kernelName = "python3",
+    path = path,
+    name = path,
+    type = type,
+  )
 }

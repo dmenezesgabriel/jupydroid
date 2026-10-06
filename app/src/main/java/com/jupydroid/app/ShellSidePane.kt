@@ -126,7 +126,7 @@ fun ShellSidePane(
         )
         SidePanel.RUNNING ->
           RunningSidePanel(
-            kernelSessions = appContainer.kernelSessions,
+            kernelSessions = spacePorts.kernelSessions,
             terminalGateway = appContainer.terminalGateway,
             openTabs = openTabs,
             onActivateTab = onActivateTab,

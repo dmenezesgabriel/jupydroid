@@ -33,8 +33,28 @@ class AppContainerTest {
     container.spaceServers.run(space.id)
     assertEquals(setOf("base"), container.spaceServers.running.value)
 
-    val session = container.kernelGateway.connect(space, "Analysis.ipynb")
+    val session = container.portsOf(space.id).kernelGateway.connect(space, "Analysis.ipynb")
     assertEquals("base", session.spaceId)
+  }
+
+  /** The default wiring hands each Space its own value, so a call site never has to name base. */
+  @Test
+  fun portsOf_carriesTheSpaceItWasBuiltFor() {
+    assertEquals("space-1", AppContainer().portsOf("space-1").space.id)
+  }
+
+  /**
+   * One registry per Space: a stopped Space's sessions port ends everything its registry holds
+   * (`BaseSpaceKernelSessions.running`), so a shared one would put base's open notebooks on
+   * No Kernel the moment Thesis's Running panel was looked at.
+   */
+  @Test
+  fun eachSpacesSessionsListOnlyWhatItsOwnGatewayOpened() = runTest {
+    val container = AppContainer()
+    container.portsOf("base").kernelGateway.connect(space, "Analysis.ipynb")
+
+    assertEquals(emptyList<String>(), container.portsOf("space-1").kernelSessions.running().map { it.path })
+    assertEquals(listOf("Analysis.ipynb"), container.portsOf("base").kernelSessions.running().map { it.path })
   }
 
   /**

@@ -11,6 +11,7 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LauncherCommand
 import com.jupydroid.app.ui.launcher.LauncherScreen
@@ -34,6 +35,7 @@ class LauncherScreenTest {
     FakeWorkspaceRepository(),
     FakeTerminalGateway(),
     FakeKernelGateway(),
+    BASE_SPACE,
   ) { 1 }
 
   @Test

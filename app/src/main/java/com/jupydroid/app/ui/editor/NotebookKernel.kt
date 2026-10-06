@@ -4,10 +4,10 @@ import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelPickRequiredException
 import com.jupydroid.app.domain.port.KernelPreference
@@ -45,7 +45,7 @@ import java.time.Clock
  * have put the session in one object and a user of it in another.
  *
  * ```
- * val kernel = NotebookKernel(uiState, kernelGateway, viewModelScope, runs, checkpoint, debugger = debugger)
+ * val kernel = NotebookKernel(uiState, kernelGateway, space, viewModelScope, runs, checkpoint, debugger = debugger)
  * kernel.runCell(cell)
  * kernel.close(applicationScope)   // on the way out
  * ```
@@ -53,6 +53,8 @@ import java.time.Clock
 class NotebookKernel(
   private val uiState: MutableStateFlow<EditorUiState>,
   private val kernelGateway: KernelGateway,
+  /** The entered Space - whose server runs this notebook's kernel and whose catalogue it resolves. */
+  private val space: Space,
   private val scope: CoroutineScope,
   /**
    * A run is counted here for as long as it lasts, opening the kernel included - see
@@ -109,7 +111,7 @@ class NotebookKernel(
   private val session =
     NotebookKernelSession(
       kernelGateway,
-      BASE_SPACE,
+      space,
       kernelSpecs,
       onConnectedChanged = { connected ->
         // `kernelDisplayName`'s no-kernel half: the spec the bound kernel resolved to goes
@@ -120,7 +122,7 @@ class NotebookKernel(
       },
       onBound = { bound ->
         scope.launch {
-          val spec = kernelSpecs.specs(BASE_SPACE).named(bound.kernelName)
+          val spec = kernelSpecs.specs(space).named(bound.kernelName)
           // `specs[kernel.name]?.display_name ?? kernel.name` - the reference's own derivation.
           uiState.update { it.copy(kernelDisplayName = spec?.displayName ?: bound.kernelName) }
           onKernelBound(bound, spec)
@@ -212,7 +214,7 @@ class NotebookKernel(
    */
   fun attachConsole(): NotebookKernelSession = NotebookKernelSession(
     kernelGateway,
-    BASE_SPACE,
+    space,
     kernelSpecs,
     attachedTo = session.opened,
     // `SessionContext({type: 'console'})` (`console/panel.ts:71`) - declared even though the
@@ -245,7 +247,7 @@ class NotebookKernel(
    * see [NotebookKernelPicker]. The `shutdown` it delegates is this class's, because ending the
    * session is the kernel's act even when the picker's "No Kernel" is what asked for it.
    */
-  val picker = NotebookKernelPicker(uiState, session, kernelSpecs, kernelSessions, scope) { shutdown() }
+  val picker = NotebookKernelPicker(uiState, session, space, kernelSpecs, kernelSessions, scope) { shutdown() }
 
   /** @see NotebookCellRuns.step */
   fun step(command: SteppingCommand) = runs.step(command)

@@ -2,12 +2,15 @@ package com.jupydroid.app
 
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
@@ -18,10 +21,15 @@ import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
+import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
+import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.theme.JupyterDroidTheme
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -140,34 +148,64 @@ class SpacesHomeNavigationTest {
     compose.onNodeWithText(LISTED_FILE).assertDoesNotExist()
   }
 
+  /**
+   * A cell run inside Thesis opens its session on Thesis's kernel ports, and base's Running list
+   * stays empty - what binding the kernel side to the browser's key buys.
+   */
+  @Test
+  fun aCellRunInAnotherSpaceOpensItsSessionThereAndNotInBase() {
+    runBlocking {
+      DiskNotebookRepository(workspaceOf(THESIS_ID))
+        .saveNotebook(Notebook(THESIS_NOTEBOOK, THESIS_NOTEBOOK, "python3", listOf(Cell("c1", CellKind.CODE, "1"))))
+    }
+    startApp(twoPane = false)
+    compose.enterSpace(THESIS_NAME, THESIS_ID)
+    waitForText(THESIS_NOTEBOOK)
+
+    compose.onNode(hasText(THESIS_NOTEBOOK) and hasContentDescription("File")).performClick()
+    compose.onAllNodesWithContentDescription("Run cell")[0].performClick()
+    compose.waitUntil(TIMEOUT_MILLIS) { runningIn(THESIS_ID).isNotEmpty() }
+
+    assertEquals(listOf(THESIS_NOTEBOOK), runningIn(THESIS_ID))
+    assertEquals(emptyList<String>(), runningIn(BASE_SPACE.id))
+  }
+
+  private fun runningIn(spaceId: String): List<String> =
+    runBlocking { container.portsOf(spaceId).kernelSessions.running().map { it.path } }
+
   private fun startApp(twoPane: Boolean, importTitle: String? = null) {
     File(workspaceOf(BASE_SPACE.id), LISTED_FILE).writeText("a file for the listing")
     File(workspaceOf(THESIS_ID), THESIS_FILE).writeText("a file in Thesis")
     compose.setContent {
       JupyterDroidTheme {
         MainNavigation(
-          appContainer = AppContainer(
-            enteredSpacePorts = { spaceId ->
-              EnteredSpacePorts(
-                notebookRepository = DiskNotebookRepository(workspaceOf(spaceId)),
-                workspaceRepository = DiskWorkspaceRepository(workspaceOf(spaceId)),
-              )
-            },
-            spaceRepository = FakeSpaceRepository(
-              listOf(
-                defaultSpaceConfig(BASE_SPACE.id, Instant.EPOCH),
-                SpaceConfig(id = THESIS_ID, name = THESIS_NAME, created = Instant.EPOCH),
-              ),
-            ),
-            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            spaceServers = spaceServers,
-          ),
+          appContainer = container,
           importTitle = importTitle,
           onImportConsumed = {},
           twoPane = twoPane,
         )
       }
     }
+  }
+
+  private val container by lazy {
+    AppContainer(
+      enteredSpacePorts = { spaceId ->
+        EnteredSpacePorts(
+          notebookRepository = DiskNotebookRepository(workspaceOf(spaceId)),
+          workspaceRepository = DiskWorkspaceRepository(workspaceOf(spaceId)),
+          space = spaceWithId(spaceId),
+        )
+      },
+      spaceRepository = FakeSpaceRepository(
+        listOf(
+          defaultSpaceConfig(BASE_SPACE.id, Instant.EPOCH),
+          SpaceConfig(id = THESIS_ID, name = THESIS_NAME, created = Instant.EPOCH),
+        ),
+      ),
+      launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+      spaceServers = spaceServers,
+    )
   }
 
   /** One directory per Space, as `spaces/<id>/home/jupydroid` is on a device. */
@@ -186,5 +224,6 @@ class SpacesHomeNavigationTest {
     const val THESIS_ID = "space-1"
     const val THESIS_NAME = "Thesis"
     const val THESIS_FILE = "chapter.txt"
+    const val THESIS_NOTEBOOK = "chapter.ipynb"
   }
 }

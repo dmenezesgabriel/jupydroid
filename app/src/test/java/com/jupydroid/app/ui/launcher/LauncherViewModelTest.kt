@@ -5,6 +5,8 @@ import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -43,6 +45,7 @@ class LauncherViewModelTest {
       DiskWorkspaceRepository(workspace.root, UnconfinedTestDispatcher(testScheduler)),
     terminalGateway: FakeTerminalGateway = FakeTerminalGateway(),
     kernelGateway: RecordingKernelGateway = RecordingKernelGateway(),
+    space: Space = BASE_SPACE,
     // `Private.count`'s process-global counter, per-test here - the numbering assertions want a
     // sequence no other test in this JVM has advanced.
     consoleOrdinal: () -> Int = run {
@@ -50,7 +53,7 @@ class LauncherViewModelTest {
       { ++next }
     },
   ): LauncherViewModel =
-    LauncherViewModel(notebookRepository, workspaceRepository, terminalGateway, kernelGateway, consoleOrdinal)
+    LauncherViewModel(notebookRepository, workspaceRepository, terminalGateway, kernelGateway, space, consoleOrdinal)
 
   private fun card(command: LauncherCommand): LauncherItem = LAUNCHER_ITEMS.single { it.command == command }
 
@@ -166,6 +169,18 @@ class LauncherViewModelTest {
     advanceUntilIdle()
 
     assertEquals(listOf(SessionType.CONSOLE), kernelGateway.connectedSessionTypes)
+  }
+
+  /** A console minted inside an entered Space runs on that Space's kernel, not base's. */
+  @Test
+  fun theConsoleCardMintsOnTheEnteredSpace() = runTest {
+    val viewModel = viewModel(space = Space(id = "space-1", name = "Thesis", kernels = BASE_SPACE.kernels))
+    var launched: LaunchedDocument? = null
+
+    viewModel.launch(card(LauncherCommand.NEW_CONSOLE), "") { launched = it }
+    advanceUntilIdle()
+
+    assertEquals("space-1", (launched as LaunchedDocument.CreatedConsole).session.opened?.spaceId)
   }
 
   /** `Private.count` (`panel.ts:332`) is a counter, not a random suffix: each mint numbers up. */

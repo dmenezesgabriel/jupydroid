@@ -19,7 +19,6 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
-import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
@@ -142,7 +141,6 @@ class OpenDocumentMarkingTest {
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
               )
             },
-            kernelGateway = FakeKernelGateway(),
           ),
           importTitle = null,
           onImportConsumed = {},

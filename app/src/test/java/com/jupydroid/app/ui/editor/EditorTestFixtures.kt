@@ -11,6 +11,7 @@ import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.ActiveCellRuns
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
@@ -483,6 +484,8 @@ internal fun TestScope.loadedEditor(
   // The notebook as it was saved - kernel metadata included. Default builds a bare one so the
   // cases that predate kernelspec persistence read unchanged.
   notebook: Notebook? = null,
+  // Only the cases about an entered Space pass one; every other case runs in base.
+  space: Space = BASE_SPACE,
 ): EditorViewModel {
   launch { repository.saveNotebook(notebook ?: Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
@@ -492,6 +495,7 @@ internal fun TestScope.loadedEditor(
     EditorViewModel(
       notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns,
       openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer, kernelSessions, kernelSpecs,
+      space,
     )
   advanceUntilIdle()
   return viewModel

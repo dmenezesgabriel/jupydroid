@@ -2,13 +2,8 @@ package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
-import com.jupydroid.app.data.fake.FakeKernelDebugger
-import com.jupydroid.app.data.fake.FakeKernelGateway
-import com.jupydroid.app.data.fake.FakeKernelSessions
-import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
-import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
@@ -20,17 +15,12 @@ import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.NotebookBreakpoints
+import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
-import com.jupydroid.app.domain.port.KernelDebugger
-import com.jupydroid.app.domain.port.KernelGateway
-import com.jupydroid.app.domain.port.KernelSessions
-import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
-import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -52,28 +42,9 @@ class AppContainer(
    * Builds the ports of the Space named by its argument - called once per Space, through [portsOf].
    * Its default hands every Space the fakes, which is what a test that never enters one needs.
    */
-  private val enteredSpacePorts: (String) -> EnteredSpacePorts = { EnteredSpacePorts(FakeNotebookRepository()) },
-  /**
-   * One registry for [kernelGateway] and [kernelSessions], so the pair share their session
-   * bookkeeping by construction rather than by a call site remembering to pass it twice - the
-   * panel's shutdown is `session.disposed` to an open notebook only when the two halves see the
-   * same registry. Not a `val`: it is the pair's joint plumbing, not a port.
-   */
-  kernelSessionRegistry: KernelSessionRegistry = KernelSessionRegistry(),
-  val kernelGateway: KernelGateway = FakeKernelGateway(kernelSessionRegistry),
-  /**
-   * The Running panel's port - what sessions the server is holding, and `ended` for the ones
-   * that stop. Shares its registry with [kernelGateway] at the composition root, so a
-   * shutdown here is `session.disposed` to every notebook holding the session.
-   */
-  val kernelSessions: KernelSessions = FakeKernelSessions(kernelSessionRegistry),
-  /**
-   * The kernelspec catalogue the picker draws from - `GET api/kernelspecs` while a server
-   * runs, the Space's own declared list while it does not. Answering never boots a runtime.
-   */
-  val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
-  /** DAP over the same kernel session's control channel - breakpoints, step/continue, variables. */
-  val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
+  private val enteredSpacePorts: (
+    String,
+  ) -> EnteredSpacePorts = { EnteredSpacePorts(FakeNotebookRepository(), space = spaceWithId(it)) },
   /**
    * The Space's `pylsp` over stdio - one process per Space, started on the port's first call and
    * stopped beside the server. Its fake answers canned completions so the popup composes
@@ -89,14 +60,6 @@ class AppContainer(
    * so [idleServerStopper] can see a terminal it opened without touching this port at all.
    */
   terminalGateway: TerminalGateway = FakeTerminalGateway(),
-  /**
-   * `notebook:export-to-format`, over the Space's own nbconvert - a **server-side algorithm**,
-   * which this app may not re-implement.
-   *
-   * Its fake offers the six formats the shipped rootfs actually converts, so a device with no
-   * Space draws the same menu and only the conversion is missing.
-   */
-  val notebookExporter: NotebookExporter = FakeNotebookExporter(),
   /**
    * Every Space's server, several at once, and which are running - what the home's Run and Stop
    * act on and its Running/Stopped reads.

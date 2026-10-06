@@ -3,7 +3,7 @@ package com.jupydroid.app.data.space
 import android.content.Context
 import android.os.Build
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -65,7 +65,7 @@ fun spaceServers(context: Context, watchScope: CoroutineScope): JupyterSpaceServ
   if (runCatching { deviceAbi() }.isFailure) return null
   return JupyterSpaceServers { id, reportRunning ->
     SpaceServer(
-      space = if (id == BASE_SPACE.id) BASE_SPACE else Space(id = id, name = id, kernels = BASE_SPACE.kernels),
+      space = spaceWithId(id),
       installSpace = if (id == BASE_SPACE.id) ({ baseSpaceInstaller(context).installIfNeeded() }) else ({}),
       launcher = spaceServerLauncher(context),
       watchScope = watchScope,

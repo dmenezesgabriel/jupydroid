@@ -25,6 +25,7 @@ import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.intent.IntentDocumentSharer
+import com.jupydroid.app.data.space.JupyterSpaceServers
 import com.jupydroid.app.data.space.SpaceServer
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
@@ -45,14 +46,13 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
+import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
-import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
-import com.jupydroid.app.domain.port.SpaceServers
-import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -97,29 +97,39 @@ class JupydroidApplication : Application() {
     // The servers are built once and shared: the gateways start base's and the idle backstop stops
     // it, and two entries for one Space would be two processes pretending to be one.
     val servers = spaceServers(this, applicationScope)
-    val space = SpaceBackedPorts(servers?.server(BASE_SPACE.id), this)
     migrateNotebooksOnce(notebookWorkspace(this))
-    return containerFor(servers ?: FakeSpaceServers(), applicationScope, space, DiskRecentDocumentsFile(filesDir))
+    return containerFor(servers, applicationScope, DiskRecentDocumentsFile(filesDir))
   }
 
   /**
-   * The ports of one entered Space, over its own `home/jupydroid`. Always real, unlike the
-   * Space-backed group: a tree on disk needs no running Space, so a device that cannot run one
-   * still browses, searches and shares.
+   * The ports of one entered Space: its files over its own `home/jupydroid`, its kernels over its
+   * own server. The files are always real, unlike the [SpaceBackedPorts]: a tree on disk needs no
+   * running Space, so a device that cannot run one still browses, searches and shares.
    *
    * [recentsFile] is the one shared file every Space's recents are tagged into. It lives in
    * `filesDir`, deliberately not in a workspace: the workspace is the kernel's HOME and the
    * server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from a
    * cell. The reference keeps recents in `IStateDB`, not in the Contents API.
    */
-  private fun enteredSpacePortsOf(spaceId: String, recentsFile: DiskRecentDocumentsFile): EnteredSpacePorts {
+  private fun enteredSpacePortsOf(
+    spaceId: String,
+    servers: JupyterSpaceServers?,
+    recentsFile: DiskRecentDocumentsFile,
+  ): EnteredSpacePorts {
     val workspace = notebookWorkspaceIn(spaceDirIn(spacesDir(this), spaceId))
+    val kernels = SpaceBackedPorts(servers?.server(spaceId), spaceWithId(spaceId))
     return EnteredSpacePorts(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
       workspaceSearcher = DiskWorkspaceSearcher(workspace),
       recentDocuments = DiskRecentDocumentsRepository(recentsFile, spaceId, workspace),
       documentSharer = IntentDocumentSharer(this, workspace),
+      space = kernels.space,
+      kernelGateway = kernels.kernels,
+      kernelSessions = kernels.sessions,
+      kernelSpecs = kernels.specs,
+      kernelDebugger = kernels.debugger,
+      notebookExporter = kernels.exporter,
     )
   }
 
@@ -127,20 +137,17 @@ class JupydroidApplication : Application() {
   // with what it decides - the reason `config/detekt/detekt.yml` exempts a dispatch-table `when`.
   @Suppress("LongMethod")
   private fun containerFor(
-    spaceServers: SpaceServers,
+    servers: JupyterSpaceServers?,
     applicationScope: CoroutineScope,
-    space: SpaceBackedPorts,
     recentsFile: DiskRecentDocumentsFile,
   ) = AppContainer(
-    enteredSpacePorts = { id -> enteredSpacePortsOf(id, recentsFile) },
-    kernelGateway = space.kernels,
-    kernelSessions = space.sessions,
-    kernelSpecs = space.specs,
-    kernelDebugger = space.debugger,
-    languageServer = space.languageServer,
-    notebookExporter = space.exporter,
-    terminalGateway = space.terminals,
-    spaceServers = spaceServers,
+    enteredSpacePorts = { id -> enteredSpacePortsOf(id, servers, recentsFile) },
+    // Off the servers, unlike the kernels: `pylsp` is a direct stdio process - it never passes
+    // through `jupyter_server`, so it shares only the condition, not the launcher's life. Base's
+    // alone for now, like the terminals below: the backstop stops base's `pylsp` and no other.
+    languageServer = baseSpaceLanguageServerPort(this) ?: FakeLanguageServerPort(),
+    terminalGateway = servers?.server(BASE_SPACE.id)?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway(),
+    spaceServers = servers ?: FakeSpaceServers(),
     // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
     // and a create copies the bundled image into the new Space's own directory.
     spaceRepository = DiskSpaceRepository(spacesDir(this), spaceImageInstaller(this)),
@@ -155,28 +162,28 @@ class JupydroidApplication : Application() {
   )
 
   /**
-   * The four ports a running Space backs, or the fakes where none can run.
+   * The kernel-side ports one Space's server backs, or the fakes where none can run.
    *
    * A group rather than unrelated fields, and named once it became more than one: what they share
    * is the *condition* - a device with no runnable Space - and stating it in one place is what
-   * stops that having four chances to be got wrong. On an x86_64 emulator the runtime cannot work
+   * stops that having five chances to be got wrong. On an x86_64 emulator the runtime cannot work
    * at all, and the UI is better served by fakes than
    * by controls that always fail.
    *
-   * **One server object for all four** - base's entry in the Space servers - because
+   * **One server object for all of them** - [space]'s entry in the Space servers - because
    * `JupyterServerLauncher.start` begins with `stop()`; see [SpaceServer], whose KDoc names an export
    * and a terminal as its clients. Null where no Space can run.
    * [kernels] and [debugger] go one step further, sharing one `PerRunningServer<KernelSockets>`
    * so a `debug_request` reuses the identical per-session socket `execute`/`complete`/`history`
    * already share, rather than opening a second one.
    */
-  private class SpaceBackedPorts(private val space: SpaceServer?, application: Application) {
-    private val kernelSockets = space?.let(::baseSpaceKernelSockets)
+  private class SpaceBackedPorts(server: SpaceServer?, val space: Space) {
+    private val kernelSockets = server?.let(::baseSpaceKernelSockets)
 
     /**
-     * The sessions this process mints - shared by the gateway that mints them and the panel
+     * The sessions this Space's gateway mints - shared by the gateway that mints them and the panel
      * port that lists/ends them, real or fake, so a Running-panel shutdown reaches an open
-     * notebook on an emulator exactly as on the tablet.
+     * notebook on an emulator exactly as on the tablet. One per Space: see [EnteredSpacePorts].
      */
     private val sessionRegistry = KernelSessionRegistry()
 
@@ -189,16 +196,11 @@ class JupydroidApplication : Application() {
 
     /** `GET api/kernelspecs` while a server is up, the Space's declared list while it is not. */
     val specs: KernelSpecs =
-      kernelSockets?.let { baseSpaceKernelSpecs(it, BASE_SPACE) } ?: FakeKernelSpecs()
+      kernelSockets?.let { baseSpaceKernelSpecs(it, space) } ?: FakeKernelSpecs()
 
     val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
 
-    // Off the space object, unlike the others: `pylsp` is a direct stdio process - it never
-    // passes through `jupyter_server`, so it shares only the condition, not the launcher's life.
-    val languageServer: LanguageServerPort =
-      baseSpaceLanguageServerPort(application) ?: FakeLanguageServerPort()
-    val exporter: NotebookExporter = space?.let(::baseSpaceNotebookExporter) ?: FakeNotebookExporter()
-    val terminals: TerminalGateway = space?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway()
+    val exporter: NotebookExporter = server?.let(::baseSpaceNotebookExporter) ?: FakeNotebookExporter()
   }
 
   /**

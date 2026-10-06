@@ -37,3 +37,13 @@ val BASE_SPACE = Space(
     KernelSpec(name = DEFAULT_KERNEL_ID, displayName = DEFAULT_KERNEL_DISPLAY_NAME, language = "python"),
   ),
 )
+
+/**
+ * The Space whose directory is named [id]. Every Space but base was copied from base's image when
+ * it was created (`DiskSpaceRepository`), so it declares base's kernels; its name reads as its id.
+ *
+ * ```
+ * spaceWithId("space-1").kernels   // base's python3
+ * ```
+ */
+fun spaceWithId(id: String): Space = if (id == BASE_SPACE.id) BASE_SPACE else Space(id, id, BASE_SPACE.kernels)

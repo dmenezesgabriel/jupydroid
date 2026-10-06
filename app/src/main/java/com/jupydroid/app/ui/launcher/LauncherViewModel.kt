@@ -2,8 +2,8 @@ package com.jupydroid.app.ui.launcher
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
+import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.untitledNotebookIn
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -48,6 +48,8 @@ class LauncherViewModel(
   private val workspaceRepository: WorkspaceRepository,
   private val terminalGateway: TerminalGateway,
   private val kernelGateway: KernelGateway,
+  /** The entered Space, whose server a standalone console's kernel runs on. */
+  private val space: Space,
   /**
    * `Private.count` (`packages/console/src/panel.ts:332`) - the console ordinal outlives a single
    * launcher entry: each push owns a fresh ViewModel, and a per-VM counter would renumber a
@@ -119,7 +121,7 @@ class LauncherViewModel(
     val ordinal = consoleOrdinal()
     val name = "console-$ordinal-${UUID.randomUUID()}"
     val path = if (cwd.isEmpty()) name else "$cwd/$name"
-    val session = NotebookKernelSession(kernelGateway, BASE_SPACE, sessionType = SessionType.CONSOLE) { path }
+    val session = NotebookKernelSession(kernelGateway, space, sessionType = SessionType.CONSOLE) { path }
     session.open()
     return LaunchedDocument.CreatedConsole(session, path, "Console $ordinal")
   }

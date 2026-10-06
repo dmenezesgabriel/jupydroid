@@ -20,8 +20,10 @@ Who: a human on **`SM-X216B`**. A cell runs, so rule 2 requires the arm64 tablet
    base's notebooks.
 4. New notebook. `run-as com.jupydroid.app cat files/spaces/space-1/home/jupydroid/Untitled.ipynb`
    shows `"kernelspec": {"name": "python3", …}`, and no such file appears under `files/spaces/base/`.
-5. Run `import os; print(os.environ['HOME'].count('space-1'))`, which prints `1`. A count rather than
-   the path, so the assertion cannot match the cell's own source.
+5. With `thesis-only.txt` seeded into Thesis's home alone, run
+   `import os; print(os.path.exists(os.path.expanduser('~/thesis-only.txt')))`, which prints `True`.
+   `HOME` is the in-root `/home/jupydroid` in every Space (`SpaceRuntime.kt`), so a check on its
+   path cannot tell two Spaces apart.
 6. Open a terminal and run `echo cwd=$(pwd)`. It prints a path inside space-1's root. Typing `os.` in a
    cell completes, and `ps -A` shows a `pylsp` under space-1's root and none under base's.
 7. Back to the home. Thesis still reads Running. **Run** base and **Open** it: base's notebooks are
@@ -144,11 +146,13 @@ its kernel, not its Space*.
 - ~~**The import intent**~~ settled in T1: from the home it runs base and then enters it, and inside a
   workspace it stays in the Space already entered (`DocumentOpeners.kt` `importNotebook`,
   `DocumentOpenersTest`).
-- **The Running panel and the session registry.** One `KernelSessionRegistry` app-wide, or one per
-  Space? `KernelSession.spaceId` already exists. Settle in T3 from what `RunningPanelViewModel` lists.
-- **A Space stopped while it is entered**, either by itself when idle or from outside: does the workspace
-  stay, with the next cell starting the server again as base does today, or does it return to the home?
-  Measure in T3 what the kernel gateway does when the server is gone, then decide.
+- ~~**The Running panel and the session registry**~~ settled in T3: one registry per Space. A stopped
+  server's sessions port ends everything its registry holds (`BaseSpaceKernelSessions.running`), so a
+  shared registry would put base's notebooks on No Kernel when Thesis's panel was looked at
+  (`AppContainerTest.eachSpacesSessionsListOnlyWhatItsOwnGatewayOpened`).
+- ~~**A Space stopped while it is entered**~~ settled in T3: the workspace stays. The notebook lands on
+  No Kernel, and the next run starts that Space's server again. That was measured on the tablet after
+  the idle backstop (`evidence/jd-005-enter-a-running-space/t3-kernels-bind/`).
 
 ## Surface
 
@@ -175,7 +179,7 @@ its kernel, not its Space*.
 - [x] T2 — The files side binds to the entered Space: notebook repository, workspace, searcher and sharer
   rooted at its `home/jupydroid`, from a per-Space set cached in the container. Recents are tagged and
   filtered by Space
-- [ ] T3 — The kernel side binds to the entered Space's server: gateway, sessions, specs, debugger and
+- [x] T3 — The kernel side binds to the entered Space's server: gateway, sessions, specs, debugger and
   exporter. The `ui/editor` and launcher call sites take the entered `Space` in place of `BASE_SPACE`.
   Open decisions 2 and 3 are settled
 - [ ] T4 — Terminals and `pylsp` run on the entered Space, and the backstop stops every Space's `pylsp`
