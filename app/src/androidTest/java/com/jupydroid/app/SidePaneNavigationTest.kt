@@ -22,6 +22,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
@@ -341,9 +342,13 @@ class SidePaneNavigationTest {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-              notebookRepository = repository,
-              workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
-              workspaceSearcher = FakeWorkspaceSearcher(mapOf(SEARCHABLE_FILE to SEARCHED_LINE)),
+              enteredSpacePorts = {
+                EnteredSpacePorts(
+                  notebookRepository = repository,
+                  workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceSearcher = FakeWorkspaceSearcher(mapOf(SEARCHABLE_FILE to SEARCHED_LINE)),
+                )
+              },
             ),
             importTitle = null,
             onImportConsumed = {},

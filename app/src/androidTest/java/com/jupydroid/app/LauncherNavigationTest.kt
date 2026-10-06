@@ -17,6 +17,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
@@ -102,8 +103,12 @@ class LauncherNavigationTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            notebookRepository = repository,
-            workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+            enteredSpacePorts = {
+              EnteredSpacePorts(
+                notebookRepository = repository,
+                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+              )
+            },
             terminalGateway = terminals,
           ),
           importTitle = null,

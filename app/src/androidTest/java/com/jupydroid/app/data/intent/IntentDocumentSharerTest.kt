@@ -3,6 +3,9 @@ package com.jupydroid.app.data.intent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.data.space.notebookWorkspace
+import com.jupydroid.app.data.space.notebookWorkspaceIn
+import com.jupydroid.app.data.space.spaceDirIn
+import com.jupydroid.app.data.space.spacesDir
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -29,7 +32,7 @@ class IntentDocumentSharerTest {
 
   @After
   fun removeWhatWasWritten() {
-    written.forEach { it.delete() }
+    written.forEach { it.deleteRecursively() }
   }
 
   @Test
@@ -77,6 +80,35 @@ class IntentDocumentSharerTest {
     val refused = runCatching { sharer.uriFor("../../../../recent-documents.json") }
 
     assertTrue("expected a refusal, got $refused", refused.exceptionOrNull() is IllegalArgumentException)
+  }
+
+  /**
+   * The provider covers every Space's directory, since a Space's id is chosen at runtime and a
+   * `<files-path>` cannot hold a wildcard. So the sharer is what refuses a path that leaves its
+   * own workspace and lands in the Space's rootfs, still under the provider's root.
+   */
+  @Test
+  fun refusesAPathIntoTheSpacesOwnRootfs() {
+    val refused = runCatching { sharer.uriFor("../../etc/passwd") }
+
+    assertTrue("expected a refusal, got $refused", refused.exceptionOrNull() is IllegalArgumentException)
+  }
+
+  /** A Space other than base shares out of its own `home/jupydroid`. */
+  @Test
+  fun servesAFileFromAnotherSpacesWorkspace() {
+    val thesisWorkspace = notebookWorkspaceIn(spaceDirIn(spacesDir(context), "share-test-space"))
+    written += spaceDirIn(spacesDir(context), "share-test-space")
+    File(thesisWorkspace, "thesis.html").apply { parentFile?.mkdirs() }.writeText("<html>thesis</html>")
+
+    val uri = IntentDocumentSharer(context, thesisWorkspace).uriFor("thesis.html")
+
+    assertEquals(
+      "<html>thesis</html>",
+      context.contentResolver.openInputStream(uri)?.use {
+        it.readBytes().decodeToString()
+      },
+    )
   }
 
   private fun workspaceFile(path: String, content: String): File = File(workspace, path).also {

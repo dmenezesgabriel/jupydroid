@@ -6,7 +6,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
-import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -65,7 +64,8 @@ internal fun rememberDocumentOpener(
 ): (String) -> Unit = remember(backStack, appContainer, openDocuments) {
   { path ->
     backStack.openDocument(path, openDocuments)
-    appContainer.applicationScope.launch { appContainer.recentDocuments.recordOpening(path) }
+    val recentDocuments = appContainer.portsOf(backStack.enteredSpaceId()).recentDocuments
+    appContainer.applicationScope.launch { recentDocuments.recordOpening(path) }
   }
 }
 
@@ -129,7 +129,7 @@ internal fun ImportedNotebookEffect(
 ) {
   LaunchedEffect(importTitle) {
     importTitle?.let { title ->
-      backStack.importNotebook(title, appContainer.notebookRepository, appContainer.spaceServers)
+      backStack.importNotebook(title, { appContainer.portsOf(it).notebookRepository }, appContainer.spaceServers)
         ?.let(openDocument)
       onImportConsumed()
     }
@@ -137,24 +137,27 @@ internal fun ImportedNotebookEffect(
 }
 
 /**
- * The VIEW intent's act on the stack, testable without Compose: create the notebook, and land in a
- * workspace for it. **Inside one it stays in the Space entered**, since the workspace never switches
- * Space in place. **From the home it runs base first**, because a Space is only entered running (the
- * home's Open is gated on it). A refused run or create opens nothing and returns null, the
- * `runCatching` [openNewTerminal] gives a refused mint.
+ * The VIEW intent's act on the stack, testable without Compose: create the notebook in the Space it
+ * lands in, and enter that Space. **Inside a workspace it stays in the Space entered**, since the
+ * workspace never switches Space in place. **From the home it runs base first**, because a Space is
+ * only entered running (the home's Open is gated on it). A refused run or create opens nothing and
+ * returns null, the `runCatching` [openNewTerminal] gives a refused mint.
  *
  * ```
- * backStack.importNotebook("Imported", notebookRepository, spaceServers)?.let(openDocument)
+ * backStack.importNotebook("Imported", { appContainer.portsOf(it).notebookRepository }, spaceServers)
  * ```
  */
 internal suspend fun MutableList<NavKey>.importNotebook(
   title: String,
-  notebookRepository: NotebookRepository,
+  notebookRepositoryOf: (spaceId: String) -> NotebookRepository,
   spaceServers: SpaceServers,
-): String? = runCatching {
-  if (!isInWorkspace()) spaceServers.run(BASE_SPACE.id)
-  notebookRepository.createNotebook(title, DEFAULT_KERNEL_ID)
-}.getOrNull()?.let { notebook ->
-  enterWorkspace(BASE_SPACE.id)
-  notebook.id
+): String? {
+  val spaceId = enteredSpaceId()
+  return runCatching {
+    if (!isInWorkspace()) spaceServers.run(spaceId)
+    notebookRepositoryOf(spaceId).createNotebook(title, DEFAULT_KERNEL_ID)
+  }.getOrNull()?.let { notebook ->
+    enterWorkspace(spaceId)
+    notebook.id
+  }
 }

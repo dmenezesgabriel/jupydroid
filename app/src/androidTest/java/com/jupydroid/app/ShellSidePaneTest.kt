@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.theme.DarkChromePalette
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
@@ -67,7 +68,8 @@ class ShellSidePaneTest {
           onePanePanel = SidePanel.TABLE_OF_CONTENTS,
           twoPane = twoPane,
           onChoosePanel = {},
-          appContainer = AppContainer(FakeNotebookRepository()),
+          appContainer = AppContainer(),
+          spacePorts = EnteredSpacePorts(FakeNotebookRepository()),
           outline = OpenDocumentOutline(),
           debugStack = OpenDebugStack(),
           openDocuments = OpenDocuments(),

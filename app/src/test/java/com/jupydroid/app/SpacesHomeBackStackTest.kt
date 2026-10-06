@@ -34,6 +34,20 @@ class SpacesHomeBackStackTest {
     assertEquals(listOf(SpacesHome, Explorer("space-1"), Editor("nb-1")), backStack)
   }
 
+  /** Every workspace entry reads its Space off the browser's key beneath it. */
+  @Test
+  fun theEnteredSpaceIsTheOneOnTheBrowsersKey() {
+    val backStack = listOf(SpacesHome, Explorer("space-1"), Editor("nb-1"))
+
+    assertEquals("space-1", backStack.enteredSpaceId())
+  }
+
+  /** With nothing entered, what the home reaches is base's - where an import from the home lands. */
+  @Test
+  fun theHomeAloneReachesBase() {
+    assertEquals(BASE_SPACE.id, listOf<NavKey>(SpacesHome).enteredSpaceId())
+  }
+
   @Test
   fun leavingDropsEverythingAboveTheHome() {
     val backStack = mutableListOf<NavKey>(SpacesHome, Explorer(BASE_SPACE.id), Launcher)

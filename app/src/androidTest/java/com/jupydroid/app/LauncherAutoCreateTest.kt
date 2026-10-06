@@ -15,6 +15,7 @@ import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
@@ -123,8 +124,12 @@ class LauncherAutoCreateTest {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
-            notebookRepository = repository,
-            workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+            enteredSpacePorts = {
+              EnteredSpacePorts(
+                notebookRepository = repository,
+                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+              )
+            },
             launcherSettings = settings,
           ),
           importTitle = null,

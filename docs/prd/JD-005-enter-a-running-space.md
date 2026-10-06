@@ -172,7 +172,7 @@ its kernel, not its Space*.
 - [x] T1 — The home's Open is enabled iff the row is Running and enters that Space: `onOpen(spaceId)`,
   with `Explorer` carrying the id. The import path is settled (open decision 1). Ports are still base's,
   so a flow on the emulator shows only the gate
-- [ ] T2 — The files side binds to the entered Space: notebook repository, workspace, searcher and sharer
+- [x] T2 — The files side binds to the entered Space: notebook repository, workspace, searcher and sharer
   rooted at its `home/jupydroid`, from a per-Space set cached in the container. Recents are tagged and
   filtered by Space
 - [ ] T3 — The kernel side binds to the entered Space's server: gateway, sessions, specs, debugger and

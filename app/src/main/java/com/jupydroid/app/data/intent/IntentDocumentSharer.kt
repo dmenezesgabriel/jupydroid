@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.jupydroid.app.data.disk.WorkspaceRoot
 import com.jupydroid.app.domain.port.DocumentSharer
 import java.io.File
 
@@ -39,8 +40,12 @@ class IntentDocumentSharer(
    * `<files-path>` does not cover - and all of it is framework configuration that no JVM test can
    * reach. `getUriForFile` throws `IllegalArgumentException` for a file outside every configured
    * root, which is the check rather than a silent wrong answer.
+   *
+   * The provider's root is every Space's directory (`res/xml/exported_documents.xml`), which also
+   * holds each Space's rootfs. So the workspace is checked here first: `fileAt` throws
+   * `IllegalArgumentException` for any [path] that leaves it, the same type the provider throws.
    */
-  fun uriFor(path: String): Uri = FileProvider.getUriForFile(context, authority, File(workspace, path))
+  fun uriFor(path: String): Uri = FileProvider.getUriForFile(context, authority, WorkspaceRoot(workspace).fileAt(path))
 
   override fun share(path: String, mediaType: String) {
     val uri = uriFor(path)

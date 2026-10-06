@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.TerminalSession
@@ -57,6 +58,9 @@ import com.jupydroid.app.ui.shell.trailingBorder
  *   document rather than a [SidePanel], so it is a callback here and not a `chosen`.
  * @param onBrowsedDirectory where the explorer reports the directory it is showing - the
  *   launcher's cwd, hoisted to the navigation above both entries.
+ * @param spacePorts the entered Space's files - what the explorer lists, search walks and Recents
+ *   remembers. Handed in rather than looked up here, so the pane cannot bind to a Space other than
+ *   the one the navigation entered.
  * @param debugStack the open notebook's stopped call stack - [SidePanel.DEBUGGER]'s own content;
  *   see [OpenDebugStack].
  */
@@ -67,6 +71,7 @@ fun ShellSidePane(
   twoPane: Boolean,
   onChoosePanel: (SidePanel) -> Unit,
   appContainer: AppContainer,
+  spacePorts: EnteredSpacePorts,
   outline: OpenDocumentOutline,
   debugStack: OpenDebugStack,
   openDocuments: OpenDocuments,
@@ -131,12 +136,12 @@ fun ShellSidePane(
           )
         SidePanel.SEARCH ->
           SearchSidePanel(
-            searcher = appContainer.workspaceSearcher,
+            searcher = spacePorts.workspaceSearcher,
             // Built here and not in `AppContainer`, because the registry it needs is the shell's
             // own state rather than a process-wide implementation: `openDocuments` is remembered by
             // this composition and a container outlives every one of them.
-            replace = remember {
-              WorkspaceReplace(openDocuments, appContainer.notebookRepository, appContainer.workspaceRepository)
+            replace = remember(spacePorts) {
+              WorkspaceReplace(openDocuments, spacePorts.notebookRepository, spacePorts.workspaceRepository)
             },
             // The path is what opens a document, exactly as the browser's own rows hand one up -
             // `docmanager:open` decides the editor from the path and nothing else. The match
@@ -151,9 +156,9 @@ fun ShellSidePane(
         null -> Unit
         SidePanel.FILES ->
           ExplorerScreen(
-            workspaceRepository = appContainer.workspaceRepository,
-            notebookRepository = appContainer.notebookRepository,
-            recentDocuments = appContainer.recentDocuments,
+            workspaceRepository = spacePorts.workspaceRepository,
+            notebookRepository = spacePorts.notebookRepository,
+            recentDocuments = spacePorts.recentDocuments,
             explorerSettings = appContainer.explorerSettings,
             // The entry's path *is* the notebook's id - `Contents.IModel.path`, suffix included -
             // so there is nothing to translate. It briefly was not, and the suffix went on twice:

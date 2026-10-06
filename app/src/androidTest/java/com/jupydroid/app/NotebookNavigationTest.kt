@@ -13,6 +13,7 @@ import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
@@ -125,10 +126,14 @@ class NotebookNavigationTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            notebookRepository = repository,
+            enteredSpacePorts = {
+              EnteredSpacePorts(
+                notebookRepository = repository,
+                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+              )
+            },
             // The list is the explorer, and it lists the *workspace* - the default fake
             // is empty, so without this there are no rows to tap and the test proves nothing.
-            workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
           ),
           importTitle = null,
           onImportConsumed = {},

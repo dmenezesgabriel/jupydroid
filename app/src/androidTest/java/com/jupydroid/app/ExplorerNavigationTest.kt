@@ -7,10 +7,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
@@ -43,7 +46,9 @@ class ExplorerNavigationTest {
   // in the workspace the explorer lists.
   @get:Rule val state = TemporaryFolder()
 
-  private val recentDocuments by lazy { DiskRecentDocumentsRepository(state.root, temp.root) }
+  private val recentDocuments by lazy {
+    DiskRecentDocumentsRepository(DiskRecentDocumentsFile(state.root), BASE_SPACE.id, temp.root)
+  }
 
   /** The workspace is the first thing on screen now - there is no door to walk through first. */
   @Test
@@ -138,9 +143,13 @@ class ExplorerNavigationTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            notebookRepository = repository,
-            workspaceRepository = DiskWorkspaceRepository(temp.root),
-            recentDocuments = recentDocuments,
+            enteredSpacePorts = {
+              EnteredSpacePorts(
+                notebookRepository = repository,
+                workspaceRepository = DiskWorkspaceRepository(temp.root),
+                recentDocuments = recentDocuments,
+              )
+            },
           ),
           importTitle = null,
           onImportConsumed = {},

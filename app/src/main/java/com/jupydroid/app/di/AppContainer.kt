@@ -1,6 +1,5 @@
 package com.jupydroid.app.di
 
-import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
@@ -10,14 +9,12 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookExporter
-import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
+import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
-import com.jupydroid.app.data.fake.FakeWorkspaceRepository
-import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
@@ -25,7 +22,6 @@ import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.NotebookBreakpoints
-import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
@@ -35,18 +31,15 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.NotebookExporter
-import com.jupydroid.app.domain.port.NotebookRepository
-import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
-import com.jupydroid.app.domain.port.WorkspaceRepository
-import com.jupydroid.app.domain.port.WorkspaceSearcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -55,24 +48,11 @@ import kotlin.time.Duration.Companion.seconds
  * with no runnable Space keeps, so the UI works where the runtime cannot.
  */
 class AppContainer(
-  val notebookRepository: NotebookRepository,
   /**
-   * The same tree [notebookRepository] writes into, read as files rather than as notebooks - the
-   * explorer shows the folders and the data files a notebook puts there, which a list of
-   * notebooks cannot.
+   * Builds the ports of the Space named by its argument - called once per Space, through [portsOf].
+   * Its default hands every Space the fakes, which is what a test that never enters one needs.
    */
-  val workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
-  /**
-   * The same tree again, asked which files hold something rather than what is at a path - a
-   * different question with a different shape, so a port of its own.
-   */
-  val workspaceSearcher: WorkspaceSearcher = FakeWorkspaceSearcher(),
-  /**
-   * What was opened, which no listing of the tree can answer - a recent is a record of an act.
-   * Kept apart from [notebookRepository] for that reason, and because it remembers plain files
-   * and folders too.
-   */
-  val recentDocuments: RecentDocumentsRepository = FakeRecentDocumentsRepository(),
+  private val enteredSpacePorts: (String) -> EnteredSpacePorts = { EnteredSpacePorts(FakeNotebookRepository()) },
   /**
    * One registry for [kernelGateway] and [kernelSessions], so the pair share their session
    * bookkeeping by construction rather than by a call site remembering to pass it twice - the
@@ -117,11 +97,6 @@ class AppContainer(
    * Space draws the same menu and only the conversion is missing.
    */
   val notebookExporter: NotebookExporter = FakeNotebookExporter(),
-  /**
-   * How an exported file leaves the app, which the reference has no equivalent of - it exports by
-   * browser download. See [DocumentSharer].
-   */
-  val documentSharer: DocumentSharer = FakeDocumentSharer(),
   /**
    * Every Space's server, several at once, and which are running - what the home's Run and Stop
    * act on and its Running/Stopped reads.
@@ -178,6 +153,19 @@ class AppContainer(
   val notebookBreakpoints = NotebookBreakpoints()
 
   val terminalGateway: TerminalGateway = ActivityTrackedTerminalGateway(terminalGateway, activeTerminals)
+
+  private val portsBySpace = ConcurrentHashMap<String, EnteredSpacePorts>()
+
+  /**
+   * The ports [spaceId] binds, built on its first entry and the same object on every one after:
+   * two sets for one Space would be two recents lists over one file and two notebook caches over
+   * one tree.
+   *
+   * ```
+   * appContainer.portsOf(backStack.enteredSpaceId()).notebookRepository
+   * ```
+   */
+  fun portsOf(spaceId: String): EnteredSpacePorts = portsBySpace.computeIfAbsent(spaceId, enteredSpacePorts)
 
   /**
    * Stop every running Space's server when the app goes away - but only once nothing is still running,

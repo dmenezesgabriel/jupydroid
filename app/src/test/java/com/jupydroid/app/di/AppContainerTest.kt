@@ -11,6 +11,8 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -25,7 +27,7 @@ class AppContainerTest {
 
   @Test
   fun container_wiresPorts() = runTest {
-    val container = AppContainer(notebookRepository = FakeNotebookRepository())
+    val container = AppContainer()
 
     assertEquals(emptySet<String>(), container.spaceServers.running.value)
     container.spaceServers.run(space.id)
@@ -41,7 +43,7 @@ class AppContainerTest {
    */
   @Test
   fun leavingTheAppIdle_stopsEverySpacesServer() = runTest {
-    val container = AppContainer(notebookRepository = FakeNotebookRepository(), applicationScope = backgroundScope)
+    val container = AppContainer(applicationScope = backgroundScope)
     container.spaceServers.run("base")
     container.spaceServers.run("space-1")
 
@@ -55,9 +57,30 @@ class AppContainerTest {
   /** A device with no Space wiring still lists the base Space, as every installed device holds it. */
   @Test
   fun container_defaultsSpaceRepositoryToAFakeHoldingBase() = runTest {
-    val container = AppContainer(notebookRepository = FakeNotebookRepository())
+    val container = AppContainer()
 
     assertEquals(listOf("base"), container.spaceRepository.spaces().map { it.id })
+  }
+
+  /**
+   * One set per Space for the process's life: a second entry into a Space must reach the same
+   * repositories as the first, and two Spaces must never share one.
+   */
+  @Test
+  fun portsOf_buildsEachSpacesSetOnceAndKeepsThemApart() {
+    val built = mutableListOf<String>()
+    val container = AppContainer(
+      enteredSpacePorts = { spaceId ->
+        built += spaceId
+        EnteredSpacePorts(FakeNotebookRepository())
+      },
+    )
+
+    val thesis = container.portsOf("space-1")
+
+    assertSame(thesis, container.portsOf("space-1"))
+    assertNotSame(thesis, container.portsOf("base"))
+    assertEquals(listOf("space-1", "base"), built)
   }
 
   @Test

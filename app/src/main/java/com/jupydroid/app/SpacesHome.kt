@@ -1,6 +1,7 @@
 package com.jupydroid.app
 
 import androidx.navigation3.runtime.NavKey
+import com.jupydroid.app.domain.model.BASE_SPACE
 import kotlinx.serialization.Serializable
 
 /**
@@ -21,6 +22,17 @@ import kotlinx.serialization.Serializable
  * ```
  */
 fun List<NavKey>.isInWorkspace(): Boolean = any { it is Explorer }
+
+/**
+ * The Space the workspace was entered for, read off the browser's key that every workspace entry
+ * sits above. With nothing entered it is base: the only thing the home reaches files for is an
+ * import, and from the home that runs and enters base ([importNotebook]).
+ *
+ * ```
+ * appContainer.portsOf(backStack.enteredSpaceId())
+ * ```
+ */
+fun List<NavKey>.enteredSpaceId(): String = filterIsInstance<Explorer>().firstOrNull()?.spaceId ?: BASE_SPACE.id
 
 /**
  * Enters [spaceId]'s workspace from the home. Already entered is a no-op, so an import that may

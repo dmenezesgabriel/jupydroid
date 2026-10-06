@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  What IntentDocumentSharer may hand out: the workspace, and nothing else under files/.
+  What IntentDocumentSharer may hand out: a Space's workspace, and nothing else under files/.
 
-  Scoped to `spaces/base/home/jupydroid` rather than to `files/` because everything else in this
-  app's private storage is either the rootfs or app state - `recent-documents.json`,
-  `editor-settings.json`, the server's runtime directory and its token. A provider rooted at
-  `files/` would be able to hand any of those to any app the user picked.
+  Scoped to `spaces/` rather than to `files/` because everything else in this app's private storage
+  is app state - `recent-documents.json`, `editor-settings.json`. Not narrower, because a Space's id
+  is chosen at runtime and a `<files-path>` cannot hold a wildcard; `spaces/` also holds each Space's
+  rootfs and its server's runtime directory and token, so `IntentDocumentSharer.uriFor` refuses any
+  path that leaves the Space's own `home/jupydroid` before the provider sees it.
 
-  `files-path` is `Context.getFilesDir()`, which is what `notebookWorkspaceIn` is built from.
+  `files-path` is `Context.getFilesDir()`, which is what `spacesDir` is built from.
 -->
 <paths>
-    <files-path name="workspace" path="spaces/base/home/jupydroid/" />
+    <files-path name="spaces" path="spaces/" />
 </paths>

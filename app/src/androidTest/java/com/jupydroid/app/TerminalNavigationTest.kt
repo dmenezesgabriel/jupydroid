@@ -9,10 +9,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
@@ -81,9 +84,17 @@ class TerminalNavigationTest {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            notebookRepository = DiskNotebookRepository(temp.root),
-            workspaceRepository = DiskWorkspaceRepository(temp.root),
-            recentDocuments = DiskRecentDocumentsRepository(state.root, temp.root),
+            enteredSpacePorts = {
+              EnteredSpacePorts(
+                notebookRepository = DiskNotebookRepository(temp.root),
+                workspaceRepository = DiskWorkspaceRepository(temp.root),
+                recentDocuments = DiskRecentDocumentsRepository(
+                  DiskRecentDocumentsFile(state.root),
+                  BASE_SPACE.id,
+                  temp.root,
+                ),
+              )
+            },
           ),
           importTitle = null,
           onImportConsumed = {},

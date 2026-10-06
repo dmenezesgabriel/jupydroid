@@ -78,6 +78,8 @@ fun MainNavigation(
   // never from a panel inside one - see [SpacesHome]. Entering one pushes the explorer, the
   // workspace's own root, which has no separate recents screen beside it, as JupyterLab has none.
   val backStack = rememberNavBackStack(SpacesHome)
+  // The entered Space's ports, off the browser's key: every workspace entry binds to that one Space.
+  val spacePorts = appContainer.portsOf(backStack.enteredSpaceId())
   // Which side panel is showing, or null when the area is collapsed - see [SidePanel.chosen].
   // Saved rather than remembered, because a rotation is what most often brings the rail into range
   // in the first place, and `SidePanel?` round-trips through a Bundle unaided.
@@ -122,7 +124,7 @@ fun MainNavigation(
       openDocumentPaths,
       orderedTabs,
       liveTabTitles,
-      appContainer.workspaceRepository,
+      spacePorts.workspaceRepository,
       // The one width fact the strip reads: below two panes it leads with the Up affordance,
       // because the document is the whole window there and leaving it goes back.
       twoPane = twoPane,
@@ -354,6 +356,7 @@ fun MainNavigation(
             twoPane = twoPane,
             onChoosePanel = { sidePanel = it },
             appContainer = appContainer,
+            spacePorts = spacePorts,
             outline = outline,
             debugStack = debugPanel,
             openDocuments = openDocuments,
@@ -392,7 +395,7 @@ fun MainNavigation(
           tabbedPane {
             FileEditorScreen(
               path = file.path,
-              workspaceRepository = appContainer.workspaceRepository,
+              workspaceRepository = spacePorts.workspaceRepository,
               applicationScope = appContainer.applicationScope,
               editorSettingsRepository = appContainer.editorSettings,
               onBack = { backStack.removeLastOrNull() },
@@ -408,15 +411,15 @@ fun MainNavigation(
           tabbedPane {
             EditorScreen(
               notebookId = editor.notebookId,
-              notebookRepository = appContainer.notebookRepository,
-              workspaceRepository = appContainer.workspaceRepository,
+              notebookRepository = spacePorts.notebookRepository,
+              workspaceRepository = spacePorts.workspaceRepository,
               kernelGateway = appContainer.kernelGateway,
               kernelDebugger = appContainer.kernelDebugger,
               kernelSessions = appContainer.kernelSessions,
               kernelSpecs = appContainer.kernelSpecs,
               languageServer = appContainer.languageServer,
               notebookExporter = appContainer.notebookExporter,
-              documentSharer = appContainer.documentSharer,
+              documentSharer = spacePorts.documentSharer,
               applicationScope = appContainer.applicationScope,
               activeCellRuns = appContainer.activeCellRuns,
               notebookBreakpoints = appContainer.notebookBreakpoints,
@@ -466,8 +469,8 @@ fun MainNavigation(
               cwd = browsedDirectory,
               viewModel = viewModel {
                 LauncherViewModel(
-                  appContainer.notebookRepository,
-                  appContainer.workspaceRepository,
+                  spacePorts.notebookRepository,
+                  spacePorts.workspaceRepository,
                   appContainer.terminalGateway,
                   appContainer.kernelGateway,
                   consoleOrdinal = { consoleOrdinal.incrementAndGet() },

@@ -13,10 +13,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
+import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.LauncherSettings
+import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -24,6 +28,7 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import java.io.File
+import java.time.Instant
 
 /**
  * The Spaces home as the app's start destination: a cold start lands on it, base's Open enters the
@@ -121,14 +126,39 @@ class SpacesHomeNavigationTest {
     assertEquals(setOf(BASE_SPACE.id), spaceServers.running.value)
   }
 
+  /**
+   * Thesis's workspace is its own: entering it lists Thesis's files and none of base's, which is
+   * what binding the files to the browser's key buys.
+   */
+  @Test
+  fun openingAnotherSpaceShowsItsOwnWorkspaceAndNotBases() {
+    startApp(twoPane = false)
+
+    compose.enterSpace(THESIS_NAME, THESIS_ID)
+
+    waitForText(THESIS_FILE)
+    compose.onNodeWithText(LISTED_FILE).assertDoesNotExist()
+  }
+
   private fun startApp(twoPane: Boolean, importTitle: String? = null) {
-    File(tempFolder.root, LISTED_FILE).writeText("a file for the listing")
+    File(workspaceOf(BASE_SPACE.id), LISTED_FILE).writeText("a file for the listing")
+    File(workspaceOf(THESIS_ID), THESIS_FILE).writeText("a file in Thesis")
     compose.setContent {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = AppContainer(
-            notebookRepository = DiskNotebookRepository(tempFolder.root),
-            workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+            enteredSpacePorts = { spaceId ->
+              EnteredSpacePorts(
+                notebookRepository = DiskNotebookRepository(workspaceOf(spaceId)),
+                workspaceRepository = DiskWorkspaceRepository(workspaceOf(spaceId)),
+              )
+            },
+            spaceRepository = FakeSpaceRepository(
+              listOf(
+                defaultSpaceConfig(BASE_SPACE.id, Instant.EPOCH),
+                SpaceConfig(id = THESIS_ID, name = THESIS_NAME, created = Instant.EPOCH),
+              ),
+            ),
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
             spaceServers = spaceServers,
           ),
@@ -140,6 +170,9 @@ class SpacesHomeNavigationTest {
     }
   }
 
+  /** One directory per Space, as `spaces/<id>/home/jupydroid` is on a device. */
+  private fun workspaceOf(spaceId: String): File = File(tempFolder.root, spaceId).apply { mkdirs() }
+
   private fun waitForText(text: String) = compose.waitUntil(TIMEOUT_MILLIS) {
     compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
   }
@@ -150,5 +183,8 @@ class SpacesHomeNavigationTest {
     const val LISTED_FILE = "report.txt"
     const val LAUNCHER_SCREEN = "launcher-screen"
     const val TIMEOUT_MILLIS = 5_000L
+    const val THESIS_ID = "space-1"
+    const val THESIS_NAME = "Thesis"
+    const val THESIS_FILE = "chapter.txt"
   }
 }

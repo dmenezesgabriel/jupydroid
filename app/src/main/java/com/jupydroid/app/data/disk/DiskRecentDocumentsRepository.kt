@@ -3,54 +3,47 @@
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.RecentDocument
-import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.withMostRecent
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import java.io.File
 
-/** The file the list lives in, inside [stateDir] - never inside the workspace. */
-internal const val RECENTS_FILE_NAME = "recent-documents.json"
-
 /**
- * The recents list, held in [stateDir] and validated against the workspace it points into.
+ * One Space's recents, held in the shared [file] and validated against that Space's workspace.
  *
- * **[stateDir] is not the workspace, and that is the design.** The workspace is the kernel's `HOME`
+ * **The [file] is not in the workspace, and that is the design.** The workspace is the kernel's `HOME`
  * and the server's `root_dir`, shared with any other Jupyter client - a bookkeeping file
  * there would show up in the explorer's own listing and in an `ls` from a cell. The reference keeps
  * recents in `IStateDB` under `docmanager:recents` (`recents.ts:288`), which is client state and
  * not a Contents API file, and this app's own migration stamp is kept out of the rootfs `home` for
  * the same reason.
  *
+ * **The cap is per Space**, unlike JupyterLab, which slices the whole store before filtering by
+ * root (`recents.ts`, `_setRecents`) and so lets a busy root crowd a quiet one out of its own list.
+ *
  * ```
- * DiskRecentDocumentsRepository(context.filesDir, notebookWorkspace(context))
+ * DiskRecentDocumentsRepository(DiskRecentDocumentsFile(context.filesDir), "space-1", workspace)
  * ```
  */
 class DiskRecentDocumentsRepository(
-  private val stateDir: File,
+  private val file: DiskRecentDocumentsFile,
+  private val spaceId: String,
   workspaceDir: File,
-  private val json: Json = Json { ignoreUnknownKeys = true },
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : RecentDocumentsRepository {
   private val workspace = WorkspaceRoot(workspaceDir)
-  private val recents = MutableStateFlow(loadValidated())
 
   /**
-   * One write at a time, and the publish lands after it - the flow only repeats what the file
-   * holds. A `writeText` the filesystem refuses must not broadcast a list the next launch never
-   * kept, and [record]'s read-modify-write must not let two opens in the same breath drop one:
-   * `recordOpening` writes twice per document tap and the stack's opens race freely.
+   * Published only after [file] has written, so the flow repeats what the file holds: a write the
+   * filesystem refuses must not broadcast a list the next launch never kept. `recordOpening`
+   * writes twice per document tap and the stack's opens race freely, which [file]'s one lock
+   * serialises.
    */
-  private val writeMutex = Mutex()
+  private val recents = MutableStateFlow(file.read(spaceId).filter { stillThere(it) })
 
   override fun observeRecents(): Flow<List<RecentDocument>> = recents
 
@@ -63,55 +56,34 @@ class DiskRecentDocumentsRepository(
    */
   override suspend fun record(document: RecentDocument) = withContext(ioDispatcher) {
     if (!isInsideTheWorkspace(document)) return@withContext
-    writeMutex.withLock { write(recents.value.withMostRecent(document)) }
+    // From the published list rather than the stored one, which still holds what the launch found
+    // gone. Only this Space's repository writes its entries, so the two differ by that alone.
+    recents.value = file.update(spaceId) { recents.value.withMostRecent(document) }
   }
 
   override suspend fun clear() = withContext(ioDispatcher) {
-    writeMutex.withLock { write(emptyList()) }
+    recents.value = file.update(spaceId) { emptyList() }
   }
 
   /**
-   * The same filter [loadValidated] applies at launch, applied again on demand.
+   * The same filter the launch applies, applied again on demand. Only this Space's entries: another
+   * Space's paths name files in a tree this one cannot see.
    *
-   * Only writes when something actually went, so a refresh on a healthy list costs one `lstat` per
-   * entry and touches no disk.
+   * [DiskRecentDocumentsFile.update] writes only when something actually went, so a refresh on a
+   * healthy list costs one `lstat` per entry and touches no disk.
    */
   override suspend fun revalidate() = withContext(ioDispatcher) {
-    writeMutex.withLock {
-      val surviving = recents.value.filter { stillThere(it) }
-      if (surviving.size != recents.value.size) write(surviving)
-    }
-  }
-
-  private fun write(updated: List<RecentDocument>) {
-    stateDir.mkdirs()
-    storeFile().writeText(json.encodeToString(StoredRecents(updated.map { it.stored() })))
-    recents.value = updated
+    recents.value = file.update(spaceId) { stored -> stored.filter { stillThere(it) } }
   }
 
   /**
-   * What is read back at launch, minus anything that has since gone.
+   * Whether [document] is still there. `_loadRecents` filters every entry through `_isValid` before
+   * the list is ever shown (`recents.ts:203-224`), where invalid means the Contents API answered
+   * **404**. This workspace is shared with the kernel, so a cell calling `os.remove` is an ordinary
+   * way for a recent to go stale rather than an edge case.
    *
-   * `_loadRecents` filters every entry through `_isValid` before the list is ever shown
-   * (`recents.ts:203-224`), where invalid means the Contents API answered **404**. This workspace
-   * is shared with the kernel, so a cell calling `os.remove` is an ordinary way for a recent to go
-   * stale rather than an edge case.
-   *
-   * A store that cannot be parsed reads as empty. This runs before the first screen draws, and the
-   * reference's own `_loadRecents` catches its failure and carries on for the same reason.
+   * `isPresent`, not `exists`: a dangling symlink is still something the browser lists.
    */
-  private fun loadValidated(): List<RecentDocument> = try {
-    json.decodeFromString<StoredRecents>(storeFile().readText())
-      .documents
-      .map { it.toDomain() }
-      .filter { stillThere(it) }
-  } catch (failure: SerializationException) {
-    emptyList()
-  } catch (failure: java.io.IOException) {
-    emptyList()
-  }
-
-  /** `isPresent`, not `exists`: a dangling symlink is still something the browser lists. */
   private fun stillThere(document: RecentDocument): Boolean =
     isInsideTheWorkspace(document) && workspace.isPresent(workspace.fileAt(document.path))
 
@@ -121,18 +93,4 @@ class DiskRecentDocumentsRepository(
   } catch (refused: IllegalArgumentException) {
     false
   }
-
-  private fun storeFile(): File = File(stateDir, RECENTS_FILE_NAME)
 }
-
-/** The stored shape, kept apart from the domain type so the file format can move on its own. */
-@Serializable
-private data class StoredRecents(val documents: List<StoredRecent> = emptyList())
-
-@Serializable
-private data class StoredRecent(val path: String, val directory: Boolean)
-
-private fun RecentDocument.stored() = StoredRecent(path, kind == WorkspaceEntryKind.DIRECTORY)
-
-private fun StoredRecent.toDomain() =
-  RecentDocument(path, if (directory) WorkspaceEntryKind.DIRECTORY else WorkspaceEntryKind.FILE)

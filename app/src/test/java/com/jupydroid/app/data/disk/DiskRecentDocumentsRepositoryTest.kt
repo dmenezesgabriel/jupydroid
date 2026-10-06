@@ -1,5 +1,7 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.MAX_RECENTS
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
@@ -20,14 +22,22 @@ class DiskRecentDocumentsRepositoryTest : RecentDocumentsRepositoryContract() {
 
   private val stateDir: File get() = File(temp.root, "state")
   private val workspaceDir: File get() = File(temp.root, "workspace").apply { mkdirs() }
+  private val thesisWorkspaceDir: File get() = File(temp.root, "thesis-workspace").apply { mkdirs() }
 
   override fun repository(): RecentDocumentsRepository = openStore()
 
-  private fun openStore() = DiskRecentDocumentsRepository(stateDir, workspaceDir)
+  /** A fresh [DiskRecentDocumentsFile] each time, which is this app's version of the next launch. */
+  private fun openStore(file: DiskRecentDocumentsFile = DiskRecentDocumentsFile(stateDir)) =
+    DiskRecentDocumentsRepository(file, BASE_SPACE.id, workspaceDir)
 
-  private fun givenInWorkspace(vararg paths: String) {
+  private fun openThesis(file: DiskRecentDocumentsFile = DiskRecentDocumentsFile(stateDir)) =
+    DiskRecentDocumentsRepository(file, THESIS, thesisWorkspaceDir)
+
+  private fun givenInWorkspace(vararg paths: String) = givenIn(workspaceDir, *paths)
+
+  private fun givenIn(root: File, vararg paths: String) {
     paths.forEach { path ->
-      val file = File(workspaceDir, path)
+      val file = File(root, path)
       if (path.endsWith("/")) file.mkdirs() else file.apply { parentFile?.mkdirs() }.writeText("x")
     }
   }
@@ -177,5 +187,104 @@ class DiskRecentDocumentsRepositoryTest : RecentDocumentsRepositoryContract() {
 
     assertTrue(refused.exceptionOrNull() is java.io.IOException)
     assertTrue(store.observeRecents().first().isEmpty())
+  }
+
+  /**
+   * One file holds every Space's recents, and each Space is shown its own: JupyterLab keeps one
+   * `docmanager:recents` store and tags each entry with the server root it was opened under
+   * (`jupyterlab@7f0e690 packages/docmanager/src/recents.ts`, `addRecent`).
+   */
+  @Test
+  fun eachSpaceSeesOnlyItsOwnRecents() = runTest {
+    givenInWorkspace("base.ipynb")
+    givenIn(thesisWorkspaceDir, "thesis.ipynb")
+    val file = DiskRecentDocumentsFile(stateDir)
+    openStore(file).record(RecentDocument("base.ipynb", WorkspaceEntryKind.FILE))
+    openThesis(file).record(RecentDocument("thesis.ipynb", WorkspaceEntryKind.FILE))
+
+    assertEquals(listOf("base.ipynb"), openStore().observeRecents().first().map { it.path })
+    assertEquals(listOf("thesis.ipynb"), openThesis().observeRecents().first().map { it.path })
+  }
+
+  /** Two Spaces open in one process write one file, and neither write may drop the other's entries. */
+  @Test
+  fun aRecordInOneSpaceKeepsTheOthersEntries() = runTest {
+    givenInWorkspace("base.ipynb")
+    givenIn(thesisWorkspaceDir, "thesis.ipynb")
+    val file = DiskRecentDocumentsFile(stateDir)
+    val base = openStore(file)
+    val thesis = openThesis(file)
+
+    base.record(RecentDocument("base.ipynb", WorkspaceEntryKind.FILE))
+    thesis.record(RecentDocument("thesis.ipynb", WorkspaceEntryKind.FILE))
+
+    assertEquals(listOf("base.ipynb"), openStore().observeRecents().first().map { it.path })
+  }
+
+  /** A list written before Spaces were entered carries no tag, and every entry in it was base's. */
+  @Test
+  fun anUntaggedEntryFromBeforeIsBases() = runTest {
+    givenInWorkspace("old.ipynb")
+    givenIn(thesisWorkspaceDir, "old.ipynb")
+    stateDir.mkdirs()
+    File(stateDir, RECENTS_FILE_NAME).writeText("""{"documents":[{"path":"old.ipynb","directory":false}]}""")
+
+    assertEquals(listOf("old.ipynb"), openStore().observeRecents().first().map { it.path })
+    assertTrue(openThesis().observeRecents().first().isEmpty())
+  }
+
+  /** `docmanager:clear-recents` from inside one Space forgets that Space's list and no other. */
+  @Test
+  fun clearingOneSpaceLeavesTheOther() = runTest {
+    givenInWorkspace("base.ipynb")
+    givenIn(thesisWorkspaceDir, "thesis.ipynb")
+    val file = DiskRecentDocumentsFile(stateDir)
+    openStore(file).record(RecentDocument("base.ipynb", WorkspaceEntryKind.FILE))
+    openThesis(file).record(RecentDocument("thesis.ipynb", WorkspaceEntryKind.FILE))
+
+    openThesis(file).clear()
+
+    assertEquals(listOf("base.ipynb"), openStore().observeRecents().first().map { it.path })
+  }
+
+  /**
+   * A Space validates against its own workspace alone, so it cannot judge another Space's entry -
+   * `thesis.ipynb` is not in base's tree, and base's revalidate must leave it.
+   */
+  @Test
+  fun revalidatingOneSpaceLeavesTheOthersEntries() = runTest {
+    givenInWorkspace("base.ipynb")
+    givenIn(thesisWorkspaceDir, "thesis.ipynb")
+    val file = DiskRecentDocumentsFile(stateDir)
+    val base = openStore(file)
+    base.record(RecentDocument("base.ipynb", WorkspaceEntryKind.FILE))
+    openThesis(file).record(RecentDocument("thesis.ipynb", WorkspaceEntryKind.FILE))
+    assertTrue(File(workspaceDir, "base.ipynb").delete())
+
+    base.revalidate()
+
+    assertEquals(listOf("thesis.ipynb"), openThesis().observeRecents().first().map { it.path })
+  }
+
+  /**
+   * The cap is per Space. JupyterLab slices the whole store before it filters by root
+   * (`recents.ts`, `_setRecents`), so a busy root crowds a quiet one out of its own list.
+   */
+  @Test
+  fun theCapIsPerSpace() = runTest {
+    val names = (1..MAX_RECENTS).map { "n$it.ipynb" }
+    givenInWorkspace(*names.toTypedArray())
+    givenIn(thesisWorkspaceDir, "thesis.ipynb")
+    val file = DiskRecentDocumentsFile(stateDir)
+    val base = openStore(file)
+    names.forEach { base.record(RecentDocument(it, WorkspaceEntryKind.FILE)) }
+
+    openThesis(file).record(RecentDocument("thesis.ipynb", WorkspaceEntryKind.FILE))
+
+    assertEquals(MAX_RECENTS, openStore().observeRecents().first().size)
+  }
+
+  private companion object {
+    const val THESIS = "space-1"
   }
 }

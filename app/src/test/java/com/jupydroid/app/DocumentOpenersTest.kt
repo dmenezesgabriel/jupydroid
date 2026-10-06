@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
@@ -17,6 +18,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -53,11 +55,14 @@ class DocumentOpenersTest {
     val backStack = mutableListOf<NavKey>(SpacesHome)
     val servers = FakeSpaceServers()
 
-    val opened = backStack.importNotebook("Imported", FakeNotebookRepository(), servers)
+    val repositories = SpaceRepositories()
+
+    val opened = backStack.importNotebook("Imported", repositories::of, servers)
 
     assertNotNull(opened)
     assertEquals(setOf(BASE_SPACE.id), servers.running.value)
     assertEquals(listOf(SpacesHome, Explorer(BASE_SPACE.id)), backStack)
+    assertEquals("Imported", repositories.of(BASE_SPACE.id).readNotebook(opened!!).title)
   }
 
   /** Inside a workspace an import stays in the Space already entered, rather than switching to base. */
@@ -66,21 +71,32 @@ class DocumentOpenersTest {
     val backStack = mutableListOf<NavKey>(SpacesHome, Explorer("space-1"))
     val servers = FakeSpaceServers()
 
-    val opened = backStack.importNotebook("Imported", FakeNotebookRepository(), servers)
+    val repositories = SpaceRepositories()
+
+    val opened = backStack.importNotebook("Imported", repositories::of, servers)
 
     assertNotNull(opened)
     assertEquals(emptySet<String>(), servers.running.value)
     assertEquals(listOf(SpacesHome, Explorer("space-1")), backStack)
+    assertEquals("Imported", repositories.of("space-1").readNotebook(opened!!).title)
+    assertTrue("written into base too", runCatching { repositories.of(BASE_SPACE.id).readNotebook(opened) }.isFailure)
   }
 
   @Test
   fun anImportWhoseRunIsRefusedOpensNothing() = runTest {
     val backStack = mutableListOf<NavKey>(SpacesHome)
 
-    val opened = backStack.importNotebook("Imported", FakeNotebookRepository(), RefusingSpaceServers())
+    val opened = backStack.importNotebook("Imported", SpaceRepositories()::of, RefusingSpaceServers())
 
     assertNull(opened)
     assertEquals(listOf<NavKey>(SpacesHome), backStack)
+  }
+
+  /** One fake repository per Space id, the shape `AppContainer.portsOf` gives the real ones. */
+  private class SpaceRepositories {
+    private val bySpace = mutableMapOf<String, FakeNotebookRepository>()
+
+    fun of(spaceId: String): NotebookRepository = bySpace.getOrPut(spaceId) { FakeNotebookRepository() }
   }
 
   /** Servers whose only answer to `run` is no. */

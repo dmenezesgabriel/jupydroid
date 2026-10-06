@@ -8,6 +8,7 @@ import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
 import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
 import com.jupydroid.app.data.disk.DiskSpaceRepository
 import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
@@ -35,10 +36,13 @@ import com.jupydroid.app.data.space.baseSpaceLanguageServerPort
 import com.jupydroid.app.data.space.baseSpaceNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
+import com.jupydroid.app.data.space.notebookWorkspaceIn
+import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.data.space.spaceImageInstaller
 import com.jupydroid.app.data.space.spaceServers
 import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.di.AppContainer
+import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.port.KernelDebugger
@@ -94,9 +98,29 @@ class JupydroidApplication : Application() {
     // it, and two entries for one Space would be two processes pretending to be one.
     val servers = spaceServers(this, applicationScope)
     val space = SpaceBackedPorts(servers?.server(BASE_SPACE.id), this)
-    val workspace = notebookWorkspace(this)
-    migrateNotebooksOnce(workspace)
-    return containerFor(servers ?: FakeSpaceServers(), applicationScope, space, workspace)
+    migrateNotebooksOnce(notebookWorkspace(this))
+    return containerFor(servers ?: FakeSpaceServers(), applicationScope, space, DiskRecentDocumentsFile(filesDir))
+  }
+
+  /**
+   * The ports of one entered Space, over its own `home/jupydroid`. Always real, unlike the
+   * Space-backed group: a tree on disk needs no running Space, so a device that cannot run one
+   * still browses, searches and shares.
+   *
+   * [recentsFile] is the one shared file every Space's recents are tagged into. It lives in
+   * `filesDir`, deliberately not in a workspace: the workspace is the kernel's HOME and the
+   * server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from a
+   * cell. The reference keeps recents in `IStateDB`, not in the Contents API.
+   */
+  private fun enteredSpacePortsOf(spaceId: String, recentsFile: DiskRecentDocumentsFile): EnteredSpacePorts {
+    val workspace = notebookWorkspaceIn(spaceDirIn(spacesDir(this), spaceId))
+    return EnteredSpacePorts(
+      notebookRepository = DiskNotebookRepository(workspace),
+      workspaceRepository = DiskWorkspaceRepository(workspace),
+      workspaceSearcher = DiskWorkspaceSearcher(workspace),
+      recentDocuments = DiskRecentDocumentsRepository(recentsFile, spaceId, workspace),
+      documentSharer = IntentDocumentSharer(this, workspace),
+    )
   }
 
   // One named argument per port and no logic, so its length grows with the ports rather than
@@ -106,17 +130,9 @@ class JupydroidApplication : Application() {
     spaceServers: SpaceServers,
     applicationScope: CoroutineScope,
     space: SpaceBackedPorts,
-    workspace: File,
+    recentsFile: DiskRecentDocumentsFile,
   ) = AppContainer(
-    notebookRepository = DiskNotebookRepository(workspace),
-    workspaceRepository = DiskWorkspaceRepository(workspace),
-    // The same tree, walked rather than listed. Always real, like the sharer: searching needs no
-    // Space, so it works on a device that cannot run one.
-    workspaceSearcher = DiskWorkspaceSearcher(workspace),
-    // `filesDir`, deliberately not `workspace`: the workspace is the kernel's HOME and the
-    // server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from
-    // a cell. The reference keeps recents in `IStateDB`, not in the Contents API.
-    recentDocuments = DiskRecentDocumentsRepository(filesDir, workspace),
+    enteredSpacePorts = { id -> enteredSpacePortsOf(id, recentsFile) },
     kernelGateway = space.kernels,
     kernelSessions = space.sessions,
     kernelSpecs = space.specs,
@@ -124,10 +140,6 @@ class JupydroidApplication : Application() {
     languageServer = space.languageServer,
     notebookExporter = space.exporter,
     terminalGateway = space.terminals,
-    // Always real, unlike the Space-backed three: sharing needs no Space, so it works on a device
-    // that cannot run one - there is nothing to export there, but a file put in the workspace by
-    // any other means can still be sent.
-    documentSharer = IntentDocumentSharer(this, workspace),
     spaceServers = spaceServers,
     // Always real, like the searcher: listing and editing Space records needs only `filesDir`,
     // and a create copies the bundled image into the new Space's own directory.
