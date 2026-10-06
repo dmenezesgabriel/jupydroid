@@ -38,7 +38,7 @@ object FakeProotScript {
         -r) root=${'$'}2; shift 2 ;;
         -w) cwd=${'$'}2; shift 2 ;;
         -b) shift 2 ;;
-        -0) shift ;;
+        -0|--kill-on-exit) shift ;;
         *) break ;;
       esac
     done

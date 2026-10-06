@@ -136,10 +136,13 @@ class SpaceRuntime(
    * A [ProcessBuilder] that execs [args] as given - with **no interpreter prefix** - under proot
    * and the Space environment. Console scripts such as [SPACE_PYLSP] must run this way: proot
    * execs one through its `#!` line as the kernel would, while pushing it through [command] would
-   * make it `python3 <path>`.
+   * make it `python3 <path>`. [killOnExit] is proot's own ([ProotCommand.argv]).
    */
-  fun execProcessBuilder(args: List<String>, extraEnv: Map<String, String> = emptyMap()): ProcessBuilder =
-    spaceProcess(proot.argv(args), extraEnv)
+  fun execProcessBuilder(
+    args: List<String>,
+    extraEnv: Map<String, String> = emptyMap(),
+    killOnExit: Boolean = false,
+  ): ProcessBuilder = spaceProcess(proot.argv(args, killOnExit), extraEnv)
 
   private fun spaceProcess(argv: List<String>, extraEnv: Map<String, String>): ProcessBuilder =
     ProcessBuilder(argv).apply {

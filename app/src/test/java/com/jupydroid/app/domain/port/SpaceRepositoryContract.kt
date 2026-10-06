@@ -193,6 +193,17 @@ abstract class SpaceRepositoryContract {
     assertEquals(1, repository.spaces().single { it.id == created.id }.settings.threadCap)
   }
 
+  @Test
+  fun aConfiguredStartupScriptIsStoredVerbatim() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+    val script = "echo started > ~/startup.txt\npip install --quiet rich"
+
+    repository.configure(created.id, SpaceSettings(startupScript = script))
+
+    assertEquals(script, repository.spaces().single { it.id == created.id }.settings.startupScript)
+  }
+
   /** A cap outside `1..64` is refused by value, and the stored record is not touched. */
   @Test
   fun aThreadCapOutsideTheRangeIsRefusedAndNothingIsWritten() = runTest {

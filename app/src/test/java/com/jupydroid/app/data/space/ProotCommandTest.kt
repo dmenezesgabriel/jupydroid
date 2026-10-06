@@ -35,6 +35,18 @@ class ProotCommandTest {
     assertEquals("/home/jupydroid", argv[argv.indexOf("-w") + 1])
   }
 
+  /**
+   * Off unless asked for: a server's kernels must outlive nothing but the server, and they do, but a
+   * bounded command must take every process it started with it when it exits.
+   */
+  @Test
+  fun killOnExitIsAnOptionBeforeTheCommandAndOnlyWhenAsked() {
+    val bounded = proot.argv(listOf("/bin/sh"), killOnExit = true)
+
+    assertEquals(listOf(File(nativeDir, "libproot.so").path, "--kill-on-exit"), bounded.take(2))
+    assertEquals(false, "--kill-on-exit" in proot.argv(listOf("/bin/sh")))
+  }
+
   @Test
   fun theLoaderIsTheOneShippedBesideProot() {
     assertEquals(File(nativeDir, "libproot-loader.so").path, proot.environment().getValue("PROOT_LOADER"))

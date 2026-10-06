@@ -108,6 +108,45 @@ class JupyterServerLauncherSpaceTest {
     assertTrue(serverEnv().toString(), serverEnv().none { it.startsWith("OMP_NUM_THREADS=") })
   }
 
+  /**
+   * The script runs **before** the server - no runtime file exists yet - from the workspace, with
+   * the Space's own variables, which is what lets it prepare what the server and kernels then find.
+   */
+  @Test
+  fun aStartupScriptRunsBeforeTheServerInTheWorkspaceWithTheSpacesVariables() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    spaceOneSettings = SpaceSettings(
+      environmentVariables = mapOf("GREETING" to "hello"),
+      startupScript = """echo "${'$'}GREETING" > startup.txt
+        |[ -e "${'$'}FAKE_PROOT_ROOT${'$'}JUPYTER_RUNTIME_DIR/jpserver-1.json" ] && echo late >> startup.txt
+        |exit 0
+      """.trimMargin(),
+    )
+
+    launcher.start(spaceOne)
+
+    assertEquals("hello", File(spaceOneDir(), "home/jupydroid/startup.txt").readText().trim())
+  }
+
+  /** A failed script fails the start in words the home shows: its status and what it printed last. */
+  @Test
+  fun aFailingStartupScriptFailsTheStartWithItsStatusAndOutputAndStartsNoServer() {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    spaceOneSettings = SpaceSettings(startupScript = "echo nope\nexit 3")
+
+    val error = assertThrows(IllegalStateException::class.java) { runBlocking { launcher.start(spaceOne) } }
+
+    assertTrue(error.message!!, "status 3" in error.message!! && "nope" in error.message!!)
+    assertFalse("no server may start after a failed script", File(spaceOneDir(), "run/pid").exists())
+  }
+
+  @Test
+  fun aBlankStartupScriptRunsNothing() = runBlocking {
+    launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
+
+    assertFalse(File(spaceOneDir(), "run/startup.log").exists())
+  }
+
   private fun serverArgs(): List<String> = File(spaceOneDir(), "run/args").readLines()
 
   private fun serverEnv(): List<String> = File(spaceOneDir(), "run/env").readLines()
@@ -159,6 +198,7 @@ class JupyterServerLauncherSpaceTest {
   /** [installInterpreter] puts the fake server into space-1's root, where the launcher runs it. */
   private fun launcherWith(installInterpreter: (File) -> File): JupyterServerLauncher {
     installInterpreter(spaceOneDir())
+    FakeSpaceShellScript.installIn(spaceOneDir())
     return JupyterServerLauncher(
       runtimeFor = { space, settings ->
         SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir, variables = settings.spaceProcessVariables())

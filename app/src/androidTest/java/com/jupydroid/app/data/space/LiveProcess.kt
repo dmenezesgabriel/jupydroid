@@ -32,7 +32,8 @@ fun spaceProcessTree(spaceDir: File): List<LiveProcess> {
 private fun LiveProcess.isProotFor(spaceDir: File): Boolean =
   "proot" in command && " -r ${spaceDir.path} " in "$command "
 
-private fun liveProcesses(): List<LiveProcess> = File("/proc").listFiles().orEmpty()
+/** Every process this uid can see, whoever its parent is now - an orphan included. */
+fun liveProcesses(): List<LiveProcess> = File("/proc").listFiles().orEmpty()
   .mapNotNull { it.name.toIntOrNull() }
   .mapNotNull(::readProcess)
 

@@ -29,6 +29,9 @@ const val IDLE_SHUTDOWN_FIELD_TAG = "space-idle-shutdown-field"
 /** The thread-cap field's tag, for a test and - as a resource id - for a Maestro flow. */
 const val THREAD_CAP_FIELD_TAG = "space-thread-cap-field"
 
+/** The startup-script field's tag, for a test and - as a resource id - for a Maestro flow. */
+const val STARTUP_SCRIPT_FIELD_TAG = "space-startup-script-field"
+
 /** The dialog's accept button. */
 internal const val SAVE_SETTINGS = "Save"
 
@@ -51,6 +54,7 @@ fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onD
   var idleText by remember(space) { mutableStateOf(space.settings.idleShutdownMinutes.toString()) }
   var capText by remember(space) { mutableStateOf(space.settings.threadCap?.toString().orEmpty()) }
   var variableRows by remember(space) { mutableStateOf(variableRowsOf(space.settings.environmentVariables)) }
+  var scriptText by remember(space) { mutableStateOf(space.settings.startupScript) }
   val idleMinutes = idleText.trim().toIntOrNull()?.takeIf { it in IDLE_SHUTDOWN_MINUTES_RANGE }
   val threadCap = threadCapOf(capText)
   val savable = idleMinutes?.takeIf { threadCap.isSuccess && variableRows.refusals().all { it == null } }
@@ -62,6 +66,7 @@ fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onD
         SettingsNumberField(idleText, idleMinutes == null, IDLE_SHUTDOWN_LABEL, onChange = { idleText = it })
         SettingsNumberField(capText, threadCap.isFailure, THREAD_CAP_LABEL, onChange = { capText = it })
         SpaceVariablesEditor(variableRows, onRowsChange = { variableRows = it })
+        StartupScriptField(scriptText, onChange = { scriptText = it })
       }
     },
     confirmButton = {
@@ -73,6 +78,7 @@ fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onD
                 idleShutdownMinutes = it,
                 environmentVariables = variableRows.toVariables(),
                 threadCap = threadCap.getOrNull(),
+                startupScript = scriptText,
               ),
             )
           }
@@ -133,5 +139,18 @@ private fun SettingsNumberField(
     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     singleLine = true,
     modifier = Modifier.semantics { testTagsAsResourceId = true }.testTag(label.tag),
+  )
+}
+
+/** Shell, so several lines; said under itself when it runs and what a failure does. */
+@Composable
+private fun StartupScriptField(text: String, onChange: (String) -> Unit) {
+  OutlinedTextField(
+    value = text,
+    onValueChange = onChange,
+    label = { Text("Startup script") },
+    supportingText = { Text("sh, before the server on every start; a non-zero exit fails the start") },
+    minLines = 3,
+    modifier = Modifier.semantics { testTagsAsResourceId = true }.testTag(STARTUP_SCRIPT_FIELD_TAG),
   )
 }

@@ -34,7 +34,8 @@ import kotlin.time.Duration.Companion.seconds
  * Every per-Space input - the environment, the runtime dir, the Contents API root - is derived
  * from the Space [start] is handed, so one launcher serves whichever Space it is asked for. Its
  * settings are read at every start, never kept: a Space configured on the home after its last run
- * starts with what was saved, whether the home's Run or a cell's restart is what starts it.
+ * starts with what was saved, whether the home's Run or a cell's restart is what starts it. Its
+ * startup script, if it has one, runs to completion before the server and must exit 0.
  *
  * [stop] asks the server to stop with `POST api/shutdown`, JupyterLab's own stop
  * (`jupyterlab@7f0e690 packages/mainmenu-extension/src/index.ts`, `CommandIDs.shutdown`). No signal
@@ -54,6 +55,7 @@ class JupyterServerLauncher(
   /** The Space's settings as stored now - asked once per [start]. */
   private val settingsFor: suspend (Space) -> SpaceSettings,
   private val startTimeout: Duration = START_TIMEOUT,
+  private val startupScriptTimeout: Duration = STARTUP_SCRIPT_TIMEOUT,
   private val stopTimeout: Duration = STOP_TIMEOUT,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
   private val client: OkHttpClient = OkHttpClient(),
@@ -77,20 +79,30 @@ class JupyterServerLauncher(
     stop()
     val dirs = dirsFor(space)
     val settings = settingsFor(space)
-    val started = withContext(ioDispatcher) {
+    val runtime = runtimeFor(space, settings)
+    withContext(ioDispatcher) {
       dirs.ensure()
       JupyterRuntimeFile.clear(dirs.runtime) // a stale file would advertise a dead port
-      jupyterServerProcess(
-        runtimeFor(space, settings),
-        dirs.runtime,
-        dirs.inRoot(dirs.workspace),
-        token,
-        settings,
-      ).start()
+    }
+    runStartupScript(runtime, dirs.runtime, settings.startupScript)
+    val started = withContext(ioDispatcher) {
+      jupyterServerProcess(runtime, dirs.runtime, dirs.inRoot(dirs.workspace), token, settings).start()
     }
     process = started
     val reported = awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
     return reported.also { connection = it }
+  }
+
+  /**
+   * Runs [script], when there is one, and waits for it: blocking a thread as [awaitExit] does, and
+   * interruptible, so a cancelled start frees it. The bound is the script's own ([startupScriptArgs]).
+   */
+  private suspend fun runStartupScript(runtime: SpaceRuntime, runtimeDir: File, script: String) {
+    if (script.isBlank()) return
+    val status = runInterruptible(ioDispatcher) {
+      startupScriptProcess(runtime, runtimeDir, script, startupScriptTimeout).start().waitFor()
+    }
+    requireStartupScriptSucceeded(status, runtimeDir, startupScriptTimeout)
   }
 
   /**
@@ -160,10 +172,9 @@ class JupyterServerLauncher(
 
   private suspend fun failStart(started: Process, runtimeDir: File): Nothing {
     stop()
-    val log = withContext(ioDispatcher) { jupyterServerLogFile(runtimeDir).takeIf { it.isFile }?.readText().orEmpty() }
+    val log = withContext(ioDispatcher) { logTail(jupyterServerLogFile(runtimeDir)) }
     throw IllegalStateException(
-      "jupyter_server did not report a port within $startTimeout " +
-        "(alive=${started.isAlive}); log:\n${log.takeLast(LOG_EXCERPT)}",
+      "jupyter_server did not report a port within $startTimeout (alive=${started.isAlive}); log:\n$log",
     )
   }
 
@@ -181,7 +192,6 @@ class JupyterServerLauncher(
     val STOP_TIMEOUT = 10.seconds
     const val OUTLIVED_SHUTDOWN = "jupyter_server outlived api/shutdown"
     val POLL_INTERVAL = 100.milliseconds
-    const val LOG_EXCERPT = 2000
   }
 }
 

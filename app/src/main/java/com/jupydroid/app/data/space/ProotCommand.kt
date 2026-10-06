@@ -20,9 +20,14 @@ data class ProotCommand(val nativeLibraryDir: File, val root: File, val inRootWo
   /**
    * [command], named by its in-root path, run with [root] as `/` from [inRootWorkingDir], and `/dev`
    * and `/proc` bound through.
+   *
+   * [killOnExit] has proot kill every process still running once [command] exits. Without it proot
+   * waits for all of them, and the app cannot kill the leftovers itself: SIGKILL to proot orphans
+   * what it traces (`TwoSpacesAtOnceDeviceTest`).
    */
-  fun argv(command: List<String>): List<String> = listOf(
+  fun argv(command: List<String>, killOnExit: Boolean = false): List<String> = listOfNotNull(
     File(nativeLibraryDir, PROOT).path,
+    KILL_ON_EXIT.takeIf { killOnExit },
     "-r",
     root.path,
     "-0",
@@ -44,5 +49,8 @@ data class ProotCommand(val nativeLibraryDir: File, val root: File, val inRootWo
     /** Both staged into arm64 `jniLibs` by `scripts/stage_proot.py`. */
     const val PROOT = "libproot.so"
     const val PROOT_LOADER = "libproot-loader.so"
+
+    /** In the shipped proot 5.4.0's own option list (`strings libproot.so`). */
+    private const val KILL_ON_EXIT = "--kill-on-exit"
   }
 }

@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# A relaunch stops Thesis, so its Settings is open again. The script becomes one that prints a line
+# and exits 3; Run then fails: the row stays Stopped and the home shows the status and the line.
+# Two lines typed with Enter between them rather than `;` straight after a word, which can drop a
+# character out of a long `inputText` (`p7e-1-space-python.yaml`).
+- launchApp
+- extendedWaitUntil:
+    visible: "Settings Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "space-startup-script-field"
+    direction: DOWN
+    timeout: 5000
+# Replaced through Select all, as `aud-002-4-text-clipboard.yaml` selects: a tap leaves the caret
+# mid-text and `eraseText`, bare or counted, deletes only behind it - it once left `startup.txt`
+# to be saved as `exit 3startup.txt`. Typing over the selection replaces all of it.
+- longPressOn:
+    id: "space-startup-script-field"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Select all"
+    id: "android:id/floating_toolbar_menu_item_text"
+- inputText: "echo nope"
+- pressKey: Enter
+- inputText: "exit 3"
+- hideKeyboard
+- assertNotVisible: ".*startup\\.txt.*"
+- takeScreenshot: 04-failing-script-typed
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "(?s)startup script exited with status 3; expected 0.*nope.*"
+    timeout: 60000
+- assertVisible: "Run Thesis \\(space-1\\)"
+- takeScreenshot: 05-start-refused-with-status-and-output

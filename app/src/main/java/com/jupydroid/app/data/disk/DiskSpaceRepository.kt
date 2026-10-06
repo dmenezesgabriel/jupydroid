@@ -182,11 +182,14 @@ private data class StoredSpaceSettings(
   // A JSON object keeps the order the person added them in: kotlinx decodes it into a LinkedHashMap.
   val environmentVariables: Map<String, String> = emptyMap(),
   val threadCap: Int? = null,
+  val startupScript: String = "",
 )
 
-private fun SpaceSettings.stored() = StoredSpaceSettings(idleShutdownMinutes, environmentVariables, threadCap)
+private fun SpaceSettings.stored() =
+  StoredSpaceSettings(idleShutdownMinutes, environmentVariables, threadCap, startupScript)
 
-private fun StoredSpaceSettings.toDomain() = SpaceSettings(idleShutdownMinutes, environmentVariables, threadCap)
+private fun StoredSpaceSettings.toDomain() =
+  SpaceSettings(idleShutdownMinutes, environmentVariables, threadCap, startupScript)
 
 private fun SpaceConfig.stored() = StoredSpaceConfig(
   name = name,

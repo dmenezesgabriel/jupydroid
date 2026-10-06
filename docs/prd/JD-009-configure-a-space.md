@@ -149,8 +149,12 @@ amends ADR-0072, which forbids a stored environment per Space.
   environment; `baseSpaceLanguageServerPort` reads the Space's stored settings at each spawn, so a
   `PYTHONPATH` resolves an `import` the same in the editor as in a kernel. No spawn can hold stale
   variables: Settings is editable only while Stopped, and leaving a Space stops every `pylsp`.
-- **Where the script's output goes**, between `run/` and `tmp/`, and the timeout's length. SageMaker
-  uses 5 minutes, and the home has a progress state already. Settle in T4.
+- **Where the script's output goes, and its timeout — settled in T4.** `run/startup.log`, truncated
+  each start beside `jupyter_server.log`, its last 2000 characters in the home's refusal. 5 minutes,
+  SageMaker's limit, enforced *inside* the Space by busybox `timeout -s KILL` under proot's
+  `--kill-on-exit`, which also kills anything the script backgrounded. An outer shell carries the
+  kill out as status 137, because proot reports a signalled tracee as `0`
+  (`SpaceStartupScriptDeviceTest`).
 - **The idle field's unit and range — settled in T1.** Whole minutes, `0..1440`, default 5, `0`
   meaning never; written as seconds to both timers. The ceiling keeps a typo from meaning a year.
 
@@ -179,7 +183,7 @@ amends ADR-0072, which forbids a stored environment per Space.
 - [x] T3 — **Thread cap**: one number written as `OPENBLAS_NUM_THREADS` and `OMP_NUM_THREADS`, both
   locked in the editor. On device, the kernel's `/proc/self/task` count after a matmul is measured
   capped and uncapped
-- [ ] T4 — **Startup script**: run under proot in the Space's environment before the server on every
+- [x] T4 — **Startup script**: run under proot in the Space's environment before the server on every
   start. A non-zero exit or the timeout fails the start, with the status and the output's tail on the
   home. Open decision 3 is settled
 - [ ] T5 — The demo on SM-X216B, and the ADR amending ADR-0072

@@ -83,11 +83,16 @@ val THREAD_CAP_RANGE: IntRange = 1..MAX_THREAD_CAP
  * @property threadCap how many threads the numeric libraries may each run, written as every name in
  *   [THREAD_CAP_VARIABLE_NAMES] ([spaceProcessVariables]); null leaves each library its own
  *   default, which on OpenBLAS is one thread per core.
+ * @property startupScript shell run in the Space, with its environment and from its workspace, before
+ *   its server on every start; blank runs nothing. A non-zero exit fails the start, the way a
+ *   dev container's failed `postStartCommand` stops the ones after it
+ *   (<https://containers.dev/implementors/json_reference/>).
  */
 data class SpaceSettings(
   val idleShutdownMinutes: Int = DEFAULT_IDLE_SHUTDOWN_MINUTES,
   val environmentVariables: Map<String, String> = emptyMap(),
   val threadCap: Int? = null,
+  val startupScript: String = "",
 )
 
 /**

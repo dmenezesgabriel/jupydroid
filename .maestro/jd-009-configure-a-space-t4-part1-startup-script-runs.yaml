@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# Thesis is created as T1's part 1 creates it. Its Settings takes a startup script that writes
+# `~/startup.txt`; Run then runs it before the server, so once Thesis is open the explorer lists
+# the file the script made. The driver reads the file's text and the Space's config.json back.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+# The field sits under the variables, in the dialog's own scroll.
+- scrollUntilVisible:
+    element:
+      id: "space-startup-script-field"
+    direction: DOWN
+    timeout: 5000
+- tapOn:
+    id: "space-startup-script-field"
+- inputText: "echo started > ~/startup.txt"
+# The keyboard covers the dialog's button row while a field is focused.
+- hideKeyboard
+- takeScreenshot: 01-script-typed
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- takeScreenshot: 02-thesis-running
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "startup.txt"
+    timeout: 10000
+- takeScreenshot: 03-explorer-lists-startup-txt
