@@ -1,0 +1,77 @@
+appId: com.jupydroid.app
+---
+# The files side belongs to the entered Space: Thesis's explorer lists Thesis's own `home/jupydroid`,
+# a notebook made there lands there and in Thesis's Recents, and base, entered afterwards, lists its
+# own notebook and none of Thesis's. Nothing here runs a cell; the kernel side is still base's.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+# The driver seeded base with this notebook; Thesis's tree is a different directory.
+- assertNotVisible: "Real Kernel.ipynb"
+- takeScreenshot: 01-thesis-lists-its-own-empty-workspace
+
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- takeScreenshot: 02-thesis-notebook-created
+
+# Opening records the recent, into Thesis's list.
+- tapOn: "Untitled.ipynb"
+- waitForAnimationToEnd:
+    timeout: 3000
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 10000
+- takeScreenshot: 03-home-thesis-still-running
+
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Real Kernel.ipynb"
+    timeout: 10000
+# Neither in base's listing nor in its Recents section.
+- assertNotVisible: "Untitled.ipynb"
+- takeScreenshot: 04-base-lists-its-own-and-not-thesiss
+
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- assertNotVisible: "Real Kernel.ipynb"
+- takeScreenshot: 05-thesis-again-its-notebook-and-recent
