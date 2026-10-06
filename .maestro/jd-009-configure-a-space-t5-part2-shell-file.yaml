@@ -1,0 +1,11 @@
+appId: com.jupydroid.app
+---
+# A `.sh` file in base's workspace opens in the file editor coloured by the same highlighter the
+# startup script uses. Base's script was cleared by the driver, so Run starts the server.
+- launchApp
+- runFlow: open-base-space.yaml
+- tapOn: "setup.sh"
+- extendedWaitUntil:
+    visible: "Tab: setup.sh"
+    timeout: 30000
+- takeScreenshot: 02-shell-file-coloured

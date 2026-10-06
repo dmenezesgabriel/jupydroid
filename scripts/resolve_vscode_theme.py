@@ -39,6 +39,7 @@ SYNTAX_SCOPES: dict[str, list[str]] = {
     "codeSpan": ["markup.inline.raw"],
     "blockQuote": ["markup.quote"],
     "listMarker": ["punctuation.definition.list.begin.markdown"],
+    "variable": ["variable"],
 }
 
 #: WCAG AA for body text, which is the floor `EditorPaletteTest` holds every syntax colour to.

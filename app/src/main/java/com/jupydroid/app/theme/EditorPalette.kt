@@ -247,6 +247,14 @@ data class SyntaxPalette(
   val blockQuote: Color,
   /** `punctuation.definition.list.begin.markdown` - the bullet or number, not the item's text. */
   val listMarker: Color,
+  /**
+   * `variable` - the 2026 themes' own rule for that scope, which is [listMarker]'s value in both.
+   *
+   * Not `variable.other`, though that is where VS Code's own shell grammar puts `$HOME`
+   * (`variable.other.normal.shell`): both themes give that rule `#c9d1d9` dark and `#1f2328` light,
+   * within a shade of [plain], so it would colour a variable as unstyled text.
+   */
+  val variable: Color,
 )
 
 /**
@@ -282,4 +290,5 @@ fun SyntaxPalette.styles(): Map<SyntaxKind, SpanStyle> = mapOf(
   SyntaxKind.QUOTE to SpanStyle(color = blockQuote),
   SyntaxKind.MARKER to SpanStyle(color = listMarker),
   SyntaxKind.LINK to SpanStyle(color = link, textDecoration = TextDecoration.Underline),
+  SyntaxKind.VARIABLE to SpanStyle(color = variable),
 )

@@ -31,6 +31,15 @@ class SyntaxForFileTest {
     assertTrue(syntaxForFile("config.json") is JsonSyntax)
   }
 
+  /**
+   * JupyterLab's registry claims `sh`, `ksh` and `bash` for its Shell language
+   * (`packages/codemirror/src/language.ts`).
+   */
+  @Test
+  fun shellScriptsAreHighlightedAsShell() {
+    listOf("setup.sh", "build.bash", "old.ksh").forEach { assertTrue(it, syntaxForFile(it) is ShellSyntax) }
+  }
+
   /** The extension decides, not the case of it - `.PY` is a Python file to anyone reading it. */
   @Test
   fun theExtensionIsMatchedWithoutRegardToCase() {

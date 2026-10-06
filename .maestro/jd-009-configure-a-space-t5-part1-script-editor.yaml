@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# Base's Settings: the startup script is a code cell's own field. Three lines are typed - a comment,
+# an export of an expansion, an echo of a quoted one - Enter between them rather than one long
+# `inputText`, which can drop a character after `;` (`p7e-1-space-python.yaml`). The screenshot is
+# the claim, since the gutter's digits and the colours are drawn, not composed: line numbers 1-3,
+# the comment, `export` and `echo` as keyword and command, `DATA`/`$HOME`/`$DATA` as variables.
+- launchApp
+- extendedWaitUntil:
+    visible: "Settings Base \\(base\\)"
+    timeout: 10000
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "space-startup-script-field"
+    direction: DOWN
+    timeout: 5000
+- tapOn:
+    id: "space-startup-script-field"
+- inputText: "# prepare"
+- pressKey: Enter
+- inputText: "export DATA=$HOME/data"
+- pressKey: Enter
+- inputText: "echo \"ready $DATA\""
+- hideKeyboard
+- assertVisible:
+    id: "space-startup-script-field"
+    text: "# prepare\nexport DATA=\\$HOME/data\necho \"ready \\$DATA\""
+- takeScreenshot: 01-script-numbered-and-coloured
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000

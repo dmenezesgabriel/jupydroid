@@ -22,6 +22,7 @@ fun syntaxForFile(fileName: String): SyntaxHighlighter =
     "py" -> PythonSyntax()
     "md", "markdown" -> MarkdownSyntax()
     "json", "ipynb" -> JsonSyntax()
+    "sh", "bash", "ksh" -> ShellSyntax()
     else -> PlainText
   }
 

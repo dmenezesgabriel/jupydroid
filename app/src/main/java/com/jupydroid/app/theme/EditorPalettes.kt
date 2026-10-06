@@ -110,6 +110,7 @@ val DarkEditorPalette: EditorPalette =
       codeSpan = Color(0xFF79C0FF),
       blockQuote = Color(0xFF7EE787),
       listMarker = Color(0xFFFFA657),
+      variable = Color(0xFFFFA657),
     ),
   )
 
@@ -186,5 +187,6 @@ val LightEditorPalette: EditorPalette =
       codeSpan = Color(0xFF0550AE),
       blockQuote = Color(0xFF116329),
       listMarker = Color(0xFF953800),
+      variable = Color(0xFF953800),
     ),
   )

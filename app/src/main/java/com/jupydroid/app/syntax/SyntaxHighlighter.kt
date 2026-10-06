@@ -28,6 +28,9 @@ enum class SyntaxKind {
 
   /** A bullet or number that introduces a list item. */
   MARKER,
+
+  // Shell. An expansion or an assignment's name - what the reference's shell mode styles `def`.
+  VARIABLE,
 }
 
 /** A half-open range of the source, `[start, end)`, and what it is. */

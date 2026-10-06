@@ -1,10 +1,15 @@
 package com.jupydroid.app.ui.spaces
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -14,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
@@ -22,6 +28,10 @@ import com.jupydroid.app.domain.model.IDLE_SHUTDOWN_MINUTES_RANGE
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.THREAD_CAP_RANGE
+import com.jupydroid.app.syntax.ShellSyntax
+import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.ui.editor.CodeCellField
+import com.jupydroid.app.ui.editor.cellEditorBox
 
 /** The idle-shutdown field's tag, for a test and - as a resource id - for a Maestro flow. */
 const val IDLE_SHUTDOWN_FIELD_TAG = "space-idle-shutdown-field"
@@ -54,7 +64,7 @@ fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onD
   var idleText by remember(space) { mutableStateOf(space.settings.idleShutdownMinutes.toString()) }
   var capText by remember(space) { mutableStateOf(space.settings.threadCap?.toString().orEmpty()) }
   var variableRows by remember(space) { mutableStateOf(variableRowsOf(space.settings.environmentVariables)) }
-  var scriptText by remember(space) { mutableStateOf(space.settings.startupScript) }
+  val script = remember(space) { TextFieldState(space.settings.startupScript) }
   val idleMinutes = idleText.trim().toIntOrNull()?.takeIf { it in IDLE_SHUTDOWN_MINUTES_RANGE }
   val threadCap = threadCapOf(capText)
   val savable = idleMinutes?.takeIf { threadCap.isSuccess && variableRows.refusals().all { it == null } }
@@ -66,7 +76,7 @@ fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onD
         SettingsNumberField(idleText, idleMinutes == null, IDLE_SHUTDOWN_LABEL, onChange = { idleText = it })
         SettingsNumberField(capText, threadCap.isFailure, THREAD_CAP_LABEL, onChange = { capText = it })
         SpaceVariablesEditor(variableRows, onRowsChange = { variableRows = it })
-        StartupScriptField(scriptText, onChange = { scriptText = it })
+        StartupScriptField(script)
       }
     },
     confirmButton = {
@@ -78,7 +88,7 @@ fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onD
                 idleShutdownMinutes = it,
                 environmentVariables = variableRows.toVariables(),
                 threadCap = threadCap.getOrNull(),
-                startupScript = scriptText,
+                startupScript = script.text.toString(),
               ),
             )
           }
@@ -142,15 +152,31 @@ private fun SettingsNumberField(
   )
 }
 
-/** Shell, so several lines; said under itself when it runs and what a failure does. */
+/**
+ * Shell, in a code cell's own field - numbered, with its symbol row, and coloured by [ShellSyntax] -
+ * framed as a cell is; said under itself when it runs and what a failure does. No typing rules, as
+ * the file editor gives a `.sh` file none, and no completions, since no kernel is there to ask.
+ */
 @Composable
-private fun StartupScriptField(text: String, onChange: (String) -> Unit) {
-  OutlinedTextField(
-    value = text,
-    onValueChange = onChange,
-    label = { Text("Startup script") },
-    supportingText = { Text("sh, before the server on every start; a non-zero exit fails the start") },
-    minLines = 3,
-    modifier = Modifier.semantics { testTagsAsResourceId = true }.testTag(STARTUP_SCRIPT_FIELD_TAG),
-  )
+internal fun StartupScriptField(script: TextFieldState) {
+  var focused by remember { mutableStateOf(false) }
+  Column(Modifier.padding(top = Spacing.sm)) {
+    Text("Startup script", style = MaterialTheme.typography.labelLarge)
+    CodeCellField(
+      state = script,
+      onSourceEdited = {},
+      highlighter = remember { ShellSyntax() },
+      typing = InputTransformation { },
+      completionEnabled = false,
+      modifier = Modifier.fillMaxWidth()
+        .cellEditorBox(editing = focused)
+        .onFocusChanged { focused = it.isFocused }
+        .semantics { testTagsAsResourceId = true }
+        .testTag(STARTUP_SCRIPT_FIELD_TAG),
+    )
+    Text(
+      "sh, before the server on every start; a non-zero exit fails the start",
+      style = MaterialTheme.typography.bodySmall,
+    )
+  }
 }

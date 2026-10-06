@@ -16,7 +16,7 @@ Who: a human on **`SM-X216B`**. Cells run, so rule 2 requires the arm64 tablet. 
    Settings disables, Thesis's stays enabled.
 2. Thesis → Settings. Set idle shutdown to 2 min, add `GREETING=hello`, try to add `HOME=/tmp` — it is
    refused, naming `HOME` as derived — set the thread cap to 1, and write a startup script
-   `echo started > ~/startup.txt`. Save.
+   `echo started > ~/startup.txt` in its code editor, numbered and coloured as bash. Save.
 3. Kill and relaunch: Thesis's Settings shows the same values (`run-as … cat files/spaces/space-1/config.json`).
 4. **Run** Thesis, **Open** it. `~/startup.txt` is listed in the explorer.
 5. Run `import os; print(len(os.environ['GREETING']))`, which prints `5` — a length, so the assertion
@@ -168,6 +168,7 @@ amends ADR-0072, which forbids a stored environment per Space.
 | `data/fake` | `FakeSpaceRepository` |
 | `data/space` | `SpaceRuntime` (user vars, thread cap), `JupyterServerLauncher` (`jupyterServerArgs` idle, the startup script), `AndroidBaseSpace.kt` (`spaceServers`), `StdioLanguageServer.kt` (`startPylsp`) |
 | `ui/spaces` | `SpacesHomeScreen` (Settings on a stopped row), `SpacesViewModel`, a settings screen |
+| `syntax`, `theme` | `ShellSyntax`, `syntaxForFile`; `SyntaxPalette.variable` |
 | unit tests | `SpaceRepositoryContract`, `DiskSpaceRepositoryTest`, `SpacesViewModelTest`, `SpaceRuntimeTest`, `JupyterServerLauncherSpaceTest` |
 | instrumented tests | `SpacesHomeScreenTest` (Settings enabled iff stopped, a locked name refused) |
 | `.maestro/` flow + `scripts/` driver | `jd-009-configure-a-space` |
@@ -186,7 +187,11 @@ amends ADR-0072, which forbids a stored environment per Space.
 - [x] T4 — **Startup script**: run under proot in the Space's environment before the server on every
   start. A non-zero exit or the timeout fails the start, with the status and the output's tail on the
   home. Open decision 3 is settled
-- [ ] T5 — The demo on SM-X216B, and the ADR amending ADR-0072
+- [x] T5 — **Startup script editor**: the script is edited in the code cell's own editor (line
+  numbers, the symbol row) with bash highlighting, a hand lexer after JupyterLab's CodeMirror
+  `shell` mode, `$VAR`/`${…}`/`NAME=` in a variable colour. `.sh`, `.bash` and `.ksh` files in
+  the file editor take the same highlighter, as JupyterLab's file-type registry maps them
+- [ ] T6 — The demo on SM-X216B, and the ADR amending ADR-0072
 
 ## Out of scope
 
