@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# The terminal is shut down from Sessions and Tabs first: a live terminal is activity to the
+# server (jupyter_server_terminals app.py `current_activity`, read by serverapp.py
+# `shutdown_no_activity`), and nothing culls one. Back then leaves the workspace, which closes the
+# notebooks' kernel connections, and base is run beside Thesis. With the app in front, Thesis -
+# at 2 minutes - stops itself once its kernels are culled; base, at its default 5, runs on.
+- launchApp:
+    stopApp: false
+# The terminal the last part typed into keeps the keyboard up, and it covers the panel's terminal
+# sessions; `jd-005-enter-a-running-space-t4-part2-shell-and-lsp-in-thesis.yaml` hides it the same way.
+- hideKeyboard
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Shut Down: terminals/.*"
+    timeout: 10000
+- tapOn: "Shut Down: terminals/.*"
+- extendedWaitUntil:
+    notVisible: "Shut Down: terminals/.*"
+    timeout: 10000
+- takeScreenshot: 12-terminal-shut-down
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+# A run notebook can still be dirty when Back lands: the save-before-close gate answers it with a
+# dialog (`SaveBeforeCloseGate`), and Discard leaves it. Absent whenever autosave already flushed.
+- runFlow:
+    when:
+      visible: "Discard"
+    commands:
+      - tapOn: "Discard"
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 120000
+- takeScreenshot: 13-home-both-running
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 300000
+- assertVisible: "Stop Base \\(base\\)"
+- takeScreenshot: 14-thesis-stopped-itself-base-still-running

@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# After a kill: Thesis's Settings reads back every field as it was saved - the dialog is the
+# store's own view of config.json, which the driver captured before this relaunch.
+- launchApp
+- extendedWaitUntil:
+    visible: "Settings Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- assertVisible:
+    id: "space-idle-shutdown-field"
+    text: "2"
+- assertVisible:
+    id: "space-thread-cap-field"
+    text: "1"
+- assertVisible:
+    id: "space-variable-name-0"
+    text: "GREETING"
+- assertVisible:
+    id: "space-variable-value-0"
+    text: "hello"
+- takeScreenshot: 06-reopened-after-a-kill
+- scrollUntilVisible:
+    element:
+      id: "space-startup-script-field"
+    direction: DOWN
+    timeout: 5000
+- assertVisible:
+    id: "space-startup-script-field"
+    text: "echo started > ~/startup\\.txt"
+- takeScreenshot: 07-reopened-script
+- tapOn: "Cancel"

@@ -191,7 +191,7 @@ amends ADR-0072, which forbids a stored environment per Space.
   numbers, the symbol row) with bash highlighting, a hand lexer after JupyterLab's CodeMirror
   `shell` mode, `$VAR`/`${…}`/`NAME=` in a variable colour. `.sh`, `.bash` and `.ksh` files in
   the file editor take the same highlighter, as JupyterLab's file-type registry maps them
-- [ ] T6 — The demo on SM-X216B, and the ADR amending ADR-0072
+- [x] T6 — The demo on SM-X216B, and the ADR amending ADR-0072
 
 ## Out of scope
 

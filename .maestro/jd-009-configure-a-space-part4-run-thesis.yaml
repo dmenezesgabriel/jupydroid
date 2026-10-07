@@ -1,0 +1,47 @@
+appId: com.jupydroid.app
+---
+# Run Thesis: its startup script runs before the server, so once it is open the explorer lists
+# `startup.txt`. Env.ipynb prints len(GREETING), 5; Threads.ipynb, in a kernel of its own that has
+# never imported numpy, prints how many threads `import numpy` started - 0 under a cap of 1. Both
+# waits are scoped under "Cell output", whose values the cells' sources cannot satisfy.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- takeScreenshot: 08-thesis-running
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "startup.txt"
+    timeout: 10000
+- takeScreenshot: 09-explorer-lists-startup-txt
+- tapOn: "Env.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "5"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 10-kernel-reads-greeting
+- tapOn: "Threads.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: Threads.ipynb"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "0"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 11-numpy-started-no-threads

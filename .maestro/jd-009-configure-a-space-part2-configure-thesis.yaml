@@ -1,0 +1,66 @@
+appId: com.jupydroid.app
+---
+# Thesis -> Settings, every field in one sitting: idle shutdown 2, thread cap 1, GREETING=hello,
+# a HOME row refused **by name** with Save held, the refused row removed, and a startup script.
+# A held Save is proven by pressing it - the dialog stays open - because the node Maestro finds
+# reports enabled whatever the button's state (t1 part 1's finding).
+- launchApp:
+    stopApp: false
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- tapOn:
+    id: "space-idle-shutdown-field"
+- eraseText: 10
+- inputText: "2"
+- tapOn:
+    id: "space-thread-cap-field"
+- inputText: "1"
+- tapOn: "Add variable"
+- tapOn:
+    id: "space-variable-name-0"
+- inputText: "GREETING"
+- tapOn:
+    id: "space-variable-value-0"
+- inputText: "hello"
+# With the thread cap above them, a second row opens under the keyboard, where a tap by id lands
+# on the keys and types into the field still focused - it once made GREETING's value `hellos🏠/tmp`.
+# Hidden first, the row is on screen when tapped, and focusing it scrolls it above the keyboard.
+- hideKeyboard
+- tapOn: "Add variable"
+- tapOn:
+    id: "space-variable-name-1"
+- inputText: "HOME"
+- hideKeyboard
+- tapOn:
+    id: "space-variable-value-1"
+- inputText: "/tmp"
+# The keyboard covers the dialog's button row while a field is focused, and the refusal under the row.
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "'HOME' is derived from the Space's directory and cannot be set"
+    timeout: 5000
+- takeScreenshot: 02-home-refused-by-name
+- tapOn: "Save"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Idle shutdown \\(minutes\\)"
+- takeScreenshot: 03-save-held-while-home-refused
+- tapOn: "Remove variable HOME"
+# The field sits under the variables, in the dialog's own scroll.
+- scrollUntilVisible:
+    element:
+      id: "space-startup-script-field"
+    direction: DOWN
+    timeout: 5000
+- tapOn:
+    id: "space-startup-script-field"
+- inputText: "echo started > ~/startup.txt"
+- hideKeyboard
+- takeScreenshot: 04-script-typed
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- takeScreenshot: 05-saved
