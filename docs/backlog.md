@@ -93,7 +93,7 @@ Order: `JD-002`, `JD-008`, `JD-004`, `JD-005`, `JD-009`, `JD-003`.
 | `JD-004` | **Run and stop a Space from the home, several at once:** one `jupyter_server` per running Space, Running/Stopped on each row, Stop keeping its files, idle shutdown per Space, a running Space stopped before it is deleted | shipped | — | — |
 | `JD-005` | **Enter a running Space:** the workspace, explorer, kernels, terminal and language server bind to that Space, not to base; new notebooks record that Space's own kernel in `metadata.kernelspec.name`; leaving returns to the home | shipped | — | — |
 | `JD-009` | **Configure a Space:** environment variables with its derived paths locked, a startup script run on each start, idle-shutdown time, thread caps — edited from the home before it runs | shipped | — | — |
-| `JD-003` | **Python environments inside a Space:** venv (measured working) and uv, their console scripts runnable, an environment registered as a kernel and the Space's default kernel chosen among them, pip's own message surfaced on a failed install | open ← next | — | — |
+| `JD-003` | **Python environments inside a Space:** a venv's own pip and console scripts working, uv reachable, an environment registered as a kernel from the Space's Settings and the Space's default kernel chosen among them | in-progress ← next | [JD-003](prd/JD-003-python-environments-in-a-space.md) | — |
 
 Not scheduled: **other distributions as a Space's image** (Debian, Fedora, Arch). proot keeps this
 open because it runs any image's own loader, but no glibc image has been measured.
