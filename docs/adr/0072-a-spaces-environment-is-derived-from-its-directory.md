@@ -79,3 +79,13 @@ where proot lives rather than the interpreter. `PYTHONHOME`, `JUPYDROID_SPACE_RO
 Unchanged: the environment is still derived, never stored; `SpaceDirs` is still the one home for
 the writable layout and `ensure()` still runs first in every launch; `JUPYTER_RUNTIME_DIR` stays
 in the environment for the same reason it went there.
+
+## Amendment — 2026-10-06
+
+Narrowed by [ADR-0077](0077-a-space-stores-its-own-settings-and-derived-variables-stay-locked.md):
+a Space now stores the person's own environment variables, and a thread cap written as
+`OPENBLAS_NUM_THREADS` and `OMP_NUM_THREADS`, in its `config.json`. The first consequence above, which
+forbade a stored or user-editable environment per Space, holds only for the derived set. Every name
+`SpaceRuntime` derives stays derived and is never stored. The editor refuses one by name, and the
+launch layers the person's variables under the derived ones, so this decision's driver still holds:
+whatever a process is told about where it writes agrees with the disk.
