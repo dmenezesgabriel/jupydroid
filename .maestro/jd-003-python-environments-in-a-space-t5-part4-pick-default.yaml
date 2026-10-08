@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# Thesis is stopped with `stats` registered (part 3). Its Settings offers the Space's kernelspecs
+# as the Default kernel, `Python 3` until one is picked; picking `Python (stats)` and saving
+# stores it. The driver reads config.json after this part: a screen cannot show what was written.
+#
+# The control's state is read off its accessible name, "Default kernel: <display name>", since a
+# menu item's check is a state no flow can read (`ui/editor/CellTypeControl.kt`).
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- scrollUntilVisible:
+    element: "Default kernel: Python 3"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 05-default-is-python3-until-picked
+- tapOn: "Default kernel: Python 3"
+- extendedWaitUntil:
+    visible: "Make Python \\(stats\\) the default kernel"
+    timeout: 5000
+- assertVisible: "Make Python 3 the default kernel"
+- takeScreenshot: 06-the-spaces-kernels-offered
+- tapOn: "Make Python \\(stats\\) the default kernel"
+- extendedWaitUntil:
+    visible: "Default kernel: Python \\(stats\\)"
+    timeout: 5000
+- takeScreenshot: 07-stats-picked
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000

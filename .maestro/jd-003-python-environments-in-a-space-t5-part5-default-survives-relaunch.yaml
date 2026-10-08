@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# The driver killed the app after part 4. Relaunched, Thesis's Settings opens on `Python (stats)`:
+# the dialog starts from the stored record, so the pick came back off config.json.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 30000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- scrollUntilVisible:
+    element: "Default kernel: Python \\(stats\\)"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 08-stats-is-the-default-after-relaunch
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
