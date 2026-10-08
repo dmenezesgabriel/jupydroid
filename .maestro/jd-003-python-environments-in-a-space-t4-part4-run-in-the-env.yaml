@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Thesis runs again, and the seeded notebook bound to `stats` runs its cell. The output is the
+# kernel's `sys.prefix`, which is the venv only when the registered spec started the venv's own
+# interpreter - FakeKernelGateway would echo the source, which never holds the path.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Registered.ipynb"
+    timeout: 10000
+- tapOn: "Registered.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: ".*prefix=/home/jupydroid/envs/stats.*"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 120000
+- assertVisible: ".*Python \\(stats\\).*"
+- takeScreenshot: 05-cell-ran-in-the-venv

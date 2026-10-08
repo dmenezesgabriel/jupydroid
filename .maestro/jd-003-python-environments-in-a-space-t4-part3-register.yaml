@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# Back on the home, Thesis is stopped and its Settings opened. `envs/bare` has no ipykernel, so
+# its Register cannot be pressed; Register on `envs/stats` writes its spec, and the row then says
+# the kernel's name. The driver reads the spec off Thesis's disk after this part.
+#
+# Bare's Register is *tapped* rather than asserted disabled: Maestro reads a TextButton as enabled
+# whatever its state (cross-cutting.md §8.6). The tap registering nothing is what this flow can
+# see; `registerIsNotPressableForAnEnvironmentWithoutIpykernel` proves the state itself.
+- launchApp:
+    stopApp: false
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Stop Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+# The section sits under the startup script, in the dialog's own scroll.
+- scrollUntilVisible:
+    element: "Register envs/stats as kernel"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 03-register-offered-where-ipykernel-is
+- tapOn: "Register envs/bare as kernel"
+- assertVisible: "Register envs/bare as kernel"
+- assertNotVisible: "Registered as kernel .*"
+- tapOn: "Register envs/stats as kernel"
+- extendedWaitUntil:
+    visible: "Registered as kernel stats"
+    timeout: 10000
+- assertNotVisible: "Register envs/stats as kernel"
+- assertVisible: "Register envs/bare as kernel"
+- assertNotVisible: "Registered as kernel bare"
+- takeScreenshot: 04-stats-registered
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
