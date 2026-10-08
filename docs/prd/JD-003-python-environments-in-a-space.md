@@ -121,7 +121,7 @@ vscode-jupyter's discovery. Settings lists what it finds on disk the way Winlato
 | Where the spec lives | rootfs → `$HOME/.local/share/jupyter`, `/usr/local/share/jupyter` | The person's visible folder vs the Space's own system path | **`usr/local/share/jupyter/kernels/<name>/` in the Space's rootfs**, which `jupyter_path` searches and the workspace never shows. HOME is the notebook folder (ADR-0011's reason). Confirmed in T4: the server lists and starts it |
 | `PIP_USER` vs a venv's pip | — | ADR-0011's unflagged `%pip` vs a venv pip that refuses `--user` | **`user = true` in the Space's `usr/pip.conf`**, pip's SITE file for the image's pip and never a venv's. Measured in T1; ADR-0011 amended |
 | uv | vscode-jupyter, intellij → an installed `uv` on PATH | Bundle it vs let the Space install it | **Not bundled.** A Space is its own system (ADR-0073), so installing uv is the Space's own act. **`apk add uv`**: PyPI's static build cannot resolve a host (Deviations) |
-| Default kernel | jupyter_server → `default_kernel_name`; winlator → a per-container choice | A per-notebook choice vs a per-Space one | **A `SpaceSettings` field, passed as `--MappingKernelManager.default_kernel_name` at each start.** It must name a spec the Space has, or the port refuses it |
+| Default kernel | jupyter_server → `default_kernel_name`; winlator → a per-container choice | A per-notebook choice vs a per-Space one | **A `SpaceSettings` field, passed as `--MappingKernelManager.default_kernel_name` at each start.** The port refuses only a name `_kernel_name_pat` refuses, and Settings offers only the Space's listed specs. A stored default that the catalogue no longer lists falls back to `python3`. That one rule answers both the stopped catalogue and the launch, so a new notebook never records a kernel nothing can start |
 | ipykernel missing in the env | vscode-jupyter → prompt and install | Install for the person vs refuse with the reason | **Refuse Register, saying `ipykernel` is missing and giving the command**, and keep pip's own output where it was run. The app installs nothing into a person's env |
 
 ADR at the end of the item: *a Space's environments become kernels through a spec the app writes*. It
@@ -184,7 +184,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
   the two lists are one. The cost is a handful of directory listings however large the workspace grows
   (0.03 s on SM-X216B), and no skip list is needed. A project's own `.venv` one level down is not found,
   as for vscode-python outside its opened folder. `pkgs/` is beside `home/`, so the scan never reaches it.
-- **A registered env that has since been deleted** (T5). Its spec would point at nothing. Either
+- **A registered env that has since been deleted** (T6). Its spec would point at nothing. Either
   Settings shows it as missing, or the launch drops it. A default naming a missing spec falls back to
   `python3` with the reason on the home.
 
@@ -218,10 +218,12 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 - [x] T4 — **Register as kernel.** Register on a listed env writes a spec that starts a kernel in that
   env. One without ipykernel is refused with the command that fixes it. Open decisions 2–3 are
   settled
-- [ ] T5 — **Default kernel.** Settings picks the Space's default among its specs, passed as
-  `--MappingKernelManager.default_kernel_name`. A new notebook records it (`defaultSpec`). Open
-  decision 5 is settled
-- [ ] T6 — The demo on SM-X216B, and the ADR amending ADR-0076 (and ADR-0011 if T1 changed it)
+- [ ] T5 — **Default kernel.** Settings picks the Space's default among its specs. The server is started
+  with it as `--MappingKernelManager.default_kernel_name`, and a new notebook records it (`defaultSpec`).
+  A stored default the catalogue no longer lists falls back to `python3`, both while stopped and at launch
+- [ ] T6 — **A registered env deleted since.** Settings shows its spec as missing, and a default that fell
+  back says why on the home. Open decision 5 is settled
+- [ ] T7 — The demo on SM-X216B, and the ADR amending ADR-0076 (and ADR-0011 if T1 changed it)
 
 ## Out of scope
 
