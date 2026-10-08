@@ -18,8 +18,9 @@ echo.
    N = 1, 2, 3. The flow runs base from the home, opens `Cold Path.ipynb`, runs `print(6 * 7)` and
    writes a file from a new terminal.
 2. Each `01-first-cell-answered.png` shows `42` under the cell from the real kernel.
-3. `python3 scripts/cold_path_report.py evidence/jd-010-kernel-window/warm-*/logcat.txt` prints the
-   `kernel.socket.opened → kernel.socket.connected` row with a median below JD-006's 5.11 s warm.
+3. Each run's `kernel.socket.opened` → `kernel.socket.connected` span, read from those two lines
+   in its logcat, has a median below T1's 5.25 s baseline. (`cold_path_report.py`'s row for it
+   starts at `lsp.start`, which lands between the two.)
 
 ## Who else implements this
 
@@ -70,23 +71,32 @@ None yet.
 
 ## Open decisions
 
-Candidate repairs. Each is decided on T1's numbers, never before them:
-- start pylsp after the kernel connects rather than with it
-- a quieter kernel log level
-- debugpy imported when a debug session starts rather than at kernel start
-- the nudge's 0.5 s granularity, which vscode-jupyter shares
+T1 measured the window as the kernel module's import: about 2.7 s of import work, plus about
+2.5 s of reading it from storage on a warm start (`evidence/jd-010-kernel-window/README.md`).
+pylsp, the DEBUG log level and the nudge are not where it goes.
+
+T2's decision is **how to take the import out of the window**. Nothing on the device works during
+the user's ~13 s walk from Run to the first cell. The options:
+- pre-read the kernel's files into the page cache while the server starts. This removes the storage
+  half and leaves about 2.7 s.
+- pre-start a kernel the first session binds to. This removes both halves, but it is a kernel
+  nobody asked for, holding memory. No reference does it, and jupyter_server has no pool.
+- import less: IPython's terminal frontend (0.84 s) and `debugpy.server` (0.37 s) are on the path.
+  That means patching packages in the image.
+
+Evidence first, then an ADR.
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| `data/space` | Decided by T1 — `StdioLanguageServer.kt`, `SpaceKernelSpec.kt` or `tools/rootfs/jupydroid_kernel.py` |
+| `data/space` | Decided by T2 — `SpaceServer.kt` / `JupyterServerLauncher.kt` (pre-read or pre-start), or `tools/rootfs/` (import less) |
 | instrumented tests | `KernelWindowProbeDeviceTest` |
 | `.maestro/` flow + `scripts/` driver | `p8a-cold-path.yaml`, `p8a-cold-path-driver.sh`, `cold_path_report.py` (unchanged) |
 
 ## Tasks
 
-- [ ] T1 — Split the window on the tablet. The probe reports, median of 3:
+- [x] T1 — Split the window on the tablet. The probe reports, median of 3:
   - the interpreter starting under proot
   - `import jupydroid_kernel`, with its top imports
   - the window with nothing else running
@@ -94,7 +104,8 @@ Candidate repairs. Each is decided on T1's numbers, never before them:
   - the window at a quieter kernel log level
 
   Warm ×3 in-app runs are the baseline it is checked against. The evidence names the dominant part.
-- [ ] T2 — Repair the dominant part, red test first, then the demo's warm ×3.
+- [ ] T2 — Take the kernel module's import out of the window (see Open decisions), red test first,
+  then the demo's warm ×3.
 
 ## Out of scope
 
