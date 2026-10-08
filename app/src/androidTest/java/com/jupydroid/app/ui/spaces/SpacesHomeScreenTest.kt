@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -360,7 +361,8 @@ class SpacesHomeScreenTest {
       compose.onAllNodesWithContentDescription(registerLabel("envs/stats")).fetchSemanticsNodes().isNotEmpty()
     }
 
-    compose.onNodeWithContentDescription(registerLabel("envs/stats")).performClick()
+    // Below the dialog's fold since the Default kernel field: a click on an unscrolled node lands nowhere.
+    compose.onNodeWithContentDescription(registerLabel("envs/stats")).performScrollTo().performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) {
       compose.onAllNodesWithText(registeredLabel("stats")).fetchSemanticsNodes().isNotEmpty()
