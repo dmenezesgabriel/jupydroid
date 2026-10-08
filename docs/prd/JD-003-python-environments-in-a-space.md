@@ -134,7 +134,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 | Venv creation | Terminal only, measured working (`docs/research/space-isolation.md` §4) | `intellij-community@406a27a sdk/add/v2/venv/` | present; the app's part is making it usable |
 | Venv pip | `app/src/main/java/com/jupydroid/app/data/space/SpacePipConfig.kt` | — | closed in T1: a venv's pip installs into the venv |
 | uv | absent from the image; `apk add uv` works in a Space (T1) | `vscode-jupyter@f01d80c uvInstaller.node.ts` | present as the Space's own install |
-| Kernelspec catalogue while stopped | `domain/model/Space.kt` `spaceWithId` (base's fixed `python3`), `data/space/BaseSpaceKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | present and partial: a registered spec is invisible until the server runs |
+| Kernelspec catalogue while stopped | `data/disk/DiskKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | closed in T2: read off the Space's disk in the server's own search order |
 | Writing a spec | `data/space/SpaceKernelSpec.kt` (`python3` only) | `ipykernel/kernelspec.py` `install` | present and partial: one fixed spec |
 | Env list | — | `winlator@fb66541 WineInstaller.getInstalledWineInfos` | absent |
 | Default kernel | `domain/port/KernelSpecs.kt` `defaultSpec`; `jupyterServerArgs` passes no `default_kernel_name` | `jupyter_client/multikernelmanager.py` | present and partial: always `python3` |
@@ -199,7 +199,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
   `python3 -m venv` plus a plain `pip install` lands in the venv with no flag, and `%pip` on base still
   lands in `pkgs/`. A venv's console script runs. uv's route (`apk add uv` or `pip install uv`) and
   `uv venv` are measured under proot. Open decision 1 is settled
-- [ ] T2 — **The stopped catalogue is the Space's own.** `KernelSpecs` answers a stopped Space from the
+- [x] T2 — **The stopped catalogue is the Space's own.** `KernelSpecs` answers a stopped Space from the
   kernelspecs on its disk rather than `spaceWithId`'s fixed `python3`, so a spec written into the
   Space shows in the picker before it runs
 - [ ] T3 — **Register as kernel.** Settings on a stopped Space lists the venvs under its workspace, and

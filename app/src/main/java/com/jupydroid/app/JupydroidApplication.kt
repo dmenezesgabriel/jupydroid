@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
+import com.jupydroid.app.data.disk.DiskKernelSpecs
 import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
@@ -26,6 +27,7 @@ import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.intent.IntentDocumentSharer
 import com.jupydroid.app.data.space.JupyterSpaceServers
+import com.jupydroid.app.data.space.SpaceDirs
 import com.jupydroid.app.data.space.SpaceServer
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
@@ -123,8 +125,9 @@ class JupydroidApplication : Application() {
     recentsFile: DiskRecentDocumentsFile,
     activeTerminals: ActiveTerminals,
   ): EnteredSpacePorts {
-    val workspace = notebookWorkspaceIn(spaceDirIn(spacesDir(this), spaceId))
-    val kernels = SpaceBackedPorts(servers?.server(spaceId), spaceWithId(spaceId))
+    val spaceDir = spaceDirIn(spacesDir(this), spaceId)
+    val workspace = notebookWorkspaceIn(spaceDir)
+    val kernels = SpaceBackedPorts(servers?.server(spaceId), spaceWithId(spaceId), spaceDir)
     return EnteredSpacePorts(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
@@ -184,7 +187,7 @@ class JupydroidApplication : Application() {
    * so a `debug_request` reuses the identical per-session socket `execute`/`complete`/`history`
    * already share, rather than opening a second one.
    */
-  private class SpaceBackedPorts(server: SpaceServer?, val space: Space) {
+  private class SpaceBackedPorts(server: SpaceServer?, val space: Space, spaceDir: File) {
     private val kernelSockets = server?.let(::baseSpaceKernelSockets)
 
     /**
@@ -201,9 +204,9 @@ class JupydroidApplication : Application() {
     val sessions: KernelSessions =
       kernelSockets?.let { baseSpaceKernelSessions(it, sessionRegistry) } ?: FakeKernelSessions(sessionRegistry)
 
-    /** `GET api/kernelspecs` while a server is up, the Space's declared list while it is not. */
+    /** `GET api/kernelspecs` while a server is up, the kernelspecs on the Space's disk while it is not. */
     val specs: KernelSpecs =
-      kernelSockets?.let { baseSpaceKernelSpecs(it, space) } ?: FakeKernelSpecs()
+      kernelSockets?.let { baseSpaceKernelSpecs(it, DiskKernelSpecs(SpaceDirs(spaceDir))) } ?: FakeKernelSpecs()
 
     val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
 

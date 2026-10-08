@@ -27,8 +27,9 @@ data class Space(val id: String, val name: String, val kernels: List<KernelSpec>
  * which is where one home stops being a preference.
  *
  * `kernels` names what the rootfs actually ships - `SpaceKernelSpec` writes that exact spec into
- * `usr/share/jupyter/kernels/python3` - so the kernel picker has an honest answer even while the
- * server is stopped and `GET api/kernelspecs` cannot be asked.
+ * `usr/share/jupyter/kernels/python3` - so a device that cannot run a Space still has an honest
+ * kernel picker (`data/fake/FakeKernelSpecs.kt`). A Space that can run answers from its disk while
+ * stopped (`data/disk/DiskKernelSpecs.kt`), which also lists what was installed into it since.
  */
 val BASE_SPACE = Space(
   id = "base",

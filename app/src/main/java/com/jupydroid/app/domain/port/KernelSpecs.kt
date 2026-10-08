@@ -55,8 +55,8 @@ data class KernelSpecModels(val default: String, val specs: List<KernelSpec>) {
  */
 interface KernelSpecs {
   /**
-   * The Space's kernelspecs - `GET api/kernelspecs` when a server is up, and the Space's own
-   * declared list when it is not. **Passive**: answering this must never boot a runtime, the
+   * The Space's kernelspecs - `GET api/kernelspecs` when a server is up, and the kernelspecs on
+   * the Space's own disk when it is not. **Passive**: answering this must never boot a runtime, the
    * same rule [KernelSessions.running] keeps - a picker opened on a stopped server has an
    * honest answer already.
    */

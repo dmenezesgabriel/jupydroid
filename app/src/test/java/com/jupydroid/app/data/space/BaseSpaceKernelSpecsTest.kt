@@ -1,7 +1,9 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.KernelSpecModels
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.KernelSpecsContract
 import com.jupydroid.app.domain.port.ServerConnection
@@ -13,16 +15,16 @@ import org.junit.Test
 /**
  * [KernelSpecsContract] against the base-Space adapter on a *stopped* server - the half that is
  * contractual either way. The live half is this file's own test: a running server answers from
- * `GET api/kernelspecs` instead of the Space's declared list.
+ * `GET api/kernelspecs` instead of the catalogue it is handed for a stopped one.
  */
 class BaseSpaceKernelSpecsTest : KernelSpecsContract() {
   /** The contract's own catalogue, on a server that is never up - the passive half. */
-  override fun specs(): KernelSpecs = BaseSpaceKernelSpecs(sockets(NeverStartedLauncher), SPACE_WITH_SPEC)
+  override fun specs(): KernelSpecs = BaseSpaceKernelSpecs(sockets(NeverStartedLauncher), FakeKernelSpecs())
 
   @Test
   fun specs_onARunningServerAnswersWhatItReported() = runTest {
     val lifecycle = FakeKernelLifecycle(
-      specs = com.jupydroid.app.domain.port.KernelSpecModels(
+      specs = KernelSpecModels(
         default = "xeus-python",
         specs = listOf(KernelSpec(name = "xeus-python", displayName = "XPython", language = "python")),
       ),
@@ -30,7 +32,7 @@ class BaseSpaceKernelSpecsTest : KernelSpecsContract() {
     val sockets = sockets(OneStartLauncher(), lifecycle)
     sockets.get() // the server is up, the way a connect would have brought it up
 
-    val models = BaseSpaceKernelSpecs(sockets, SPACE_WITH_SPEC).specs(SPACE_WITH_SPEC)
+    val models = BaseSpaceKernelSpecs(sockets, FakeKernelSpecs()).specs(SPACE_WITH_SPEC)
 
     assertEquals("xeus-python", models.default)
     assertEquals("XPython", models.specs.single().displayName)
@@ -41,14 +43,14 @@ class BaseSpaceKernelSpecsTest : KernelSpecsContract() {
    * rule [BaseSpaceKernelSessions]' `running` keeps.
    */
   @Test
-  fun specs_onAStoppedServerAnswersTheSpacesListWithoutStartingAnything() = runTest {
+  fun specs_onAStoppedServerAnswersTheStoppedCatalogueWithoutStartingAnything() = runTest {
     val launcher = OneStartLauncher()
+    val onDisk = KernelSpecModels(default = "python3", specs = listOf(PYTHON_SPEC, STATS_SPEC))
 
-    val models = BaseSpaceKernelSpecs(sockets(launcher), SPACE_WITH_SPEC).specs(SPACE_WITH_SPEC)
+    val models = BaseSpaceKernelSpecs(sockets(launcher), FakeKernelSpecs(onDisk)).specs(SPACE_WITH_SPEC)
 
     assertEquals(0, launcher.startCount)
-    assertEquals(SPACE_WITH_SPEC.kernels, models.specs)
-    assertEquals("python3", models.default)
+    assertEquals(onDisk, models)
   }
 
   private fun sockets(launcher: ServerLauncher, lifecycle: FakeKernelLifecycle = FakeKernelLifecycle()) =
@@ -88,5 +90,6 @@ class BaseSpaceKernelSpecsTest : KernelSpecsContract() {
 
   private companion object {
     val SPACE_WITH_SPEC = Space(id = "base", name = "Base", kernels = listOf(PYTHON_SPEC))
+    val STATS_SPEC = KernelSpec(name = "stats", displayName = "Python (stats)", language = "python")
   }
 }

@@ -1,6 +1,5 @@
 package com.jupydroid.app.data.space
 
-import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSpecModels
@@ -165,13 +164,8 @@ class OkHttpKernelLifecycle(
   override suspend fun kernelSpecs(): KernelSpecModels {
     val root = Json.parseToJsonElement(rest.get("api/kernelspecs")).jsonObject
     val specs = root["kernelspecs"]?.jsonObject.orEmpty().map { (name, model) ->
-      val spec = model.jsonObject["spec"]?.jsonObject
-      KernelSpec(
-        name = name,
-        displayName = spec?.get("display_name")?.jsonPrimitive?.content
-          ?: throw KernelLifecycleException("kernelspec '$name' has no display_name; server said: $root"),
-        language = spec["language"]?.jsonPrimitive?.content.orEmpty(),
-      )
+      model.jsonObject["spec"]?.jsonObject?.let { kernelSpecOf(name, it) }
+        ?: throw KernelLifecycleException("kernelspec '$name' has no display_name; server said: $root")
     }
     return KernelSpecModels(default = root["default"]?.jsonPrimitive?.content.orEmpty(), specs = specs)
   }

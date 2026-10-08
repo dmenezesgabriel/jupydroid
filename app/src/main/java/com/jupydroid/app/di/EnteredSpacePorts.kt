@@ -78,7 +78,7 @@ class EnteredSpacePorts(
   val kernelGateway: KernelGateway = FakeKernelGateway(kernelSessionRegistry),
   /** The Running panel's port - the sessions this Space's server holds, and `ended` for those that stop. */
   val kernelSessions: KernelSessions = FakeKernelSessions(kernelSessionRegistry),
-  /** This Space's kernelspec catalogue - `GET api/kernelspecs` while it runs, its declared list while not. */
+  /** This Space's kernelspec catalogue - `GET api/kernelspecs` while it runs, the specs on its disk while not. */
   val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
   /** DAP over the same kernel session's control channel. */
   val kernelDebugger: KernelDebugger = FakeKernelDebugger(),

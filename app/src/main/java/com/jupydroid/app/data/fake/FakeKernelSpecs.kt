@@ -5,9 +5,9 @@ import com.jupydroid.app.domain.port.KernelSpecModels
 import com.jupydroid.app.domain.port.KernelSpecs
 
 /**
- * The [KernelSpecs] answer where no server can run: the Space's own declared [Space.kernels],
- * which is also what the real adapter falls back to while its server is stopped - a picker on a
- * device with no Space still lists an honest "python3".
+ * The [KernelSpecs] answer where no server can run: the Space's own declared [Space.kernels] - a
+ * picker on a device with no Space still lists an honest "python3". A stopped Space that *can* run
+ * is answered from its disk instead (`data/disk/DiskKernelSpecs.kt`).
  */
 class FakeKernelSpecs(
   /** A catalogue other than the Space's declared list, for cases about specs the Space lacks. */

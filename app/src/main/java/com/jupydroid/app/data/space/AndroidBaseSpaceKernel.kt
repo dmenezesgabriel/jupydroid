@@ -1,7 +1,6 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.KernelSessionRegistry
-import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
@@ -44,9 +43,9 @@ fun baseSpaceKernelSessions(
   registry: KernelSessionRegistry,
 ): KernelSessions = BaseSpaceKernelSessions(sockets, registry)
 
-/** The kernelspec catalogue over the same [sockets] - live `GET api/kernelspecs`, [space] when stopped. */
-fun baseSpaceKernelSpecs(sockets: PerRunningServer<KernelSockets>, space: Space): KernelSpecs =
-  BaseSpaceKernelSpecs(sockets, space)
+/** The kernelspec catalogue over the same [sockets] - live `GET api/kernelspecs`, [whenStopped] when not. */
+fun baseSpaceKernelSpecs(sockets: PerRunningServer<KernelSockets>, whenStopped: KernelSpecs): KernelSpecs =
+  BaseSpaceKernelSpecs(sockets, whenStopped)
 
 /** The debugger backed by DAP over the same kernel session's control channel, over [sockets]. */
 fun baseSpaceKernelDebugger(sockets: PerRunningServer<KernelSockets>): KernelDebugger = BaseSpaceKernelDebugger(
