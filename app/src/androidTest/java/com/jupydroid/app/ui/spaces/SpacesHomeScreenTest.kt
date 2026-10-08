@@ -19,13 +19,16 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.MAX_IDLE_SHUTDOWN_MINUTES
+import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.defaultSpaceConfig
+import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
@@ -334,6 +337,17 @@ class SpacesHomeScreenTest {
     }
   }
 
+  /** Opening Settings reads that Space's own environments, so the dialog lists what is on its disk. */
+  @Test
+  fun theSettingsDialogListsTheSpacesEnvironments() {
+    val environments = FakeSpaceEnvironments(mapOf("space-1" to listOf(PythonEnvironment("envs/stats", true))))
+    show(FakeSpaceRepository(listOf(base, thesis)), environments = environments)
+
+    compose.onNodeWithContentDescription(settingsThesis).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText("envs/stats").fetchSemanticsNodes().isNotEmpty() }
+  }
+
   /** What the port would refuse cannot be saved: past a day, below zero, or not a number at all. */
   @Test
   fun anIdleShutdownOutsideTheRangeCannotBeSaved() {
@@ -355,11 +369,13 @@ class SpacesHomeScreenTest {
     repository: SpaceRepository,
     servers: FakeSpaceServers = FakeSpaceServers(),
     onOpen: (String) -> Unit = {},
+    environments: SpaceEnvironments =
+      FakeSpaceEnvironments(mapOf(BASE_SPACE.id to emptyList(), thesis.id to emptyList())),
   ): SpacesViewModel {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     compose.setContent {
       JupyterDroidTheme {
-        SpacesHomeScreen(spaceRepository = repository, spaceServers = servers, onOpen = onOpen, viewModel = model)
+        SpacesHomeScreen(repository, servers, environments, onOpen = onOpen, viewModel = model)
       }
     }
     compose.waitUntil(TIMEOUT_MILLIS) { model.uiState.value.spaces.isNotEmpty() }

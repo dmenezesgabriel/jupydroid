@@ -11,6 +11,7 @@ import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
+import com.jupydroid.app.data.disk.DiskSpaceEnvironments
 import com.jupydroid.app.data.disk.DiskSpaceRepository
 import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
 import com.jupydroid.app.data.disk.DiskThemeSettingsRepository
@@ -161,6 +162,7 @@ class JupydroidApplication : Application() {
     languageServer = baseSpaceLanguageServerPort(this, spaceRepository) ?: FakeLanguageServerPort(),
     spaceServers = servers ?: FakeSpaceServers(),
     spaceRepository = spaceRepository,
+    spaceEnvironments = DiskSpaceEnvironments(spacesDir(this)),
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
     // state, not a Contents API file.
     editorSettings = DiskEditorSettingsRepository(filesDir),

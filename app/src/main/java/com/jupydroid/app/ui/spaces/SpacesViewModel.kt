@@ -2,8 +2,10 @@ package com.jupydroid.app.ui.spaces
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
+import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import kotlinx.coroutines.CancellationException
@@ -21,6 +23,8 @@ import kotlinx.coroutines.launch
  * @property failure the last act's or listing's refusal, verbatim, or null.
  * @property progress the in-flight create's copy fraction - null while an act is indeterminate.
  * @property running the ids of the Spaces whose server is alive, as [SpaceServers.running] has them.
+ * @property environments the environments of the Space whose Settings is open, or null while they are
+ *   read or when the read was refused.
  */
 data class SpacesPanelState(
   val spaces: List<SpaceConfig> = emptyList(),
@@ -28,6 +32,7 @@ data class SpacesPanelState(
   val failure: String? = null,
   val progress: Float? = null,
   val running: Set<String> = emptySet(),
+  val environments: List<PythonEnvironment>? = null,
 )
 
 /**
@@ -47,11 +52,15 @@ data class SpacesPanelState(
  * server's self-stop reach the rows without a tap here.
  *
  * ```
- * SpacesViewModel(appContainer.spaceRepository, appContainer.spaceServers).run("space-1")
+ * SpacesViewModel(appContainer.spaceRepository, appContainer.spaceServers, appContainer.spaceEnvironments)
+ *   .run("space-1")
  * ```
  */
-class SpacesViewModel(private val spaceRepository: SpaceRepository, private val spaceServers: SpaceServers) :
-  ViewModel() {
+class SpacesViewModel(
+  private val spaceRepository: SpaceRepository,
+  private val spaceServers: SpaceServers,
+  private val spaceEnvironments: SpaceEnvironments,
+) : ViewModel() {
   private val _uiState = MutableStateFlow(SpacesPanelState())
   val uiState: StateFlow<SpacesPanelState> = _uiState.asStateFlow()
 
@@ -82,6 +91,21 @@ class SpacesViewModel(private val spaceRepository: SpaceRepository, private val 
       "Space '$id' is running; expected it stopped before its settings change"
     }
     spaceRepository.configure(id, settings)
+  }
+
+  /**
+   * Reads the Space [id]'s environments for its Settings. Not an act: it reads a disk and changes
+   * nothing, so it never holds the panel. The previous Space's list is dropped first, so a dialog
+   * never shows another Space's environments while this one's are read.
+   */
+  fun listEnvironments(id: String) {
+    _uiState.update { it.copy(environments = null) }
+    viewModelScope.launch {
+      reportingFailure {
+        val found = spaceEnvironments.environments(id)
+        _uiState.update { it.copy(environments = found) }
+      }
+    }
   }
 
   /** Starts the Space [id]'s server; the act lasts until it serves. */

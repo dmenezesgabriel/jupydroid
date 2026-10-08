@@ -1,9 +1,11 @@
 package com.jupydroid.app.ui.spaces
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.SpaceRepository
@@ -28,12 +30,40 @@ class SpacesViewModelTest {
 
   private val repository = FakeSpaceRepository()
   private val servers = FakeSpaceServers()
+  private val environments = FakeSpaceEnvironments(mapOf(BASE_SPACE.id to listOf(STATS)))
 
   private fun ids(model: SpacesViewModel) = model.uiState.value.spaces.map { it.id }
 
+  /** Settings reads a stopped Space's disk, so listing is not an act and never holds the panel. */
+  @Test
+  fun listEnvironmentsShowsTheSpacesOwnWithoutHoldingThePanel() = runTest {
+    val model = SpacesViewModel(repository, servers, environments)
+    advanceUntilIdle()
+
+    model.listEnvironments(BASE_SPACE.id)
+    advanceUntilIdle()
+
+    assertEquals(listOf(STATS), model.uiState.value.environments)
+    assertFalse(model.uiState.value.busy)
+  }
+
+  /** A refused read says why, and leaves no list behind that belonged to another Space. */
+  @Test
+  fun aRefusedEnvironmentListingIsReportedAndShowsNone() = runTest {
+    val model = SpacesViewModel(repository, servers, environments)
+    model.listEnvironments(BASE_SPACE.id)
+    advanceUntilIdle()
+
+    model.listEnvironments("space-404")
+    advanceUntilIdle()
+
+    assertNull(model.uiState.value.environments)
+    assertTrue(model.uiState.value.failure.orEmpty().contains("space-404"))
+  }
+
   @Test
   fun aPanelListsBaseOnOpen() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     advanceUntilIdle()
 
     assertEquals(listOf(BASE_SPACE.id), ids(model))
@@ -41,7 +71,7 @@ class SpacesViewModelTest {
 
   @Test
   fun createListsTheNewSpaceAfterBase() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
 
     model.create("Thesis")
     advanceUntilIdle()
@@ -53,7 +83,7 @@ class SpacesViewModelTest {
   /** The id is the directory and keeps it for life (ADR-0010); only the row's name moves. */
   @Test
   fun renameChangesTheNameAndKeepsTheId() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     model.create("Thesis")
     advanceUntilIdle()
 
@@ -65,7 +95,7 @@ class SpacesViewModelTest {
 
   @Test
   fun deleteRemovesTheRow() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     model.create("Thesis")
     advanceUntilIdle()
 
@@ -78,7 +108,7 @@ class SpacesViewModelTest {
   @Test
   fun busyHoldsWhileAnActRunsAndClearsWhenItLands() = runTest {
     val gated = GatedSpaceRepository(repository)
-    val model = SpacesViewModel(gated, servers)
+    val model = SpacesViewModel(gated, servers, environments)
     advanceUntilIdle()
 
     model.create("Thesis")
@@ -97,7 +127,7 @@ class SpacesViewModelTest {
   @Test
   fun aCreateShowsItsCopyFractionWhileInFlight() = runTest {
     val reporting = ReportingSpaceRepository(repository)
-    val model = SpacesViewModel(reporting, servers)
+    val model = SpacesViewModel(reporting, servers, environments)
     advanceUntilIdle()
 
     model.create("Thesis")
@@ -115,7 +145,7 @@ class SpacesViewModelTest {
   @Test
   fun anActIsRefusedWhileAnotherIsInFlight() = runTest {
     val gated = GatedSpaceRepository(repository)
-    val model = SpacesViewModel(gated, servers)
+    val model = SpacesViewModel(gated, servers, environments)
     advanceUntilIdle()
 
     model.create("Thesis")
@@ -129,7 +159,7 @@ class SpacesViewModelTest {
   /** The screen declines to draw delete on base; the port still refuses it, and says why. */
   @Test
   fun aRefusedDeleteSurfacesThePortsMessage() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
 
     model.delete(BASE_SPACE.id)
     advanceUntilIdle()
@@ -143,7 +173,7 @@ class SpacesViewModelTest {
   @Test
   fun aFailedListKeepsTheLastGoodRows() = runTest {
     val refusing = RefusingSpaceRepository(repository)
-    val model = SpacesViewModel(refusing, servers)
+    val model = SpacesViewModel(refusing, servers, environments)
     advanceUntilIdle()
 
     refusing.refusingList = true
@@ -156,7 +186,7 @@ class SpacesViewModelTest {
 
   @Test
   fun theNextActClearsThePreviousFailure() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     model.delete(BASE_SPACE.id)
     advanceUntilIdle()
 
@@ -168,7 +198,7 @@ class SpacesViewModelTest {
 
   @Test
   fun runMarksTheSpaceRunning() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
 
     model.run(BASE_SPACE.id)
     advanceUntilIdle()
@@ -178,7 +208,7 @@ class SpacesViewModelTest {
 
   @Test
   fun stopMarksTheSpaceStopped() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     model.run(BASE_SPACE.id)
     advanceUntilIdle()
 
@@ -194,7 +224,7 @@ class SpacesViewModelTest {
    */
   @Test
   fun theRowsFollowAServerThatStartsAndStopsWithoutThePanel() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     advanceUntilIdle()
 
     servers.run(BASE_SPACE.id)
@@ -210,7 +240,7 @@ class SpacesViewModelTest {
   @Test
   fun deleteStopsARunningSpaceBeforeRemovingIt() = runTest {
     val witness = DeleteWitnessSpaceRepository(repository, servers)
-    val model = SpacesViewModel(witness, servers)
+    val model = SpacesViewModel(witness, servers, environments)
     model.create("Thesis")
     advanceUntilIdle()
     model.run("space-1")
@@ -227,7 +257,7 @@ class SpacesViewModelTest {
   @Test
   fun aDeleteIsRefusedWhileTheServerOutlivesItsStop() = runTest {
     val outliving = OutlivingSpaceServers(servers)
-    val model = SpacesViewModel(repository, outliving)
+    val model = SpacesViewModel(repository, outliving, environments)
     model.create("Thesis")
     advanceUntilIdle()
     model.run("space-1")
@@ -242,7 +272,7 @@ class SpacesViewModelTest {
 
   @Test
   fun configureStoresTheSettingsAndTheRowCarriesThem() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     model.create("Thesis")
     advanceUntilIdle()
 
@@ -259,7 +289,7 @@ class SpacesViewModelTest {
    */
   @Test
   fun configuringARunningSpaceIsRefusedAndWritesNothing() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     model.create("Thesis")
     advanceUntilIdle()
     model.run("space-1")
@@ -275,7 +305,7 @@ class SpacesViewModelTest {
   /** The port's own refusal of an out-of-range value reaches the panel as the port worded it. */
   @Test
   fun anOutOfRangeIdleShutdownSurfacesThePortsMessage() = runTest {
-    val model = SpacesViewModel(repository, servers)
+    val model = SpacesViewModel(repository, servers, environments)
     advanceUntilIdle()
 
     model.configure(BASE_SPACE.id, SpaceSettings(idleShutdownMinutes = -1))
@@ -305,6 +335,8 @@ private class ReportingSpaceRepository(private val fake: SpaceRepository) : Spac
     return fake.create(name, onProgress)
   }
 }
+
+private val STATS = PythonEnvironment("envs/stats", hasIpykernel = true)
 
 /** A disk that stops answering `spaces()` once [refusingList] is set. */
 private class RefusingSpaceRepository(private val fake: SpaceRepository) : SpaceRepository by fake {

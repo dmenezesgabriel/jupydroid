@@ -117,7 +117,7 @@ vscode-jupyter's discovery. Settings lists what it finds on disk the way Winlato
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
 | How an env becomes a kernel | vscode-jupyter → every interpreter, implicitly; jupyterlab → `ipykernel install`, by hand | Zero steps vs a catalogue that only holds what was chosen | **An explicit Register in the Space's Settings**, writing a spec the app owns. `ipykernel install`'s argv aborts here, so a by-hand route would register a kernel that dies |
-| Where the env list comes from | winlator → scan a directory; intellij → a path picker | Found vs typed | **Scan the Space's workspace for `pyvenv.cfg`**, to a bounded depth. Venvs are where people make them, and the list shows what is there |
+| Where the env list comes from | winlator → scan a directory; intellij → a path picker; vscode-python → fixed roots | Found vs typed | **vscode-python's fixed roots, read for `pyvenv.cfg`** (T3). Venvs are where people make them, and the list shows what is there |
 | Where the spec lives | rootfs → `$HOME/.local/share/jupyter`, `/usr/local/share/jupyter` | The person's visible folder vs the Space's own system path | **`usr/local/share/jupyter/kernels/<name>/` in the Space's rootfs**, which `jupyter_path` searches and the workspace never shows. HOME is the notebook folder (ADR-0011's reason). T4 confirms it |
 | `PIP_USER` vs a venv's pip | — | ADR-0011's unflagged `%pip` vs a venv pip that refuses `--user` | **`user = true` in the Space's `usr/pip.conf`**, pip's SITE file for the image's pip and never a venv's. Measured in T1; ADR-0011 amended |
 | uv | vscode-jupyter, intellij → an installed `uv` on PATH | Bundle it vs let the Space install it | **Not bundled.** A Space is its own system (ADR-0073), so installing uv is the Space's own act. **`apk add uv`**: PyPI's static build cannot resolve a host (Deviations) |
@@ -136,7 +136,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 | uv | absent from the image; `apk add uv` works in a Space (T1) | `vscode-jupyter@f01d80c uvInstaller.node.ts` | present as the Space's own install |
 | Kernelspec catalogue while stopped | `data/disk/DiskKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | closed in T2: read off the Space's disk in the server's own search order |
 | Writing a spec | `data/space/SpaceKernelSpec.kt` (`python3` only) | `ipykernel/kernelspec.py` `install` | present and partial: one fixed spec |
-| Env list | — | `winlator@fb66541 WineInstaller.getInstalledWineInfos` | absent |
+| Env list | `data/disk/DiskSpaceEnvironments.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `vscode-python@f4c86e4 workspaceVirtualEnvLocator.ts` | closed in T3: Settings lists them, with ipykernel's presence |
 | Default kernel | `domain/port/KernelSpecs.kt` `defaultSpec`; `jupyterServerArgs` passes no `default_kernel_name` | `jupyter_client/multikernelmanager.py` | present and partial: always `python3` |
 | Settings screen | `ui/spaces/SpaceSettingsDialog.kt`, `domain/model/SpaceConfig.kt` `SpaceSettings` | `winlator@fb66541 ContainerDetailFragment.java` | present; no environment section |
 
@@ -172,9 +172,13 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 - **The spec's name and display name** (T4). Name from the venv directory, folded to
   `_kernel_name_pat`; a clash with an existing spec is refused by name. Display name
   `Python (<dir>)`, as `ipykernel install --display-name` is conventionally used.
-- **The scan's bounds** (T3). How deep, which directories are skipped (`.git`), and its cost on a large
-  workspace. `pkgs/` is the Space's own directory beside `home/`, not under the workspace, so the scan
-  never reaches it.
+- **The scan's bounds** (T3) are **settled: vscode-python's fixed roots, not a walk.** The children of
+  the workspace (`workspaceVirtualEnvLocator.ts`) and of `envs`, `Envs`, `.direnv`, `.venvs`,
+  `.virtualenvs` and `.local/share/virtualenvs` under HOME (`globalVirtualEnvronmentLocator.ts`), both at
+  `microsoft/vscode-python@f4c86e4f5f7c34b99c5333b1aef50e997288f936`. A Space's HOME is its workspace, so
+  the two lists are one. The cost is a handful of directory listings however large the workspace grows
+  (0.03 s on SM-X216B), and no skip list is needed. A project's own `.venv` one level down is not found,
+  as for vscode-python outside its opened folder. `pkgs/` is beside `home/`, so the scan never reaches it.
 - **A registered env that has since been deleted** (T5). Its spec would point at nothing. Either
   Settings shows it as missing, or the launch drops it. A default naming a missing spec falls back to
   `python3` with the reason on the home.
@@ -203,7 +207,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 - [x] T2 — **The stopped catalogue is the Space's own.** `KernelSpecs` answers a stopped Space from the
   kernelspecs on its disk rather than `spaceWithId`'s fixed `python3`, so a spec written into the
   Space shows in the picker before it runs
-- [ ] T3 — **Settings lists the Space's environments.** Settings on a stopped Space lists the venvs
+- [x] T3 — **Settings lists the Space's environments.** Settings on a stopped Space lists the venvs
   under its workspace, each saying whether it has `ipykernel`, and for one without, the command that
   adds it. Open decision 4 is settled
 - [ ] T4 — **Register as kernel.** Register on a listed env writes a spec that starts a kernel in that

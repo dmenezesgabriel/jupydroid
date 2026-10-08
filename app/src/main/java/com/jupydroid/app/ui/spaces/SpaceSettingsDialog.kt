@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardType
 import com.jupydroid.app.domain.model.IDLE_SHUTDOWN_MINUTES_RANGE
+import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.THREAD_CAP_RANGE
@@ -53,14 +54,22 @@ internal const val SAVE_SETTINGS = "Save"
  * from the same row and changes the same record. **Save is held for any value the port would
  * refuse** - [IDLE_SHUTDOWN_MINUTES_RANGE] and [THREAD_CAP_RANGE] are the port's own ranges and
  * [refusals] the port's own variable rules, so the two cannot disagree - and what it hands [onSave]
- * is [space]'s settings with the edited fields changed.
+ * is [space]'s settings with the edited fields changed. [environments] are shown, not edited: what
+ * the Space's workspace holds, null while they are being read.
  *
  * ```
- * SpaceSettingsDialog(space, onSave = { viewModel.configure(space.id, it) }, onDismiss = { editing = null })
+ * SpaceSettingsDialog(
+ *   space, state.environments, onSave = { viewModel.configure(space.id, it) }, onDismiss = { editing = null },
+ * )
  * ```
  */
 @Composable
-fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onDismiss: () -> Unit) {
+fun SpaceSettingsDialog(
+  space: SpaceConfig,
+  environments: List<PythonEnvironment>? = null,
+  onSave: (SpaceSettings) -> Unit,
+  onDismiss: () -> Unit,
+) {
   var idleText by remember(space) { mutableStateOf(space.settings.idleShutdownMinutes.toString()) }
   var capText by remember(space) { mutableStateOf(space.settings.threadCap?.toString().orEmpty()) }
   var variableRows by remember(space) { mutableStateOf(variableRowsOf(space.settings.environmentVariables)) }
@@ -77,6 +86,7 @@ fun SpaceSettingsDialog(space: SpaceConfig, onSave: (SpaceSettings) -> Unit, onD
         SettingsNumberField(capText, threadCap.isFailure, THREAD_CAP_LABEL, onChange = { capText = it })
         SpaceVariablesEditor(variableRows, onRowsChange = { variableRows = it })
         StartupScriptField(script)
+        SpaceEnvironmentsSection(environments)
       }
     },
     confirmButton = {

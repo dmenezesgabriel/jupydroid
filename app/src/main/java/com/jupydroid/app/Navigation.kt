@@ -327,6 +327,7 @@ fun MainNavigation(
           SpacesHomeScreen(
             spaceRepository = appContainer.spaceRepository,
             spaceServers = appContainer.spaceServers,
+            spaceEnvironments = appContainer.spaceEnvironments,
             onOpen = backStack::enterWorkspace,
           )
         }

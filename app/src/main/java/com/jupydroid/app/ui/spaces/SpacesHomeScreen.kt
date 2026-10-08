@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.theme.Spacing
@@ -84,7 +86,10 @@ import java.time.Instant
  * the port refuses it anyway (`requireDeletableSpace`).
  *
  * ```
- * SpacesHomeScreen(appContainer.spaceRepository, appContainer.spaceServers, onOpen = backStack::enterWorkspace)
+ * SpacesHomeScreen(
+ *   appContainer.spaceRepository, appContainer.spaceServers, appContainer.spaceEnvironments,
+ *   onOpen = backStack::enterWorkspace,
+ * )
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -92,9 +97,10 @@ import java.time.Instant
 fun SpacesHomeScreen(
   spaceRepository: SpaceRepository,
   spaceServers: SpaceServers,
+  spaceEnvironments: SpaceEnvironments,
   onOpen: (spaceId: String) -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: SpacesViewModel = viewModel { SpacesViewModel(spaceRepository, spaceServers) },
+  viewModel: SpacesViewModel = viewModel { SpacesViewModel(spaceRepository, spaceServers, spaceEnvironments) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   var creating by remember { mutableStateOf(false) }
@@ -155,8 +161,10 @@ fun SpacesHomeScreen(
     }
   }
   configuring?.let { space ->
+    LaunchedEffect(space.id) { viewModel.listEnvironments(space.id) }
     SpaceSettingsDialog(
       space = space,
+      environments = state.environments,
       onSave = {
         configuring = null
         viewModel.configure(space.id, it)

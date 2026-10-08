@@ -5,6 +5,7 @@ import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
@@ -18,6 +19,7 @@ import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
+import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
@@ -58,6 +60,11 @@ class AppContainer(
    * wires it real everywhere; the fake here holds base alone, as an installed device does.
    */
   val spaceRepository: SpaceRepository = FakeSpaceRepository(),
+  /**
+   * The Python environments in each Space's workspace, which its Settings lists. Read off disk, so
+   * the app wires it real everywhere, as it does [spaceRepository].
+   */
+  val spaceEnvironments: SpaceEnvironments = FakeSpaceEnvironments(),
   /**
    * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown
    * rather than replaced. Read by every notebook and file editor alike, which is what "universal"
