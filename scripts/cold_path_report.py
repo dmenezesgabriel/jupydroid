@@ -65,6 +65,13 @@ def _normalize(stage: str) -> str:
     """One name per boundary - `spaceLogLine` carries free-text stages for the two oldest."""
     if stage in PLAIN_STAGES:
         return PLAIN_STAGES[stage]
+    # The same two boundaries since a Space carries its own id - `SpaceServer.startSpace` in
+    # app/src/main/java/com/jupydroid/app/data/space/SpaceServer.kt. The free-text forms above stay
+    # so the captures taken before it still read.
+    if re.match(r"installing Space \S+$", stage):
+        return "space.installing"
+    if re.match(r"starting jupyter_server for Space \S+$", stage):
+        return "server.starting"
     if stage.startswith("jupyter_server listening"):
         return "server.listening"
     # `"kernel <id> ready for space <name>"` - the process is up, a round trip before the socket.

@@ -65,6 +65,17 @@ class ParseLogcatTest(unittest.TestCase):
         marks = report.marks_of("".join(lines[:11]) + early + "".join(lines[11:]))
         self.assertEqual(marks["kernel.frame.received"], 48_738_150)
 
+    def test_the_space_named_server_stages_normalize_to_dotted_names(self) -> None:
+        # The shape SpaceServer logs once a Space has an id of its own - captured on SM-X216B.
+        capture = (
+            '10-08 16:01:37.383 I/JupydroidSpace(16266): {"stage":"installing Space base"}\n'
+            '10-08 16:01:37.436 I/JupydroidSpace(16266): '
+            '{"stage":"starting jupyter_server for Space base"}\n'
+        )
+        marks = report.marks_of(capture)
+        self.assertEqual(marks["space.installing"], 57_697_383)  # 16:01:37.383
+        self.assertEqual(marks["server.starting"], 57_697_436)
+
     def test_missing_stages_stay_absent(self) -> None:
         marks = report.marks_of('09-27 13:31:32.566 I/JupydroidSpace( 1): {"stage":"x"}\n')
         self.assertNotIn("terminal.ready", marks)
