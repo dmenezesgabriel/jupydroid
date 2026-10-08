@@ -20,8 +20,9 @@ import java.io.File
  * `EXTERNALLY-MANAGED` marker, so `pip install pandas` refused until
  * `--break-system-packages` was passed - and then landed on the *system*
  * site-packages. `SpaceRuntime.environment()` now carries `PYTHONUSERBASE` +
- * `PIP_USER`/`PIP_ONLY_BINARY`/`PIP_BREAK_SYSTEM_PACKAGES`, which this test
- * exercises end to end inside the app's own seccomp context.
+ * `PIP_ONLY_BINARY`/`PIP_BREAK_SYSTEM_PACKAGES`, and base's own `usr/pip.conf` carries
+ * `user = true` (`SpacePipConfig`), which this test exercises end to end inside the app's
+ * own seccomp context.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
@@ -94,9 +95,36 @@ class PipInstallDeviceTest {
     }
   }
 
+  /**
+   * **A venv's own pip installs into the venv**, unflagged, and its console script runs.
+   *
+   * With `--user` in the environment the venv's pip refused every install; base's `usr/pip.conf`
+   * is `<sys.prefix>/pip.conf` for base alone (`SpacePipConfig`), so the venv's pip never sees it.
+   * The console script is a `#!` file under `filesDir`, which proot execs through its shebang line.
+   */
+  @Test
+  fun aVenvsPlainPipInstallLandsInTheVenvAndItsConsoleScriptRuns() {
+    runInSpace(SPACE_SHELL, "-c", "rm -rf $PROBE_VENV && python3 -m venv $PROBE_VENV")
+    try {
+      val install = runInSpace(SPACE_SHELL, "-c", "$PROBE_VENV/bin/pip install $PROBE_PACKAGE")
+      assertEquals("venv pip install failed: ${install.output.take(OUTPUT_EXCERPT)}", 0, install.exitCode)
+
+      val imported = runInSpace("$PROBE_VENV/bin/python", "-c", "import $PROBE_PACKAGE; print($PROBE_PACKAGE.__file__)")
+      assertTrue("import resolved outside the venv: ${imported.output}", imported.output.startsWith("$PROBE_VENV/"))
+
+      val script = runInSpace("$PROBE_VENV/bin/$PROBE_PACKAGE", "--help")
+      assertEquals("console script failed: ${script.output.take(OUTPUT_EXCERPT)}", 0, script.exitCode)
+    } finally {
+      runInSpace(SPACE_SHELL, "-c", "rm -rf $PROBE_VENV")
+    }
+  }
+
   private companion object {
     /** Small, pure-Python, wheel-published - and deliberately absent from requirements.lock. */
     const val PROBE_PACKAGE = "tabulate"
+
+    /** In the Space's own tmp, so no run leaves a venv in the person's workspace. */
+    const val PROBE_VENV = "/tmp/probe-venv"
     const val OUTPUT_EXCERPT = 300
   }
 }

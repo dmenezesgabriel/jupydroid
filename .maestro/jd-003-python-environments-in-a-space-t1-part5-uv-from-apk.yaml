@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# uv from Alpine's community repository, which the image's /etc/apk/repositories enables: musl-linked, so the SIGSYS preload reaches it.
+# The frame first shows the previous command's tail, which the driver has already read off disk.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 04-missing-package-refused
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; apk add uv >uv-apk.txt 2>&1; echo apk-rc=$? >>uv-apk.txt; /usr/bin/uv --version >>uv-apk.txt 2>&1; echo uv-rc=$? >>uv-apk.txt; tail -3 uv-apk.txt"
+- pressKey: Enter

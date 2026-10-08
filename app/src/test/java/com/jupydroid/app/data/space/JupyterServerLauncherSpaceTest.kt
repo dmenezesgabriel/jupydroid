@@ -174,6 +174,14 @@ class JupyterServerLauncherSpaceTest {
     }
   }
 
+  /** A Space extracted before the file existed gets it on its next start, not only at creation. */
+  @Test
+  fun start_writesTheSpacesPipConf() = runBlocking {
+    launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
+
+    assertTrue(File(spaceOneDir(), "usr/pip.conf").isFile)
+  }
+
   @Test
   fun start_runsTheServerInTheSpacesOwnWorkspace() = runBlocking {
     launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)

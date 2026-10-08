@@ -64,3 +64,30 @@ stands because it answers a different question than whether a venv can exist —
 `%pip install` must land somewhere that is neither the shared system site-packages nor the
 user's visible workspace, and `PYTHONUSERBASE` + `PIP_*` is still that somewhere. A venv inside
 a Space is now the user's own tool, not the install default.
+
+## Amendment — 2026-10-08
+
+**`--user` moves from `PIP_USER` into the Space's own `/usr/pip.conf`** (`SpacePipConfig`). The other
+two flags stay in the environment.
+
+`PIP_USER` reached every pip in the Space, and a venv's pip refuses `--user` outright: "User
+site-packages are not visible in this virtualenv" (`pip/_internal/commands/install.py`). pip reads
+its SITE config file at `<sys.prefix>/pip.conf` (`pip/_internal/configuration.py`, pip 25.0.1 in the
+shipped rootfs). So `/usr/pip.conf` is read by the image's own pip and never by a venv's, whose
+`sys.prefix` is the venv. The GLOBAL files (`/etc/pip.conf`, `/etc/xdg/pip/pip.conf`) would reach the
+venv as well.
+
+The original objection to a config file no longer holds. It had to live in `$HOME`, the visible
+workspace; under [ADR-0073](0073-a-space-owns-its-rootfs-and-runs-under-proot.md) the Space owns
+its rootfs, and `/usr` is not in the workspace.
+
+`PIP_ONLY_BINARY` and `PIP_BREAK_SYSTEM_PACKAGES` stay in the environment. Both hold for every pip in
+the Space, and neither stops a venv's install.
+
+The file is written at every start, but only when it is missing. A Space made before this change
+gets it on its next start, and after that it is the Space's own file to edit. `PIP_USER` leaves the
+derived set (`DERIVED_VARIABLE_NAMES`), so a person may set it.
+
+Measured on SM-X216B by `PipInstallDeviceTest`. Base's unflagged `pip3 install tabulate` lands in
+`/pkgs`. A venv's plain `pip install tabulate` lands in the venv, and the venv's `tabulate` console
+script exits 0.

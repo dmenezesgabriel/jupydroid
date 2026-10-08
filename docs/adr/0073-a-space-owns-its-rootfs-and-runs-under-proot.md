@@ -100,3 +100,18 @@ Costs accepted knowingly:
 
 The thing a later reader will want to "fix" is the full copy per Space. The hard-link clone that
 would make it cheap is refused by the platform, not overlooked.
+
+## Amendment — 2026-10-08
+
+A venv's console scripts were measured as refused (126) through the musl loader, before proot. **Under
+proot they run.** proot execs a `#!` script through its shebang line, so a venv's
+`bin/tabulate --help` exits 0 (`PipInstallDeviceTest.aVenvsPlainPipInstallLandsInTheVenvAndItsConsoleScriptRuns`,
+on SM-X216B). The same holds for a venv's own `bin/pip`.
+
+pip inside a venv no longer needs `PIP_USER` unset. `--user` is base's `/usr/pip.conf`, which a venv
+never reads (ADR-0011, amended 2026-10-08).
+
+A **statically linked** binary run in a Space cannot resolve a host. No `LD_PRELOAD` reaches it,
+`tools/rootfs/getaddrinfo_shim.c` included, so its lookups are musl's own, and those fail here. PyPI's
+`uv` wheel ships such a binary: its `uv pip install` fails with "dns error: failed to lookup address
+information". Alpine's `uv`, linked against musl, resolves through the shim.

@@ -231,18 +231,27 @@ class SpaceRuntimeTest {
   }
 
   /**
-   * The three flags the unflagged command stands in for: `--user` (ground in PYTHONUSERBASE),
-   * `--only-binary=:all:` (never start compiling under a phone), and `--break-system-packages`
+   * Two of the flags the unflagged command stands in for, true of every pip in the Space:
+   * `--only-binary=:all:` (never start compiling under a phone) and `--break-system-packages`
    * (the marker is Alpine's, and the user base is the managed answer - verified on-device,
    * where `--user` alone is still refused).
    */
   @Test
-  fun environment_makesUserBinaryAndMarkerTolerantThePipDefaults() {
+  fun environment_makesBinaryAndMarkerTolerantThePipDefaults() {
     val env = runtime.environment()
 
-    assertEquals("1", env["PIP_USER"])
     assertEquals(":all:", env["PIP_ONLY_BINARY"])
     assertEquals("1", env["PIP_BREAK_SYSTEM_PACKAGES"])
+  }
+
+  /**
+   * `--user` is not in the environment: a venv's pip refuses it ("User site-packages are not
+   * visible in this virtualenv"), so it lives in base's own `usr/pip.conf` ([SpacePipConfig]),
+   * which a venv's pip never reads.
+   */
+  @Test
+  fun environment_leavesPipUserToBasesOwnPipConf() {
+    assertFalse(runtime.environment().containsKey("PIP_USER"))
   }
 
   /**

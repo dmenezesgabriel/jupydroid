@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# A venv made in Thesis's terminal installs with its own plain pip - no flag, no unset - and its
+# `pip` console script answers from the venv. Every answer is written into the workspace with its
+# exit status, and the driver greps those files: cross-cutting.md §8.6 forbids gating on the
+# terminal's canvas. `>>` and `$?` rather than `${…}`, which Maestro evaluates as JavaScript.
+#
+# `stopApp: false` keeps part 2's Space entered; at two panes a terminal is reached from a
+# launcher card.
+- launchApp:
+    stopApp: false
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap settles the IME's connection before typing - the first keystrokes can race it otherwise
+# (p4i-terminal-tablet measured `ech` of `echo` eaten).
+- tapOn:
+    id: "terminal-input"
+- inputText: "python3 -m venv ~/envs/stats && ~/envs/stats/bin/pip install ipykernel six >venv-pip.txt 2>&1; echo install-rc=$? >>venv-pip.txt; ~/envs/stats/bin/pip --version >>venv-pip.txt 2>&1; echo version-rc=$? >>venv-pip.txt; tail -3 venv-pip.txt"
+- pressKey: Enter

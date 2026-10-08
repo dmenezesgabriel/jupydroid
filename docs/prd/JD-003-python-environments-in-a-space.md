@@ -15,11 +15,11 @@ environment.
 Who: a human on **`SM-X216B`**. Cells run, so rule 2 requires the arm64 tablet. Thesis is `space-1`.
 
 1. Cold start: install and launch. **Run** Thesis, **Open** it, and open a terminal.
-2. `python3 -m venv ~/envs/stats && ~/envs/stats/bin/pip install ipykernel six` succeeds with no flag
+2. `python3 -m venv ~/envs/stats && ~/envs/stats/bin/pip install ipykernel tabulate` succeeds with no flag
    and no `unset`. `~/envs/stats/bin/pip --version` names the venv's own path, so a console script in
    the venv runs.
 3. `apk add uv && uv venv ~/envs/fast && uv pip install --python ~/envs/fast/bin/python ipykernel`
-   succeeds (T1 settles which uv route the demo uses).
+   succeeds. Alpine's uv, not PyPI's: see Deviations.
 4. `~/envs/stats/bin/pip install no-such-package-jd003` fails, and the terminal shows pip's own
    message naming the package.
 5. Leave to the home and **Stop** Thesis. Thesis → Settings lists `envs/stats` and `envs/fast`.
@@ -28,11 +28,12 @@ Who: a human on **`SM-X216B`**. Cells run, so rule 2 requires the arm64 tablet. 
    (`run-as … cat files/spaces/space-1/config.json`).
 7. With Thesis still stopped, the kernel picker in an existing notebook already lists `stats`.
 8. **Run** and **Open** Thesis, then create a notebook. Its `metadata.kernelspec.name` is `stats`.
-   Run `import sys, six; print(len(sys.prefix.split('/')))`. It prints the depth of
-   `…/envs/stats`, which is a number rather than the cell's own source, and `six` imports only because
-   it is in the venv.
-9. The same cell in a notebook on base's `python3` fails `import six` with `ModuleNotFoundError`, so
-   the venv is the only place `six` lives.
+   Run `import sys, tabulate; print(len(sys.prefix.split('/')))`. It prints the depth of
+   `…/envs/stats`, which is a number rather than the cell's own source, and `tabulate` imports only
+   because it is in the venv.
+9. The same cell in a notebook on base's `python3` fails `import tabulate` with `ModuleNotFoundError`,
+   so the venv is the only place `tabulate` lives. Not `six`: the image ships it in
+   `usr/lib/python3.12/site-packages`.
 
 Commit the screenshots, `maestro.log` and the `run-as` captures under
 `evidence/jd-003-python-environments-in-a-space/`. `logcat` stays local.
@@ -55,7 +56,7 @@ Read from code at the SHAs in [`../README.md`](../README.md). The shipped rootfs
 
 Outside the image: Alpine 3.21 `community/aarch64` ships `uv 0.5.31-r0` (APKINDEX), and PyPI's
 `uv 0.12.23` publishes a `musllinux_1_1_aarch64` wheel. Both were read with `curl` on 2026-10-07.
-**Neither has been measured under proot.**
+Both install under proot on SM-X216B, and only Alpine's resolves a host (T1).
 
 **Count:** 2 of 7 make an environment a kernel (vscode-jupyter, IntelliJ), 2 more list runtimes
 found on disk (JupyterLab's specs, Winlator's wine versions). The building is mature and common.
@@ -118,8 +119,8 @@ vscode-jupyter's discovery. Settings lists what it finds on disk the way Winlato
 | How an env becomes a kernel | vscode-jupyter → every interpreter, implicitly; jupyterlab → `ipykernel install`, by hand | Zero steps vs a catalogue that only holds what was chosen | **An explicit Register in the Space's Settings**, writing a spec the app owns. `ipykernel install`'s argv aborts here, so a by-hand route would register a kernel that dies |
 | Where the env list comes from | winlator → scan a directory; intellij → a path picker | Found vs typed | **Scan the Space's workspace for `pyvenv.cfg`**, to a bounded depth. Venvs are where people make them, and the list shows what is there |
 | Where the spec lives | rootfs → `$HOME/.local/share/jupyter`, `/usr/local/share/jupyter` | The person's visible folder vs the Space's own system path | **`usr/local/share/jupyter/kernels/<name>/` in the Space's rootfs**, which `jupyter_path` searches and the workspace never shows. HOME is the notebook folder (ADR-0011's reason). T3 confirms it |
-| `PIP_USER` vs a venv's pip | — | ADR-0011's unflagged `%pip` vs a venv pip that refuses `--user` | **Settled by measurement in T1**: whatever makes a venv's plain `pip install` land in the venv while base's `%pip` still lands in `pkgs/`. If ADR-0011 must change, T1 amends it |
-| uv | vscode-jupyter, intellij → an installed `uv` on PATH | Bundle it vs let the Space install it | **Not bundled.** A Space is its own system (ADR-0073), so `apk add uv` or `pip install uv` is the Space's own act. T1 measures which one works under proot |
+| `PIP_USER` vs a venv's pip | — | ADR-0011's unflagged `%pip` vs a venv pip that refuses `--user` | **`user = true` in the Space's `usr/pip.conf`**, pip's SITE file for the image's pip and never a venv's. Measured in T1; ADR-0011 amended |
+| uv | vscode-jupyter, intellij → an installed `uv` on PATH | Bundle it vs let the Space install it | **Not bundled.** A Space is its own system (ADR-0073), so installing uv is the Space's own act. **`apk add uv`**: PyPI's static build cannot resolve a host (Deviations) |
 | Default kernel | jupyter_server → `default_kernel_name`; winlator → a per-container choice | A per-notebook choice vs a per-Space one | **A `SpaceSettings` field, passed as `--MappingKernelManager.default_kernel_name` at each start.** It must name a spec the Space has, or the port refuses it |
 | ipykernel missing in the env | vscode-jupyter → prompt and install | Install for the person vs refuse with the reason | **Refuse Register, saying `ipykernel` is missing and giving the command**, and keep pip's own output where it was run. The app installs nothing into a person's env |
 
@@ -131,8 +132,8 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 | Concern | Ours today (file) | Best reference | Gap |
 |---|---|---|---|
 | Venv creation | Terminal only, measured working (`docs/research/space-isolation.md` §4) | `intellij-community@406a27a sdk/add/v2/venv/` | present; the app's part is making it usable |
-| Venv pip | `app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt` sets `PIP_USER=1` | — | **defect**: a venv's `pip install` is refused |
-| uv | absent from the image | `vscode-jupyter@f01d80c uvInstaller.node.ts` | absent, and unmeasured |
+| Venv pip | `app/src/main/java/com/jupydroid/app/data/space/SpacePipConfig.kt` | — | closed in T1: a venv's pip installs into the venv |
+| uv | absent from the image; `apk add uv` works in a Space (T1) | `vscode-jupyter@f01d80c uvInstaller.node.ts` | present as the Space's own install |
 | Kernelspec catalogue while stopped | `domain/model/Space.kt` `spaceWithId` (base's fixed `python3`), `data/space/BaseSpaceKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | present and partial: a registered spec is invisible until the server runs |
 | Writing a spec | `data/space/SpaceKernelSpec.kt` (`python3` only) | `ipykernel/kernelspec.py` `install` | present and partial: one fixed spec |
 | Env list | — | `winlator@fb66541 WineInstaller.getInstalledWineInfos` | absent |
@@ -147,14 +148,22 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
   spec on disk, and only an explicit act writes one.
 - **uv is the Space's to install**, not bundled. The image stays what `tools/rootfs/requirements.lock`
   pins.
+- **The route is `apk add uv`, not `pip install uv`.** Both install and answer `--version` under proot.
+  PyPI's wheel ships a **statically linked** binary, though, and no `LD_PRELOAD` reaches a static
+  binary, `tools/rootfs/getaddrinfo_shim.c` included. Its `uv pip install` fails with "dns error:
+  failed to lookup address information". Alpine's `uv 0.5.31` is linked against musl, so the shim
+  reaches it, and it fills a venv with ipykernel's 29 packages. This holds for any static binary a
+  Space runs, not only uv.
 
 ## Open decisions
 
-- **The `PIP_USER` clash** (T1). Measure the candidates against both cases: plain `pip install` inside
-  a venv, and `%pip install` in base's kernel landing in `pkgs/`. Candidates: move the three `PIP_*`
-  settings into the Space's `etc/pip.conf`, which a venv's pip also reads, so check its precedence;
-  drop `PIP_USER` now that the system site-packages is the Space's own (ADR-0073); or keep it and
-  document `PIP_USER=0` per venv. Prefer the one that needs no step from the person.
+- **The `PIP_USER` clash** (T1) is **settled: `user = true` moves into the Space's `usr/pip.conf`**
+  (`SpacePipConfig`), and `PIP_USER` leaves the environment. pip reads its SITE file at
+  `<sys.prefix>/pip.conf`, which for the image's pip is `/usr/pip.conf`. For a venv's pip it is the
+  venv's own, so the venv never sees the setting. `etc/pip.conf` was rejected because it is GLOBAL,
+  which a venv reads too. The file is written at every start, but only when it is missing, so it
+  reaches a Space made earlier and is the Space's own to edit after that. `PIP_ONLY_BINARY` and
+  `PIP_BREAK_SYSTEM_PACKAGES` stay in the environment, because both hold for every pip in the Space.
 - **How `jupydroid_kernel` reaches a venv** (T3). The module is in the *system* site-packages, which a
   venv cannot see. Candidates: ship it in its own directory in the image and set `PYTHONPATH` in the
   spec's `env` (this needs a rootfs rebuild), or have the spec run base's interpreter with the venv's
@@ -186,7 +195,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 
 ## Tasks
 
-- [ ] T1 — **A venv's own pip works, and uv reaches a Space.** In a Space's terminal,
+- [x] T1 — **A venv's own pip works, and uv reaches a Space.** In a Space's terminal,
   `python3 -m venv` plus a plain `pip install` lands in the venv with no flag, and `%pip` on base still
   lands in `pkgs/`. A venv's console script runs. uv's route (`apk add uv` or `pip install uv`) and
   `uv venv` are measured under proot. Open decision 1 is settled

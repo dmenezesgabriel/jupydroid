@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# uv from PyPI's musllinux wheel, through base's pip into the user base: a static binary, which no preload reaches.
+# The frame first shows the previous command's tail, which the driver has already read off disk.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 05-uv-from-apk
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; pip install uv >uv-pip.txt 2>&1; echo pip-rc=$? >>uv-pip.txt; /pkgs/bin/uv --version >>uv-pip.txt 2>&1; echo uv-rc=$? >>uv-pip.txt; tail -3 uv-pip.txt"
+- pressKey: Enter

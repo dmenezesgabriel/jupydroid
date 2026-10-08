@@ -1,0 +1,8 @@
+appId: com.jupydroid.app
+---
+# The last command's tail, after the driver has read its answer off disk.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 08-static-uv-install

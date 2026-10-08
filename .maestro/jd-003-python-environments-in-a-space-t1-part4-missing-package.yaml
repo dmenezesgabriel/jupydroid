@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# A package that does not exist fails, with pip's own message naming it.
+# The frame first shows the previous command's tail, which the driver has already read off disk.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 03-venv-pip-installed
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; ~/envs/stats/bin/pip install no-such-package-jd003 >missing.txt 2>&1; echo missing-rc=$? >>missing.txt; tail -3 missing.txt"
+- pressKey: Enter

@@ -73,6 +73,14 @@ class BaseSpaceInstallerTest {
     assertTrue(kernelJson, "\"$SPACE_INTERPRETER\"" in kernelJson)
   }
 
+  /** Base's server-less callers (`PythonRunner`) run pip with no server start to write it. */
+  @Test
+  fun install_writesBasesOwnPipConf() = runTest {
+    val installed = installer(version = 1).installIfNeeded()
+
+    assertTrue(File(installed.baseDir, "usr/pip.conf").isFile)
+  }
+
   /**
    * An install from before proot relinked the image's own files into `nativeLibraryDir`. The
    * re-extract a version bump triggers replaces every one of them the archive carries - the

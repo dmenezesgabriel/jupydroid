@@ -14,7 +14,7 @@ import java.io.File
  * SpaceDirs(spaceDirIn(spacesDir(context), space.id)).ensure()
  * ```
  */
-class SpaceDirs(private val spaceDir: File) {
+class SpaceDirs(val spaceDir: File) {
   /** The server's root and the kernel's `HOME`; see [notebookWorkspaceIn]. */
   val workspace: File get() = notebookWorkspaceIn(spaceDir)
 

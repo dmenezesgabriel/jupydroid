@@ -82,6 +82,7 @@ class JupyterServerLauncher(
     val runtime = runtimeFor(space, settings)
     withContext(ioDispatcher) {
       dirs.ensure()
+      SpacePipConfig.ensure(dirs.spaceDir)
       JupyterRuntimeFile.clear(dirs.runtime) // a stale file would advertise a dead port
     }
     runStartupScript(runtime, dirs.runtime, settings.startupScript)

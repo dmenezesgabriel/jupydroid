@@ -57,10 +57,10 @@ class SpaceRuntime(
     // PEP 668: Alpine marks this interpreter EXTERNALLY-MANAGED, so bare `pip install` is
     // refused - and even `--user` is refused without `--break-system-packages` (measured
     // on-device). The managed answer is the Space's own user base: PYTHONUSERBASE puts
-    // `pkgs/lib/...` on sys.path, PIP_USER makes installs ground there unflagged, and the
-    // three together are inherited by kernel, terminal, `%pip` and LSP alike.
+    // `pkgs/lib/...` on sys.path, and these are inherited by kernel, terminal, `%pip` and LSP
+    // alike. `--user` itself is base's `usr/pip.conf` ([SpacePipConfig]), not PIP_USER here,
+    // because a venv's pip would inherit it and refuse every install.
     "PYTHONUSERBASE" to dirs.inRoot(dirs.pkgs),
-    "PIP_USER" to "1",
     "PIP_ONLY_BINARY" to ":all:",
     "PIP_BREAK_SYSTEM_PACKAGES" to "1",
     // pkgs/bin first, so a user's console script shadows the shipped one - the precedence

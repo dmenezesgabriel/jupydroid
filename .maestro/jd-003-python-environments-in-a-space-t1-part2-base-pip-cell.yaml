@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# Base's own interpreter still installs into the Space's user base unflagged, now that `--user`
+# is its `/usr/pip.conf` rather than PIP_USER. pip's "Successfully installed" line is scoped to
+# the output, which the cell's `%pip install tabulate` source cannot satisfy; the driver reads
+# where it landed off the disk.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Pip.ipynb"
+    timeout: 10000
+- tapOn: "Pip.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*Successfully installed tabulate.*"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 02-base-pip-lands-in-pkgs
