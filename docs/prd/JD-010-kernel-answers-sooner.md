@@ -104,7 +104,7 @@ the pre-start and lists what it obliges.
   - the server's start, alone and with a pre-read beside it
 
   An ADR then applies the criteria in Open decisions and picks one.
-- [ ] T3 — Pre-start the Space's default kernel (ADR-0080), red test first, then the demo's warm ×3.
+- [x] T3 — Pre-start the Space's default kernel (ADR-0080), red test first, then the demo's warm ×3.
 
 ## Out of scope
 
