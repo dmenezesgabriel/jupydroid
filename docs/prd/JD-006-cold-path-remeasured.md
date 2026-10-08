@@ -83,7 +83,7 @@ Where the extraction lost ~6 s since ADR-0013 on an unchanged archive — T2 mea
 - [x] T1 — Repair the harness (the report reads today's server stage names; the session POST's
   start is logged and reported) and re-measure base cold ×3 and warm ×3 on the tablet; the evidence
   names the dominant stage.
-- [ ] T2 — **The extraction**, `space.installing → server.starting`: ~19 s median cold, 68% of the
+- [x] T2 — **The extraction**, `space.installing → server.starting`: ~19 s median cold, 68% of the
   ~27.7 s runtime ahead of the first answer, and slower than the ~13 s it measured after
   [ADR-0013](../adr/0013-ship-bytecode-invalidated-by-checked-hash.md) on the same 76.4 MB archive.
   First find where the ~6 s went (`TarZstdExtractor` and `BaseSpaceInstaller` since then, timed on
