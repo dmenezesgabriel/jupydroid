@@ -67,50 +67,23 @@ Present and partial: every stage is marked, and the parts inside the dominant on
 
 ## Deviations
 
-None yet.
+T2 was split in two: T1 had measured where the window goes, not what a repair would cost.
 
 ## Open decisions
 
-T1 measured the window as the kernel module's import: about 2.7 s of import work, plus about
-2.5 s of reading it from storage on a warm start (`evidence/jd-010-kernel-window/README.md`).
-pylsp, the DEBUG log level and the nudge are not where it goes.
-
-T2's decision is **how to take the import out of the window**. Nothing on the device works during
-the user's ~13 s walk from Run to the first cell. The options:
-- pre-read the kernel's files into the page cache while the server starts. This removes the storage
-  half and leaves about 2.7 s.
-- pre-start a kernel the first session binds to. This removes both halves, but it is a kernel
-  nobody asked for, holding memory. No reference does it, and jupyter_server has no pool.
-- import less: IPython's terminal frontend (0.84 s) and `debugpy.server` (0.37 s) are on the path.
-  That means patching packages in the image.
-
-Two of these are out before anything is measured:
-- **Import less is out.** ipykernel's `ipkernel.py` imports `.debugger` itself, and IPython's
-  `__init__.py` imports `IPython.terminal.embed`. Taking either off the path means patching
-  third-party packages in the image. The ceiling is about 1.2 s, and the storage half stays.
-- **`unchecked-hash` bytecode is out.** It would skip reading and hashing each `.py`, but
-  ADR-0013 forbids it.
-
-That leaves pre-read and pre-start. Pre-start needs no server patch, because `POST api/sessions`
-takes `{"kernel": {"id": …}}` and binds a kernel that is already running (jupyter_server
-`services/sessions/handlers.py`).
-
-**The criteria, fixed before T2 measures anything:**
-1. The window's median with the repair, from an evicted page cache as the in-app warm start finds
-   it, against T1's 5.25 s.
-2. What the repair costs: a pre-started kernel's resident memory while idle, and how much a pre-read
-   slows the server's own start.
-3. What the repair obliges. A pre-started kernel needs a lifecycle: a kernel other than the default
-   picked, a restart, a session that never opens a notebook, and the idle stop. At equal gain, the
-   option with fewer obligations wins.
-
-If neither beats the baseline net of its cost, the ADR says so and T3 is rewritten, not forced.
+None. T1 measured the window as the kernel module's import: about 2.7 s of import work, plus about
+2.5 s of reading it from storage on a warm start. T2 measured both repairs that remained once
+importing less and `unchecked-hash` bytecode were ruled out (`evidence/jd-010-kernel-window/README.md`).
+A pre-read takes the evicted window 4.4 s → 2.7 s. A kernel pre-started a walk ahead takes it under
+0.1 s, for 53.6 MB held until a session binds it.
+[ADR-0080](../adr/0080-a-space-pre-starts-its-default-kernel-when-its-server-starts.md) decides
+the pre-start and lists what it obliges.
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| `data/space` | Decided by T2 — `SpaceServer.kt` / `JupyterServerLauncher.kt` (pre-read or pre-start), or `tools/rootfs/` (import less) |
+| `data/space` | `SpaceServer.kt` (start the spare once the server is up), `KernelLifecycle.kt` (`POST api/kernels`, a session bound by `kernel.id`, falling back to the name), `KernelLog.kt` (which kernel a session bound) |
 | instrumented tests | `KernelWindowProbeDeviceTest` |
 | `.maestro/` flow + `scripts/` driver | `p8a-cold-path.yaml`, `p8a-cold-path-driver.sh`, `cold_path_report.py` (unchanged) |
 
@@ -124,14 +97,14 @@ If neither beats the baseline net of its cost, the ADR says so and T3 is rewritt
   - the window at a quieter kernel log level
 
   Warm ×3 in-app runs are the baseline it is checked against. The evidence names the dominant part.
-- [ ] T2 — Measure both repairs on the tablet with the probe, each from an evicted page cache, median of 3:
+- [x] T2 — Measure both repairs on the tablet with the probe, each from an evicted page cache, median of 3:
   - the window after a pre-read (`import jupydroid_kernel` run and thrown away)
   - the window on a kernel pre-started a walk's length before its session
   - an idle pre-started kernel's resident memory
   - the server's start, alone and with a pre-read beside it
 
   An ADR then applies the criteria in Open decisions and picks one.
-- [ ] T3 — Make the repair T2's ADR chose, red test first, then the demo's warm ×3.
+- [ ] T3 — Pre-start the Space's default kernel (ADR-0080), red test first, then the demo's warm ×3.
 
 ## Out of scope
 
