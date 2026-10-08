@@ -37,6 +37,9 @@ class JupyterServerLauncherSpaceTest {
   /** What the launcher's `settingsFor` answers right now - a test changes it between starts. */
   private var spaceOneSettings = SpaceSettings()
 
+  /** What the launcher's `defaultKernelFor` answers right now - a test changes it between starts. */
+  private var spaceOneDefaultKernel = "python3"
+
   /**
    * Killed by pid rather than through `stop()`: nothing answers `api/shutdown` at the port these
    * fakes report, so `stop()` would wait out its whole timeout. `JupyterServerLauncherStopTest`
@@ -66,6 +69,21 @@ class JupyterServerLauncherSpaceTest {
 
     assertTrue(first.toString(), "--ServerApp.shutdown_no_activity_timeout=120" in first)
     assertTrue(serverArgs().toString(), "--ServerApp.shutdown_no_activity_timeout=0" in serverArgs())
+  }
+
+  /** The default is read at each start, as the settings are: Settings may pick another while stopped. */
+  @Test
+  fun eachStartGivesTheServerTheSpacesDefaultKernelAsItIsThen() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    launcher.start(spaceOne)
+    val first = serverArgs()
+    killSpaceOnesServer()
+
+    spaceOneDefaultKernel = "stats"
+    launcher.start(spaceOne)
+
+    assertTrue(first.toString(), "--MappingKernelManager.default_kernel_name=python3" in first)
+    assertTrue(serverArgs().toString(), "--MappingKernelManager.default_kernel_name=stats" in serverArgs())
   }
 
   /**
@@ -213,6 +231,7 @@ class JupyterServerLauncherSpaceTest {
       },
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
       settingsFor = { spaceOneSettings },
+      defaultKernelFor = { spaceOneDefaultKernel },
       startTimeout = 10.seconds,
     )
   }

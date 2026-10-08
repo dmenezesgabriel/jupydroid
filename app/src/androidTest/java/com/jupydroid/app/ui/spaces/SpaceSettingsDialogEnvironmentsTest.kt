@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
@@ -74,7 +75,7 @@ class SpaceSettingsDialogEnvironmentsTest {
     var asked: String? = null
     show(listOf(bare, stats), onRegister = { asked = it })
 
-    compose.onNodeWithContentDescription(registerLabel(stats.path)).performClick()
+    compose.onNodeWithContentDescription(registerLabel(stats.path)).performScrollTo().performClick()
 
     assertEquals(stats.path, asked)
   }

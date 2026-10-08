@@ -87,12 +87,18 @@ val THREAD_CAP_RANGE: IntRange = 1..MAX_THREAD_CAP
  *   its server on every start; blank runs nothing. A non-zero exit fails the start, the way a
  *   dev container's failed `postStartCommand` stops the ones after it
  *   (<https://containers.dev/implementors/json_reference/>).
+ * @property defaultKernel the kernelspec a session gets when it asks for none, and so the one a new
+ *   notebook records: the server's `MappingKernelManager.default_kernel_name`
+ *   (`usr/lib/python3.12/site-packages/jupyter_client/multikernelmanager.py`), which
+ *   `jupyter_server/services/kernelspecs/handlers.py` answers as `default`. Read through
+ *   [effectiveDefaultKernel], so a spec deleted since falls back to `python3`.
  */
 data class SpaceSettings(
   val idleShutdownMinutes: Int = DEFAULT_IDLE_SHUTDOWN_MINUTES,
   val environmentVariables: Map<String, String> = emptyMap(),
   val threadCap: Int? = null,
   val startupScript: String = "",
+  val defaultKernel: String = DEFAULT_KERNEL_ID,
 )
 
 /**
@@ -109,6 +115,9 @@ fun requireValidSpaceSettings(settings: SpaceSettings) {
   }
   require(settings.threadCap == null || settings.threadCap in THREAD_CAP_RANGE) {
     "thread cap of ${settings.threadCap}; expected $THREAD_CAP_RANGE, or none for the libraries' default"
+  }
+  require(isKernelName(settings.defaultKernel)) {
+    "default kernel '${settings.defaultKernel}'; expected a kernelspec name, letters, digits, '.', '_' or '-'"
   }
   settings.environmentVariables.forEach { (name, value) ->
     val refusal = variableNameRefusal(name) ?: variableValueRefusal(name, value)

@@ -35,10 +35,12 @@ object BaseSpaceUnderTest {
    */
   val servers: JupyterSpaceServers? by lazy {
     val context = InstrumentationRegistry.getInstrumentation().targetContext
+    val spaceRepository = DiskSpaceRepository(spacesDir(context), spaceImageInstaller(context))
     spaceServers(
       context,
       CoroutineScope(SupervisorJob() + Dispatchers.IO),
-      DiskSpaceRepository(spacesDir(context), spaceImageInstaller(context)),
+      spaceRepository,
+      spaceKernelSpecsOnDisk(context, spaceRepository),
     )
   }
 

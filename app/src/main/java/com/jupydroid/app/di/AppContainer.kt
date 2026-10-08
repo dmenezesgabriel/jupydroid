@@ -2,6 +2,7 @@ package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookRepository
@@ -17,6 +18,7 @@ import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.SpaceEnvironments
@@ -65,6 +67,11 @@ class AppContainer(
    * the app wires it real everywhere, as it does [spaceRepository].
    */
   val spaceEnvironments: SpaceEnvironments = FakeSpaceEnvironments(),
+  /**
+   * Any Space's kernelspecs as its disk holds them, and the default its Settings chose - what the
+   * home's Settings picks that default among. Read off disk, so the app wires it real everywhere.
+   */
+  val stoppedSpaceKernelSpecs: KernelSpecs = FakeKernelSpecs(),
   /**
    * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown
    * rather than replaced. Read by every notebook and file editor alike, which is what "universal"

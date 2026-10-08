@@ -1,6 +1,5 @@
 package com.jupydroid.app.data.disk
 
-import com.jupydroid.app.data.space.SpaceDirs
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.Space
@@ -111,7 +110,7 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
   fun register_isListedByTheStoppedSpacesKernelPicker() = runTest {
     environmentsHolding(STATS).register(EMPTY_SPACE_ID, STATS.path)
 
-    val specs = DiskKernelSpecs(SpaceDirs(spaceDir)).specs(Space(EMPTY_SPACE_ID, "Thesis", emptyList())).specs
+    val specs = DiskKernelSpecs(tempFolder.root).specs(Space(EMPTY_SPACE_ID, "Thesis", emptyList())).specs
 
     assertTrue(specs.toString(), KernelSpec("stats", "Python (stats)", "python") in specs)
   }

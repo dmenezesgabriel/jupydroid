@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.ServerConnection
@@ -54,6 +55,11 @@ class JupyterServerLauncher(
   private val dirsFor: (Space) -> SpaceDirs,
   /** The Space's settings as stored now - asked once per [start]. */
   private val settingsFor: suspend (Space) -> SpaceSettings,
+  /**
+   * The kernel the Space's server starts by default - asked once per [start], like [settingsFor], and
+   * already checked against the Space's catalogue (`data/disk/DiskKernelSpecs.kt`).
+   */
+  private val defaultKernelFor: suspend (Space) -> String = { DEFAULT_KERNEL_ID },
   private val startTimeout: Duration = START_TIMEOUT,
   private val startupScriptTimeout: Duration = STARTUP_SCRIPT_TIMEOUT,
   private val stopTimeout: Duration = STOP_TIMEOUT,
@@ -79,6 +85,7 @@ class JupyterServerLauncher(
     stop()
     val dirs = dirsFor(space)
     val settings = settingsFor(space)
+    val defaultKernel = defaultKernelFor(space)
     val runtime = runtimeFor(space, settings)
     withContext(ioDispatcher) {
       dirs.ensure()
@@ -87,7 +94,8 @@ class JupyterServerLauncher(
     }
     runStartupScript(runtime, dirs.runtime, settings.startupScript)
     val started = withContext(ioDispatcher) {
-      jupyterServerProcess(runtime, dirs.runtime, dirs.inRoot(dirs.workspace), token, settings).start()
+      jupyterServerProcess(runtime, dirs.runtime, dirs.inRoot(dirs.workspace), token, settings, defaultKernel)
+        .start()
     }
     process = started
     val reported = awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
@@ -209,6 +217,7 @@ internal fun jupyterServerProcess(
   rootDir: String,
   token: String,
   settings: SpaceSettings,
+  defaultKernel: String,
 ): ProcessBuilder = runtime.processBuilder(
   // JUPYTER_RUNTIME_DIR and the faulthandler both come from SpaceRuntime.environment(),
   // so every Space process - not just the server - agrees on where runtime files live.
@@ -218,7 +227,7 @@ internal fun jupyterServerProcess(
   // downstream is written against that. A terminal is the client that proves it: `PtyWithClients`
   // inherits this cwd whenever the POST carries none (`terminado/management.py:225-232`). See
   // [JupyterServerWorkingDirTest].
-  jupyterServerArgs(rootDir, token, settings.idleShutdownMinutes),
+  jupyterServerArgs(rootDir, token, settings.idleShutdownMinutes, defaultKernel),
 )
   .redirectErrorStream(true)
   .redirectOutput(jupyterServerLogFile(runtimeDir))
@@ -234,7 +243,12 @@ internal fun jupyterServerLogFile(runtimeDir: File): File = File(runtimeDir, "ju
  * unset for eight steps, which left the Contents API rooted at whatever cwd `ProcessBuilder` gave
  * it, and nothing noticed because nothing but the app read the files.
  */
-internal fun jupyterServerArgs(rootDir: String, token: String, idleShutdownMinutes: Int): List<String> = listOf(
+internal fun jupyterServerArgs(
+  rootDir: String,
+  token: String,
+  idleShutdownMinutes: Int,
+  defaultKernel: String = DEFAULT_KERNEL_ID,
+): List<String> = listOf(
   "-m", "jupyter_server",
   "--ServerApp.ip=127.0.0.1",
   "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
@@ -272,6 +286,10 @@ internal fun jupyterServerArgs(rootDir: String, token: String, idleShutdownMinut
   "--ServerApp.shutdown_no_activity_timeout=${idleShutdownMinutes.minutes.inWholeSeconds}",
   "--MappingKernelManager.cull_idle_timeout=${idleShutdownMinutes.minutes.inWholeSeconds}",
   "--MappingKernelManager.cull_interval=60",
+  // What a session asked for no kernel starts, and what `GET api/kernelspecs` answers as `default`
+  // (`usr/lib/python3.12/site-packages/jupyter_client/multikernelmanager.py` `default_kernel_name`;
+  // `jupyter_server/services/kernelspecs/handlers.py`) - so the kernel a new notebook records.
+  "--MappingKernelManager.default_kernel_name=$defaultKernel",
   "--no-browser",
   // DEBUG until the app is feature-complete, because the server's own account is the half of
   // every kernel investigation we could not see. The execution stall cost six sightings partly

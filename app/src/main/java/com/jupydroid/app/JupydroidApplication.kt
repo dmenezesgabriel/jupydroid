@@ -6,7 +6,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
-import com.jupydroid.app.data.disk.DiskKernelSpecs
 import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
@@ -28,7 +27,6 @@ import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.intent.IntentDocumentSharer
 import com.jupydroid.app.data.space.JupyterSpaceServers
-import com.jupydroid.app.data.space.SpaceDirs
 import com.jupydroid.app.data.space.SpaceServer
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
@@ -43,6 +41,7 @@ import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.data.space.notebookWorkspaceIn
 import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.data.space.spaceImageInstaller
+import com.jupydroid.app.data.space.spaceKernelSpecsOnDisk
 import com.jupydroid.app.data.space.spaceServers
 import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.di.AppContainer
@@ -103,11 +102,20 @@ class JupydroidApplication : Application() {
     // and a create copies the bundled image into the new Space's own directory. One instance,
     // shared by the home that writes a Space's settings and the servers that read them at start.
     val spaceRepository = DiskSpaceRepository(spacesDir(this), spaceImageInstaller(this))
+    // One catalogue for the home's Settings, a stopped Space's picker and each server start's
+    // default, so the three cannot name different kernels.
+    val kernelSpecsOnDisk = spaceKernelSpecsOnDisk(this, spaceRepository)
     // The servers are built once and shared: the gateways start base's and the idle backstop stops
     // it, and two entries for one Space would be two processes pretending to be one.
-    val servers = spaceServers(this, applicationScope, spaceRepository)
+    val servers = spaceServers(this, applicationScope, spaceRepository, kernelSpecsOnDisk)
     migrateNotebooksOnce(notebookWorkspace(this))
-    return containerFor(servers, spaceRepository, applicationScope, DiskRecentDocumentsFile(filesDir))
+    return containerFor(
+      servers,
+      spaceRepository,
+      kernelSpecsOnDisk,
+      applicationScope,
+      DiskRecentDocumentsFile(filesDir),
+    )
   }
 
   /**
@@ -123,12 +131,13 @@ class JupydroidApplication : Application() {
   private fun enteredSpacePortsOf(
     spaceId: String,
     servers: JupyterSpaceServers?,
+    kernelSpecsOnDisk: KernelSpecs,
     recentsFile: DiskRecentDocumentsFile,
     activeTerminals: ActiveTerminals,
   ): EnteredSpacePorts {
     val spaceDir = spaceDirIn(spacesDir(this), spaceId)
     val workspace = notebookWorkspaceIn(spaceDir)
-    val kernels = SpaceBackedPorts(servers?.server(spaceId), spaceWithId(spaceId), spaceDir)
+    val kernels = SpaceBackedPorts(servers?.server(spaceId), spaceWithId(spaceId), kernelSpecsOnDisk)
     return EnteredSpacePorts(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
@@ -152,10 +161,13 @@ class JupydroidApplication : Application() {
   private fun containerFor(
     servers: JupyterSpaceServers?,
     spaceRepository: SpaceRepository,
+    kernelSpecsOnDisk: KernelSpecs,
     applicationScope: CoroutineScope,
     recentsFile: DiskRecentDocumentsFile,
   ) = AppContainer(
-    enteredSpacePorts = { id, terminals -> enteredSpacePortsOf(id, servers, recentsFile, terminals) },
+    enteredSpacePorts = { id, terminals ->
+      enteredSpacePortsOf(id, servers, kernelSpecsOnDisk, recentsFile, terminals)
+    },
     // Off the servers, unlike the kernels: `pylsp` is a direct stdio process - it never passes
     // through `jupyter_server`, so it shares only the condition, not the launcher's life. One port
     // for every Space, since it already keeps one process per Space it is asked about.
@@ -163,6 +175,7 @@ class JupydroidApplication : Application() {
     spaceServers = servers ?: FakeSpaceServers(),
     spaceRepository = spaceRepository,
     spaceEnvironments = DiskSpaceEnvironments(spacesDir(this)),
+    stoppedSpaceKernelSpecs = kernelSpecsOnDisk,
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
     // state, not a Contents API file.
     editorSettings = DiskEditorSettingsRepository(filesDir),
@@ -189,7 +202,7 @@ class JupydroidApplication : Application() {
    * so a `debug_request` reuses the identical per-session socket `execute`/`complete`/`history`
    * already share, rather than opening a second one.
    */
-  private class SpaceBackedPorts(server: SpaceServer?, val space: Space, spaceDir: File) {
+  private class SpaceBackedPorts(server: SpaceServer?, val space: Space, kernelSpecsOnDisk: KernelSpecs) {
     private val kernelSockets = server?.let(::baseSpaceKernelSockets)
 
     /**
@@ -208,7 +221,7 @@ class JupydroidApplication : Application() {
 
     /** `GET api/kernelspecs` while a server is up, the kernelspecs on the Space's disk while it is not. */
     val specs: KernelSpecs =
-      kernelSockets?.let { baseSpaceKernelSpecs(it, DiskKernelSpecs(SpaceDirs(spaceDir))) } ?: FakeKernelSpecs()
+      kernelSockets?.let { baseSpaceKernelSpecs(it, kernelSpecsOnDisk) } ?: FakeKernelSpecs()
 
     val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
 

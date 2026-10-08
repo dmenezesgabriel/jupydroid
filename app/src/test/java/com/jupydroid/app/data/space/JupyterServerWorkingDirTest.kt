@@ -58,5 +58,6 @@ class JupyterServerWorkingDirTest {
     rootDir = dirs.inRoot(dirs.workspace),
     token = "t",
     settings = SpaceSettings(),
+    defaultKernel = "python3",
   )
 }

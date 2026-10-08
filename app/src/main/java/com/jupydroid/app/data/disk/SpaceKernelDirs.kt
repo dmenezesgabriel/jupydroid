@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.data.space.SpaceDirs
+import com.jupydroid.app.domain.model.isKernelName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -45,9 +46,6 @@ private fun kernelSearchPath(dirs: SpaceDirs): List<File> = listOf(
 ).map { File(it, "kernels") }
 
 private fun kernelDirsIn(kernelsDir: File): List<Pair<String, File>> = kernelsDir.listFiles().orEmpty()
-  .filter { KERNEL_NAME_PATTERN.matches(it.name) && File(it, "kernel.json").isFile }
+  .filter { isKernelName(it.name) && File(it, "kernel.json").isFile }
   .sortedBy { it.name }
   .map { it.name.lowercase() to it }
-
-/** `_kernel_name_pat`: `re.compile(r"^[a-z0-9._\-]+$", re.IGNORECASE)`. */
-private val KERNEL_NAME_PATTERN = Regex("^[a-z0-9._\\-]+$", RegexOption.IGNORE_CASE)

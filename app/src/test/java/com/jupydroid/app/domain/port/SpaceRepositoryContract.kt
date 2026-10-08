@@ -204,6 +204,30 @@ abstract class SpaceRepositoryContract {
     assertEquals(script, repository.spaces().single { it.id == created.id }.settings.startupScript)
   }
 
+  @Test
+  fun aConfiguredDefaultKernelIsStored() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+
+    repository.configure(created.id, SpaceSettings(defaultKernel = "stats"))
+
+    assertEquals("stats", repository.spaces().single { it.id == created.id }.settings.defaultKernel)
+  }
+
+  /** A name no kernelspec directory can carry is refused by value, and the stored record is not touched. */
+  @Test
+  fun aDefaultKernelNoSpecCanBeNamedIsRefusedAndNothingIsWritten() = runTest {
+    val repository = repository()
+    val created = repository.create("Thesis")
+
+    val refusal = runCatching { repository.configure(created.id, SpaceSettings(defaultKernel = "my env")) }
+      .exceptionOrNull()
+
+    assertTrue("expected IllegalArgumentException, was $refusal", refusal is IllegalArgumentException)
+    assertTrue("message must name it, was '${refusal?.message}'", refusal?.message?.contains("'my env'") == true)
+    assertEquals(created, repository.spaces().single { it.id == created.id })
+  }
+
   /** A cap outside `1..64` is refused by value, and the stored record is not touched. */
   @Test
   fun aThreadCapOutsideTheRangeIsRefusedAndNothingIsWritten() = runTest {

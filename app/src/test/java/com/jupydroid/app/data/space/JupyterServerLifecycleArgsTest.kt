@@ -72,6 +72,19 @@ class JupyterServerLifecycleArgsTest {
     )
   }
 
+  /**
+   * A session asked for no kernel gets `default_kernel_name`, and `GET api/kernelspecs` answers it as
+   * `default` (`usr/lib/python3.12/site-packages/jupyter_server/services/kernelspecs/handlers.py`),
+   * which is what a new notebook records.
+   */
+  @Test
+  fun aSpacesDefaultKernelIsTheServersDefaultKernelName() {
+    val args =
+      jupyterServerArgs(rootDir = "/home/jupydroid", token = "t", idleShutdownMinutes = 2, defaultKernel = "stats")
+
+    assertTrue(args.toString(), args.contains("--MappingKernelManager.default_kernel_name=stats"))
+  }
+
   private fun argsFor(idleShutdownMinutes: Int) =
     jupyterServerArgs(rootDir = "/home/jupydroid", token = "t", idleShutdownMinutes = idleShutdownMinutes)
 }

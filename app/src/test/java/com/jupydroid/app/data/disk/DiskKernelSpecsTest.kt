@@ -1,6 +1,5 @@
 package com.jupydroid.app.data.disk
 
-import com.jupydroid.app.data.space.SpaceDirs
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.KernelSpecsContract
@@ -19,7 +18,7 @@ import java.io.File
 class DiskKernelSpecsTest : KernelSpecsContract() {
   @get:Rule val tempFolder = TemporaryFolder()
 
-  private val spaceDir: File get() = tempFolder.root
+  private val spaceDir: File get() = File(tempFolder.root, SPACE.id)
 
   override fun specs(): KernelSpecs {
     writeSpec("usr/share/jupyter/kernels/python3", "Python 3")
@@ -92,6 +91,20 @@ class DiskKernelSpecsTest : KernelSpecsContract() {
     assertEquals(PYTHON_SPEC, models.defaultSpec)
   }
 
+  /** The Space's chosen default is what the server will be started with, so a new notebook records it. */
+  @Test
+  fun specs_aStoredDefaultWithItsSpecOnDiskIsTheDefault() = runTest {
+    writeSpec("usr/local/share/jupyter/kernels/stats", "Python (stats)")
+
+    assertEquals("stats", diskSpecs(storedDefault = "stats").specs(SPACE).default)
+  }
+
+  /** A spec deleted after Save: `defaultSpec` would refuse a default the catalogue does not list. */
+  @Test
+  fun specs_aStoredDefaultWithNoSpecOnDiskFallsBackToPython3() = runTest {
+    assertEquals("python3", diskSpecs(storedDefault = "stats").specs(SPACE).default)
+  }
+
   @Test
   fun specs_readsTheLanguageFromTheKernelJson() = runTest {
     writeSpec("usr/local/share/jupyter/kernels/ir", "R", language = "R")
@@ -99,7 +112,9 @@ class DiskKernelSpecsTest : KernelSpecsContract() {
     assertEquals(KernelSpec("ir", "R", "R"), diskSpecs().specs(SPACE).named("ir"))
   }
 
-  private fun diskSpecs() = DiskKernelSpecs(SpaceDirs(spaceDir))
+  private fun diskSpecs(storedDefault: String = "python3") = DiskKernelSpecs(tempFolder.root, storedDefaultKernelOf = {
+    storedDefault
+  })
 
   private fun writeSpec(dir: String, displayName: String, language: String = "python") {
     kernelJson(dir).writeText("""{"argv": [], "display_name": "$displayName", "language": "$language"}""")

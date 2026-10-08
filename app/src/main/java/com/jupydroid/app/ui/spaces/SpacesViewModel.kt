@@ -2,9 +2,12 @@ package com.jupydroid.app.ui.spaces
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
+import com.jupydroid.app.domain.model.spaceWithId
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
@@ -25,6 +28,8 @@ import kotlinx.coroutines.launch
  * @property running the ids of the Spaces whose server is alive, as [SpaceServers.running] has them.
  * @property environments the environments of the Space whose Settings is open, or null while they are
  *   read or when the read was refused.
+ * @property kernelChoices the kernelspecs on the disk of the Space whose Settings is open, which its
+ *   default kernel is picked among, or null while they are read or when the read was refused.
  */
 data class SpacesPanelState(
   val spaces: List<SpaceConfig> = emptyList(),
@@ -33,6 +38,7 @@ data class SpacesPanelState(
   val progress: Float? = null,
   val running: Set<String> = emptySet(),
   val environments: List<PythonEnvironment>? = null,
+  val kernelChoices: List<KernelSpec>? = null,
 )
 
 /**
@@ -52,14 +58,18 @@ data class SpacesPanelState(
  * server's self-stop reach the rows without a tap here.
  *
  * ```
- * SpacesViewModel(appContainer.spaceRepository, appContainer.spaceServers, appContainer.spaceEnvironments)
- *   .run("space-1")
+ * SpacesViewModel(
+ *   appContainer.spaceRepository, appContainer.spaceServers, appContainer.spaceEnvironments,
+ *   appContainer.stoppedSpaceKernelSpecs,
+ * ).run("space-1")
  * ```
  */
 class SpacesViewModel(
   private val spaceRepository: SpaceRepository,
   private val spaceServers: SpaceServers,
   private val spaceEnvironments: SpaceEnvironments,
+  /** Any Space's kernelspecs as its disk holds them - Settings is only open on a stopped Space. */
+  private val stoppedKernelSpecs: KernelSpecs,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(SpacesPanelState())
   val uiState: StateFlow<SpacesPanelState> = _uiState.asStateFlow()
@@ -94,28 +104,35 @@ class SpacesViewModel(
   }
 
   /**
-   * Reads the Space [id]'s environments for its Settings. Not an act: it reads a disk and changes
-   * nothing, so it never holds the panel. The previous Space's list is dropped first, so a dialog
-   * never shows another Space's environments while this one's are read, and so is an earlier
-   * refusal, since Settings shows the refusals of its own acts.
+   * Reads what the Space [id]'s Settings offers: its environments and the kernels its default is
+   * picked among. Not an act: it reads a disk and changes nothing, so it never holds the panel. The
+   * previous Space's lists are dropped first, so a dialog never shows another Space's while this
+   * one's are read, and so is an earlier refusal, since Settings shows the refusals of its own acts.
    */
-  fun listEnvironments(id: String) {
-    _uiState.update { it.copy(environments = null, failure = null) }
+  fun openSpaceSettings(id: String) {
+    _uiState.update { it.copy(environments = null, kernelChoices = null, failure = null) }
     viewModelScope.launch {
       reportingFailure {
         val found = spaceEnvironments.environments(id)
         _uiState.update { it.copy(environments = found) }
       }
     }
+    viewModelScope.launch {
+      reportingFailure {
+        val listed = stoppedKernelSpecs.specs(spaceWithId(id)).specs
+        _uiState.update { it.copy(kernelChoices = listed) }
+      }
+    }
   }
 
   /**
-   * Makes the environment at [path] a kernel of the Space [id], then re-reads the list as Settings
-   * does when it opens, so the row shows what the disk now has. A refused registration reads nothing.
+   * Makes the environment at [path] a kernel of the Space [id], then re-reads what Settings read when
+   * it opened, so the row and the default's choices show what the disk now has. A refused
+   * registration reads nothing.
    */
   fun registerEnvironment(id: String, path: String) = act {
     spaceEnvironments.register(id, path)
-    listEnvironments(id)
+    openSpaceSettings(id)
   }
 
   /** Starts the Space [id]'s server; the act lasts until it serves. */

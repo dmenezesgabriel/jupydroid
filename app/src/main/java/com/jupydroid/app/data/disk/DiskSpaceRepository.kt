@@ -5,6 +5,7 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.data.space.SpaceImageInstaller
 import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.domain.model.BUNDLED_PYTHON_VERSION
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.defaultSpaceConfig
@@ -183,13 +184,14 @@ private data class StoredSpaceSettings(
   val environmentVariables: Map<String, String> = emptyMap(),
   val threadCap: Int? = null,
   val startupScript: String = "",
+  val defaultKernel: String = DEFAULT_KERNEL_ID,
 )
 
 private fun SpaceSettings.stored() =
-  StoredSpaceSettings(idleShutdownMinutes, environmentVariables, threadCap, startupScript)
+  StoredSpaceSettings(idleShutdownMinutes, environmentVariables, threadCap, startupScript, defaultKernel)
 
 private fun StoredSpaceSettings.toDomain() =
-  SpaceSettings(idleShutdownMinutes, environmentVariables, threadCap, startupScript)
+  SpaceSettings(idleShutdownMinutes, environmentVariables, threadCap, startupScript, defaultKernel)
 
 private fun SpaceConfig.stored() = StoredSpaceConfig(
   name = name,

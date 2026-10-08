@@ -1,10 +1,13 @@
 package com.jupydroid.app.data.space
 
+import android.content.Context
+import com.jupydroid.app.data.disk.DiskKernelSpecs
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
+import com.jupydroid.app.domain.port.SpaceRepository
 
 /**
  * One [KernelSockets] per [server] generation, shared by [baseSpaceKernelGateway] and
@@ -51,4 +54,14 @@ fun baseSpaceKernelSpecs(sockets: PerRunningServer<KernelSockets>, whenStopped: 
 fun baseSpaceKernelDebugger(sockets: PerRunningServer<KernelSockets>): KernelDebugger = BaseSpaceKernelDebugger(
   sharedSockets = sockets,
   debuggerFor = { RealKernelDebugger(it) },
+)
+
+/**
+ * Every Space's kernelspecs as its disk holds them, its default the one its Settings last saved
+ * while the catalogue still lists it. One instance answers a stopped Space's picker, the home's
+ * Settings, and the default each server start passes, so all three name the same kernel.
+ */
+fun spaceKernelSpecsOnDisk(context: Context, spaceRepository: SpaceRepository): KernelSpecs = DiskKernelSpecs(
+  spacesDir(context),
+  storedDefaultKernelOf = { space -> spaceRepository.storedSettingsOf(space).defaultKernel },
 )

@@ -232,6 +232,15 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
     assertEquals("echo started > ~/startup.txt", read.startupScript)
   }
 
+  @Test
+  fun aDefaultKernelSurvivesTheNextLaunch() = runTest {
+    val created = repository().create("Thesis")
+
+    openStore().configure(created.id, SpaceSettings(defaultKernel = "stats"))
+
+    assertEquals("stats", openStore().spaces().single { it.id == created.id }.settings.defaultKernel)
+  }
+
   /** Settings written before a Space had variables, a cap or a script keep their idle time and read none. */
   @Test
   fun settingsWithNoVariablesReadNone() = runTest {

@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.spaceProcessVariables
 import com.jupydroid.app.domain.model.spaceWithId
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.SpaceRepository
@@ -47,15 +48,19 @@ fun notebookWorkspace(context: Context): File = notebookWorkspaceIn(baseSpaceDir
 
 /**
  * Runs jupyter_server in whichever Space `start` is handed, on loopback, under proot, with the
- * settings [settingsFor] answers at that start.
+ * settings [settingsFor] answers at that start and the default kernel [defaultKernelFor] does.
  */
-fun spaceServerLauncher(context: Context, settingsFor: suspend (Space) -> SpaceSettings): JupyterServerLauncher =
-  JupyterServerLauncher(
-    runtimeFor = { space, settings -> spaceRuntime(context, space, settings.spaceProcessVariables()) },
-    dirsFor = { space -> spaceDirs(context, space) },
-    settingsFor = settingsFor,
-    log = LogcatSpaceLifecycleLog,
-  )
+fun spaceServerLauncher(
+  context: Context,
+  settingsFor: suspend (Space) -> SpaceSettings,
+  defaultKernelFor: suspend (Space) -> String,
+): JupyterServerLauncher = JupyterServerLauncher(
+  runtimeFor = { space, settings -> spaceRuntime(context, space, settings.spaceProcessVariables()) },
+  dirsFor = { space -> spaceDirs(context, space) },
+  settingsFor = settingsFor,
+  defaultKernelFor = defaultKernelFor,
+  log = LogcatSpaceLifecycleLog,
+)
 
 /**
  * Every Space's server, each brought up on first use - or null where no Space can run.
@@ -69,15 +74,25 @@ fun spaceServerLauncher(context: Context, settingsFor: suspend (Space) -> SpaceS
  * first use: any other Space had the image copied into it when it was created
  * (`DiskSpaceRepository`). [watchScope] is where each server's exit is waited on, so it must
  * outlive every screen. Each start reads the Space's settings from [spaceRepository] - the same
- * record the home's Settings writes - so what was saved is what the next start honours.
+ * record the home's Settings writes - so what was saved is what the next start honours - and its
+ * default kernel from [kernelSpecsOnDisk], the catalogue a stopped Space's picker reads.
  */
-fun spaceServers(context: Context, watchScope: CoroutineScope, spaceRepository: SpaceRepository): JupyterSpaceServers? {
+fun spaceServers(
+  context: Context,
+  watchScope: CoroutineScope,
+  spaceRepository: SpaceRepository,
+  kernelSpecsOnDisk: KernelSpecs,
+): JupyterSpaceServers? {
   if (runCatching { deviceAbi() }.isFailure) return null
   return JupyterSpaceServers { id, reportRunning ->
     SpaceServer(
       space = spaceWithId(id),
       installSpace = if (id == BASE_SPACE.id) ({ baseSpaceInstaller(context).installIfNeeded() }) else ({}),
-      launcher = spaceServerLauncher(context) { space -> spaceRepository.storedSettingsOf(space) },
+      launcher = spaceServerLauncher(
+        context,
+        settingsFor = { space -> spaceRepository.storedSettingsOf(space) },
+        defaultKernelFor = { space -> kernelSpecsOnDisk.specs(space).default },
+      ),
       watchScope = watchScope,
       reportRunning = reportRunning,
       log = LogcatSpaceLifecycleLog,
@@ -114,7 +129,7 @@ fun baseSpaceLanguageServerPort(context: Context, spaceRepository: SpaceReposito
 }
 
 /** [space]'s settings as its `config.json` holds them now - what the home's Settings last saved. */
-private suspend fun SpaceRepository.storedSettingsOf(space: Space): SpaceSettings =
+internal suspend fun SpaceRepository.storedSettingsOf(space: Space): SpaceSettings =
   spaces().spaceWithId(space.id).settings
 
 /** The exporter backed by the nbconvert endpoints of [server]'s `jupyter_server`. */

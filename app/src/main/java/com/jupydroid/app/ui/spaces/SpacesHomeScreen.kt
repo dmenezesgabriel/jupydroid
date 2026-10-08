@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
@@ -98,9 +99,12 @@ fun SpacesHomeScreen(
   spaceRepository: SpaceRepository,
   spaceServers: SpaceServers,
   spaceEnvironments: SpaceEnvironments,
+  stoppedKernelSpecs: KernelSpecs,
   onOpen: (spaceId: String) -> Unit,
   modifier: Modifier = Modifier,
-  viewModel: SpacesViewModel = viewModel { SpacesViewModel(spaceRepository, spaceServers, spaceEnvironments) },
+  viewModel: SpacesViewModel = viewModel {
+    SpacesViewModel(spaceRepository, spaceServers, spaceEnvironments, stoppedKernelSpecs)
+  },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   var creating by remember { mutableStateOf(false) }
@@ -161,10 +165,11 @@ fun SpacesHomeScreen(
     }
   }
   configuring?.let { space ->
-    LaunchedEffect(space.id) { viewModel.listEnvironments(space.id) }
+    LaunchedEffect(space.id) { viewModel.openSpaceSettings(space.id) }
     SpaceSettingsDialog(
       space = space,
       environments = state.environments,
+      kernelChoices = state.kernelChoices,
       onSave = {
         configuring = null
         viewModel.configure(space.id, it)

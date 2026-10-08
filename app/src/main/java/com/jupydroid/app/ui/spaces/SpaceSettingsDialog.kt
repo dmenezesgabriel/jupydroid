@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardType
 import com.jupydroid.app.domain.model.IDLE_SHUTDOWN_MINUTES_RANGE
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
@@ -56,8 +57,9 @@ internal const val SAVE_SETTINGS = "Save"
  * [refusals] the port's own variable rules, so the two cannot disagree - and what it hands [onSave]
  * is [space]'s settings with the edited fields changed. [environments] are what the Space's
  * workspace holds, null while they are being read; Register on one hands its path to [onRegister],
- * which acts at once rather than on Save, since it writes a spec rather than a setting. [refusal] is
- * the last refusal Settings' own acts met.
+ * which acts at once rather than on Save, since it writes a spec rather than a setting.
+ * [kernelChoices] are the kernelspecs on the Space's disk, null while being read, and the default
+ * kernel is picked among them. [refusal] is the last refusal Settings' own acts met.
  *
  * ```
  * SpaceSettingsDialog(
@@ -69,6 +71,7 @@ internal const val SAVE_SETTINGS = "Save"
 fun SpaceSettingsDialog(
   space: SpaceConfig,
   environments: List<PythonEnvironment>? = null,
+  kernelChoices: List<KernelSpec>? = null,
   onSave: (SpaceSettings) -> Unit,
   onDismiss: () -> Unit,
   onRegister: (String) -> Unit = {},
@@ -78,6 +81,7 @@ fun SpaceSettingsDialog(
   var capText by remember(space) { mutableStateOf(space.settings.threadCap?.toString().orEmpty()) }
   var variableRows by remember(space) { mutableStateOf(variableRowsOf(space.settings.environmentVariables)) }
   val script = remember(space) { TextFieldState(space.settings.startupScript) }
+  var defaultKernel by remember(space) { mutableStateOf(space.settings.defaultKernel) }
   val idleMinutes = idleText.trim().toIntOrNull()?.takeIf { it in IDLE_SHUTDOWN_MINUTES_RANGE }
   val threadCap = threadCapOf(capText)
   val savable = idleMinutes?.takeIf { threadCap.isSuccess && variableRows.refusals().all { it == null } }
@@ -90,6 +94,7 @@ fun SpaceSettingsDialog(
         SettingsNumberField(capText, threadCap.isFailure, THREAD_CAP_LABEL, onChange = { capText = it })
         SpaceVariablesEditor(variableRows, onRowsChange = { variableRows = it })
         StartupScriptField(script)
+        SpaceDefaultKernelField(kernelChoices, selected = defaultKernel, onPick = { defaultKernel = it })
         SpaceEnvironmentsSection(environments, onRegister, refusal)
       }
     },
@@ -103,6 +108,7 @@ fun SpaceSettingsDialog(
                 environmentVariables = variableRows.toVariables(),
                 threadCap = threadCap.getOrNull(),
                 startupScript = script.text.toString(),
+                defaultKernel = defaultKernel,
               ),
             )
           }

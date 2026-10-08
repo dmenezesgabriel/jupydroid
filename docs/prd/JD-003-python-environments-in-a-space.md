@@ -137,8 +137,8 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 | Kernelspec catalogue while stopped | `data/disk/DiskKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | closed in T2: read off the Space's disk in the server's own search order |
 | Writing a spec | `data/space/SpaceKernelSpec.kt` (`installEnvironment`), `data/disk/DiskSpaceEnvironments.kt` (`register`) | `ipykernel/kernelspec.py` `install` | closed in T4: Register writes an env's spec, and the row reads it back |
 | Env list | `data/disk/DiskSpaceEnvironments.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `vscode-python@f4c86e4 workspaceVirtualEnvLocator.ts` | closed in T3: Settings lists them, with ipykernel's presence |
-| Default kernel | `domain/port/KernelSpecs.kt` `defaultSpec`; `jupyterServerArgs` passes no `default_kernel_name` | `jupyter_client/multikernelmanager.py` | present and partial: always `python3` |
-| Settings screen | `ui/spaces/SpaceSettingsDialog.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `winlator@fb66541 ContainerDetailFragment.java` | present; Environments lists and registers (T3, T4); no default kernel yet |
+| Default kernel | `domain/model/KernelName.kt` (`effectiveDefaultKernel`), `data/disk/DiskKernelSpecs.kt`, `jupyterServerArgs`, `ui/spaces/SpaceDefaultKernelField.kt` | `jupyter_client/multikernelmanager.py` | closed in T5: Settings picks it, the server starts with it, and a new notebook records it |
+| Settings screen | `ui/spaces/SpaceSettingsDialog.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `winlator@fb66541 ContainerDetailFragment.java` | present; Environments lists and registers (T3, T4); Default kernel (T5) |
 
 ## Deviations
 
@@ -218,7 +218,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 - [x] T4 — **Register as kernel.** Register on a listed env writes a spec that starts a kernel in that
   env. One without ipykernel is refused with the command that fixes it. Open decisions 2–3 are
   settled
-- [ ] T5 — **Default kernel.** Settings picks the Space's default among its specs. The server is started
+- [x] T5 — **Default kernel.** Settings picks the Space's default among its specs. The server is started
   with it as `--MappingKernelManager.default_kernel_name`, and a new notebook records it (`defaultSpec`).
   A stored default the catalogue no longer lists falls back to `python3`, both while stopped and at launch
 - [ ] T6 — **A registered env deleted since.** Settings shows its spec as missing, and a default that fell

@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
@@ -28,6 +29,7 @@ import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.defaultSpaceConfig
+import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -388,11 +390,12 @@ class SpacesHomeScreenTest {
     onOpen: (String) -> Unit = {},
     environments: SpaceEnvironments =
       FakeSpaceEnvironments(mapOf(BASE_SPACE.id to emptyList(), thesis.id to emptyList())),
+    kernelSpecs: KernelSpecs = FakeKernelSpecs(),
   ): SpacesViewModel {
-    val model = SpacesViewModel(repository, servers, environments)
+    val model = SpacesViewModel(repository, servers, environments, kernelSpecs)
     compose.setContent {
       JupyterDroidTheme {
-        SpacesHomeScreen(repository, servers, environments, onOpen = onOpen, viewModel = model)
+        SpacesHomeScreen(repository, servers, environments, kernelSpecs, onOpen = onOpen, viewModel = model)
       }
     }
     compose.waitUntil(TIMEOUT_MILLIS) { model.uiState.value.spaces.isNotEmpty() }

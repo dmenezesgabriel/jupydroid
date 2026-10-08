@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.KernelEvent
@@ -196,7 +197,9 @@ class PerSpaceRuntimeDeviceTest {
     val spaceOneDirs: SpaceDirs get() = spaceDirs(context, SPACE_ONE)
 
     /** One launcher for the class: `JupyterServerLauncher.start` begins with `stop()`. */
-    val spaceOneLauncher by lazy { spaceServerLauncher(context) { SpaceSettings() } }
+    val spaceOneLauncher by lazy {
+      spaceServerLauncher(context, settingsFor = { SpaceSettings() }, defaultKernelFor = { DEFAULT_KERNEL_ID })
+    }
 
     /**
      * space-1's own image, extracted once for the class, with the kernelspec base's installer
