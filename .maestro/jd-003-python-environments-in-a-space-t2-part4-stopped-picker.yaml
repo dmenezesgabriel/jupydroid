@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# Thesis has idled out with its notebook still open - the driver saw its server leave `ps` before
+# this part. The picker now has no server to ask, and lists what is on Thesis's disk: the same
+# rows the live server listed in part 3, the clash resolved the same way.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 10000
+- tapOn: "No Kernel"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+# matches-source: the dialog rows, which cover the cell holding the same words.
+- assertVisible: "Probe home"
+- assertVisible: "Probe local"
+- assertVisible: "Probe clash from home"
+- assertNotVisible: "Probe clash from local"
+- assertVisible: "Python 3"
+- takeScreenshot: 06-stopped-picker-lists-the-specs-on-disk
+# Back, not the dismiss button: unbound, it reads "No Kernel", the same text as a row.
+- back
+- back
+- back
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- takeScreenshot: 07-home-reads-thesis-stopped

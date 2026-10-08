@@ -1,0 +1,60 @@
+appId: com.jupydroid.app
+---
+# Thesis runs, and its seeded notebook's cell plants three kernelspecs and prints the server's own
+# `jupyter_path("kernels")`. The picker then lists them from the *live* `GET api/kernelspecs` -
+# the answer the stopped picker in part 4 must agree with. `Probe clash` is in HOME's data dir and
+# in /usr/local: the server shows the first directory's.
+#
+# The picker ends on "No Kernel" so the session goes: `cull_connected` is off by default, so a
+# bound kernel would never be culled and Thesis would never idle out for part 4.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Kernelspecs.ipynb"
+    timeout: 10000
+- tapOn: "Kernelspecs.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: ".*specs_planted.*"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 120000
+- takeScreenshot: 03-specs-planted
+- tapOn: "Kernel Python 3: Idle"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+# matches-source: the dialog rows, which cover the cell holding the same words.
+- assertVisible: "Probe home"
+- assertVisible: "Probe local"
+- assertVisible: "Probe clash from home"
+- assertNotVisible: "Probe clash from local"
+- takeScreenshot: 04-running-picker-lists-the-planted-specs
+# The row, not the button - bound, so the cancel button reads "Cancel" and this text is unique.
+# It is in the "Use No Kernel" group, below the dialog's fold.
+- scrollUntilVisible:
+    element:
+      text: "^No Kernel$"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "^No Kernel$"
+- tapOn: "^Select$"
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 20000
+- takeScreenshot: 05-session-ended

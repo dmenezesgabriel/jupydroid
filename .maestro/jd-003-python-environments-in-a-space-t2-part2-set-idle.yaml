@@ -1,0 +1,20 @@
+appId: com.jupydroid.app
+---
+# Thesis idles out after 2 minutes, so part 4 finds it stopped with its notebook still open.
+# The keyboard covers the dialog's button row while a field is focused, so it is hidden before Save.
+- launchApp:
+    stopApp: false
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- tapOn:
+    id: "space-idle-shutdown-field"
+- eraseText: 10
+- inputText: "2"
+- hideKeyboard
+- takeScreenshot: 02-two-minutes-typed
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
