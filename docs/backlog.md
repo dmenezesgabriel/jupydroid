@@ -107,7 +107,7 @@ open because it runs any image's own loader, but no glibc image has been measure
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-006` | Re-measure the cold path on the tablet and repair whatever stage still dominates. One item per stage; nothing here exists until the measurement names it | open ← next | — | — |
+| `JD-006` | Re-measure the cold path on the tablet and repair whatever stage still dominates. One item per stage; nothing here exists until the measurement names it | in-progress ← next | [JD-006](prd/JD-006-cold-path-remeasured.md) | — |
 
 ### Known gaps
 
