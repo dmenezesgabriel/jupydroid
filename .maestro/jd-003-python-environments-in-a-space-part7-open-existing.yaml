@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# A stopped Space cannot be entered - Open is gated on Running (`SpacesHomeScreen`) - so part 8's
+# picker asks a notebook that was left open: Thesis runs, `Existing.ipynb` opens, and the app is
+# left for the driver to watch the leave-backstop stop Thesis's server underneath it.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 30000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Existing.ipynb"
+    timeout: 10000
+- tapOn: "Existing.ipynb"
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 30000
+- takeScreenshot: 12-existing-open-thesis-running
+- pressKey: Home

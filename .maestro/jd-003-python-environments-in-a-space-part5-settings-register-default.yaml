@@ -1,0 +1,63 @@
+appId: com.jupydroid.app
+---
+# Back on the home, Thesis is stopped and its Settings opened in one session: the section lists
+# `envs/stats` and `envs/fast`, each with ipykernel; Register on `envs/stats` writes its spec; and
+# the Default kernel, re-read after Register, offers `Python (stats)` - picked and saved. The
+# driver reads the spec and config.json off Thesis's disk after this part. The frame first shows
+# the previous command's tail, which the driver has already read off disk.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 04-missing-package-refused
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Stop Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- takeScreenshot: 05-thesis-stopped
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+# The section sits under the startup script, in the dialog's own scroll.
+- scrollUntilVisible:
+    element: "envs/stats"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "envs/fast"
+- assertVisible: "ipykernel installed"
+- takeScreenshot: 06-settings-lists-the-environments
+- tapOn: "Register envs/stats as kernel"
+- extendedWaitUntil:
+    visible: "Registered as kernel stats"
+    timeout: 10000
+- assertVisible: "Register envs/fast as kernel"
+- takeScreenshot: 07-stats-registered
+- scrollUntilVisible:
+    element: "Default kernel: Python 3"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Default kernel: Python 3"
+- extendedWaitUntil:
+    visible: "Make Python \\(stats\\) the default kernel"
+    timeout: 5000
+- assertVisible: "Make Python 3 the default kernel"
+- takeScreenshot: 08-the-spaces-kernels-offered
+- tapOn: "Make Python \\(stats\\) the default kernel"
+- extendedWaitUntil:
+    visible: "Default kernel: Python \\(stats\\)"
+    timeout: 5000
+- takeScreenshot: 09-stats-picked
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000

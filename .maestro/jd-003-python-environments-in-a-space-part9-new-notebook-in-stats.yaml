@@ -1,0 +1,53 @@
+appId: com.jupydroid.app
+---
+# Thesis runs with `stats` as its default. A notebook made from the explorer's New menu records
+# that default and starts it: the bar names `Python (stats)`, and its one cell imports `tabulate`,
+# which lives only in the venv, and prints the depth of the kernel's `sys.prefix` - a number the
+# cell's source does not hold, so `5` is something the kernel had to compute. The driver reads the
+# file's `metadata.kernelspec` and output after this part.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 30000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+# The empty cell's field has no text to tap by and the editor gives it no tag, so it is tapped at
+# a point inside it: SM-X216B's 1920x1200 puts the field at [805,319][1884,391] (`maestro
+# hierarchy`). The typed source survives auto-closing brackets verbatim: `stepOverPartner` walks
+# past each auto-inserted `)` and `'` (`ui/editor/PythonTypingRules.kt`).
+- tapOn:
+    point: "1300,354"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "import sys, tabulate; print(len(sys.prefix.split('/')))"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "5"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- assertVisible: "Python \\(stats\\)"
+- takeScreenshot: 15-new-notebook-ran-in-stats

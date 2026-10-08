@@ -1,0 +1,56 @@
+appId: com.jupydroid.app
+---
+# The same cell on base's `python3` fails `import tabulate` with `ModuleNotFoundError` - the venv
+# is the only place `tabulate` lives, and the error is text the cell's own source does not hold.
+# The driver reads the saved file after this part: `kernelspec: python3`, the error in its output.
+- launchApp:
+    stopApp: false
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+# A run notebook can still be dirty when Back lands: the save-before-close gate answers it with a
+# dialog (`SaveBeforeCloseGate`), and Discard leaves it rather than cancelling back into the
+# editor. Absent whenever autosave already flushed - the `when` covers both.
+- runFlow:
+    when:
+      visible: "Discard"
+    commands:
+      - tapOn: "Discard"
+- repeat:
+    while:
+      notVisible: "Run Base \\(base\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+# Same point and same verbatim cell as part 9 (`PythonTypingRules.stepOverPartner`).
+- tapOn:
+    point: "1300,354"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "import sys, tabulate; print(len(sys.prefix.split('/')))"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*ModuleNotFoundError.*"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 16-base-python3-lacks-tabulate

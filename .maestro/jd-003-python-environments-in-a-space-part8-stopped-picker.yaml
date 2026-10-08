@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# The driver watched Thesis's server leave `ps` while the app sat on Home with `Existing.ipynb`
+# open. Back in front, the notebook is still there with no kernel: the picker has no server to
+# ask, and lists what is on Thesis's disk - `Python (stats)`, registered in part 5, beside the
+# image's `Python 3`.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 10000
+- tapOn: "No Kernel"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+- assertVisible: "Python \\(stats\\)"
+- assertVisible: "Python 3"
+- takeScreenshot: 13-stopped-picker-lists-stats
+# Back, not the dismiss button: unbound, it reads "No Kernel", the same text as a row.
+- back
+- back
+- back
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- takeScreenshot: 14-home-reads-thesis-stopped

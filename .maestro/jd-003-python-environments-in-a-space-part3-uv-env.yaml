@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Alpine's uv makes `envs/fast` and fills it with ipykernel - musl-linked, so the preload reaches
+# it, which PyPI's static build is not (jd-003's Deviations). `apk add` puts it in /usr/bin, and no
+# PyPI uv exists in this run to shadow it on PATH.
+# The frame first shows the previous command's tail, which the driver has already read off disk.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 02-venv-stats-installed
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; apk add uv >uv-env.txt 2>&1 && uv venv ~/envs/fast >>uv-env.txt 2>&1 && uv pip install --python ~/envs/fast/bin/python ipykernel >>uv-env.txt 2>&1; echo uv-rc=$? >>uv-env.txt; tail -3 uv-env.txt"
+- pressKey: Enter
