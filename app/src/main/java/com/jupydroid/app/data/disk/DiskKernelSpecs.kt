@@ -13,6 +13,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonObject
 import java.io.File
 
 /**
@@ -21,7 +22,12 @@ import java.io.File
  *
  * The directories are [kernelDirsOf]'s. On top of them, the rules are the shipped rootfs's
  * `jupyter_client/kernelspec.py`: `find_kernel_specs` adds the native `python3` when no directory
- * has it; `get_all_specs` drops a spec that fails to load. The default is the Space's stored one
+ * has it; `get_all_specs` drops a spec that fails to load. One rule is not the server's: a spec whose
+ * interpreter is gone ([isInterpreterMissing]) is dropped too, as vscode-jupyter drops it
+ * (`vscode-jupyter@f01d80c src/kernels/raw/finder/localKernelSpecFinderBase.node.ts` `loadKernelSpec`)
+ * and IntelliJ's interpreter switcher does (`intellij-community@406a27a
+ * python/src/com/jetbrains/python/sdk/PySdkRendering.kt` `groupModuleSdksByTypes`), so no default
+ * names a kernel that cannot start. The default is the Space's stored one
  * through [effectiveDefaultKernel], the rule the launch also uses for the server's
  * `MultiKernelManager.default_kernel_name`, so the two name the same kernel.
  *
@@ -44,12 +50,17 @@ class DiskKernelSpecs(
     return KernelSpecModels(default = effectiveDefaultKernel(stored, listed.map { it.name }), specs = listed)
   }
 
+  /** The native `python3` is added when no *kept* spec has the name, so `defaultSpec` always resolves. */
   private fun listedIn(dirs: SpaceDirs): List<KernelSpec> {
-    val found = kernelDirsOf(dirs)
-    val specs = found.mapNotNull { (name, dir) -> kernelJsonIn(dir)?.let { kernelSpecOf(name, it) } }
-    val native = if (found.none { (name, _) -> name == DEFAULT_KERNEL_ID }) listOf(NATIVE_KERNEL) else emptyList()
+    val specs = kernelDirsOf(dirs).mapNotNull { (name, dir) ->
+      kernelJsonIn(dir)?.takeUnless { startsNothing(dirs, it) }?.let { kernelSpecOf(name, it) }
+    }
+    val native = if (specs.none { it.name == DEFAULT_KERNEL_ID }) listOf(NATIVE_KERNEL) else emptyList()
     return specs + native
   }
+
+  private fun startsNothing(dirs: SpaceDirs, spec: JsonObject): Boolean =
+    kernelInterpreterOf(spec)?.let { isInterpreterMissing(dirs, it) } == true
 
   private companion object {
     /** ipykernel's own spec, which `ensure_native_kernel` lists when no directory holds `python3`. */

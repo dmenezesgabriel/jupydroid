@@ -88,6 +88,24 @@ class SpaceSettingsDialogEnvironmentsTest {
     compose.onNodeWithContentDescription(registerLabel(stats.path)).assertDoesNotExist()
   }
 
+  /** `rm -r` after Register: the spec is still there, so the row says so and gives the command that removes it. */
+  @Test
+  fun aGoneEnvironmentSaysSoAndShowsTheCommandThatRemovesItsKernel() {
+    show(listOf(gone))
+
+    compose.onNodeWithText(goneLabel("stats")).assertExists()
+    compose.onNodeWithText(gone.kernelRemoveCommand).assertExists()
+  }
+
+  /** Nothing can start in it, and its spec already names it, so there is neither Register nor "Registered". */
+  @Test
+  fun aGoneEnvironmentOffersNoRegister() {
+    show(listOf(gone))
+
+    compose.onNodeWithContentDescription(registerLabel(gone.path)).assertDoesNotExist()
+    compose.onNodeWithText(registeredLabel("stats")).assertDoesNotExist()
+  }
+
   /** A refusal is shown where it was asked for: the home behind the dialog is covered by it. */
   @Test
   fun aRefusalIsShownInTheDialog() {
@@ -119,5 +137,6 @@ class SpaceSettingsDialogEnvironmentsTest {
     val thesis = SpaceConfig(id = "space-1", name = "Thesis", created = Instant.EPOCH)
     val stats = PythonEnvironment("envs/stats", hasIpykernel = true)
     val bare = PythonEnvironment("envs/bare", hasIpykernel = false)
+    val gone = PythonEnvironment("envs/stats", hasIpykernel = false, registeredAs = "stats", isMissing = true)
   }
 }

@@ -134,10 +134,10 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 | Venv creation | Terminal only, measured working (`docs/research/space-isolation.md` §4) | `intellij-community@406a27a sdk/add/v2/venv/` | present; the app's part is making it usable |
 | Venv pip | `app/src/main/java/com/jupydroid/app/data/space/SpacePipConfig.kt` | — | closed in T1: a venv's pip installs into the venv |
 | uv | absent from the image; `apk add uv` works in a Space (T1) | `vscode-jupyter@f01d80c uvInstaller.node.ts` | present as the Space's own install |
-| Kernelspec catalogue while stopped | `data/disk/DiskKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | closed in T2: read off the Space's disk in the server's own search order |
+| Kernelspec catalogue while stopped | `data/disk/DiskKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | closed in T2: read off the Space's disk in the server's own search order; T6: a spec whose interpreter is gone is dropped, as vscode-jupyter drops it |
 | Writing a spec | `data/space/SpaceKernelSpec.kt` (`installEnvironment`), `data/disk/DiskSpaceEnvironments.kt` (`register`) | `ipykernel/kernelspec.py` `install` | closed in T4: Register writes an env's spec, and the row reads it back |
-| Env list | `data/disk/DiskSpaceEnvironments.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `vscode-python@f4c86e4 workspaceVirtualEnvLocator.ts` | closed in T3: Settings lists them, with ipykernel's presence |
-| Default kernel | `domain/model/KernelName.kt` (`effectiveDefaultKernel`), `data/disk/DiskKernelSpecs.kt`, `jupyterServerArgs`, `ui/spaces/SpaceDefaultKernelField.kt` | `jupyter_client/multikernelmanager.py` | closed in T5: Settings picks it, the server starts with it, and a new notebook records it |
+| Env list | `data/disk/DiskSpaceEnvironments.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `vscode-python@f4c86e4 workspaceVirtualEnvLocator.ts` | closed in T3: Settings lists them, with ipykernel's presence; T6: a registered one deleted since is listed as gone, with the command that removes its kernel |
+| Default kernel | `domain/model/KernelName.kt` (`effectiveDefaultKernel`), `data/disk/DiskKernelSpecs.kt`, `jupyterServerArgs`, `ui/spaces/SpaceDefaultKernelField.kt` | `jupyter_client/multikernelmanager.py` | closed in T5: Settings picks it, the server starts with it, and a new notebook records it; T6: a default whose interpreter is gone falls back, and the home row says why |
 | Settings screen | `ui/spaces/SpaceSettingsDialog.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `winlator@fb66541 ContainerDetailFragment.java` | present; Environments lists and registers (T3, T4); Default kernel (T5) |
 
 ## Deviations
@@ -184,9 +184,22 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
   the two lists are one. The cost is a handful of directory listings however large the workspace grows
   (0.03 s on SM-X216B), and no skip list is needed. A project's own `.venv` one level down is not found,
   as for vscode-python outside its opened folder. `pkgs/` is beside `home/`, so the scan never reaches it.
-- **A registered env that has since been deleted** (T6). Its spec would point at nothing. Either
-  Settings shows it as missing, or the launch drops it. A default naming a missing spec falls back to
-  `python3` with the reason on the home.
+- **A registered env that has since been deleted** (T6) is **settled: the catalogue drops its spec,
+  and where it is still named, it is marked with the fix beside it.** When a spec's absolute `argv[0]`
+  is missing in the Space's root, checked without following links, since a venv's `bin/python` links
+  to an in-Space `/usr/bin/python3` the host cannot resolve, `DiskKernelSpecs` leaves the spec out.
+  That is what `vscode-jupyter@f01d80c src/kernels/raw/finder/localKernelSpecFinderBase.node.ts`
+  `loadKernelSpec` does ("Possible user deleted the underlying interpreter"), and what IntelliJ's
+  switcher filter does (`intellij-community@406a27a python/src/com/jetbrains/python/sdk/PySdkRendering.kt`
+  `groupModuleSdksByTypes`). T5's `effectiveDefaultKernel` then falls back to `python3` with no new
+  rule. Settings lists the env as gone with `jupyter kernelspec remove <name>`, and the default as
+  `<name> (missing)`, after IntelliJ's `invalid` mark (`PySdkPresentationInfoImpl.kt`). The home row
+  says why the default fell back, as IntelliJ refuses a run with the reason
+  (`AbstractPythonRunConfiguration.java`). There is no app-side Remove: neither reference deletes the
+  spec for the person, and the Space's own CLI does it. Making the env again at the same path brings
+  the kernel back, because the spec is the record. **Residual:** while the Space runs, the in-notebook
+  picker lists what `GET api/kernelspecs` returns, and jupyter_server still lists a dead spec. A start
+  from it fails with the server's own error until the spec is removed.
 
 ## Surface
 
@@ -221,7 +234,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 - [x] T5 — **Default kernel.** Settings picks the Space's default among its specs. The server is started
   with it as `--MappingKernelManager.default_kernel_name`, and a new notebook records it (`defaultSpec`).
   A stored default the catalogue no longer lists falls back to `python3`, both while stopped and at launch
-- [ ] T6 — **A registered env deleted since.** Settings shows its spec as missing, and a default that fell
+- [x] T6 — **A registered env deleted since.** Settings shows its spec as missing, and a default that fell
   back says why on the home. Open decision 5 is settled
 - [ ] T7 — The demo on SM-X216B, and the ADR amending ADR-0076 (and ADR-0011 if T1 changed it)
 

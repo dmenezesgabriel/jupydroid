@@ -2,10 +2,12 @@ package com.jupydroid.app.ui.spaces
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
+import com.jupydroid.app.domain.model.defaultKernelFallbackNote
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
@@ -30,6 +32,8 @@ import kotlinx.coroutines.launch
  *   read or when the read was refused.
  * @property kernelChoices the kernelspecs on the disk of the Space whose Settings is open, which its
  *   default kernel is picked among, or null while they are read or when the read was refused.
+ * @property defaultKernelNotes by Space id, why its server starts another kernel than its stored
+ *   default - `defaultKernelFallbackNote` - for each Space where it does.
  */
 data class SpacesPanelState(
   val spaces: List<SpaceConfig> = emptyList(),
@@ -39,6 +43,7 @@ data class SpacesPanelState(
   val running: Set<String> = emptySet(),
   val environments: List<PythonEnvironment>? = null,
   val kernelChoices: List<KernelSpec>? = null,
+  val defaultKernelNotes: Map<String, String> = emptyMap(),
 )
 
 /**
@@ -175,9 +180,27 @@ class SpacesViewModel(
     _uiState.reportingFailure {
       val listed = spaceRepository.spaces()
       _uiState.update { it.copy(spaces = listed) }
+      val notes = defaultKernelNotesOf(listed, stoppedKernelSpecs, spaceEnvironments)
+      _uiState.update { it.copy(defaultKernelNotes = notes) }
     }
   }
 }
+
+/**
+ * Why each of [spaces]' servers starts another kernel than its stored default, by id, read off the
+ * disk its launch reads. A stored `python3` reads nothing: the catalogue always lists it, so it never
+ * falls back.
+ */
+private suspend fun defaultKernelNotesOf(
+  spaces: List<SpaceConfig>,
+  kernelSpecs: KernelSpecs,
+  environments: SpaceEnvironments,
+): Map<String, String> = spaces.filter { it.settings.defaultKernel != DEFAULT_KERNEL_ID }.mapNotNull { space ->
+  val stored = space.settings.defaultKernel
+  val effective = kernelSpecs.specs(spaceWithId(space.id)).default
+  if (effective == stored) return@mapNotNull null
+  defaultKernelFallbackNote(stored, effective, environments.environments(space.id))?.let { space.id to it }
+}.toMap()
 
 /**
  * Any refusal is put on screen as the port worded it - its messages name the path or id at fault.

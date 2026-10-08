@@ -56,29 +56,54 @@ class DiskSpaceEnvironments(
     return SpaceDirs(spaceDir)
   }
 
-  /** Each found environment, registered under the spec whose `argv[0]` is its own interpreter. */
+  /**
+   * Each found environment, registered under the spec whose `argv[0]` is its own interpreter, and each
+   * registered one deleted since ([goneIn]).
+   */
   private fun environmentsIn(dirs: SpaceDirs, kernelDirs: List<Pair<String, File>>): List<PythonEnvironment> {
     val nameByInterpreter = kernelDirs
       .mapNotNull { (name, dir) -> kernelJsonIn(dir)?.let(::kernelInterpreterOf)?.let { it to name } }
       .toMap()
-    val workspace = dirs.workspace
-    return ENV_ROOTS.map { File(workspace, it) }
-      .flatMap { it.listFiles().orEmpty().asList() }
-      .filter { File(it, "pyvenv.cfg").isFile }
-      .map { it.relativeTo(workspace).invariantSeparatorsPath }
-      .map { PythonEnvironment(it, hasIpykernel(File(workspace, it)), nameByInterpreter[interpreterOf(dirs, it)]) }
-      .sortedBy { it.path }
+    val found = foundPathsIn(dirs).map {
+      PythonEnvironment(it, hasIpykernel(File(dirs.workspace, it)), nameByInterpreter[interpreterOf(dirs, it)])
+    }
+    return (found + goneIn(dirs, nameByInterpreter, found.map { it.path }.toSet())).sortedBy { it.path }
+  }
+
+  private fun foundPathsIn(dirs: SpaceDirs): List<String> = ENV_ROOTS.map { File(dirs.workspace, it) }
+    .flatMap { it.listFiles().orEmpty().asList() }
+    .filter { File(it, "pyvenv.cfg").isFile }
+    .map { it.relativeTo(dirs.workspace).invariantSeparatorsPath }
+
+  /**
+   * The environments a spec names as `<workspace>/<path>/bin/python` with nothing left there - what
+   * `rm -r` leaves after Register. A spec naming a missing program outside the workspace is no
+   * environment of the Space's; the catalogue drops it all the same (`DiskKernelSpecs`).
+   */
+  private fun goneIn(
+    dirs: SpaceDirs,
+    nameByInterpreter: Map<String, String>,
+    found: Set<String>,
+  ): List<PythonEnvironment> {
+    val prefix = dirs.inRoot(dirs.workspace) + "/"
+    return nameByInterpreter
+      .filterKeys { it.startsWith(prefix) && it.endsWith(INTERPRETER) && isInterpreterMissing(dirs, it) }
+      .map { (interpreter, name) -> interpreter.removePrefix(prefix).removeSuffix(INTERPRETER) to name }
+      .filter { (path, _) -> path !in found }
+      .map { (path, name) -> PythonEnvironment(path, hasIpykernel = false, registeredAs = name, isMissing = true) }
   }
 
   /** The env's `bin/python` as a process in the Space names it - both venv and uv write that link. */
   private fun interpreterOf(dirs: SpaceDirs, path: String): String =
-    dirs.inRoot(File(dirs.workspace, path)) + "/bin/python"
+    dirs.inRoot(File(dirs.workspace, path)) + INTERPRETER
 
   /** ipykernel's package in the env's own site-packages, whichever `python3.X` made it. */
   private fun hasIpykernel(envRoot: File): Boolean = File(envRoot, "lib").listFiles().orEmpty()
     .any { File(it, "site-packages/ipykernel/__init__.py").isFile }
 
   private companion object {
+    const val INTERPRETER = "/bin/python"
+
     /** The workspace itself, then `getGlobalVirtualEnvDirs`' HOME subdirectories, in its order. */
     val ENV_ROOTS = listOf(
       "",

@@ -8,6 +8,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.LinkOption
 
 /**
  * Every kernelspec directory on a Space's disk, by name, as its server would find them - the rules of
@@ -31,6 +33,21 @@ internal fun kernelJsonIn(dir: File): JsonObject? =
 /** The program a spec starts, `argv[0]`, or null when its argv names none. */
 internal fun kernelInterpreterOf(spec: JsonObject): String? =
   runCatching { spec["argv"]?.jsonArray?.firstOrNull()?.jsonPrimitive?.content }.getOrNull()
+
+/**
+ * Whether [interpreter], a spec's `argv[0]`, is an absolute path with nothing at it in the Space - an
+ * environment deleted after it was registered. The link itself is checked, not where it points: a
+ * venv's `bin/python` links to the Space's `/usr/bin/python3`, which the host does not resolve. A bare
+ * program name is found through PATH when the kernel starts, so it is never called missing.
+ *
+ * ```
+ * isInterpreterMissing(dirs, "/home/jupydroid/envs/stats/bin/python")   // true once envs/stats is deleted
+ * ```
+ */
+internal fun isInterpreterMissing(dirs: SpaceDirs, interpreter: String): Boolean {
+  if (!interpreter.startsWith("/")) return false
+  return !Files.exists(File(dirs.spaceDir, interpreter.removePrefix("/")).toPath(), LinkOption.NOFOLLOW_LINKS)
+}
 
 /**
  * `jupyter_core/paths.py` `jupyter_path("kernels")` under the environment `SpaceRuntime` gives a

@@ -16,6 +16,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 
 /**
  * [SpaceEnvironmentsContract] against a spaces directory on disk, and the roots vscode-python
@@ -32,7 +34,8 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
 
   override fun environmentsHolding(vararg environments: PythonEnvironment): SpaceEnvironments {
     workspace.mkdirs()
-    environments.forEach { makeVenv(it.path, withIpykernel = it.hasIpykernel) }
+    environments.filterNot { it.isMissing }.forEach { makeVenv(it.path, withIpykernel = it.hasIpykernel) }
+    environments.filter { it.isMissing }.forEach { writeSpecOfGoneVenv(it) }
     return DiskSpaceEnvironments(tempFolder.root)
   }
 
@@ -137,16 +140,61 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
     assertEquals(listOf(STATS), port.environments(EMPTY_SPACE_ID))
   }
 
+  /** `rm -r ~/envs/stats` after Register: the spec stays, naming an interpreter that is gone. */
+  @Test
+  fun environments_listsARegisteredEnvironmentDeletedSinceAsGone() = runTest {
+    val port = environmentsHolding(STATS)
+    port.register(EMPTY_SPACE_ID, STATS.path)
+    File(workspace, STATS.path).deleteRecursively()
+
+    assertEquals(
+      listOf(PythonEnvironment("envs/stats", hasIpykernel = false, registeredAs = "stats", isMissing = true)),
+      port.environments(EMPTY_SPACE_ID),
+    )
+  }
+
+  /** A spec outside the workspace that names a missing program is no environment of the Space's. */
+  @Test
+  fun environments_aGoneInterpreterOutsideTheWorkspaceIsNoEnvironment() = runTest {
+    val port = environmentsHolding()
+    val other = File(spaceDir, "usr/local/share/jupyter/kernels/old").apply { mkdirs() }
+    File(other, "kernel.json").writeText("""{"argv": ["/opt/old/bin/python"], "display_name": "Old"}""")
+
+    assertEquals(emptyList<PythonEnvironment>(), port.environments(EMPTY_SPACE_ID))
+  }
+
+  /** Making the environment again where it was brings its kernel back: the spec is the record. */
+  @Test
+  fun environments_aGoneEnvironmentMadeAgainIsRegisteredOnceMore() = runTest {
+    val port = environmentsHolding(STATS)
+    port.register(EMPTY_SPACE_ID, STATS.path)
+    File(workspace, STATS.path).deleteRecursively()
+    makeVenv(STATS.path, withIpykernel = true)
+
+    assertEquals(listOf(STATS.copy(registeredAs = "stats")), port.environments(EMPTY_SPACE_ID))
+  }
+
   private fun registeredArgv(name: String): List<String> =
     Json.parseToJsonElement(File(spaceDir, "usr/local/share/jupyter/kernels/$name/kernel.json").readText())
       .jsonObject.getValue("argv").jsonArray.map { it.jsonPrimitive.content }
 
   private suspend fun listed(): List<PythonEnvironment> = environments().environments(EMPTY_SPACE_ID)
 
-  /** What `python3 -m venv` and `uv venv` both leave: `pyvenv.cfg` at the root, packages under `lib`. */
+  /** The spec Register wrote for [gone], whose directory has since been deleted. */
+  private fun writeSpecOfGoneVenv(gone: PythonEnvironment) {
+    val specDir = File(spaceDir, "usr/local/share/jupyter/kernels/${gone.registeredAs}").apply { mkdirs() }
+    File(specDir, "kernel.json").writeText("""{"argv": ["/home/jupydroid/${gone.path}/bin/python"]}""")
+  }
+
+  /**
+   * What `python3 -m venv` and `uv venv` both leave: `pyvenv.cfg` at the root, `bin/python` linking to
+   * the Space's own interpreter - a target the host cannot resolve - and packages under `lib`.
+   */
   private fun makeVenv(path: String, withIpykernel: Boolean = false) {
     val root = File(workspace, path).apply { mkdirs() }
     File(root, "pyvenv.cfg").writeText("home = /usr/bin\nversion = 3.12.10\n")
+    val bin = File(root, "bin").apply { mkdirs() }
+    Files.createSymbolicLink(File(bin, "python").toPath(), Paths.get("/usr/bin/python3"))
     val sitePackages = File(root, "lib/python3.12/site-packages").apply { mkdirs() }
     if (!withIpykernel) return
     File(sitePackages, "ipykernel").mkdirs()

@@ -9,6 +9,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 
 /**
  * [KernelSpecsContract] against a Space directory holding base's own `python3`, and the search
@@ -112,12 +114,52 @@ class DiskKernelSpecsTest : KernelSpecsContract() {
     assertEquals(KernelSpec("ir", "R", "R"), diskSpecs().specs(SPACE).named("ir"))
   }
 
+  /**
+   * vscode-jupyter hides a spec whose interpreter was deleted (`vscode-jupyter@f01d80c
+   * src/kernels/raw/finder/localKernelSpecFinderBase.node.ts` `loadKernelSpec`), so no picker offers a
+   * kernel that cannot start, and a default naming it falls back.
+   */
+  @Test
+  fun specs_skipsASpecWhoseInterpreterIsGoneAndItsDefaultFallsBack() = runTest {
+    writeSpecRunning("usr/local/share/jupyter/kernels/stats", "/home/jupydroid/envs/stats/bin/python")
+
+    val models = diskSpecs(storedDefault = "stats").specs(SPACE)
+
+    assertEquals(listOf("python3"), models.specs.map { it.name })
+    assertEquals("python3", models.default)
+  }
+
+  /**
+   * A venv's `bin/python` links to `/usr/bin/python3` *inside* the Space, which the host cannot
+   * resolve: the link itself is what says the environment is there.
+   */
+  @Test
+  fun specs_keepsASpecWhoseInterpreterIsALinkTheHostCannotResolve() = runTest {
+    val bin = File(spaceDir, "home/jupydroid/envs/stats/bin").apply { mkdirs() }
+    Files.createSymbolicLink(File(bin, "python").toPath(), Paths.get("/usr/bin/python3-not-on-this-host"))
+    writeSpecRunning("usr/local/share/jupyter/kernels/stats", "/home/jupydroid/envs/stats/bin/python")
+
+    assertEquals("stats", diskSpecs(storedDefault = "stats").specs(SPACE).default)
+  }
+
+  /** A bare program is found through PATH when the kernel starts, which no file check can answer. */
+  @Test
+  fun specs_keepsASpecWhoseInterpreterIsABareProgramName() = runTest {
+    writeSpecRunning("usr/local/share/jupyter/kernels/bare", "python")
+
+    assertEquals(listOf("bare", "python3"), diskSpecs().specs(SPACE).specs.map { it.name })
+  }
+
   private fun diskSpecs(storedDefault: String = "python3") = DiskKernelSpecs(tempFolder.root, storedDefaultKernelOf = {
     storedDefault
   })
 
   private fun writeSpec(dir: String, displayName: String, language: String = "python") {
     kernelJson(dir).writeText("""{"argv": [], "display_name": "$displayName", "language": "$language"}""")
+  }
+
+  private fun writeSpecRunning(dir: String, interpreter: String) {
+    kernelJson(dir).writeText("""{"argv": ["$interpreter"], "display_name": "$dir", "language": "python"}""")
   }
 
   private fun kernelJson(dir: String): File = File(spaceDir, "$dir/kernel.json").also { it.parentFile?.mkdirs() }

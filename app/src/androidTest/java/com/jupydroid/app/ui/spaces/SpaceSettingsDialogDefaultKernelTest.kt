@@ -32,6 +32,14 @@ class SpaceSettingsDialogDefaultKernelTest {
     compose.onNodeWithContentDescription(defaultKernelDescription("Python (stats)")).assertExists()
   }
 
+  /** IntelliJ marks a configured interpreter it cannot run `invalid`, rather than showing it as usual. */
+  @Test
+  fun aStoredDefaultTheChoicesNoLongerListIsMarkedMissing() {
+    show(thesis.copy(settings = SpaceSettings(defaultKernel = "gone")))
+
+    compose.onNodeWithContentDescription(defaultKernelDescription(missingKernelLabel("gone"))).assertExists()
+  }
+
   @Test
   fun aPickedKernelIsSavedByItsName() {
     show(thesis)

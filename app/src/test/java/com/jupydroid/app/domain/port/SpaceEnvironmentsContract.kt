@@ -73,6 +73,15 @@ abstract class SpaceEnvironmentsContract {
     assertRefusedNaming("'python3'") { environmentsHolding(python3).register(EMPTY_SPACE_ID, python3.path) }
   }
 
+  /** A registered environment deleted since is still listed, as gone, and cannot be registered again. */
+  @Test
+  fun register_refusesAnEnvironmentThatIsGoneSayingSo() = runTest {
+    val port = environmentsHolding(GONE_STATS)
+
+    assertEquals(listOf(GONE_STATS), port.environments(EMPTY_SPACE_ID))
+    assertRefusedNaming("gone") { port.register(EMPTY_SPACE_ID, GONE_STATS.path) }
+  }
+
   private suspend fun assertRefusedNaming(expected: String, ask: suspend () -> Unit) {
     val refusal = runCatching { ask() }.exceptionOrNull()
 
@@ -83,5 +92,6 @@ abstract class SpaceEnvironmentsContract {
   protected companion object {
     const val EMPTY_SPACE_ID = "space-1"
     val STATS = PythonEnvironment("envs/stats", hasIpykernel = true)
+    val GONE_STATS = PythonEnvironment("envs/stats", hasIpykernel = false, registeredAs = "stats", isMissing = true)
   }
 }

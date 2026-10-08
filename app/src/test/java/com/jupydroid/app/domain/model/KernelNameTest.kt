@@ -2,6 +2,7 @@ package com.jupydroid.app.domain.model
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -27,5 +28,29 @@ class KernelNameTest {
   @Test
   fun aNameKernelSpecsRefuseIsNoKernelName() {
     listOf("", "my env", "envs/stats", "café").forEach { assertFalse(it, isKernelName(it)) }
+  }
+
+  @Test
+  fun defaultKernelFallbackNote_isNullWhenTheStoredDefaultStarts() {
+    assertNull(defaultKernelFallbackNote("stats", effective = "stats", environments = emptyList()))
+  }
+
+  /** The spec is still on disk, but the interpreter it names was deleted with its environment. */
+  @Test
+  fun defaultKernelFallbackNote_namesTheEnvironmentThatIsGone() {
+    val gone = PythonEnvironment("envs/stats", hasIpykernel = false, registeredAs = "stats", isMissing = true)
+
+    assertEquals(
+      "Default kernel is python3, not stats: its environment ~/envs/stats is gone",
+      defaultKernelFallbackNote("stats", effective = DEFAULT_KERNEL_ID, environments = listOf(gone)),
+    )
+  }
+
+  @Test
+  fun defaultKernelFallbackNote_saysNoKernelOfTheNameIsLeftWhenTheSpecWasDeleted() {
+    assertEquals(
+      "Default kernel is python3, not stats: no kernel named stats is left in this Space",
+      defaultKernelFallbackNote("stats", effective = DEFAULT_KERNEL_ID, environments = emptyList()),
+    )
   }
 }

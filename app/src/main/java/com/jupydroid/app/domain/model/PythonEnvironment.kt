@@ -13,14 +13,27 @@ package com.jupydroid.app.domain.model
  *   start in it.
  * @property registeredAs the name of the kernelspec that runs this environment's interpreter, or null
  *   when none does.
+ * @property isMissing the environment was registered and its interpreter has since been deleted: it is
+ *   found only through the spec [registeredAs] names, which no picker offers any more.
  */
-data class PythonEnvironment(val path: String, val hasIpykernel: Boolean, val registeredAs: String? = null) {
+data class PythonEnvironment(
+  val path: String,
+  val hasIpykernel: Boolean,
+  val registeredAs: String? = null,
+  val isMissing: Boolean = false,
+) {
   /**
    * The command that adds `ipykernel` with the environment's own pip. Written from `~` because a
    * Space's terminal has the workspace as its HOME (`data/space/SpaceRuntime.kt`), so it pastes there
    * as it reads.
    */
   val ipykernelInstallCommand: String get() = "~/$path/bin/pip install ipykernel"
+
+  /**
+   * The command that removes the spec of a [isMissing] environment: the Space's own jupyter_client CLI,
+   * which finds the spec on the same search path its server does.
+   */
+  val kernelRemoveCommand: String get() = "jupyter kernelspec remove $registeredAs"
 
   /**
    * The kernelspec name a registration gives it: the directory's name, lowercased because
@@ -49,8 +62,8 @@ data class PythonEnvironment(val path: String, val hasIpykernel: Boolean, val re
  * registrableEnvironment(listOf(stats), "envs/stats", kernelHolders = emptyMap())   // stats
  * ```
  *
- * @throws IllegalArgumentException when [path] is none of [environments], it lacks ipykernel, or its
- *   name is held.
+ * @throws IllegalArgumentException when [path] is none of [environments], it is gone, it lacks
+ *   ipykernel, or its name is held.
  */
 fun registrableEnvironment(
   environments: List<PythonEnvironment>,
@@ -59,6 +72,9 @@ fun registrableEnvironment(
 ): PythonEnvironment {
   val environment = requireNotNull(environments.firstOrNull { it.path == path }) {
     "'$path' is no environment of this Space; expected one of ${environments.map { it.path }}"
+  }
+  require(!environment.isMissing) {
+    "'$path' is gone, so no kernel can start in it; expected an environment that is still there"
   }
   require(environment.hasIpykernel) {
     "'$path' has no ipykernel, so no kernel can start in it; add it with: ${environment.ipykernelInstallCommand}"

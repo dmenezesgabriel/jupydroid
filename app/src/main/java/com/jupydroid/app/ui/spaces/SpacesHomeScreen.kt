@@ -142,6 +142,7 @@ fun SpacesHomeScreen(
       SpaceRows(
         state.spaces,
         state.running,
+        state.defaultKernelNotes,
         actsEnabled = !state.busy,
         SpaceRowActs(
           onOpen = { onOpen(it.id) },
@@ -230,10 +231,21 @@ private class SpaceRowActs(
 
 /** The rows, aged against one `now` per listing, the way the explorer's rows are. */
 @Composable
-private fun SpaceRows(spaces: List<SpaceConfig>, running: Set<String>, actsEnabled: Boolean, acts: SpaceRowActs) {
+private fun SpaceRows(
+  spaces: List<SpaceConfig>,
+  running: Set<String>,
+  defaultKernelNotes: Map<String, String>,
+  actsEnabled: Boolean,
+  acts: SpaceRowActs,
+) {
   val now = remember(spaces) { Instant.now() }
-  spaces.forEach { space -> SpaceRow(space, now, space.id in running, actsEnabled, acts) }
+  spaces.forEach { space ->
+    SpaceRow(space, now, RowStatus(space.id in running, defaultKernelNotes[space.id]), actsEnabled, acts)
+  }
 }
+
+/** What a row says changes about its Space: whether it runs, and why its default kernel fell back. */
+private class RowStatus(val isRunning: Boolean, val defaultKernelNote: String?)
 
 /**
  * One Space: its name, and under it the id and age. The id is shown because names may repeat
@@ -242,7 +254,8 @@ private fun SpaceRows(spaces: List<SpaceConfig>, running: Set<String>, actsEnabl
  * (ADR-0074).
  */
 @Composable
-private fun SpaceRow(space: SpaceConfig, now: Instant, isRunning: Boolean, actsEnabled: Boolean, acts: SpaceRowActs) {
+private fun SpaceRow(space: SpaceConfig, now: Instant, status: RowStatus, actsEnabled: Boolean, acts: SpaceRowActs) {
+  val isRunning = status.isRunning
   val isBase = space.id == BASE_SPACE.id
   val onRename = { acts.onRename(space) }.takeUnless { isBase }
   val onDelete = { acts.onDelete(space) }.takeUnless { isBase }
@@ -250,7 +263,7 @@ private fun SpaceRow(space: SpaceConfig, now: Instant, isRunning: Boolean, actsE
     modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    SpaceRowText(space, now, isRunning, Modifier.weight(1f))
+    SpaceRowText(space, now, status, Modifier.weight(1f))
     RunOrStopButton(space, isRunning, actsEnabled, acts)
     TextButton(
       onClick = { acts.onOpen(space) },
@@ -290,7 +303,8 @@ private fun RunOrStopButton(space: SpaceConfig, isRunning: Boolean, actsEnabled:
 }
 
 @Composable
-private fun SpaceRowText(space: SpaceConfig, now: Instant, isRunning: Boolean, modifier: Modifier) {
+private fun SpaceRowText(space: SpaceConfig, now: Instant, status: RowStatus, modifier: Modifier) {
+  val isRunning = status.isRunning
   // One accessible item, so a row reads as "Thesis, space-1 · just now" rather than two nodes.
   // The act buttons stay outside it, each a control of its own.
   Column(
@@ -315,6 +329,10 @@ private fun SpaceRowText(space: SpaceConfig, now: Instant, isRunning: Boolean, m
       style = MaterialTheme.typography.labelMedium,
       color = if (isRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
     )
+    // Said on the row, before any notebook records the kernel the server falls back to.
+    status.defaultKernelNote?.let {
+      Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+    }
   }
 }
 

@@ -383,6 +383,18 @@ class SpacesHomeScreenTest {
     compose.onNodeWithText(SAVE_SETTINGS).assertIsEnabled()
   }
 
+  /** A default that fell back says why on the row, so the person learns it before a notebook does. */
+  @Test
+  fun aDefaultKernelThatFellBackSaysWhyOnItsRow() {
+    val gone = PythonEnvironment("envs/stats", hasIpykernel = false, registeredAs = "stats", isMissing = true)
+    show(
+      FakeSpaceRepository(listOf(base, thesis.copy(settings = SpaceSettings(defaultKernel = "stats")))),
+      environments = FakeSpaceEnvironments(mapOf(BASE_SPACE.id to emptyList(), thesis.id to listOf(gone))),
+    )
+
+    compose.onNodeWithText("its environment ~/envs/stats is gone", substring = true).assertIsDisplayed()
+  }
+
   /** The dialog's button, not its title - both say "Delete" (`ExplorerScreenTest.confirmDelete`). */
   private fun confirmDelete() = compose.onAllNodesWithText("Delete").filterToOne(hasClickAction()).performClick()
 
