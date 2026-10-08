@@ -12,6 +12,7 @@ package com.jupydroid.app.data.space
  *
  * | stage | answers |
  * |---|---|
+ * | [SESSION_REQUESTED] | a notebook asked the server for a kernel - the start of the spawn |
  * | [SESSION_OPENED] | which kernel this notebook is bound to |
  * | [SOCKET_OPENED] | the app asked for a connection |
  * | [SOCKET_CONNECTED] | the server accepted it - absent means the handshake never finished |
@@ -32,6 +33,11 @@ package com.jupydroid.app.data.space
  * connects is waited on forever, with `enqueued: true` and no error anywhere.
  */
 internal object KernelLog {
+  /**
+   * Reported before `POST api/sessions`, so the kernel's spawn is timed from the ask: the server
+   * starts on the home's Run, and the walk to the first cell lies between it listening and this.
+   */
+  const val SESSION_REQUESTED = "kernel.session.requested"
   const val SESSION_OPENED = "kernel.session.opened"
 
   /** A `PATCH api/sessions` rebind: the session id survives, the kernel behind it changed. */

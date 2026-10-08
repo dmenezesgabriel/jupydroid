@@ -33,6 +33,16 @@ class RealKernelGatewayObservabilityTest {
   }
 
   @Test
+  fun connect_reportsTheSessionRequestBeforeTheSessionItOpened() = runTest {
+    gateway().connect(SPACE, "Analysis.ipynb")
+
+    val requested = log.stages.indexOf(KernelLog.SESSION_REQUESTED)
+    assertTrue("the request is reported, before ${log.stages}", requested >= 0)
+    assertTrue(requested < log.stages.indexOf(KernelLog.SESSION_OPENED))
+    assertEquals("Analysis.ipynb", log.fieldsOf(KernelLog.SESSION_REQUESTED)["path"])
+  }
+
+  @Test
   fun execute_reportsTheRequestItSent() = runTest {
     val gateway = gateway()
     val session = gateway.connect(SPACE, "Analysis.ipynb")

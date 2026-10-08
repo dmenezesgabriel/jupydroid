@@ -92,6 +92,17 @@ class ParseLogcatTest(unittest.TestCase):
         self.assertLess(stages.index("kernel.socket.opened"), stages.index("lsp.start"))
         self.assertLess(stages.index("lsp.start"), stages.index("kernel.socket.connected"))
 
+    def test_the_session_request_is_the_row_kernel_spawn_is_timed_from(self) -> None:
+        requested = (
+            '09-27 13:32:12.000 I/JupydroidSpace( 3796): '
+            '{"stage":"kernel.session.requested","path":"Cold Path.ipynb"}\n'
+        )
+        lines = LOGCAT.splitlines(True)
+        rows = report.rows_of("".join(lines[:5]) + requested + "".join(lines[5:]))
+        stages = [stage for stage, _, _ in rows]
+        self.assertEqual(stages.index("server.listening") + 1, stages.index("kernel.session.requested"))
+        self.assertEqual(rows[stages.index("kernel.session.opened")][2], 1_265)
+
     def test_displayed_is_reported_beside_the_rows_not_in_them(self) -> None:
         rows = report.rows_of(LOGCAT)
         self.assertNotIn("activity.displayed", [stage for stage, _, _ in rows])

@@ -40,6 +40,9 @@ STAGE_ORDER = [
     "space.installing",
     "server.starting",
     "server.listening",
+    # Since the server starts on the home's Run, the walk to the cell lies between `listening` and
+    # this; the kernel's spawn is `requested` -> `opened`.
+    "kernel.session.requested",
     "kernel.session.opened",
     "kernel.process.ready",
     "kernel.socket.opened",

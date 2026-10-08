@@ -49,6 +49,7 @@ class RealKernelGateway(
     kernel: KernelChoice?,
     sessionType: SessionType?,
   ): KernelSession {
+    log.reached(KernelLog.SESSION_REQUESTED, mapOf("path" to documentPath))
     val started = lifecycle.start(documentPath, kernel, sessionType)
     return KernelSession(
       id = UUID.randomUUID().toString(),
