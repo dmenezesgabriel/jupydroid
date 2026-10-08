@@ -51,3 +51,10 @@ timestamp-invalidated bytecode does not work here, and why
 
 The thing a future reader will be tempted to "fix" is the single-threaded write, which looks like
 obvious headroom. It is, and it is declined on correctness, not on effort.
+
+## Amendment — 2026-10-08
+
+Re-measured on today's 371 MB image, decoding takes 4.4 s and is no longer the floor. Writing the
+bytes is. The write now overlaps the decode through **one** writer that keeps archive order
+([ADR-0079](0079-decode-and-write-the-rootfs-in-one-ordered-pipeline.md)), so this ADR's
+correctness ground still holds. Fan-out, more than one writer, stays declined.

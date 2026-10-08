@@ -29,12 +29,15 @@ class TarZstBuilder(private val tar: TarArchiveOutputStream) {
     tar.closeArchiveEntry()
   }
 
-  fun file(name: String, content: String, mode: Int = TarArchiveEntry.DEFAULT_FILE_MODE) {
+  fun file(name: String, content: String, mode: Int = TarArchiveEntry.DEFAULT_FILE_MODE) =
+    file(name, content.toByteArray(), mode)
+
+  fun file(name: String, content: ByteArray, mode: Int = TarArchiveEntry.DEFAULT_FILE_MODE) {
     val entry = TarArchiveEntry(name)
     entry.mode = mode
-    entry.size = content.toByteArray().size.toLong()
+    entry.size = content.size.toLong()
     tar.putArchiveEntry(entry)
-    tar.write(content.toByteArray())
+    tar.write(content)
     tar.closeArchiveEntry()
   }
 

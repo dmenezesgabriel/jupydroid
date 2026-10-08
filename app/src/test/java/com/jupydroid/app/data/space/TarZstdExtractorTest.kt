@@ -1,6 +1,8 @@
 package com.jupydroid.app.data.space
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -12,6 +14,8 @@ import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
 import java.nio.file.Files
+import kotlin.random.Random
+import kotlin.time.Duration.Companion.seconds
 
 class TarZstdExtractorTest {
   @get:Rule val tempFolder = TemporaryFolder()
@@ -164,6 +168,43 @@ class TarZstdExtractorTest {
 
     assertEquals("aaa", File(target, "usr/bin/a").readText())
     assertTrue("expected no emissions, got $fractions", fractions.isEmpty())
+  }
+
+  /**
+   * Writing, not decoding, is most of an install on the device, so the two overlap: while an
+   * entry is still being written, the decoder reads on. Holding the first entry's progress -
+   * reported once that entry is on disk - must not hold the archive's reading back.
+   */
+  @Test
+  fun extract_decodesAheadWhileAnEarlierEntryIsStillBeingWritten() = runTest {
+    val archive = tarZst { repeat(3) { file("blob/$it", Random(it).nextBytes(INCOMPRESSIBLE_ENTRY_BYTES)) } }
+    val source = ReadToTheEndSource(archive)
+    val readsWhileHeld = mutableListOf<Boolean>()
+
+    extractor.extract(source, tempFolder.newFolder("rootfs")) {
+      if (readsWhileHeld.isEmpty()) {
+        readsWhileHeld +=
+          withTimeoutOrNull(5.seconds) { source.readToTheEnd.await() } != null
+      }
+    }
+
+    assertEquals("the archive was not read past the held entry", listOf(true), readsWhileHeld)
+  }
+
+  /** An archive that says when its last byte has been read, so a test can tell how far decoding got. */
+  private class ReadToTheEndSource(private val archive: ByteArray) : ArchiveSource {
+    val readToTheEnd = CompletableDeferred<Unit>()
+
+    override fun open(): InputStream = object : ByteArrayInputStream(archive) {
+      override fun read(b: ByteArray, off: Int, len: Int): Int = super.read(b, off, len).also {
+        if (pos == count) readToTheEnd.complete(Unit)
+      }
+    }
+  }
+
+  private companion object {
+    /** Random, so zstd cannot shrink the archive into the one piece of it the decoder reads first. */
+    const val INCOMPRESSIBLE_ENTRY_BYTES = 256 * 1024
   }
 
   private fun File.isSymlink(): Boolean = Files.isSymbolicLink(toPath())

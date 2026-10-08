@@ -2,13 +2,15 @@ package com.jupydroid.app.data.space
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.withContext
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream
 import java.io.File
 import java.io.InputStream
-import java.nio.file.Files
 
 /** Opens the rootfs archive: an APK asset on device, a byte array in tests. */
 fun interface ArchiveSource {
@@ -22,6 +24,12 @@ fun interface ArchiveSource {
  * single-threaded CPU on the tablet - the floor no write-side optimisation can
  * go under. Winlator's rootfs installer runs the same
  * archive shape through the same two libraries.
+ *
+ * Decoding and writing overlap: one coroutine decodes while another writes what it has decoded,
+ * in archive order (ADR-0079). On the tablet, writing the image's bytes costs about twice what
+ * decoding them does (`ExtractProbeDeviceTest`), so in series each waited on the other for
+ * nothing. Content crosses in pieces of at most [CHUNK_BYTES] through a channel of
+ * [PIPELINE_STEPS], so what is in flight stays a few MiB however large a file the image carries.
  *
  * An entry's owner-executable bit survives the extract, because a Space runs under proot
  * (ADR-0073), which checks that bit where the kernel would: `/bin/sh` without it is refused
@@ -42,80 +50,60 @@ class TarZstdExtractor(private val ioDispatcher: CoroutineDispatcher = Dispatche
   suspend fun extract(source: ArchiveSource, targetDir: File, onProgress: suspend (Float) -> Unit = {}): Int =
     withContext(ioDispatcher) {
       targetDir.mkdirs()
-      val root = targetDir.canonicalFile
-      var written = 0
+      val steps = Channel<TarStep>(PIPELINE_STEPS)
+      val writing = async { TarEntryWriter(targetDir.canonicalFile).writeAll(steps, onProgress) }
       val raw = source.open()
       val total = raw.available().takeIf { it > 0 }?.toFloat()
       TarArchiveInputStream(ZstdCompressorInputStream(raw.buffered())).use { tar ->
-        while (true) {
-          val entry = tar.nextEntry ?: break
-          if (writeEntry(tar, entry, root)) {
-            written++
-            if (total != null) onProgress(((total - raw.available()) / total).coerceIn(0f, 1f))
-          }
-        }
+        decode(tar, steps) { total?.let { ((it - raw.available()) / it).coerceIn(0f, 1f) } }
       }
-      written
+      steps.close()
+      writing.await()
     }
 
-  private fun writeEntry(tar: TarArchiveInputStream, entry: TarArchiveEntry, root: File): Boolean {
-    val destination = resolveInside(root, entry.name)
-    return when {
-      entry.isDirectory -> destination.mkdirs()
-      entry.isSymbolicLink -> destination.linkTo(entry.linkName)
-      entry.isLink -> destination.copyFrom(resolveInside(root, entry.linkName)) && destination.keepExecutableBit(entry)
-      entry.isFile -> destination.writeFrom(tar) && destination.keepExecutableBit(entry)
-      else -> false // character/block devices and FIFOs: a docker export has none we need
+  private suspend fun decode(tar: TarArchiveInputStream, steps: SendChannel<TarStep>, consumed: () -> Float?) {
+    while (true) {
+      val entry = tar.nextEntry ?: break
+      if (entry.carriesContent && entry.size > CHUNK_BYTES) {
+        sendInChunks(tar, entry, steps)
+        steps.send(TarStep.End(consumed()))
+      } else {
+        val bytes = if (entry.carriesContent) tar.readChunk(entry.size.toInt()) else null
+        steps.send(TarStep.Whole(entry, bytes, consumed()))
+      }
     }
   }
 
-  /** Owner only: a Space's files belong to the app's one uid, so group and other bits mean nothing. */
-  private fun File.keepExecutableBit(entry: TarArchiveEntry): Boolean {
-    if (entry.mode and OWNER_EXECUTE != 0) setExecutable(true, true)
-    return true
+  private suspend fun sendInChunks(tar: TarArchiveInputStream, entry: TarArchiveEntry, steps: SendChannel<TarStep>) {
+    steps.send(TarStep.Header(entry))
+    var remaining = entry.size
+    while (remaining > 0) {
+      val chunk = tar.readChunk(minOf(remaining, CHUNK_BYTES.toLong()).toInt())
+      if (chunk.isEmpty()) return
+      steps.send(TarStep.Content(chunk))
+      remaining -= chunk.size
+    }
+  }
+
+  /** A hard link answers `isFile` too, but it is written by copying its target, not from bytes. */
+  private val TarArchiveEntry.carriesContent: Boolean get() = isFile && !isLink && !isSymbolicLink
+
+  /** Up to [size] bytes of the current entry: fewer only where the entry itself ends short. */
+  private fun TarArchiveInputStream.readChunk(size: Int): ByteArray {
+    val chunk = ByteArray(size)
+    var filled = 0
+    while (filled < size) {
+      val read = read(chunk, filled, size - filled)
+      if (read < 0) break
+      filled += read
+    }
+    return if (filled == size) chunk else chunk.copyOf(filled)
   }
 
   private companion object {
-    const val OWNER_EXECUTE = 0b001_000_000
-  }
+    const val CHUNK_BYTES = 1024 * 1024
 
-  /**
-   * Guards against `../` entries in a crafted archive escaping the Space directory.
-   *
-   * Lexical (`normalize`) rather than `canonicalFile`, which resolves symlinks: on a
-   * re-extract the loader link already points at nativeLibraryDir, outside the tree
-   * by design, and canonicalising would reject the very entry we mean to replace.
-   */
-  private fun resolveInside(root: File, name: String): File {
-    val resolved = root.toPath().resolve(name).normalize()
-    require(resolved.startsWith(root.toPath())) {
-      "archive entry '$name' resolves to '$resolved', outside '$root'"
-    }
-    return resolved.toFile()
-  }
-
-  private fun File.writeFrom(tar: TarArchiveInputStream): Boolean {
-    parentFile?.mkdirs()
-    // Replace, never write through: on a re-extract this entry may be the loader symlink
-    // into nativeLibraryDir, which an app update has just left dangling. Opening that for
-    // write follows the link and fails with ENOENT.
-    delete()
-    outputStream().use { tar.copyTo(it) }
-    return true
-  }
-
-  // java.nio rather than android.system.Os: identical behaviour, available since
-  // API 26 (we require 32), and it runs in plain JVM unit tests.
-  private fun File.linkTo(linkName: String): Boolean {
-    parentFile?.mkdirs()
-    delete() // re-running the install must not fail on an existing link
-    Files.createSymbolicLink(toPath(), File(linkName).toPath())
-    return true
-  }
-
-  private fun File.copyFrom(source: File): Boolean {
-    parentFile?.mkdirs()
-    source.copyTo(this, overwrite = true)
-    return true
+    /** Eight steps of at most [CHUNK_BYTES]: the decoder runs at most a few MiB ahead. */
+    const val PIPELINE_STEPS = 8
   }
 }
