@@ -51,6 +51,15 @@ import kotlin.time.TimeSource
  * - the window with pylsp starting beside it, as `StdioLanguageServer` starts it when a notebook opens
  * - the window with the kernel at `--log-level=INFO` rather than `SpaceKernelSpec`'s DEBUG
  *
+ * Then it measures the two repairs that would take the kernel module's import out of the window,
+ * each from an evicted page cache, which is how the app's warm start finds the image:
+ *
+ * - a pre-read: the import run once and thrown away, then the window
+ * - a pre-start: a kernel started a walk's length before a session binds it, which `POST api/sessions`
+ *   does when handed `kernel.id` (jupyter_server 2.20.0 `services/sessions/handlers.py`)
+ * - what a pre-started kernel holds while it waits, as its proportional set size
+ * - the server's own start, alone and with a pre-read beside it
+ *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
  *   -Pandroid.testInstrumentationRunnerArguments.class=com.jupydroid.app.data.space.KernelWindowProbeDeviceTest
@@ -67,7 +76,7 @@ class KernelWindowProbeDeviceTest {
     runBlocking { baseSpaceInstaller(context).installIfNeeded() }
   }
 
-  @Test(timeout = 900_000)
+  @Test(timeout = 1_800_000)
   fun whereTheKernelWindowGoes() {
     val report = StringBuilder("== kernel window split (base, $RUNS runs each, in run order)\n")
     val interpreter = runsOf { timedPython("-c", "pass") }
@@ -82,11 +91,24 @@ class KernelWindowProbeDeviceTest {
       "window, evicted, pylsp beside" to { evicted { windowBesidePylsp() } },
     )
     windows.forEach { (label, measure) -> report.append(row(label, runsOf(measure))) }
+    report.append(repairRows())
     File(context.getExternalFilesDir(null), "kernel-window-probe.txt").writeText(report.toString())
     Log.i(SPACE_LOG_TAG, report.toString())
 
     // The probe's job is to print the split; fail only if it measured nothing.
     assertTrue(report.toString(), interpreter.median() > 0 && imports.median() > interpreter.median())
+  }
+
+  /** The repairs' rows. The server's restarts come last, because they replace the server the others use. */
+  private fun repairRows(): String {
+    val windows = listOf(
+      "window, evicted, pre-read first" to { evicted { preRead() }.let { window(DEFAULT_KERNEL_ID) } },
+      "window, evicted, pre-started" to { evicted { windowOnPreStartedKernel() } },
+      "server start, evicted" to { evicted { timedServerStart() } },
+      "server start, evicted, pre-read" to { evicted { besidePreRead { timedServerStart() } } },
+    )
+    val idle = row("pre-started kernel, idle PSS", runsOf { idleKernelPssKb() }, "kB")
+    return idle + windows.joinToString("") { (label, measure) -> row(label, runsOf(measure)) }
   }
 
   private companion object {
@@ -109,6 +131,12 @@ class KernelWindowProbeDeviceTest {
 
     /** Lets a shut-down kernel's process exit, so it never competes with the next run's. */
     const val SETTLE_MS = 2_000L
+
+    /**
+     * How long a pre-started kernel waits before its session asks for it: the user's walk from Run on
+     * the home to the notebook's first cell, which the cold-path flow measures at about 13 s.
+     */
+    const val WALK_MS = 13_000L
     val CONNECT_TIMEOUT = 120.seconds
     val LSP_TIMEOUT = 120.seconds
 
@@ -120,7 +148,10 @@ class KernelWindowProbeDeviceTest {
     val launcher by lazy {
       spaceServerLauncher(context, settingsFor = { SpaceSettings() }, defaultKernelFor = { DEFAULT_KERNEL_ID })
     }
-    val server: ServerConnection by lazy { runBlocking { launcher.start(BASE_SPACE) } }
+    var running: ServerConnection? = null
+
+    /** The server the class's launcher runs, started on first use and replaced by [timedServerStart]. */
+    val server: ServerConnection get() = running ?: runBlocking { launcher.start(BASE_SPACE) }.also { running = it }
     var sessions = 0
 
     /** Every run is kept in order, because the first of a kind is the one a cold page cache would slow. */
@@ -128,8 +159,8 @@ class KernelWindowProbeDeviceTest {
 
     fun List<Long>.median(): Long = sorted()[size / 2]
 
-    fun row(label: String, runs: List<Long>): String =
-      "${label.padEnd(30)}: ${runs.joinToString(" / ")} ms, median ${runs.median()} ms\n"
+    fun row(label: String, runs: List<Long>, unit: String = "ms"): String =
+      "${label.padEnd(30)}: ${runs.joinToString(" / ")} $unit, median ${runs.median()} $unit\n"
 
     /** Wall time of the Space's interpreter run with [args] to its exit, which must be 0. */
     fun timedPython(vararg args: String): Long {
@@ -181,9 +212,80 @@ class KernelWindowProbeDeviceTest {
       try {
         return timeSocketAccepted(kernelId, sessionId)
       } finally {
-        server.send("api/sessions/$sessionId", "DELETE")
+        closeSession(sessionId)
+      }
+    }
+
+    /** Deleting a session shuts its kernel down too, whichever way the kernel was started. */
+    fun closeSession(sessionId: String) {
+      server.send("api/sessions/$sessionId", "DELETE")
+      Thread.sleep(SETTLE_MS)
+    }
+
+    /** The kernel module's import, run to its end and thrown away: what is left of it is the page cache. */
+    fun preRead(): Long = timedPython("-c", "import $KERNEL_MODULE")
+
+    /** [measure] while a pre-read runs beside it; the pre-read is waited for after, and must exit 0. */
+    fun <T> besidePreRead(measure: () -> T): T {
+      val preRead = runtime.processBuilder(listOf("-c", "import $KERNEL_MODULE")).redirectErrorStream(true).start()
+      return measure().also {
+        val output = preRead.inputStream.bufferedReader().readText()
+        check(preRead.waitFor() == 0) { "pre-read exited ${preRead.exitValue()}, expected 0: $output" }
+      }
+    }
+
+    /** The window on a kernel `POST api/kernels` started [WALK_MS] before a session asks for it. */
+    fun windowOnPreStartedKernel(): Long {
+      val kernelId = startKernel()
+      Thread.sleep(WALK_MS)
+      val sessionId = openSessionOn(kernelId)
+      try {
+        return timeSocketAccepted(kernelId, sessionId)
+      } finally {
+        closeSession(sessionId)
+      }
+    }
+
+    /** What a pre-started kernel holds [WALK_MS] after it starts, before anything has asked it for anything. */
+    fun idleKernelPssKb(): Long {
+      val kernelId = startKernel()
+      try {
+        Thread.sleep(WALK_MS)
+        return proportionalSetKb("kernel-$kernelId.json")
+      } finally {
+        server.send("api/kernels/$kernelId", "DELETE")
         Thread.sleep(SETTLE_MS)
       }
+    }
+
+    /**
+     * `Pss:` from `smaps_rollup` of the one process with an argument ending in [argument]: its own
+     * pages plus its share of those it maps with others, which is how Android counts an app's memory.
+     */
+    fun proportionalSetKb(argument: String): Long {
+      val process = File("/proc").listFiles { it.name.all(Char::isDigit) }.orEmpty()
+        .singleOrNull { pid -> arguments(pid).any { it.endsWith(argument) } }
+      checkNotNull(process) { "expected one process with an argument ending in $argument, found none or several" }
+      val pss = File(process, "smaps_rollup").readLines().first { it.startsWith("Pss:") }
+      return pss.split(Regex("\\s+"))[1].toLong()
+    }
+
+    /** A process's arguments, or none for one that exited or is not this app's to read. */
+    fun arguments(pid: File): List<String> = runCatching { File(pid, "cmdline").readText().split('\u0000') }
+      .getOrDefault(emptyList())
+
+    /** The server's start from a stopped server to a reported port, as `JupyterServerLauncher.start` times none of it. */
+    fun timedServerStart(): Long {
+      runBlocking { launcher.stop() }
+      val begin = TimeSource.Monotonic.markNow()
+      running = runBlocking { launcher.start(BASE_SPACE) }
+      return begin.elapsedNow().inWholeMilliseconds
+    }
+
+    /** `POST api/kernels` for base's default kernel, with no session; the kernel's id. */
+    fun startKernel(): String {
+      val kernel = server.send("api/kernels", "POST", """{"name":"$DEFAULT_KERNEL_ID"}""")
+      return Json.parseToJsonElement(kernel).jsonObject.getValue("id").jsonPrimitive.content
     }
 
     /** [window], with pylsp spawned and handed the cell as the app hands it a notebook it opens. */
@@ -209,8 +311,14 @@ class KernelWindowProbeDeviceTest {
     }
 
     /** `POST api/sessions` for a fresh notebook path on [kernelName]; the session's id and its kernel's. */
-    fun openSession(kernelName: String): Pair<String, String> {
-      val body = """{"path":"kernel-window-${sessions++}.ipynb","type":"notebook","kernel":{"name":"$kernelName"}}"""
+    fun openSession(kernelName: String): Pair<String, String> = postSession("""{"name":"$kernelName"}""")
+
+    /** `POST api/sessions` binding a fresh notebook path to the running kernel [kernelId]; the session's id. */
+    fun openSessionOn(kernelId: String): String = postSession("""{"id":"$kernelId"}""").first
+
+    /** `POST api/sessions` for a fresh notebook path on the [kernel] object given; the session's id and its kernel's. */
+    fun postSession(kernel: String): Pair<String, String> {
+      val body = """{"path":"kernel-window-${sessions++}.ipynb","type":"notebook","kernel":$kernel}"""
       val session = Json.parseToJsonElement(server.send("api/sessions", "POST", body)).jsonObject
       val kernel = session.getValue("kernel").jsonObject
       return session.getValue("id").jsonPrimitive.content to kernel.getValue("id").jsonPrimitive.content
