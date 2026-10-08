@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# Thesis, made in part 1, is run and entered, and its terminal makes three venvs: `envs/stats`
+# with ipykernel, `envs/bare` without, and `thesis/.venv`, which sits below every root the scan
+# reads. Each status is written into the workspace and the driver greps it: cross-cutting.md §8.6
+# forbids gating on the terminal's canvas. `>>` and `$?` rather than `${…}`, which Maestro
+# evaluates as JavaScript.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "New Launcher"
+    timeout: 10000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap settles the IME's connection before typing - the first keystrokes can race it otherwise
+# (p4i-terminal-tablet measured `ech` of `echo` eaten).
+- tapOn:
+    id: "terminal-input"
+- inputText: "python3 -m venv ~/envs/stats && ~/envs/stats/bin/pip install ipykernel >envs.txt 2>&1; echo stats-rc=$? >>envs.txt; python3 -m venv ~/envs/bare; echo bare-rc=$? >>envs.txt; python3 -m venv ~/thesis/.venv; echo deep-rc=$? >>envs.txt; tail -3 envs.txt"
+- pressKey: Enter
