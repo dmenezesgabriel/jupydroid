@@ -87,3 +87,14 @@ every running Space's server and every `pylsp` (`spaceServers.stopAll()`,
   metadata.
 - There is no global active Space and there must not be one: the day a second Space is entered, a
   mutable current retargets the first Space's open documents.
+
+## Amendment — 2026-10-08
+
+"`python3` today" is retired by
+[ADR-0078](0078-a-spaces-environments-become-kernels-through-a-spec-the-app-writes.md): a Space's
+Settings can register one of its environments as a kernelspec and store it as the Space's
+default. `specs(space).defaultSpec` still answers the kernel a new notebook records, but the
+default is now the Space's stored one — passed to the server as
+`--MappingKernelManager.default_kernel_name` — rather than always `python3`. The portable-name
+reasoning stands unchanged: what a Space calls its default changed, not what a notebook records.
+A stored default the catalogue no longer lists falls back to `python3`.
