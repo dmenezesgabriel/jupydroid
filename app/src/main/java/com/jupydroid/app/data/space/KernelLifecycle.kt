@@ -41,6 +41,9 @@ import java.io.IOException
  */
 data class StartedKernelSession(val kernelId: String, val kernelName: String, val serverSessionId: String)
 
+/** A kernel started with no session around it: `POST api/kernels`' model, `{id, name}`. */
+data class BareKernel(val kernelId: String, val kernelName: String)
+
 interface KernelLifecycle {
   /**
    * Opens a **session** for the document at [documentPath] and returns it with its kernel.
@@ -73,6 +76,21 @@ interface KernelLifecycle {
     kernel: KernelChoice? = null,
     sessionType: SessionType? = null,
   ): StartedKernelSession
+
+  /**
+   * Starts the server's default kernel with no session, at the workspace root: `POST api/kernels`
+   * with `{"path": ""}`. A session binds it later by id - what a Space's spare is (ADR-0080).
+   *
+   * No `name`, so `MainKernelHandler.post` starts `km.default_kernel_name`: the kernel a session
+   * asking for none would get. The empty path makes `cwd_for_path` answer `root_dir` outright,
+   * rather than leaving the kernel whatever cwd the server process has (jupyter_server 2.20.0
+   * `services/kernels/handlers.py`, `services/kernels/kernelmanager.py`).
+   *
+   * ```
+   * lifecycle.startBareKernel()  // -> BareKernel("kernel-abc", "python3")
+   * ```
+   */
+  suspend fun startBareKernel(): BareKernel
 
   suspend fun interrupt(kernelId: String)
 
@@ -168,6 +186,13 @@ class OkHttpKernelLifecycle(
         ?: throw KernelLifecycleException("kernelspec '$name' has no display_name; server said: $root")
     }
     return KernelSpecModels(default = root["default"]?.jsonPrimitive?.content.orEmpty(), specs = specs)
+  }
+
+  override suspend fun startBareKernel(): BareKernel {
+    val model = Json.parseToJsonElement(rest.post("api/kernels", """{"path":""}""")).jsonObject
+    fun required(field: String): String = model[field]?.jsonPrimitive?.content
+      ?: throw KernelLifecycleException("POST api/kernels answered no '$field' in {id, name}; server said: $model")
+    return BareKernel(kernelId = required("id"), kernelName = required("name"))
   }
 
   override suspend fun interrupt(kernelId: String) {

@@ -4,9 +4,12 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * A live server and which start it was, so a client can tell a replacement from the same one.
@@ -35,6 +38,11 @@ data class StartedServer(val connection: ServerConnection, val generation: Int)
  * once its process has exited, which a watcher on [watchScope] waits for. So a server that stops
  * itself when idle is reported exactly like one that was told to stop.
  *
+ * Each fresh start also pre-starts one spare kernel through [prestartKernel], on [watchScope] so
+ * the start never waits for it, and the first session that suits it claims it with
+ * [claimSpareKernel] (ADR-0080). The kernel's own start then runs while the user walks from Run
+ * to the first cell, rather than after the cell asks for it.
+ *
  * ```
  * val space = SpaceServer(
  *   space = BASE_SPACE,
@@ -53,8 +61,14 @@ class SpaceServer(
   private val watchScope: CoroutineScope,
   private val reportRunning: (Boolean) -> Unit,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
+  /** Starts the Space's spare kernel on a server that has just started; null means no spare. */
+  private val prestartKernel: (suspend (ServerConnection) -> BareKernel)? = null,
 ) {
   private var started: StartedServer? = null
+
+  // The running server's spare, null once claimed. Null inside, when its start failed: a spare is
+  // an optimisation and never a reason for a start or a session to fail (ADR-0080).
+  private val spare = AtomicReference<Deferred<BareKernel?>?>(null)
 
   // Two cells run at once would otherwise each find no server and each start one; the second
   // would bind a different port and the first would be orphaned.
@@ -76,7 +90,24 @@ class SpaceServer(
       started = it
       reportRunning(true)
       watchForExit()
+      prestartSpare(it.connection)
     }
+  }
+
+  /**
+   * The running server's spare kernel, handed out once, when [accepts] it.
+   *
+   * A spare still starting is waited for: a second kernel would be one nobody uses, and the
+   * kernel's socket waits for its first answer anyway. A spare [accepts] refuses stays for a
+   * session it suits.
+   *
+   * ```
+   * server.claimSpareKernel { it.kernelName == "python3" }  // -> BareKernel("kernel-abc", "python3"), then null
+   * ```
+   */
+  suspend fun claimSpareKernel(accepts: (BareKernel) -> Boolean = { true }): BareKernel? {
+    val pending = spare.get() ?: return null
+    return pending.await()?.takeIf { accepts(it) && spare.compareAndSet(pending, null) }
   }
 
   /** Stops the server, under the start's own lock so a stop never lands halfway through a start. */
@@ -91,6 +122,18 @@ class SpaceServer(
       launcher.awaitExit()
       if (!launcher.isRunning()) reportRunning(false)
     }
+  }
+
+  /** A replaced server's spare is cancelled with it: its kernel went down with that server. */
+  private fun prestartSpare(connection: ServerConnection) {
+    val prestart = prestartKernel ?: return
+    val next = watchScope.async {
+      runCatching { prestart(connection) }
+        .onSuccess { log.reached(KernelLog.SPARE_STARTED, mapOf("kernelId" to it.kernelId, "name" to it.kernelName)) }
+        .onFailure { log.failed(KernelLog.SPARE_FAILED, it) }
+        .getOrNull()
+    }
+    spare.getAndSet(next)?.cancel()
   }
 
   /**

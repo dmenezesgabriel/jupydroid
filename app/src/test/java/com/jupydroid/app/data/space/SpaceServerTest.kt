@@ -196,6 +196,88 @@ class SpaceServerTest {
     assertEquals(listOf(true, false), reported)
   }
 
+  /** A Space pre-starts its default kernel once its server is up (ADR-0080). */
+  @Test
+  fun connection_prestartsOneSpareKernelOnTheServerItJustStarted() = runTest {
+    val server = server(RecordingServerLauncher(), prestart = { BareKernel("spare-${it.port}", "python3") })
+
+    repeat(2) { server.connection() }
+
+    assertEquals(BareKernel("spare-8888", "python3"), server.claimSpareKernel())
+    assertEquals(1, prestarts)
+    assertEquals("spare-8888", recordingLog.fieldsOf(KernelLog.SPARE_STARTED)["kernelId"])
+  }
+
+  /** At most one spare per running Space, so a second session starts its kernel by name. */
+  @Test
+  fun claimSpareKernel_handsTheSpareOutOnce() = runTest {
+    val server = server(RecordingServerLauncher(), prestart = { BareKernel("spare", "python3") })
+    server.connection()
+
+    server.claimSpareKernel()
+
+    assertNull(server.claimSpareKernel())
+  }
+
+  /** A claim that the spare does not suit leaves it for a session it does. */
+  @Test
+  fun claimSpareKernel_leavesASpareItsCallerDoesNotAccept() = runTest {
+    val server = server(RecordingServerLauncher(), prestart = { BareKernel("spare", "python3") })
+    server.connection()
+
+    assertNull(server.claimSpareKernel { it.kernelName == "julia" })
+    assertEquals("spare", server.claimSpareKernel()?.kernelId)
+  }
+
+  /** A spare is an optimisation, never a reason for a start or a session to fail. */
+  @Test
+  fun claimSpareKernel_isNothingWhenThePrestartFailed() = runTest {
+    val server = server(RecordingServerLauncher(), prestart = { throw KernelLifecycleException("HTTP 500") })
+
+    server.connection()
+
+    assertNull(server.claimSpareKernel())
+    assertEquals(listOf(KernelLog.SPARE_FAILED), recordingLog.failures)
+  }
+
+  /** The start never waits on its spare: the kernel's own start runs while the user walks. */
+  @Test
+  fun connection_doesNotWaitForTheSpareToStart() = runTest {
+    val spareStarted = CompletableDeferred<BareKernel>()
+    val server = server(RecordingServerLauncher(), prestart = { spareStarted.await() })
+
+    server.connection()
+    val claim = async { server.claimSpareKernel() }
+    runCurrent()
+    spareStarted.complete(BareKernel("spare", "python3"))
+
+    assertEquals("spare", claim.await()?.kernelId)
+  }
+
+  /** A replaced server's spare died with it; the new server gets its own. */
+  @Test
+  fun connection_prestartsAFreshSpareForAReplacementServer() = runTest {
+    val server = server(RecordingServerLauncher(diesAfterFirstStart = true), prestart = {
+      BareKernel("spare-$prestarts", "python3")
+    })
+
+    server.connection()
+    runCurrent() // the first server's spare starts before that server is replaced
+    server.connection()
+
+    assertEquals("spare-2", server.claimSpareKernel()?.kernelId)
+    assertNull(server.claimSpareKernel())
+  }
+
+  @Test
+  fun claimSpareKernel_isNothingWhenTheSpaceHasNoPrestart() = runTest {
+    val server = server(RecordingServerLauncher())
+
+    server.connection()
+
+    assertNull(server.claimSpareKernel())
+  }
+
   @Test
   fun stop_asksTheLauncherToStopTheServer() = runTest {
     val launcher = RecordingServerLauncher()
@@ -212,14 +294,24 @@ class SpaceServerTest {
   private val installedThenStarted = mutableListOf<String>()
   private val recordingLog = RecordingSpaceLifecycleLog()
   private val reported = mutableListOf<Boolean>()
+  private var prestarts = 0
 
-  private fun TestScope.server(launcher: RecordingServerLauncher) = SpaceServer(
+  private fun TestScope.server(
+    launcher: RecordingServerLauncher,
+    prestart: (suspend (ServerConnection) -> BareKernel)? = null,
+  ) = SpaceServer(
     space = SPACE,
     installSpace = { installedThenStarted += "install" },
     launcher = launcher,
     watchScope = backgroundScope,
     reportRunning = { reported += it },
     log = recordingLog,
+    prestartKernel = prestart?.let { start ->
+      { connection ->
+        prestarts++
+        start(connection)
+      }
+    },
   )
 
   private inner class RecordingServerLauncher(

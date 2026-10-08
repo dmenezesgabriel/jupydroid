@@ -79,6 +79,11 @@ class FakeKernelLifecycle(
     type = type.wire,
   )
 
+  override suspend fun startBareKernel(): BareKernel {
+    failWith?.let { throw it }
+    return BareKernel(kernelId, kernelName)
+  }
+
   override suspend fun sessions(): List<KernelSessionModel> {
     failWith?.let { throw it }
     return issued.values.toList()

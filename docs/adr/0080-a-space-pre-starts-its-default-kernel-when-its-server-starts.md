@@ -79,6 +79,13 @@ The obligations, each with its answer:
   one cull later than it would with none.
 - **The kernel log says which kernel a session bound**, a spare or one it started. Otherwise a
   0.1 s window reads as the kernel starting in 0.1 s.
+- **The spare's cwd is the workspace root, and binding it does not move it.** `create_session` keeps
+  a kernel id it already has as it is (jupyter_server 2.20.0 `services/sessions/sessionmanager.py`).
+  So only a document at the root binds the spare. A document in a folder starts its kernel by name,
+  so its files are written beside it.
+- **A bound spare has no `__session__`.** The spare is started outside any session, so it has no
+  `JPY_SESSION_NAME`, the variable ipykernel copies into `user_ns["__session__"]` (`ipkernel.py`).
+  A kernel started by name for the same document has one.
 
 **This forbids** a session waiting on, or failing because of, a spare, and holding more than one
 spare per running Space.

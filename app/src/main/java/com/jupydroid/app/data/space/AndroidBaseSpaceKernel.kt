@@ -20,7 +20,12 @@ fun baseSpaceKernelSockets(server: SpaceServer): PerRunningServer<KernelSockets>
       opener = OkHttpKernelSocketOpener(connection),
       // The lifecycle gets the same log: a shutdown that found the session already gone is the
       // one thing it reports rather than raises, and on device that line is the only account of it.
-      lifecycle = OkHttpKernelLifecycle(connection, log = LogcatSpaceLifecycleLog),
+      // A session that suits the Space's spare kernel binds it rather than starting one (ADR-0080).
+      lifecycle = SpareBindingKernelLifecycle(
+        server = OkHttpKernelLifecycle(connection, log = LogcatSpaceLifecycleLog),
+        claimSpare = server::claimSpareKernel,
+        log = LogcatSpaceLifecycleLog,
+      ),
       // The same tag the rest of the runtime reports under, so a stall is one filter to read:
       // `adb logcat -s JupydroidSpace`. Without this the execute path is silent, which is why
       // three sightings of the stall produced no diagnosis. See [KernelLog].

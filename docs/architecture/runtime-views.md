@@ -112,7 +112,8 @@ tap Run
                   │                            │  write the kernelspec
                   └─ JupyterServerLauncher     │
                       └─ stop(); ProcessBuilder ──> proot -r <space> ──> jupyter_server on 127.0.0.1
-                          └─ POST /api/sessions ──> kernel subprocess
+                          ├─ POST /api/kernels ──> the spare: the default kernel, started at once
+                          └─ POST /api/sessions ──> kernel subprocess, or the spare bound by id
                               └─ KernelSockets (WebSocket, one per session)
                                   ├─ shell    execute_request / execute_reply
                                   ├─ iopub    stream · display_data · execute_result · error · status
@@ -123,6 +124,11 @@ tap Run
 
 `JupyterServerLauncher.start` begins with `stop()`, which is why exactly one object starts the server
 and every other client reaches it through `PerRunningServer`.
+
+A server start also starts one **spare** kernel, on `applicationScope`. The first session at the
+workspace root that asks for the default kernel binds the spare, so the kernel's own start runs while
+the user walks to the first cell ([ADR-0080](../adr/0080-a-space-pre-starts-its-default-kernel-when-its-server-starts.md)).
+`SpaceServer.claimSpareKernel` hands the spare out, and `SpareBindingKernelLifecycle` binds it.
 
 ## 6.4 Idle shutdown, and what holds the server up
 

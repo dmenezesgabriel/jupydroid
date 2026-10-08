@@ -96,6 +96,8 @@ fun spaceServers(
       watchScope = watchScope,
       reportRunning = reportRunning,
       log = LogcatSpaceLifecycleLog,
+      // The Space's spare kernel, started while the user walks to the first cell (ADR-0080).
+      prestartKernel = { connection -> OkHttpKernelLifecycle(connection).startBareKernel() },
     )
   }
 }

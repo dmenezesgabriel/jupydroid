@@ -78,4 +78,16 @@ internal object KernelLog {
    * own, or the app is holding a session id from a server that has since been replaced.
    */
   const val SESSION_ALREADY_GONE = "kernel.session.alreadygone"
+
+  /**
+   * The Space's spare kernel (ADR-0080): started with its server, then bound by the first session
+   * that suits it, or not. Without these lines a session that bound the spare would show its
+   * `SOCKET_OPENED -> SOCKET_CONNECTED` window as a kernel that started in 0.1 s.
+   */
+  const val SPARE_STARTED = "kernel.spare.started"
+  const val SPARE_FAILED = "kernel.spare.failed"
+  const val SPARE_BOUND = "kernel.spare.bound"
+
+  /** A session asked for the spare and the server started another kernel: the spare had died. */
+  const val SPARE_MISSED = "kernel.spare.missed"
 }
