@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# Thesis has `stats` registered and as its default (parts 3-4). Its terminal deletes the venv, as a
+# person would, and records where the Space's own `jupyter` is - the program Settings will name to
+# remove the kernel. Each status lands in the workspace and the driver greps it: cross-cutting.md
+# §8.6 forbids gating on the terminal's canvas. `>>` and `$?` rather than `${…}`, which Maestro
+# evaluates as JavaScript.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 30000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "New Launcher"
+    timeout: 10000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap settles the IME's connection before typing - the first keystrokes can race it otherwise.
+- tapOn:
+    id: "terminal-input"
+- inputText: "rm -r ~/envs/stats; echo rm-rc=$? >gone.txt; command -v jupyter >>gone.txt; echo which-rc=$? >>gone.txt; cat gone.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 08-venv-deleted-in-the-terminal

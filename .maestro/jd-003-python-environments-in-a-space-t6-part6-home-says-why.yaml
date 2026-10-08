@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# The driver killed the app after part 5, so Thesis is stopped with `envs/stats` deleted and its
+# spec left behind. The home row says the default fell back and why. Settings lists `envs/stats`
+# as gone with the command that removes its kernel, marks the stored default missing, and no longer
+# offers `Python (stats)` as a default - the catalogue drops a spec whose interpreter is gone.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 30000
+- assertVisible: ".*Default kernel is python3, not stats: its environment ~/envs/stats is gone.*"
+- takeScreenshot: 09-home-says-the-default-fell-back
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- scrollUntilVisible:
+    element: "Default kernel: stats \\(missing\\)"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Default kernel: stats \\(missing\\)"
+- extendedWaitUntil:
+    visible: "Make Python 3 the default kernel"
+    timeout: 5000
+- assertNotVisible: "Make Python \\(stats\\) the default kernel"
+- takeScreenshot: 10-stats-is-missing-and-not-offered
+- pressKey: Back
+- scrollUntilVisible:
+    element: "jupyter kernelspec remove stats"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Gone\\. Kernel stats still names it.*"
+- assertNotVisible: "Register envs/stats as kernel"
+- takeScreenshot: 11-envs-stats-is-gone-with-the-remove-command
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
