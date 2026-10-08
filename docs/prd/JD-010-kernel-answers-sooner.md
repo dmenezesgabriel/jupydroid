@@ -84,7 +84,27 @@ the user's ~13 s walk from Run to the first cell. The options:
 - import less: IPython's terminal frontend (0.84 s) and `debugpy.server` (0.37 s) are on the path.
   That means patching packages in the image.
 
-Evidence first, then an ADR.
+Two of these are out before anything is measured:
+- **Import less is out.** ipykernel's `ipkernel.py` imports `.debugger` itself, and IPython's
+  `__init__.py` imports `IPython.terminal.embed`. Taking either off the path means patching
+  third-party packages in the image. The ceiling is about 1.2 s, and the storage half stays.
+- **`unchecked-hash` bytecode is out.** It would skip reading and hashing each `.py`, but
+  ADR-0013 forbids it.
+
+That leaves pre-read and pre-start. Pre-start needs no server patch, because `POST api/sessions`
+takes `{"kernel": {"id": …}}` and binds a kernel that is already running (jupyter_server
+`services/sessions/handlers.py`).
+
+**The criteria, fixed before T2 measures anything:**
+1. The window's median with the repair, from an evicted page cache as the in-app warm start finds
+   it, against T1's 5.25 s.
+2. What the repair costs: a pre-started kernel's resident memory while idle, and how much a pre-read
+   slows the server's own start.
+3. What the repair obliges. A pre-started kernel needs a lifecycle: a kernel other than the default
+   picked, a restart, a session that never opens a notebook, and the idle stop. At equal gain, the
+   option with fewer obligations wins.
+
+If neither beats the baseline net of its cost, the ADR says so and T3 is rewritten, not forced.
 
 ## Surface
 
@@ -104,8 +124,14 @@ Evidence first, then an ADR.
   - the window at a quieter kernel log level
 
   Warm ×3 in-app runs are the baseline it is checked against. The evidence names the dominant part.
-- [ ] T2 — Take the kernel module's import out of the window (see Open decisions), red test first,
-  then the demo's warm ×3.
+- [ ] T2 — Measure both repairs on the tablet with the probe, each from an evicted page cache, median of 3:
+  - the window after a pre-read (`import jupydroid_kernel` run and thrown away)
+  - the window on a kernel pre-started a walk's length before its session
+  - an idle pre-started kernel's resident memory
+  - the server's start, alone and with a pre-read beside it
+
+  An ADR then applies the criteria in Open decisions and picks one.
+- [ ] T3 — Make the repair T2's ADR chose, red test first, then the demo's warm ×3.
 
 ## Out of scope
 
