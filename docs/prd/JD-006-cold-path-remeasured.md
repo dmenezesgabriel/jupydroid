@@ -42,7 +42,10 @@ device. What to repair next comes from our own measurement, not from a reference
 
 ## Implementation inventory
 
-The repair is named by T1's measurement, so this inventory is written per stage when T2 is.
+For T2, the extraction. Ours: `app/src/main/java/com/jupydroid/app/data/space/BaseSpaceInstaller.kt` and
+`TarZstdExtractor`. termux-app extracts from an in-memory zip into a staging prefix on one thread;
+winlator's `TarCompressorUtils.extract` streams `ZstdCompressorInputStream` through a
+`BufferedInputStream` of `StreamUtils.BUFFER_SIZE`, also on one thread.
 
 ## Trade-offs and what we adopt
 
@@ -64,7 +67,7 @@ None yet.
 
 ## Open decisions
 
-Which stage dominates — T1 answers it.
+Where the extraction lost ~6 s since ADR-0013 on an unchanged archive — T2 measures that before it repairs anything.
 
 ## Surface
 
@@ -77,11 +80,18 @@ Which stage dominates — T1 answers it.
 
 ## Tasks
 
-- [ ] T1 — Repair the harness (the report reads today's server stage names; the session POST's
+- [x] T1 — Repair the harness (the report reads today's server stage names; the session POST's
   start is logged and reported) and re-measure base cold ×3 and warm ×3 on the tablet; the evidence
   names the dominant stage.
-- T2 onward — **nothing here until T1 names it**: one task per repair of the stage the measurement
-  names.
+- [ ] T2 — **The extraction**, `space.installing → server.starting`: ~19 s median cold, 68% of the
+  ~27.7 s runtime ahead of the first answer, and slower than the ~13 s it measured after
+  [ADR-0013](../adr/0013-ship-bytecode-invalidated-by-checked-hash.md) on the same 76.4 MB archive.
+  First find where the ~6 s went (`TarZstdExtractor` and `BaseSpaceInstaller` since then, timed on
+  the device), then repair it, red test first. Demo: the cold runs again, the row shorter.
+
+Measured and **not** this item's — each is its own item when picked up: the kernel window,
+`socket.opened → connected` (~5.1 s cold and warm, was ~3.0 s spawn + handshake), and
+`jupyter_server` boot (~3.4 s cold, ~3.9 s warm, was ~2.3 s).
 
 ## Out of scope
 
