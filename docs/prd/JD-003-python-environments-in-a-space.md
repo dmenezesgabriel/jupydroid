@@ -118,7 +118,7 @@ vscode-jupyter's discovery. Settings lists what it finds on disk the way Winlato
 |---|---|---|---|
 | How an env becomes a kernel | vscode-jupyter → every interpreter, implicitly; jupyterlab → `ipykernel install`, by hand | Zero steps vs a catalogue that only holds what was chosen | **An explicit Register in the Space's Settings**, writing a spec the app owns. `ipykernel install`'s argv aborts here, so a by-hand route would register a kernel that dies |
 | Where the env list comes from | winlator → scan a directory; intellij → a path picker | Found vs typed | **Scan the Space's workspace for `pyvenv.cfg`**, to a bounded depth. Venvs are where people make them, and the list shows what is there |
-| Where the spec lives | rootfs → `$HOME/.local/share/jupyter`, `/usr/local/share/jupyter` | The person's visible folder vs the Space's own system path | **`usr/local/share/jupyter/kernels/<name>/` in the Space's rootfs**, which `jupyter_path` searches and the workspace never shows. HOME is the notebook folder (ADR-0011's reason). T3 confirms it |
+| Where the spec lives | rootfs → `$HOME/.local/share/jupyter`, `/usr/local/share/jupyter` | The person's visible folder vs the Space's own system path | **`usr/local/share/jupyter/kernels/<name>/` in the Space's rootfs**, which `jupyter_path` searches and the workspace never shows. HOME is the notebook folder (ADR-0011's reason). T4 confirms it |
 | `PIP_USER` vs a venv's pip | — | ADR-0011's unflagged `%pip` vs a venv pip that refuses `--user` | **`user = true` in the Space's `usr/pip.conf`**, pip's SITE file for the image's pip and never a venv's. Measured in T1; ADR-0011 amended |
 | uv | vscode-jupyter, intellij → an installed `uv` on PATH | Bundle it vs let the Space install it | **Not bundled.** A Space is its own system (ADR-0073), so installing uv is the Space's own act. **`apk add uv`**: PyPI's static build cannot resolve a host (Deviations) |
 | Default kernel | jupyter_server → `default_kernel_name`; winlator → a per-container choice | A per-notebook choice vs a per-Space one | **A `SpaceSettings` field, passed as `--MappingKernelManager.default_kernel_name` at each start.** It must name a spec the Space has, or the port refuses it |
@@ -164,17 +164,18 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
   which a venv reads too. The file is written at every start, but only when it is missing, so it
   reaches a Space made earlier and is the Space's own to edit after that. `PIP_ONLY_BINARY` and
   `PIP_BREAK_SYSTEM_PACKAGES` stay in the environment, because both hold for every pip in the Space.
-- **How `jupydroid_kernel` reaches a venv** (T3). The module is in the *system* site-packages, which a
+- **How `jupydroid_kernel` reaches a venv** (T4). The module is in the *system* site-packages, which a
   venv cannot see. Candidates: ship it in its own directory in the image and set `PYTHONPATH` in the
   spec's `env` (this needs a rootfs rebuild), or have the spec run base's interpreter with the venv's
   site-packages on its path (this needs no rebuild, but the env's own interpreter would not run).
   Measure each one's kernel start on the tablet.
-- **The spec's name and display name** (T3). Name from the venv directory, folded to
+- **The spec's name and display name** (T4). Name from the venv directory, folded to
   `_kernel_name_pat`; a clash with an existing spec is refused by name. Display name
   `Python (<dir>)`, as `ipykernel install --display-name` is conventionally used.
-- **The scan's bounds** (T3). How deep, which directories are skipped (`pkgs/`, `.git`), and its cost
-  on a large workspace.
-- **A registered env that has since been deleted** (T4). Its spec would point at nothing. Either
+- **The scan's bounds** (T3). How deep, which directories are skipped (`.git`), and its cost on a large
+  workspace. `pkgs/` is the Space's own directory beside `home/`, not under the workspace, so the scan
+  never reaches it.
+- **A registered env that has since been deleted** (T5). Its spec would point at nothing. Either
   Settings shows it as missing, or the launch drops it. A default naming a missing spec falls back to
   `python3` with the reason on the home.
 
@@ -183,7 +184,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 | Layer | Files |
 |---|---|
 | `domain/model` | `SpaceSettings` (`registeredKernels`, `defaultKernel`), a `PythonEnvironment` (path, has ipykernel), the spec-name rule |
-| `domain/port` | `SpaceRepository` (an env scan, or a new port such as `SpaceEnvironments`) — decided in T3 |
+| `domain/port` | a new `SpaceEnvironments` (the env scan): `SpaceRepository` holds records and reads no Space's contents, and `KernelSpecs` is the precedent for reading a Space's disk |
 | `data/disk` | `DiskSpaceRepository` (`StoredSpaceConfig`) |
 | `data/fake` | `FakeSpaceRepository`, and a fake for any new port |
 | `data/space` | `SpaceRuntime` (the `PIP_*` set), `SpaceKernelSpec` (writing registered specs), `BaseSpaceKernelSpecs` (stopped catalogue from disk), `JupyterServerLauncher` (`jupyterServerArgs` default kernel) |
@@ -202,13 +203,16 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 - [x] T2 — **The stopped catalogue is the Space's own.** `KernelSpecs` answers a stopped Space from the
   kernelspecs on its disk rather than `spaceWithId`'s fixed `python3`, so a spec written into the
   Space shows in the picker before it runs
-- [ ] T3 — **Register as kernel.** Settings on a stopped Space lists the venvs under its workspace, and
-  Register writes a spec that starts a kernel in that env. One without ipykernel is refused with
-  the command that fixes it. Open decisions 2–4 are settled
-- [ ] T4 — **Default kernel.** Settings picks the Space's default among its specs, passed as
+- [ ] T3 — **Settings lists the Space's environments.** Settings on a stopped Space lists the venvs
+  under its workspace, each saying whether it has `ipykernel`, and for one without, the command that
+  adds it. Open decision 4 is settled
+- [ ] T4 — **Register as kernel.** Register on a listed env writes a spec that starts a kernel in that
+  env. One without ipykernel is refused with the command that fixes it. Open decisions 2–3 are
+  settled
+- [ ] T5 — **Default kernel.** Settings picks the Space's default among its specs, passed as
   `--MappingKernelManager.default_kernel_name`. A new notebook records it (`defaultSpec`). Open
   decision 5 is settled
-- [ ] T5 — The demo on SM-X216B, and the ADR amending ADR-0076 (and ADR-0011 if T1 changed it)
+- [ ] T6 — The demo on SM-X216B, and the ADR amending ADR-0076 (and ADR-0011 if T1 changed it)
 
 ## Out of scope
 
