@@ -111,28 +111,34 @@ class SpacesViewModel(
    */
   fun openSpaceSettings(id: String) {
     _uiState.update { it.copy(environments = null, kernelChoices = null, failure = null) }
+    readSpaceSettings(id)
+  }
+
+  /**
+   * Makes the environment at [path] a kernel of the Space [id], then re-reads what Settings read when
+   * it opened, so the row and the default's choices show what the disk now has. The lists already
+   * shown stay until the new ones arrive: dropping them collapsed the dialog and scrolled the row
+   * just registered out of view. A refused registration reads nothing.
+   */
+  fun registerEnvironment(id: String, path: String) = act {
+    spaceEnvironments.register(id, path)
+    readSpaceSettings(id)
+  }
+
+  /** Reads the Space [id]'s environments and kernel choices into the state, each as it arrives. */
+  private fun readSpaceSettings(id: String) {
     viewModelScope.launch {
-      reportingFailure {
+      _uiState.reportingFailure {
         val found = spaceEnvironments.environments(id)
         _uiState.update { it.copy(environments = found) }
       }
     }
     viewModelScope.launch {
-      reportingFailure {
+      _uiState.reportingFailure {
         val listed = stoppedKernelSpecs.specs(spaceWithId(id)).specs
         _uiState.update { it.copy(kernelChoices = listed) }
       }
     }
-  }
-
-  /**
-   * Makes the environment at [path] a kernel of the Space [id], then re-reads what Settings read when
-   * it opened, so the row and the default's choices show what the disk now has. A refused
-   * registration reads nothing.
-   */
-  fun registerEnvironment(id: String, path: String) = act {
-    spaceEnvironments.register(id, path)
-    openSpaceSettings(id)
   }
 
   /** Starts the Space [id]'s server; the act lasts until it serves. */
@@ -158,7 +164,7 @@ class SpacesViewModel(
     if (_uiState.value.busy) return
     _uiState.update { it.copy(busy = true, failure = null) }
     viewModelScope.launch {
-      reportingFailure { change() }
+      _uiState.reportingFailure { change() }
       relist()
       _uiState.update { it.copy(busy = false, progress = null) }
     }
@@ -166,20 +172,20 @@ class SpacesViewModel(
 
   /** What the disk holds now; a refused listing keeps the rows it would have replaced. */
   private suspend fun relist() {
-    reportingFailure {
+    _uiState.reportingFailure {
       val listed = spaceRepository.spaces()
       _uiState.update { it.copy(spaces = listed) }
     }
   }
+}
 
-  /**
-   * Any refusal is put on screen as the port worded it - its messages name the path or id at fault.
-   * A cancellation is not a refusal and is never swallowed.
-   */
-  private suspend fun reportingFailure(ask: suspend () -> Unit) {
-    runCatching { ask() }.onFailure { refused ->
-      if (refused is CancellationException) throw refused
-      _uiState.update { it.copy(failure = refused.message) }
-    }
+/**
+ * Any refusal is put on screen as the port worded it - its messages name the path or id at fault.
+ * A cancellation is not a refusal and is never swallowed.
+ */
+private suspend fun MutableStateFlow<SpacesPanelState>.reportingFailure(ask: suspend () -> Unit) {
+  runCatching { ask() }.onFailure { refused ->
+    if (refused is CancellationException) throw refused
+    update { it.copy(failure = refused.message) }
   }
 }

@@ -13,6 +13,7 @@ import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.KernelSpecModels
 import com.jupydroid.app.domain.port.KernelSpecs
+import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import kotlinx.coroutines.CompletableDeferred
@@ -92,6 +93,26 @@ class SpacesViewModelTest {
     advanceUntilIdle()
 
     assertEquals(2, kernelSpecs.reads)
+  }
+
+  /**
+   * The re-read after a Register keeps the lists on screen: dropping them collapsed the dialog's
+   * scroll to the top, taking the row just registered out of view.
+   */
+  @Test
+  fun registerEnvironmentKeepsTheListShownWhileItIsReread() = runTest {
+    val gated = RereadGatedSpaceEnvironments(environments)
+    val model = SpacesViewModel(repository, servers, gated, kernelSpecs)
+    model.openSpaceSettings(BASE_SPACE.id)
+    advanceUntilIdle()
+
+    model.registerEnvironment(BASE_SPACE.id, STATS.path)
+    advanceUntilIdle()
+
+    assertEquals(listOf(STATS), model.uiState.value.environments)
+    gated.release.complete(Unit)
+    advanceUntilIdle()
+    assertEquals(listOf(STATS.copy(registeredAs = "stats")), model.uiState.value.environments)
   }
 
   @Test
@@ -381,6 +402,17 @@ class SpacesViewModelTest {
     advanceUntilIdle()
 
     assertTrue(model.uiState.value.failure.toString(), model.uiState.value.failure!!.contains("-1"))
+  }
+}
+
+/** Answers its first listing at once, and every later one only once [release] completes. */
+private class RereadGatedSpaceEnvironments(private val fake: SpaceEnvironments) : SpaceEnvironments by fake {
+  val release = CompletableDeferred<Unit>()
+  private var listings = 0
+
+  override suspend fun environments(spaceId: String): List<PythonEnvironment> {
+    if (listings++ > 0) release.await()
+    return fake.environments(spaceId)
   }
 }
 
