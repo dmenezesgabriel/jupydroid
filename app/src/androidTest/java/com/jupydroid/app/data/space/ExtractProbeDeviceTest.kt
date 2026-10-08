@@ -20,13 +20,14 @@ import java.io.File
 import kotlin.time.TimeSource
 
 /**
- * **Where the rootfs extraction's ~16.5 s actually goes - measured, not guessed.**
+ * **Where the rootfs extraction's time actually goes - measured, not guessed.**
  *
  * The cold-start timeline names `space.installing` → `server.starting` as its dominator.
  * This probe splits it on the device it is slow on: decompress+walk the tar (no writes),
- * the shipped serial [TarZstdExtractor.extract], and a channel fan-out that keeps the
- * decompressor serial but hands each entry's bytes to N writer workers - which is the
- * ceiling of the obvious fix, measured before it is built.
+ * the shipped serial [TarZstdExtractor.extract], the same serial walk through 1 MiB buffers
+ * on both sides of the decoder, and a channel fan-out that keeps the decompressor serial but
+ * hands each entry's bytes to N writer workers - which is the ceiling of the obvious fix,
+ * measured before it is built.
  *
  * The gzip run measured decompress+walk 8.9 s, serial 12.0 s, fan-out 7.5-8.2 s:
  * the codec was the floor, so the archive is now zstd.
@@ -52,21 +53,67 @@ class ExtractProbeDeviceTest {
 
   private fun asset() = context.assets.open("spaces/base/rootfs-arm64-v8a.tzst")
 
+  /** What a drain-only walk saw, so archives measured on different days can be compared. */
+  private data class ArchiveShape(
+    val entries: Int,
+    val fileNames: List<String>,
+    val fileBytes: Long,
+    val seconds: Double,
+  )
+
   /** Read+decompress only: the tar stream walked, every entry's bytes drained, nothing written. */
-  private fun drainOnly(): Pair<Int, Double> {
+  private fun drainOnly(): ArchiveShape {
     var entries = 0
+    val fileNames = mutableListOf<String>()
+    var fileBytes = 0L
+    val sink = ByteArray(READ_CHUNK)
     val start = TimeSource.Monotonic.markNow()
     TarArchiveInputStream(ZstdCompressorInputStream(asset().buffered())).use { tar ->
       while (true) {
         val entry = tar.nextEntry ?: break
         if (entry.isFile) {
-          val sink = ByteArray(READ_CHUNK)
-          while (tar.read(sink) >= 0) Unit
+          fileNames += entry.name
+          while (true) fileBytes += tar.read(sink).takeIf { it >= 0 } ?: break
         }
         entries++
       }
     }
-    return entries to start.elapsedNow().inWholeMilliseconds / 1000.0
+    return ArchiveShape(entries, fileNames, fileBytes, start.elapsedNow().inWholeMilliseconds / 1000.0)
+  }
+
+  /** Every file the archive holds, created empty: what a write costs before its first byte. */
+  private fun createEmpty(fileNames: List<String>, targetDir: File): Double {
+    val start = TimeSource.Monotonic.markNow()
+    for (name in fileNames) {
+      val destination = File(targetDir, name)
+      destination.parentFile?.mkdirs()
+      destination.createNewFile()
+    }
+    return start.elapsedNow().inWholeMilliseconds / 1000.0
+  }
+
+  /**
+   * The shipped walk's shape through 1 MiB buffers on both sides of the decoder: the cheapest
+   * codec-side lever, measured before it is built. Files and directories only, so it is compared
+   * with [drainOnly] and not with the shipped extractor's link handling.
+   */
+  private fun largeBufferExtract(targetDir: File): Pair<Int, Double> {
+    val root = targetDir.canonicalFile
+    var files = 0
+    val start = TimeSource.Monotonic.markNow()
+    val decoded = ZstdCompressorInputStream(asset().buffered(READ_CHUNK)).buffered(READ_CHUNK)
+    TarArchiveInputStream(decoded).use { tar ->
+      while (true) {
+        val entry = tar.nextEntry ?: break
+        val destination = File(root, entry.name)
+        if (entry.isDirectory) destination.mkdirs()
+        if (!entry.isFile) continue
+        destination.parentFile?.mkdirs()
+        destination.outputStream().use { tar.copyTo(it, READ_CHUNK) }
+        files++
+      }
+    }
+    return files to start.elapsedNow().inWholeMilliseconds / 1000.0
   }
 
   /** Decompress serially, hand each file's bytes to [workers] writer coroutines. */
@@ -107,32 +154,47 @@ class ExtractProbeDeviceTest {
 
   @Test
   fun whereTheExtractionTimeGoes() = runBlocking {
-    val scratch = File(context.cacheDir, "p8c-1-probe").apply {
+    val scratch = File(context.cacheDir, "extract-probe").apply {
       deleteRecursively()
       mkdirs()
     }
-    val report = StringBuilder("== p8c-1 extraction split (arm64 tarball)\n")
+    val report = StringBuilder("== rootfs extraction split (arm64 tarball)\n")
 
-    val (drained, drainSeconds) = drainOnly()
-    report.append("decompress+walk only : ${"%.1f".format(drainSeconds)}s over $drained entries\n")
+    val shape = drainOnly()
+    report.append(
+      "decompress+walk only : ${"%.1f".format(shape.seconds)}s over ${shape.entries} entries " +
+        "(${shape.fileNames.size} files, ${shape.fileBytes} bytes)\n",
+    )
 
-    val (wroteSerial, serialSeconds) = serialExtract(File(scratch, "serial"))
+    val serialDir = File(scratch, "serial")
+    val (wroteSerial, serialSeconds) = serialExtract(serialDir)
+    serialDir.deleteRecursively()
     report.append("serial extract       : ${"%.1f".format(serialSeconds)}s ($wroteSerial written)\n")
+    report.append("  of which writing   : ${"%.1f".format(serialSeconds - shape.seconds)}s\n")
 
-    for (workers in listOf(4, 8)) {
+    val emptyDir = File(scratch, "empty")
+    report.append("empty files only     : ${"%.1f".format(createEmpty(shape.fileNames, emptyDir))}s\n")
+    emptyDir.deleteRecursively()
+
+    val largeDir = File(scratch, "large-buffers")
+    val (wroteLarge, largeSeconds) = largeBufferExtract(largeDir)
+    report.append("1 MiB buffers        : ${"%.1f".format(largeSeconds)}s ($wroteLarge files)\n")
+    largeDir.deleteRecursively()
+
+    for (workers in listOf(1, 4)) {
       val dir = File(scratch, "parallel-$workers")
       val (wrote, seconds) = parallelWrites(workers, dir)
       report.append("parallel writers=$workers : ${"%.1f".format(seconds)}s ($wrote written)\n")
       dir.deleteRecursively()
     }
 
-    val out = File(context.getExternalFilesDir(null), "p8c-1-extract-probe.txt")
+    val out = File(context.getExternalFilesDir(null), "extract-probe.txt")
     out.writeText(report.toString())
     android.util.Log.i(SPACE_LOG_TAG, report.toString())
     scratch.deleteRecursively()
 
     // The probe's job is to print the split; fail only if it produced nonsense.
-    assertTrue("tarball had no file entries", drained > 1000)
+    assertTrue("tarball had no file entries", shape.fileNames.size > 1000)
   }
 
   private companion object {
