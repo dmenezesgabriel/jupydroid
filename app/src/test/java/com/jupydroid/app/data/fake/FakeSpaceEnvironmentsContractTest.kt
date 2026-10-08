@@ -8,7 +8,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FakeSpaceEnvironmentsContractTest : SpaceEnvironmentsContract() {
-  override fun environments(): SpaceEnvironments = FakeSpaceEnvironments(mapOf(EMPTY_SPACE_ID to emptyList()))
+  override fun environmentsHolding(vararg environments: PythonEnvironment): SpaceEnvironments =
+    FakeSpaceEnvironments(mapOf(EMPTY_SPACE_ID to environments.toList()))
 
   @Test
   fun environments_answersWhatItWasSeededWith() = runTest {

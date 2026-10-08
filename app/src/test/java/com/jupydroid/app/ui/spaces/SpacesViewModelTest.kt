@@ -48,6 +48,43 @@ class SpacesViewModelTest {
   }
 
   /** A refused read says why, and leaves no list behind that belonged to another Space. */
+  /** Settings shows what the disk now says, so a registered env reads as registered at once. */
+  @Test
+  fun registerEnvironmentRelistsTheSpacesEnvironmentsShowingItRegistered() = runTest {
+    val model = SpacesViewModel(repository, servers, environments)
+    model.listEnvironments(BASE_SPACE.id)
+    advanceUntilIdle()
+
+    model.registerEnvironment(BASE_SPACE.id, STATS.path)
+    advanceUntilIdle()
+
+    assertEquals(listOf(STATS.copy(registeredAs = "stats")), model.uiState.value.environments)
+    assertFalse(model.uiState.value.busy)
+  }
+
+  @Test
+  fun aRefusedRegistrationIsReportedInThePortsWords() = runTest {
+    val model = SpacesViewModel(repository, servers, environments)
+
+    model.registerEnvironment(BASE_SPACE.id, "envs/nowhere")
+    advanceUntilIdle()
+
+    assertTrue(model.uiState.value.failure.orEmpty().contains("envs/nowhere"))
+  }
+
+  /** Settings shows the refusal of its own acts, so it opens on none left from an earlier one. */
+  @Test
+  fun listEnvironmentsClearsAnEarlierRefusal() = runTest {
+    val model = SpacesViewModel(repository, servers, environments)
+    model.registerEnvironment(BASE_SPACE.id, "envs/nowhere")
+    advanceUntilIdle()
+
+    model.listEnvironments(BASE_SPACE.id)
+    advanceUntilIdle()
+
+    assertNull(model.uiState.value.failure)
+  }
+
   @Test
   fun aRefusedEnvironmentListingIsReportedAndShowsNone() = runTest {
     val model = SpacesViewModel(repository, servers, environments)

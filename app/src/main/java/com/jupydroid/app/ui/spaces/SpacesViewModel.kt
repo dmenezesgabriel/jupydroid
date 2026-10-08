@@ -96,16 +96,26 @@ class SpacesViewModel(
   /**
    * Reads the Space [id]'s environments for its Settings. Not an act: it reads a disk and changes
    * nothing, so it never holds the panel. The previous Space's list is dropped first, so a dialog
-   * never shows another Space's environments while this one's are read.
+   * never shows another Space's environments while this one's are read, and so is an earlier
+   * refusal, since Settings shows the refusals of its own acts.
    */
   fun listEnvironments(id: String) {
-    _uiState.update { it.copy(environments = null) }
+    _uiState.update { it.copy(environments = null, failure = null) }
     viewModelScope.launch {
       reportingFailure {
         val found = spaceEnvironments.environments(id)
         _uiState.update { it.copy(environments = found) }
       }
     }
+  }
+
+  /**
+   * Makes the environment at [path] a kernel of the Space [id], then re-reads the list as Settings
+   * does when it opens, so the row shows what the disk now has. A refused registration reads nothing.
+   */
+  fun registerEnvironment(id: String, path: String) = act {
+    spaceEnvironments.register(id, path)
+    listEnvironments(id)
   }
 
   /** Starts the Space [id]'s server; the act lasts until it serves. */

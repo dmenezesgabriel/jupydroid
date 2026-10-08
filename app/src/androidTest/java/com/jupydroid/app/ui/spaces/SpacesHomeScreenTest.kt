@@ -348,6 +348,23 @@ class SpacesHomeScreenTest {
     compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText("envs/stats").fetchSemanticsNodes().isNotEmpty() }
   }
 
+  /** Register acts from inside Settings, and the dialog shows the environment as the disk now has it. */
+  @Test
+  fun registerInSettingsShowsTheEnvironmentRegistered() {
+    val environments = FakeSpaceEnvironments(mapOf("space-1" to listOf(PythonEnvironment("envs/stats", true))))
+    show(FakeSpaceRepository(listOf(base, thesis)), environments = environments)
+    compose.onNodeWithContentDescription(settingsThesis).performClick()
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      compose.onAllNodesWithContentDescription(registerLabel("envs/stats")).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    compose.onNodeWithContentDescription(registerLabel("envs/stats")).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      compose.onAllNodesWithText(registeredLabel("stats")).fetchSemanticsNodes().isNotEmpty()
+    }
+  }
+
   /** What the port would refuse cannot be saved: past a day, below zero, or not a number at all. */
   @Test
   fun anIdleShutdownOutsideTheRangeCannotBeSaved() {

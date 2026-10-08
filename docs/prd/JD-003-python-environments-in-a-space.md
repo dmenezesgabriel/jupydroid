@@ -118,7 +118,7 @@ vscode-jupyter's discovery. Settings lists what it finds on disk the way Winlato
 |---|---|---|---|
 | How an env becomes a kernel | vscode-jupyter → every interpreter, implicitly; jupyterlab → `ipykernel install`, by hand | Zero steps vs a catalogue that only holds what was chosen | **An explicit Register in the Space's Settings**, writing a spec the app owns. `ipykernel install`'s argv aborts here, so a by-hand route would register a kernel that dies |
 | Where the env list comes from | winlator → scan a directory; intellij → a path picker; vscode-python → fixed roots | Found vs typed | **vscode-python's fixed roots, read for `pyvenv.cfg`** (T3). Venvs are where people make them, and the list shows what is there |
-| Where the spec lives | rootfs → `$HOME/.local/share/jupyter`, `/usr/local/share/jupyter` | The person's visible folder vs the Space's own system path | **`usr/local/share/jupyter/kernels/<name>/` in the Space's rootfs**, which `jupyter_path` searches and the workspace never shows. HOME is the notebook folder (ADR-0011's reason). T4 confirms it |
+| Where the spec lives | rootfs → `$HOME/.local/share/jupyter`, `/usr/local/share/jupyter` | The person's visible folder vs the Space's own system path | **`usr/local/share/jupyter/kernels/<name>/` in the Space's rootfs**, which `jupyter_path` searches and the workspace never shows. HOME is the notebook folder (ADR-0011's reason). Confirmed in T4: the server lists and starts it |
 | `PIP_USER` vs a venv's pip | — | ADR-0011's unflagged `%pip` vs a venv pip that refuses `--user` | **`user = true` in the Space's `usr/pip.conf`**, pip's SITE file for the image's pip and never a venv's. Measured in T1; ADR-0011 amended |
 | uv | vscode-jupyter, intellij → an installed `uv` on PATH | Bundle it vs let the Space install it | **Not bundled.** A Space is its own system (ADR-0073), so installing uv is the Space's own act. **`apk add uv`**: PyPI's static build cannot resolve a host (Deviations) |
 | Default kernel | jupyter_server → `default_kernel_name`; winlator → a per-container choice | A per-notebook choice vs a per-Space one | **A `SpaceSettings` field, passed as `--MappingKernelManager.default_kernel_name` at each start.** It must name a spec the Space has, or the port refuses it |
@@ -135,10 +135,10 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 | Venv pip | `app/src/main/java/com/jupydroid/app/data/space/SpacePipConfig.kt` | — | closed in T1: a venv's pip installs into the venv |
 | uv | absent from the image; `apk add uv` works in a Space (T1) | `vscode-jupyter@f01d80c uvInstaller.node.ts` | present as the Space's own install |
 | Kernelspec catalogue while stopped | `data/disk/DiskKernelSpecs.kt` | `jupyter_core/paths.py` `jupyter_path` | closed in T2: read off the Space's disk in the server's own search order |
-| Writing a spec | `data/space/SpaceKernelSpec.kt` (`python3` only) | `ipykernel/kernelspec.py` `install` | present and partial: one fixed spec |
+| Writing a spec | `data/space/SpaceKernelSpec.kt` (`installEnvironment`), `data/disk/DiskSpaceEnvironments.kt` (`register`) | `ipykernel/kernelspec.py` `install` | closed in T4: Register writes an env's spec, and the row reads it back |
 | Env list | `data/disk/DiskSpaceEnvironments.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `vscode-python@f4c86e4 workspaceVirtualEnvLocator.ts` | closed in T3: Settings lists them, with ipykernel's presence |
 | Default kernel | `domain/port/KernelSpecs.kt` `defaultSpec`; `jupyterServerArgs` passes no `default_kernel_name` | `jupyter_client/multikernelmanager.py` | present and partial: always `python3` |
-| Settings screen | `ui/spaces/SpaceSettingsDialog.kt`, `domain/model/SpaceConfig.kt` `SpaceSettings` | `winlator@fb66541 ContainerDetailFragment.java` | present; no environment section |
+| Settings screen | `ui/spaces/SpaceSettingsDialog.kt`, `ui/spaces/SpaceEnvironmentsSection.kt` | `winlator@fb66541 ContainerDetailFragment.java` | present; Environments lists and registers (T3, T4); no default kernel yet |
 
 ## Deviations
 
@@ -164,14 +164,19 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
   which a venv reads too. The file is written at every start, but only when it is missing, so it
   reaches a Space made earlier and is the Space's own to edit after that. `PIP_ONLY_BINARY` and
   `PIP_BREAK_SYSTEM_PACKAGES` stay in the environment, because both hold for every pip in the Space.
-- **How `jupydroid_kernel` reaches a venv** (T4). The module is in the *system* site-packages, which a
-  venv cannot see. Candidates: ship it in its own directory in the image and set `PYTHONPATH` in the
-  spec's `env` (this needs a rootfs rebuild), or have the spec run base's interpreter with the venv's
-  site-packages on its path (this needs no rebuild, but the env's own interpreter would not run).
-  Measure each one's kernel start on the tablet.
-- **The spec's name and display name** (T4). Name from the venv directory, folded to
-  `_kernel_name_pat`; a clash with an existing spec is refused by name. Display name
-  `Python (<dir>)`, as `ipykernel install --display-name` is conventionally used.
+- **How `jupydroid_kernel` reaches a venv** (T4) is **settled: the env's own interpreter runs the
+  image's module by path**, `[<env>/bin/python, -c, "import runpy; runpy.run_path('/usr/lib/python3.12/site-packages/jupydroid_kernel.py', run_name='__main__')", -f, {connection_file}, …]`.
+  It needs no rebuild, `sys.prefix` is the env, and `run_path` adds nothing to `sys.path`, so no system
+  package leaks in. Running the file as a script would put its directory on `sys.path[0]`, and with it
+  every system package. Measured on SM-X216B against the env's ipykernel 7.4.0 (the image pins 7.3.0):
+  the kernel started, and `sys.path` held only the venv's site-packages. The two PRD candidates lost.
+  `PYTHONPATH` needed a rootfs rebuild, and base's interpreter makes `sys.prefix` `/usr`.
+- **The spec's name and display name** (T4) are **settled: the directory's name, lowercased, with any
+  character `_kernel_name_pat` refuses folded to `-`** (`PythonEnvironment.kernelName`). Display
+  name `Python (<dir>)`. A name held by any directory on the Space's kernel search path, or `python3`,
+  is refused naming the holder (`registrableEnvironment`). **The spec on disk is the record**: an env
+  is registered when a spec's `argv[0]` is its `bin/python`. So `SpaceSettings` carries no list of
+  registered kernels that could drift from the disk.
 - **The scan's bounds** (T3) are **settled: vscode-python's fixed roots, not a walk.** The children of
   the workspace (`workspaceVirtualEnvLocator.ts`) and of `envs`, `Envs`, `.direnv`, `.venvs`,
   `.virtualenvs` and `.local/share/virtualenvs` under HOME (`globalVirtualEnvronmentLocator.ts`), both at
@@ -187,7 +192,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 
 | Layer | Files |
 |---|---|
-| `domain/model` | `SpaceSettings` (`registeredKernels`, `defaultKernel`), a `PythonEnvironment` (path, has ipykernel), the spec-name rule |
+| `domain/model` | `SpaceSettings` (`defaultKernel`), a `PythonEnvironment` (path, has ipykernel, registered as), the spec-name rule |
 | `domain/port` | a new `SpaceEnvironments` (the env scan): `SpaceRepository` holds records and reads no Space's contents, and `KernelSpecs` is the precedent for reading a Space's disk |
 | `data/disk` | `DiskSpaceRepository` (`StoredSpaceConfig`) |
 | `data/fake` | `FakeSpaceRepository`, and a fake for any new port |
@@ -210,7 +215,7 @@ amends ADR-0076 ("`python3` today") and, if T1 requires it, ADR-0011.
 - [x] T3 — **Settings lists the Space's environments.** Settings on a stopped Space lists the venvs
   under its workspace, each saying whether it has `ipykernel`, and for one without, the command that
   adds it. Open decision 4 is settled
-- [ ] T4 — **Register as kernel.** Register on a listed env writes a spec that starts a kernel in that
+- [x] T4 — **Register as kernel.** Register on a listed env writes a spec that starts a kernel in that
   env. One without ipykernel is refused with the command that fixes it. Open decisions 2–3 are
   settled
 - [ ] T5 — **Default kernel.** Settings picks the Space's default among its specs, passed as

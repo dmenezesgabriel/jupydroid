@@ -11,6 +11,7 @@ import com.jupydroid.app.domain.model.PythonEnvironment
  *
  * ```
  * spaceEnvironments.environments("space-1")   // [envs/fast, envs/stats]
+ * spaceEnvironments.register("space-1", "envs/stats")   // "stats"
  * ```
  */
 interface SpaceEnvironments {
@@ -20,4 +21,14 @@ interface SpaceEnvironments {
    * @throws IllegalArgumentException when no Space has that id.
    */
   suspend fun environments(spaceId: String): List<PythonEnvironment>
+
+  /**
+   * Makes the environment at [path] in the Space [spaceId] a kernel its server can start, under
+   * [PythonEnvironment.kernelName], and answers that name.
+   *
+   * @throws IllegalArgumentException when no Space has that id, [path] is none of its environments,
+   *   the environment lacks ipykernel - the message then carries the command that adds it - or
+   *   another kernel of the Space already has the name.
+   */
+  suspend fun register(spaceId: String, path: String): String
 }

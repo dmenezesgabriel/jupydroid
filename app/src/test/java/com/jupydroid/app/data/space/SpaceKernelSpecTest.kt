@@ -82,6 +82,34 @@ class SpaceKernelSpecTest {
     assertTrue(argv.toString(), argv.contains("--log-level=DEBUG"))
   }
 
+  /**
+   * The env's interpreter runs the image's kernel module by path. A venv cannot import it - it is in
+   * the system site-packages - and `run_path` adds nothing to `sys.path`, where running the file as a
+   * script would put that whole directory on it and every system package with it.
+   */
+  @Test
+  fun installEnvironment_runsTheImagesKernelModuleUnderTheEnvironmentsInterpreter() = runTest {
+    val spaceDir = tempFolder.newFolder("space-1")
+
+    SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python", "Python (stats)")
+
+    val spec = Json.parseToJsonElement(File(spaceDir, "usr/local/share/jupyter/kernels/stats/kernel.json").readText())
+      .jsonObject
+    assertEquals(
+      listOf(
+        "/home/jupydroid/envs/stats/bin/python",
+        "-c",
+        "import runpy; runpy.run_path('/usr/lib/python3.12/site-packages/jupydroid_kernel.py', run_name='__main__')",
+        "-f",
+        "{connection_file}",
+        "--log-level=DEBUG",
+      ),
+      spec.getValue("argv").jsonArray.map { it.jsonPrimitive.content },
+    )
+    assertEquals("Python (stats)", spec.getValue("display_name").jsonPrimitive.content)
+    assertTrue(spec.toString(), spec.toString().contains("PYTHONFAULTHANDLER"))
+  }
+
   private fun argv(baseDir: File): List<String> = Json.parseToJsonElement(kernelJson(baseDir).readText())
     .jsonObject.getValue("argv").jsonArray.map { it.jsonPrimitive.content }
 

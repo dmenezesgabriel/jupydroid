@@ -1,11 +1,16 @@
 package com.jupydroid.app.ui.spaces
 
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.theme.JupyterDroidTheme
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,7 +18,8 @@ import java.time.Instant
 
 /**
  * The environments section of a Space's Settings: each environment by its path, whether it can
- * hold a kernel, and for one that cannot, the command that fixes it - visible, not inferred.
+ * hold a kernel, and for one that cannot, the command that fixes it - visible, not inferred. Register
+ * is pressable exactly when a kernel could start in the environment.
  */
 @RunWith(AndroidJUnit4::class)
 class SpaceSettingsDialogEnvironmentsTest {
@@ -48,9 +54,63 @@ class SpaceSettingsDialogEnvironmentsTest {
     compose.onNodeWithText(NO_ENVIRONMENTS).assertExists()
   }
 
-  private fun show(environments: List<PythonEnvironment>?) {
+  @Test
+  fun registerIsPressableForAnEnvironmentWithIpykernel() {
+    show(listOf(stats))
+
+    compose.onNodeWithContentDescription(registerLabel(stats.path)).assertIsEnabled()
+  }
+
+  /** A spec for an env with no ipykernel names a kernel that cannot start, so there is nothing to press. */
+  @Test
+  fun registerIsNotPressableForAnEnvironmentWithoutIpykernel() {
+    show(listOf(bare))
+
+    compose.onNodeWithContentDescription(registerLabel(bare.path)).assertIsNotEnabled()
+  }
+
+  @Test
+  fun pressingRegisterAsksForThatEnvironment() {
+    var asked: String? = null
+    show(listOf(bare, stats), onRegister = { asked = it })
+
+    compose.onNodeWithContentDescription(registerLabel(stats.path)).performClick()
+
+    assertEquals(stats.path, asked)
+  }
+
+  @Test
+  fun aRegisteredEnvironmentSaysItsKernelNameInsteadOfOfferingRegister() {
+    show(listOf(stats.copy(registeredAs = "stats")))
+
+    compose.onNodeWithText(registeredLabel("stats")).assertExists()
+    compose.onNodeWithContentDescription(registerLabel(stats.path)).assertDoesNotExist()
+  }
+
+  /** A refusal is shown where it was asked for: the home behind the dialog is covered by it. */
+  @Test
+  fun aRefusalIsShownInTheDialog() {
+    show(listOf(stats), refusal = "a kernel named 'stats' is already held")
+
+    compose.onNodeWithText("a kernel named 'stats' is already held").assertExists()
+  }
+
+  private fun show(
+    environments: List<PythonEnvironment>?,
+    onRegister: (String) -> Unit = {},
+    refusal: String? = null,
+  ) {
     compose.setContent {
-      JupyterDroidTheme { SpaceSettingsDialog(thesis, environments, onSave = {}, onDismiss = {}) }
+      JupyterDroidTheme {
+        SpaceSettingsDialog(
+          thesis,
+          environments,
+          onSave = {},
+          onDismiss = {},
+          onRegister = onRegister,
+          refusal = refusal,
+        )
+      }
     }
   }
 

@@ -170,6 +170,8 @@ fun SpacesHomeScreen(
         viewModel.configure(space.id, it)
       },
       onDismiss = { configuring = null },
+      onRegister = { viewModel.registerEnvironment(space.id, it) },
+      refusal = state.failure,
     )
   }
   deleting?.let { space ->

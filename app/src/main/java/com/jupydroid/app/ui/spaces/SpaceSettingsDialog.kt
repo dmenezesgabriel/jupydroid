@@ -54,8 +54,10 @@ internal const val SAVE_SETTINGS = "Save"
  * from the same row and changes the same record. **Save is held for any value the port would
  * refuse** - [IDLE_SHUTDOWN_MINUTES_RANGE] and [THREAD_CAP_RANGE] are the port's own ranges and
  * [refusals] the port's own variable rules, so the two cannot disagree - and what it hands [onSave]
- * is [space]'s settings with the edited fields changed. [environments] are shown, not edited: what
- * the Space's workspace holds, null while they are being read.
+ * is [space]'s settings with the edited fields changed. [environments] are what the Space's
+ * workspace holds, null while they are being read; Register on one hands its path to [onRegister],
+ * which acts at once rather than on Save, since it writes a spec rather than a setting. [refusal] is
+ * the last refusal Settings' own acts met.
  *
  * ```
  * SpaceSettingsDialog(
@@ -69,6 +71,8 @@ fun SpaceSettingsDialog(
   environments: List<PythonEnvironment>? = null,
   onSave: (SpaceSettings) -> Unit,
   onDismiss: () -> Unit,
+  onRegister: (String) -> Unit = {},
+  refusal: String? = null,
 ) {
   var idleText by remember(space) { mutableStateOf(space.settings.idleShutdownMinutes.toString()) }
   var capText by remember(space) { mutableStateOf(space.settings.threadCap?.toString().orEmpty()) }
@@ -86,7 +90,7 @@ fun SpaceSettingsDialog(
         SettingsNumberField(capText, threadCap.isFailure, THREAD_CAP_LABEL, onChange = { capText = it })
         SpaceVariablesEditor(variableRows, onRowsChange = { variableRows = it })
         StartupScriptField(script)
-        SpaceEnvironmentsSection(environments)
+        SpaceEnvironmentsSection(environments, onRegister, refusal)
       }
     },
     confirmButton = {
