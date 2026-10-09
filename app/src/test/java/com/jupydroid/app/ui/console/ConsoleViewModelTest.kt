@@ -6,6 +6,7 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.space.KernelLifecycleException
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
@@ -19,6 +20,7 @@ import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.editor.RecordingKernelGateway
 import com.jupydroid.app.ui.editor.StaleSessionKernelGateway
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
@@ -364,6 +366,36 @@ class ConsoleViewModelTest {
     assertEquals(ExecutionStatus.CANCELLED, entry.status)
   }
 
+  /** A `\r` progress bar leaves its last frame, and the print after it joins the same block. */
+  @Test
+  fun submit_aProgressBarLeavesOnlyItsLastFrame() = runTest {
+    val viewModel = consoleViewModel(ProgressBarKernelGateway())
+
+    submitted(viewModel, "progress()")
+
+    assertEquals(
+      listOf(CellOutput.Stream(StreamName.STDOUT, "100% done\na\n")),
+      viewModel.entries.value.single().outputs,
+    )
+  }
+
+  /** Two prompts answered in a row leave one echo, as JupyterLab's stdin widget adds it through `_add`. */
+  @Test
+  fun answerInput_twoPromptsInARowFoldIntoOneEcho() = runTest {
+    val viewModel = consoleViewModel(AskingTwiceKernelGateway())
+    submitted(viewModel, "input('Name?'); input('Age?')")
+
+    viewModel.answerInput(viewModel.entries.value.single().id, "Ada")
+    advanceUntilIdle()
+    viewModel.answerInput(viewModel.entries.value.single().id, "36")
+    advanceUntilIdle()
+
+    assertEquals(
+      listOf(CellOutput.Stream(StreamName.STDIN, "Name? Ada\nAge? 36\n")),
+      viewModel.entries.value.single().outputs,
+    )
+  }
+
   private fun TestScope.submitted(viewModel: ConsoleViewModel, source: String) {
     viewModel.input.edit { insert(0, source) }
     viewModel.submit()
@@ -403,4 +435,31 @@ private class RefusingToConnectKernelGateway : KernelGateway by FakeKernelGatewa
     kernel: KernelChoice?,
     sessionType: SessionType?,
   ): KernelSession = throw KernelLifecycleException("POST api/sessions refused for $documentPath")
+}
+
+/** Repaints a `\r` progress bar a chunk at a time, then prints a line after it. */
+private class ProgressBarKernelGateway : KernelGateway by FakeKernelGateway() {
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
+    listOf("\r0%", "\r50%", "\r100%", " done\n", "a\n").forEach { chunk ->
+      emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, chunk)))
+    }
+    emit(KernelEvent.Idle)
+  }
+}
+
+/** Blocks in `input()` twice in a row, waiting for each answer before asking the next. */
+private class AskingTwiceKernelGateway : KernelGateway by FakeKernelGateway() {
+  private val answers = Channel<String>(Channel.UNLIMITED)
+
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
+    listOf("Name?", "Age?").forEach { prompt ->
+      emit(KernelEvent.InputRequested(cellId, KernelInputRequest(prompt, password = false, requestHeader = "{}")))
+      answers.receive()
+    }
+    emit(KernelEvent.Idle)
+  }
+
+  override suspend fun replyInput(session: KernelSession, request: KernelInputRequest, value: String) {
+    answers.send(value)
+  }
 }

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.withOutputFolded
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
@@ -145,7 +146,9 @@ class ConsoleViewModel(
   fun answerInput(id: String, value: String) {
     val request = _entries.value.firstOrNull { it.id == id }?.inputRequest ?: return
     _entries.update { entries ->
-      entries.withEntry(id) { it.copy(outputs = it.outputs + request.echoOf(value), inputRequest = null) }
+      entries.withEntry(id) {
+        it.copy(outputs = it.outputs.withOutputFolded(request.echoOf(value)), inputRequest = null)
+      }
     }
     viewModelScope.launch { session.whileOpen { open -> kernelGateway.replyInput(open, request, value) } }
   }
@@ -165,7 +168,7 @@ class ConsoleViewModel(
 
 /** Folds one [KernelEvent] into the entry it belongs to - `EditorUiState.after`'s own rule, by id. */
 private fun List<ConsoleEntry>.after(id: String, event: KernelEvent): List<ConsoleEntry> = when (event) {
-  is KernelEvent.Output -> withEntry(id) { it.copy(outputs = it.outputs + event.output) }
+  is KernelEvent.Output -> withEntry(id) { it.copy(outputs = it.outputs.withOutputFolded(event.output)) }
   is KernelEvent.ExecutionCount -> withEntry(id) { it.copy(executionCount = event.count) }
   is KernelEvent.InputRequested -> withEntry(id) { it.copy(inputRequest = event.request) }
   KernelEvent.Idle -> this
