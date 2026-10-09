@@ -156,7 +156,10 @@ There are no port changes: this is a fold repair and a view.
 - [x] T4: both caps in the Console. Its transcript draws through `CellOutputs`, so this needed no code, only
   tests that pin it. On SM-X216B a Console's 200k-line print draws its head, the row and its tail, and expands in
   ~26 s. Its 300 `display()` calls draw `0`…`49` and `Show more outputs`, and a tap draws the rest through `299`.
-- [ ] T5a: stepping onto a search hit in the hidden lines, or past the 50th output, draws that output whole.
+- [x] T5a: stepping onto a search hit in the hidden lines, or past the 50th output, draws that output whole. A
+  query lands on the hit and draws nothing; only a step does (`SearchState.currentStepped`). On SM-X216B the step
+  onto `123456` in the 200k-line print draws every line in ~27 s, and the step onto `277` draws the rest of 300
+  `display()` outputs.
 - [ ] T5b: scrolled mode's tail, settled against a measurement of a scrolled 200k-line print.
 - [ ] T6: run the demo end to end; write an ADR ("an output is capped in the view, never in the model"); rewrite
   GAP-115; delete this PRD; ship the backlog row.
