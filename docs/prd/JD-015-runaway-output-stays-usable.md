@@ -152,7 +152,9 @@ There are no port changes: this is a fold repair and a view.
 - [x] T3: the output-count cap of 50, with `Show more outputs`, in the notebook. On SM-X216B, 300 `display()`
   calls draw `0`…`49` and the row; a tap draws the rest through `299`. A stdin echo past 50 is always drawn,
   and a scrolled cell is capped too.
-- [ ] T4: both caps in the Console.
+- [x] T4: both caps in the Console. Its transcript draws through `CellOutputs`, so this needed no code, only
+  tests that pin it. On SM-X216B a Console's 200k-line print draws its head, the row and its tail, and expands in
+  ~26 s. Its 300 `display()` calls draw `0`…`49` and `Show more outputs`, and a tap draws the rest through `299`.
 - [ ] T5: search into a hidden region, and scrolled mode's tail.
 - [ ] T6: run the demo end to end; write an ADR ("an output is capped in the view, never in the model"); rewrite
   GAP-115; delete this PRD; ship the backlog row.
