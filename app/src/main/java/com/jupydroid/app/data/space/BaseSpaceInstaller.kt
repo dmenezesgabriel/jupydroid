@@ -41,7 +41,7 @@ class BaseSpaceInstaller(
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
   suspend fun installIfNeeded(): InstalledSpace {
-    val alreadyInstalled = installedVersion() == bundledVersion
+    val alreadyInstalled = isInstalled()
     val written = if (alreadyInstalled) 0 else extractor.extract(archive, baseDir)
     sweepStaleScriptLinks()
     SpaceKernelSpec.install(baseDir, ioDispatcher)
@@ -49,6 +49,13 @@ class BaseSpaceInstaller(
     if (!alreadyInstalled) stampVersion()
     return InstalledSpace(baseDir, bundledVersion, !alreadyInstalled, written)
   }
+
+  /**
+   * Whether the bundled image is in place. The stamp is written last, so a half extract reads false -
+   * and the directory alone would not do: it exists before the image, holding the notebook
+   * migration's own stamp.
+   */
+  suspend fun isInstalled(): Boolean = installedVersion() == bundledVersion
 
   /**
    * The console-script links an install from before proot left: `usr/local/bin` held one link

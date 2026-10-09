@@ -39,6 +39,7 @@ import com.jupydroid.app.data.space.baseSpaceNotebookExporter
 import com.jupydroid.app.data.space.baseSpaceTerminalGateway
 import com.jupydroid.app.data.space.notebookWorkspace
 import com.jupydroid.app.data.space.notebookWorkspaceIn
+import com.jupydroid.app.data.space.serverImportPreReader
 import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.data.space.spaceImageInstaller
 import com.jupydroid.app.data.space.spaceKernelSpecsOnDisk
@@ -184,6 +185,8 @@ class JupydroidApplication : Application() {
     themeSettings = DiskThemeSettingsRepository(filesDir),
     launcherSettings = DiskLauncherSettingsRepository(filesDir),
     applicationScope = applicationScope,
+    // Where no Space can run there is no server import to read, so the default reads nothing.
+    preReadServerImports = servers?.let { { serverImportPreReader(this, spaceRepository, it).preReadAll() } } ?: {},
   )
 
   /**

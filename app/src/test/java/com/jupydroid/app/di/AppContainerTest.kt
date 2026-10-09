@@ -77,6 +77,17 @@ class AppContainerTest {
     assertEquals(emptySet<String>(), container.spaceServers.running.value)
   }
 
+  /** ADR-0081: the pre-reads start with the container - once per process - and on its own scope. */
+  @Test
+  fun buildingTheContainer_startsTheServerImportPreReads() = runTest {
+    var preReads = 0
+
+    AppContainer(preReadServerImports = { preReads += 1 }, applicationScope = backgroundScope)
+    runCurrent()
+
+    assertEquals(1, preReads)
+  }
+
   /**
    * The language server dies with the Spaces, every Space's and not base's alone: Thesis's `pylsp`
    * left behind keeps an interpreter alive for an app nobody is using.

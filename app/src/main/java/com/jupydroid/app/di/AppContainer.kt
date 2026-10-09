@@ -29,6 +29,7 @@ import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 
@@ -100,7 +101,17 @@ class AppContainer(
    * longer-lived than the screen, which is what the composition root is.
    */
   val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+  /**
+   * Reads each installed Space's server import into the page cache, once, as the process starts
+   * (ADR-0081) - so it is launched here, where the container is built once per process. Its default
+   * reads nothing, which is what a device with no runnable Space and every test get.
+   */
+  preReadServerImports: suspend () -> Unit = {},
 ) {
+  init {
+    applicationScope.launch { preReadServerImports() }
+  }
+
   /**
    * Every run the app has in flight, counted from the tap - one object, because the question
    * "is anything running" is asked of the app and not of one notebook. Handed to every editor and

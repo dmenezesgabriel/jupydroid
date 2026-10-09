@@ -112,6 +112,18 @@ class BaseSpaceInstallerTest {
     assertTrue("$users was swept", users.isFile)
   }
 
+  /** Base's directory exists before its image does - the notebook migration writes into it first. */
+  @Test
+  fun isInstalled_onlyOnceTheBundledVersionIsStamped() = runTest {
+    val baseDir = tempFolder.newFolder("base")
+    File(baseDir, ".jupydroid").mkdirs()
+    assertFalse(installer(version = 1, baseDir = baseDir).isInstalled())
+
+    installer(version = 1, baseDir = baseDir).installIfNeeded()
+    assertTrue(installer(version = 1, baseDir = baseDir).isInstalled())
+    assertFalse(installer(version = 2, baseDir = baseDir).isInstalled())
+  }
+
   private fun linkInto(baseDir: File, relative: String, target: String): File = File(baseDir, relative).apply {
     parentFile!!.mkdirs()
     Files.createSymbolicLink(toPath(), File(target).toPath())
