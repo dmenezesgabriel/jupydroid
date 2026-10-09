@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -136,7 +137,7 @@ class CellOutputsViewTest {
    */
   @Test
   fun aLongOutputDrawsItsHeadAndTailUntilShowAllIsPressed() {
-    showOutputs(listOf(hundredLines()), scrolled = false)
+    showOutputs(listOf(linesOfOutput(HUNDRED)), scrolled = false)
 
     compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(0)
     compose.onAllNodesWithText("line 99", substring = true).assertCountEquals(1)
@@ -144,10 +145,55 @@ class CellOutputsViewTest {
     compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
   }
 
+  /**
+   * Drawn whole, a long output is one text node per [OUTPUT_CHUNK_LINES] lines: each line a `Text`
+   * draws hands its whole string to native code, so the chunk is what bounds that string.
+   */
+  @Test
+  fun aLongOutputDrawnWholeHoldsAChunkOfLinesPerText() {
+    showOutputs(listOf(linesOfOutput(CHUNKED)), scrolled = false)
+    compose.onNodeWithContentDescription("${CHUNKED - OUTPUT_LINE_LIMIT} lines hidden").performClick()
+
+    val texts = compose.onAllNodesWithText("line ", substring = true).fetchSemanticsNodes()
+      .flatMap { it.config[SemanticsProperties.Text] }.map { it.text }
+    assertTrue("${texts.map { it.lines().size }}", texts.all { it.trimEnd('\n').lines().size <= OUTPUT_CHUNK_LINES })
+    // Lines, not characters: the final line feed is not in the node's text either way.
+    assertEquals(linesOfOutput(CHUNKED).text.lines().dropLast(1), texts.joinToString("\n").trimEnd('\n').lines())
+  }
+
+  /** The seams between those text nodes add no height: drawn whole, the output is as tall as one `Text`. */
+  @Test
+  fun aLongOutputDrawnWholeIsAsTallAsOneText() {
+    val stream = linesOfOutput(CHUNKED)
+    compose.setContent {
+      JupyterDroidTheme {
+        Box {
+          CellOutputs(
+            outputs = listOf(stream),
+            hidden = false,
+            scrolled = false,
+            search = emptyList(),
+            onExpand = {},
+            inputRequest = null,
+            onAnswerInput = {},
+          )
+          Text(text = stream.text, style = codeTextStyle(), modifier = Modifier.testTag(CODE_LINE))
+        }
+      }
+    }
+    compose.onNodeWithContentDescription("${CHUNKED - OUTPUT_LINE_LIMIT} lines hidden").performClick()
+
+    assertEquals(
+      compose.onNodeWithTag(CODE_LINE).getUnclippedBoundsInRoot().height.value,
+      compose.onNodeWithContentDescription("Cell output").getUnclippedBoundsInRoot().height.value,
+      0.5f,
+    )
+  }
+
   /** A scrolled output already bounds its height, so it keeps every line until it has a cut of its own. */
   @Test
   fun aScrolledLongOutputIsNotCut() {
-    showOutputs(listOf(hundredLines()), scrolled = true)
+    showOutputs(listOf(linesOfOutput(HUNDRED)), scrolled = true)
 
     compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
   }
@@ -168,9 +214,9 @@ class CellOutputsViewTest {
     }
   }
 
-  private fun hundredLines() = CellOutput.Stream(
+  private fun linesOfOutput(count: Int) = CellOutput.Stream(
     name = StreamName.STDOUT,
-    text = (0 until HUNDRED).joinToString("\n", postfix = "\n") { "line $it" },
+    text = (0 until count).joinToString("\n", postfix = "\n") { "line $it" },
   )
 
   private fun oneLine() = CellOutput.Stream(name = StreamName.STDOUT, text = "one line")
@@ -184,6 +230,9 @@ class CellOutputsViewTest {
   private companion object {
     const val FIFTY = 50
     const val HUNDRED = 100
+
+    /** Two whole chunks and part of a third, so both a seam and a short last chunk are drawn. */
+    const val CHUNKED = 2 * OUTPUT_CHUNK_LINES + 500
 
     /** The reference line this test compares an output against - see the test's own docstring. */
     const val CODE_LINE = "one-line-of-code"

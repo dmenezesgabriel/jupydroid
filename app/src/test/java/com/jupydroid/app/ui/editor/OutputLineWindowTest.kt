@@ -52,6 +52,37 @@ class OutputLineWindowTest {
     assertEquals("line 31", hidden.last())
   }
 
+  @Test
+  fun aTextWithinOneChunkIsOneChunk() {
+    val text = lines(OUTPUT_CHUNK_LINES)
+    assertEquals(listOf(text.indices), outputTextChunksOf(text))
+    assertEquals(listOf("".indices), outputTextChunksOf(""))
+  }
+
+  @Test
+  fun aLongTextIsSplitEveryChunkOfLines() {
+    val chunks = outputTextChunksOf(lines(2500), linesPerChunk = 1000)
+    val text = lines(2500)
+
+    assertEquals(listOf(1000, 1000, 500), chunks.map { text.substring(it).trimEnd('\n').split("\n").size })
+    assertEquals("line 1000", text.substring(chunks[1]).substringBefore("\n"))
+  }
+
+  /** A final line feed ends the last chunk's last line; it does not open an empty chunk after it. */
+  @Test
+  fun aTrailingLineFeedOpensNoChunk() {
+    assertEquals(2, outputTextChunksOf(lines(2000), linesPerChunk = 1000).size)
+  }
+
+  /** Stacked one per chunk, the line feeds between them are the seams - nothing lost, nothing doubled. */
+  @Test
+  fun theChunksJoinedByLineFeedsAreTheText() {
+    for (text in listOf(lines(2500), lines(2500, trailingNewline = false), lines(2000))) {
+      val chunks = outputTextChunksOf(text, linesPerChunk = 1000)
+      assertEquals(text, chunks.joinToString("\n") { text.substring(it) })
+    }
+  }
+
   /** The cells row's own sentence (`hiddenCellsLabel`), counting lines instead. */
   @Test
   fun theHiddenCountReadsAsASentence() {

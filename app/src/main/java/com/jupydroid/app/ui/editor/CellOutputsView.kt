@@ -203,6 +203,7 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight,
  * hidden middle set, which VS Code's renderer loses by parsing the tail alone
  * (vscode@3f3380c6 extensions/notebook-renderers/src/textHelper.ts, `truncatedArrayOfString`).
  * What the cut bounds is the layout - the cost that grows with every line a runaway prints.
+ * Drawn whole, the text is one `Text` per chunk of lines - see [outputTextChunksOf].
  */
 @Composable
 private fun WindowedText(
@@ -213,7 +214,11 @@ private fun WindowedText(
   onShowAll: () -> Unit,
 ) {
   if (window == null) {
-    Text(text = text, style = codeTextStyle(), color = color, modifier = modifier)
+    Column(modifier = modifier) {
+      outputTextChunksOf(text.text).forEach { chunk ->
+        Text(text = text.subSequence(chunk.first, chunk.last + 1), style = codeTextStyle(), color = color)
+      }
+    }
     return
   }
   Column(modifier = modifier) {

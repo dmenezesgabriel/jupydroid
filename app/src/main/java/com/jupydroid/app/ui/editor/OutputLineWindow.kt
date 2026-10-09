@@ -45,3 +45,38 @@ private fun String.lineFeedAt(ordinal: Int): Int {
 
 /** What the row between head and tail says - `hiddenCellsLabel`'s sentence, counting lines. */
 fun hiddenLinesLabel(count: Int): String = if (count == 1) "1 line hidden" else "$count lines hidden"
+
+/**
+ * How many lines one `Text` holds when an output is drawn whole. Android's `Layout.drawText` hands
+ * the `Text`'s whole string to native code for every line it draws (`GetStringChars`), so one
+ * `Text` of 200k lines costs lines x length per draw; a chunk bounds the length.
+ */
+const val OUTPUT_CHUNK_LINES = 1000
+
+/**
+ * Where [text] is split to be drawn whole, [linesPerChunk] lines per range. Each range stops before
+ * the `\n` that ends its last line - the seam between two stacked `Text`s, as between head and tail -
+ * and the last runs to the end, so a final `\n` stays its own and opens no empty chunk.
+ *
+ * ```kotlin
+ * outputTextChunksOf("a\nb\nc\n", linesPerChunk = 2)  // [0..2, 4..5]: "a\nb", "c\n"
+ * ```
+ */
+fun outputTextChunksOf(text: String, linesPerChunk: Int = OUTPUT_CHUNK_LINES): List<IntRange> {
+  val chunks = mutableListOf<IntRange>()
+  var start = 0
+  var seam = text.lineFeedAfter(start, linesPerChunk)
+  while (seam != -1 && seam < text.length - 1) {
+    chunks += start until seam
+    start = seam + 1
+    seam = text.lineFeedAfter(start, linesPerChunk)
+  }
+  return chunks + listOf(start until text.length)
+}
+
+/** The [ordinal]th `\n` at or after [from], counting from one, or -1 when the text runs out first. */
+private fun String.lineFeedAfter(from: Int, ordinal: Int): Int {
+  var at = from - 1
+  repeat(ordinal) { at = indexOf('\n', at + 1).takeIf { it != -1 } ?: return -1 }
+  return at
+}
