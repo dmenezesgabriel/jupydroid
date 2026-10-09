@@ -67,11 +67,20 @@ Present and partial: the stage is marked, and the parts inside it are not.
 
 ## Deviations
 
-None yet.
+T1 does not time the server under `PROOT_NO_SECCOMP=1`, because the server cannot run that way: it
+dies of SIGSEGV right after its extension links. It times the import that way instead.
 
 ## Open decisions
 
-Which part to repair, and how. T1's split decides that.
+Which repair. T1 measured the boot as the import of `jupyter_server.serverapp`: about 2.0 s of
+import work, plus about 1.3 s of reading it from storage on a warm start. The server's own work after
+the import is under 0.3 s, and the poll under 0.12 s (`evidence/jd-011-server-boot/README.md`). T2
+measures the three repairs that leaves, each from an evicted page cache:
+- a pre-read of the import before **Run**
+- the server started before **Run**, as vscode-jupyter's `serverPreload.node.ts` does
+- importing less
+
+T2 also weighs what a server started early holds while nobody uses it.
 
 ## Surface
 
@@ -83,7 +92,7 @@ Which part to repair, and how. T1's split decides that.
 
 ## Tasks
 
-- [ ] T1 — Split the boot on the tablet. The probe reports a median of 3 for each of:
+- [x] T1 — Split the boot on the tablet. The probe reports a median of 3 for each of:
   - the interpreter starting under proot
   - `import jupyter_server.serverapp`, with its slowest imports, warm and evicted
   - the server's start through the shipped launcher, warm and evicted
