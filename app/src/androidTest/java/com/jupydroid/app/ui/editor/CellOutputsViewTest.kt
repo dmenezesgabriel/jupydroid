@@ -1,6 +1,9 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,10 +15,12 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellOutput
@@ -198,18 +203,44 @@ class CellOutputsViewTest {
     compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
   }
 
+  /**
+   * Many `display()` calls are many short outputs, which no line cut bounds, so they are cut by
+   * count: the first [OUTPUT_COUNT_LIMIT] are drawn, then a row that draws the rest.
+   */
+  @Test
+  fun manyOutputsDrawTheFirstFiftyUntilShowMoreIsPressed() {
+    showOutputs(manyOutputs(), scrolled = false)
+
+    compose.onAllNodesWithText("out ${OUTPUT_COUNT_LIMIT - 1}").assertCountEquals(1)
+    compose.onAllNodesWithText("out $OUTPUT_COUNT_LIMIT").assertCountEquals(0)
+    compose.onNodeWithContentDescription(SHOW_MORE_OUTPUTS).performScrollTo().performClick()
+    compose.onAllNodesWithText("out ${RUNAWAY_OUTPUTS - 1}").assertCountEquals(1)
+    compose.onAllNodesWithContentDescription(SHOW_MORE_OUTPUTS).assertCountEquals(0)
+  }
+
+  /** A scrolled box bounds the height, not the work of drawing every output inside it. */
+  @Test
+  fun aScrolledCellCapsItsOutputCountToo() {
+    showOutputs(manyOutputs(), scrolled = true)
+
+    compose.onAllNodesWithText("out $OUTPUT_COUNT_LIMIT").assertCountEquals(0)
+  }
+
+  /** Inside a scrolling column, as the editor's cell list is, so a row past the screen can be scrolled to. */
   private fun showOutputs(outputs: List<CellOutput>, scrolled: Boolean) {
     compose.setContent {
       JupyterDroidTheme {
-        CellOutputs(
-          outputs = outputs,
-          hidden = false,
-          scrolled = scrolled,
-          search = emptyList(),
-          onExpand = {},
-          inputRequest = null,
-          onAnswerInput = {},
-        )
+        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+          CellOutputs(
+            outputs = outputs,
+            hidden = false,
+            scrolled = scrolled,
+            search = emptyList(),
+            onExpand = {},
+            inputRequest = null,
+            onAnswerInput = {},
+          )
+        }
       }
     }
   }
@@ -218,6 +249,9 @@ class CellOutputsViewTest {
     name = StreamName.STDOUT,
     text = (0 until count).joinToString("\n", postfix = "\n") { "line $it" },
   )
+
+  /** One output per call, as `display(i)` gives - a list built directly, so no fold joins them. */
+  private fun manyOutputs() = List(RUNAWAY_OUTPUTS) { CellOutput.Stream(name = StreamName.STDOUT, text = "out $it") }
 
   private fun oneLine() = CellOutput.Stream(name = StreamName.STDOUT, text = "one line")
 
@@ -230,6 +264,7 @@ class CellOutputsViewTest {
   private companion object {
     const val FIFTY = 50
     const val HUNDRED = 100
+    const val RUNAWAY_OUTPUTS = 300
 
     /** Two whole chunks and part of a third, so both a seam and a short last chunk are drawn. */
     const val CHUNKED = 2 * OUTPUT_CHUNK_LINES + 500

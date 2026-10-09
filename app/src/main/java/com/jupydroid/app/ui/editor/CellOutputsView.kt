@@ -79,12 +79,19 @@ private fun RenderedOutputs(
   val rendered = outputs.mapNotNull { it.render() }
   // Nothing to fold when there is nothing to show, so an empty cell looks the same either way.
   if (rendered.isEmpty()) return
+  // Past the early return, so a re-run - which empties the outputs first - drops it, as it drops
+  // `OutputText`'s own. Applied scrolled or not: the box bounds the height, not the drawing.
+  var showAllOutputs by rememberSaveable { mutableStateOf(false) }
+  val drawnCount = if (showAllOutputs) null else drawnOutputCountOf(outputs)
+  // A prefix of the outputs renders to a prefix of `rendered`, so `search` keeps its indices.
+  val drawn = drawnCount?.let { outputs.take(it).mapNotNull { output -> output.render() } } ?: rendered
+  val onShowMore = drawnCount?.let { { showAllOutputs = true } }
   Spacer(modifier = Modifier.height(Spacing.xs))
   when {
     // Collapsed beats scrolled: there is no height to bound when nothing is drawn.
     hidden -> CollapsedCell(rendered.collapsedPreview(), COLLAPSED_OUTPUTS, onExpand)
-    scrolled -> ScrolledOutputs(rendered, search)
-    else -> OutputColumn(rendered, search, windowed = true, modifier = Modifier.fillMaxWidth())
+    scrolled -> ScrolledOutputs(drawn, search, onShowMore)
+    else -> OutputColumn(drawn, search, windowed = true, onShowMore, modifier = Modifier.fillMaxWidth())
   }
 }
 
@@ -103,13 +110,18 @@ private fun RenderedOutputs(
  * pointer to hover it into view with.
  */
 @Composable
-private fun ScrolledOutputs(rendered: List<RenderedOutput>, search: List<CellSearchHighlight>) {
+private fun ScrolledOutputs(
+  rendered: List<RenderedOutput>,
+  search: List<CellSearchHighlight>,
+  onShowMoreOutputs: (() -> Unit)?,
+) {
   Box(modifier = Modifier.fillMaxWidth().heightIn(max = scrolledOutputsHeight())) {
     OutputColumn(
       rendered,
       search,
       // The box already bounds the height; its own cut is the last lines, not head and tail.
       windowed = false,
+      onShowMoreOutputs,
       // verticalScroll bounds the Column's own *layout* size but draws the overflow past it
       // rather than cropping it - clipToBounds is what makes the bound a visual one too, and
       // without it the tail of a tall output is still on screen, just past what a user would
@@ -146,6 +158,8 @@ private fun OutputColumn(
   search: List<CellSearchHighlight>,
   /** Whether a long text draws only its head and tail - see [outputLineWindowOf]. */
   windowed: Boolean,
+  /** Set when outputs past [rendered] are left undrawn - see [drawnOutputCountOf]. */
+  onShowMoreOutputs: (() -> Unit)?,
   modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.semantics { contentDescription = "Cell output" }) {
@@ -157,6 +171,9 @@ private fun OutputColumn(
         is RenderedOutput.Document -> RichText(output.blocks, Modifier.fillMaxWidth())
       }
     }
+    // Inside the column, where JupyterLab's `TrimmedOutputs` sits in the output area, so a scrolled
+    // box scrolls to it.
+    onShowMoreOutputs?.let { HiddenItemsRow(SHOW_MORE_OUTPUTS, onExpand = it) }
   }
 }
 
