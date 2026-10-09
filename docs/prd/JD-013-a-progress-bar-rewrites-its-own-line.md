@@ -104,7 +104,7 @@ None open; the `\r` disagreement is settled above.
 - [x] T2 — The Console folds the same way (output and echo paths); device evidence
 - [x] T3 — A notebook read from disk folds adjacent same-name streams; evidence of a split notebook
   reopening folded
-- [ ] T4 — The demo above on `SM-X216B`, then ship: delete this PRD, close `GAP-112`, flip its
+- [x] T4 — The demo above on `SM-X216B`, then ship: delete this PRD, close `GAP-112`, flip its
   parity-ledger row
 
 ## Out of scope
