@@ -30,8 +30,9 @@ fun installBaseWhereProotShips() {
 }
 
 /**
- * **What a device probe times inside a Space:** its interpreter, an import's slowest modules, and
- * any part measured again after the image's Python has been dropped from the page cache.
+ * **What a device probe times inside a Space:** its interpreter, an import's slowest modules, any
+ * part measured again after the image's Python has been dropped from the page cache, and any part
+ * measured with an import running beside it.
  *
  * `KernelWindowProbeDeviceTest` and `ServerBootProbeDeviceTest` both split a stage this way, on the
  * installed Space and under the same proot the app runs.
@@ -74,6 +75,18 @@ class SpaceTimingProbe(private val runtime: SpaceRuntime) {
   fun <T> evicted(measure: () -> T): T {
     timedPython("-c", EVICT_PYTHON)
     return measure()
+  }
+
+  /**
+   * [measure] while `import [module]` runs beside it, as a pre-read would if **Run** were tapped the
+   * moment it began; the import is waited for after, and must exit 0.
+   */
+  fun <T> besideImport(module: String, measure: () -> T): T {
+    val import = runtime.processBuilder(listOf("-c", "import $module")).redirectErrorStream(true).start()
+    return measure().also {
+      val output = import.inputStream.bufferedReader().readText()
+      check(import.waitFor() == 0) { "import $module beside exited ${import.exitValue()}, expected 0: $output" }
+    }
   }
 
   /** `import time: self | cumulative | name` -> (name with its indent, cumulative µs). */

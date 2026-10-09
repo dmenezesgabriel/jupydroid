@@ -97,7 +97,8 @@ class KernelWindowProbeDeviceTest {
       "window, evicted, pre-read first" to { probe.evicted { preRead() }.let { window(DEFAULT_KERNEL_ID) } },
       "window, evicted, pre-started" to { probe.evicted { windowOnPreStartedKernel() } },
       "server start, evicted" to { probe.evicted { timedServerStart() } },
-      "server start, evicted, pre-read" to { probe.evicted { besidePreRead { timedServerStart() } } },
+      "server start, evicted, pre-read" to
+        { probe.evicted { probe.besideImport(KERNEL_MODULE) { timedServerStart() } } },
     )
     val idle = row("pre-started kernel, idle PSS", runsOf { idleKernelPssKb() }, "kB")
     return idle + windows.joinToString("") { (label, measure) -> row(label, runsOf(measure)) }
@@ -156,15 +157,6 @@ class KernelWindowProbeDeviceTest {
     /** The kernel module's import, run to its end and thrown away: what is left of it is the page cache. */
     fun preRead(): Long = probe.timedPython("-c", "import $KERNEL_MODULE")
 
-    /** [measure] while a pre-read runs beside it; the pre-read is waited for after, and must exit 0. */
-    fun <T> besidePreRead(measure: () -> T): T {
-      val preRead = runtime.processBuilder(listOf("-c", "import $KERNEL_MODULE")).redirectErrorStream(true).start()
-      return measure().also {
-        val output = preRead.inputStream.bufferedReader().readText()
-        check(preRead.waitFor() == 0) { "pre-read exited ${preRead.exitValue()}, expected 0: $output" }
-      }
-    }
-
     /** The window on a kernel `POST api/kernels` started [WALK_MS] before a session asks for it. */
     fun windowOnPreStartedKernel(): Long {
       val kernelId = startKernel()
@@ -182,28 +174,14 @@ class KernelWindowProbeDeviceTest {
       val kernelId = startKernel()
       try {
         Thread.sleep(WALK_MS)
-        return proportionalSetKb("kernel-$kernelId.json")
+        return ProcessFootprint { arguments ->
+          arguments.any { it.endsWith("kernel-$kernelId.json") }
+        }.proportionalSetKb()
       } finally {
         server.send("api/kernels/$kernelId", "DELETE")
         Thread.sleep(SETTLE_MS)
       }
     }
-
-    /**
-     * `Pss:` from `smaps_rollup` of the one process with an argument ending in [argument]: its own
-     * pages plus its share of those it maps with others, which is how Android counts an app's memory.
-     */
-    fun proportionalSetKb(argument: String): Long {
-      val process = File("/proc").listFiles { it.name.all(Char::isDigit) }.orEmpty()
-        .singleOrNull { pid -> arguments(pid).any { it.endsWith(argument) } }
-      checkNotNull(process) { "expected one process with an argument ending in $argument, found none or several" }
-      val pss = File(process, "smaps_rollup").readLines().first { it.startsWith("Pss:") }
-      return pss.split(Regex("\\s+"))[1].toLong()
-    }
-
-    /** A process's arguments, or none for one that exited or is not this app's to read. */
-    fun arguments(pid: File): List<String> = runCatching { File(pid, "cmdline").readText().split('\u0000') }
-      .getOrDefault(emptyList())
 
     /** The server's start from a stopped server to a reported port, as `JupyterServerLauncher.start` times none of it. */
     fun timedServerStart(): Long {
