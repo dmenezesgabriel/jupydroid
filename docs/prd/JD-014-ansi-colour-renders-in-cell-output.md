@@ -101,7 +101,8 @@ weight. §8.3 of `cross-cutting.md` makes VS Code authoritative for presentation
 - **Does ESC reach the renderer?** `withoutAnsiColours` accepts a bare `[31m`, and its KDoc says the escape byte
   is eaten upstream. Every fixture carries a real ESC, and Compose draws U+001B as nothing, so a screenshot of
   `[31m` does not show the byte was missing. Settle: a `KernelOutputs` test over wire JSON carrying `\u001b`,
-  and the T1 device flow showing colour. If ESC arrives, the bare form is not parsed (neither reference parses it).
+  and the T1 device flow showing colour. **Settled in T1:** ESC arrives (`outputOf_keepsTheEscapeByteOfAColouredTraceback`,
+  and the colours on the tablet), so the bare form is not parsed, as neither reference parses it.
 - **Contrast on the error tint.** ANSI colours on `errorContainer` in both themes; settled from T2's
   screenshots.
 
@@ -119,9 +120,9 @@ No port changes: the escapes already travel through `CellOutput` as text.
 
 ## Tasks
 
-- [ ] T1 — Parser, carrier and notebook draw: a stream, a traceback and a `text/plain` repr draw coloured in a
-  notebook on SM-X216B (dark theme).
-- [ ] T2 — The Console and the light theme: the same three in the Console, both themes, contrast on the error
+- [x] T1 — Parser, carrier and notebook draw: a stream, a traceback and a `text/plain` repr draw coloured in a
+  notebook on SM-X216B (the tablet's system theme, light).
+- [ ] T2 — The Console and the dark theme: the same three in the Console, both themes, contrast on the error
   tint measured.
 - [ ] T3 — Reopen: a saved notebook with coloured outputs reopens coloured after a relaunch.
 - [ ] T4 — Demo end to end; ADR for the shared SGR path (replacing ADR-0039's "two ANSI paths" paragraph);
