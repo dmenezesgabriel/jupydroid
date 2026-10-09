@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.console
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.ui.editor.ExecutionStatus
 
 /**
@@ -30,4 +31,6 @@ data class ConsoleEntry(
   val outputs: List<CellOutput>,
   val status: ExecutionStatus,
   val executionCount: Int? = null,
+  /** The `input()` this entry's run is blocked on, or null - a notebook cell's own rule, by entry. */
+  val inputRequest: KernelInputRequest? = null,
 )

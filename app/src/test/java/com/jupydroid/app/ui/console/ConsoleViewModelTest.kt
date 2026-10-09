@@ -6,7 +6,6 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.space.KernelLifecycleException
 import com.jupydroid.app.domain.model.CellOutput
-import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
@@ -15,12 +14,14 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.SessionType
+import com.jupydroid.app.ui.editor.AskingUntilAnsweredKernelGateway
 import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.editor.RecordingKernelGateway
 import com.jupydroid.app.ui.editor.StaleSessionKernelGateway
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -317,16 +318,56 @@ class ConsoleViewModelTest {
     assertEquals("the console now holds the rebound session", changed, session.opened)
   }
 
-  /** The Console folds a prompt the way a cell does: into nothing, so the entry keeps only what printed. */
+  /** An entry blocked in `input()` holds the prompt and keeps running until it is answered. */
   @Test
-  fun submit_foldsAnInputRequestIntoNoOutput() = runTest {
-    val viewModel = consoleViewModel(AskingKernelGateway())
+  fun submit_holdsTheInputRequestWhileTheEntryRuns() = runTest {
+    val viewModel = consoleViewModel(AskingUntilAnsweredKernelGateway())
 
-    viewModel.input.edit { insert(0, "input()") }
-    viewModel.submit()
+    submitted(viewModel, "name = input('Name?')")
+
+    val entry = viewModel.entries.value.single()
+    assertEquals(AskingUntilAnsweredKernelGateway.ASKED, entry.inputRequest)
+    assertEquals(ExecutionStatus.RUNNING, entry.status)
+  }
+
+  /** The answer reaches the kernel, and the entry keeps the echo ahead of what printed with it. */
+  @Test
+  fun answerInput_repliesAndEchoesTheAnswer() = runTest {
+    val gateway = AskingUntilAnsweredKernelGateway()
+    val viewModel = consoleViewModel(gateway)
+    submitted(viewModel, "name = input('Name?')")
+
+    viewModel.answerInput(viewModel.entries.value.single().id, "Ada")
     advanceUntilIdle()
 
-    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "after")), viewModel.entries.value.single().outputs)
+    val entry = viewModel.entries.value.single()
+    assertEquals(listOf(AskingUntilAnsweredKernelGateway.ASKED to "Ada"), gateway.replies)
+    assertEquals(
+      listOf(CellOutput.Stream(StreamName.STDIN, "Name? Ada\n"), CellOutput.Stream(StreamName.STDOUT, "hi Ada\n")),
+      entry.outputs,
+    )
+    assertNull(entry.inputRequest)
+    assertEquals(ExecutionStatus.STOPPED_OK, entry.status)
+  }
+
+  /** Interrupting an entry that is asking ends it, and nothing is left to answer. */
+  @Test
+  fun interrupt_closesThePromptOfTheEntryItStops() = runTest {
+    val viewModel = consoleViewModel(AskingUntilAnsweredKernelGateway())
+    submitted(viewModel, "input('Wait?')")
+
+    viewModel.interrupt()
+    advanceUntilIdle()
+
+    val entry = viewModel.entries.value.single()
+    assertNull(entry.inputRequest)
+    assertEquals(ExecutionStatus.CANCELLED, entry.status)
+  }
+
+  private fun TestScope.submitted(viewModel: ConsoleViewModel, source: String) {
+    viewModel.input.edit { insert(0, source) }
+    viewModel.submit()
+    advanceUntilIdle()
   }
 
   private fun consoleViewModel(gateway: KernelGateway): ConsoleViewModel {
@@ -362,13 +403,4 @@ private class RefusingToConnectKernelGateway : KernelGateway by FakeKernelGatewa
     kernel: KernelChoice?,
     sessionType: SessionType?,
   ): KernelSession = throw KernelLifecycleException("POST api/sessions refused for $documentPath")
-}
-
-/** Asks for input mid-run, then prints and finishes - the order ipykernel sends them in. */
-private class AskingKernelGateway : KernelGateway by FakeKernelGateway() {
-  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
-    emit(KernelEvent.InputRequested(cellId, KernelInputRequest(prompt = "?", password = false, requestHeader = "{}")))
-    emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, "after")))
-    emit(KernelEvent.Idle)
-  }
 }

@@ -8,7 +8,6 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSessions
-import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookHistory
 import com.jupydroid.app.ui.editor.NotebookKernelSession
@@ -131,17 +130,24 @@ class ConsoleViewModel(
   fun interrupt() {
     val running = _entries.value.lastOrNull()?.takeIf { it.status == ExecutionStatus.RUNNING } ?: return
     interrupting = running.id
-    viewModelScope.launch {
-      session.opened?.let { open ->
-        try {
-          kernelGateway.interrupt(open)
-        } catch (_: StaleKernelSessionException) {
-          // The kernel the interrupt named died with its server - nothing to interrupt, but the
-          // dead session must not stay claimed: the landing `session.disposed` already owns.
-          session.endIfMatches(open.serverSessionId)
-        }
-      }
+    viewModelScope.launch { session.whileOpen { open -> kernelGateway.interrupt(open) } }
+  }
+
+  /**
+   * Answers the prompt entry [id] is blocked on - `NotebookCellRuns.answerInput`'s own order: the
+   * echo is folded first, so it precedes what the entry prints with the answer (ADR-0082). An
+   * entry with no prompt is a no-op.
+   *
+   * ```kotlin
+   * viewModel.answerInput(entry.id, "Ada")   // after entry.inputRequest appeared
+   * ```
+   */
+  fun answerInput(id: String, value: String) {
+    val request = _entries.value.firstOrNull { it.id == id }?.inputRequest ?: return
+    _entries.update { entries ->
+      entries.withEntry(id) { it.copy(outputs = it.outputs + request.echoOf(value), inputRequest = null) }
     }
+    viewModelScope.launch { session.whileOpen { open -> kernelGateway.replyInput(open, request, value) } }
   }
 
   private suspend fun run(id: String, source: String) {
@@ -161,7 +167,7 @@ class ConsoleViewModel(
 private fun List<ConsoleEntry>.after(id: String, event: KernelEvent): List<ConsoleEntry> = when (event) {
   is KernelEvent.Output -> withEntry(id) { it.copy(outputs = it.outputs + event.output) }
   is KernelEvent.ExecutionCount -> withEntry(id) { it.copy(executionCount = event.count) }
-  is KernelEvent.InputRequested -> this
+  is KernelEvent.InputRequested -> withEntry(id) { it.copy(inputRequest = event.request) }
   KernelEvent.Idle -> this
 }
 
@@ -173,6 +179,8 @@ private fun List<ConsoleEntry>.after(id: String, event: KernelEvent): List<Conso
 private fun List<ConsoleEntry>.resolved(id: String, cancelled: Boolean): List<ConsoleEntry> = withEntry(id) { entry ->
   val raised = entry.outputs.any { it is CellOutput.Error }
   entry.copy(
+    // The prompt belongs to the run that asked; once it ends there is nobody to answer.
+    inputRequest = null,
     status = when {
       cancelled -> ExecutionStatus.CANCELLED
       raised -> ExecutionStatus.STOPPED_ERROR

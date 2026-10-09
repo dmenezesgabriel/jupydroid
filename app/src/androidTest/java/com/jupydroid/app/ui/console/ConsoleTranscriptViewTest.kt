@@ -8,15 +8,20 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.editor.ExecutionStatus
+import com.jupydroid.app.ui.editor.INPUT_PROMPT_DESCRIPTION
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -36,7 +41,7 @@ class ConsoleTranscriptViewTest {
 
   @Test
   fun eachEntrysInputIsDisplayed() {
-    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES) } }
+    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES, onAnswerInput = { _, _ -> }) } }
 
     compose.onNodeWithText("1 + 1").assertIsDisplayed()
     compose.onNodeWithText("raise ValueError('boom')").assertIsDisplayed()
@@ -46,7 +51,7 @@ class ConsoleTranscriptViewTest {
   /** Bracket notation, not the `>>>` REPL style - see the plan's own design decision. */
   @Test
   fun eachEntrysPromptShowsItsPositionInTheTranscript() {
-    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES) } }
+    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES, onAnswerInput = { _, _ -> }) } }
 
     compose.onNodeWithText("[1]:").assertIsDisplayed()
     compose.onNodeWithText("[2]:").assertIsDisplayed()
@@ -61,7 +66,7 @@ class ConsoleTranscriptViewTest {
    */
   @Test
   fun outputsRenderThroughTheReusedCellOutputsComposable() {
-    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES) } }
+    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES, onAnswerInput = { _, _ -> }) } }
 
     compose.onAllNodesWithContentDescription("Cell output").assertCountEquals(2)
   }
@@ -77,7 +82,7 @@ class ConsoleTranscriptViewTest {
    */
   @Test
   fun capturesATranscriptScreenshotForEvidence() {
-    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES) } }
+    compose.setContent { JupyterDroidTheme { ConsoleTranscript(ENTRIES, onAnswerInput = { _, _ -> }) } }
 
     val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
     val context = ApplicationProvider.getApplicationContext<Context>()
@@ -89,6 +94,30 @@ class ConsoleTranscriptViewTest {
     automation.executeShellCommand("cp ${file.absolutePath} /sdcard/$EVIDENCE_FILE_NAME").use {
       it.fileDescriptor.let { fd -> java.io.FileInputStream(fd).use { stream -> stream.readBytes() } }
     }
+  }
+
+  /** An entry blocked in `input()` is answered from the transcript, as a notebook cell is. */
+  @Test
+  fun anEntryWaitingOnInputDrawsAFieldThatAnswersIt() {
+    val answered = mutableListOf<Pair<String, String>>()
+    val asking = ConsoleEntry(
+      id = "e9",
+      input = "input('Again?')",
+      outputs = emptyList(),
+      status = ExecutionStatus.RUNNING,
+      inputRequest = KernelInputRequest(prompt = "Again?", password = false, requestHeader = "{}"),
+    )
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleTranscript(listOf(asking), onAnswerInput = { id, answer -> answered += id to answer })
+      }
+    }
+
+    compose.onNodeWithText("Again?").assertIsDisplayed()
+    compose.onNodeWithContentDescription(INPUT_PROMPT_DESCRIPTION).performTextInput("yes")
+    compose.onNodeWithContentDescription(INPUT_PROMPT_DESCRIPTION).performImeAction()
+
+    assertEquals(listOf("e9" to "yes"), answered)
   }
 
   private companion object {

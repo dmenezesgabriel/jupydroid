@@ -24,18 +24,28 @@ import com.jupydroid.app.ui.editor.executionLabel
  * entry's position in [entries].
  *
  * ```kotlin
- * ConsoleTranscript(listOf(ConsoleEntry("e1", "1 + 1", listOf(CellOutput.Stream(STDOUT, "2\n")), STOPPED_OK, 1)))
+ * ConsoleTranscript(
+ *   listOf(ConsoleEntry("e1", "1 + 1", listOf(CellOutput.Stream(STDOUT, "2\n")), STOPPED_OK, 1)),
+ *   onAnswerInput = viewModel::answerInput,
+ * )
  * ```
  */
 @Composable
-fun ConsoleTranscript(entries: List<ConsoleEntry>, modifier: Modifier = Modifier) {
+fun ConsoleTranscript(
+  entries: List<ConsoleEntry>,
+  /** `(entryId, answer)` - an entry's prompt field submitted. */
+  onAnswerInput: (String, String) -> Unit,
+  modifier: Modifier = Modifier,
+) {
   LazyColumn(modifier = modifier) {
-    items(entries, key = ConsoleEntry::id) { entry -> ConsoleTranscriptEntry(entry) }
+    items(entries, key = ConsoleEntry::id) { entry ->
+      ConsoleTranscriptEntry(entry, onAnswerInput = { answer -> onAnswerInput(entry.id, answer) })
+    }
   }
 }
 
 @Composable
-private fun ConsoleTranscriptEntry(entry: ConsoleEntry) {
+private fun ConsoleTranscriptEntry(entry: ConsoleEntry, onAnswerInput: (String) -> Unit) {
   Column(modifier = Modifier.padding(vertical = Spacing.sm)) {
     executionLabel(CellKind.CODE, entry.status, entry.executionCount)?.let { prompt ->
       Text(text = prompt, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
@@ -47,8 +57,8 @@ private fun ConsoleTranscriptEntry(entry: ConsoleEntry) {
       scrolled = false,
       search = emptyList(),
       onExpand = {},
-      inputRequest = null,
-      onAnswerInput = {},
+      inputRequest = entry.inputRequest,
+      onAnswerInput = onAnswerInput,
     )
   }
 }

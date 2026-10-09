@@ -92,6 +92,10 @@ fun ConsoleScreen(
       }
     },
   ) { padding ->
-    ConsoleTranscript(entries = entries, modifier = Modifier.padding(padding).fillMaxSize())
+    ConsoleTranscript(
+      entries = entries,
+      onAnswerInput = viewModel::answerInput,
+      modifier = Modifier.padding(padding).fillMaxSize(),
+    )
   }
 }
