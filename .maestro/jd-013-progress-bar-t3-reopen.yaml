@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# A notebook saved with one `stream` output per flush - `\r0%` ... `\r100%`, ` done`, `42`, `56`,
+# the frames the kernel sends - opens as one output reading `100% done`, `42`, `56`: the reader folds
+# adjacent same-name streams and interprets `\r` (NotebookOutputReader.kt, `toDomainOutputs`).
+# Seeded by scripts/jd-013-progress-bar-t3-driver.sh.
+#
+# Nothing runs: the outputs are the ones stored in the fixture, so no kernel is needed and the
+# assertion reads what the file held.
+#
+# The assertion full-matches one output node, so it fails on any of: a row per stored output, a
+# `\r` drawn literally, or `42`/`56` in an output of their own.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Progress Bar Split.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Progress Bar Split.ipynb"
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 30000
+- takeScreenshot: 01-the-split-notebook-opens
+- assertVisible:
+    text: "100% done\n42\n56"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 02-the-stored-frames-read-as-one-line-and-the-prints-join-it
