@@ -128,6 +128,7 @@ audit's, `GAP-093`–`GAP-119` in [`architecture.md` §11](architecture.md).
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
 | `JD-013` | **A progress bar rewrites its own line:** adjacent same-name streams fold into one output and `\r`/`\b` rewrite it in place, in the notebook and the Console | shipped | — | `GAP-112` |
+| `JD-014` | **A cell's coloured output draws in colour:** SGR escapes in a stream, a traceback or a `text/plain` repr colour it with VS Code's ANSI ramp, in the notebook and the Console | in-progress ← next | [PRD](prd/JD-014-ansi-colour-renders-in-cell-output.md) | `GAP-106` |
 
 ### Known gaps
 
