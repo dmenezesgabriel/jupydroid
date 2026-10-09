@@ -127,7 +127,7 @@ audit's, `GAP-093`–`GAP-119` in [`architecture.md` §11](architecture.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-013` | **A progress bar rewrites its own line:** adjacent same-name streams fold into one output and `\r`/`\b` rewrite it in place, in the notebook and the Console | in-progress ← next | [JD-013](prd/JD-013-a-progress-bar-rewrites-its-own-line.md) | `GAP-112` |
+| `JD-013` | **A progress bar rewrites its own line:** adjacent same-name streams fold into one output and `\r`/`\b` rewrite it in place, in the notebook and the Console | shipped | — | `GAP-112` |
 
 ### Known gaps
 

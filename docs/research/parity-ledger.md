@@ -2298,7 +2298,7 @@ to disk as `{}`, an output `nbformat.validate` refuses. `EditorUiStateTest`'s th
 `aClearOutput*` cases and `KernelOutputsTest.outputOf_readsClearOutputWait` pinned it;
 `afterOutput` now executes the instruction against the model — immediate clears drop the list,
 `wait` sets `clearsPending` and the next output spends it (`model.ts:301-311`'s two cases) — so
-it never lands in `outputs`, never renders, and never writes. Eight GAPs open — `GAP-112` through `GAP-119`; `GAP-014`,
+it never lands in `outputs`, never renders, and never writes. Eight GAPs opened — `GAP-112` through `GAP-119`, `GAP-112` closed since by `withOutputFolded` (`domain/model/StreamFold.kt`); `GAP-014`,
 `GAP-023` and `GAP-104` are cited where the read lands on their ground. Fold calls the PRD left
 open: the stdin row cited `GAP-014` rather than re-gapping (its stream-name echo dropped on the
 same lines; both closed since by ADR-0082), `isolated` verdicts `adapted` under ADR-0039's no-DOM answer rather than `absent`
@@ -2309,7 +2309,7 @@ frame, a visible wrongness no comment states — while the carrier it needs stay
 | Reference entry | Ours | Verdict | Why / id |
 |---|---|---|---|
 | `OutputArea`/`OutputAreaModel` — the widget+model pair: `add`/`insert`, `changed`/`stateChanged` signals, `fromJSON`/`toJSON`, `execute` clearing outputs before a run (`packages/outputarea/src/{widget,model}.ts`) | `EditorUiState.outputs` + `after`/`afterOutput` projected over `CellOutput`; `startingRun`'s `outputs - cellId` on re-run | adapted | the same model duties run as a `Map` plus pure functions — `startingRun`'s clear is `execute()`'s `clear()`, commented on the function; each message's rule verdicts in its own row below |
-| stream accumulation — `shouldCombine` folding adjacent same-name streams, `processText`/`fixBackspace`/`fixCarriageReturn` interpreting `\b` and `\r` (`model.ts:279-389`, `:545-659`) | every `stream` message appends its own `CellOutput.Stream`; no combining, no control-character pass | **absent** | `GAP-112`. One machinery half: a `tqdm` bar is one output per repaint; a same-name split is a new row per flush |
+| stream accumulation — `shouldCombine` folding adjacent same-name streams, `processText`/`fixBackspace`/`fixCarriageReturn` interpreting `\b` and `\r` (`model.ts:279-389`, `:545-659`) | `withOutputFolded` (`domain/model/StreamFold.kt`): a `stream` joins the last output when the names match and `\r`/`\b`/`\n` move a cursor carried across chunks; `afterOutput`, `ConsoleViewModel` and the disk read (`toDomainOutputs`, as `fromJSON` does) all add through it | present | the same merge rule and the same cursor, so a saved stream holds JupyterLab's text; `GAP-112` closed by it |
 | `OutputPrompt` — `Out[n]` beside each `execute_result`, bound to the model's `executionCount` (`widget.ts:895-909`, `tokens.ts`) | `executionLabel`'s `[n]:` on the input side only; `CellOutput.ExecuteResult.executionCount` never drawn | **absent** | `GAP-114`. The PRD's "no `Out[n]` prompt" confirmed — the count arrives and round-trips; nothing draws it beside the output |
 | `PromptOverlay` — the output-column overlay that toggles the `scrolled` metadata flag (`widget.ts`, `tokens.ts`) | `CellAction.ToggleOutputsScrolled` in the cell menu; `outputsScrolled` persisted the same way | adapted | same flag, different affordance — the hover/click overlay is a pointer's luxury the menu row answers on a tablet; the toggle itself verdicted at `AUD-002` |
 | `Stdin`/`onInputRequest`/`allow_stdin: true` — a prompt widget on `input_request`, the reply echoed as `stream(name:'stdin')` (`widget.ts:547-629`) | `InputPromptField` (`ui/editor/CellInputPrompt.kt`) at the foot of `CellOutputs`, masked for `password`; submit appends `KernelInputRequest.echoOf` (`Name? Ada`, `Secret? ········`) as `StreamName.STDIN`, which the disk round-trips as `"stdin"` | adapted | the same field and the same echo; no line history (`inputHistoryScope`) and no placeholder hint, both a hardware keyboard's ([ADR-0082](../adr/0082-a-cells-input-is-answered-inline-and-kept-as-a-stdin-echo.md)) |
@@ -2414,8 +2414,9 @@ What the walk found, beyond the rows above:
   buffer behind them is honest: 256 frames of headroom, `tryEmit` never blocking OkHttp's
   reader thread, a refusal logged `kernel.frame.dropped` rather than queued without bound.
   Inside the model `afterOutput`'s `carried + output` copies the cell's list per message,
-  bounded only by the output count — which `GAP-115`'s missing `maxNumberOutputs` and
-  `GAP-112`'s missing `shouldCombine` leave unbounded. And `CellOutputs`'s
+  bounded only by the output count — which `GAP-115`'s missing `maxNumberOutputs` leaves
+  unbounded; a progress loop is no longer one output per repaint, since `withOutputFolded`
+  folds it. And `CellOutputs`'s
   `mapNotNull { it.render() }` re-derives every rendered output on each recomposition of the
   item: `OutputImage` memoizes only the bitmap decode (`remember(output)`), `MarkdownCell`'s
   blocks are `remember`ed by source — the html/base64/ANSI work is re-paid on every state bump

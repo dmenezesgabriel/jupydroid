@@ -1509,16 +1509,6 @@ extension per feature (`jupyterlab/packages/markedparser-extension/src/index.ts`
 the extension dependencies and maps their AST nodes — commonmark's `TableBlock` already has a
 home in `RichBlock.Table`, which `HtmlTable` fills today.
 
-### GAP-112 — Stream output never merges, and `\r`/`\b` draw literally
-
-`OutputAreaModel.add` folds a `stream` into the previous output when the `name`s match, and
-`processText`/`fixBackspace`/`fixCarriageReturn` interpret `\b` and `\r` so a progress bar
-rewrites its own line (`jupyterlab/packages/outputarea/src/model.ts:279-389`, `:545-659`). Ours
-appends each `stream` message as its own `CellOutput.Stream` in `EditorUiState.afterOutput`, and
-`withoutAnsiColours` touches ANSI escapes only — a `tqdm` loop lands as one output per repaint,
-carriage returns and all. The repair is the model-side accumulator — combine by name, then run
-the control-character pass — and `afterOutput` is already the one place the list changes.
-
 ### GAP-113 — `update_display_data` appends instead of updating
 
 The reference registers every `display_data`/`execute_result` under its `transient.display_id`,
@@ -1548,7 +1538,7 @@ is past the cap, and `setMaxNumberOutputs` re-trims on change
 (`jupyterlab/packages/outputarea/src/{model,widget}.ts`). Ours has no bound: `afterOutput`
 appends for as long as the kernel sends, and `CellOutputsView`'s scroll container grows with it —
 `while True: print()` fills the editor with one row per line until the device says otherwise. The
-repair is a cap in `afterOutput` — the same place `GAP-112`'s accumulator lives — plus the
+repair is a cap in `afterOutput` — the same place the stream fold, `withOutputFolded`, already runs — plus the
 "outputs exceeded" surface the cap needs.
 
 ### GAP-116 — An execute reply's `payload` never lands

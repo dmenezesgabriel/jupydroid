@@ -6,6 +6,14 @@ package com.jupydroid.app.domain.model
  * progress bar rewrites its own line instead of leaving one output per repaint
  * (jupyterlab@7f0e690 packages/outputarea/src/model.ts, `_add` and `Private.processText`).
  *
+ * The cursor is carried across chunks, as JupyterLab carries `_streamIndex`, rather than re-running
+ * a stateless pass over the joined text as VS Code does (vscode@3f3380c
+ * src/vs/workbench/contrib/notebook/common/notebookCommon.ts, `formatStreamText`). The two disagree
+ * once a `\r` ends a chunk: `"abcdef\r"`, `"xy"`, `"z"` is `xyzdef` here and `xycdefz` there
+ * (StreamFoldTest.theCursorCarriesAcrossChunks).
+ * JupyterLab's answer is the one a notebook saved here must match, and each chunk costs only its
+ * own length.
+ *
  * The match is on the last output alone: JupyterLab's `_lastStreamName` resets on every
  * non-stream output and on `clear()`, and ours empties the list where that one resets the name.
  *
