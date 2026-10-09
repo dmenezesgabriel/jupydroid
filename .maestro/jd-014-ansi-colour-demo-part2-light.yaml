@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# After part 1, the app is switched to Light in its own Settings, with the system still dark, so
+# the override is what decides. The same Console transcript and notebook now draw in VS Code's
+# light ANSI ramp, and the traceback keeps its ruled frame on the light surface. Nothing runs in
+# this part; the colours are measured off the screenshots (evidence README).
+#
+# Settings rather than `cmd uimode night no`: the system switch recreates the activity, and a
+# recreated Console tab composes nothing (Navigation.kt's `consoleSession`, plain `remember`).
+#
+# TABLET ONLY (SM-X216B): part 1 runs cells.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+- tapOn: "Light"
+- tapOn: "Back to files|Close tab: Settings"
+- extendedWaitUntil:
+    visible:
+      text: "red bold green orange"
+      childOf: {text: "Cell output"}
+    timeout: 10000
+- takeScreenshot: 03-the-console-draws-the-same-colours-in-light
+# The notebook's tab and the Console's carry the same name; the notebook's is the first.
+- tapOn:
+    text: "Tab: Untitled.ipynb"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "[\\s\\S]*ZeroDivisionError: division by zero"
+      childOf: {text: "Cell output", index: 2}
+    timeout: 10000
+- assertVisible:
+    text: "blue"
+    childOf: {text: "Cell output", index: 1}
+- takeScreenshot: 04-the-notebook-draws-its-colours-in-light

@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 2. Relaunched and reopened, the notebook still draws
+# the coloured print, repr and traceback, read back off the disk: no cell runs in this part, so
+# each full-match below is what the kernel produced in part 1 and the file kept. The driver reads
+# the saved file after it.
+#
+# TABLET ONLY (SM-X216B): part 1 runs cells.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "red bold green orange"
+      childOf: {text: "Cell output"}
+    timeout: 30000
+- assertVisible:
+    text: "blue"
+    childOf: {text: "Cell output", index: 1}
+- assertVisible:
+    text: "[\\s\\S]*ZeroDivisionError: division by zero"
+    childOf: {text: "Cell output", index: 2}
+- takeScreenshot: 05-the-coloured-outputs-survive-a-relaunch

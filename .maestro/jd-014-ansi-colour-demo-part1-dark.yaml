@@ -1,0 +1,128 @@
+appId: com.jupydroid.app
+---
+# The PRD's demo, typed into a new notebook rather than seeded, with the system in dark mode and
+# the app's theme left on System (reset_notebooks clears the override): a coloured print, a repr
+# that colours itself and `1/0` draw in VS Code's dark ANSI ramp, and so does the print run again
+# from the Console on the notebook's kernel. The colours are measured off the screenshots (evidence
+# README). Run by scripts/jd-014-ansi-colour-demo-driver.sh, which turns the system light after
+# this part.
+#
+# TABLET ONLY (SM-X216B): the flow runs cells.
+#
+# Each assertion full-matches one output node. FakeKernelGateway would echo the source, which holds
+# `\x1b[31m` as written, so `red bold green orange` and `blue` match only when a kernel ran the
+# escapes and the renderer took them out; `division by zero` is in no source at all.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+
+# Cell 1, the print. The empty cell's field has no text to tap by, so it is tapped at a point
+# inside it: SM-X216B's 1920x1200 puts the field at [805,334][1884,406] (`maestro hierarchy`).
+- tapOn:
+    point: "1300,354"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow: jd-014-ansi-colour-demo-type-print.yaml
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run installs the Space's kernel and starts it.
+- extendedWaitUntil:
+    visible:
+      text: "red bold green orange"
+      childOf: {text: "Cell output"}
+    timeout: 180000
+
+# Cell 2, the repr. Its field is [805,571][1884,643] and the linter's mark covers
+# [805,576][1884,607], so it is tapped below the mark, which opens its own popup. The line after
+# the `def` keeps the class body's indent (PythonTypingRules.continueIndent), so `eraseText: 4`
+# takes it back off before `Blue()`.
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Insert code below"
+- tapOn:
+    point: "1300,625"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "class Blue:"
+- pressKey: Enter
+- inputText: "def __repr__(self): return \"\\x1b[34mblue\\x1b[0m\""
+- pressKey: Enter
+- eraseText: 4
+- inputText: "Blue()"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 1
+# `childOf` takes the first container it matches, so the second cell's is named by index.
+- extendedWaitUntil:
+    visible:
+      text: "blue"
+      childOf: {text: "Cell output", index: 1}
+    timeout: 60000
+
+# Cell 3, the traceback: field [805,824][1884,896], mark [805,844][1884,875].
+- tapOn:
+    text: "Cell actions"
+    index: 1
+- tapOn: "Cell menu Insert code below"
+- tapOn:
+    point: "1300,888"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "1/0"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 2
+- extendedWaitUntil:
+    visible:
+      text: "[\\s\\S]*ZeroDivisionError: division by zero"
+      childOf: {text: "Cell output", index: 2}
+    timeout: 60000
+# The traceback's last line sits under the symbol row; a short swipe over the outputs brings it up
+# and keeps the print in view.
+- swipe:
+    start: "1300,760"
+    end: "1300,560"
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: 01-the-notebook-draws-its-colours-in-dark
+
+# The Console, on the notebook's own kernel. The cell still has focus after Run, and a notebook in
+# edit mode draws the symbol row along its bottom instead of the kernel bar (`editorBottomBar`).
+# The keyboard is already down, so one `back` is edit mode's own exit to command mode.
+- back
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- runFlow: jd-014-ansi-colour-demo-type-print.yaml
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible:
+      text: "red bold green orange"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+# The Console's field keeps the keyboard up after Run, and it covers the entry.
+- hideKeyboard
+- takeScreenshot: 02-the-console-draws-the-same-colours-in-dark
