@@ -1,7 +1,9 @@
 package com.jupydroid.app.domain.model
 
+import android.os.SystemClock
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -13,13 +15,20 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class StreamFoldOnArtTest {
-  @Test(timeout = ONE_BIG_CHUNK_BOUND_MS)
+  /** Bounded in this thread's CPU time, as StreamFoldTest's is: a wall clock measures the host. */
+  @Test
   fun oneMessageOfManyLinesFoldsInLinearTime() {
     val chunk = (0 until LINES_IN_ONE_MESSAGE).joinToString("") { "$it\n" }
 
+    val before = SystemClock.currentThreadTimeMillis()
     val folded = emptyList<CellOutput>().withOutputFolded(CellOutput.Stream(StreamName.STDOUT, chunk))
+    val spentMs = SystemClock.currentThreadTimeMillis() - before
 
     assertEquals(chunk, (folded.single() as CellOutput.Stream).text)
+    assertTrue(
+      "folding took $spentMs ms of CPU; expected under $ONE_BIG_CHUNK_BOUND_MS",
+      spentMs < ONE_BIG_CHUNK_BOUND_MS,
+    )
   }
 
   private companion object {

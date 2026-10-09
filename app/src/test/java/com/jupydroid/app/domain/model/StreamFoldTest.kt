@@ -1,7 +1,9 @@
 package com.jupydroid.app.domain.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.lang.management.ManagementFactory
 
 /**
  * How a kernel's stream messages land in a cell's outputs - JupyterLab's `OutputAreaModel._add`
@@ -91,12 +93,25 @@ class StreamFoldTest {
    * A runaway print folds in time linear in what it printed. Each `\n` and each run of text used
    * to rebuild the whole stream, so 160k lines took 15 s on a desktop JVM and froze the editor
    * for minutes on SM-X216B. The bound is a wide margin over the linear fold, not a benchmark.
+   *
+   * Bounded in this thread's **CPU** time, not wall time: a wall-clock bound measured the host -
+   * the same fold took 0.36 s idle and 3.7 s in a build sharing the machine, and failed a gate
+   * that had nothing wrong with it.
    */
-  @Test(timeout = RUNAWAY_FOLD_BOUND_MS)
+  @Test
   fun aRunawayPrintFoldsInLinearTime() {
     val chunks = (0 until RUNAWAY_LINES).chunked(LINES_PER_FLUSH).map { lines -> lines.joinToString("") { "$it\n" } }
+    val threads = ManagementFactory.getThreadMXBean()
 
-    assertEquals(RUNAWAY_LINES, textOf(*chunks.toTypedArray()).count { it == '\n' })
+    val before = threads.currentThreadCpuTime
+    val text = textOf(*chunks.toTypedArray())
+    val spentMs = (threads.currentThreadCpuTime - before) / NANOS_PER_MS
+
+    assertEquals(RUNAWAY_LINES, text.count { it == '\n' })
+    assertTrue(
+      "folding took $spentMs ms of CPU; expected under $RUNAWAY_FOLD_BOUND_MS",
+      spentMs < RUNAWAY_FOLD_BOUND_MS,
+    )
   }
 
   private companion object {
@@ -105,5 +120,6 @@ class StreamFoldTest {
     /** Lines per message. The cost under test is per token, so this only sets how many messages there are. */
     const val LINES_PER_FLUSH = 2_000
     const val RUNAWAY_FOLD_BOUND_MS = 3_000L
+    const val NANOS_PER_MS = 1_000_000L
   }
 }
