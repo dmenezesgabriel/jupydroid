@@ -103,6 +103,7 @@ bound different runaways, so this item adopts both.
 | Count cut | first N + button (JupyterLab) | — | **50**, JupyterLab's notebook default |
 | Expand | in place (JupyterLab) · open in an editor (VS Code) | an editor needs a document surface for an output, which `GAP-100` says we lack | **in place**, per output, lasting while the output does |
 | Where colour is cut | parse the tail alone (VS Code) | the tail loses a colour set in the hidden middle | **cut after colouring**, so the tail keeps it |
+| A search hit in what is hidden | search only what is drawn (both) · search the model and expand (`expandParent`, `withMatchRevealed`) | expanding a 200k-line output costs its whole draw | **stepping onto it expands that output**, and it stays expanded; typing a query expands nothing |
 
 ## Gap analysis
 
@@ -119,13 +120,13 @@ bound different runaways, so this item adopts both.
 - A final `\n` ends the last line rather than opening an empty one. VS Code's split counts it, so its tail spends
   a row on nothing after every `print`.
 - Colour is cut after the SGR walk (see the trade-offs table).
+- Both references search only the drawn DOM, so a hidden line is never a hit. Here search reads the model, so a
+  hidden line is counted, and stepping onto it draws it (see the trade-offs table).
 
 ## Open decisions
 
-- **Search into a hidden region.** Search already reads the model. The recommendation is that stepping onto a
-  hit in the hidden middle expands that output, which is JupyterLab's `expandParent` precedent. To be settled in T5.
 - **Scrolled mode.** The recommendation is VS Code's last-5000-lines inside the existing 24-line box. To be
-  settled in T5 against a measurement.
+  settled in T5b against a measurement.
 
 ## Surface
 
@@ -155,7 +156,8 @@ There are no port changes: this is a fold repair and a view.
 - [x] T4: both caps in the Console. Its transcript draws through `CellOutputs`, so this needed no code, only
   tests that pin it. On SM-X216B a Console's 200k-line print draws its head, the row and its tail, and expands in
   ~26 s. Its 300 `display()` calls draw `0`…`49` and `Show more outputs`, and a tap draws the rest through `299`.
-- [ ] T5: search into a hidden region, and scrolled mode's tail.
+- [ ] T5a: stepping onto a search hit in the hidden lines, or past the 50th output, draws that output whole.
+- [ ] T5b: scrolled mode's tail, settled against a measurement of a scrolled 200k-line print.
 - [ ] T6: run the demo end to end; write an ADR ("an output is capped in the view, never in the model"); rewrite
   GAP-115; delete this PRD; ship the backlog row.
 
@@ -165,3 +167,4 @@ There are no port changes: this is a fold repair and a view.
 - Memory: the model keeps every line, as both references do. The server's 1 MB/s iopub limit is the only bound on
   the inflow.
 - `update_display_data` replacing in place, which is `GAP-113`.
+- Scrolling to the match's line inside a tall output. A step scrolls to the cell, as it did before this item.
