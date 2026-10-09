@@ -103,8 +103,9 @@ weight. §8.3 of `cross-cutting.md` makes VS Code authoritative for presentation
   `[31m` does not show the byte was missing. Settle: a `KernelOutputs` test over wire JSON carrying `\u001b`,
   and the T1 device flow showing colour. **Settled in T1:** ESC arrives (`outputOf_keepsTheEscapeByteOfAColouredTraceback`,
   and the colours on the tablet), so the bare form is not parsed, as neither reference parses it.
-- **Contrast on the error tint.** ANSI colours on `errorContainer` in both themes; settled from T2's
-  screenshots.
+- **Contrast on the error tint.** **Settled in T2:** ANSI red `#CD3131` measured 2.97:1 on the dark tint
+  `#3A1D1D`, so an error carrying colour draws on the surface with an error rule, as VS Code draws it
+  without a fill (3.61:1 dark, 5.15:1 light). A monochrome error keeps the tint. T4's ADR records it.
 
 ## Surface
 
@@ -122,7 +123,7 @@ No port changes: the escapes already travel through `CellOutput` as text.
 
 - [x] T1 — Parser, carrier and notebook draw: a stream, a traceback and a `text/plain` repr draw coloured in a
   notebook on SM-X216B (the tablet's system theme, light).
-- [ ] T2 — The Console and the dark theme: the same three in the Console, both themes, contrast on the error
+- [x] T2 — The Console and the dark theme: the same three in the Console, both themes, contrast on the error
   tint measured.
 - [ ] T3 — Reopen: a saved notebook with coloured outputs reopens coloured after a relaunch.
 - [ ] T4 — Demo end to end; ADR for the shared SGR path (replacing ADR-0039's "two ANSI paths" paragraph);
