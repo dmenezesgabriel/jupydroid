@@ -7,11 +7,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellOutput
@@ -127,6 +130,49 @@ class CellOutputsViewTest {
     )
   }
 
+  /**
+   * A runaway print is one stream whose text keeps growing, so it is cut by lines: the head and
+   * the tail are drawn, the middle is a row saying how much is hidden, and pressing it draws all.
+   */
+  @Test
+  fun aLongOutputDrawsItsHeadAndTailUntilShowAllIsPressed() {
+    showOutputs(listOf(hundredLines()), scrolled = false)
+
+    compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(0)
+    compose.onAllNodesWithText("line 99", substring = true).assertCountEquals(1)
+    compose.onNodeWithContentDescription("70 lines hidden").assertIsDisplayed().performClick()
+    compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
+  }
+
+  /** A scrolled output already bounds its height, so it keeps every line until it has a cut of its own. */
+  @Test
+  fun aScrolledLongOutputIsNotCut() {
+    showOutputs(listOf(hundredLines()), scrolled = true)
+
+    compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
+  }
+
+  private fun showOutputs(outputs: List<CellOutput>, scrolled: Boolean) {
+    compose.setContent {
+      JupyterDroidTheme {
+        CellOutputs(
+          outputs = outputs,
+          hidden = false,
+          scrolled = scrolled,
+          search = emptyList(),
+          onExpand = {},
+          inputRequest = null,
+          onAnswerInput = {},
+        )
+      }
+    }
+  }
+
+  private fun hundredLines() = CellOutput.Stream(
+    name = StreamName.STDOUT,
+    text = (0 until HUNDRED).joinToString("\n", postfix = "\n") { "line $it" },
+  )
+
   private fun oneLine() = CellOutput.Stream(name = StreamName.STDOUT, text = "one line")
 
   /** Fifty lines is comfortably past 24 - the reference's `max-height: 24em` - on any font size. */
@@ -137,6 +183,7 @@ class CellOutputsViewTest {
 
   private companion object {
     const val FIFTY = 50
+    const val HUNDRED = 100
 
     /** The reference line this test compares an output against - see the test's own docstring. */
     const val CODE_LINE = "one-line-of-code"

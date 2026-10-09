@@ -33,7 +33,15 @@ import com.jupydroid.app.theme.Spacing
  */
 @Composable
 internal fun HiddenCellsRow(count: Int, onExpand: () -> Unit, modifier: Modifier = Modifier) {
-  val label = hiddenCellsLabel(count)
+  HiddenItemsRow(hiddenCellsLabel(count), onExpand, modifier)
+}
+
+/**
+ * The row itself, named by what it hides: [HiddenCellsRow]'s section and a long output's middle
+ * lines (`OutputLineWindow`) are one affordance - a count, and a tap that brings them back.
+ */
+@Composable
+internal fun HiddenItemsRow(label: String, onExpand: () -> Unit, modifier: Modifier = Modifier) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = modifier

@@ -15,7 +15,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -28,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -79,7 +84,7 @@ private fun RenderedOutputs(
     // Collapsed beats scrolled: there is no height to bound when nothing is drawn.
     hidden -> CollapsedCell(rendered.collapsedPreview(), COLLAPSED_OUTPUTS, onExpand)
     scrolled -> ScrolledOutputs(rendered, search)
-    else -> OutputColumn(rendered, search, modifier = Modifier.fillMaxWidth())
+    else -> OutputColumn(rendered, search, windowed = true, modifier = Modifier.fillMaxWidth())
   }
 }
 
@@ -103,6 +108,8 @@ private fun ScrolledOutputs(rendered: List<RenderedOutput>, search: List<CellSea
     OutputColumn(
       rendered,
       search,
+      // The box already bounds the height; its own cut is the last lines, not head and tail.
+      windowed = false,
       // verticalScroll bounds the Column's own *layout* size but draws the overflow past it
       // rather than cropping it - clipToBounds is what makes the bound a visual one too, and
       // without it the tail of a tall output is still on screen, just past what a user would
@@ -137,12 +144,14 @@ private fun scrolledOutputsHeight(): Dp {
 private fun OutputColumn(
   rendered: List<RenderedOutput>,
   search: List<CellSearchHighlight>,
+  /** Whether a long text draws only its head and tail - see [outputLineWindowOf]. */
+  windowed: Boolean,
   modifier: Modifier = Modifier,
 ) {
   Column(modifier = modifier.semantics { contentDescription = "Cell output" }) {
     rendered.forEachIndexed { at, output ->
       when (output) {
-        is RenderedOutput.Text -> OutputText(output, search.getOrElse(at) { CellSearchHighlight.NONE })
+        is RenderedOutput.Text -> OutputText(output, search.getOrElse(at) { CellSearchHighlight.NONE }, windowed)
         is RenderedOutput.Image -> OutputImage(output)
         // The same renderer a markdown cell uses: `text/html` parses to the same blocks.
         is RenderedOutput.Document -> RichText(output.blocks, Modifier.fillMaxWidth())
@@ -152,34 +161,65 @@ private fun OutputColumn(
 }
 
 @Composable
-private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight) {
+private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight, windowed: Boolean) {
   // An `AnnotatedString` rather than a second transformation: an output is drawn, never typed
   // into, so there is no `TextFieldBuffer` here and nothing to keep in step with a caret.
   val text = output.coloured(LocalAnsiPalette.current).withSearchMatches(search, searchMatchStyles())
+  // Per output and saveable, as JupyterLab's "Show more outputs" is per output area and lasts the
+  // widget's life: a re-run empties the outputs first, which drops this, so the next run is cut again.
+  var showAll by rememberSaveable { mutableStateOf(false) }
+  val window = if (windowed && !showAll) outputLineWindowOf(output.text) else null
   val colors = MaterialTheme.colorScheme
   when (output.frame()) {
-    OutputTextFrame.PLAIN -> Text(text = text, style = codeTextStyle(), color = colors.onSurface)
+    OutputTextFrame.PLAIN -> WindowedText(text, window, colors.onSurface, Modifier) { showAll = true }
     // A traceback is long and needs to be findable at a glance, so it gets its own tinted
     // block rather than only a colour that a monospace wall of text swallows.
-    OutputTextFrame.TINTED -> Text(
-      text = text,
-      style = codeTextStyle(),
-      color = colors.onErrorContainer,
-      modifier = Modifier
+    OutputTextFrame.TINTED -> WindowedText(
+      text,
+      window,
+      colors.onErrorContainer,
+      Modifier
         .fillMaxWidth()
         .background(colors.errorContainer, MaterialTheme.shapes.small)
         .padding(Spacing.sm),
-    )
+    ) { showAll = true }
     // Its own colours need the surface to read (see `frame`), so the rule does the tint's job.
-    OutputTextFrame.RULED -> Text(
-      text = text,
-      style = codeTextStyle(),
-      color = colors.onSurface,
-      modifier = Modifier
+    OutputTextFrame.RULED -> WindowedText(
+      text,
+      window,
+      colors.onSurface,
+      Modifier
         .fillMaxWidth()
         .drawBehind { drawRect(colors.error, size = Size(ERROR_RULE_WIDTH.toPx(), size.height)) }
         .padding(start = Spacing.sm),
-    )
+    ) { showAll = true }
+  }
+}
+
+/**
+ * [text] whole, or only the [window]'s head and tail with the hidden count between them.
+ *
+ * Cut **after** colouring and search highlighting, so the tail keeps the colour an escape in the
+ * hidden middle set, which VS Code's renderer loses by parsing the tail alone
+ * (vscode@3f3380c6 extensions/notebook-renderers/src/textHelper.ts, `truncatedArrayOfString`).
+ * What the cut bounds is the layout - the cost that grows with every line a runaway prints.
+ */
+@Composable
+private fun WindowedText(
+  text: AnnotatedString,
+  window: OutputLineWindow?,
+  color: Color,
+  modifier: Modifier,
+  onShowAll: () -> Unit,
+) {
+  if (window == null) {
+    Text(text = text, style = codeTextStyle(), color = color, modifier = modifier)
+    return
+  }
+  Column(modifier = modifier) {
+    Text(text = text.subSequence(0, window.headEnd), style = codeTextStyle(), color = color)
+    HiddenItemsRow(hiddenLinesLabel(window.hiddenLines), onExpand = onShowAll)
+    Text(text = text.subSequence(window.tailStart, text.length), style = codeTextStyle(), color = color)
   }
 }
 
