@@ -20,6 +20,8 @@ data class CellSearchHighlight(
   val matches: List<IntRange> = emptyList(),
   /** The one match the arrows are on, when it is in this cell. Also in [matches]. */
   val current: IntRange? = null,
+  /** Whether a step, not a query, put [current] there - see [SearchState.currentStepped]. */
+  val currentStepped: Boolean = false,
 ) {
   companion object {
     /** No search running, or none of it in this cell. */
@@ -41,6 +43,7 @@ data class CellSearchHighlight(
 internal fun CellSearchHighlight.within(length: Int): CellSearchHighlight = CellSearchHighlight(
   matches = matches.filter { it.fitsIn(length) },
   current = current?.takeIf { it.fitsIn(length) },
+  currentStepped = currentStepped,
 )
 
 private fun IntRange.fitsIn(length: Int): Boolean = first >= 0 && first <= last && last < length
@@ -93,11 +96,11 @@ fun EditorUiState.searchHighlightOf(cellId: String, outputAt: Int? = null): Cell
     // other cell with none and stays skippable through recomposition.
     CellSearchHighlight.NONE
   } else {
+    val current = searching.currentHit()?.takeIf { it.cellId == cellId && it.outputAt == outputAt }?.range
     CellSearchHighlight(
       matches = mine.map { it.range },
-      current = searching.currentHit()
-        ?.takeIf { it.cellId == cellId && it.outputAt == outputAt }
-        ?.range,
+      current = current,
+      currentStepped = current != null && searching.currentStepped,
     )
   }
 }

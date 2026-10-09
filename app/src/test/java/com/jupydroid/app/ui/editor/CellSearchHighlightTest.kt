@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -12,9 +13,10 @@ import org.junit.Test
 class CellSearchHighlightTest {
   @Test
   fun aRangeInsideTheTextIsKept() {
-    val kept = CellSearchHighlight(matches = listOf(0..2), current = 0..2).within(length = 8)
+    val kept = CellSearchHighlight(matches = listOf(0..2), current = 0..2, currentStepped = true).within(length = 8)
     assertEquals(listOf(0..2), kept.matches)
     assertEquals(0..2, kept.current)
+    assertTrue(kept.currentStepped)
   }
 
   /** The very last character is inside it: a range is inclusive and `addStyle`'s end is not. */

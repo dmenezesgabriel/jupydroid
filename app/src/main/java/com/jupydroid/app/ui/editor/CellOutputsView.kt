@@ -194,7 +194,7 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight,
   val window = if (windowed && !showAll) outputLineWindowOf(output.text) else null
   // The line cut gives way to a stepped-onto hit as the count cut does - see `RenderedOutputs`.
   // Only `current`: typing a query counts its hits and draws none, as `startQuery` scrolls to none.
-  val current = search.current
+  val current = search.current?.takeIf { search.currentStepped }
   LaunchedEffect(window, current) { if (current != null && window?.hides(current) == true) showAll = true }
   val colors = MaterialTheme.colorScheme
   when (output.frame()) {

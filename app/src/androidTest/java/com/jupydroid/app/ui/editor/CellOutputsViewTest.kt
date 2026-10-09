@@ -236,6 +236,8 @@ class CellOutputsViewTest {
     showOutputs(listOf(linesOfOutput(HUNDRED)), scrolled = false) { search }
     compose.onNodeWithContentDescription("70 lines hidden").assertIsDisplayed()
 
+    search = listOf(hitOn("line 50", current = true, stepped = false))
+    compose.onNodeWithContentDescription("70 lines hidden").assertIsDisplayed()
     search = listOf(hitOn("line 50", current = true))
     compose.onAllNodesWithContentDescription("70 lines hidden").assertCountEquals(0)
     search = emptyList()
@@ -257,26 +259,24 @@ class CellOutputsViewTest {
     showOutputs(manyOutputs(), scrolled = false) { search }
     compose.onNodeWithContentDescription(SHOW_MORE_OUTPUTS).assertExists()
 
+    search = hitInOutput(RUNAWAY_HIT, current = true, stepped = false)
+    compose.onNodeWithContentDescription(SHOW_MORE_OUTPUTS).assertExists()
     search = hitInOutput(RUNAWAY_HIT, current = true)
     compose.onAllNodesWithContentDescription(SHOW_MORE_OUTPUTS).assertCountEquals(0)
     compose.onAllNodesWithText("out $RUNAWAY_HIT").assertCountEquals(1)
   }
 
-  private fun hitOn(needle: String, current: Boolean): CellSearchHighlight {
+  /** [stepped] false is where a typed query lands: current, and not put in front of the reader. */
+  private fun hitOn(needle: String, current: Boolean, stepped: Boolean = current): CellSearchHighlight {
     val at = linesOfOutput(HUNDRED).text.indexOf(needle)
     val range = at until at + needle.length
-    return CellSearchHighlight(matches = listOf(range), current = range.takeIf { current })
+    return CellSearchHighlight(matches = listOf(range), current = range.takeIf { current }, currentStepped = stepped)
   }
 
   /** One entry per rendered output, as `outputSearchHighlightsOf` hands them, the hit on output [at]. */
-  private fun hitInOutput(at: Int, current: Boolean): List<CellSearchHighlight> = List(RUNAWAY_OUTPUTS) {
-    if (it ==
-      at
-    ) {
-      CellSearchHighlight(matches = listOf(0..2), current = (0..2).takeIf { current })
-    } else {
-      CellSearchHighlight.NONE
-    }
+  private fun hitInOutput(at: Int, current: Boolean, stepped: Boolean = current): List<CellSearchHighlight> {
+    val hit = CellSearchHighlight(matches = listOf(0..2), current = (0..2).takeIf { current }, currentStepped = stepped)
+    return List(RUNAWAY_OUTPUTS) { if (it == at) hit else CellSearchHighlight.NONE }
   }
 
   /** Inside a scrolling column, as the editor's cell list is, so a row past the screen can be scrolled to. */

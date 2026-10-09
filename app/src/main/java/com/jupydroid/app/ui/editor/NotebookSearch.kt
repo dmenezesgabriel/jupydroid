@@ -20,6 +20,13 @@ data class SearchState(
   val hits: List<SearchHit> = emptyList(),
   /** Which hit the bar is standing on, as an index into [hits]. */
   val current: Int? = null,
+  /**
+   * Whether the arrows put [current] where it is. A query also lands on a hit, beside the head, but
+   * `startQuery` passes `scroll: false` and so reveals nothing (`searchprovider.ts:389-401`); only a
+   * step owes the reader the match, which is what lets an output cut in the view stay cut while a
+   * query is typed.
+   */
+  val currentStepped: Boolean = false,
   /** `_parsingError`: the pattern did not compile, and the box says so rather than throwing. */
   val parseError: String? = null,
   /** `documentsearch:startWithReplace` - whether the replace row is on the bar. */
@@ -97,7 +104,13 @@ fun EditorUiState.withSearchQuery(query: SearchQuery): EditorUiState {
       // highlighting what the last good pattern found (`searchmodel.ts:339-369`). VS Code's
       // workspace panel reads the same way (`searchView.ts:1612-1614`).
       is CompiledQuery.Invalid -> search.copy(query = query, parseError = compiled.message)
-      else -> search.copy(query = query, hits = hits, current = hits.firstHitFrom(this), parseError = null)
+      else -> search.copy(
+        query = query,
+        hits = hits,
+        current = hits.firstHitFrom(this),
+        currentStepped = false,
+        parseError = null,
+      )
     },
   )
 }
@@ -144,7 +157,11 @@ fun EditorUiState.withSearchStepped(reverse: Boolean): EditorUiState {
     copy(search = searching.copy(current = null))
   } else {
     withMatchRevealed(landed)
-      .copy(search = searching.copy(current = moved), selectedCellId = landed.cellId, anchorCellId = null)
+      .copy(
+        search = searching.copy(current = moved, currentStepped = true),
+        selectedCellId = landed.cellId,
+        anchorCellId = null,
+      )
   }
 }
 

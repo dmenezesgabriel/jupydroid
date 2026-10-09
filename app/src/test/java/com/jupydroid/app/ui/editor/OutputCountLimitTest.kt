@@ -38,15 +38,17 @@ class OutputCountLimitTest {
     assertEquals(OUTPUT_COUNT_LIMIT, drawnOutputCountOf(prints(RUNAWAY).withEchoAt(0)))
   }
 
-  /** Only the hit the arrows stand on draws the rest: a query typed is counted, never drawn. */
+  /** Only the hit the arrows stepped onto draws the rest: a query's is counted, never drawn. */
   @Test
-  fun theCurrentHitPastTheDrawnOutputsIsUndrawn() {
-    val current = CellSearchHighlight(matches = listOf(0..1), current = 0..1)
+  fun theSteppedOntoHitPastTheDrawnOutputsIsUndrawn() {
+    val stepped = CellSearchHighlight(matches = listOf(0..1), current = 0..1, currentStepped = true)
+    val typed = CellSearchHighlight(matches = listOf(0..1), current = 0..1)
     val found = CellSearchHighlight(matches = listOf(0..1))
     val none = CellSearchHighlight.NONE
 
-    assertTrue(isCurrentHitUndrawn(listOf(none, none, current), drawn = 2))
-    assertFalse(isCurrentHitUndrawn(listOf(none, current, found), drawn = 2))
+    assertTrue(isCurrentHitUndrawn(listOf(none, none, stepped), drawn = 2))
+    assertFalse(isCurrentHitUndrawn(listOf(none, stepped, found), drawn = 2))
+    assertFalse(isCurrentHitUndrawn(listOf(none, none, typed), drawn = 2))
     assertFalse(isCurrentHitUndrawn(listOf(none, none, found), drawn = 2))
     assertFalse(isCurrentHitUndrawn(emptyList(), drawn = 2))
   }

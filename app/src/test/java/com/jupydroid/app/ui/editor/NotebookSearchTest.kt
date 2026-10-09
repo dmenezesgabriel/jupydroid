@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.StreamName
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -134,6 +135,21 @@ class NotebookSearchTest {
 
     assertEquals("2/3", searching.withSearchStepped(reverse = false).searchCounter())
     assertEquals("3/3", searching.withSearchStepped(false).withSearchStepped(false).searchCounter())
+  }
+
+  /**
+   * Only the arrows put a match in front of the reader: a query lands beside the head without
+   * moving anything (`startQuery`'s `scroll: false`), so what it lands on is not stepped onto.
+   */
+  @Test
+  fun onlyAStepMarksTheCurrentHitAsSteppedOnto() {
+    val typed = notebook.withSearchOpened().withSearchQuery(SearchQuery("cat"))
+    val stepped = typed.withSearchStepped(reverse = false)
+
+    assertFalse(typed.searchHighlightOf("a").currentStepped)
+    assertTrue(stepped.searchHighlightOf("c").currentStepped)
+    assertFalse(stepped.searchHighlightOf("a").currentStepped)
+    assertFalse(stepped.withSearchRecomputed().searchHighlightOf("a").currentStepped)
   }
 
   /** `loop = true` is `highlightNext()`'s own default, so the last match is followed by the first. */

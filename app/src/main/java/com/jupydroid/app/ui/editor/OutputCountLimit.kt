@@ -28,7 +28,7 @@ fun drawnOutputCountOf(outputs: List<CellOutput>, limit: Int = OUTPUT_COUNT_LIMI
 }
 
 /**
- * Whether the hit the find bar's arrows stand on is in an output past the [drawn] ones. [search]
+ * Whether the hit the find bar's arrows stepped onto is in an output past the [drawn] ones. [search]
  * has one entry per rendered output, and the drawn outputs are a prefix of those, so an index past
  * [drawn] is one with no widget.
  *
@@ -37,4 +37,4 @@ fun drawnOutputCountOf(outputs: List<CellOutput>, limit: Int = OUTPUT_COUNT_LIMI
  * ```
  */
 fun isCurrentHitUndrawn(search: List<CellSearchHighlight>, drawn: Int): Boolean =
-  search.drop(drawn).any { it.current != null }
+  search.drop(drawn).any { it.current != null && it.currentStepped }
