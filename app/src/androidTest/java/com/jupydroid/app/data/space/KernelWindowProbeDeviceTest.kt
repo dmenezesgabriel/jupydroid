@@ -1,6 +1,5 @@
 package com.jupydroid.app.data.space
 
-import android.os.Build
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -22,7 +21,6 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.junit.AfterClass
 import org.junit.Assert.assertTrue
-import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,27 +66,21 @@ import kotlin.time.TimeSource
 @RunWith(AndroidJUnit4::class)
 class KernelWindowProbeDeviceTest {
   @Before
-  fun onlyWhereProotShips() {
-    assumeTrue(
-      "no rootfs ships for ${Build.SUPPORTED_ABIS.first()}",
-      runCatching { SpaceAbi.of(Build.SUPPORTED_ABIS.first()) }.isSuccess,
-    )
-    runBlocking { baseSpaceInstaller(context).installIfNeeded() }
-  }
+  fun onlyWhereProotShips() = installBaseWhereProotShips()
 
   @Test(timeout = 1_800_000)
   fun whereTheKernelWindowGoes() {
-    val report = StringBuilder("== kernel window split (base, $RUNS runs each, in run order)\n")
-    val interpreter = runsOf { timedPython("-c", "pass") }
-    val imports = runsOf { timedPython("-c", "import $KERNEL_MODULE") }
+    val report = StringBuilder("== kernel window split (base, $PROBE_RUNS runs each, in run order)\n")
+    val interpreter = runsOf { probe.timedPython("-c", "pass") }
+    val imports = runsOf { probe.timedPython("-c", "import $KERNEL_MODULE") }
     report.append(row("python3 -c pass", interpreter)).append(row("import $KERNEL_MODULE", imports))
-    report.append(slowestImports())
+    report.append(probe.slowestImports(KERNEL_MODULE))
     val windows = listOf(
       "window, alone" to { window(DEFAULT_KERNEL_ID) },
       "window, pylsp beside it" to { windowBesidePylsp() },
       "window, kernel at INFO" to { window(installInfoKernel()) },
-      "window, cache evicted" to { evicted { window(DEFAULT_KERNEL_ID) } },
-      "window, evicted, pylsp beside" to { evicted { windowBesidePylsp() } },
+      "window, cache evicted" to { probe.evicted { window(DEFAULT_KERNEL_ID) } },
+      "window, evicted, pylsp beside" to { probe.evicted { windowBesidePylsp() } },
     )
     windows.forEach { (label, measure) -> report.append(row(label, runsOf(measure))) }
     report.append(repairRows())
@@ -102,32 +94,19 @@ class KernelWindowProbeDeviceTest {
   /** The repairs' rows. The server's restarts come last, because they replace the server the others use. */
   private fun repairRows(): String {
     val windows = listOf(
-      "window, evicted, pre-read first" to { evicted { preRead() }.let { window(DEFAULT_KERNEL_ID) } },
-      "window, evicted, pre-started" to { evicted { windowOnPreStartedKernel() } },
-      "server start, evicted" to { evicted { timedServerStart() } },
-      "server start, evicted, pre-read" to { evicted { besidePreRead { timedServerStart() } } },
+      "window, evicted, pre-read first" to { probe.evicted { preRead() }.let { window(DEFAULT_KERNEL_ID) } },
+      "window, evicted, pre-started" to { probe.evicted { windowOnPreStartedKernel() } },
+      "server start, evicted" to { probe.evicted { timedServerStart() } },
+      "server start, evicted, pre-read" to { probe.evicted { besidePreRead { timedServerStart() } } },
     )
     val idle = row("pre-started kernel, idle PSS", runsOf { idleKernelPssKb() }, "kB")
     return idle + windows.joinToString("") { (label, measure) -> row(label, runsOf(measure)) }
   }
 
   private companion object {
-    const val RUNS = 3
     const val KERNEL_MODULE = "jupydroid_kernel"
     const val INFO_KERNEL = "kernel-window-info"
-    const val SLOWEST = 30
     const val CELL_URI = "file:///home/jupydroid/kernel-window.py"
-    val EVICT_PYTHON = """
-      import os
-      for top, _, names in os.walk("/usr/lib/python3.12"):
-          for name in names:
-              try:
-                  fd = os.open(os.path.join(top, name), os.O_RDONLY)
-              except OSError:
-                  continue
-              os.posix_fadvise(fd, 0, 0, os.POSIX_FADV_DONTNEED)
-              os.close(fd)
-    """.trimIndent()
 
     /** Lets a shut-down kernel's process exit, so it never competes with the next run's. */
     const val SETTLE_MS = 2_000L
@@ -142,6 +121,7 @@ class KernelWindowProbeDeviceTest {
 
     val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     val runtime: SpaceRuntime get() = spaceRuntime(context, BASE_SPACE)
+    val probe get() = SpaceTimingProbe(runtime)
     val client = OkHttpClient.Builder().readTimeout(0, TimeUnit.MILLISECONDS).build()
 
     /** One launcher for the class: `JupyterServerLauncher.start` begins with `stop()`. */
@@ -153,55 +133,6 @@ class KernelWindowProbeDeviceTest {
     /** The server the class's launcher runs, started on first use and replaced by [timedServerStart]. */
     val server: ServerConnection get() = running ?: runBlocking { launcher.start(BASE_SPACE) }.also { running = it }
     var sessions = 0
-
-    /** Every run is kept in order, because the first of a kind is the one a cold page cache would slow. */
-    fun runsOf(measure: () -> Long): List<Long> = List(RUNS) { measure() }
-
-    fun List<Long>.median(): Long = sorted()[size / 2]
-
-    fun row(label: String, runs: List<Long>, unit: String = "ms"): String =
-      "${label.padEnd(30)}: ${runs.joinToString(" / ")} $unit, median ${runs.median()} $unit\n"
-
-    /** Wall time of the Space's interpreter run with [args] to its exit, which must be 0. */
-    fun timedPython(vararg args: String): Long {
-      val begin = TimeSource.Monotonic.markNow()
-      val process = runtime.processBuilder(args.toList()).redirectErrorStream(true).start()
-      val output = process.inputStream.bufferedReader().readText()
-      check(process.waitFor() == 0) { "python3 ${args.joinToString(" ")} exited ${process.exitValue()}: $output" }
-      return begin.elapsedNow().inWholeMilliseconds
-    }
-
-    /**
-     * The kernel module's [SLOWEST] slowest imports at any depth, from `-X importtime`, in import
-     * order and indented as CPython indents them - one space plus two per level of nesting
-     * (`Python/import.c`, `import_find_and_load`) - so a row's parents are the less indented rows
-     * above it.
-     */
-    fun slowestImports(): String {
-      val process = runtime.processBuilder(listOf("-X", "importtime", "-c", "import $KERNEL_MODULE")).start()
-      val rows = process.errorStream.bufferedReader().readLines().mapNotNull(::importRow)
-      process.waitFor()
-      val slowest = rows.sortedByDescending { it.second }.take(SLOWEST).toSet()
-      return rows.filter { it in slowest }
-        .joinToString("") { (module, micros) -> "  ${module.padEnd(48)} : ${micros / 1000}ms cumulative\n" }
-    }
-
-    /** `import time: self | cumulative | name` -> (name with its indent, cumulative µs). */
-    fun importRow(row: String): Pair<String, Long>? {
-      val columns = row.removePrefix("import time:").split("|")
-      if (columns.size != 3) return null
-      return columns[1].trim().toLongOrNull()?.let { columns[2].trimEnd() to it }
-    }
-
-    /**
-     * [measure], after the clean pages of every file under the image's `/usr/lib/python3.12` are
-     * dropped from the page cache, as memory pressure does between two launches of the app.
-     * `POSIX_FADV_DONTNEED` needs no root, only a descriptor (posix_fadvise(2)).
-     */
-    fun <T> evicted(measure: () -> T): T {
-      timedPython("-c", EVICT_PYTHON)
-      return measure()
-    }
 
     /**
      * Opens a session on [kernelName] and times its socket from asked to accepted, exactly the span
@@ -223,7 +154,7 @@ class KernelWindowProbeDeviceTest {
     }
 
     /** The kernel module's import, run to its end and thrown away: what is left of it is the page cache. */
-    fun preRead(): Long = timedPython("-c", "import $KERNEL_MODULE")
+    fun preRead(): Long = probe.timedPython("-c", "import $KERNEL_MODULE")
 
     /** [measure] while a pre-read runs beside it; the pre-read is waited for after, and must exit 0. */
     fun <T> besidePreRead(measure: () -> T): T {
