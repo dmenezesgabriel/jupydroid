@@ -250,6 +250,33 @@ Notes:
   AGP 9 + JDK 25 (no stable release supports it yet).
 
 
+## Shared host
+
+This machine runs several repositories' agents at once. Unbounded, their builds and test runs
+together filled the 4 GB swap on 4 of 5 days and ended in a kernel OOM kill (`sar`, `journalctl -k`,
+2026-10-09). Every heavy command therefore runs through `devjob` (`~/.local/bin/devjob`):
+
+```sh
+devjob git commit -F msg.txt                  # the whole hook gate: one job, one warm daemon
+devjob ./gradlew testDebugUnitTest
+devjob scripts/<driver>.sh
+DEVJOB_MAX_SEC=7200 devjob ./gradlew connectedDebugAndroidTest
+devjob --status                               # slots in use, jobs running
+```
+
+- A job waits for one of the host's slots, runs capped in `background-devjobs.slice`, and when it
+  ends systemd kills everything it left: Gradle and Kotlin daemons, an emulator, Maestro. Nothing
+  outlives its job, so there is nothing to hunt down afterwards.
+- **Wrap whole jobs, not each Gradle call.** A daemon dies with its job, and a cold one costs 10-13 s
+  against a warm 2.7 s (`detekt`, measured). `devjob` inside a job runs inline, so a wrapped driver
+  that calls Gradle does not deadlock on a second slot.
+- **Never run Gradle on the host while a device flow runs**, and stop the emulator when its tests are
+  done: `dev36` alone is 4 GB and 4 cores (its `config.ini`).
+- `connectedDebugAndroidTest` uninstalls the app from **every** attached device, `ANDROID_SERIAL`
+  or not, so reinstall on the tablet before its next flow.
+- A test that bounds time bounds **thread CPU time**, never wall time: on a shared host a wall clock
+  measures the neighbours (`StreamFoldTest.aRunawayPrintFoldsInLinearTime`).
+
 ## Architecture (locked)
 
 - Pragmatic hexagonal + UDF/MVVM.
