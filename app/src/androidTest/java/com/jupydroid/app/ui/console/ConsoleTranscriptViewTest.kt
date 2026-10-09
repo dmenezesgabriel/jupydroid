@@ -8,10 +8,13 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -22,6 +25,10 @@ import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.INPUT_PROMPT_DESCRIPTION
+import com.jupydroid.app.ui.editor.OUTPUT_COUNT_LIMIT
+import com.jupydroid.app.ui.editor.OUTPUT_LINE_LIMIT
+import com.jupydroid.app.ui.editor.SHOW_MORE_OUTPUTS
+import com.jupydroid.app.ui.editor.hiddenLinesLabel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -120,8 +127,39 @@ class ConsoleTranscriptViewTest {
     assertEquals(listOf("e9" to "yes"), answered)
   }
 
+  /** A runaway print in the Console is cut as a notebook cell's is: head and tail, the middle a tap away. */
+  @Test
+  fun aLongEntryOutputDrawsItsHeadAndTailUntilTheRowIsPressed() {
+    val lines = (0 until HUNDRED).joinToString("\n", postfix = "\n") { "line $it" }
+    showEntry(listOf(CellOutput.Stream(StreamName.STDOUT, lines)))
+
+    compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(0)
+    compose.onAllNodesWithText("line 99", substring = true).assertCountEquals(1)
+    compose.onNodeWithContentDescription(hiddenLinesLabel(HUNDRED - OUTPUT_LINE_LIMIT)).performClick()
+    compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
+  }
+
+  /** Many `display()` calls in the Console draw the first [OUTPUT_COUNT_LIMIT], as a notebook cell's do. */
+  @Test
+  fun anEntryWithManyOutputsDrawsTheFirstFiftyUntilShowMoreIsPressed() {
+    showEntry(List(RUNAWAY_OUTPUTS) { CellOutput.Stream(StreamName.STDOUT, "out $it") })
+
+    compose.onAllNodesWithText("out ${OUTPUT_COUNT_LIMIT - 1}").assertCountEquals(1)
+    compose.onAllNodesWithText("out $OUTPUT_COUNT_LIMIT").assertCountEquals(0)
+    compose.onNodeWithContentDescription(SHOW_MORE_OUTPUTS).performScrollTo().performClick()
+    compose.onAllNodesWithText("out $OUTPUT_COUNT_LIMIT").assertCountEquals(1)
+    compose.onAllNodesWithContentDescription(SHOW_MORE_OUTPUTS).assertCountEquals(0)
+  }
+
+  private fun showEntry(outputs: List<CellOutput>) {
+    val entry = ConsoleEntry("e1", "runaway()", outputs, ExecutionStatus.STOPPED_OK, executionCount = 1)
+    compose.setContent { JupyterDroidTheme { ConsoleTranscript(listOf(entry), onAnswerInput = { _, _ -> }) } }
+  }
+
   private companion object {
     private const val PNG_QUALITY = 100
+    private const val HUNDRED = 100
+    private const val RUNAWAY_OUTPUTS = 300
     private const val EVIDENCE_FILE_NAME = "p6b-3-console-transcript.png"
 
     val ENTRIES = listOf(
