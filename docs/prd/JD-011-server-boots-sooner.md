@@ -72,47 +72,19 @@ dies of SIGSEGV right after its extension links. It times the import that way in
 
 ## Open decisions
 
-Which repair. T1 measured the boot as the import of `jupyter_server.serverapp`: about 2.0 s of
-import work, plus about 1.3 s of reading it from storage on a warm start. The server's own work after
-the import is under 0.3 s, and the poll under 0.12 s (`evidence/jd-011-server-boot/README.md`). That
-leaves three repairs:
-- a pre-read of the import before **Run**
-- the server started before **Run**, as vscode-jupyter's `serverPreload.node.ts` does
-- importing less
-
-Importing less has two halves, and one is out before anything is measured:
-- **Patching the server's imports is out.** `serverapp.py` imports `jupyter_client`, its
-  `kernelspec`, `manager` and `session`, and `jupyter_events.logger` at the top of the module (shipped
-  rootfs, `usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`). Taking the 0.6 s and
-  0.46 s T1 found there off the path means patching jupyter_server in the image.
-- **Uninstalling optional format checkers stays a candidate.** `jsonschema/_format.py` imports
-  fqdn, idna, rfc3986_validator, rfc3339_validator, webcolors, jsonpointer, uri_template and
-  isoduration each under `suppress(ImportError)`. ADR-0014 already uninstalled `rfc3987-syntax` this
-  way. T1 puts all of `jsonschema._format` at 0.27 s warm, so that is the ceiling.
-
-JD-010's probe already saw a kernel pre-read *beside* the server's start make that start faster,
-3.54–3.75 s → 2.68–2.77 s, because the two imports share zmq, jupyter_client and traitlets. And every
-fresh server start pre-starts a spare kernel (ADR-0080), so a server started before **Run** brings
-its spare with it unless that changes.
-
-**The criteria, fixed before T2 measures anything:**
-1. The boot's median with the repair, from an evicted page cache as the in-app warm start finds it,
-   against T1's evicted 3.57–3.68 s. A pre-read is measured both finished before the start and
-   started at the same moment as it, which is a **Run** tapped at once.
-2. What the repair costs: a pre-started server's PSS while idle, alone and with its spare, and its CPU
-   time while idle. A pre-read holds nothing.
-3. What the repair obliges. A pre-started server: which Space, a Space not yet installed, the home
-   showing a Space running that nobody ran, nobody tapping **Run**, and the idle stop. An uninstall:
-   which schema formats go unchecked. At equal gain, the option with fewer obligations wins.
-
-If none beats the baseline net of its cost, the ADR says so and T3 is rewritten, not forced.
+None. [ADR-0081](../adr/0081-the-app-pre-reads-each-spaces-server-import-when-its-process-starts.md)
+picks the pre-read on T2's measurements (`evidence/jd-011-server-boot/README.md`, T2). From an
+evicted cache it takes the start from 3.54–3.56 s to 2.37–2.38 s, or to 2.78–2.90 s when **Run** is
+tapped at once, and holds nothing. A pre-started server would hold 47.1–115.7 MB for a Space nobody
+may have run. Uninstalling the format checkers gains only 0.25–0.5 s.
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| `data/space` | depends on T1's dominant part |
-| instrumented tests | `ServerBootProbeDeviceTest`, plus the probe helpers it shares with `KernelWindowProbeDeviceTest` |
+| `data/space` | a pre-reader that runs `import jupyter_server.serverapp` in each installed Space whose server is not running, through `SpaceRuntime`, and logs its start and end through `SpaceLifecycleLog` |
+| `di` | `AppContainer` starts the pre-reads on `applicationScope` when the process starts |
+| tests | a unit test with a fake runtime for the order, the skips and a failed pre-read; `ServerBootProbeDeviceTest`, `ProcessFootprint` and `SpaceTimingProbe.besideImport` as T2 left them |
 | `.maestro/` flow + `scripts/` driver | `p8a-cold-path.yaml`, `p8a-cold-path-driver.sh`, `cold_path_report.py` (unchanged) |
 
 ## Tasks
@@ -127,7 +99,7 @@ If none beats the baseline net of its cost, the ADR says so and T3 is rewritten,
 
   Three in-app warm runs are the baseline the probe is checked against. The evidence names the
   dominant part.
-- [ ] T2 — Measure the repairs on the tablet with `ServerBootProbeDeviceTest`, each from an evicted
+- [x] T2 — Measure the repairs on the tablet with `ServerBootProbeDeviceTest`, each from an evicted
   page cache, median of 3:
   - the start after a pre-read (`import jupyter_server.serverapp` run and thrown away)
   - the start with a pre-read begun beside it
@@ -135,7 +107,7 @@ If none beats the baseline net of its cost, the ADR says so and T3 is rewritten,
   - a pre-started server's idle PSS, alone and with a spare kernel, and its idle CPU time
 
   An ADR then applies the criteria in Open decisions and picks one.
-- [ ] T3 — Ship it, red test first, then the demo's warm ×3.
+- [ ] T3 — Ship ADR-0081's pre-read, red test first, then the demo's warm ×3.
 
 ## Out of scope
 
