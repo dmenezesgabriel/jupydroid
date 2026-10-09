@@ -111,6 +111,15 @@ open because it runs any image's own loader, but no glibc image has been measure
 | `JD-010` | **The kernel answers sooner:** the wait between the kernel socket opening and the kernel's first answer, which dominates a warm start, measured into its parts and the largest repaired | shipped | — | — |
 | `JD-011` | **`jupyter_server` boots sooner under proot:** its boot, slower since every process moved under proot, measured into its parts and the largest repaired | shipped | — | — |
 
+### M3 — Kernel I/O
+
+What a running cell can ask of the user, beyond printing. These gaps are recorded in
+[`architecture.md` §11](architecture.md).
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `JD-012` | **A cell can ask for input:** `input()` and `getpass()` prompt in the cell's output area, in the notebook and the Console, and the answer is echoed and kept | in-progress ← next | [JD-012](prd/JD-012-a-cell-can-ask-for-input.md) | `GAP-014` |
+
 ### Known gaps
 
 Measured gaps are recorded as `GAP-NNN` in
