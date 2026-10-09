@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# The driver ran the T1 flow, waited for the save, and force-stopped the app. Relaunched and
+# reopened, the notebook still shows the coloured print, repr and traceback, read back off the
+# disk: no cell runs in this part, and every value asserted (`42`, `56`, `81`, `12`,
+# `division by zero`) was computed by the kernel in part 1, so the unrun fixture cannot satisfy it.
+# The colours are measured off the screenshot (evidence README).
+#
+# TABLET ONLY (SM-X216B): part 1 runs cells.
+#
+# Each assertion full-matches one output node, so an escape left in the text fails it.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Ansi Colour.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Ansi Colour.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "red 42 bold green 56 orange 81"
+      childOf: {text: "Cell output"}
+    timeout: 30000
+- assertVisible:
+    text: "blue 12"
+    childOf: {text: "Cell output"}
+- assertVisible:
+    text: "[\\s\\S]*ZeroDivisionError: division by zero"
+    # The second cell's output: `childOf` resolves to the first match alone.
+    childOf: {text: "Cell output", index: 1}
+- takeScreenshot: 01-the-coloured-outputs-survive-a-relaunch

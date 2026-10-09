@@ -125,7 +125,7 @@ No port changes: the escapes already travel through `CellOutput` as text.
   notebook on SM-X216B (the tablet's system theme, light).
 - [x] T2 — The Console and the dark theme: the same three in the Console, both themes, contrast on the error
   tint measured.
-- [ ] T3 — Reopen: a saved notebook with coloured outputs reopens coloured after a relaunch.
+- [x] T3 — Reopen: a saved notebook with coloured outputs reopens coloured after a relaunch.
 - [ ] T4 — Demo end to end; ADR for the shared SGR path (replacing ADR-0039's "two ANSI paths" paragraph);
   delete this PRD; ship the backlog row.
 
