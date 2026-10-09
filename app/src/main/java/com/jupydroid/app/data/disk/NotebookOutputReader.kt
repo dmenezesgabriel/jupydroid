@@ -34,6 +34,9 @@ private fun JsonObject.toStream(): CellOutput? {
   val name = when (get("name").stringOrNull()) {
     "stdout" -> StreamName.STDOUT
     "stderr" -> StreamName.STDERR
+    // JupyterLab keeps an `input()` answer as a `stdin` stream
+    // (jupyterlab@7f0e690 packages/outputarea/src/widget.ts, `onInputRequest`).
+    "stdin" -> StreamName.STDIN
     else -> return null
   }
   return CellOutput.Stream(name, get("text").joinedText())

@@ -24,8 +24,14 @@ fun CellOutput.toFileOutput(): JsonElement = when (this) {
 
 private fun CellOutput.Stream.toStreamJson() = buildJsonObject {
   put("output_type", "stream")
-  put("name", if (name == StreamName.STDOUT) "stdout" else "stderr")
+  put("name", name.fileName())
   put("text", text.toJsonLines())
+}
+
+private fun StreamName.fileName(): String = when (this) {
+  StreamName.STDOUT -> "stdout"
+  StreamName.STDERR -> "stderr"
+  StreamName.STDIN -> "stdin"
 }
 
 private fun CellOutput.ExecuteResult.toExecuteResultJson() = buildJsonObject {

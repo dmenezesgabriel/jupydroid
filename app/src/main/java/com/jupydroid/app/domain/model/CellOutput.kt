@@ -2,7 +2,12 @@ package com.jupydroid.app.domain.model
 
 import kotlinx.serialization.json.JsonElement
 
-enum class StreamName { STDOUT, STDERR }
+/**
+ * A stream output's `name`. [STDIN] is never sent by a kernel: it is the front end's echo of an
+ * answer to `input()`, which JupyterLab writes into the notebook beside the prints around it
+ * (jupyterlab@7f0e690 packages/outputarea/src/widget.ts, `onInputRequest`).
+ */
+enum class StreamName { STDOUT, STDERR, STDIN }
 
 /**
  * mime -> payload, with each payload kept **as JSON** rather than flattened to a string.

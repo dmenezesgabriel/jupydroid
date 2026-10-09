@@ -32,6 +32,25 @@ class NotebookOutputsTest {
     assertEquals(CellOutput.Stream(StreamName.STDERR, "careful"), output)
   }
 
+  /**
+   * JupyterLab keeps the answer to an `input()` as a `stdin` stream
+   * (jupyterlab@7f0e690 packages/outputarea/src/widget.ts, `onInputRequest`), and nbformat types
+   * a stream's `name` as any string. Dropping it loses the answer from a notebook written there.
+   */
+  @Test
+  fun toDomain_readsTheStdinStreamJupyterLabEchoesAnInputInto() {
+    val output = outputOf("""{"output_type":"stream","name":"stdin","text":"Name? Ada\n"}""")
+
+    assertEquals(CellOutput.Stream(StreamName.STDIN, "Name? Ada\n"), output)
+  }
+
+  @Test
+  fun toFileOutput_writesAStdinStreamUnderItsOwnName() {
+    val written = CellOutput.Stream(StreamName.STDIN, "Name? Ada\n").toFileOutput() as JsonObject
+
+    assertEquals("stdin", written["name"]!!.jsonPrimitive.content)
+  }
+
   @Test
   fun toDomain_readsExecuteResultWithItsCount() {
     val output = outputOf(
@@ -106,6 +125,8 @@ class NotebookOutputsTest {
   fun roundTrip_survivesEveryOutputKindWeModel() {
     val outputs = listOf(
       CellOutput.Stream(StreamName.STDOUT, "hello\nworld"),
+      CellOutput.Stream(StreamName.STDERR, "careful"),
+      CellOutput.Stream(StreamName.STDIN, "Name? Ada\n"),
       CellOutput.ExecuteResult(mimeBundleOf("text/plain" to "42"), 7),
       CellOutput.DisplayData(mimeBundleOf("image/png" to "iVBOR")),
       CellOutput.Error("ValueError", "bad", listOf("line one")),

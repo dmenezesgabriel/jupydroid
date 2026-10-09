@@ -18,6 +18,12 @@ class RenderedOutputTest {
     assertEquals(true, text(CellOutput.Stream(StreamName.STDERR, "careful")).isError)
   }
 
+  /** An `input()` echo is the user's own answer, not a warning, so it draws plain. */
+  @Test
+  fun render_drawsAStdinEchoAsOrdinaryText() {
+    assertEquals(false, text(CellOutput.Stream(StreamName.STDIN, "Name? Ada\n")).isError)
+  }
+
   /**
    * A kernel colours its tracebacks with ANSI escapes. Rendered literally they read
    * `[31m---...`, which is what the Run All screenshot showed - noise wrapped around the
