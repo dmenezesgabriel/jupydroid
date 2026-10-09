@@ -7,6 +7,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.mimeBundleOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -128,6 +129,27 @@ class DiskNotebookRepositoryTest {
 
     assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "hi\n")), reread.cells.single().outputs)
     assertEquals(4, reread.cells.single().executionCount)
+  }
+
+  /**
+   * A cell's colours are its SGR escapes, so a reopened notebook draws in colour only if ESC
+   * survives the file. JSON cannot hold U+001B raw; it is written `\u001b`, as Jupyter writes it.
+   */
+  @Test
+  fun saveAndRead_keepsTheEscapesThatColourAnOutput() = runTest {
+    val repository = repository()
+    val notebook = repository.createNotebook("Coloured", BASE_SPACE.kernels.single())
+    val coloured = listOf(
+      CellOutput.Stream(StreamName.STDOUT, "\u001b[31mred 42\u001b[0m\n"),
+      CellOutput.ExecuteResult(mimeBundleOf("text/plain" to "\u001b[34mblue 12\u001b[0m"), 1),
+      CellOutput.Error("ZeroDivisionError", "division by zero", listOf("\u001b[0;31mZeroDivisionError\u001b[0m")),
+    )
+
+    val cell = Cell(id = "c1", kind = CellKind.CODE, source = "", outputs = coloured)
+    repository.saveNotebook(notebook.copy(cells = listOf(cell)))
+
+    assertEquals(coloured, repository.readNotebook(notebook.id).cells.single().outputs)
+    assertTrue(notebookFile(notebook.id).readText().contains("\"\\u001b[31mred 42\\u001b[0m\\n\""))
   }
 
   @Test
