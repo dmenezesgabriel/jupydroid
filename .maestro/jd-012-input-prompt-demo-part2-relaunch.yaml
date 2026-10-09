@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 1. Relaunched and reopened, the notebook still shows
+# the answer to its input() as JupyterLab's echo, above what the cell printed with it: the echo
+# came back off the disk as a `stdin` stream, since no cell runs in this part. The driver reads the
+# saved file after it.
+#
+# TABLET ONLY (SM-X216B): part 1 runs cells.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "hi Ada"
+      childOf: {text: "Cell output"}
+    timeout: 30000
+- assertVisible:
+    text: "Name\\? Ada"
+    childOf: {text: "Cell output"}
+- assertVisible:
+    text: "Secret\\? ········"
+    childOf: {text: "Cell output", index: 1}
+- takeScreenshot: 07-the-echo-survives-a-relaunch

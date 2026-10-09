@@ -129,7 +129,7 @@ Absent, apart from the disk half, which is present and lossy.
   - submit replies and appends the echo
   - the request clears when the execution completes, Stop included
   - then `allow_stdin` flips to true, the ADR is written, and the flow runs on SM-X216B
-- [ ] T4 — The demo on SM-X216B, then ship: the backlog row, GAP-014 out of `architecture.md` §11,
+- [x] T4 — The demo on SM-X216B, then ship: the backlog row, GAP-014 out of `architecture.md` §11,
   the `parity-ledger.md` stdin rows, and this PRD deleted
 
 ## Out of scope
