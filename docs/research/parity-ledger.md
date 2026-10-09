@@ -94,7 +94,7 @@ reference goes.
 | `inspect_request` | LSP `textDocument/hover` — `ui/editor/NotebookHover.kt` | **undocumented** | the file noted the substitution and gave no reason; [ADR-0069](../adr/0069-a-cells-hover-asks-the-source-not-the-live-object.md), written by `AUD-003` T2, says it — the kernel answers the *live* object, the server answers the *source*, and the substitution is lossy in that direction. The reference's four callers stand: `packages/inspector/src/kernelconnector.ts:47`, `packages/completer/src/default/kernelprovider.ts:113`, `packages/tooltip-extension/src/index.ts:355`, and the console |
 | `is_complete_request` | — | **absent** | `GAP-012`. Two callers in the reference: `packages/console/src/widget.ts:979` decides whether a submitted block is complete, and `packages/notebook-extension/src/index.ts:1962` |
 | `comm_info_request`, and the comm channel | — | **absent** | `GAP-013`. The protocol half ipywidgets rides on |
-| stdin `input_request` / `input_reply` | `allow_stdin: false` — `JupyterMessage.kt:106` | **absent** | `GAP-014`. The reference sends `allow_stdin: true` (`packages/services/src/kernel/default.ts:801`) and draws the prompt in the output area (`packages/outputarea/src/widget.ts`) |
+| stdin `input_request` / `input_reply` | `allow_stdin: true` — `JupyterMessage.executeContent`; `KernelOutputs.inputRequestOf` reads the request, `KernelGateway.replyInput` → `JupyterMessage.inputReply` answers with the request's header as `parent_header` | present | as the reference sends it (`packages/services/src/kernel/default.ts:801`, `sendInputReply`); the prompt is drawn in the output area ([ADR-0082](../adr/0082-a-cells-input-is-answered-inline-and-kept-as-a-stdin-echo.md)) |
 
 **Our ports, measured against their use.** 19 ports, 84 operations, 4 that no production file names
 (`read_port_surface.py --unused`). Three belong to this area's neighbours rather than to the wire,
@@ -115,9 +115,10 @@ What the walk found, beyond the rows above:
 - **Growth is in the kernel's output, not in our dispatch.** Every request is O(1) in the number of
   cells; `KernelOutputs` maps one wire frame to one `CellOutput`, and a cell's outputs accumulate in
   a list appended to. Nothing on this path is quadratic in cells or in output size.
-- **`allow_stdin: false` is the one place the wire is narrowed by a constant**, and it is the reason
-  `GAP-014` is a one-line change in the request and a whole feature in the UI: the kernel cannot ask
-  for input unless the client offers to answer.
+- **`allow_stdin` was the one place the wire was narrowed by a constant**, and it was why
+  `GAP-014` was a one-line change in the request and a whole feature in the UI: the kernel cannot ask
+  for input unless the client offers to answer. Both halves shipped together
+  ([ADR-0082](../adr/0082-a-cells-input-is-answered-inline-and-kept-as-a-stdin-echo.md)); the gap is closed.
 - **The protocol version we send is `5.3`** (`JupyterMessage.PROTOCOL_VERSION`), which is what the
   shipped kernel speaks.
 
@@ -2119,7 +2120,7 @@ python3 scripts/read_port_surface.py --unused
 ```
 
 **Carried in, recorded not rejudged.** `GAP-013`'s comm-channel absence lands here as the missing
-widget-view renderer; `GAP-014`'s `allow_stdin: false` as the missing `Stdin`; `GAP-017` is what
+widget-view renderer; `GAP-014`'s `allow_stdin: false` as the missing `Stdin` (closed since by ADR-0082); `GAP-017` is what
 `notebook:copy-to-clipboard` is measured against; `GAP-023` is the format half's open wound.
 `GAP-019` was verdicted `absent` under `AUD-002` `T2b` — `render-all-markdown` sets cell state,
 not rendering — and is recorded, not rejudged. Five ADRs already carry this area's decisions:
@@ -2260,7 +2261,7 @@ intent offers. Theirs: `OutputArea`/`OutputAreaModel` (`packages/outputarea/src/
 before a run and reading `tags` for `stop_on_error`); `OutputPrompt`/`InputPrompt`/
 `PromptOverlay` and `IsolatedRenderer` (`tokens.ts`); `Stdin`/`onInputRequest` echoing a
 `stream(name:'stdin')`; `display_id`/`update_display_data` registered under `transient` and
-`set()` in place; `SimplifiedOutputArea` for the console; `execute_reply` `payload` routed to
+`set()` in place; `SimplifiedOutputArea` for a cloned output view; `execute_reply` `payload` routed to
 the pager; `packages/nbformat/src/index.ts`'s open interfaces (`PartialJSONObject` everywhere,
 `IUnrecognizedCell`/`IUnrecognizedOutput`, `MultilineString`, MINOR 4); rootfs `nbformat`
 (`validate`, `split_lines`/`rejoin_lines`/`_rejoin_mimebundle`, `strip_transient` popping
@@ -2299,8 +2300,8 @@ to disk as `{}`, an output `nbformat.validate` refuses. `EditorUiStateTest`'s th
 `wait` sets `clearsPending` and the next output spends it (`model.ts:301-311`'s two cases) — so
 it never lands in `outputs`, never renders, and never writes. Eight GAPs open — `GAP-112` through `GAP-119`; `GAP-014`,
 `GAP-023` and `GAP-104` are cited where the read lands on their ground. Fold calls the PRD left
-open: the stdin row cites `GAP-014` rather than re-gapping (its stream-name echo drops on the
-same lines), `isolated` verdicts `adapted` under ADR-0039's no-DOM answer rather than `absent`
+open: the stdin row cited `GAP-014` rather than re-gapping (its stream-name echo dropped on the
+same lines; both closed since by ADR-0082), `isolated` verdicts `adapted` under ADR-0039's no-DOM answer rather than `absent`
 (there is nothing rendered for an iframe to isolate, consistent with `notebook:trust` at `T2`),
 and `update_display_data` verdicts `absent` — flattening to `DisplayData` produces a *duplicate*
 frame, a visible wrongness no comment states — while the carrier it needs stays `GAP-104`'s.
@@ -2311,12 +2312,12 @@ frame, a visible wrongness no comment states — while the carrier it needs stay
 | stream accumulation — `shouldCombine` folding adjacent same-name streams, `processText`/`fixBackspace`/`fixCarriageReturn` interpreting `\b` and `\r` (`model.ts:279-389`, `:545-659`) | every `stream` message appends its own `CellOutput.Stream`; no combining, no control-character pass | **absent** | `GAP-112`. One machinery half: a `tqdm` bar is one output per repaint; a same-name split is a new row per flush |
 | `OutputPrompt` — `Out[n]` beside each `execute_result`, bound to the model's `executionCount` (`widget.ts:895-909`, `tokens.ts`) | `executionLabel`'s `[n]:` on the input side only; `CellOutput.ExecuteResult.executionCount` never drawn | **absent** | `GAP-114`. The PRD's "no `Out[n]` prompt" confirmed — the count arrives and round-trips; nothing draws it beside the output |
 | `PromptOverlay` — the output-column overlay that toggles the `scrolled` metadata flag (`widget.ts`, `tokens.ts`) | `CellAction.ToggleOutputsScrolled` in the cell menu; `outputsScrolled` persisted the same way | adapted | same flag, different affordance — the hover/click overlay is a pointer's luxury the menu row answers on a tablet; the toggle itself verdicted at `AUD-002` |
-| `Stdin`/`onInputRequest`/`allow_stdin: true` — a prompt widget on `input_request`, the reply echoed as `stream(name:'stdin')` (`widget.ts:547-629`) | `allow_stdin: false` — commented "there is no terminal behind this kernel" (`JupyterMessage.kt:106`); no stdin surface; a `stdin`-named stream drops at `toStream` | **absent** | `GAP-014` — recorded: `input()` raises `StdinNotImplementedError`; the echo drop rides the same missing surface |
+| `Stdin`/`onInputRequest`/`allow_stdin: true` — a prompt widget on `input_request`, the reply echoed as `stream(name:'stdin')` (`widget.ts:547-629`) | `InputPromptField` (`ui/editor/CellInputPrompt.kt`) at the foot of `CellOutputs`, masked for `password`; submit appends `KernelInputRequest.echoOf` (`Name? Ada`, `Secret? ········`) as `StreamName.STDIN`, which the disk round-trips as `"stdin"` | adapted | the same field and the same echo; no line history (`inputHistoryScope`) and no placeholder hint, both a hardware keyboard's ([ADR-0082](../adr/0082-a-cells-input-is-answered-inline-and-kept-as-a-stdin-echo.md)) |
 | `display_id`/`update_display_data` — outputs registered under `transient.display_id`; an update `set()`s the stored bundle in place, every view redraws (`widget.ts:804-850`) | folded to `CellOutput.DisplayData` at `KernelOutputs.outputFrom`; `transient` dropped; the update appends as a second, stale-paired frame | **absent** | `GAP-113` — the routing half; `GAP-104` is the carrier the id rides on |
 | `clear_output`/`clear(wait)` — `wait:false` clears the model now, `wait:true` sets `clearNext` and the next `add` clears first (`model.ts:301-311`) | was: appended as an invisible output and persisted as `{}` — now: `afterOutput` executes it against the model, `clearsPending` carries the deferred half | **defect** | fixed red-first in `974ba25c` — `aClearOutputDropsWhatTheCellPrinted`, `aClearOutputWithWaitKeepsTheOutputsUntilTheNextOneArrives`, `aClearOutputWithWaitIsSpentByTheNextOutput`, `outputOf_readsClearOutputWait`; the `{}` write dies with it — the instruction never reaches `outputs`, so `toFileOutput`'s arm is unreachable |
 | `maxNumberOutputs`/`TrimmedOutputs` — a cap (500 default) with an "outputs exceeded" placeholder (`{model,widget}.ts`) | unbounded append; `CellOutputsView` scrolls what it gets | **absent** | `GAP-115`. A runaway `print()` loop has no ceiling and no mercy row |
 | `isIsolated`/`IsolatedRenderer` — `metadata.isolated` (per-mime key, then `metadata.isolated`) wraps the output in an iframe (`widget.ts:769-783`, `:1052-1064`) | no metadata carrier (`GAP-104`) and no DOM to isolate — the subset parse is unconditional | adapted | the isolation question presumes rendered markup can act — under ADR-0039 nothing can, so there is nothing to fence; `notebook:trust`'s `T2` verdict covers the flag itself |
-| `SimplifiedOutputArea` — the console's output area: no prompt wrapper, `onInputRequest` a no-op (`widget.ts:1217-1238`) | `ConsoleTranscriptView` reuses `CellOutputs`/`executionLabel` directly | adapted | same transcript shape through the shared parts — and the stdin refusal rides `GAP-014`'s `allow_stdin: false` one layer up |
+| `SimplifiedOutputArea` — the prompt-less output area `CodeCell.cloneOutputArea()` builds for a second view of a cell's outputs, `onInputRequest` a no-op so only the cell's own area prompts (`widget.ts:936-950`, `packages/cells/src/widget.ts:1590-1600`). The console is not it: its cells are ordinary `CodeCell`s (`packages/console/src/widget.ts:1382`) | no second view of a cell's outputs; the console's entries answer stdin through the same `CellOutputs` a notebook cell does | **absent** | `GAP-100` — the clone's own widget; with no second view there is no second prompt to suppress |
 | `InputCollapser`/`OutputCollapser` — click strips over the prompt columns bound to `inputHidden`/`outputHidden` (`packages/cells/src/collapser.tsx`) | `CollapsedCell` for both directions, `outputsHidden`/`sourceHidden` metadata-driven | adapted | the collapse machinery verdicted at `AUD-002` over the toggle commands — this row is the widget shape: a strip with a preview rather than a prompt-column affordance |
 | `execute_reply` `payload` — `source:'page'` to the pager, `set_next_input`, `ask_exit`, `edit` (`widget.ts:_onExecuteReply`) | `isReplyFor` reads the reply's identity only; `payload` never read | **absent** | `GAP-116`. `%page` and `?`-help vanish — the message arrives whole and its routing field is dropped |
 | `raises-exception` cell tag — `OutputArea.execute` sends `stop_on_error: false` for a tagged cell (`widget.ts`; nbformat's tag convention) | `stop_on_error: true` unconditionally (`JupyterMessage.kt:107`); the tag is preserved but never read | **absent** | `GAP-117`. A test-suite notebook's expected failure halts our run-all where the reference's continues |
@@ -2425,7 +2426,8 @@ What the walk found, beyond the rows above:
   `openDocument`'s `openedAs`-then-suffix is the whole factory dispatch — one conditional where
   the reference's document manager holds a factory map, sized by there being exactly one
   factory per type to dispatch (`DocumentOpeners.kt`). `KernelOutputs.outputFrom`'s `when` is
-  the wire dispatch — a `stdin`-named stream dropping at `toStream` (`GAP-014`),
+  the wire dispatch — a `stdin`-named stream dropping at `toStream` (a kernel never sends one: the
+  echo is the front end's, `domain/model/CellOutput.kt`),
   `update_display_data` folding into `display_data` (`GAP-113`), `clear_output` becoming an
   instruction rather than an output. `renderRichest`'s fall-through is the renderer selection —
   rank → usable-payload → keys — already verdicted. And the boot split: `pickerOpened`,
@@ -2445,7 +2447,7 @@ What the walk found, beyond the rows above:
   every member through `jsonPrimitive`, which throws on a non-primitive — one malformed member
   anywhere in `outputs` failed the whole open until `4304a05f` made the reads `as?`-tolerant at
   member granularity (red first: the four `toDomain_*` cases in `NotebookOutputsTest`). What
-  the walk confirmed rather than repaired: `toStream`'s stdin refusal (`GAP-014`),
+  the walk confirmed rather than repaired: `toStream`'s stdin refusal (`domain/model/CellOutput.kt`),
   `stopWriting`/`notebookIsGone` gating the farewell write so a deleted file is not
   resurrected, and `getUriForFile`'s refusal staying unreachable behind a `writeBytes` that
   just succeeded — `DiskWorkspaceRepository.writeText`/`writeBytes` sharing `GAP-023`'s

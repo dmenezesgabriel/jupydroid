@@ -118,7 +118,7 @@ What a running cell can ask of the user, beyond printing. These gaps are recorde
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-012` | **A cell can ask for input:** `input()` and `getpass()` prompt in the cell's output area, in the notebook and the Console, and the answer is echoed and kept | in-progress ← next | [JD-012](prd/JD-012-a-cell-can-ask-for-input.md) | `GAP-014` |
+| `JD-012` | **A cell can ask for input:** `input()` and `getpass()` prompt in the cell's output area, in the notebook and the Console, and the answer is echoed and kept | shipped | — | `GAP-014` |
 
 ### Known gaps
 

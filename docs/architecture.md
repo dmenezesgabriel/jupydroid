@@ -410,21 +410,6 @@ one. It is also the largest of the three: a widget is a renderer, a protocol and
 the reference itself has no caller for `comm_info_request` inside `packages/` because the feature
 lives in a separate project.
 
-### GAP-014 — `allow_stdin` is false, so `input()` raises instead of prompting
-
-`data/space/JupyterMessage.kt:106` sends `allow_stdin: false` on every `execute_request`, with the
-reason given as "there is no terminal behind this kernel". The consequence is exact and measured in
-the shipped image: `raw_input` and `getpass` check the flag and raise
-`StdinNotImplementedError("raw_input was called, but this frontend does not support input requests.")`
-(`usr/lib/python3.12/site-packages/ipykernel/kernelbase.py:1400-1402`, and `:1375-1377` for
-`getpass`). A cell calling `input()` therefore fails with a traceback rather than hanging — the
-damage is bounded, and `input()` is ordinary teaching Python.
-
-The reference offers the opposite default — `allow_stdin: true`
-(`packages/services/src/kernel/default.ts:801`) — and draws the prompt inside the output area
-(`packages/outputarea/src/widget.ts`), which is the shape to take: the flag is one line, and the
-feature is a prompt, a reply and a cell that stays busy while it waits.
-
 ### GAP-015 — A cell clipboard pastes below, and only below
 
 The reference pastes three ways — `notebook:paste-cell-below`, `paste-cell-above` and
