@@ -45,11 +45,17 @@ machinery reads.
 Every text-input affordance a user expects comes from the platform rather than from us, which is why
 this is cheaper than it looks: the language layer is the only part we maintain.
 
-**There are two ANSI paths, and that is deliberate rather than duplication.** A traceback's SGR escapes
-are *stripped* by a regex in the rendered-output path, because a traceback is text with colour in it. The
-terminal has a full VT emulator in `terminal/`, because a shell needs a grid with cursor addressing. The
-stripper was never reusable for the terminal, and the emulator would be absurd for a traceback.
+**The output path and the terminal share one SGR walk.** A text output's escapes go through the
+terminal's `GraphicRendition`, and only the terminal lays them into a grid
+([ADR-0083](0083-output-colour-reuses-the-terminals-sgr-walk.md)).
 
 The thing a future reader will be tempted to "fix" is writing our own selection handles or IME handling
 to get some editor feature. That is the 139 MB coming back in a different currency; the platform's input
 stack is the reason this approach is affordable.
+
+## Amendment — 2026-10-09
+
+Amended by [ADR-0083](0083-output-colour-reuses-the-terminals-sgr-walk.md). This record used to say
+there were two ANSI paths on purpose: a regex that stripped a traceback's escapes, and the terminal's
+VT emulator. The stripper is gone. Outputs are coloured through the emulator's own SGR walk, without
+its grid, so one reading of each escape serves both.
