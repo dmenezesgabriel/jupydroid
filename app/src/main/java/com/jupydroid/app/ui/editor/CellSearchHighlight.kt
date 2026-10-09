@@ -62,12 +62,15 @@ data class SearchMatchStyles(val match: SpanStyle, val current: SpanStyle)
  * typed into: there is no `TextFieldBuffer`, no caret and nothing to keep in step with one. The
  * spans and their order are the same, current last so it wins where the two overlap.
  *
- * Returns the plain string when there is nothing to mark, so a notebook with no search open builds
- * no annotations at all.
+ * Laid over whatever the text already carries - an output's ANSI colours - and returned as it is when
+ * there is nothing to mark, so a notebook with no search open builds no annotations of its own.
  */
-internal fun String.withSearchMatches(search: CellSearchHighlight, styles: SearchMatchStyles): AnnotatedString {
+internal fun AnnotatedString.withSearchMatches(
+  search: CellSearchHighlight,
+  styles: SearchMatchStyles,
+): AnnotatedString {
   val marks = search.within(length)
-  if (marks.matches.isEmpty()) return AnnotatedString(this)
+  if (marks.matches.isEmpty()) return this
   return buildAnnotatedString {
     append(this@withSearchMatches)
     marks.matches.forEach { addStyle(styles.match, it.first, it.last + 1) }

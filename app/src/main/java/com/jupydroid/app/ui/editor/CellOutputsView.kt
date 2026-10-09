@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.KernelInputRequest
+import com.jupydroid.app.theme.LocalAnsiPalette
 import com.jupydroid.app.theme.Spacing
 
 /**
@@ -152,7 +153,7 @@ private fun OutputColumn(
 private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight) {
   // An `AnnotatedString` rather than a second transformation: an output is drawn, never typed
   // into, so there is no `TextFieldBuffer` here and nothing to keep in step with a caret.
-  val text = output.text.withSearchMatches(search, searchMatchStyles())
+  val text = output.coloured(LocalAnsiPalette.current).withSearchMatches(search, searchMatchStyles())
   if (!output.isError) {
     Text(
       text = text,

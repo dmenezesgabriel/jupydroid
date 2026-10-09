@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import com.jupydroid.app.terminal.TerminalPalette
 
 /**
  * The editor tokens in scope. Static because the palette changes only with the system theme -
@@ -23,6 +24,16 @@ val LocalEditorPalette = staticCompositionLocalOf { DarkEditorPalette }
  * colour changes only with the system theme.
  */
 val LocalChromePalette = staticCompositionLocalOf { DarkChromePalette }
+
+/**
+ * The sixteen ANSI colours, and the 256 around them, that a cell's output paints its escapes with -
+ * VS Code's `terminal.ansi*` ramp, which its notebook renderer uses for the same job
+ * (vscode@3f3380c6 `extensions/notebook-renderers/src/colorMap.ts`).
+ *
+ * The ramp itself stays in `terminal/` (ADR-0020); only the choice of light or dark is made here,
+ * from the same `darkTheme` as every other palette, so it follows the app's theme override.
+ */
+val LocalAnsiPalette = staticCompositionLocalOf { TerminalPalette.VS_CODE_DARK }
 
 /**
  * The app's theme: the editor palette and the Material scheme that matches it, dark or light,
@@ -47,7 +58,12 @@ val LocalChromePalette = staticCompositionLocalOf { DarkChromePalette }
 fun JupyterDroidTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
   val palette = if (darkTheme) DarkEditorPalette else LightEditorPalette
   val chrome = if (darkTheme) DarkChromePalette else LightChromePalette
-  CompositionLocalProvider(LocalEditorPalette provides palette, LocalChromePalette provides chrome) {
+  val ansi = if (darkTheme) TerminalPalette.VS_CODE_DARK else TerminalPalette.VS_CODE_LIGHT
+  CompositionLocalProvider(
+    LocalEditorPalette provides palette,
+    LocalChromePalette provides chrome,
+    LocalAnsiPalette provides ansi,
+  ) {
     MaterialTheme(
       colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
       typography = JupydroidTypography,

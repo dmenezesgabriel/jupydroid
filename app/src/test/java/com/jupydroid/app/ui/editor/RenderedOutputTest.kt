@@ -6,12 +6,16 @@ import com.jupydroid.app.html.PANDAS_DATAFRAME_HTML
 import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.plainText
+import com.jupydroid.app.terminal.CellStyle
+import com.jupydroid.app.terminal.SgrRun
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class RenderedOutputTest {
+  private val red = CellStyle.encode(1, CellStyle.COLOR_INDEX_BACKGROUND, 0)
+
   @Test
   fun render_marksStderrAsErrorAndStdoutAsOrdinary() {
     assertEquals(false, text(CellOutput.Stream(StreamName.STDOUT, "fine")).isError)
@@ -27,55 +31,46 @@ class RenderedOutputTest {
   /**
    * A kernel colours its tracebacks with ANSI escapes. Rendered literally they read
    * `[31m---...`, which is what the Run All screenshot showed - noise wrapped around the
-   * one thing the user needs.
+   * one thing the user needs. The colour is kept beside the text, not in it.
    */
   @Test
-  fun render_stripsTheAnsiColoursOutOfATraceback() {
+  fun render_coloursATracebackWithoutLeavingItsEscapesInTheText() {
     val error = CellOutput.Error(
       name = "ZeroDivisionError",
       value = "division by zero",
       traceback = listOf(
-        "[31m---------------------------------------[39m",
-        "[31mZeroDivisionError[39m   Traceback (most recent call last)",
+        "\u001b[31m---\u001b[39m",
+        "\u001b[31mZeroDivisionError\u001b[39m   Traceback (most recent call last)",
       ),
     )
 
-    val rendered = text(error).text
+    val rendered = text(error)
 
-    assertTrue("escapes must be gone, got '$rendered'", !rendered.contains(""))
-    assertTrue("the bracket codes must be gone too, got '$rendered'", !rendered.contains("[31m"))
-    assertTrue(rendered.contains("ZeroDivisionError"))
-    assertTrue(rendered.contains("Traceback (most recent call last)"))
+    assertEquals("---\nZeroDivisionError   Traceback (most recent call last)", rendered.text)
+    assertEquals(listOf(SgrRun(0, 3, red), SgrRun(4, 21, red)), rendered.runs)
   }
 
-  /**
-   * `print("\u001b[31mred\u001b[0m")`, tqdm, `colored` - a stream colours itself with the same
-   * escapes a traceback does, and the same `[31m` residue on screen if nobody strips it.
-   */
+  /** `print("\u001b[31mred\u001b[0m")`, tqdm, `colored` - a stream colours itself the same way. */
   @Test
-  fun render_stripsTheAnsiColoursOutOfAStream() {
-    val rendered = text(CellOutput.Stream(StreamName.STDOUT, "[31mred[0m\n"))
+  fun render_coloursAStream() {
+    val rendered = text(CellOutput.Stream(StreamName.STDOUT, "\u001b[31mred\u001b[0m\n"))
 
-    assertTrue("escapes must be gone, got '${rendered.text}'", !rendered.text.contains(""))
-    assertTrue("the bracket codes must be gone too, got '${rendered.text}'", !rendered.text.contains("[31m"))
     assertEquals("red", rendered.text)
+    assertEquals(listOf(SgrRun(0, 3, red)), rendered.runs)
   }
 
-  /**
-   * A `text/plain` payload can carry escapes too - `__repr__`s of `rich` and `colored`
-   * objects do - and it is the last fallback, so nothing after it catches the residue.
-   */
+  /** A `text/plain` payload can carry escapes too - `__repr__`s of `rich` and `colored` objects do. */
   @Test
-  fun render_stripsTheAnsiColoursOutOfPlainText() {
+  fun render_coloursPlainText() {
     val output = CellOutput.ExecuteResult(
-      mimeBundleOf("text/plain" to "[32mok[0m\n"),
+      mimeBundleOf("text/plain" to "\u001b[32mok\u001b[0m\n"),
       1,
     )
 
-    val rendered = text(output).text
+    val rendered = text(output)
 
-    assertTrue("the bracket codes must be gone, got '$rendered'", !rendered.contains("[32m"))
-    assertEquals("ok", rendered)
+    assertEquals("ok", rendered.text)
+    assertEquals(listOf(SgrRun(0, 2, CellStyle.encode(2, CellStyle.COLOR_INDEX_BACKGROUND, 0))), rendered.runs)
   }
 
   /** With no traceback there is still a name and a value, and they must not read as blank. */

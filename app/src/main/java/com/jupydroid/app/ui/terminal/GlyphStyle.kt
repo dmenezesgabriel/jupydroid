@@ -37,7 +37,7 @@ internal fun styleFor(base: TextStyle, runStyle: CellStyle, foreColor: Int): Tex
   )
 }
 
-private fun textDecorationFor(effect: Int): TextDecoration? {
+internal fun textDecorationFor(effect: Int): TextDecoration? {
   val underline = effect and CellStyle.UNDERLINE != 0
   val strikethrough = effect and CellStyle.STRIKETHROUGH != 0
   return when {
@@ -61,8 +61,8 @@ internal fun resolvedRunColors(runStyle: CellStyle, colors: TerminalColors): Pai
   if (!isTruecolor(fore) && effect and (CellStyle.BOLD or CellStyle.BLINK) != 0 && fore in 0 until BRIGHT_OFFSET) {
     fore += BRIGHT_OFFSET
   }
-  fore = resolvedColor(fore, colors)
-  back = resolvedColor(back, colors)
+  fore = resolvedColor(fore, colors::at)
+  back = resolvedColor(back, colors::at)
   if (effect and CellStyle.INVERSE != 0) {
     val swap = fore
     fore = back
@@ -74,8 +74,12 @@ internal fun resolvedRunColors(runStyle: CellStyle, colors: TerminalColors): Pai
 
 private fun isTruecolor(color: Int): Boolean = (color and OPAQUE_ALPHA) == OPAQUE_ALPHA
 
-private fun resolvedColor(indexOrArgb: Int, colors: TerminalColors): Int =
-  if (isTruecolor(indexOrArgb)) indexOrArgb else colors.at(indexOrArgb)
+/**
+ * [indexOrArgb] as an opaque colour: taken as-is when it is already one, else looked up with
+ * [colorAt] - the emulator's live colours for the terminal, a fixed palette for a cell's output.
+ */
+internal fun resolvedColor(indexOrArgb: Int, colorAt: (Int) -> Int): Int =
+  if (isTruecolor(indexOrArgb)) indexOrArgb else colorAt(indexOrArgb)
 
 /** libvte's dim, taken from xterm - two thirds of each channel, `TerminalRenderer.drawTextRun`'s own arithmetic. */
 private fun dimmed(color: Int): Int {

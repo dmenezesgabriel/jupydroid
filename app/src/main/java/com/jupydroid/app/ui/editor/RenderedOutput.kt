@@ -5,13 +5,19 @@ import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.HtmlDocument
 import com.jupydroid.app.richtext.RichBlock
+import com.jupydroid.app.terminal.SgrRun
+import com.jupydroid.app.terminal.SgrText
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import java.util.Base64
 
 /** What the editor can actually draw for one output. */
 sealed interface RenderedOutput {
-  data class Text(val text: String, val isError: Boolean) : RenderedOutput
+  /**
+   * [text] is what the output says, with its escapes gone - what search and the collapsed
+   * preview read - and [runs] are the colours its escapes asked for, laid over it when drawn.
+   */
+  data class Text(val text: String, val isError: Boolean, val runs: List<SgrRun> = emptyList()) : RenderedOutput
 
   data class Image(val png: ByteArray) : RenderedOutput {
     // ByteArray identity would make two identical images unequal, and Compose would redraw.
@@ -31,11 +37,8 @@ sealed interface RenderedOutput {
  * type wins, what a traceback reads like - are unit-testable.
  */
 fun CellOutput.render(): RenderedOutput? = when (this) {
-  is CellOutput.Stream -> RenderedOutput.Text(
-    text.withoutAnsiColours().trimEnd(),
-    isError = name == StreamName.STDERR,
-  )
-  is CellOutput.Error -> RenderedOutput.Text(readable(), isError = true)
+  is CellOutput.Stream -> colouredText(text, isError = name == StreamName.STDERR)
+  is CellOutput.Error -> colouredText(readable(), isError = true)
   is CellOutput.ExecuteResult -> mimeBundle.renderRichest()
   is CellOutput.DisplayData -> mimeBundle.renderRichest()
   // An instruction to the front end rather than a result.
@@ -47,7 +50,7 @@ fun CellOutput.render(): RenderedOutput? = when (this) {
  * and value, which are all a bare exception has.
  */
 private fun CellOutput.Error.readable(): String = traceback.takeIf { it.isNotEmpty() }
-  ?.joinToString("\n") { it.withoutAnsiColours() }
+  ?.joinToString("\n")
   ?: "$name: $value"
 
 /**
@@ -80,7 +83,7 @@ private fun JsonElement.asText(): String? = (this as? JsonPrimitive)?.takeIf { i
 private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when (mimeType) {
   "text/html" -> HtmlDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)
   "image/png" -> payload.decodedPng()?.let(RenderedOutput::Image)
-  else -> RenderedOutput.Text(payload.withoutAnsiColours().trimEnd(), isError = false)
+  else -> colouredText(payload, isError = false)
 }
 
 /**
@@ -93,12 +96,6 @@ private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when 
 private fun String.decodedPng(): ByteArray? = filterNot { it.isWhitespace() }
   .let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
 
-/**
- * Removes the SGR escapes a kernel colours its output with - tracebacks, streams, and any
- * `text/plain` a `__repr__` emits. Both the real `ESC [ … m` form and the bare `[…m` left
- * behind when something has already eaten the escape byte - the second is what reaches us,
- * and rendering it literally is what put `[31m` on screen.
- */
-private fun String.withoutAnsiColours(): String = replace(ANSI_SGR, "")
-
-private val ANSI_SGR = Regex("?\\[[0-9;]*m")
+/** [raw] without its escapes or trailing whitespace, and the colours those escapes asked for. */
+private fun colouredText(raw: String, isError: Boolean): RenderedOutput.Text =
+  SgrText.parse(raw).trimEnd().let { RenderedOutput.Text(it.text, isError, it.runs) }

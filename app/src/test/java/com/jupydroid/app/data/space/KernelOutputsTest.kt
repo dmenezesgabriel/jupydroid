@@ -89,6 +89,23 @@ class KernelOutputsTest {
     assertEquals(listOf("line one", "line two"), error.traceback)
   }
 
+  /**
+   * The escape byte survives the wire: the server JSON-encodes it as `\u001b`, and a colour
+   * renderer is only worth building if what reaches it still has the byte that starts a colour.
+   */
+  @Test
+  fun outputOf_keepsTheEscapeByteOfAColouredTraceback() {
+    val frame = """
+      {"channel":"iopub","parent_header":{"msg_id":"m1"},"header":{"msg_type":"error"},
+       "content":{"ename":"ZeroDivisionError","evalue":"division by zero",
+       "traceback":["\u001b[0;31mZeroDivisionError\u001b[0m"]}}
+    """.trimIndent()
+
+    val error = KernelOutputs.outputOf(frame, "m1") as CellOutput.Error
+
+    assertEquals("\u001b[0;31mZeroDivisionError\u001b[0m", error.traceback.single())
+  }
+
   @Test
   fun outputOf_readsClearOutput() {
     val frame = """
