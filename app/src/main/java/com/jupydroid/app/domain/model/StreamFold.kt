@@ -31,20 +31,53 @@ fun List<CellOutput>.withOutputFolded(output: CellOutput): List<CellOutput> {
   }
 }
 
-/** Text runs, and each control character alone - the units `processText` walks in turn. */
-private val STREAM_TOKENS = Regex("[\n\b\r]|[^\n\b\r]+")
+/** The characters `processText` acts on; everything between them is a run of text. */
+private val STREAM_CONTROLS = charArrayOf('\n', '\b', '\r')
 
-private fun CellOutput.Stream.overwrittenBy(chunk: String): CellOutput.Stream =
-  STREAM_TOKENS.findAll(chunk).fold(this) { stream, token -> stream.applying(token.value) }
+/**
+ * Text runs, and each control character alone - the units `processText` walks in turn.
+ *
+ * Scanned by index rather than with `Regex.findAll`, which makes a `Matcher` per match - and an
+ * Android `Matcher` copies its whole input into ICU, so a chunk cost tokens x its own length on a
+ * device (StreamFoldOnArtTest.oneMessageOfManyLinesFoldsInLinearTime).
+ */
+private fun streamTokensOf(chunk: String): Sequence<String> = sequence {
+  var start = 0
+  while (start < chunk.length) {
+    val control = chunk.indexOfAny(STREAM_CONTROLS, start)
+    val end = when (control) {
+      -1 -> chunk.length
+      start -> start + 1
+      else -> control
+    }
+    yield(chunk.substring(start, end))
+    start = end
+  }
+}
 
-private fun CellOutput.Stream.applying(token: String): CellOutput.Stream = when (token) {
-  "\n" -> copy(text = text + "\n", cursor = text.length + 1)
-  "\r" -> copy(cursor = text.lastIndexOf('\n', cursor - 1) + 1)
-  "\b" -> backspaced()
-  else -> copy(
-    text = text.take(cursor) + token + text.drop(cursor + token.length),
-    cursor = cursor + token.length,
-  )
+/**
+ * Applies a chunk's tokens to one buffer, so the stream's text is copied once per message rather
+ * than once per token - a print loop is two tokens a line, and rebuilding the whole text for each
+ * froze the editor for minutes on 200k lines (StreamFoldTest.aRunawayPrintFoldsInLinearTime).
+ *
+ * Fixes: 6afbdf9a5dda ("feat(editor): adjacent streams fold and \r rewrites the line")
+ */
+private fun CellOutput.Stream.overwrittenBy(chunk: String): CellOutput.Stream {
+  val buffer = StringBuilder(text)
+  val landed = streamTokensOf(chunk).fold(cursor) { at, token -> buffer.applying(token, at) }
+  return copy(text = buffer.toString(), cursor = landed)
+}
+
+/** One token applied in place; returns where the cursor lands. */
+private fun StringBuilder.applying(token: String, cursor: Int): Int = when (token) {
+  "\n" -> append('\n').length
+  "\r" -> lastIndexOf("\n", cursor - 1) + 1
+  "\b" -> backspaced(cursor)
+  else -> {
+    // `replace` clamps its end to the length, as `slice` does in JupyterLab's `processText`.
+    replace(cursor, cursor + token.length, token)
+    cursor + token.length
+  }
 }
 
 /**
@@ -53,7 +86,8 @@ private fun CellOutput.Stream.applying(token: String): CellOutput.Stream = when 
  * (`text.slice(0, idx0 - 1) + text.slice(idx0 + 1)`), kept so a notebook saved here holds the text
  * JupyterLab would have saved. At the end of the text - every progress bar - the two agree.
  */
-private fun CellOutput.Stream.backspaced(): CellOutput.Stream {
-  if (cursor == 0 || text[cursor - 1] == '\n') return this
-  return copy(text = text.take(cursor - 1) + text.drop(cursor + 1), cursor = cursor - 1)
+private fun StringBuilder.backspaced(cursor: Int): Int {
+  if (cursor == 0 || this[cursor - 1] == '\n') return cursor
+  delete(cursor - 1, cursor + 1)
+  return cursor - 1
 }
