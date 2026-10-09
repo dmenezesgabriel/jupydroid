@@ -399,6 +399,14 @@ public abstract class PythonLexerBase extends Lexer {
                 if (this.lexerModeStack.isEmpty()) {
                     return; // Not in f/t-string mode
                 }
+                // Local patch, not upstream (grammars-v4 at 42b1ea52 lacks it): an unterminated
+                // f/t-string with no `{` opened yet - `f"` mid-typing - reaches here with its EOF
+                // or error token and no brace expression to append to, and the pop threw
+                // NoSuchElementException. Only the `{` that opens one, or a token inside one,
+                // belongs to a brace expression. PythonSyntaxTest.spansOf_toleratesAnFStringStillBeingTyped
+                if (this.braceExpressionStack.isEmpty() && this.curToken.getType() != PythonLexer.LBRACE) {
+                    return;
+                }
         }
         this.processBraceExpression();
     }

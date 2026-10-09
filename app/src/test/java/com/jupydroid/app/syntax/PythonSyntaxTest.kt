@@ -86,6 +86,19 @@ class PythonSyntaxTest {
     }
   }
 
+  /**
+   * Every f-string passes through these while it is typed - the quote is open and no `{` has
+   * been - and the vendored lexer base threw `NoSuchElementException` on each, from the editor's
+   * highlighting pass, which took the whole app down on the keystroke.
+   */
+  @Test
+  fun spansOf_toleratesAnFStringStillBeingTyped() {
+    listOf("f\"", "f'", "print(f\")", "x = f\"ab", "f\"\n").forEach { source ->
+      syntax.spansOf(source) // must not throw
+    }
+    assertEquals(SyntaxKind.STRING, kindAt(syntax.spansOf("x = f\"ab"), "x = ".length))
+  }
+
   private fun kindAt(spans: List<SyntaxSpan>, offset: Int): SyntaxKind =
     spans.firstOrNull { offset >= it.start && offset < it.end }?.kind ?: SyntaxKind.PLAIN
 }

@@ -16,3 +16,10 @@ never reach the token stream and cannot be highlighted. This one emits
 `PythonParser`, so the lexer does not compile without it.
 
 Refresh by re-fetching all three files at a newer commit and updating the SHA above.
+
+**One local patch, in `PythonLexerBase.java`**, marked `Local patch` where it sits: an
+unterminated f-string with no `{` yet (`f"`, which every f-string is while it is typed) made
+`normalizeCurToken` pop an empty brace-expression stack, and the throw from the editor's
+highlighting pass took the app down. Upstream master was identical to the pinned file when this
+was written, so a refresh must carry the patch over until upstream has its own;
+`PythonSyntaxTest.spansOf_toleratesAnFStringStillBeingTyped` fails if it is lost.
