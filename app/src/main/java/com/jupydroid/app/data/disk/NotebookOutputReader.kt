@@ -3,6 +3,7 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.domain.model.withOutputFolded
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -29,6 +30,22 @@ fun JsonElement.toDomainOutput(): CellOutput? {
     else -> null
   }
 }
+
+/**
+ * Reads a cell's stored outputs the way JupyterLab's `OutputAreaModel.fromJSON` does - each one
+ * added in turn, so adjacent same-name streams fold into one and `\r`/`\b` are interpreted
+ * (jupyterlab@7f0e690 packages/outputarea/src/model.ts). A notebook saved with one `stream` per
+ * flush, as the kernel sends them, reopens as the single output it drew.
+ *
+ * An output this app does not model is dropped before the fold, so the streams around it join
+ * where JupyterLab's would not; nbformat 4 has no `output_type` beyond the four read here.
+ *
+ * ```kotlin
+ * cellFile.outputs.toDomainOutputs() // ["\r0%", "\r100%\n"] -> [Stream(STDOUT, "100%\n")]
+ * ```
+ */
+fun List<JsonElement>.toDomainOutputs(): List<CellOutput> =
+  mapNotNull { it.toDomainOutput() }.fold(emptyList()) { outputs, output -> outputs.withOutputFolded(output) }
 
 private fun JsonObject.toStream(): CellOutput? {
   val name = when (get("name").stringOrNull()) {

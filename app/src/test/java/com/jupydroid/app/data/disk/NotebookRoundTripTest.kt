@@ -153,6 +153,15 @@ class NotebookRoundTripTest {
     assertEquals(json("""["setup","slow"]"""), (saved["metadata"] as JsonObject)["tags"])
   }
 
+  /**
+   * A cell saved with one `stream` per flush reads as one folded output, but nothing about it
+   * changed, so it is written back as it was read - the metadata on its other outputs with it.
+   */
+  @Test
+  fun keepsACellOfSplitStreamsByteForByte() {
+    assertEquals(ORIGINAL.cells().first()["outputs"], savedCells().first()["outputs"])
+  }
+
   /** Re-running replaces the outputs, so the preserved ones must *not* be written back. */
   @Test
   fun writesTheNewOutputsWhenACellHasBeenRerun() {
@@ -257,7 +266,9 @@ class NotebookRoundTripTest {
                   "application/vnd.jupyter.widget-view+json": {"model_id": "abc123", "version_major": 2}
                 },
                 "metadata": {"image/png": {"width": 420, "height": 280}}
-              }
+              },
+              {"output_type": "stream", "name": "stdout", "text": "\r0%"},
+              {"output_type": "stream", "name": "stdout", "text": "\r100%\n"}
             ]
           },
           {

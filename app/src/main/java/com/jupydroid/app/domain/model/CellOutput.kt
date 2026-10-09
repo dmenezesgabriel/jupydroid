@@ -30,7 +30,8 @@ sealed interface CellOutput {
    * `\b` moved it back - see [withOutputFolded]. It rides on the output rather than beside it so
    * every edit that copies or restores outputs carries it, as JupyterLab keeps `_streamIndex` with
    * the last stream it built (jupyterlab@7f0e690 packages/outputarea/src/model.ts). nbformat has no
-   * field for it, so a saved stream reopens with its cursor at the end - where `fromJSON` leaves it.
+   * field for it, so a saved stream reopens with the cursor its text leaves once `\r` and `\b` are
+   * interpreted - where `fromJSON` leaves it, and the end for any text this app wrote.
    */
   data class Stream(val name: StreamName, val text: String, val cursor: Int = text.length) : CellOutput
 

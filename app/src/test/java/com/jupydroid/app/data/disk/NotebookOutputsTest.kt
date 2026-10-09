@@ -164,5 +164,55 @@ class NotebookOutputsTest {
     assertEquals(output, output.toFileOutput().toDomainOutput())
   }
 
+  /**
+   * A notebook saved with one `stream` per flush reopens as one output, as JupyterLab's
+   * `OutputAreaModel.fromJSON` does by running `_add` per stored output
+   * (jupyterlab@7f0e690 packages/outputarea/src/model.ts).
+   */
+  @Test
+  fun toDomainOutputs_foldsAdjacentStreamsOfTheSameName() {
+    val outputs =
+      outputsOf(
+        """[${stdoutJson("\\r0%")}, ${stdoutJson("\\r100%")}, ${stdoutJson(" done\\n")}, ${stdoutJson("a\\n")}]""",
+      )
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "100% done\na\n")), outputs)
+  }
+
+  @Test
+  fun toDomainOutputs_interpretsCarriageReturnInOneStoredStream() {
+    val outputs = outputsOf("""[${stdoutJson("0%\\r50%\\r100%")}]""")
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "100%")), outputs)
+  }
+
+  @Test
+  fun toDomainOutputs_keepsStreamsOnEitherSideOfADisplayApart() {
+    val outputs =
+      outputsOf("""[${stdoutJson("a\\n")}, {"output_type":"display_data","data":{}}, ${stdoutJson("b\\n")}]""")
+
+    assertEquals(
+      listOf(
+        CellOutput.Stream(StreamName.STDOUT, "a\n"),
+        CellOutput.DisplayData(emptyMap()),
+        CellOutput.Stream(StreamName.STDOUT, "b\n"),
+      ),
+      outputs,
+    )
+  }
+
+  @Test
+  fun toDomain_readsACellsSplitStreamsAsOne() {
+    val stored = Json.parseToJsonElement("""[${stdoutJson("a\\n")}, ${stdoutJson("b\\n")}]""") as JsonArray
+
+    val cell = CellFile(cellType = "code", outputs = stored).toDomain()
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "a\nb\n")), cell.outputs)
+  }
+
+  private fun stdoutJson(text: String): String = """{"output_type":"stream","name":"stdout","text":"$text"}"""
+
+  private fun outputsOf(json: String): List<CellOutput> = (Json.parseToJsonElement(json) as JsonArray).toDomainOutputs()
+
   private fun outputOf(json: String): CellOutput? = Json.parseToJsonElement(json).toDomainOutput()
 }

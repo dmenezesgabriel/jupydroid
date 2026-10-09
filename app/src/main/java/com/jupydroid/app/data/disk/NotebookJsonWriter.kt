@@ -119,7 +119,7 @@ private fun Cell.jupyterNamespace(): JsonObject? {
  */
 private fun Cell.outputsJson(): JsonArray {
   val asRead = preserved["outputs"] as? JsonArray
-  if (asRead != null && asRead.mapNotNull { it.toDomainOutput() } == outputs) return asRead
+  if (asRead != null && asRead.toDomainOutputs() == outputs) return asRead
   return JsonArray(outputs.map { it.toFileOutput() })
 }
 

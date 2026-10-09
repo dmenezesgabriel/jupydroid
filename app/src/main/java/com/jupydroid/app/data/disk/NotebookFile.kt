@@ -127,7 +127,7 @@ fun CellFile.toDomain(preserved: JsonObject? = null): Cell = Cell(
   id = id.ifBlank { UUID.randomUUID().toString() },
   kind = cellKind(),
   source = source,
-  outputs = outputs.mapNotNull { it.toDomainOutput() },
+  outputs = outputs.toDomainOutputs(),
   executionCount = executionCount,
   sourceHidden = metadata.sourceHidden(),
   outputsHidden = metadata.outputsHidden(),
