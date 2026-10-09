@@ -144,8 +144,11 @@ There are no port changes: this is a fold repair and a view.
 
 - [x] T1: the fold is linear. A profile 90 s into the 200k-line print on SM-X216B shows it gone. The screen stays
   frozen, because the draw is what's left (see below).
-- [ ] T2: the line window in the notebook, `N lines hidden` between head and tail, tap to draw all. The 200k-line
-  print finishes and scrolls on SM-X216B.
+- [x] T2: the line window in the notebook, `N lines hidden` between head and tail, tap to draw all. The 200k-line
+  print finishes in 34 s and scrolls on SM-X216B. Tapping the row on that output freezes the draw (see T2b).
+- [ ] T2b: drawing all of a 200k-line output. Expanded, it is one `Text` of 1.3 MB again, and each drawn line copies
+  the whole string (`GetStringChars` 85.7% under `Layout.drawText`). Draw it as one `Text` per ~1000 lines, so a
+  drawn line copies its chunk. Measure the one layout pass that's left on SM-X216B.
 - [ ] T3: the output-count cap of 50, with `Show more outputs`, in the notebook.
 - [ ] T4: both caps in the Console.
 - [ ] T5: search into a hidden region, and scrolled mode's tail.

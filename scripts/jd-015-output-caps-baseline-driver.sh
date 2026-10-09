@@ -17,6 +17,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 
 EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/jd-015-output-caps}/baseline"
+# The flow that runs the cell and reads the result; a task's driver names its own.
+RUN_FLOW="${RUN_FLOW:-$ROOT/.maestro/jd-015-output-caps-baseline-run.yaml}"
 mapfile -t DEVICE < <(device_adb)
 
 # Where the app's CPU goes, [PROFILE_AFTER] seconds into the run: an 8 s simpleperf sample, which a
@@ -45,12 +47,12 @@ measure() {
   local started ended status=0
   started="$(date +%s.%N)"
   if [ -n "${PROFILE_AFTER:-}" ]; then
-    run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-run.yaml" "$out/run" &
+    run_flow "$RUN_FLOW" "$out/run" &
     local flow_pid=$!
     profile_app "$out"
     wait "$flow_pid" || status=$?
   else
-    run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-run.yaml" "$out/run" || status=$?
+    run_flow "$RUN_FLOW" "$out/run" || status=$?
   fi
   ended="$(date +%s.%N)"
   "${DEVICE[@]}" exec-out screencap -p >"$out/run/04-when-measured.png"
