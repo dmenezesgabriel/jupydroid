@@ -19,6 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -154,25 +156,31 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight)
   // An `AnnotatedString` rather than a second transformation: an output is drawn, never typed
   // into, so there is no `TextFieldBuffer` here and nothing to keep in step with a caret.
   val text = output.coloured(LocalAnsiPalette.current).withSearchMatches(search, searchMatchStyles())
-  if (!output.isError) {
-    Text(
+  val colors = MaterialTheme.colorScheme
+  when (output.frame()) {
+    OutputTextFrame.PLAIN -> Text(text = text, style = codeTextStyle(), color = colors.onSurface)
+    // A traceback is long and needs to be findable at a glance, so it gets its own tinted
+    // block rather than only a colour that a monospace wall of text swallows.
+    OutputTextFrame.TINTED -> Text(
       text = text,
       style = codeTextStyle(),
-      color = MaterialTheme.colorScheme.onSurface,
+      color = colors.onErrorContainer,
+      modifier = Modifier
+        .fillMaxWidth()
+        .background(colors.errorContainer, MaterialTheme.shapes.small)
+        .padding(Spacing.sm),
     )
-    return
+    // Its own colours need the surface to read (see `frame`), so the rule does the tint's job.
+    OutputTextFrame.RULED -> Text(
+      text = text,
+      style = codeTextStyle(),
+      color = colors.onSurface,
+      modifier = Modifier
+        .fillMaxWidth()
+        .drawBehind { drawRect(colors.error, size = Size(ERROR_RULE_WIDTH.toPx(), size.height)) }
+        .padding(start = Spacing.sm),
+    )
   }
-  // A traceback is long and needs to be findable at a glance, so it gets its own tinted
-  // block rather than only a colour that a monospace wall of text swallows.
-  Text(
-    text = text,
-    style = codeTextStyle(),
-    color = MaterialTheme.colorScheme.onErrorContainer,
-    modifier = Modifier
-      .fillMaxWidth()
-      .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.small)
-      .padding(Spacing.sm),
-  )
 }
 
 @Composable
@@ -189,6 +197,9 @@ private fun OutputImage(output: RenderedOutput.Image) {
     contentScale = ContentScale.Fit,
   )
 }
+
+/** The coloured traceback's edge: the 2dp of a cell's edit-mode stripe (`CellStripe.kt`), an edge and not a frame. */
+private val ERROR_RULE_WIDTH = 2.dp
 
 /** 24 line heights - the reference's `max-height: 24em` on `.jp-mod-outputsScrolled`. */
 private const val SCROLLED_OUTPUT_LINES = 24

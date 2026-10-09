@@ -54,3 +54,34 @@ private fun outputColor(indexOrArgb: Int, palette: TerminalPalette): Color =
 
 /** The three entries a terminal names for itself; in an output they mean "the output's own". */
 private val TERMINAL_OWN_COLORS = CellStyle.COLOR_INDEX_FOREGROUND..CellStyle.COLOR_INDEX_CURSOR
+
+/** How a text output's block is set apart from the cell around it. */
+enum class OutputTextFrame {
+  /** Ordinary output: no frame. */
+  PLAIN,
+
+  /** An error in one colour, filled with the error tint so a monospace wall of text is findable. */
+  TINTED,
+
+  /** An error carrying its own colours, on the surface with an error-coloured rule at its edge. */
+  RULED,
+}
+
+/**
+ * The frame this output draws in.
+ *
+ * **A coloured error is ruled, not tinted**, because the tint costs its colours their contrast: ANSI
+ * red `#CD3131` - most of an IPython traceback - is 2.97:1 on the dark error tint `#3A1D1D` and
+ * 3.61:1 on the dark surface, which is where VS Code draws it, with no fill at all
+ * (vscode@3f3380c6 `extensions/notebook-renderers/src/index.ts`, `.traceback`). The rule keeps it
+ * findable at a glance, which is what the tint was for.
+ *
+ * ```
+ * RenderedOutput.Text("ValueError: bad", isError = true).frame()   // TINTED
+ * ```
+ */
+fun RenderedOutput.Text.frame(): OutputTextFrame = when {
+  !isError -> OutputTextFrame.PLAIN
+  runs.isEmpty() -> OutputTextFrame.TINTED
+  else -> OutputTextFrame.RULED
+}

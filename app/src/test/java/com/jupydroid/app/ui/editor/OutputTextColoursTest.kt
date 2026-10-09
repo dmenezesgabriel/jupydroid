@@ -88,6 +88,31 @@ class OutputTextColoursTest {
     assertEquals(listOf(AnnotatedString.Range(SpanStyle(color = Color(palette.at(1))), 2, 5)), coloured.spanStyles)
   }
 
+  @Test
+  fun frame_leavesOrdinaryOutputUnframed() {
+    assertEquals(OutputTextFrame.PLAIN, RenderedOutput.Text("42", isError = false).frame())
+  }
+
+  @Test
+  fun frame_tintsAnErrorThatCarriesNoColour() {
+    assertEquals(OutputTextFrame.TINTED, RenderedOutput.Text("ValueError: bad", isError = true).frame())
+  }
+
+  /**
+   * A coloured traceback draws on the surface, as VS Code draws it: ANSI red `#CD3131` on the dark
+   * error tint `#3A1D1D` is 2.97:1, and on the dark surface 3.61:1.
+   */
+  @Test
+  fun frame_rulesAnErrorThatCarriesColourInsteadOfTintingIt() {
+    val traceback = RenderedOutput.Text(
+      "ZeroDivisionError",
+      isError = true,
+      runs = listOf(SgrRun(0, 17, CellStyle.encode(1, bg, 0))),
+    )
+
+    assertEquals(OutputTextFrame.RULED, traceback.frame())
+  }
+
   /** A find over a coloured traceback marks the match and keeps the colour under it. */
   @Test
   fun withSearchMatches_laysTheMatchOverTheColoursRatherThanReplacingThem() {
