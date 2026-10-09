@@ -118,7 +118,7 @@ Absent, apart from the disk half, which is present and lossy.
 
 - [x] T1 — A `stdin` stream round-trips: `StreamName.STDIN`, read as `"stdin"`, written as
   `"stdin"`, and drawn plain. Checked on the emulator with a fixture notebook, since no cell runs
-- [ ] T2 — The wire and the port: `KernelInputRequest`, `KernelEvent.InputRequested`,
+- [x] T2 — The wire and the port: `KernelInputRequest`, `KernelEvent.InputRequested`,
   `KernelGateway.replyInput`, `JupyterMessage.inputReply` and `KernelOutputs.inputRequestOf`.
   `RealKernelGateway` emits and replies, `BaseSpaceKernelGateway` delegates, and `FakeKernelGateway`
   records. The UI folds the event as a no-op, and `allow_stdin` stays false so no commit can hang a

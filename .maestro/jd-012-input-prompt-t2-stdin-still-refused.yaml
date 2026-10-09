@@ -1,0 +1,51 @@
+appId: com.jupydroid.app
+---
+# The gateway now reads `input_request` and can answer it, but every execute still sends
+# `allow_stdin: false` (`JupyterMessage.executeContent`). So ipykernel refuses `input()` with
+# StdinNotImplementedError rather than blocking on a prompt nothing draws, and the kernel goes on
+# to run the next cell. FakeKernelGateway would echo each cell's source, which holds neither the
+# error's name nor 42. Seeded by scripts/jd-012-input-prompt-t2-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Stdin Refused.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Stdin Refused.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*StdinNotImplementedError.*"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 01-input-raises-rather-than-hangs
+# The traceback pushes the second cell below the fold, so the flow scrolls to its source and
+# taps the Run button closest above it.
+- scrollUntilVisible:
+    element:
+      text: ".*6 \\* 7.*"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- tapOn:
+    text: "Run cell"
+    above:
+      text: ".*6 \\* 7.*"
+# Two cells have outputs now, and `childOf` takes the first container it matches - the
+# traceback's - so the second cell's container is named by index.
+- extendedWaitUntil:
+    visible:
+      text: "hi 42"
+      childOf: {text: "Cell output", index: 1}
+    timeout: 60000
+# One more scroll so the frame shows the printed line whole rather than clipped at the run bar.
+- scroll
+- takeScreenshot: 02-the-next-cell-runs-on-the-same-kernel
