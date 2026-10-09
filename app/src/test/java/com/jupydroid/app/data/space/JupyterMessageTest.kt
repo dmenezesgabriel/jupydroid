@@ -20,14 +20,17 @@ class JupyterMessageTest {
     assertEquals("2 + 2", json["content"]!!.jsonObject["code"]!!.jsonPrimitive.content)
   }
 
-  /** A kernel refusing stdin matters: there is no terminal behind this one to answer it. */
+  /**
+   * Stdin allowed, because the notebook and the Console both answer `input_request` (ADR-0082) -
+   * with it false, ipykernel raises `StdinNotImplementedError` instead of asking.
+   */
   @Test
-  fun executeRequest_disablesStdinAndStopsOnError() {
+  fun executeRequest_allowsStdinAndStopsOnError() {
     val content = Json.parseToJsonElement(
       JupyterMessage.executeRequest("2 + 2", sessionId = "s1", msgId = "m1"),
     ).jsonObject["content"]!!.jsonObject
 
-    assertEquals("false", content["allow_stdin"]!!.jsonPrimitive.content)
+    assertEquals("true", content["allow_stdin"]!!.jsonPrimitive.content)
     assertEquals("true", content["stop_on_error"]!!.jsonPrimitive.content)
   }
 

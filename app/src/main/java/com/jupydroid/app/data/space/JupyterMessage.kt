@@ -123,7 +123,9 @@ object JupyterMessage {
     put("code", code)
     put("silent", false)
     put("store_history", true)
-    put("allow_stdin", false) // there is no terminal behind this kernel
+    // The notebook and the Console both answer `input_request`, so a cell's `input()` asks rather
+    // than raising `StdinNotImplementedError` (ADR-0082).
+    put("allow_stdin", true)
     put("stop_on_error", true)
   }
 
