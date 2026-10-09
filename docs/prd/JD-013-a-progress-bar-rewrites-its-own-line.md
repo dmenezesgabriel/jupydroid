@@ -101,7 +101,7 @@ None open; the `\r` disagreement is settled above.
 
 - [x] T1 — The fold, in the notebook: `StreamFold` (merge + `processText`), wired into `afterOutput` and
   `withInputAnswered`; device evidence of a `\r` loop drawing one line
-- [ ] T2 — The Console folds the same way (output and echo paths); device evidence
+- [x] T2 — The Console folds the same way (output and echo paths); device evidence
 - [ ] T3 — A notebook read from disk folds adjacent same-name streams; evidence of a split notebook
   reopening folded
 - [ ] T4 — The demo above on `SM-X216B`, then ship: delete this PRD, close `GAP-112`, flip its
