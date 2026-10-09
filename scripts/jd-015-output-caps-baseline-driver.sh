@@ -4,6 +4,7 @@
 # execution count, with the frames drawn and the memory held across that run.
 #
 #   scripts/jd-015-output-caps-baseline-driver.sh [control|print|display ...]
+#   PROFILE_AFTER=90 scripts/jd-015-output-caps-baseline-driver.sh print   # plus a CPU profile
 #
 # Runs a cell, so it needs the arm64 tablet: on x86_64 FakeKernelGateway echoes the source.
 set -euo pipefail
@@ -18,6 +19,22 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/jd-015-output-caps}/baseline"
 mapfile -t DEVICE < <(device_adb)
 
+# Where the app's CPU goes, [PROFILE_AFTER] seconds into the run: an 8 s simpleperf sample, which a
+# debuggable build allows without root. Flat by symbol, then the app's own frames by inclusive cost -
+# the second is what says whether our code or the platform's is the one burning the time.
+profile_app() {
+  local out="$1"
+  sleep "$PROFILE_AFTER"
+  "${DEVICE[@]}" shell "simpleperf record --app $APP --duration 8 -f 1000 -g -o /data/local/tmp/jd015.data" >/dev/null 2>&1
+  {
+    echo "== by symbol, self"
+    "${DEVICE[@]}" shell "simpleperf report -i /data/local/tmp/jd015.data --sort symbol -n --percent-limit 1"
+    echo "== app frames, inclusive"
+    "${DEVICE[@]}" shell "simpleperf report -i /data/local/tmp/jd015.data --children --sort symbol --percent-limit 0.5" |
+      grep -E "com\.jupydroid|Children" || echo "(no app frame at or above 0.5%)"
+  } >"$out/profile.txt" 2>&1
+}
+
 # One measurement of the notebook [title], already seeded: open it untimed, reset the frame
 # statistics, then time the run alone.
 measure() {
@@ -27,7 +44,14 @@ measure() {
   "${DEVICE[@]}" shell dumpsys gfxinfo "$APP" reset >/dev/null
   local started ended status=0
   started="$(date +%s.%N)"
-  run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-run.yaml" "$out/run" || status=$?
+  if [ -n "${PROFILE_AFTER:-}" ]; then
+    run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-run.yaml" "$out/run" &
+    local flow_pid=$!
+    profile_app "$out"
+    wait "$flow_pid" || status=$?
+  else
+    run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-run.yaml" "$out/run" || status=$?
+  fi
   ended="$(date +%s.%N)"
   "${DEVICE[@]}" exec-out screencap -p >"$out/run/04-when-measured.png"
   {

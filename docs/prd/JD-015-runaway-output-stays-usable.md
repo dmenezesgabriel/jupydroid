@@ -42,7 +42,17 @@ tap to `[1]:`, so it includes the kernel's start. Evidence is in `evidence/jd-01
 **The print case is not a layout problem.** The kernel had finished, and the app was still folding.
 `withOutputFolded` (`app/src/main/java/com/jupydroid/app/domain/model/StreamFold.kt`) rebuilt the whole text for
 every token, and a print loop is two tokens per line. On a desktop JVM 40k, 80k and 160k lines took 0.8 s, 2.7 s
-and 15.5 s: quadratic, inside the editor's `uiState.update`. That is a defect of `6afbdf9a`, and T1 repairs it.
+and 15.5 s: quadratic, inside the editor's `uiState.update`. On the device there's a second cost the JVM hides:
+the tokens came from `Regex.findAll`, which makes a `Matcher` per match, and an Android `Matcher` copies its whole
+input into ICU. So one message cost tokens × its own length. With the buffer repaired, a profile on SM-X216B
+still put 71.8% of samples under `overwrittenBy`, nearly all in `Matcher.resetForInput`. Both are defects of
+`6afbdf9a`, and T1 repairs both.
+
+**Behind the fold, the draw.** With the fold repaired, the same run still drew nothing for 300 s. `simpleperf`
+on the app put 87% of samples in `art::JNI::GetStringChars`, under
+`TextAnnotatedStringNode.draw → android.text.Layout.drawText → TextLine.drawRun`. One `Text` holds all 200k
+lines, and each line it draws hands the whole 1.3 MB string to native code. So drawing costs lines × length, which
+is the cost a line window bounds, and the reason T2 cannot be skipped.
 
 ## Who else implements this
 
@@ -132,8 +142,10 @@ There are no port changes: this is a fold repair and a view.
 
 ## Tasks
 
-- [ ] T1: the fold is linear, so a 200k-line print finishes on SM-X216B and the editor answers again.
-- [ ] T2: the line window in the notebook, `N lines hidden` between head and tail, tap to draw all.
+- [x] T1: the fold is linear. A profile 90 s into the 200k-line print on SM-X216B shows it gone. The screen stays
+  frozen, because the draw is what's left (see below).
+- [ ] T2: the line window in the notebook, `N lines hidden` between head and tail, tap to draw all. The 200k-line
+  print finishes and scrolls on SM-X216B.
 - [ ] T3: the output-count cap of 50, with `Show more outputs`, in the notebook.
 - [ ] T4: both caps in the Console.
 - [ ] T5: search into a hidden region, and scrolled mode's tail.
