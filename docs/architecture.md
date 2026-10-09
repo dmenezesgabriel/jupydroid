@@ -1439,17 +1439,6 @@ even an authored markdown link's destination goes nowhere (`GAP-093`). The repai
 detection — URLs and `file:line` spans becoming `RichInline.Link`s — before the consumer
 `GAP-093` names has anything new to follow.
 
-### GAP-106 — ANSI colour never renders, only strips
-
-`renderText` and `renderError` pass their source through `ansiSpan`, which maps SGR codes — the
-16, 256 and true-colour forms — to styled spans the sanitizer then permits
-(`jupyterlab/packages/rendermime/src/renderers.ts:852-864`). Ours chose the documented fallback:
-`withoutAnsiColours` strips the escapes so a stream, a `text/plain` repr or a traceback reads
-clean — and monochrome (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt`). The
-capability was never built: `RenderedOutput.Text` carries a flat `String`, so the repair is a
-styled carrier — spans on `RichInline`, or a styled-string output type — before any colour can
-land.
-
 ### GAP-107 — An embedded image or attachment never draws
 
 Three surfaces feed one machinery: markdown `![alt](src)`, HTML `<img src>`, and the
@@ -1824,7 +1813,9 @@ opaque id per open, so two documents that share a path across time are two keys.
 `consoleSession` is process-scoped composition state — a `NotebookKernelSession` cannot
 round-trip a Bundle — so the saveable `Console` key survives a process death and the session it
 draws from does not (`app/src/main/java/com/jupydroid/app/Navigation.kt`). The restored entry
-composes no `ConsoleScreen`: a blank pane under a live tab title. JupyterLab's console tracker
+composes no `ConsoleScreen`: a blank pane under a live tab title. A configuration change gets
+there without a process death: `cmd uimode night no` recreates the activity, the plain-`remember`
+holder starts empty, and an open Console tab draws blank while its kernel lives on. JupyterLab's console tracker
 restores by reconnecting to the kernel session the key names. The repair is reattach-by-name
 through `KernelGateway`'s session list, or dropping the restored key with the stack entry that
 names it.
