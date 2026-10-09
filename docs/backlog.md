@@ -120,6 +120,15 @@ What a running cell can ask of the user, beyond printing. These gaps are recorde
 |---|---|---|---|---|
 | `JD-012` | **A cell can ask for input:** `input()` and `getpass()` prompt in the cell's output area, in the notebook and the Console, and the answer is echoed and kept | shipped | — | `GAP-014` |
 
+### M4 — Output fidelity
+
+What a cell's output looks like against what the kernel meant by it. The gaps are the rendering
+audit's, `GAP-093`–`GAP-119` in [`architecture.md` §11](architecture.md).
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `JD-013` | **A progress bar rewrites its own line:** adjacent same-name streams fold into one output and `\r`/`\b` rewrite it in place, in the notebook and the Console | in-progress ← next | [JD-013](prd/JD-013-a-progress-bar-rewrites-its-own-line.md) | `GAP-112` |
+
 ### Known gaps
 
 Measured gaps are recorded as `GAP-NNN` in
