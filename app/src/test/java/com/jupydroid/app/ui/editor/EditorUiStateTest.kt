@@ -59,13 +59,24 @@ class EditorUiStateTest {
     val first = marked.after(KernelEvent.Output("a", CellOutput.Stream(StreamName.STDOUT, "new\n")))
     val second = first.after(KernelEvent.Output("a", CellOutput.Stream(StreamName.STDOUT, "more\n")))
 
-    assertEquals(
-      listOf(
-        CellOutput.Stream(StreamName.STDOUT, "new\n"),
-        CellOutput.Stream(StreamName.STDOUT, "more\n"),
-      ),
-      second.outputs["a"],
-    )
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "new\nmore\n")), second.outputs["a"])
+  }
+
+  /** Two flushes of one `print` stream read as one block (`OutputAreaModel._add`). */
+  @Test
+  fun aStreamJoinsTheSameStreamBeforeIt() {
+    val joined = printedState().after(KernelEvent.Output("a", CellOutput.Stream(StreamName.STDOUT, "new\n")))
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "old\nnew\n")), joined.outputs["a"])
+  }
+
+  /** A `\r` progress bar leaves its last frame, not one output per repaint. */
+  @Test
+  fun aProgressBarLeavesOnlyItsLastFrame() {
+    val frames = listOf("\r0%", "\r50%", "\r100%", " done\n").map { CellOutput.Stream(StreamName.STDOUT, it) }
+    val drawn = frames.fold(printedState()) { state, frame -> state.after(KernelEvent.Output("a", frame)) }
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "old\n100% done\n")), drawn.outputs["a"])
   }
 
   private val nameAsked = KernelInputRequest(prompt = "Name?", password = false, requestHeader = "{}")

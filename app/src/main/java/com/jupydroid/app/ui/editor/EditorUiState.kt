@@ -10,6 +10,7 @@ import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelPickGroup
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.notebookLeafOf
+import com.jupydroid.app.domain.model.withOutputFolded
 import com.jupydroid.app.domain.port.KernelEvent
 
 data class EditorUiState(
@@ -357,7 +358,7 @@ private fun EditorUiState.afterOutput(event: KernelEvent.Output): EditorUiState 
   }
   val carried = if (event.cellId in clearsPending) emptyList() else outputs[event.cellId].orEmpty()
   return copy(
-    outputs = outputs + (event.cellId to carried + output),
+    outputs = outputs + (event.cellId to carried.withOutputFolded(output)),
     clearsPending = clearsPending - event.cellId,
   )
 }
@@ -371,7 +372,7 @@ fun EditorUiState.withInputAnswered(cellId: String, value: String): EditorUiStat
   val request = inputRequests[cellId] ?: return this
   return copy(
     inputRequests = inputRequests - cellId,
-    outputs = outputs + (cellId to outputs[cellId].orEmpty() + request.echoOf(value)),
+    outputs = outputs + (cellId to outputs[cellId].orEmpty().withOutputFolded(request.echoOf(value))),
   ).withSearchedOutputsRecomputed()
 }
 

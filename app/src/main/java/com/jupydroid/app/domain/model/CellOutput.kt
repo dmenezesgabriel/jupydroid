@@ -25,7 +25,14 @@ typealias MimeBundle = Map<String, JsonElement>
 
 /** A single Jupyter output message the kernel produced for a cell. */
 sealed interface CellOutput {
-  data class Stream(val name: StreamName, val text: String) : CellOutput
+  /**
+   * [cursor] is where the next chunk of this stream writes: the end of [text], unless a `\r` or
+   * `\b` moved it back - see [withOutputFolded]. It rides on the output rather than beside it so
+   * every edit that copies or restores outputs carries it, as JupyterLab keeps `_streamIndex` with
+   * the last stream it built (jupyterlab@7f0e690 packages/outputarea/src/model.ts). nbformat has no
+   * field for it, so a saved stream reopens with its cursor at the end - where `fromJSON` leaves it.
+   */
+  data class Stream(val name: StreamName, val text: String, val cursor: Int = text.length) : CellOutput
 
   data class Error(val name: String, val value: String, val traceback: List<String>) : CellOutput
 
