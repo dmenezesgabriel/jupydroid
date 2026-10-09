@@ -213,6 +213,29 @@ class NotebookKernelSession(
       use(open())
     }
 
+  /**
+   * Runs [use] against the session already open, and does nothing when none is - for an ask about
+   * work the kernel is already doing (Stop, answering a prompt), where starting a kernel to ask
+   * would be asking one that never heard of it.
+   *
+   * A stale refusal is not reopened the way [reopeningIfStale] does: the kernel it named died with
+   * its server, so there is nothing left to stop or answer - but the dead session must not stay
+   * claimed, which is what `session.disposed` already owns elsewhere.
+   *
+   * ```
+   * session.whileOpen { open -> gateway.interrupt(open) }
+   * ```
+   */
+  @Suppress("SwallowedException") // the refusal means the kernel is already gone, which is the ask's own outcome
+  suspend fun whileOpen(use: suspend (KernelSession) -> Unit) {
+    val open = opened ?: return
+    try {
+      use(open)
+    } catch (_: StaleKernelSessionException) {
+      endIfMatches(open.serverSessionId)
+    }
+  }
+
   /** Hands back the open session and forgets it, for a caller that is closing the socket. */
   fun forget(): KernelSession? = opened.also { opened = null }
 

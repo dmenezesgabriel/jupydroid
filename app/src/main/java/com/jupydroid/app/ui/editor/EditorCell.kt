@@ -18,6 +18,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.IndentUnit
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
@@ -36,6 +37,8 @@ import com.jupydroid.app.theme.editorPalette
 internal fun EditorCell(
   cell: Cell,
   outputs: List<CellOutput>,
+  /** The `input()` this cell's run is waiting on, or null - see [InputPromptField]. */
+  inputRequest: KernelInputRequest?,
   executionCount: Int?,
   sourceRevision: Int,
   execution: CellExecution?,
@@ -47,6 +50,7 @@ internal fun EditorCell(
   mode: CellMode,
   onRun: () -> Unit,
   onStop: () -> Unit,
+  onAnswerInput: (String) -> Unit,
   onSourceEdited: (String) -> Unit,
   /** `(cellId, code, cursorOffset)` - the language server keeps one document per cell. */
   completionsAt: suspend (cellId: String, code: String, cursorOffset: Int) -> CompletionResult,
@@ -274,6 +278,8 @@ internal fun EditorCell(
       scrolled = cell.outputsScrolled,
       search = outputSearch,
       onExpand = { act(CellAction.ToggleOutputsHidden) },
+      inputRequest = inputRequest,
+      onAnswerInput = onAnswerInput,
     )
     // Inside this cell's frame rather than between it and the next, because that is what it is
     // about: the reference appends the button to the heading cell's own node (`widget.ts:2429`).

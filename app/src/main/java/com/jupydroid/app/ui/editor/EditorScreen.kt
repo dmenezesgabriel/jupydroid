@@ -411,6 +411,7 @@ fun EditorScreen(
           state = state,
           onRunCell = viewModel.kernel::runCell,
           onStopCell = viewModel.kernel::stopRunningCell,
+          onAnswerInput = viewModel.kernel::answerInput,
           onEditCell = viewModel::editCell,
           onToggleBreakpoint = viewModel.debugger::toggle,
           onSetCondition = viewModel.debugger::setCondition,

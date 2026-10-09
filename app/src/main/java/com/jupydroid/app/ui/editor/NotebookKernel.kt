@@ -241,6 +241,9 @@ class NotebookKernel(
   /** @see NotebookCellRuns.stopRunningCell */
   fun stopRunningCell() = runs.stopRunningCell()
 
+  /** @see NotebookCellRuns.answerInput */
+  fun answerInput(cellId: String, value: String) = runs.answerInput(cellId, value)
+
   /**
    * The `selectKernel` dialog's kernel half - `notebook:change-kernel`, the kernel-name button's
    * tap and the load-time pick all reach it. A collaborator the way [history] and [asks] are;

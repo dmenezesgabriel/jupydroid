@@ -41,6 +41,14 @@ private fun ConsoleTranscriptEntry(entry: ConsoleEntry) {
       Text(text = prompt, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
     }
     Text(text = entry.input, style = codeSourceStyle())
-    CellOutputs(outputs = entry.outputs, hidden = false, scrolled = false, search = emptyList(), onExpand = {})
+    CellOutputs(
+      outputs = entry.outputs,
+      hidden = false,
+      scrolled = false,
+      search = emptyList(),
+      onExpand = {},
+      inputRequest = null,
+      onAnswerInput = {},
+    )
   }
 }

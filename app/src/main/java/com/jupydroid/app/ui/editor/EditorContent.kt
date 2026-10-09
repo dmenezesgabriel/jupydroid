@@ -28,6 +28,8 @@ internal fun EditorContent(
   state: EditorUiState,
   onRunCell: (Cell) -> Unit,
   onStopCell: () -> Unit,
+  /** `(cellId, answer)` - a cell's prompt field submitted. */
+  onAnswerInput: (String, String) -> Unit,
   onEditCell: (String, String) -> Unit,
   /** A tap in a cell's gutter, reporting which cell and which one-based line it hit. */
   onToggleBreakpoint: (String, Int) -> Unit,
@@ -102,6 +104,7 @@ internal fun EditorContent(
             EditorCell(
               cell = cell,
               outputs = state.outputs[cell.id].orEmpty(),
+              inputRequest = state.inputRequests[cell.id],
               executionCount = state.executionCounts[cell.id],
               sourceRevision = state.sourceRevisions[cell.id] ?: 0,
               execution = state.executionOf(cell.id),
@@ -119,6 +122,7 @@ internal fun EditorContent(
               mode = state.mode,
               onRun = { onRunCell(cell) },
               onStop = onStopCell,
+              onAnswerInput = { answer -> onAnswerInput(cell.id, answer) },
               onSourceEdited = { source -> onEditCell(cell.id, source) },
               completionsAt = completionsAt,
               hoverAt = hoverAt,

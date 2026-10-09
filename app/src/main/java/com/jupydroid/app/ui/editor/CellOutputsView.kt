@@ -30,6 +30,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.theme.Spacing
 
 /**
@@ -44,6 +45,26 @@ internal fun CellOutputs(
   /** `notebook:toggle-output-scrolling` - see [scrolledOutputsHeight]. */
   scrolled: Boolean,
   /** One entry per rendered output, or empty - see [outputSearchHighlightsOf]. */
+  search: List<CellSearchHighlight>,
+  onExpand: () -> Unit,
+  /** What the run is blocked on, drawn after the outputs as a field - see [InputPromptField]. */
+  inputRequest: KernelInputRequest?,
+  onAnswerInput: (String) -> Unit,
+) {
+  RenderedOutputs(outputs, hidden, scrolled, search, onExpand)
+  // Outside the fold and past the early return: `input("Name?")` has printed nothing yet, and a
+  // collapsed output area must not hide a cell that is waiting on the user.
+  inputRequest?.let { request ->
+    Spacer(modifier = Modifier.height(Spacing.xs))
+    InputPromptField(request, onSubmit = onAnswerInput, modifier = Modifier.fillMaxWidth())
+  }
+}
+
+@Composable
+private fun RenderedOutputs(
+  outputs: List<CellOutput>,
+  hidden: Boolean,
+  scrolled: Boolean,
   search: List<CellSearchHighlight>,
   onExpand: () -> Unit,
 ) {

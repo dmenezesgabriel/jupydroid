@@ -7,7 +7,6 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelPickRequiredException
-import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -142,17 +141,25 @@ internal class NotebookCellRuns(
     // report a KeyboardInterrupt through the ordinary output path. This is what tells the stop
     // apart from the user's own code raising.
     interrupting = running
-    scope.launch {
-      session.opened?.let { open ->
-        try {
-          kernelGateway.interrupt(open)
-        } catch (_: StaleKernelSessionException) {
-          // The kernel the interrupt named died with its server - nothing to interrupt, but the
-          // dead session must not stay claimed: the landing `session.disposed` already owns.
-          session.endIfMatches(open.serverSessionId)
-        }
-      }
-    }
+    scope.launch { session.whileOpen { open -> kernelGateway.interrupt(open) } }
+  }
+
+  /**
+   * Answers the prompt [cellId]'s run is blocked on - the output area's field submitted.
+   *
+   * The echo is folded before the reply leaves, so it sits ahead of whatever the cell prints with
+   * the answer; JupyterLab appends it in the same order (`Stdin.handleEvent` sends, then
+   * `onInputRequest` adds the stream - `jupyterlab@7f0e690 packages/outputarea/src/widget.ts`).
+   * A cell with no prompt is a no-op: a spent field has nobody to answer.
+   *
+   * ```
+   * runs.answerInput("c1", "Ada")   // after the cell's KernelEvent.InputRequested
+   * ```
+   */
+  fun answerInput(cellId: String, value: String) {
+    val request = uiState.value.inputRequests[cellId] ?: return
+    uiState.update { it.withInputAnswered(cellId, value) }
+    scope.launch { session.whileOpen { open -> kernelGateway.replyInput(open, request, value) } }
   }
 
   /** Sends a step/continue command for whatever the debugger is currently stopped at. */

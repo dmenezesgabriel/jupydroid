@@ -15,9 +15,11 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.BreakpointRequest
 import com.jupydroid.app.domain.port.DebugEvent
@@ -375,6 +377,35 @@ internal class RecordingConnectKernelGateway(private val fake: FakeKernelGateway
   ): KernelSession {
     paths += documentPath
     return fake.connect(space, documentPath, kernel, sessionType)
+  }
+}
+
+/**
+ * ipykernel's order for `name = input("Name?"); print("hi", name)`: an `input_request`, then
+ * nothing until the reply - or until an interrupt, which ends the cell instead.
+ */
+internal class AskingUntilAnsweredKernelGateway : KernelGateway by FakeKernelGateway() {
+  val replies = mutableListOf<Pair<KernelInputRequest, String>>()
+  private val answered = CompletableDeferred<String?>()
+
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
+    emit(KernelEvent.InputRequested(cellId, ASKED))
+    val answer = answered.await()
+    if (answer != null) emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, "hi $answer\n")))
+    emit(KernelEvent.Idle)
+  }
+
+  override suspend fun replyInput(session: KernelSession, request: KernelInputRequest, value: String) {
+    replies += request to value
+    answered.complete(value)
+  }
+
+  override suspend fun interrupt(session: KernelSession) {
+    answered.complete(null)
+  }
+
+  companion object {
+    val ASKED = KernelInputRequest(prompt = "Name?", password = false, requestHeader = """{"msg_id":"r1"}""")
   }
 }
 

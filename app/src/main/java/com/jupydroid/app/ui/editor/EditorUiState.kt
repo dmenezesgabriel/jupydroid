@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugStop
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelPickGroup
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.notebookLeafOf
@@ -68,6 +69,12 @@ data class EditorUiState(
    * `clearNext` flag, kept per cell here. Run state like [outputs], not a saved attribute.
    */
   val clearsPending: Set<String> = emptySet(),
+  /**
+   * Per cell, the `input()` its run is blocked on - what the output area draws a field for. Run
+   * state like [outputs]: the request dies with the run, and only the echo the answer leaves is
+   * saved.
+   */
+  val inputRequests: Map<String, KernelInputRequest> = emptyMap(),
   val executionCounts: Map<String, Int> = emptyMap(),
   /**
    * Per cell, where its run got to. Replaces a single nullable `runningCellId`, which could say
@@ -325,9 +332,7 @@ fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
   is KernelEvent.ExecutionCount ->
     copy(executionCounts = executionCounts + (event.cellId to event.count))
 
-  // A prompt is answered from the output area and leaves its trace as the stdin echo the answer
-  // appends, so the request itself changes nothing the cell keeps.
-  is KernelEvent.InputRequested -> this
+  is KernelEvent.InputRequested -> copy(inputRequests = inputRequests + (event.cellId to event.request))
 
   // Idle says the kernel is done with this cell, but not whether it raised - that is decided by
   // what it emitted, so the run is closed by NotebookKernel rather than here.
@@ -355,6 +360,19 @@ private fun EditorUiState.afterOutput(event: KernelEvent.Output): EditorUiState 
     outputs = outputs + (event.cellId to carried + output),
     clearsPending = clearsPending - event.cellId,
   )
+}
+
+/**
+ * The user answered [cellId]'s prompt with [value]: the field closes and the echo joins the cell's
+ * outputs, ahead of whatever the cell prints with the answer. A cell with no prompt is left as it
+ * was, so a second submit of a spent field echoes nothing.
+ */
+fun EditorUiState.withInputAnswered(cellId: String, value: String): EditorUiState {
+  val request = inputRequests[cellId] ?: return this
+  return copy(
+    inputRequests = inputRequests - cellId,
+    outputs = outputs + (cellId to outputs[cellId].orEmpty() + request.echoOf(value)),
+  ).withSearchedOutputsRecomputed()
 }
 
 /** [EditorUiState.stoppedAt]'s line for [cellId], or null when nothing is stopped there. */

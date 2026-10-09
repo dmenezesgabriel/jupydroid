@@ -67,6 +67,8 @@ fun EditorUiState.abandoningRun(): EditorUiState = copy(
   executions = executions.filterValues {
     it.status != ExecutionStatus.RUNNING && it.status != ExecutionStatus.QUEUED
   },
+  // The interpreter that asked is gone, and nothing is left to read an answer.
+  inputRequests = emptyMap(),
 )
 
 /** Drops a cell's record entirely, for when the cell itself goes. */
@@ -74,5 +76,9 @@ fun EditorUiState.withoutExecution(cellId: String): EditorUiState = copy(executi
 
 private fun EditorUiState.stopping(cellId: String, at: Instant, status: ExecutionStatus): EditorUiState {
   val started = executions[cellId]?.startedAt
-  return copy(executions = executions + (cellId to CellExecution(status, startedAt = started, endedAt = at)))
+  // A prompt belongs to the run that asked, so the run ending - Stop included - closes it.
+  return copy(
+    executions = executions + (cellId to CellExecution(status, startedAt = started, endedAt = at)),
+    inputRequests = inputRequests - cellId,
+  )
 }

@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.KernelInputRequest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -152,6 +153,28 @@ class CellExecutionTest {
 
     assertEquals(ExecutionStatus.STOPPED_OK, restarted.statusOf("c1"))
   }
+
+  /**
+   * A prompt belongs to the run that asked: once the run ends - answered, raised or stopped with
+   * Stop, which ipykernel answers with `KeyboardInterrupt` - there is nobody left to answer.
+   */
+  @Test
+  fun endingARunClosesItsPrompt() {
+    val asked = notebook.startingRun("c1", at = start).copy(inputRequests = mapOf("c1" to nameAsked))
+
+    assertNull(asked.finishedRun("c1", at = start, failed = false).inputRequests["c1"])
+    assertNull(asked.cancellingRun("c1", at = start).inputRequests["c1"])
+  }
+
+  /** The interpreter that asked is gone after a restart, and its question with it. */
+  @Test
+  fun restartingClosesEveryPrompt() {
+    val asked = notebook.startingRun("c1", at = start).copy(inputRequests = mapOf("c1" to nameAsked))
+
+    assertEquals(emptyMap<String, Any>(), asked.abandoningRun().inputRequests)
+  }
+
+  private val nameAsked = KernelInputRequest("Name?", password = false, "{}")
 
   private fun streamOutput() = com.jupydroid.app.domain.model.CellOutput.Stream(
     name = com.jupydroid.app.domain.model.StreamName.STDOUT,

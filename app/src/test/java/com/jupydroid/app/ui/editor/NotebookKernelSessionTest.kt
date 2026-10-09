@@ -361,6 +361,32 @@ class NotebookKernelSessionTest {
     assertNull(session.opened)
   }
 
+  /** An ask about the kernel already running - nothing to start one for if none is. */
+  @Test
+  fun whileOpen_usesTheOpenSessionAndOpensNone() = runTest {
+    val gateway = StaleSessionKernelGateway(refusals = 0)
+    val session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
+    val used = mutableListOf<KernelSession>()
+
+    session.whileOpen { used += it }
+    val open = session.open()
+    session.whileOpen { used += it }
+
+    assertEquals(listOf(open), used)
+    assertEquals(1, gateway.connectCount)
+  }
+
+  /** A stale session has no kernel left to ask: it is let go, not reopened - and nothing throws. */
+  @Test
+  fun whileOpen_letsGoOfASessionThatProvesStale() = runTest {
+    val session = NotebookKernelSession(StaleSessionKernelGateway(refusals = 0), space) { "Analysis.ipynb" }
+    session.open()
+
+    session.whileOpen { throw StaleKernelSessionException(it.id) }
+
+    assertNull(session.opened)
+  }
+
   @Test
   fun forget_hasNothingToHandBackWhenNoKernelWasEverOpened() {
     val session = NotebookKernelSession(StaleSessionKernelGateway(refusals = 0), space) { "Analysis.ipynb" }

@@ -48,6 +48,8 @@ class CellOutputsViewTest {
           search = emptyList(),
           onExpand = {
           },
+          inputRequest = null,
+          onAnswerInput = {},
         )
       }
     }
@@ -69,7 +71,15 @@ class CellOutputsViewTest {
   fun aHiddenCellStaysCollapsedEvenWhenScrolled() {
     compose.setContent {
       JupyterDroidTheme {
-        CellOutputs(outputs = listOf(tallStream()), hidden = true, scrolled = true, search = emptyList(), onExpand = {})
+        CellOutputs(
+          outputs = listOf(tallStream()),
+          hidden = true,
+          scrolled = true,
+          search = emptyList(),
+          onExpand = {},
+          inputRequest = null,
+          onAnswerInput = {},
+        )
       }
     }
 
@@ -102,6 +112,8 @@ class CellOutputsViewTest {
             scrolled = false,
             search = emptyList(),
             onExpand = {},
+            inputRequest = null,
+            onAnswerInput = {},
           )
           Text(text = "one line", style = codeTextStyle(), modifier = Modifier.testTag(CODE_LINE))
         }

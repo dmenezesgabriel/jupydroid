@@ -68,14 +68,35 @@ class EditorUiStateTest {
     )
   }
 
-  /** A prompt is answered from the output area, so the event itself changes no state the cell keeps. */
-  @Test
-  fun anInputRequestLeavesTheStateAsItWas() {
-    val asked = KernelEvent.InputRequested(
-      "a",
-      KernelInputRequest(prompt = "Name?", password = false, requestHeader = "{}"),
-    )
+  private val nameAsked = KernelInputRequest(prompt = "Name?", password = false, requestHeader = "{}")
 
-    assertEquals(printedState(), printedState().after(asked))
+  /** The cell is still running and waiting: the request is held for the output area to draw. */
+  @Test
+  fun anInputRequestIsHeldForItsCell() {
+    val asked = printedState().after(KernelEvent.InputRequested("a", nameAsked))
+
+    assertEquals(nameAsked, asked.inputRequests["a"])
+    assertEquals(printedState().outputs, asked.outputs)
+  }
+
+  /** The answer closes the prompt and leaves the echo after what the cell printed before it. */
+  @Test
+  fun answeringAnInputDropsTheRequestAndAppendsTheEcho() {
+    val answered = printedState().after(KernelEvent.InputRequested("a", nameAsked)).withInputAnswered("a", "Ada")
+
+    assertNull(answered.inputRequests["a"])
+    assertEquals(
+      listOf(
+        CellOutput.Stream(StreamName.STDOUT, "old\n"),
+        CellOutput.Stream(StreamName.STDIN, "Name? Ada\n"),
+      ),
+      answered.outputs["a"],
+    )
+  }
+
+  /** Nothing is waiting, so there is nothing to echo - a second tap on a spent field is a no-op. */
+  @Test
+  fun answeringACellThatIsNotWaitingChangesNothing() {
+    assertEquals(printedState(), printedState().withInputAnswered("a", "Ada"))
   }
 }
