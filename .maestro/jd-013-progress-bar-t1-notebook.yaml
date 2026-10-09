@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# A `\r` progress loop and the prints after it land as one output reading `100% done`, `42`, `56`:
+# adjacent stdout streams fold, and `\r` rewrites the line in place (StreamFold.kt). Every value
+# asserted is one the kernel computed - `100%`, `42` and `56` are not in the source, and
+# FakeKernelGateway would echo the source instead. Seeded by scripts/jd-013-progress-bar-t1-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+#
+# The assertion full-matches one output node, so it fails on any of: a frame per repaint, a `\r`
+# drawn literally, or `42`/`56` in an output of their own.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Progress Bar.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Progress Bar.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- tapOn: "Run cell"
+# Generous: the first run installs the Space and starts jupyter_server.
+- extendedWaitUntil:
+    visible:
+      text: "100% done\n42\n56"
+      childOf: {text: "Cell output"}
+    timeout: 180000
+- takeScreenshot: 01-the-progress-bar-is-one-line-and-the-prints-join-it

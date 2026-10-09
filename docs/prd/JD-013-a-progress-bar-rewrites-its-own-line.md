@@ -99,7 +99,7 @@ None open; the `\r` disagreement is settled above.
 
 ## Tasks
 
-- [ ] T1 — The fold, in the notebook: `StreamFold` (merge + `processText`), wired into `afterOutput` and
+- [x] T1 — The fold, in the notebook: `StreamFold` (merge + `processText`), wired into `afterOutput` and
   `withInputAnswered`; device evidence of a `\r` loop drawing one line
 - [ ] T2 — The Console folds the same way (output and echo paths); device evidence
 - [ ] T3 — A notebook read from disk folds adjacent same-name streams; evidence of a split notebook
