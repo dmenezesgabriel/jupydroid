@@ -67,6 +67,41 @@ class OutputLineWindowTest {
     assertFalse(window.hides(text.rangeOf("line 999")))
   }
 
+  @Test
+  fun aScrolledTextWithinItsLimitIsDrawnWhole() {
+    assertNull(outputTailWindowOf(lines(SCROLLED_OUTPUT_LINE_LIMIT)))
+    assertNull(outputTailWindowOf(""))
+  }
+
+  /** A scrolled box keeps only its last lines, as VS Code's `scrollableArrayOfString` does: no head at all. */
+  @Test
+  fun aLongScrolledTextKeepsOnlyItsTail() {
+    val text = lines(1000)
+    val window = outputTailWindowOf(text, limit = 100)!!
+
+    assertEquals(0, window.headEnd)
+    assertEquals((900 until 1000).joinToString("\n", postfix = "\n") { "line $it" }, text.substring(window.tailStart))
+    assertEquals(900, window.hiddenLines)
+  }
+
+  /** A print's final line feed is not a line here either, so the tail spends no row on it. */
+  @Test
+  fun aTrailingLineFeedIsNotALineOfTheTail() {
+    assertNull(outputTailWindowOf(lines(100), limit = 100))
+    val window = outputTailWindowOf(lines(100, trailingNewline = false) + "\none more", limit = 100)!!
+    assertEquals(1, window.hiddenLines)
+  }
+
+  @Test
+  fun aScrolledTextHidesEverythingAboveItsTail() {
+    val text = lines(1000)
+    val window = outputTailWindowOf(text, limit = 100)!!
+
+    assertTrue(window.hides(text.rangeOf("line 0\n")))
+    assertTrue(window.hides(window.tailStart - 2..window.tailStart + 2))
+    assertFalse(window.hides(text.rangeOf("line 900")))
+  }
+
   private fun String.rangeOf(needle: String): IntRange = indexOf(needle).let { it until it + needle.length }
 
   @Test

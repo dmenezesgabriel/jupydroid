@@ -37,7 +37,7 @@ private const val OUTPUT_TAIL_LINES = 5
  * ```
  */
 fun outputLineWindowOf(text: String, limit: Int = OUTPUT_LINE_LIMIT): OutputLineWindow? {
-  val lineCount = text.count { it == '\n' } + if (text.isEmpty() || text.endsWith('\n')) 0 else 1
+  val lineCount = lineCountOf(text)
   if (lineCount <= limit) return null
   return OutputLineWindow(
     headEnd = text.lineFeedAt(limit - OUTPUT_TAIL_LINES - 1),
@@ -45,6 +45,36 @@ fun outputLineWindowOf(text: String, limit: Int = OUTPUT_LINE_LIMIT): OutputLine
     hiddenLines = lineCount - limit,
   )
 }
+
+/** Past this many lines a scrolled output draws only its last ones - VS Code's `softScrollableLineLimit`. */
+const val SCROLLED_OUTPUT_LINE_LIMIT = 5000
+
+/**
+ * The window over a scrolled [text]: no head and its last [limit] lines, or null when it has [limit]
+ * lines or fewer and is drawn whole.
+ *
+ * The scrolled box bounds the height but not the layout, which still grows with every line a
+ * runaway prints, so it keeps VS Code's scrolled cut: the last `softScrollableLineLimit` lines, the
+ * rest behind a row above them (vscode@3f3380c6 extensions/notebook-renderers/src/textHelper.ts,
+ * `scrollableArrayOfString`).
+ *
+ * ```kotlin
+ * outputTailWindowOf((0 until 6000).joinToString("\n"))  // headEnd 0, 1000 hidden, tail 5000
+ * ```
+ */
+fun outputTailWindowOf(text: String, limit: Int = SCROLLED_OUTPUT_LINE_LIMIT): OutputLineWindow? {
+  val lineCount = lineCountOf(text)
+  if (lineCount <= limit) return null
+  return OutputLineWindow(
+    headEnd = 0,
+    tailStart = text.lineFeedAt(lineCount - limit - 1) + 1,
+    hiddenLines = lineCount - limit,
+  )
+}
+
+/** A final `\n` ends the last line rather than opening one more - see [outputLineWindowOf]. */
+private fun lineCountOf(text: String): Int =
+  text.count { it == '\n' } + if (text.isEmpty() || text.endsWith('\n')) 0 else 1
 
 /** The index of the [ordinal]th `\n`, from zero - walked rather than listed, as a runaway has 10⁵ of them. */
 private fun String.lineFeedAt(ordinal: Int): Int {

@@ -195,12 +195,18 @@ class CellOutputsViewTest {
     )
   }
 
-  /** A scrolled output already bounds its height, so it keeps every line until it has a cut of its own. */
+  /**
+   * The box bounds a scrolled output's height, not its layout, so it has a cut of its own: the last
+   * [SCROLLED_OUTPUT_LINE_LIMIT] lines, under a row that draws the rest.
+   */
   @Test
-  fun aScrolledLongOutputIsNotCut() {
-    showOutputs(listOf(linesOfOutput(HUNDRED)), scrolled = true)
+  fun aScrolledLongOutputDrawsItsLastLinesUntilTheRowIsPressed() {
+    showOutputs(listOf(linesOfOutput(SCROLLED_RUNAWAY)), scrolled = true)
 
-    compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
+    compose.onAllNodesWithText("line 0\n", substring = true).assertCountEquals(0)
+    compose.onAllNodesWithText("line ${SCROLLED_RUNAWAY - 1}", substring = true).assertCountEquals(1)
+    compose.onNodeWithContentDescription("$HUNDRED lines hidden").assertIsDisplayed().performClick()
+    compose.onAllNodesWithText("line 0\n", substring = true).assertCountEquals(1)
   }
 
   /**
@@ -328,6 +334,9 @@ class CellOutputsViewTest {
 
     /** Two whole chunks and part of a third, so both a seam and a short last chunk are drawn. */
     const val CHUNKED = 2 * OUTPUT_CHUNK_LINES + 500
+
+    /** A hundred lines past what a scrolled box keeps, so its row reads `100 lines hidden`. */
+    const val SCROLLED_RUNAWAY = SCROLLED_OUTPUT_LINE_LIMIT + HUNDRED
 
     /** The reference line this test compares an output against - see the test's own docstring. */
     const val CODE_LINE = "one-line-of-code"

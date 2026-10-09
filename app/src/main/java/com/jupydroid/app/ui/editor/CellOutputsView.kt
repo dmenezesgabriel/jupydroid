@@ -97,7 +97,7 @@ private fun RenderedOutputs(
     // Collapsed beats scrolled: there is no height to bound when nothing is drawn.
     hidden -> CollapsedCell(rendered.collapsedPreview(), COLLAPSED_OUTPUTS, onExpand)
     scrolled -> ScrolledOutputs(drawn, search, onShowMore)
-    else -> OutputColumn(drawn, search, windowed = true, onShowMore, modifier = Modifier.fillMaxWidth())
+    else -> OutputColumn(drawn, search, { outputLineWindowOf(it) }, onShowMore, modifier = Modifier.fillMaxWidth())
   }
 }
 
@@ -125,8 +125,9 @@ private fun ScrolledOutputs(
     OutputColumn(
       rendered,
       search,
-      // The box already bounds the height; its own cut is the last lines, not head and tail.
-      windowed = false,
+      // The box bounds the height but not the layout, so it keeps a cut of its own: the last lines,
+      // since scrolling down is how the box is read.
+      { outputTailWindowOf(it) },
       onShowMoreOutputs,
       // verticalScroll bounds the Column's own *layout* size but draws the overflow past it
       // rather than cropping it - clipToBounds is what makes the bound a visual one too, and
@@ -162,8 +163,8 @@ private fun scrolledOutputsHeight(): Dp {
 private fun OutputColumn(
   rendered: List<RenderedOutput>,
   search: List<CellSearchHighlight>,
-  /** Whether a long text draws only its head and tail - see [outputLineWindowOf]. */
-  windowed: Boolean,
+  /** What of a long text is drawn - [outputLineWindowOf], or [outputTailWindowOf] in a scrolled box. */
+  lineCut: (String) -> OutputLineWindow?,
   /** Set when outputs past [rendered] are left undrawn - see [drawnOutputCountOf]. */
   onShowMoreOutputs: (() -> Unit)?,
   modifier: Modifier = Modifier,
@@ -171,7 +172,7 @@ private fun OutputColumn(
   Column(modifier = modifier.semantics { contentDescription = "Cell output" }) {
     rendered.forEachIndexed { at, output ->
       when (output) {
-        is RenderedOutput.Text -> OutputText(output, search.getOrElse(at) { CellSearchHighlight.NONE }, windowed)
+        is RenderedOutput.Text -> OutputText(output, search.getOrElse(at) { CellSearchHighlight.NONE }, lineCut)
         is RenderedOutput.Image -> OutputImage(output)
         // The same renderer a markdown cell uses: `text/html` parses to the same blocks.
         is RenderedOutput.Document -> RichText(output.blocks, Modifier.fillMaxWidth())
@@ -184,14 +185,18 @@ private fun OutputColumn(
 }
 
 @Composable
-private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight, windowed: Boolean) {
+private fun OutputText(
+  output: RenderedOutput.Text,
+  search: CellSearchHighlight,
+  lineCut: (String) -> OutputLineWindow?,
+) {
   // An `AnnotatedString` rather than a second transformation: an output is drawn, never typed
   // into, so there is no `TextFieldBuffer` here and nothing to keep in step with a caret.
   val text = output.coloured(LocalAnsiPalette.current).withSearchMatches(search, searchMatchStyles())
   // Per output and saveable, as JupyterLab's "Show more outputs" is per output area and lasts the
   // widget's life: a re-run empties the outputs first, which drops this, so the next run is cut again.
   var showAll by rememberSaveable { mutableStateOf(false) }
-  val window = if (windowed && !showAll) outputLineWindowOf(output.text) else null
+  val window = if (showAll) null else lineCut(output.text)
   // The line cut gives way to a stepped-onto hit as the count cut does - see `RenderedOutputs`.
   // Only `current`: typing a query counts its hits and draws none, as `startQuery` scrolls to none.
   val current = search.current?.takeIf { search.currentStepped }
@@ -224,7 +229,8 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight,
 }
 
 /**
- * [text] whole, or only the [window]'s head and tail with the hidden count between them.
+ * [text] whole, or only the [window]'s head and tail with the hidden count between them - a
+ * scrolled box's window has no head, so the row sits above the tail.
  *
  * Cut **after** colouring and search highlighting, so the tail keeps the colour an escape in the
  * hidden middle set, which VS Code's renderer loses by parsing the tail alone
@@ -241,17 +247,22 @@ private fun WindowedText(
   onShowAll: () -> Unit,
 ) {
   if (window == null) {
-    Column(modifier = modifier) {
-      outputTextChunksOf(text.text).forEach { chunk ->
-        Text(text = text.subSequence(chunk.first, chunk.last + 1), style = codeTextStyle(), color = color)
-      }
-    }
+    Column(modifier = modifier) { ChunkedText(text, color) }
     return
   }
   Column(modifier = modifier) {
-    Text(text = text.subSequence(0, window.headEnd), style = codeTextStyle(), color = color)
+    if (window.headEnd > 0) Text(text = text.subSequence(0, window.headEnd), style = codeTextStyle(), color = color)
     HiddenItemsRow(hiddenLinesLabel(window.hiddenLines), onExpand = onShowAll)
-    Text(text = text.subSequence(window.tailStart, text.length), style = codeTextStyle(), color = color)
+    // Chunked as the whole text is: a scrolled box's tail is thousands of lines.
+    ChunkedText(text.subSequence(window.tailStart, text.length), color)
+  }
+}
+
+/** [text] as one `Text` per chunk of lines, stacked in the caller's column - see [outputTextChunksOf]. */
+@Composable
+private fun ChunkedText(text: AnnotatedString, color: Color) {
+  outputTextChunksOf(text.text).forEach { chunk ->
+    Text(text = text.subSequence(chunk.first, chunk.last + 1), style = codeTextStyle(), color = color)
   }
 }
 
