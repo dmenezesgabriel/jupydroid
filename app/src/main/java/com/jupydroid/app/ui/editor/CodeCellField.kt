@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.OutputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
@@ -180,50 +181,56 @@ fun CodeCellField(
   val fieldModifier = modifier.focusRequester(landingFocus)
 
   Box {
-    BasicTextField(
-      state = state,
-      // The gutter's width comes from the line *count*, so it never depends on the layout this
-      // callback publishes - which is what keeps writing state from here out of a measure loop.
-      // Wrapping off reaches the gutter through GutterOverlay below rather than through this
-      // chain - its own finding that a gutter scrolled inside the same
-      // modifiers as the field it decorates scrolls away with it.
-      modifier = if (wrapEnabled) {
-        // The squiggle sits after `lineNumbers`: its own trailing `.padding(start = gutter)` makes
-        // this `drawBehind` the innermost one, so its draw scope starts at the code's left edge -
-        // the `TextLayoutResult` coordinates `drawSquiggleSpan` resolves, one-to-one.
-        fieldModifier
-          .lineNumbers(
-            state.text,
-            layout,
-            numberStyle,
-            gutter,
-            breakpoints,
-            diagnostics,
-            onGutterTap,
-            onGutterLongPress,
-            stoppedLine,
-            onDiagnosticTap = { detailLine = it },
-          )
-          .diagnosticSquiggles(diagnostics, layout)
-          .symbolFlash(symbolFlash, layout)
-      } else {
-        fieldModifier
-          .horizontalScroll(scroll)
-          .padding(start = gutter)
-          .diagnosticSquiggles(diagnostics, layout)
-          .symbolFlash(symbolFlash, layout)
-      },
-      onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
-      textStyle = codeStyle,
-      interactionSource = interactions,
-      cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-      inputTransformation = typing,
-      // The highlight is read through a `State` rather than closed over, so a search moving does
-      // not rebuild the transformation - see [HighlightTransformation].
-      outputTransformation = remember(highlighter, styles, matched, searchStyles) {
-        HighlightTransformation(highlighter, styles, focused, matched, searching, searchStyles)
-      },
-    )
+    SourceKeyboard {
+      BasicTextField(
+        state = state,
+        // The gutter's width comes from the line *count*, so it never depends on the layout this
+        // callback publishes - which is what keeps writing state from here out of a measure loop.
+        // Wrapping off reaches the gutter through GutterOverlay below rather than through this
+        // chain - its own finding that a gutter scrolled inside the same
+        // modifiers as the field it decorates scrolls away with it.
+        modifier = if (wrapEnabled) {
+          // The squiggle sits after `lineNumbers`: its own trailing `.padding(start = gutter)` makes
+          // this `drawBehind` the innermost one, so its draw scope starts at the code's left edge -
+          // the `TextLayoutResult` coordinates `drawSquiggleSpan` resolves, one-to-one.
+          fieldModifier
+            .lineNumbers(
+              state.text,
+              layout,
+              numberStyle,
+              gutter,
+              breakpoints,
+              diagnostics,
+              onGutterTap,
+              onGutterLongPress,
+              stoppedLine,
+              onDiagnosticTap = { detailLine = it },
+            )
+            .diagnosticSquiggles(diagnostics, layout)
+            .symbolFlash(symbolFlash, layout)
+        } else {
+          fieldModifier
+            .horizontalScroll(scroll)
+            .padding(start = gutter)
+            .diagnosticSquiggles(diagnostics, layout)
+            .symbolFlash(symbolFlash, layout)
+        },
+        onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
+        textStyle = codeStyle,
+        // Source is not prose, so the keyboard must not correct it. Clearing the flag alone did not
+        // stop Gboard splitting `getpass` into `get pass`; [SourceKeyboard] asks for the rest.
+        // CodeCellFieldKeyboardTest reads both off the EditorInfo.
+        keyboardOptions = KeyboardOptions(autoCorrectEnabled = false),
+        interactionSource = interactions,
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+        inputTransformation = typing,
+        // The highlight is read through a `State` rather than closed over, so a search moving does
+        // not rebuild the transformation - see [HighlightTransformation].
+        outputTransformation = remember(highlighter, styles, matched, searchStyles) {
+          HighlightTransformation(highlighter, styles, focused, matched, searching, searchStyles)
+        },
+      )
+    }
     if (!wrapEnabled) {
       GutterOverlay(
         text = state.text,
