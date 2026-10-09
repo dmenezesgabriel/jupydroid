@@ -109,7 +109,7 @@ open because it runs any image's own loader, but no glibc image has been measure
 |---|---|---|---|---|
 | `JD-006` | Re-measure the cold path on the tablet and repair whatever stage still dominates. One item per stage; nothing here exists until the measurement names it | shipped | — | — |
 | `JD-010` | **The kernel answers sooner:** the wait between the kernel socket opening and the kernel's first answer, which dominates a warm start, measured into its parts and the largest repaired | shipped | — | — |
-| `JD-011` | **`jupyter_server` boots sooner under proot:** its boot, slower since every process moved under proot, measured into its parts and the largest repaired | in-progress ← next | [JD-011](prd/JD-011-server-boots-sooner.md) | — |
+| `JD-011` | **`jupyter_server` boots sooner under proot:** its boot, slower since every process moved under proot, measured into its parts and the largest repaired | shipped | — | — |
 
 ### Known gaps
 
