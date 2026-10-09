@@ -149,7 +149,9 @@ There are no port changes: this is a fold repair and a view.
 - [x] T2b: drawing all of a 200k-line output, as one `Text` per 1000 lines so a drawn line copies its chunk.
   On SM-X216B the expand is drawn in 27 s and then scrolls, where T2 drew nothing in 60 s. `GetStringChars` is gone
   from the profile. What's left is one layout pass, `StaticLayout.generate` at 70.6%, which shapes every line once.
-- [ ] T3: the output-count cap of 50, with `Show more outputs`, in the notebook.
+- [x] T3: the output-count cap of 50, with `Show more outputs`, in the notebook. On SM-X216B, 300 `display()`
+  calls draw `0`…`49` and the row; a tap draws the rest through `299`. A stdin echo past 50 is always drawn,
+  and a scrolled cell is capped too.
 - [ ] T4: both caps in the Console.
 - [ ] T5: search into a hidden region, and scrolled mode's tail.
 - [ ] T6: run the demo end to end; write an ADR ("an output is capped in the view, never in the model"); rewrite
