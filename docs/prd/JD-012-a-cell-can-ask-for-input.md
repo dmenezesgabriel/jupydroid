@@ -123,7 +123,7 @@ Absent, apart from the disk half, which is present and lossy.
   `RealKernelGateway` emits and replies, `BaseSpaceKernelGateway` delegates, and `FakeKernelGateway`
   records. The UI folds the event as a no-op, and `allow_stdin` stays false so no commit can hang a
   cell
-- [ ] T3 — The notebook and the Console answer:
+- [x] T3 — The notebook and the Console answer:
   - a pending request per cell and per console entry
   - a prompt field in `CellOutputs`, masked for a password
   - submit replies and appends the echo
