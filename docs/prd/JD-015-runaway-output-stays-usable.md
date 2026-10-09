@@ -132,7 +132,7 @@ bound different runaways, so this item adopts both.
 | Layer | Files |
 |---|---|
 | `domain/model` | `StreamFold.kt` (T1) |
-| `ui/editor` | new `OutputLineWindow.kt`, `CellOutputsView.kt`, `HiddenCellsRow.kt` (the shared row) |
+| `ui/editor` | new `OutputLineWindow.kt` (the window, and `outputTextChunksOf`), `CellOutputsView.kt`, `HiddenCellsRow.kt` (the shared row) |
 | `ui/console` | `ConsoleTranscriptView.kt` (T4, if it needs anything) |
 | unit tests | `StreamFoldTest`, `OutputLineWindowTest` |
 | instrumented tests | `CellOutputsViewTest` |
@@ -146,9 +146,9 @@ There are no port changes: this is a fold repair and a view.
   frozen, because the draw is what's left (see below).
 - [x] T2: the line window in the notebook, `N lines hidden` between head and tail, tap to draw all. The 200k-line
   print finishes in 34 s and scrolls on SM-X216B. Tapping the row on that output freezes the draw (see T2b).
-- [ ] T2b: drawing all of a 200k-line output. Expanded, it is one `Text` of 1.3 MB again, and each drawn line copies
-  the whole string (`GetStringChars` 85.7% under `Layout.drawText`). Draw it as one `Text` per ~1000 lines, so a
-  drawn line copies its chunk. Measure the one layout pass that's left on SM-X216B.
+- [x] T2b: drawing all of a 200k-line output, as one `Text` per 1000 lines so a drawn line copies its chunk.
+  On SM-X216B the expand is drawn in 27 s and then scrolls, where T2 drew nothing in 60 s. `GetStringChars` is gone
+  from the profile. What's left is one layout pass, `StaticLayout.generate` at 70.6%, which shapes every line once.
 - [ ] T3: the output-count cap of 50, with `Show more outputs`, in the notebook.
 - [ ] T4: both caps in the Console.
 - [ ] T5: search into a hidden region, and scrolled mode's tail.

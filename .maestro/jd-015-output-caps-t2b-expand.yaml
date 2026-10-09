@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# A 200k-line print, expanded by its hidden-lines row, draws every line as one text node per
+# thousand (OutputLineWindow.kt, outputTextChunksOf) and the editor still answers. Chunk 0 is
+# matched whole, `0` through `999`: a 1000th line in it, or a 1001st, fails the match, and `999`
+# is a value the kernel computed - FakeKernelGateway would echo the source instead. Opened by
+# jd-015-output-caps-baseline-open.yaml, seeded and measured by scripts/jd-015-output-caps-t2b-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel, and the print itself takes ~50 s under proot.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+- scrollUntilVisible:
+    element: "199970 lines hidden"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 01-before-the-tap
+- tapOn: "199970 lines hidden"
+# The wait is the expand being timed: maestro.log stamps the tap and the match.
+- extendedWaitUntil:
+    visible:
+      text: "0\n1\n2\n[\\s\\S]*\n998\n999"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- assertNotVisible: "199970 lines hidden"
+- takeScreenshot: 02-every-line-is-drawn
+- scroll
+- scroll
+- scroll
+- takeScreenshot: 03-scrolled-into-the-middle
