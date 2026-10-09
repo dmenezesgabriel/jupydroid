@@ -26,3 +26,15 @@ fun drawnOutputCountOf(outputs: List<CellOutput>, limit: Int = OUTPUT_COUNT_LIMI
   val lastEcho = outputs.indexOfLast { it is CellOutput.Stream && it.name == StreamName.STDIN }
   return maxOf(limit, lastEcho + 1).takeIf { it < outputs.size }
 }
+
+/**
+ * Whether the hit the find bar's arrows stand on is in an output past the [drawn] ones. [search]
+ * has one entry per rendered output, and the drawn outputs are a prefix of those, so an index past
+ * [drawn] is one with no widget.
+ *
+ * ```kotlin
+ * isCurrentHitUndrawn(outputSearchHighlightsOf(cellId), drawn = 50)  // true when stepped onto output 277
+ * ```
+ */
+fun isCurrentHitUndrawn(search: List<CellSearchHighlight>, drawn: Int): Boolean =
+  search.drop(drawn).any { it.current != null }

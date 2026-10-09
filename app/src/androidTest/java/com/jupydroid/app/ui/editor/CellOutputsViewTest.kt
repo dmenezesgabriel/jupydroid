@@ -226,8 +226,65 @@ class CellOutputsViewTest {
     compose.onAllNodesWithText("out $OUTPUT_COUNT_LIMIT").assertCountEquals(0)
   }
 
+  /**
+   * Stepping onto a hit between head and tail draws the whole output, as landing on a match opens a
+   * collapsed output area (`withMatchRevealed`), and it stays drawn once the arrows move on.
+   */
+  @Test
+  fun steppingOntoAHitInTheHiddenLinesDrawsThemAll() {
+    var search by mutableStateOf(listOf(hitOn("line 50", current = false)))
+    showOutputs(listOf(linesOfOutput(HUNDRED)), scrolled = false) { search }
+    compose.onNodeWithContentDescription("70 lines hidden").assertIsDisplayed()
+
+    search = listOf(hitOn("line 50", current = true))
+    compose.onAllNodesWithContentDescription("70 lines hidden").assertCountEquals(0)
+    search = emptyList()
+    compose.onAllNodesWithText("line 50", substring = true).assertCountEquals(1)
+  }
+
+  /** A hit already drawn in the head needs nothing drawn that was not. */
+  @Test
+  fun steppingOntoAHitInTheHeadKeepsTheCut() {
+    showOutputs(listOf(linesOfOutput(HUNDRED)), scrolled = false) { listOf(hitOn("line 3\n", current = true)) }
+
+    compose.onNodeWithContentDescription("70 lines hidden").assertIsDisplayed()
+  }
+
+  /** The count cut gives way the same way: stepping onto a hit in output 277 draws the rest. */
+  @Test
+  fun steppingOntoAHitPastTheFiftiethOutputDrawsTheRest() {
+    var search by mutableStateOf(hitInOutput(RUNAWAY_HIT, current = false))
+    showOutputs(manyOutputs(), scrolled = false) { search }
+    compose.onNodeWithContentDescription(SHOW_MORE_OUTPUTS).assertExists()
+
+    search = hitInOutput(RUNAWAY_HIT, current = true)
+    compose.onAllNodesWithContentDescription(SHOW_MORE_OUTPUTS).assertCountEquals(0)
+    compose.onAllNodesWithText("out $RUNAWAY_HIT").assertCountEquals(1)
+  }
+
+  private fun hitOn(needle: String, current: Boolean): CellSearchHighlight {
+    val at = linesOfOutput(HUNDRED).text.indexOf(needle)
+    val range = at until at + needle.length
+    return CellSearchHighlight(matches = listOf(range), current = range.takeIf { current })
+  }
+
+  /** One entry per rendered output, as `outputSearchHighlightsOf` hands them, the hit on output [at]. */
+  private fun hitInOutput(at: Int, current: Boolean): List<CellSearchHighlight> = List(RUNAWAY_OUTPUTS) {
+    if (it ==
+      at
+    ) {
+      CellSearchHighlight(matches = listOf(0..2), current = (0..2).takeIf { current })
+    } else {
+      CellSearchHighlight.NONE
+    }
+  }
+
   /** Inside a scrolling column, as the editor's cell list is, so a row past the screen can be scrolled to. */
-  private fun showOutputs(outputs: List<CellOutput>, scrolled: Boolean) {
+  private fun showOutputs(
+    outputs: List<CellOutput>,
+    scrolled: Boolean,
+    search: () -> List<CellSearchHighlight> = { emptyList() },
+  ) {
     compose.setContent {
       JupyterDroidTheme {
         Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -235,7 +292,7 @@ class CellOutputsViewTest {
             outputs = outputs,
             hidden = false,
             scrolled = scrolled,
-            search = emptyList(),
+            search = search(),
             onExpand = {},
             inputRequest = null,
             onAnswerInput = {},
@@ -265,6 +322,9 @@ class CellOutputsViewTest {
     const val FIFTY = 50
     const val HUNDRED = 100
     const val RUNAWAY_OUTPUTS = 300
+
+    /** An output well past the count cut, as `display(277)` is in the device flow. */
+    const val RUNAWAY_HIT = 277
 
     /** Two whole chunks and part of a third, so both a seam and a short last chunk are drawn. */
     const val CHUNKED = 2 * OUTPUT_CHUNK_LINES + 500

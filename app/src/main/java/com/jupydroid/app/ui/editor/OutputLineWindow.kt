@@ -7,6 +7,16 @@ package com.jupydroid.app.ui.editor
  */
 data class OutputLineWindow(val headEnd: Int, val tailStart: Int, val hiddenLines: Int)
 
+/**
+ * Whether any of [range] falls between head and tail, where nothing is drawn - so a search hit cut
+ * in half by the window counts as hidden, since half a match drawn is not the match.
+ *
+ * ```kotlin
+ * outputLineWindowOf(text)?.hides(hit.range)  // true for a hit on line 500 of 1000
+ * ```
+ */
+fun OutputLineWindow.hides(range: IntRange): Boolean = range.first < tailStart && range.last >= headEnd
+
 /** Past this many lines a text output draws its head and tail - `notebook.output.textLineLimit`'s default. */
 const val OUTPUT_LINE_LIMIT = 30
 

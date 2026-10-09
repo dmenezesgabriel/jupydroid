@@ -1,7 +1,9 @@
 package com.jupydroid.app.ui.editor
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OutputLineWindowTest {
@@ -51,6 +53,21 @@ class OutputLineWindowTest {
     assertEquals("line 25", hidden.first())
     assertEquals("line 31", hidden.last())
   }
+
+  /** A search hit is hidden when any of it falls between head and tail, so one cut in half counts too. */
+  @Test
+  fun aRangeIsHiddenWhenAnyOfItFallsBetweenHeadAndTail() {
+    val text = lines(1000)
+    val window = outputLineWindowOf(text)!!
+
+    assertTrue(window.hides(text.rangeOf("line 500")))
+    assertTrue(window.hides(window.headEnd - 2..window.headEnd + 2))
+    assertTrue(window.hides(window.tailStart - 2..window.tailStart + 2))
+    assertFalse(window.hides(text.rangeOf("line 3\n")))
+    assertFalse(window.hides(text.rangeOf("line 999")))
+  }
+
+  private fun String.rangeOf(needle: String): IntRange = indexOf(needle).let { it until it + needle.length }
 
   @Test
   fun aTextWithinOneChunkIsOneChunk() {

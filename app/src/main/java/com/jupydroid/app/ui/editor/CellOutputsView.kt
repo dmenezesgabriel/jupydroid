@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -86,6 +87,11 @@ private fun RenderedOutputs(
   // A prefix of the outputs renders to a prefix of `rendered`, so `search` keeps its indices.
   val drawn = drawnCount?.let { outputs.take(it).mapNotNull { output -> output.render() } } ?: rendered
   val onShowMore = drawnCount?.let { { showAllOutputs = true } }
+  // Stepping onto a hit in an undrawn output draws the rest, as landing on a match opens a collapsed
+  // output area (`withMatchRevealed`, app/src/main/java/com/jupydroid/app/ui/editor/CellReveal.kt):
+  // search reads the model, and a counted match nobody can see is not a result. Latched, as that is.
+  val currentHitUndrawn = drawnCount != null && isCurrentHitUndrawn(search, drawn.size)
+  LaunchedEffect(currentHitUndrawn) { if (currentHitUndrawn) showAllOutputs = true }
   Spacer(modifier = Modifier.height(Spacing.xs))
   when {
     // Collapsed beats scrolled: there is no height to bound when nothing is drawn.
@@ -186,6 +192,10 @@ private fun OutputText(output: RenderedOutput.Text, search: CellSearchHighlight,
   // widget's life: a re-run empties the outputs first, which drops this, so the next run is cut again.
   var showAll by rememberSaveable { mutableStateOf(false) }
   val window = if (windowed && !showAll) outputLineWindowOf(output.text) else null
+  // The line cut gives way to a stepped-onto hit as the count cut does - see `RenderedOutputs`.
+  // Only `current`: typing a query counts its hits and draws none, as `startQuery` scrolls to none.
+  val current = search.current
+  LaunchedEffect(window, current) { if (current != null && window?.hides(current) == true) showAll = true }
   val colors = MaterialTheme.colorScheme
   when (output.frame()) {
     OutputTextFrame.PLAIN -> WindowedText(text, window, colors.onSurface, Modifier) { showAll = true }
