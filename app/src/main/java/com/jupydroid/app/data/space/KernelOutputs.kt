@@ -3,6 +3,7 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.data.space.JupyterFrame.content
 import com.jupydroid.app.data.space.JupyterFrame.msgType
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import kotlinx.serialization.json.JsonObject
@@ -58,6 +59,20 @@ object KernelOutputs {
    */
   fun isReplyFor(frame: String, requestMsgId: String): Boolean =
     JupyterFrame.ofType(frame, requestMsgId, "execute_reply") != null
+
+  /**
+   * The prompt this frame asks for on our request's behalf, or null when it asks none. The header
+   * is kept whole because the reply carries it back ([JupyterMessage.inputReply]).
+   */
+  fun inputRequestOf(frame: String, requestMsgId: String): KernelInputRequest? =
+    JupyterFrame.ofType(frame, requestMsgId, "input_request")?.let { message ->
+      val content = message.content() ?: return null
+      KernelInputRequest(
+        prompt = content["prompt"]?.jsonPrimitive?.content.orEmpty(),
+        password = content["password"]?.jsonPrimitive?.booleanOrNull == true,
+        requestHeader = message["header"].toString(),
+      )
+    }
 
   private fun outputFrom(msgType: String?, content: JsonObject): CellOutput? = when (msgType) {
     "stream" -> content.toStream()

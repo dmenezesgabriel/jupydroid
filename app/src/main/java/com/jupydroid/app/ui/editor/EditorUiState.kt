@@ -325,6 +325,10 @@ fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
   is KernelEvent.ExecutionCount ->
     copy(executionCounts = executionCounts + (event.cellId to event.count))
 
+  // A prompt is answered from the output area and leaves its trace as the stdin echo the answer
+  // appends, so the request itself changes nothing the cell keeps.
+  is KernelEvent.InputRequested -> this
+
   // Idle says the kernel is done with this cell, but not whether it raised - that is decided by
   // what it emitted, so the run is closed by NotebookKernel rather than here.
   KernelEvent.Idle -> this

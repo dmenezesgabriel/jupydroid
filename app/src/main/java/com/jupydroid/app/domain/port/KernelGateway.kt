@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.Space
 import kotlinx.coroutines.flow.Flow
 
@@ -61,6 +62,9 @@ sealed interface KernelEvent {
 
   data class Output(val cellId: String, val output: CellOutput) : KernelEvent
 
+  /** The cell is waiting on [KernelGateway.replyInput]; the execution is still running. */
+  data class InputRequested(val cellId: String, val request: KernelInputRequest) : KernelEvent
+
   data object Idle : KernelEvent
 }
 
@@ -98,6 +102,15 @@ interface KernelGateway {
   suspend fun changeKernel(session: KernelSession, kernel: KernelChoice): KernelSession
 
   suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent>
+
+  /**
+   * Answers the [request] a running cell is blocked on with [value] - `input()` returns it.
+   *
+   * ```
+   * gateway.replyInput(session, event.request, "Ada")   // after KernelEvent.InputRequested
+   * ```
+   */
+  suspend fun replyInput(session: KernelSession, request: KernelInputRequest, value: String)
 
   suspend fun interrupt(session: KernelSession)
 

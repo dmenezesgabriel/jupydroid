@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
@@ -66,6 +67,9 @@ class BaseSpaceKernelGateway(
 
   override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> =
     issued.gatewayKnowing(session).execute(session, cellId, code)
+
+  override suspend fun replyInput(session: KernelSession, request: KernelInputRequest, value: String) =
+    issued.gatewayKnowing(session).replyInput(session, request, value)
 
   override suspend fun interrupt(session: KernelSession) = issued.gatewayKnowing(session).interrupt(session)
 

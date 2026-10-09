@@ -207,6 +207,12 @@ object KernelFrames {
   fun idle(parent: String) = """{"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"status"},
        "content":{"execution_state":"idle"}}"""
 
+  /** An `input_request` on stdin, which the kernel sends mid-execution and then waits on. */
+  fun inputRequest(parent: String, prompt: String, password: Boolean = false) =
+    """{"channel":"stdin","parent_header":{"msg_id":"$parent"},
+       "header":{"msg_id":"ask-$parent","msg_type":"input_request"},
+       "content":{"prompt":"$prompt","password":$password}}"""
+
   /** A complete, successful execution: input, output, then both completion signals. */
   fun successfulExecution(parent: String, text: String = "4") = listOf(
     executeInput(parent, 1),

@@ -161,6 +161,7 @@ class ConsoleViewModel(
 private fun List<ConsoleEntry>.after(id: String, event: KernelEvent): List<ConsoleEntry> = when (event) {
   is KernelEvent.Output -> withEntry(id) { it.copy(outputs = it.outputs + event.output) }
   is KernelEvent.ExecutionCount -> withEntry(id) { it.copy(executionCount = event.count) }
+  is KernelEvent.InputRequested -> this
   KernelEvent.Idle -> this
 }
 

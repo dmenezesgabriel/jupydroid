@@ -59,6 +59,7 @@ abstract class KernelGatewayContract {
         when (it) {
           is KernelEvent.Output -> it.cellId == "cell-42"
           is KernelEvent.ExecutionCount -> it.cellId == "cell-42"
+          is KernelEvent.InputRequested -> it.cellId == "cell-42"
           KernelEvent.Idle -> true
         }
       },

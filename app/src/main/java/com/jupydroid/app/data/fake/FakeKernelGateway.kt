@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
@@ -85,6 +86,13 @@ class FakeKernelGateway(private val registry: KernelSessionRegistry = KernelSess
     emit(KernelEvent.ExecutionCount(cellId, 1))
     emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, code)))
     emit(KernelEvent.Idle)
+  }
+
+  /** Each [replyInput], in order - no kernel here is waiting on it, so recording it is all there is. */
+  val inputReplies = mutableListOf<Pair<KernelInputRequest, String>>()
+
+  override suspend fun replyInput(session: KernelSession, request: KernelInputRequest, value: String) {
+    inputReplies += request to value
   }
 
   override suspend fun interrupt(session: KernelSession) = Unit

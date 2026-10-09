@@ -158,6 +158,42 @@ class KernelOutputsTest {
     assertFalse(KernelOutputs.isReplyFor("not json at all", "m1"))
   }
 
+  /**
+   * `input_request` arrives on `stdin` with our execute as its parent, and its header is kept
+   * whole because the reply carries it back as `parent_header`
+   * (`jupyterlab@7f0e690 packages/outputarea/src/widget.ts`, `onInputRequest`).
+   */
+  @Test
+  fun inputRequestOf_readsThePromptThePasswordFlagAndTheHeader() {
+    val request = KernelOutputs.inputRequestOf(inputRequestFrame(parent = "m1", password = "true"), "m1")!!
+
+    assertEquals("Name?", request.prompt)
+    assertTrue(request.password)
+    assertEquals(Json.parseToJsonElement(INPUT_REQUEST_HEADER), Json.parseToJsonElement(request.requestHeader))
+  }
+
+  @Test
+  fun inputRequestOf_ignoresAnotherRequestsPrompt() {
+    assertNull(KernelOutputs.inputRequestOf(inputRequestFrame(parent = "someone-else", password = "false"), "m1"))
+    assertNull(KernelOutputs.inputRequestOf(streamFrame("stdout", "hi"), "m1"))
+  }
+
+  /** ipykernel always sends `password`, but a kernel that omits it is asking for plain text. */
+  @Test
+  fun inputRequestOf_readsAMissingPasswordFlagAsPlainText() {
+    val frame = """
+      {"channel":"stdin","parent_header":{"msg_id":"m1"},"header":$INPUT_REQUEST_HEADER,
+       "content":{"prompt":"Name?"}}
+    """.trimIndent()
+
+    assertFalse(KernelOutputs.inputRequestOf(frame, "m1")!!.password)
+  }
+
+  private fun inputRequestFrame(parent: String, password: String) = """
+    {"channel":"stdin","parent_header":{"msg_id":"$parent"},"header":$INPUT_REQUEST_HEADER,
+     "content":{"prompt":"Name?","password":$password}}
+  """.trimIndent()
+
   private fun replyFrame(parent: String) = """
     {"channel":"shell","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"execute_reply"},
      "content":{"status":"ok","execution_count":3}}
@@ -172,4 +208,9 @@ class KernelOutputsTest {
     {"channel":"iopub","parent_header":{"msg_id":"$parent"},"header":{"msg_type":"status"},
      "content":{"execution_state":"$state"}}
   """.trimIndent()
+
+  private companion object {
+    const val INPUT_REQUEST_HEADER =
+      """{"msg_id":"r1","session":"k","username":"u","msg_type":"input_request","version":"5.3"}"""
+  }
 }

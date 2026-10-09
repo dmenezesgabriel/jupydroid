@@ -117,8 +117,9 @@ tap Run
                               └─ KernelSockets (WebSocket, one per session)
                                   ├─ shell    execute_request / execute_reply
                                   ├─ iopub    stream · display_data · execute_result · error · status
+                                  ├─ stdin    input_request / input_reply
                                   └─ control  debug_request (KernelDebugger shares this socket)
-                                      └─ KernelEvent.Output / ExecutionCount / Idle
+                                      └─ KernelEvent.Output / ExecutionCount / InputRequested / Idle
                                           └─ ActiveCellRuns── ──────────────────────┘
 ```
 

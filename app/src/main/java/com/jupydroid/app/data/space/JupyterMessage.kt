@@ -1,8 +1,10 @@
 package com.jupydroid.app.data.space
 
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 
 /**
@@ -73,23 +75,41 @@ object JupyterMessage {
    * request, so it takes what the caller is already counting rather than counting its own.
    */
   fun debugRequest(command: String, args: JsonObject, seq: Int, sessionId: String, msgId: String): String =
-    controlRequest("debug_request", sessionId, msgId, debugContent(command, args, seq))
+    request("control", "debug_request", sessionId, msgId, debugContent(command, args, seq))
+
+  /**
+   * The answer to an `input_request`, on the `stdin` channel. Its `parent_header` is the request's
+   * whole header, which is what `sendInputReply` sends
+   * (`jupyterlab@7f0e690 packages/services/src/kernel/default.ts`); ipykernel itself reads only
+   * `content.value`.
+   */
+  fun inputReply(value: String, requestHeader: String, sessionId: String, msgId: String): String = request(
+    "stdin",
+    "input_reply",
+    sessionId,
+    msgId,
+    buildJsonObject { put("value", value) },
+    parentHeader = Json.parseToJsonElement(requestHeader).jsonObject,
+  )
 
   private fun shellRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) =
     request("shell", msgType, sessionId, msgId, content)
 
-  private fun controlRequest(msgType: String, sessionId: String, msgId: String, content: JsonObject) =
-    request("control", msgType, sessionId, msgId, content)
-
-  private fun request(channel: String, msgType: String, sessionId: String, msgId: String, content: JsonObject) =
-    buildJsonObject {
-      put("channel", channel)
-      put("header", header(msgType, msgId, sessionId))
-      put("parent_header", buildJsonObject { })
-      put("metadata", buildJsonObject { })
-      put("content", content)
-      put("buffers", buildJsonArray { })
-    }.toString()
+  private fun request(
+    channel: String,
+    msgType: String,
+    sessionId: String,
+    msgId: String,
+    content: JsonObject,
+    parentHeader: JsonObject = buildJsonObject { },
+  ) = buildJsonObject {
+    put("channel", channel)
+    put("header", header(msgType, msgId, sessionId))
+    put("parent_header", parentHeader)
+    put("metadata", buildJsonObject { })
+    put("content", content)
+    put("buffers", buildJsonArray { })
+  }.toString()
 
   private fun header(msgType: String, msgId: String, sessionId: String) = buildJsonObject {
     put("msg_id", msgId)

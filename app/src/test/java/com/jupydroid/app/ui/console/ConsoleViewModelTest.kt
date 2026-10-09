@@ -6,6 +6,7 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.space.KernelLifecycleException
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
@@ -316,6 +317,18 @@ class ConsoleViewModelTest {
     assertEquals("the console now holds the rebound session", changed, session.opened)
   }
 
+  /** The Console folds a prompt the way a cell does: into nothing, so the entry keeps only what printed. */
+  @Test
+  fun submit_foldsAnInputRequestIntoNoOutput() = runTest {
+    val viewModel = consoleViewModel(AskingKernelGateway())
+
+    viewModel.input.edit { insert(0, "input()") }
+    viewModel.submit()
+    advanceUntilIdle()
+
+    assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "after")), viewModel.entries.value.single().outputs)
+  }
+
   private fun consoleViewModel(gateway: KernelGateway): ConsoleViewModel {
     val session = NotebookKernelSession(gateway, SPACE, attachedTo = ATTACHED_SESSION) { "Analysis.ipynb" }
     return ConsoleViewModel(gateway, session)
@@ -349,4 +362,13 @@ private class RefusingToConnectKernelGateway : KernelGateway by FakeKernelGatewa
     kernel: KernelChoice?,
     sessionType: SessionType?,
   ): KernelSession = throw KernelLifecycleException("POST api/sessions refused for $documentPath")
+}
+
+/** Asks for input mid-run, then prints and finishes - the order ipykernel sends them in. */
+private class AskingKernelGateway : KernelGateway by FakeKernelGateway() {
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
+    emit(KernelEvent.InputRequested(cellId, KernelInputRequest(prompt = "?", password = false, requestHeader = "{}")))
+    emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDOUT, "after")))
+    emit(KernelEvent.Idle)
+  }
 }

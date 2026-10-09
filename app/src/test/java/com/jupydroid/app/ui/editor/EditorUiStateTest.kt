@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.KernelEvent
 import org.junit.Assert.assertEquals
@@ -65,5 +66,16 @@ class EditorUiStateTest {
       ),
       second.outputs["a"],
     )
+  }
+
+  /** A prompt is answered from the output area, so the event itself changes no state the cell keeps. */
+  @Test
+  fun anInputRequestLeavesTheStateAsItWas() {
+    val asked = KernelEvent.InputRequested(
+      "a",
+      KernelInputRequest(prompt = "Name?", password = false, requestHeader = "{}"),
+    )
+
+    assertEquals(printedState(), printedState().after(asked))
   }
 }

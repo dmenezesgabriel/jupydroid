@@ -63,4 +63,21 @@ class JupyterMessageTest {
     assertEquals("attach", content["command"]!!.jsonPrimitive.content)
     assertEquals("jupydroid", content["arguments"]!!.jsonObject["clientID"]!!.jsonPrimitive.content)
   }
+
+  /**
+   * The reply goes back on `stdin` with the request's whole header as its parent, the way
+   * `sendInputReply` sends it (`jupyterlab@7f0e690 packages/services/src/kernel/default.ts`).
+   */
+  @Test
+  fun inputReply_answersOnStdinWithTheRequestsHeaderAsItsParent() {
+    val requestHeader = """{"msg_id":"r1","session":"k","msg_type":"input_request","version":"5.3"}"""
+    val frame = JupyterMessage.inputReply("Ada", requestHeader, sessionId = "s1", msgId = "m4")
+
+    val json = Json.parseToJsonElement(frame).jsonObject
+    assertEquals("stdin", json["channel"]!!.jsonPrimitive.content)
+    assertEquals("input_reply", json["header"]!!.jsonObject["msg_type"]!!.jsonPrimitive.content)
+    assertEquals("m4", json["header"]!!.jsonObject["msg_id"]!!.jsonPrimitive.content)
+    assertEquals(Json.parseToJsonElement(requestHeader), json["parent_header"])
+    assertEquals("Ada", json["content"]!!.jsonObject["value"]!!.jsonPrimitive.content)
+  }
 }

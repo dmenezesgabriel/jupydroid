@@ -199,7 +199,9 @@ KernelSession(id, spaceId, kernelId)
 KernelEvent (sealed)
   ExecutionCount(cellId, count)
   Output(cellId, output: CellOutput)
+  InputRequested(cellId, request)            // input()/getpass(); answered by replyInput
   Idle                                       // kernel done with this cell
+KernelInputRequest(prompt, password, requestHeader)   // header opaque, echoed as parent_header
 CompletionResult(matches, replacedStart, replacedEnd)
 
 ServerConnection(baseUrl, port, token)

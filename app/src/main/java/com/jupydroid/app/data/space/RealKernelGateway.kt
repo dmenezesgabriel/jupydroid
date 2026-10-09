@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.KernelChoice
@@ -108,6 +109,15 @@ class RealKernelGateway(
     }
   }
 
+  /**
+   * Sent on the socket the execution is streaming from, which is already open: the kernel is
+   * blocked inside `input()` on a request it sent down that socket.
+   */
+  override suspend fun replyInput(session: KernelSession, request: KernelInputRequest, value: String) {
+    val msgId = UUID.randomUUID().toString()
+    sockets.socketFor(session).socket.send(JupyterMessage.inputReply(value, request.requestHeader, session.id, msgId))
+  }
+
   override suspend fun interrupt(session: KernelSession) = lifecycle.interrupt(session.kernelId)
 
   /**
@@ -155,6 +165,7 @@ class RealKernelGateway(
 
     KernelOutputs.executionCountOf(event.frame, requestMsgId)?.let { emit(KernelEvent.ExecutionCount(cellId, it)) }
     KernelOutputs.outputOf(event.frame, requestMsgId)?.let { emit(KernelEvent.Output(cellId, it)) }
+    KernelOutputs.inputRequestOf(event.frame, requestMsgId)?.let { emit(KernelEvent.InputRequested(cellId, it)) }
     val complete = completion.accept(event.frame, requestMsgId)
     if (complete) {
       emit(KernelEvent.Idle)

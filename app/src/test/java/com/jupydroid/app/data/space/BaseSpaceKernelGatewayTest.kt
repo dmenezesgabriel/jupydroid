@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelChoice
@@ -209,6 +210,34 @@ class BaseSpaceKernelGatewayTest {
     )
   }
 
+  @Test
+  fun replyInput_reachesTheGatewayOfTheLiveServer() = runTest {
+    val fake = FakeKernelGateway()
+    val gateway = BaseSpaceKernelGateway(
+      sharedSockets = fakeSockets(clientTestSpaceServer(RecordingServerLauncher(), recordingLog)),
+      gatewayFor = { fake },
+    )
+    val session = gateway.connect(SPACE, "Analysis.ipynb")
+
+    gateway.replyInput(session, NAME_REQUEST, "Ada")
+
+    assertEquals(listOf(NAME_REQUEST to "Ada"), fake.inputReplies)
+  }
+
+  /** An answer for a kernel the live server never started has nowhere to go. */
+  @Test
+  fun replyInput_refusesASessionTheLiveServerNeverIssued() = runTest {
+    val gateway = gateway(RecordingServerLauncher(diesAfterFirstStart = true))
+    val stale = gateway.connect(SPACE, "Analysis.ipynb")
+
+    val failure = runCatching { gateway.replyInput(stale, NAME_REQUEST, "Ada") }
+
+    assertTrue(
+      "expected a stale session to be refused, got ${failure.exceptionOrNull()}",
+      failure.exceptionOrNull() is StaleKernelSessionException,
+    )
+  }
+
   private val recordingLog = RecordingSpaceLifecycleLog()
 
   private fun gateway(
@@ -252,5 +281,6 @@ class BaseSpaceKernelGatewayTest {
 
   private companion object {
     val SPACE = Space(id = "base", name = "Base", kernels = emptyList())
+    val NAME_REQUEST = KernelInputRequest(prompt = "Name?", password = false, requestHeader = """{"msg_id":"r1"}""")
   }
 }
