@@ -116,7 +116,7 @@ None. The sizing rule was chosen with the user (JupyterLab's), and the image ord
 
 - [x] T1 — The four other image mimes draw, in JupyterLab's order; a flow on `SM-X216B`
 - [x] T2 — An image draws at its metadata width, else its own, capped at the column, height by aspect; ADR; a flow on `SM-X216B`
-- [ ] T3 — The demo on `SM-X216B`; ship
+- [x] T3 — The demo on `SM-X216B`; ship
 
 ## Out of scope
 
