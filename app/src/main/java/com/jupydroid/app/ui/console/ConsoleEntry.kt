@@ -33,4 +33,6 @@ data class ConsoleEntry(
   val executionCount: Int? = null,
   /** The `input()` this entry's run is blocked on, or null - a notebook cell's own rule, by entry. */
   val inputRequest: KernelInputRequest? = null,
+  /** A `clear_output(wait=True)` not yet spent by an output - the notebook's `clearsPending`, by entry. */
+  val clearPending: Boolean = false,
 )

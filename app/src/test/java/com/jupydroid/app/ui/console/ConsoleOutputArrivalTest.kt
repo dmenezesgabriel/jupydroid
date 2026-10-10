@@ -10,7 +10,8 @@ import org.junit.Test
 
 /**
  * How one kernel output lands in the Console's transcript: an `update_display_data` redraws every
- * entry that showed its id and appends nothing, as it does across a notebook's cells (ADR-0085).
+ * entry that showed its id and appends nothing, as it does across a notebook's cells (ADR-0085), and
+ * a `clear_output` empties its own entry, now or at the entry's next output, as it does a cell.
  */
 class ConsoleOutputArrivalTest {
   private fun frame(text: String, id: String? = "d1") =
@@ -61,5 +62,47 @@ class ConsoleOutputArrivalTest {
 
     assertSame(shown[0], updated[0])
     assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "a\n")), updated[1].outputs)
+  }
+
+  private fun printed(text: String) = CellOutput.Stream(StreamName.STDOUT, text)
+
+  private val bothPrinted = listOf(entry("e1", printed("one\n")), entry("e2", printed("old\n")))
+
+  /** A console entry is drawn through the same output model a cell is (`OutputAreaModel.clear`). */
+  @Test
+  fun anImmediateClearEmptiesItsOwnEntryOnly() {
+    val cleared = bothPrinted.afterOutput("e2", CellOutput.ClearOutput())
+
+    assertSame(bothPrinted[0], cleared[0])
+    assertEquals(emptyList<CellOutput>(), cleared[1].outputs)
+  }
+
+  @Test
+  fun aWaitingClearKeepsTheEntryUntilItsNextOutput() {
+    val marked = bothPrinted.afterOutput("e2", CellOutput.ClearOutput(wait = true))
+
+    assertEquals(listOf(printed("old\n")), marked[1].outputs)
+  }
+
+  /** The deferred clear is spent by the output it cleared for - it does not clear twice. */
+  @Test
+  fun aWaitingClearIsSpentByTheNextOutput() {
+    val marked = bothPrinted.afterOutput("e2", CellOutput.ClearOutput(wait = true))
+    val first = marked.afterOutput("e2", printed("new\n"))
+    val second = first.afterOutput("e2", printed("more\n"))
+
+    assertEquals(listOf(printed("new\n")), first[1].outputs)
+    assertEquals(listOf(printed("new\nmore\n")), second[1].outputs)
+  }
+
+  /** An update sets an output in place; only an output that is *added* spends a `clear(wait)`. */
+  @Test
+  fun anUpdateLeavesAWaitingClearForTheNextOutput() {
+    val marked = shown.afterOutput("e1", CellOutput.ClearOutput(wait = true))
+    val updated = marked.afterOutput("e1", CellOutput.DisplayUpdate(frame("'frame 3'")))
+    val added = updated.afterOutput("e1", printed("done\n"))
+
+    assertEquals(listOf(frame("'frame 3'")), updated[0].outputs)
+    assertEquals(listOf(printed("done\n")), added[0].outputs)
   }
 }
