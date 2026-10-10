@@ -48,16 +48,24 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the jump went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
-grep -Fq 'Cell menu Go to definition' "$OUT/maestro.log" &&
-  echo "PASS: the flow tapped the inspect row" ||
-  { echo "FAIL: the row was never tapped"; fail=1; }
-grep -Fq 'def compute_total' "$OUT/maestro.log" &&
-  echo "PASS: the def cell was asserted on screen - the jump landed" ||
-  { echo "FAIL: 'def compute_total' was never asserted"; fail=1; }
-grep -Fq 'No definition found' "$OUT/maestro.log" &&
-  echo "PASS: the miss was asserted to say so" ||
-  { echo "FAIL: 'No definition found' was never asserted"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the jump went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -Fq 'Cell menu Go to definition' "$OUT/maestro.log"; then
+  echo "PASS: the flow tapped the inspect row"
+else
+  echo "FAIL: the row was never tapped"; fail=1;
+fi
+if grep -Fq 'def compute_total' "$OUT/maestro.log"; then
+  echo "PASS: the def cell was asserted on screen - the jump landed"
+else
+  echo "FAIL: 'def compute_total' was never asserted"; fail=1;
+fi
+if grep -Fq 'No definition found' "$OUT/maestro.log"; then
+  echo "PASS: the miss was asserted to say so"
+else
+  echo "FAIL: 'No definition found' was never asserted"; fail=1;
+fi
 exit "$fail"

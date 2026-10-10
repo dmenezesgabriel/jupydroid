@@ -62,7 +62,8 @@ run_in_theme() {
 # so until this step nothing here could report a border that was never drawn - which is how the side
 # panel came to abut the document with no `sideBar.border` between them, through P7a-1 green.
 read_the_frames() {
-  local theme="$1" frames=("$EVIDENCE/$theme"/*.png)
+  local theme="$1"
+  local frames=("$EVIDENCE/$theme"/*.png)
   echo
   echo "--- $theme: what each frame is actually drawn in ---"
   python3 "$ROOT/scripts/read_chrome_parts.py" "${frames[@]}"

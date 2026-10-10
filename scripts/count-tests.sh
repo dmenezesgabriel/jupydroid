@@ -19,8 +19,8 @@ echo "unit @Test sites          $(grep -rho '@Test' app/src/test --include='*.kt
 echo "unit test classes         $(grep -rl '@Test' app/src/test --include='*.kt' | wc -l)"
 echo "instrumented @Test sites  $(grep -rho '@Test' app/src/androidTest --include='*.kt' | wc -l)"
 echo "script def test sites     $(grep -rho 'def test' scripts --include='*_test.py' | wc -l)"
-echo "maestro flows             $(ls .maestro/*.yaml 2>/dev/null | wc -l)"
-echo "maestro drivers           $(ls scripts/*-driver.sh 2>/dev/null | wc -l)"
+echo "maestro flows             $(find .maestro -maxdepth 1 -name '*.yaml' | wc -l)"
+echo "maestro drivers           $(find scripts -maxdepth 1 -name '*-driver.sh' | wc -l)"
 echo "  of which are tools      $(grep -l '^# *NOT A SUITE FLOW' scripts/*-driver.sh 2>/dev/null | wc -l)"
 echo
 echo "unit EXECUTIONS are Gradle's, and higher than the @Test count by the port contracts:"

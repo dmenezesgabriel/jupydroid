@@ -67,16 +67,20 @@ EVIDENCE_ROOT="$ROOT/evidence/jd-001-p7e-1-space-python" "$ROOT/scripts/p7e-1-sp
 in_app "find $SPACE_ONE/pkgs -name \"tabulate*\"" > "$OUT/space-1-tabulate.txt"
 
 fail=0
-grep -q "OK (" "$OUT/instrumentation.txt" &&
-  echo "PASS: PerSpaceRuntimeDeviceTest green on device" ||
-  { echo "FAIL: PerSpaceRuntimeDeviceTest did not pass"; fail=1; }
+if grep -q "OK (" "$OUT/instrumentation.txt"; then
+  echo "PASS: PerSpaceRuntimeDeviceTest green on device"
+else
+  echo "FAIL: PerSpaceRuntimeDeviceTest did not pass"; fail=1;
+fi
 grep -q "^space-1$" "$OUT/spaces-before.txt" &&
   { echo "FAIL: space-1 was on disk before the test seeded it"; fail=1; } ||
   echo "PASS: space-1 absent before the test"
 for dir in home/jupydroid run tmp pkgs; do
-  grep -qx "$SPACE_ONE/$dir" "$OUT/space-1-tree.txt" &&
-    echo "PASS: $dir provisioned at first launch" ||
-    { echo "FAIL: $SPACE_ONE/$dir missing"; fail=1; }
+  if grep -qx "$SPACE_ONE/$dir" "$OUT/space-1-tree.txt"; then
+    echo "PASS: $dir provisioned at first launch"
+  else
+    echo "FAIL: $SPACE_ONE/$dir missing"; fail=1;
+  fi
 done
 grep -q "^kernel-.*\.json$" "$OUT/runtime-dir.txt" &&
   echo "PASS: the kernel's connection file is in space-1/run" ||

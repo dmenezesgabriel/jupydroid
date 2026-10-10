@@ -40,6 +40,7 @@ reset_notebooks
 
 run_part part1-script-editor
 capture "base's config.json after the save" base_config
+# shellcheck disable=SC2016 # the single quotes hold Python source, not shell
 base_config | python3 -c '
 import json, sys
 script = json.load(sys.stdin)["settings"]["startupScript"]

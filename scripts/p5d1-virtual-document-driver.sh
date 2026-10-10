@@ -49,13 +49,19 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the asks went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
-grep -q 'Completion join' "$OUT/maestro.log" &&
-  echo "PASS: attribute completion across cells" ||
-  { echo "FAIL: 'Completion join' never appeared"; fail=1; }
-grep -q 'Completion cross_cell_name_for_lsp' "$OUT/maestro.log" &&
-  echo "PASS: a never-run cell's name completed - the document is shared" ||
-  { echo "FAIL: 'Completion cross_cell_name_for_lsp' never appeared - cells are not one document"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the asks went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -q 'Completion join' "$OUT/maestro.log"; then
+  echo "PASS: attribute completion across cells"
+else
+  echo "FAIL: 'Completion join' never appeared"; fail=1;
+fi
+if grep -q 'Completion cross_cell_name_for_lsp' "$OUT/maestro.log"; then
+  echo "PASS: a never-run cell's name completed - the document is shared"
+else
+  echo "FAIL: 'Completion cross_cell_name_for_lsp' never appeared - cells are not one document"; fail=1;
+fi
 exit "$fail"

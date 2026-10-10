@@ -45,10 +45,14 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the popup went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
-grep -q 'Completion join' "$OUT/maestro.log" &&
-  echo "PASS: the popup carried pylsp's answer" ||
-  { echo "FAIL: 'Completion join' never appeared"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the popup went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -q 'Completion join' "$OUT/maestro.log"; then
+  echo "PASS: the popup carried pylsp's answer"
+else
+  echo "FAIL: 'Completion join' never appeared"; fail=1;
+fi
 exit "$fail"

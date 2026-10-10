@@ -34,6 +34,7 @@ rotate_to() { # rotate_to <0=portrait|1=landscape>
   sleep 3
 }
 
+# shellcheck disable=SC2329 # invoked by the EXIT trap below
 restore_rotation() { "$ADB" shell settings put system accelerometer_rotation 1; }
 trap restore_rotation EXIT
 

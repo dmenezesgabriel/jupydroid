@@ -47,14 +47,20 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the card went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the card went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
 # The log echoes the flow's own regex, so the needle keeps its escaped paren.
-grep -Fq 'join\(path' "$OUT/maestro.log" &&
-  echo "PASS: the card showed jedi's signature for os.path.join" ||
-  { echo "FAIL: 'join(path' never appeared"; fail=1; }
-grep -Fq 'Signature help" is not visible' "$OUT/maestro.log" &&
-  echo "PASS: closing the call was asserted to clear the card" ||
-  { echo "FAIL: the flow never checked the card cleared"; fail=1; }
+if grep -Fq 'join\(path' "$OUT/maestro.log"; then
+  echo "PASS: the card showed jedi's signature for os.path.join"
+else
+  echo "FAIL: 'join(path' never appeared"; fail=1;
+fi
+if grep -Fq 'Signature help" is not visible' "$OUT/maestro.log"; then
+  echo "PASS: closing the call was asserted to clear the card"
+else
+  echo "FAIL: the flow never checked the card cleared"; fail=1;
+fi
 exit "$fail"

@@ -69,13 +69,17 @@ init="$(read_ws p5b-init.out)"
 echo "--- the files ---"; cat "$OUT/the-files.txt"
 
 fail=0
-grep -q "OK (3 tests)" "$OUT/instrumentation.txt" &&
-  echo "PASS: the port drove a real pylsp session on device" ||
-  { echo "FAIL: StdioLanguageServerDeviceTest did not pass"; fail=1; }
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  grep -q '"stage":"lsp\.stop"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: lsp.start and lsp.stop both logged - lazy start, clean stop" ||
-  { echo "FAIL: missing lsp lifecycle stages"; fail=1; }
+if grep -q "OK (3 tests)" "$OUT/instrumentation.txt"; then
+  echo "PASS: the port drove a real pylsp session on device"
+else
+  echo "FAIL: StdioLanguageServerDeviceTest did not pass"; fail=1;
+fi
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
+  grep -q '"stage":"lsp\.stop"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: lsp.start and lsp.stop both logged - lazy start, clean stop"
+else
+  echo "FAIL: missing lsp lifecycle stages"; fail=1;
+fi
 case "$version" in
   *"pylsp v"*"rc=0"*) echo "PASS: pylsp --version ran by name on the wired build" ;;
   *) echo "FAIL: pylsp did not run by name: $version"; fail=1 ;;

@@ -114,6 +114,7 @@ pids=()
 for device in "${DEVICES[@]}"; do
   names="${ASSIGNED[$device]:-}"
   [ -n "$names" ] || continue
+  # shellcheck disable=SC2086 # names is a space-separated list, split on purpose
   echo "$device: $(printf '%s\n' $names | wc -l) flows"
   ANDROID_SERIAL="$device" FLOW_NAMES="$names" \
     "$ROOT/scripts/run-all-flows.sh" >"$LOGS/shard-$device.txt" 2>&1 &

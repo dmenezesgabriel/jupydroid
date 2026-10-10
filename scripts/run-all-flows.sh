@@ -49,6 +49,7 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
   # runner needs exact: `step5-completion-repeat` as an argument also matched `step5-completion`,
   # so a shard asked for one driver and got two.
   if [ -n "${FLOW_NAMES:-}" ]; then
+    # shellcheck disable=SC2086 # FLOW_NAMES is a space-separated list, split on purpose
     printf '%s\n' $FLOW_NAMES | grep -qx -- "$name" || continue
   elif [ "$#" -gt 0 ] && ! printf '%s\n' "$@" | grep -q -- "$name"; then
     continue

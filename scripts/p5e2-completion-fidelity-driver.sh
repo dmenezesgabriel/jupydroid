@@ -48,14 +48,20 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the popup went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the popup went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
 # The log records the asserted patterns escaped (`join\(path`), so these match literally.
-grep -Fq 'Completion join\(path, paths\)' "$OUT/maestro.log" &&
-  echo "PASS: the row showed the signature-resolved label" ||
-  { echo "FAIL: 'Completion join(path, paths)' never appeared"; fail=1; }
-grep -Fq 'os\.path\.join' "$OUT/maestro.log" &&
-  echo "PASS: accepting wrote the insert text" ||
-  { echo "FAIL: the accepted text was not os.path.join"; fail=1; }
+if grep -Fq 'Completion join\(path, paths\)' "$OUT/maestro.log"; then
+  echo "PASS: the row showed the signature-resolved label"
+else
+  echo "FAIL: 'Completion join(path, paths)' never appeared"; fail=1;
+fi
+if grep -Fq 'os\.path\.join' "$OUT/maestro.log"; then
+  echo "PASS: accepting wrote the insert text"
+else
+  echo "FAIL: the accepted text was not os.path.join"; fail=1;
+fi
 exit "$fail"

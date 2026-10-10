@@ -18,8 +18,6 @@ APP="com.jupydroid.app"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_notebook
 
-# DiskNotebookRepository derives the notebook id from the filename stem.
-REMOTE="$NOTEBOOK_DIR/Typing Rules.ipynb"
 
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"

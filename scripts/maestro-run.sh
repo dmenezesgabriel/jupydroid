@@ -230,6 +230,7 @@ record_device() {
 # input to the end, so there is nothing to race.
 newest_run_dir() {
   local flow_name="$1"
+  # shellcheck disable=SC2012 # ls -t is the newest-by-mtime pick; run dirs are maestro timestamps
   ls -1dt "$HOME/.maestro/tests"/*/"$flow_name" 2>/dev/null | sed -n '1p'
 }
 

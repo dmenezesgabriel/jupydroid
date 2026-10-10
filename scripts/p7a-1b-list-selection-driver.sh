@@ -52,7 +52,8 @@ declare -A ROW=([dark]="#2C2D2E" [light]="#E7E7E8")
 SELECTOR=(checked true)
 
 run_in_theme() {
-  local theme="$1" night="$2" out="$EVIDENCE/$theme"
+  local theme="$1" night="$2"
+  local out="$EVIDENCE/$theme"
   echo "=== $theme (uimode night $night) ==="
   # Set before the launch, not after: a mid-flow change recreates the activity and loses the
   # opened notebook - and the opened notebook is the whole point of this frame.
@@ -69,7 +70,8 @@ run_in_theme() {
 }
 
 read_the_row() {
-  local theme="$1" out="$EVIDENCE/$theme"
+  local theme="$1"
+  local out="$EVIDENCE/$theme"
   echo
   echo "--- $theme: what the marked row is actually filled with ---"
   python3 "$ROOT/scripts/read_node_fill.py" \

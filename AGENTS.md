@@ -207,6 +207,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | Android Lint | Android-specific checks | AGP built-in (`:app:lintDebug`) |
 | pre-commit | commit gate | `.pre-commit-config.yaml` |
 | file-length gate | ≤500 lines/file | `scripts/check-file-line-length.sh` |
+| ShellCheck | every shell script, followed into what it sources | `.pre-commit-config.yaml` (`koalaman/shellcheck-precommit` v0.11.0, needs Docker) + `.shellcheckrc` |
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
 | device-secrets gate | evidence proves the app, not the house it ran in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |

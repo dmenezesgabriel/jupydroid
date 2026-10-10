@@ -47,19 +47,27 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the popup went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the popup went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
 # The log records the asserted pattern escaped (`compute_total\(values`), so match literally.
-grep -Fq 'compute_total\(values' "$OUT/maestro.log" &&
-  echo "PASS: the popup showed the markdown's fenced signature" ||
-  { echo "FAIL: 'compute_total(values)' never appeared"; fail=1; }
-grep -Fq 'Symbol info" is not visible' "$OUT/maestro.log" &&
-  echo "PASS: the outside tap's dismissal was asserted in the flow" ||
-  { echo "FAIL: the flow never checked the popup dismissed"; fail=1; }
+if grep -Fq 'compute_total\(values' "$OUT/maestro.log"; then
+  echo "PASS: the popup showed the markdown's fenced signature"
+else
+  echo "FAIL: 'compute_total(values)' never appeared"; fail=1;
+fi
+if grep -Fq 'Symbol info" is not visible' "$OUT/maestro.log"; then
+  echo "PASS: the outside tap's dismissal was asserted in the flow"
+else
+  echo "FAIL: the flow never checked the popup dismissed"; fail=1;
+fi
 # The same `notVisible` assert fires twice: the outside-tap dismissal, then the off-symbol
 # ask (`# nothing` - a comment has no symbol) which must draw no card at all.
-[ "$(grep -Fc 'Symbol info" is not visible' "$OUT/maestro.log")" -ge 2 ] &&
-  echo "PASS: the off-symbol ask drew no card" ||
-  { echo "FAIL: the off-symbol ask was never asserted"; fail=1; }
+if [ "$(grep -Fc 'Symbol info" is not visible' "$OUT/maestro.log")" -ge 2 ]; then
+  echo "PASS: the off-symbol ask drew no card"
+else
+  echo "FAIL: the off-symbol ask was never asserted"; fail=1;
+fi
 exit "$fail"

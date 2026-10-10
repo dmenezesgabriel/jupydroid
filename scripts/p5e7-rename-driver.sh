@@ -48,19 +48,29 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the rename went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
-grep -q '"method":"rename"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: the rename ask went down the wire - the dialog reached the server" ||
-  { echo "FAIL: no rename ask in the lifecycle - the port never asked"; fail=1; }
-grep -Fq 'Rename symbol' "$OUT/maestro.log" &&
-  echo "PASS: the flow tapped the rename row" ||
-  { echo "FAIL: the row was never tapped"; fail=1; }
-grep -Fq 'def summed' "$OUT/maestro.log" &&
-  echo "PASS: the renamed def was asserted on screen - the whole-document edit landed" ||
-  { echo "FAIL: 'def summed' was never asserted"; fail=1; }
-grep -Fq 'No result.' "$OUT/maestro.log" &&
-  echo "PASS: the miss reported No result. - the surface refused rather than asked" ||
-  { echo "FAIL: 'No result.' was never asserted"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the rename went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -q '"method":"rename"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: the rename ask went down the wire - the dialog reached the server"
+else
+  echo "FAIL: no rename ask in the lifecycle - the port never asked"; fail=1;
+fi
+if grep -Fq 'Rename symbol' "$OUT/maestro.log"; then
+  echo "PASS: the flow tapped the rename row"
+else
+  echo "FAIL: the row was never tapped"; fail=1;
+fi
+if grep -Fq 'def summed' "$OUT/maestro.log"; then
+  echo "PASS: the renamed def was asserted on screen - the whole-document edit landed"
+else
+  echo "FAIL: 'def summed' was never asserted"; fail=1;
+fi
+if grep -Fq 'No result.' "$OUT/maestro.log"; then
+  echo "PASS: the miss reported No result. - the surface refused rather than asked"
+else
+  echo "FAIL: 'No result.' was never asserted"; fail=1;
+fi
 exit "$fail"

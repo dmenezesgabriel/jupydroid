@@ -50,16 +50,24 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the publications came down the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
-grep -q "diagnostic on line 1: error, undefined name 'never_defined_lsp_name'" "$OUT/maestro.log" &&
-  echo "PASS: error mark on a never-run cell - the shared document was linted" ||
-  { echo "FAIL: the never-run cell's error mark never appeared"; fail=1; }
-grep -q "diagnostic on line 1: warning, E225 missing whitespace around operator" "$OUT/maestro.log" &&
-  echo "PASS: warning mark alongside the error - severities render distinctly" ||
-  { echo "FAIL: the warning mark never appeared"; fail=1; }
-grep -q "diagnostic on line 1: error, undefined name 'second_also_undefined'" "$OUT/maestro.log" &&
-  echo "PASS: retyping republished - diagnostics live as you type" ||
-  { echo "FAIL: the retyped cell's mark never appeared - edits do not resync"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the publications came down the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -q "diagnostic on line 1: error, undefined name 'never_defined_lsp_name'" "$OUT/maestro.log"; then
+  echo "PASS: error mark on a never-run cell - the shared document was linted"
+else
+  echo "FAIL: the never-run cell's error mark never appeared"; fail=1;
+fi
+if grep -q "diagnostic on line 1: warning, E225 missing whitespace around operator" "$OUT/maestro.log"; then
+  echo "PASS: warning mark alongside the error - severities render distinctly"
+else
+  echo "FAIL: the warning mark never appeared"; fail=1;
+fi
+if grep -q "diagnostic on line 1: error, undefined name 'second_also_undefined'" "$OUT/maestro.log"; then
+  echo "PASS: retyping republished - diagnostics live as you type"
+else
+  echo "FAIL: the retyped cell's mark never appeared - edits do not resync"; fail=1;
+fi
 exit "$fail"

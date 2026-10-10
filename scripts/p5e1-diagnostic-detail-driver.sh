@@ -46,10 +46,14 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the findings came down the real port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
-grep -q "Diagnostic detail" "$OUT/maestro.log" &&
-  echo "PASS: the mark's tap raised the findings card" ||
-  { echo "FAIL: the mark's tap never raised the card"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the findings came down the real port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -q "Diagnostic detail" "$OUT/maestro.log"; then
+  echo "PASS: the mark's tap raised the findings card"
+else
+  echo "FAIL: the mark's tap never raised the card"; fail=1;
+fi
 exit "$fail"

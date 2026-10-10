@@ -1,0 +1,5 @@
+# Read by every ShellCheck run here, the pre-commit hook included (shellcheck(1), RC FILES).
+# The drivers source scripts/driver-rules.sh and friends: follow them, resolved from each script's
+# own directory, so variables and functions they define are not reported as unset or unused.
+external-sources=true
+source-path=SCRIPTDIR

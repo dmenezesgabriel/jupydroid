@@ -49,19 +49,29 @@ run_flow "$FLOW" "$OUT"
 echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
 
 fail=0
-grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: pylsp spawned during the flow - the format went through the port" ||
-  { echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1; }
-grep -q '"method":"rangeFormatting"' "$OUT/lsp-lifecycle.log" &&
-  echo "PASS: the range ask went down the wire - the row reached the server" ||
-  { echo "FAIL: no rangeFormatting ask in the lifecycle - the port never asked"; fail=1; }
-grep -Fq 'Cell menu Format cell' "$OUT/maestro.log" &&
-  echo "PASS: the flow tapped the format row" ||
-  { echo "FAIL: the row was never tapped"; fail=1; }
-grep -Fq 'x = 1' "$OUT/maestro.log" &&
-  echo "PASS: the formatted source was asserted on screen - the rewrite landed" ||
-  { echo "FAIL: 'x = 1' was never asserted"; fail=1; }
-grep -Fq 'untouched=1' "$OUT/maestro.log" &&
-  echo "PASS: the next cell was asserted unchanged - the answer stayed in range" ||
-  { echo "FAIL: 'untouched=1' was never asserted"; fail=1; }
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the format went through the port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -q '"method":"rangeFormatting"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: the range ask went down the wire - the row reached the server"
+else
+  echo "FAIL: no rangeFormatting ask in the lifecycle - the port never asked"; fail=1;
+fi
+if grep -Fq 'Cell menu Format cell' "$OUT/maestro.log"; then
+  echo "PASS: the flow tapped the format row"
+else
+  echo "FAIL: the row was never tapped"; fail=1;
+fi
+if grep -Fq 'x = 1' "$OUT/maestro.log"; then
+  echo "PASS: the formatted source was asserted on screen - the rewrite landed"
+else
+  echo "FAIL: 'x = 1' was never asserted"; fail=1;
+fi
+if grep -Fq 'untouched=1' "$OUT/maestro.log"; then
+  echo "PASS: the next cell was asserted unchanged - the answer stayed in range"
+else
+  echo "FAIL: 'untouched=1' was never asserted"; fail=1;
+fi
 exit "$fail"

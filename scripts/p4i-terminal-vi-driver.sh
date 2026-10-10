@@ -26,7 +26,7 @@ run_flow "$ROOT/.maestro/p4i-terminal-vi.yaml" "$EVIDENCE" || exit 1
 REDRAWN="$(top_strip_differs "$EVIDENCE/00-bare-prompt.png" "$EVIDENCE/01-vi-full-screen.png" 700 1900)"
 echo "terminal's top strip redrew when vi opened: ${REDRAWN}"
 [ "$REDRAWN" = "True" ] || {
-  echo "the terminal's top strip is pixel-identical before and after `vi` - no full-screen program drew" >&2
+  echo "the terminal's top strip is pixel-identical before and after 'vi' - no full-screen program drew" >&2
   exit 1
 }
 wait_for_workspace_text "p4i-vi-marker.txt" "p4i-vi-wrote-this"
