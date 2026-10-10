@@ -1,6 +1,6 @@
 # JD-021 — A tap on a rendered link follows it
 
-Milestone: `M4` · State: open · Depends on: — · Closes: GAP-093
+Milestone: `M4` · State: in-progress · Depends on: — · Closes: GAP-093
 
 ## Outcome
 
@@ -79,7 +79,7 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 
 | Concern | Ours today (file) | Best reference | Gap |
 |---|---|---|---|
-| The destination | `RichInline.Link.destination`, written under `RICH_LINK_TAG` (`app/src/main/java/com/jupydroid/app/richtext/RichInlineString.kt`) | Jewel `renderLink` | present but unreachable: a string annotation nothing reads |
+| The destination | `RichInline.Link.destination`, written under `RICH_LINK_TAG` (`app/src/main/java/com/jupydroid/app/richtext/RichInlineStyles.kt`, renamed from `RichInlineString.kt` in T1) | Jewel `renderLink` | present but unreachable: a string annotation nothing reads |
 | The hand-off to a browser | none; `IntentDocumentSharer` is the shape (`app/src/main/java/com/jupydroid/app/data/intent/`) | termux `ShareUtils.openUrl` | absent |
 | Opening a workspace path | `openDocument` (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`) | JupyterLab `handle-local-link` | present; no link reaches it, and nothing resolves a relative href |
 | A `#heading` link | `TocHeading` jumps from the outline (`app/src/main/java/com/jupydroid/app/ui/editor/CellHeadings.kt`); no heading has an id | JupyterLab `createHeaderId` | absent |
@@ -104,8 +104,8 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 | `domain/port` | `ExternalLinkOpener.kt` |
 | `data/intent` | `IntentExternalLinkOpener.kt` |
 | `data/fake` | `FakeExternalLinkOpener.kt` |
-| `richtext/` | `RichInlineString.kt`, a link-destination classifier |
-| `ui/` | `Navigation.kt` (the `UriHandler`) |
+| `richtext/` | `RichInlineStyles.kt`, `RichLinkDestination.kt` |
+| app root | `RenderedLinkUriHandler.kt`, provided in `MainActivity.kt` - `Navigation.kt` is ten lines from the file limit |
 | `di/AppContainer` | the port, defaulting to the fake; `JupydroidApplication` builds the real one |
 | unit tests | `RichInlineStringTest`, the classifier's test, `FakeExternalLinkOpenerTest` |
 | instrumented tests | a markdown cell's link tap, `IntentExternalLinkOpenerTest` |
@@ -113,8 +113,9 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 
 ## Tasks
 
-- [ ] T1 — a web link opens in the browser: `http`, `https` and `mailto`, from a markdown cell, an
-  output and a Console; the rest of a markdown cell still opens its editor.
+- [x] T1 — a web link opens in the browser: `http`, `https` and `mailto`, from a markdown cell and an
+  output; the rest of a markdown cell still opens its editor. The Console draws through the same
+  `CellOutputs`, and is driven in T4's demo.
 - [ ] T2 — a workspace link opens the document: resolved against the notebook's directory, checked to
   exist, then `openDocument`.
 - [ ] T3 — a `#heading` link scrolls to its heading, or becomes a gap (see Open decisions).

@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# The other half of the tap: text that is not a link still opens the markdown cell's editor, which
+# shows the link's source where the rendered cell showed its text.
+#
+# TABLET ONLY (SM-X216B): it continues the notebook the earlier parts ran.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: ".*\\]\\(https://jupyter.org\\).*"
+- tapOn: "words beside the link"
+- extendedWaitUntil:
+    visible: ".*\\]\\(https://jupyter.org\\).*"
+    timeout: 10000
+- takeScreenshot: 01-editor-opened-beside-the-link

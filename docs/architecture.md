@@ -1287,19 +1287,17 @@ mis-declared monospace - drifts ink and cells apart. `CodeText` measures honestl
 this is a dormant rendering risk rather than a visible wrongness; the repair is the same
 per-run measure-and-scale if a font ever lies.
 
-### GAP-093 — A rendered link's destination is stored and never followed
+### GAP-093 — A rendered link's workspace path is stored and never followed
 
 `rendermime:handle-local-link` mounts a click listener on every `<a>` a renderer draws:
 `contents.get(path)` then `openOrReveal` in the `defaultRendered` factory, with `setFragment`
 for the `#id` and a `kernel` scope delegated to the debugger's source viewer
-(`jupyterlab/packages/rendermime-extension/src/index.ts:68-166`). Ours keeps the destination
-and loses the reach: `RichInline.Link` carries it, `appendLink` writes it under `RICH_LINK_TAG`,
-and `RichInlineStringTest` is the annotation's only reader
-(`app/src/main/java/com/jupydroid/app/richtext/RichInlineString.kt`) — a tap on a link in a
-rendered markdown cell or an HTML output does nothing. The repair is the consumer: a tap
-reading the annotation and routing the destination the way `handle-local-link` does — a
-workspace path to `DocumentOpeners.openDocument`, everything else to a browser intent — before
-any relative-path rule can exist.
+(`jupyterlab/packages/rendermime-extension/src/index.ts:68-166`). Ours follows a web link: a tap
+on an `http`, `https` or `mailto` link hands it to `ExternalLinkOpener`
+(`app/src/main/java/com/jupydroid/app/RenderedLinkUriHandler.kt`). Every other destination does
+nothing, so a tap on a link to a notebook or file in the workspace, or to a `#heading`, still goes
+nowhere. The repair is the local route: resolve the destination against the document's directory,
+check that it exists, then `DocumentOpeners.openDocument`.
 
 ### GAP-094 — A markdown file has no rendered preview
 
