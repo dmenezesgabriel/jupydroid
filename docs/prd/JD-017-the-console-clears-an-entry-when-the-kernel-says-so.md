@@ -95,7 +95,7 @@ None. The rule is the notebook's, which the parity ledger already records (`clea
 
 ## Tasks
 
-- [ ] T1 — The Console carries out `clear_output`, immediate and `wait`, by entry; a flow on `SM-X216B`
+- [x] T1 — The Console carries out `clear_output`, immediate and `wait`, by entry; a flow on `SM-X216B`
 - [ ] T2 — The demo on `SM-X216B`; ship
 
 ## Out of scope
