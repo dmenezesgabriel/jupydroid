@@ -185,6 +185,14 @@ class RenderedOutputTest {
     assertNull(CellOutput.ClearOutput().render())
   }
 
+  /** An update redraws the output it targets; it is never drawn as one of its own. */
+  @Test
+  fun render_drawsNothingForADisplayUpdate() {
+    assertNull(
+      CellOutput.DisplayUpdate(CellOutput.DisplayData(mimeBundleOf("text/plain" to "x"), displayId = "d1")).render(),
+    )
+  }
+
   private fun text(output: CellOutput): RenderedOutput.Text = output.render() as RenderedOutput.Text
 
   private companion object {

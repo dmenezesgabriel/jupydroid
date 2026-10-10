@@ -22,7 +22,9 @@ import kotlinx.serialization.json.jsonPrimitive
 internal fun JsonObject.toCellOutput(msgType: String?): CellOutput? = when (msgType) {
   "stream" -> toStream()
   "execute_result" -> toExecuteResult()
-  "display_data", "update_display_data" -> toDisplayData()
+  "display_data" -> toDisplayData()
+  // With no id there is nothing to update, and JupyterLab's `_onIOPub` finds no target either.
+  "update_display_data" -> toDisplayData().takeIf { it.displayId != null }?.let(CellOutput::DisplayUpdate)
   "error" -> toError()
   "clear_output" -> CellOutput.ClearOutput(get("wait")?.jsonPrimitive?.booleanOrNull == true)
   else -> null
@@ -42,7 +44,7 @@ private fun JsonObject.toStream(): CellOutput? {
 private fun JsonObject.toExecuteResult(): CellOutput? =
   executionCount()?.let { CellOutput.ExecuteResult(mimeBundle(), it, outputMetadata()) }
 
-private fun JsonObject.toDisplayData(): CellOutput = CellOutput.DisplayData(
+private fun JsonObject.toDisplayData(): CellOutput.DisplayData = CellOutput.DisplayData(
   mimeBundle = mimeBundle(),
   metadata = outputMetadata(),
   displayId = (get("transient") as? JsonObject)?.get("display_id")?.let { (it as? JsonPrimitive)?.content },

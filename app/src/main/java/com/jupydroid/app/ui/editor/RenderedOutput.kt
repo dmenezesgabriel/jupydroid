@@ -41,8 +41,8 @@ fun CellOutput.render(): RenderedOutput? = when (this) {
   is CellOutput.Error -> colouredText(readable(), isError = true)
   is CellOutput.ExecuteResult -> mimeBundle.renderRichest()
   is CellOutput.DisplayData -> mimeBundle.renderRichest()
-  // An instruction to the front end rather than a result.
-  is CellOutput.ClearOutput -> null
+  // Instructions to the front end rather than results.
+  is CellOutput.ClearOutput, is CellOutput.DisplayUpdate -> null
 }
 
 /**

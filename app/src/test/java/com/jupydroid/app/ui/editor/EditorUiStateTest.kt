@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.domain.port.KernelEvent
+import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -77,6 +78,46 @@ class EditorUiStateTest {
     val drawn = frames.fold(printedState()) { state, frame -> state.after(KernelEvent.Output("a", frame)) }
 
     assertEquals(listOf(CellOutput.Stream(StreamName.STDOUT, "old\n100% done\n")), drawn.outputs["a"])
+  }
+
+  private fun frame(text: String) = CellOutput.DisplayData(mapOf("text/plain" to JsonPrimitive(text)), displayId = "d1")
+
+  private fun displayedState() = EditorUiState(
+    cells = listOf(code("a"), code("b")),
+    selectedCellId = "b",
+    loaded = true,
+    outputs = mapOf("a" to listOf(frame("'frame 0'"))),
+  )
+
+  /**
+   * `h.update()` from a later cell redraws the cell that showed `h`, and the cell that called it
+   * shows nothing - the scope ADR-0085 settles on, the whole notebook.
+   */
+  @Test
+  fun anUpdateReplacesTheDisplayInTheCellThatShowedItAndAppendsNothing() {
+    val updated = displayedState().after(KernelEvent.Output("b", CellOutput.DisplayUpdate(frame("'frame 3'"))))
+
+    assertEquals(listOf(frame("'frame 3'")), updated.outputs["a"])
+    assertNull(updated.outputs["b"])
+  }
+
+  /** A second `display()` of a seen id updates the earlier ones, then appends (JupyterLab's `_onIOPub`). */
+  @Test
+  fun aRepeatedDisplayOfAnIdUpdatesTheEarlierOneAndAppends() {
+    val shown = displayedState().after(KernelEvent.Output("b", frame("'frame 1'")))
+
+    assertEquals(listOf(frame("'frame 1'")), shown.outputs["a"])
+    assertEquals(listOf(frame("'frame 1'")), shown.outputs["b"])
+  }
+
+  /** An update sets an output in place; only an output that is *added* spends a `clear(wait)`. */
+  @Test
+  fun anUpdateLeavesAPendingClearForTheNextOutput() {
+    val marked = displayedState().after(KernelEvent.Output("a", CellOutput.ClearOutput(wait = true)))
+    val updated = marked.after(KernelEvent.Output("a", CellOutput.DisplayUpdate(frame("'frame 1'"))))
+
+    assertEquals(listOf(frame("'frame 1'")), updated.outputs["a"])
+    assertEquals(setOf("a"), updated.clearsPending)
   }
 
   private val nameAsked = KernelInputRequest(prompt = "Name?", password = false, requestHeader = "{}")

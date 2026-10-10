@@ -57,6 +57,13 @@ sealed interface CellOutput {
   ) : CellOutput
 
   /**
+   * The kernel's `update_display_data` instruction: every output shown with [display]'s `displayId`
+   * becomes [display], across the whole notebook, and nothing is appended (ADR-0085). Like
+   * [ClearOutput] it is spent by the reducer and never lands in a cell's outputs.
+   */
+  data class DisplayUpdate(val display: DisplayData) : CellOutput
+
+  /**
    * The kernel's `clear_output` instruction: drop the cell's outputs. With [wait] the drop
    * happens when the next output arrives instead of at once - the swap `wait=True` exists for.
    */

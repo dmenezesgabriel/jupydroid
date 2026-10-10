@@ -76,6 +76,35 @@ class KernelOutputsTest {
     assertEquals("d1", output.displayId)
   }
 
+  /**
+   * An update is not a new output: read as a `DisplayData` it was appended under the cell, and every
+   * `h.update()` stacked another frame.
+   */
+  @Test
+  fun outputOf_readsAnUpdateDisplayDataAsAnUpdateOfItsId() {
+    val frame = """
+      {"channel":"iopub","parent_header":{"msg_id":"m1"},"header":{"msg_type":"update_display_data"},
+       "content":{"data":{"text/plain":"'frame 3'"},"metadata":{},"transient":{"display_id":"d1"}}}
+    """.trimIndent()
+
+    val output = KernelOutputs.outputOf(frame, "m1")
+
+    assertEquals(
+      CellOutput.DisplayUpdate(CellOutput.DisplayData(mimeBundleOf("text/plain" to "'frame 3'"), displayId = "d1")),
+      output,
+    )
+  }
+
+  @Test
+  fun outputOf_dropsAnUpdateDisplayDataWithNoIdToTarget() {
+    val frame = """
+      {"channel":"iopub","parent_header":{"msg_id":"m1"},"header":{"msg_type":"update_display_data"},
+       "content":{"data":{"text/plain":"'frame 3'"},"metadata":{}}}
+    """.trimIndent()
+
+    assertNull(KernelOutputs.outputOf(frame, "m1"))
+  }
+
   @Test
   fun outputOf_keepsAnExecuteResultsMetadata() {
     val frame = """

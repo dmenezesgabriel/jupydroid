@@ -341,29 +341,6 @@ fun EditorUiState.after(event: KernelEvent): EditorUiState = when (event) {
 }
 
 /**
- * `clear_output` is an instruction to the *model*, which is where it is executed: an immediate
- * one empties the cell's list now, and a `wait` one is held in [clearsPending] and spent by the
- * next output to arrive - the in-place swap `clear(wait)` exists for
- * (`packages/outputarea/src/model.ts:301-311`, jupyterlab@7f0e6906). It never lands in [outputs]:
- * what it drew would render as nothing and persist as `{}`, which nbformat refuses to validate.
- */
-private fun EditorUiState.afterOutput(event: KernelEvent.Output): EditorUiState {
-  val output = event.output
-  if (output is CellOutput.ClearOutput) {
-    return if (output.wait) {
-      copy(clearsPending = clearsPending + event.cellId)
-    } else {
-      copy(outputs = outputs - event.cellId)
-    }
-  }
-  val carried = if (event.cellId in clearsPending) emptyList() else outputs[event.cellId].orEmpty()
-  return copy(
-    outputs = outputs + (event.cellId to carried.withOutputFolded(output)),
-    clearsPending = clearsPending - event.cellId,
-  )
-}
-
-/**
  * The user answered [cellId]'s prompt with [value]: the field closes and the echo joins the cell's
  * outputs, ahead of whatever the cell prints with the answer. A cell with no prompt is left as it
  * was, so a second submit of a spent field echoes nothing.

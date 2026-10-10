@@ -44,6 +44,14 @@ class NotebookOutputsTest {
     assertEquals(CellOutput.Stream(StreamName.STDIN, "Name? Ada\n"), output)
   }
 
+  /** An update is spent by the reducer, so nbformat has no shape for it and none is written. */
+  @Test
+  fun toFileOutput_writesNoOutputTypeForADisplayUpdate() {
+    val update = CellOutput.DisplayUpdate(CellOutput.DisplayData(mimeBundleOf("text/plain" to "x"), displayId = "d1"))
+
+    assertEquals(JsonObject(emptyMap()), update.toFileOutput())
+  }
+
   @Test
   fun toFileOutput_writesAStdinStreamUnderItsOwnName() {
     val written = CellOutput.Stream(StreamName.STDIN, "Name? Ada\n").toFileOutput() as JsonObject
