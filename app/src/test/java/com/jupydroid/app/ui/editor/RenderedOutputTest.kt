@@ -184,6 +184,15 @@ class RenderedOutputTest {
     assertEquals("old new", inlines.plainText())
   }
 
+  @Test
+  fun render_drawsAMarkdownBareUrlAsALink() {
+    val output = CellOutput.DisplayData(mimeBundleOf("text/markdown" to "see https://jupyter.org"))
+
+    val inlines = ((output.render() as RenderedOutput.Document).blocks.single() as RichBlock.Paragraph).inlines
+
+    assertEquals("https://jupyter.org", inlines.filterIsInstance<RichInline.Link>().single().destination)
+  }
+
   /** `text/html` ranks 50 and `text/markdown` 60 (jupyterlab@7f0e690 packages/rendermime/src/factories.ts). */
   @Test
   fun render_prefersHtmlOverMarkdown() {

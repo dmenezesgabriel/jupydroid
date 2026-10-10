@@ -2,6 +2,7 @@ package com.jupydroid.app.markdown
 
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
+import org.commonmark.ext.autolink.AutolinkExtension
 import org.commonmark.ext.gfm.strikethrough.Strikethrough
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
 import org.commonmark.ext.gfm.tables.TableBlock
@@ -39,9 +40,13 @@ import org.commonmark.parser.Parser
  */
 object MarkdownDocument {
   // StrikethroughExtension's default strikes one tilde as well as two, as marked@17.0.6's `gfm.del`
-  // rule, `^(~~?)(?=[^\s~])…\1`, does.
+  // rule, `^(~~?)(?=[^\s~])…\1`, does. AutolinkExtension's default links a scheme URL, a `www.` host
+  // and an email, the three marked@17.0.6's gfm `url` rule links.
   private val parser: Parser =
-    Parser.builder().extensions(listOf(TablesExtension.create(), StrikethroughExtension.create())).build()
+    Parser
+      .builder()
+      .extensions(listOf(TablesExtension.create(), StrikethroughExtension.create(), AutolinkExtension.create()))
+      .build()
 
   fun parse(source: String): List<RichBlock> = parser.parse(source).blocks()
 

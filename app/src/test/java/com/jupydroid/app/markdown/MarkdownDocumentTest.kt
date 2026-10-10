@@ -124,6 +124,46 @@ class MarkdownDocumentTest {
     assertEquals("docs", link.children.plainText())
   }
 
+  @Test
+  fun readsABareUrlAsALinkToItself() {
+    val inlines = (MarkdownDocument.parse("see https://jupyter.org").single() as RichBlock.Paragraph).inlines
+
+    val link = inlines.filterIsInstance<RichInline.Link>().single()
+    assertEquals("https://jupyter.org", link.destination)
+    assertEquals("https://jupyter.org", link.children.plainText())
+    assertEquals("see https://jupyter.org", inlines.plainText())
+  }
+
+  /** marked@17.0.6's gfm `url` rule links a bare `www.` host over `http://`, as the GFM spec says. */
+  @Test
+  fun aWwwHostLinksOverHttpAsMarkedDoes() {
+    val inlines = (MarkdownDocument.parse("www.jupyter.org").single() as RichBlock.Paragraph).inlines
+
+    assertEquals("http://www.jupyter.org", inlines.filterIsInstance<RichInline.Link>().single().destination)
+  }
+
+  @Test
+  fun anEmailLinksAsMailto() {
+    val inlines = (MarkdownDocument.parse("a@b.org").single() as RichBlock.Paragraph).inlines
+
+    assertEquals("mailto:a@b.org", inlines.filterIsInstance<RichInline.Link>().single().destination)
+  }
+
+  /** marked@17.0.6's gfm `_backpedal` trims trailing punctuation off a bare URL. */
+  @Test
+  fun aSentencesFullStopIsNotPartOfTheUrl() {
+    val inlines = (MarkdownDocument.parse("go to https://jupyter.org.").single() as RichBlock.Paragraph).inlines
+
+    assertEquals("https://jupyter.org", inlines.filterIsInstance<RichInline.Link>().single().destination)
+  }
+
+  @Test
+  fun aUrlInCodeStaysCode() {
+    val inlines = (MarkdownDocument.parse("`https://x.dev`").single() as RichBlock.Paragraph).inlines
+
+    assertEquals(listOf(RichInline.Code("https://x.dev")), inlines)
+  }
+
   /** A cell is edited constantly, so half-written markdown is the normal case. */
   @Test
   fun toleratesEmptyAndHalfWrittenSource() {
