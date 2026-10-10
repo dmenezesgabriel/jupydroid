@@ -99,40 +99,45 @@ fun MarkdownCellField(
   // winning it, and the soft keyboard up over a notebook nobody was typing in.
   LaunchedEffect(takesCaret) { if (takesCaret) caret.requestFocus() }
 
-  BasicTextField(
-    state = state,
-    // The panel is the editor's, not the cell's: it is what says "you are typing in this", the
-    // same way a code cell reads. Rendered prose sitting in a box would be wrong, so this is
-    // here rather than around MarkdownCell.
-    //
-    // It is literally the same panel now: this wrote its own out of
-    // `colorScheme.surfaceVariant` while the code and raw fields used `cellBackground` - one role,
-    // two colours, and nothing that would have caught the divergence.
-    modifier = modifier
-      .cellEditorBox(editing)
-      .focusRequester(caret)
-      .lineNumbers(state.text, layout, numberStyle, gutter),
-    onTextLayout = { getResult -> layout = getResult() },
-    textStyle = sourceStyle,
-    interactionSource = interactions,
-    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-    // No bracket matching: a parenthesis in prose is punctuation, not structure.
-    outputTransformation = remember(highlighter, styles, searchStyles) {
-      HighlightTransformation(highlighter, styles, focused, null, searching, searchStyles)
-    },
-    decorator = { field ->
-      // Dimmed and italic, the way JupyterLab marks an empty markdown cell
-      // (packages/cells/style/widget.css, jp-mod-emptyMarkdownPlaceholder).
-      if (empty) {
-        Text(
-          text = MARKDOWN_PLACEHOLDER,
-          modifier = Modifier.padding(start = gutter),
-          style = MaterialTheme.typography.bodyMedium,
-          fontStyle = FontStyle.Italic,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-      }
-      field()
-    },
-  )
+  // Prose, but typed as source: JupyterLab's editor turns autocorrect and suggestions off for every
+  // cell type (`@codemirror/view@6.39.14`, `contentAttrs`), and on SM-X216B the keyboard rewrote a
+  // typed `https://jupyter.org` as `https://Jupiter.org`. MarkdownCellFieldKeyboardTest.
+  SourceKeyboard {
+    BasicTextField(
+      state = state,
+      // The panel is the editor's, not the cell's: it is what says "you are typing in this", the
+      // same way a code cell reads. Rendered prose sitting in a box would be wrong, so this is
+      // here rather than around MarkdownCell.
+      //
+      // It is literally the same panel now: this wrote its own out of
+      // `colorScheme.surfaceVariant` while the code and raw fields used `cellBackground` - one role,
+      // two colours, and nothing that would have caught the divergence.
+      modifier = modifier
+        .cellEditorBox(editing)
+        .focusRequester(caret)
+        .lineNumbers(state.text, layout, numberStyle, gutter),
+      onTextLayout = { getResult -> layout = getResult() },
+      textStyle = sourceStyle,
+      interactionSource = interactions,
+      cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+      // No bracket matching: a parenthesis in prose is punctuation, not structure.
+      outputTransformation = remember(highlighter, styles, searchStyles) {
+        HighlightTransformation(highlighter, styles, focused, null, searching, searchStyles)
+      },
+      decorator = { field ->
+        // Dimmed and italic, the way JupyterLab marks an empty markdown cell
+        // (packages/cells/style/widget.css, jp-mod-emptyMarkdownPlaceholder).
+        if (empty) {
+          Text(
+            text = MARKDOWN_PLACEHOLDER,
+            modifier = Modifier.padding(start = gutter),
+            style = MaterialTheme.typography.bodyMedium,
+            fontStyle = FontStyle.Italic,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
+        }
+        field()
+      },
+    )
+  }
 }
