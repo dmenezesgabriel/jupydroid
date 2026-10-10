@@ -3,7 +3,7 @@
 # folded into one stream, and 300 display() calls as 300 outputs - each timed from Run to the
 # execution count, with the frames drawn and the memory held across that run.
 #
-#   scripts/jd-015-output-caps-baseline-driver.sh [control|print|display ...]
+#   scripts/jd-015-output-caps-baseline-driver.sh [control|print|scrolled|display ...]
 #   PROFILE_AFTER=90 scripts/jd-015-output-caps-baseline-driver.sh print   # plus a CPU profile
 #
 # Runs a cell, so it needs the arm64 tablet: on x86_64 FakeKernelGateway echoes the source.
@@ -85,11 +85,16 @@ for case in "${CASES[@]}"; do
       seed_notebook "$ROOT/.maestro/fixtures/jd-015-output-caps-print.ipynb" "Runaway Print"
       measure "Runaway Print" print
       ;;
+    scrolled)
+      reset_notebooks
+      seed_notebook "$ROOT/.maestro/fixtures/jd-015-output-caps-print-scrolled.ipynb" "Runaway Scrolled"
+      measure "Runaway Scrolled" scrolled
+      ;;
     display)
       reset_notebooks
       seed_notebook "$ROOT/.maestro/fixtures/jd-015-output-caps-display.ipynb" "Runaway Display"
       measure "Runaway Display" display
       ;;
-    *) echo "unknown case: $case (expected control, print or display)" >&2; exit 1 ;;
+    *) echo "unknown case: $case (expected control, print, scrolled or display)" >&2; exit 1 ;;
   esac
 done

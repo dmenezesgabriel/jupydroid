@@ -103,6 +103,7 @@ bound different runaways, so this item adopts both.
 | Count cut | first N + button (JupyterLab) | — | **50**, JupyterLab's notebook default |
 | Expand | in place (JupyterLab) · open in an editor (VS Code) | an editor needs a document surface for an output, which `GAP-100` says we lack | **in place**, per output, lasting while the output does |
 | Where colour is cut | parse the tail alone (VS Code) | the tail loses a colour set in the hidden middle | **cut after colouring**, so the tail keeps it |
+| Scrolled mode | all lines in the box (JupyterLab) · the last 5000 under a link to the rest (VS Code) | the box bounds the height, not the layout, so all lines stalled the UI for ~23 s on SM-X216B | **the last 5000**, under the hidden-lines row; the run's longest stall fell to ~1.5 s |
 | A search hit in what is hidden | search only what is drawn (both) · search the model and expand (`expandParent`, `withMatchRevealed`) | expanding a 200k-line output costs its whole draw | **stepping onto it expands that output**, and it stays expanded; typing a query expands nothing |
 
 ## Gap analysis
@@ -112,7 +113,7 @@ bound different runaways, so this item adopts both.
 | Fold cost | `domain/model/StreamFold.kt`, quadratic in tokens | jupyterlab `model.ts` `_add` → `Private.addText`, one new string per message | **defect**, repaired by T1 |
 | Line cut | none; `ui/editor/CellOutputsView.kt` `OutputText` lays out the whole text | vscode `truncatedArrayOfString` | absent |
 | Count cut | none; `OutputColumn` draws every output | jupyterlab `TrimmedOutputs` | absent |
-| Scrolled mode | `ScrolledOutputs`, which bounds height but not work | vscode `scrollableArrayOfString` | partial |
+| Scrolled mode | `ScrolledOutputs`, which bounds height but not work | vscode `scrollableArrayOfString` | partial, closed by T5b |
 | Console | `ui/console/ConsoleTranscriptView.kt` draws through the same `CellOutputs` | — | follows the notebook's, to be verified |
 
 ## Deviations
@@ -123,17 +124,12 @@ bound different runaways, so this item adopts both.
 - Both references search only the drawn DOM, so a hidden line is never a hit. Here search reads the model, so a
   hidden line is counted, and stepping onto it draws it (see the trade-offs table).
 
-## Open decisions
-
-- **Scrolled mode.** The recommendation is VS Code's last-5000-lines inside the existing 24-line box. To be
-  settled in T5b against a measurement.
-
 ## Surface
 
 | Layer | Files |
 |---|---|
 | `domain/model` | `StreamFold.kt` (T1) |
-| `ui/editor` | new `OutputLineWindow.kt` (the window, and `outputTextChunksOf`), `CellOutputsView.kt`, `HiddenCellsRow.kt` (the shared row) |
+| `ui/editor` | new `OutputLineWindow.kt` (the window, the scrolled tail window, and `outputTextChunksOf`), `CellOutputsView.kt`, `HiddenCellsRow.kt` (the shared row) |
 | `ui/console` | `ConsoleTranscriptView.kt` (T4, if it needs anything) |
 | unit tests | `StreamFoldTest`, `OutputLineWindowTest` |
 | instrumented tests | `CellOutputsViewTest` |
@@ -160,7 +156,9 @@ There are no port changes: this is a fold repair and a view.
   query lands on the hit and draws nothing; only a step does (`SearchState.currentStepped`). On SM-X216B the step
   onto `123456` in the 200k-line print draws every line in ~27 s, and the step onto `277` draws the rest of 300
   `display()` outputs.
-- [ ] T5b: scrolled mode's tail, settled against a measurement of a scrolled 200k-line print.
+- [x] T5b: scrolled mode's tail, settled against a measurement of a scrolled 200k-line print. A scrolled box draws
+  the last 5000 lines under the hidden-lines row (`outputTailWindowOf`). On SM-X216B the scrolled 200k-line print's
+  longest UI stall fell from 1388 frames (~23 s) to 93 (~1.5 s), and the row's tap draws the rest in ~28 s.
 - [ ] T6: run the demo end to end; write an ADR ("an output is capped in the view, never in the model"); rewrite
   GAP-115; delete this PRD; ship the backlog row.
 
