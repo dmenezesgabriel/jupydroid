@@ -1384,18 +1384,6 @@ model/surface split a second view could share (`app/src/main/java/com/jupydroid/
 The repair is the model split first — an output area object a second pane could subscribe to —
 before any "view for this output" reach exists.
 
-### GAP-101 — A `text/markdown` output never renders
-
-`markdownRendererFactory` ranks `text/markdown` at 60 — below `text/html`, above `text/latex` —
-and `renderMarkdown` parses through `IMarkdownParser`, sanitizes, anchors headings and typesets
-(`jupyterlab/packages/rendermime/src/factories.ts:48-50`, `renderers.ts`). Ours has the parser —
-`MarkdownDocument.parse` maps commonmark-java's AST onto `RichBlock`, and `MarkdownCell` renders
-with it — but `RenderedOutput.RANKED_MIME_TYPES` never routes to it, so a kernel's
-`display(Markdown("**bold**"))` falls to the bundle's `text/plain`, which is the markdown source
-verbatim (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt:67`). The repair is a
-rank entry wiring `text/markdown` to `MarkdownDocument.parse` → `RenderedOutput.Document` — the
-machinery exists, the routing does not.
-
 ### GAP-102 — `image/svg+xml` never draws, trusted or not
 
 The reference's only unsafe standard renderer besides JavaScript: `svgRendererFactory` rank 80,
