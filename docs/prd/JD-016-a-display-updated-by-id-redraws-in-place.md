@@ -110,7 +110,7 @@ None left open; the scope decision becomes an ADR with T2.
 ## Tasks
 
 - [x] T1 — An output's `metadata` round-trips through the wire, the domain and the file; `transient.display_id` is read onto `DisplayData` and never written
-- [ ] T2 — `update_display_data` replaces every notebook output carrying its id and appends nothing; a repeated `display_data` updates and appends (ADR)
+- [x] T2 — `update_display_data` replaces every notebook output carrying its id and appends nothing; a repeated `display_data` updates and appends (ADR)
 - [ ] T3 — The Console applies the same rule across its entries
 - [ ] T4 — The demo on `SM-X216B`
 
