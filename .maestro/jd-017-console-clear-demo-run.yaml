@@ -1,0 +1,97 @@
+appId: com.jupydroid.app
+---
+# The PRD's demo, typed into a new notebook rather than seeded: a cell starts the kernel, and a
+# Console on it runs two entries. Entry 1 prints, clears and prints again, and shows only its second
+# print. Entry 2 prints, asks to clear when its next output arrives and sleeps: its first print stays
+# while it sleeps, its second replaces it, and entry 1 is untouched. Run by
+# scripts/jd-017-console-clear-demo-driver.sh.
+#
+# Every printed value is built by the kernel from an f-string, so no typed source holds it, and
+# FakeKernelGateway would echo the sources instead. Entry 2's checks are not scoped by
+# `childOf: {text: "Cell output"}`: Maestro resolves that selector to the first such node, entry 1's
+# (docs/architecture/cross-cutting.md, 8.6). Entry 2 sleeps 15 s rather than 3 s so the frame that
+# shows `first 42` is not a race against `second 42`.
+#
+# TABLET ONLY (SM-X216B): the flow runs cells.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+
+# The empty first field, where `maestro hierarchy` put it on SM-X216B's 1920x1200:
+# [805,319][1884,391], as jd-016-display-update-demo-part1-run.yaml measured it.
+- tapOn:
+    point: "1300,354"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "print(6 * 7)"
+- hideKeyboard
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 01-the-cell-ran-on-the-kernel
+
+# The cell still has focus after Run, and a notebook in edit mode draws the symbol row where the
+# kernel bar would be; `back` is edit mode's exit to command mode.
+- back
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- inputText: "from IPython.display import clear_output; print(f'before {6*7}'); clear_output(); print(f'after {6*7}')"
+- tapOn: "Run"
+# The soft keyboard covers the transcript's newest entry, so it goes before the wait looks for it.
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      text: "after 42"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- assertNotVisible:
+    text: "before 42"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 02-entry-one-shows-only-after
+
+- tapOn:
+    id: "console-input-field"
+- inputText: "import time; print(f'first {6*7}'); clear_output(wait=True); time.sleep(15); print(f'second {6*7}')"
+- tapOn: "Run"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      text: "first 42"
+    timeout: 60000
+- takeScreenshot: 03-entry-two-keeps-first-while-it-sleeps
+- extendedWaitUntil:
+    visible:
+      text: "second 42"
+    timeout: 60000
+- assertNotVisible:
+    text: "first 42"
+- takeScreenshot: 04-entry-two-shows-only-second
+
+# A clear empties only the entry that asked for it.
+- assertVisible:
+    text: "after 42"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 05-entry-one-still-shows-after
