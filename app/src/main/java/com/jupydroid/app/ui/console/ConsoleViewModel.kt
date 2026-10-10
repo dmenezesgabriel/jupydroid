@@ -166,9 +166,12 @@ class ConsoleViewModel(
   }
 }
 
-/** Folds one [KernelEvent] into the entry it belongs to - `EditorUiState.after`'s own rule, by id. */
+/**
+ * Folds one [KernelEvent] into the entry it belongs to - `EditorUiState.after`'s own rule, by id. An
+ * output may reach past that entry: a display update redraws every entry showing its id ([afterOutput]).
+ */
 private fun List<ConsoleEntry>.after(id: String, event: KernelEvent): List<ConsoleEntry> = when (event) {
-  is KernelEvent.Output -> withEntry(id) { it.copy(outputs = it.outputs.withOutputFolded(event.output)) }
+  is KernelEvent.Output -> afterOutput(id, event.output)
   is KernelEvent.ExecutionCount -> withEntry(id) { it.copy(executionCount = event.count) }
   is KernelEvent.InputRequested -> withEntry(id) { it.copy(inputRequest = event.request) }
   KernelEvent.Idle -> this
@@ -191,8 +194,3 @@ private fun List<ConsoleEntry>.resolved(id: String, cancelled: Boolean): List<Co
     },
   )
 }
-
-private inline fun List<ConsoleEntry>.withEntry(
-  id: String,
-  transform: (ConsoleEntry) -> ConsoleEntry,
-): List<ConsoleEntry> = map { if (it.id == id) transform(it) else it }

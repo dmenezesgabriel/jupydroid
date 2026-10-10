@@ -19,3 +19,19 @@ fun List<CellOutput>.withDisplayReplaced(display: CellOutput.DisplayData): List<
   if (none(shows)) return this
   return map { if (shows(it)) display else it }
 }
+
+/**
+ * The display an arriving output redraws wherever its id is already shown: an update's own, or a
+ * display that carries an id - JupyterLab's `_onIOPub` updates the earlier outputs before appending
+ * it (jupyterlab@7f0e690 packages/outputarea/src/widget.ts). Null for anything else.
+ *
+ * ```kotlin
+ * CellOutput.DisplayUpdate(frame3).redrawnDisplay() // == frame3
+ * CellOutput.Stream(STDOUT, "a").redrawnDisplay()  // == null
+ * ```
+ */
+fun CellOutput.redrawnDisplay(): CellOutput.DisplayData? = when (this) {
+  is CellOutput.DisplayUpdate -> display
+  is CellOutput.DisplayData -> takeIf { displayId != null }
+  else -> null
+}

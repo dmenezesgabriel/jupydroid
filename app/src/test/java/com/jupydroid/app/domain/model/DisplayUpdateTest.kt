@@ -4,6 +4,7 @@ import com.jupydroid.app.mimeBundleOf
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Test
 
@@ -45,5 +46,26 @@ class DisplayUpdateTest {
     val untouched = listOf(frame("'other'", "d2"))
 
     assertSame(untouched, untouched.withDisplayReplaced(frame("'frame 1'", "d1")))
+  }
+
+  @Test
+  fun anUpdateRedrawsItsOwnDisplay() {
+    val update = frame("'frame 1'", "d1")
+
+    assertSame(update, CellOutput.DisplayUpdate(update).redrawnDisplay())
+  }
+
+  /** A display whose id is already shown updates the earlier ones before it is appended. */
+  @Test
+  fun aDisplayWithAnIdRedrawsItself() {
+    val display = frame("'frame 0'", "d1")
+
+    assertSame(display, display.redrawnDisplay())
+  }
+
+  @Test
+  fun aDisplayWithNoIdOrAStreamRedrawsNothing() {
+    assertNull(frame("'plain'", null).redrawnDisplay())
+    assertNull(CellOutput.Stream(StreamName.STDOUT, "d1").redrawnDisplay())
   }
 }

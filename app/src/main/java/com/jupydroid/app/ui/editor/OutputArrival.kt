@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.redrawnDisplay
 import com.jupydroid.app.domain.model.withDisplayReplaced
 import com.jupydroid.app.domain.model.withOutputFolded
 import com.jupydroid.app.domain.port.KernelEvent
@@ -33,7 +34,7 @@ private fun EditorUiState.afterClear(cellId: String, wait: Boolean): EditorUiSta
  * already shown first updates the earlier ones, then is appended, as JupyterLab's `_onIOPub` does.
  */
 private fun EditorUiState.withOutputAdded(cellId: String, output: CellOutput): EditorUiState {
-  val shown = if (output is CellOutput.DisplayData && output.displayId != null) withDisplayUpdated(output) else this
+  val shown = output.redrawnDisplay()?.let { withDisplayUpdated(it) } ?: this
   val carried = if (cellId in clearsPending) emptyList() else shown.outputs[cellId].orEmpty()
   return shown.copy(
     outputs = shown.outputs + (cellId to carried.withOutputFolded(output)),

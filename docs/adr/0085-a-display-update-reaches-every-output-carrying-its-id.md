@@ -62,7 +62,9 @@ notebook.**
 - An update does not spend a pending `clear_output(wait=True)`; only an output that is *added* does,
   as JupyterLab's `set` leaves `_clearNext` alone
   (`EditorUiStateTest.anUpdateLeavesAPendingClearForTheNextOutput`).
-- The scope is vscode-jupyter's, the whole notebook, not JupyterLab's request lifetime.
+- The scope is vscode-jupyter's, the whole notebook, not JupyterLab's request lifetime. A Console
+  applies the same rule across its entries, so `h.update()` from one entry redraws the entry that
+  showed `h` (`app/src/main/java/com/jupydroid/app/ui/console/ConsoleOutputArrival.kt`).
 
 ## Consequences
 
