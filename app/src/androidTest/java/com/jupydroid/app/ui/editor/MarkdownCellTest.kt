@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
@@ -439,15 +438,3 @@ class MarkdownCellTest {
 }
 
 private const val JUPYTER_LINK = "[Jupyter](https://jupyter.org)"
-
-/** A [UriHandler] that keeps what a tapped link asked it to open, and opens none of it. */
-private class RecordingUriHandler : UriHandler {
-  private val asked = mutableListOf<String>()
-
-  /** Every `openUri` so far, in order. */
-  val opened: List<String> get() = asked.toList()
-
-  override fun openUri(uri: String) {
-    asked += uri
-  }
-}

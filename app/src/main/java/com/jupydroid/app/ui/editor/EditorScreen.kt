@@ -131,6 +131,8 @@ fun EditorScreen(
    * parent and needs nothing but the state `MainNavigation` hoists. See [EditorTopBar].
    */
   onGoToFolder: (String) -> Unit,
+  /** A workspace link was tapped and named a file: open it, as the browser would (`openDocument`). */
+  openDocument: (String) -> Unit = {},
   onBack: () -> Unit,
   /**
    * `notebook:create-console` - a Console session sharing this notebook's own kernel,
@@ -316,90 +318,94 @@ fun EditorScreen(
         collapsibleRegionFraction(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset, stripPx)
       }
     }
-    Scaffold(
-      // **The notebook consumes the keyboard's inset while the find bar is up, and nothing else
-      // does.** Every other surface that can be on screen under an IME carries its own
-      // `imePadding` - [SymbolRow] in edit mode, [NotebookBar] in command mode - so the cell list
-      // has never had to. Searching is the first state with a soft keyboard and *no bottom bar*
-      // (see [editorBottomBar]), and without this the `LazyColumn` lays out to the full window and
-      // draws its lower half behind the keyboard: measured at `viewport=0..987` on the tablet with
-      // the IME up, which made a match the arrows had just been sent to report as visible while
-      // being under the keys (two runs before this).
-      modifier = Modifier.fillMaxSize().then(if (state.search != null) Modifier.imePadding() else Modifier),
-      // **The page a document is drawn on, stated rather than inherited.** `Scaffold`'s default is
-      // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
-      // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
-      // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
-      // a surface's elevation, and this is the document's own id (ADR-0042).
-      containerColor = editorPalette.editorBackground,
-      topBar = {
-        Column {
-          EditorTopBars(
+    // A link in a cell or an output that names a workspace path opens it from here: this screen
+    // knows where the notebook lives now and owns the snackbar a link to nothing is said on.
+    WorkspaceLinksFollowed(state.notebookId, workspaceRepository, openDocument, onGoToFolder, exportReports) {
+      Scaffold(
+        // **The notebook consumes the keyboard's inset while the find bar is up, and nothing else
+        // does.** Every other surface that can be on screen under an IME carries its own
+        // `imePadding` - [SymbolRow] in edit mode, [NotebookBar] in command mode - so the cell list
+        // has never had to. Searching is the first state with a soft keyboard and *no bottom bar*
+        // (see [editorBottomBar]), and without this the `LazyColumn` lays out to the full window and
+        // draws its lower half behind the keyboard: measured at `viewport=0..987` on the tablet with
+        // the IME up, which made a match the arrows had just been sent to report as visible while
+        // being under the keys (two runs before this).
+        modifier = Modifier.fillMaxSize().then(if (state.search != null) Modifier.imePadding() else Modifier),
+        // **The page a document is drawn on, stated rather than inherited.** `Scaffold`'s default is
+        // `colorScheme.background`, which this app maps onto `editor.background` - the right colour
+        // by way of a role that could be re-mapped, and `ColorSchemeTest` asserts only that a role
+        // is *somewhere* on the ramp, never which position. VS Code separates a part's identity from
+        // a surface's elevation, and this is the document's own id (ADR-0042).
+        containerColor = editorPalette.editorBackground,
+        topBar = {
+          Column {
+            EditorTopBars(
+              state = state,
+              viewModel = viewModel,
+              tocHeadings = tocHeadings,
+              tocNumbering = editorSettings.tocNumbering(),
+              onShowTableOfContents = onShowTableOfContents,
+              onShowDebugger = onShowDebugger,
+              onHeadingSelected = jumpToHeading,
+              collapsibleRegion = collapsibleRegion,
+              onGoToFolder = onGoToFolder,
+            )
+            // Under whichever bar is up rather than over the notebook: it says the *document* is
+            // busy, and covering the document to say so would be the wrong trade. See [ExportStatus].
+            ExportProgressBar(state.export)
+          }
+        },
+        snackbarHost = { SnackbarHost(exportReports) },
+        bottomBar = {
+          EditorBottomBars(
             state = state,
             viewModel = viewModel,
-            tocHeadings = tocHeadings,
-            tocNumbering = editorSettings.tocNumbering(),
-            onShowTableOfContents = onShowTableOfContents,
-            onShowDebugger = onShowDebugger,
-            onHeadingSelected = jumpToHeading,
-            collapsibleRegion = collapsibleRegion,
-            onGoToFolder = onGoToFolder,
+            editorSettings = editorSettings,
+            cellInput = cellInput,
+            // `notebook:close-and-shutdown` awaits the kernel's end and then *closes* - so what it
+            // gets is the gated close, and a dirty notebook is asked the same question here that the
+            // dismiss asks, after the shutdown has already run (`index.ts:3189-3213`'s own order).
+            onBack = closeOrAsk,
+            twoPane = twoPane,
+            onOpenConsole = onOpenConsole,
           )
-          // Under whichever bar is up rather than over the notebook: it says the *document* is
-          // busy, and covering the document to say so would be the wrong trade. See [ExportStatus].
-          ExportProgressBar(state.export)
+        },
+      ) { innerPadding ->
+        // The pane is a column *beside* the notebook rather than a scene of its own, and that is a
+        // constraint rather than a preference: `ListDetailSceneStrategy.extraPane()` - what
+        // an earlier reading assumed would work - is a separate `NavEntry`, and every entry here
+        // owns its own `ViewModelStore` (`docs/architecture/runtime-views.md`), so it could reach
+        // neither this notebook's `EditorViewModel` for the headings nor its `listState` to scroll.
+        Row(modifier = Modifier.padding(innerPadding)) {
+          EditorContent(
+            state = state,
+            onRunCell = viewModel.kernel::runCell,
+            onStopCell = viewModel.kernel::stopRunningCell,
+            onAnswerInput = viewModel.kernel::answerInput,
+            onEditCell = viewModel::editCell,
+            onToggleBreakpoint = viewModel.debugger::toggle,
+            onSetCondition = viewModel.debugger::setCondition,
+            completionsAt = viewModel.kernel.asks::completionsAt,
+            hoverAt = viewModel.kernel.asks::hoverAt,
+            signatureHelpAt = viewModel.kernel.asks::signatureHelpAt,
+            onCellAction = viewModel::cellAction,
+            onCellFocusChanged = viewModel::cellFocusChanged,
+            onToggleSelected = viewModel.selection::extendTo,
+            onMarkdownEditRequested = viewModel::markdownEditRequested,
+            cellInput = cellInput,
+            autoClosingBrackets = editorSettings.autoClosingBrackets,
+            indentUnit = editorSettings.indentUnit,
+            lineNumbersShown = editorSettings.lineNumbersShown,
+            codeFontSizeSp = editorSettings.codeFontSizeSp,
+            wrapEnabled = editorSettings.codeWrapEnabled,
+            completionEnabled = editorSettings.completionEnabled,
+            tocNumbering = editorSettings.tocNumbering(),
+            tocHeadings = tocHeadings,
+            listState = listState,
+            onCaretLanded = viewModel.edits::caretLanded,
+            modifier = Modifier.weight(1f),
+          )
         }
-      },
-      snackbarHost = { SnackbarHost(exportReports) },
-      bottomBar = {
-        EditorBottomBars(
-          state = state,
-          viewModel = viewModel,
-          editorSettings = editorSettings,
-          cellInput = cellInput,
-          // `notebook:close-and-shutdown` awaits the kernel's end and then *closes* - so what it
-          // gets is the gated close, and a dirty notebook is asked the same question here that the
-          // dismiss asks, after the shutdown has already run (`index.ts:3189-3213`'s own order).
-          onBack = closeOrAsk,
-          twoPane = twoPane,
-          onOpenConsole = onOpenConsole,
-        )
-      },
-    ) { innerPadding ->
-      // The pane is a column *beside* the notebook rather than a scene of its own, and that is a
-      // constraint rather than a preference: `ListDetailSceneStrategy.extraPane()` - what
-      // an earlier reading assumed would work - is a separate `NavEntry`, and every entry here
-      // owns its own `ViewModelStore` (`docs/architecture/runtime-views.md`), so it could reach
-      // neither this notebook's `EditorViewModel` for the headings nor its `listState` to scroll.
-      Row(modifier = Modifier.padding(innerPadding)) {
-        EditorContent(
-          state = state,
-          onRunCell = viewModel.kernel::runCell,
-          onStopCell = viewModel.kernel::stopRunningCell,
-          onAnswerInput = viewModel.kernel::answerInput,
-          onEditCell = viewModel::editCell,
-          onToggleBreakpoint = viewModel.debugger::toggle,
-          onSetCondition = viewModel.debugger::setCondition,
-          completionsAt = viewModel.kernel.asks::completionsAt,
-          hoverAt = viewModel.kernel.asks::hoverAt,
-          signatureHelpAt = viewModel.kernel.asks::signatureHelpAt,
-          onCellAction = viewModel::cellAction,
-          onCellFocusChanged = viewModel::cellFocusChanged,
-          onToggleSelected = viewModel.selection::extendTo,
-          onMarkdownEditRequested = viewModel::markdownEditRequested,
-          cellInput = cellInput,
-          autoClosingBrackets = editorSettings.autoClosingBrackets,
-          indentUnit = editorSettings.indentUnit,
-          lineNumbersShown = editorSettings.lineNumbersShown,
-          codeFontSizeSp = editorSettings.codeFontSizeSp,
-          wrapEnabled = editorSettings.codeWrapEnabled,
-          completionEnabled = editorSettings.completionEnabled,
-          tocNumbering = editorSettings.tocNumbering(),
-          tocHeadings = tocHeadings,
-          listState = listState,
-          onCaretLanded = viewModel.edits::caretLanded,
-          modifier = Modifier.weight(1f),
-        )
       }
     }
     KernelPickerHost(state, viewModel.kernel)

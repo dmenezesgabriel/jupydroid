@@ -419,6 +419,7 @@ fun MainNavigation(
               debugPanel = debugPanel,
               onShowDebugger = { sidePanel = SidePanel.DEBUGGER }.takeIf { twoPane },
               onGoToFolder = goToFolder,
+              openDocument = openDocument,
               onBack = { backStack.removeLastOrNull() },
               // The one width fact this screen still reads, and it decides one thing now: whether
               // the debugger's bottom bar carries a variables toggle (a side panel already shows
