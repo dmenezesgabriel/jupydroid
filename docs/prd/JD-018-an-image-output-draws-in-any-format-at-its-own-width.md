@@ -6,7 +6,8 @@ Milestone: `M4` · State: in-progress · Depends on: — · Closes: GAP-103
 
 A cell or Console entry that displays a JPEG, GIF, WebP or BMP draws the image rather than its
 `text/plain` repr, and every image draws at the width the kernel asked for — or its own, shrunk to
-fit — rather than stretched across the column.
+fit — rather than at its pixel count, which on a 1.5× screen is two thirds of the size JupyterLab
+draws it.
 
 ## Demo
 
@@ -17,8 +18,10 @@ On the arm64 tablet `SM-X216B` (it runs cells):
    `image/bmp` (`display({mime: b64}, raw=True)`). All four draw; none shows
    `<IPython.core.display.Image object>` or a mime-keys line.
 3. Cell 2: `Image(png_bytes, width=100)` draws 100 dp wide, not the column's width.
-4. Cell 3: a default `%matplotlib inline` plot draws at its own width, not stretched to the column.
-5. A Console on the same kernel draws cell 3's plot the same width.
+4. Cell 3: a 96-px-wide PNG with no width metadata draws 96 dp wide at the column's start — 144 px on
+   this 1.5× screen, where it drew 96 px centred. (The base rootfs ships no matplotlib, so the plot is
+   a literal.)
+5. A Console on the same kernel draws cell 3's image the same width.
 6. Kill and relaunch — cells 2 and 3 draw at the same widths, read back from the saved metadata.
 
 The item is not `shipped` until this has been run on that device, with screenshots, snapshots and
@@ -74,7 +77,7 @@ A bundle carrying two raster forms of one image is rare — `select_figure_forma
 |---|---|---|---|
 | Which mimes | JupyterLab → five; vscode → three | `BitmapFactory` decodes all five on API 32 | **The five**, in JupyterLab's order |
 | A GIF | JupyterLab, vscode → an `<img>`, which animates | `BitmapFactory` decodes one frame; animating needs `ImageDecoder` + `AnimatedImageDrawable` and a drawable painter | **The first frame**, stated at the drawing; animation recorded as a gap when this ships |
-| Drawn width | JupyterLab → metadata `width`, else natural, capped at the column; vscode → natural, capped | Ours stretches every image to the column today | **JupyterLab's**, 1 image px = 1 dp, the mapping a WebView makes for a CSS px (T2, ADR) |
+| Drawn width | JupyterLab → metadata `width`, else natural, capped at the column; vscode → natural, capped | Ours draws the image's pixel count, centred, capped at the column: 1 px is 1/1.5 dp on the tablet | **JupyterLab's**, 1 image px = 1 dp, the mapping a WebView makes for a CSS px, at the column's start, where an `<img>` with no alignment rule sits (T2, ADR) |
 | Drawn height | JupyterLab → follows the aspect ratio, whatever `height` says | Honouring `height` would distort where JupyterLab does not | **Aspect ratio**, `height` unread |
 
 ## Gap analysis — what we already have vs the references
@@ -84,7 +87,7 @@ A bundle carrying two raster forms of one image is rare — `select_figure_forma
 | Metadata carrier | `app/src/main/java/com/jupydroid/app/domain/model/CellOutput.kt` (`DisplayData.metadata`, `ExecuteResult.metadata`) | `jupyterlab@7f0e690 packages/rendermime/src/outputmodel.ts` | complete |
 | Ranking | `app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt` (`RANKED_MIME_TYPES`: html, png, plain) | `factories.ts` | partial: one image mime of five |
 | Decode | `RenderedOutput.kt` (`decodedPng`, strict base64), `CellOutputsView.kt` (`OutputImage`, `BitmapFactory`) | `renderers.ts` | present: the decoder already takes every format |
-| Sizing | `CellOutputsView.kt` `OutputImage` — `fillMaxWidth()` + `ContentScale.Fit` | `base.css`, `renderers.ts` | absent: every image is stretched, a 1-px image to the column |
+| Sizing | `CellOutputsView.kt` `OutputImage` — `fillMaxWidth()` + `ContentScale.Fit`, which never upscales: a full-width node with the image centred at its **pixel** size, shrunk to fit | `base.css`, `renderers.ts` | partial: the cap matches; the unit (px, not dp), the alignment and metadata `width` do not. Measured in T1: a 96×8 px strip draws as a 1176×8 px node on SM-X216B (240 dpi), the image 64 dp wide where JupyterLab draws 96 |
 | Console | `app/src/main/java/com/jupydroid/app/ui/console/ConsoleTranscriptView.kt` draws through `CellOutputs` | — | none of its own: the notebook's change reaches it |
 
 ## Deviations
@@ -111,7 +114,7 @@ None. The sizing rule was chosen with the user (JupyterLab's), and the image ord
 
 ## Tasks
 
-- [ ] T1 — The four other image mimes draw, in JupyterLab's order; a flow on `SM-X216B`
+- [x] T1 — The four other image mimes draw, in JupyterLab's order; a flow on `SM-X216B`
 - [ ] T2 — An image draws at its metadata width, else its own, capped at the column, height by aspect; ADR; a flow on `SM-X216B`
 - [ ] T3 — The demo on `SM-X216B`; ship
 
