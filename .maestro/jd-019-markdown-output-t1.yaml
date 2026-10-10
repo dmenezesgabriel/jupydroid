@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# A `display(Markdown(...))` draws as markdown: a heading, bold and code in a paragraph, and a list,
+# where the bundle's `text/plain` repr used to draw. `42` is computed by the kernel from `6 * 7`;
+# FakeKernelGateway would echo the source instead and draw no markdown. Opened by
+# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-019-markdown-output-t1-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+# The two prints fold into one stream output (adjacent same-name streams join), so `42` shares its
+# node with the repr IPython sends as text/plain - the line that drew where the markdown now does.
+- scrollUntilVisible:
+    element:
+      text: "<IPython\\.core\\.display\\.Markdown object>\\n42"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    text: "Rendered heading"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: "# Rendered heading.*"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: ".*\\*\\*bold words\\*\\*.*"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 01-markdown-and-the-print
