@@ -73,6 +73,7 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 |---|---|---|---|
 | Tap → consumer | Jewel → an `onUrlClick` parameter on every renderer; Compose → `LinkAnnotation.Url` + `LocalUriHandler` | The parameter is explicit and crosses about eight signatures here (`RichText`, `RichTable`, `CellOutputs`, `EditorCell`, `EditorScreen`, the Console); the local is ambient and crosses none | `LinkAnnotation.Url`, with this project's own `UriHandler` provided once in `Navigation.kt`. It is the framework's channel for exactly this |
 | Which schemes leave the app | vscode → `http`, `https`, `mailto`; JupyterLab → whatever its sanitizer left in the `href` | An `intent:` or `file:` href handed to `startActivity` is another app's entry point chosen by a notebook's author | vscode's three. Anything else with a scheme does nothing |
+| A link to nothing | JupyterLab → `contents.get` rejects and nothing opens; intellij-community → `MarkdownLinkOpenerImpl` returns; vscode → an editor opens on "the file was not found" | Silence makes a link look broken (visibility of system status); vscode's own editor is a whole pane for one miss | **Decided in T2:** a snackbar naming the resolved path, on the one `EditorScreen` already shows "No definition found" on. A directory is browsed through `onGoToFolder` |
 | A link inside a tap-to-edit cell | JupyterLab → a rendered cell is entered by double click, so a single click is the link's | Ours enters on a single tap | The link takes its own tap; the rest of the cell still opens the editor. Measured by an instrumented test, not assumed |
 
 ## Gap analysis — what we already have vs the references
@@ -95,7 +96,6 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 - **T3:** whether a `#heading` link is built here or recorded as a gap. It needs a heading id rule
   (`createHeaderId`) that nothing here has; decided when T2 is done, on what the outline's jump can
   already be asked.
-- **T2:** what a link to a missing file shows. JupyterLab opens nothing and says nothing.
 
 ## Surface
 
@@ -104,11 +104,12 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 | `domain/port` | `ExternalLinkOpener.kt` |
 | `data/intent` | `IntentExternalLinkOpener.kt` |
 | `data/fake` | `FakeExternalLinkOpener.kt` |
-| `richtext/` | `RichInlineStyles.kt`, `RichLinkDestination.kt` |
+| `richtext/` | `RichInlineStyles.kt`, `RichLinkDestination.kt` (`workspaceLinkPath`) |
+| `ui/editor/` | `WorkspaceLinkUriHandler.kt`, provided in `EditorScreen.kt` around its Scaffold; `CellRevealScroll.kt` made the room |
 | app root | `RenderedLinkUriHandler.kt`, provided in `MainActivity.kt` - `Navigation.kt` is ten lines from the file limit |
 | `di/AppContainer` | the port, defaulting to the fake; `JupydroidApplication` builds the real one |
-| unit tests | `RichInlineStringTest`, the classifier's test, `FakeExternalLinkOpenerTest` |
-| instrumented tests | a markdown cell's link tap, `IntentExternalLinkOpenerTest` |
+| unit tests | `RichInlineStringTest`, `RichLinkDestinationTest`, `FakeExternalLinkOpenerTest`, `WorkspaceLinkUriHandlerTest` |
+| instrumented tests | a markdown cell's link tap, `IntentExternalLinkOpenerTest`, `WorkspaceLinksFollowedTest` |
 | `.maestro/` flow + `scripts/` driver | `jd-021-rendered-link-t<n>` |
 
 ## Tasks
@@ -116,7 +117,7 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 - [x] T1 — a web link opens in the browser: `http`, `https` and `mailto`, from a markdown cell and an
   output; the rest of a markdown cell still opens its editor. The Console draws through the same
   `CellOutputs`, and is driven in T4's demo.
-- [ ] T2 — a workspace link opens the document: resolved against the notebook's directory, checked to
+- [x] T2 — a workspace link opens the document: resolved against the notebook's directory, checked to
   exist, then `openDocument`.
 - [ ] T3 — a `#heading` link scrolls to its heading, or becomes a gap (see Open decisions).
 - [ ] T4 — the demo on `SM-X216B`; ship, delete this PRD, close `GAP-093`.
