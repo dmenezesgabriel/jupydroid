@@ -66,7 +66,7 @@ Ours is **present but unreachable**: the parser and the renderer exist, and only
   wins over it, it wins over the images, and a blank payload falls through. A markdown output's
   headings join the ToC. Run the flow on `SM-X216B`: a cell's `display(Markdown(...))` draws
   formatted.
-- [ ] T2: the demo above, typed: notebook, ToC, Console, relaunch.
+- [x] T2: the demo above, typed: notebook, ToC, Console, relaunch.
 
 ## Out of scope
 

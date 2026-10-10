@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 2. Relaunched and reopened, the cell's output still
+# draws as markdown and its heading is still in the table of contents, read back off the disk: no
+# cell runs in this part, and the bar says No Kernel, so the heading and the `42` are what the
+# kernel produced in part 1 and the file kept. The driver reads the saved file after it.
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- assertVisible: "No Kernel"
+- assertVisible:
+    text: "Heading"
+    childOf: {text: "Cell output"}
+- assertVisible:
+    text: "bold and code"
+    childOf: {text: "Cell output"}
+- assertVisible:
+    text: "item"
+    childOf: {text: "Cell output"}
+- tapOn: "Notebook actions"
+- tapOn: "Show table of contents"
+- assertVisible: "Table of contents Heading"
+- takeScreenshot: 05-the-markdown-and-its-entry-after-a-relaunch
