@@ -1,0 +1,47 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 4. Relaunched and reopened, with No Kernel, the
+# links read back off the disk still go where they say: the markdown cell's "notes" opens
+# `notes.md`, and the saved output's URL opens the browser, which the driver reads from the resumed
+# activity. No cell runs in this part, so the output and its `42` are what the kernel produced in
+# part 3 and the file kept.
+#
+# The points inside the paragraphs are part 1's and part 3's.
+#
+# TABLET ONLY (SM-X216B): part 3 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- assertVisible: "No Kernel"
+- assertVisible: "Read Jupyter and notes"
+- assertVisible:
+    text: "see https://jupyter\\.org"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 01-both-links-after-a-relaunch
+- tapOn:
+    text: "Read Jupyter and notes"
+    point: "87%,50%"
+- extendedWaitUntil:
+    visible: "Notes beside the notebook\\.\\s*"
+    timeout: 10000
+- assertVisible: "Tab: notes.md"
+- takeScreenshot: 02-notes-opened-after-a-relaunch
+- back
+- extendedWaitUntil:
+    visible: "Read Jupyter and notes"
+    timeout: 5000
+- tapOn:
+    text: "see https://jupyter\\.org"
+    childOf: {text: "Cell output"}
+    point: "60%,50%"
+# No screenshot after the tap: what is on screen then is the browser.
+- waitForAnimationToEnd:
+    timeout: 5000

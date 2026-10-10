@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# Back from the browser, the markdown cell is still rendered: the link's tap did not open its
+# editor. A tap on "Read", beside the links in the same paragraph, does open it, as a tap on
+# rendered markdown always has. Rendered again, a tap on "notes" opens the seeded `notes.md` as a
+# tab, and back returns to the notebook. Run by scripts/jd-021-rendered-link-demo-driver.sh after
+# part 1, which left the notebook in front.
+#
+# The points inside the paragraph are part 1's, measured there.
+#
+# TABLET ONLY (SM-X216B): the parts after this one run a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Read Jupyter and notes"
+- assertNotVisible: ".*\\]\\(.*"
+- takeScreenshot: 01-still-rendered-after-back
+- tapOn:
+    text: "Read Jupyter and notes"
+    point: "10%,50%"
+- extendedWaitUntil:
+    visible: "Read \\[Jupyter\\]\\(https://jupyter\\.org\\) and \\[notes\\]\\(notes\\.md\\)"
+    timeout: 10000
+- hideKeyboard
+- takeScreenshot: 02-read-opens-the-editor
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible: "Read Jupyter and notes"
+    timeout: 10000
+- tapOn:
+    text: "Read Jupyter and notes"
+    point: "87%,50%"
+# The file editor's text node holds the file whole, its final newline included.
+- extendedWaitUntil:
+    visible: "Notes beside the notebook\\.\\s*"
+    timeout: 10000
+- assertVisible: "Tab: notes.md"
+- takeScreenshot: 03-notes-opened
+# Back closes the file's tab, and the notebook under it is still rendered.
+- back
+- extendedWaitUntil:
+    visible: "Read Jupyter and notes"
+    timeout: 5000
+- assertNotVisible: ".*\\]\\(.*"

@@ -19,23 +19,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EVIDENCE="$ROOT/evidence/jd-021-rendered-link/t1-web-link"
 NOTEBOOK="Rendered Link"
 
-# The package of the activity the device has resumed, e.g. `com.android.chrome`.
-resumed_package() {
-  local adb
-  mapfile -t adb < <(device_adb)
-  "${adb[@]}" shell dumpsys activity activities | tr -d '\r' |
-    sed -n 's/.*topResumedActivity=ActivityRecord{[^ ]* [^ ]* \([^/]*\)\/.*/\1/p' | sed -n '1p'
-}
-
-# Records which package is resumed into [out], and fails unless it is another app's.
-require_another_app_resumed() {
-  local out="$1" package
-  package="$(resumed_package)"
-  echo "resumed after the link tap: $package" | tee "$out/resumed-activity.txt"
-  [ -n "$package" ] && [ "$package" != "$APP" ] ||
-    { echo "expected another app resumed after the link tap, got '$package'" >&2; exit 1; }
-}
-
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-021-rendered-link.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"

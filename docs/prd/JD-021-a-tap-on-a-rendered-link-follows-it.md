@@ -120,7 +120,7 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
   exist, then `openDocument`.
 - [x] T3 — a `#heading` link scrolls to its heading: the outline's jump could already land on a cell, so
   it is built, not a gap.
-- [ ] T4 — the demo on `SM-X216B`; ship, delete this PRD, close `GAP-093`.
+- [x] T4 — the demo on `SM-X216B`; ship, delete this PRD, close `GAP-093`.
 
 ## Out of scope
 

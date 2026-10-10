@@ -245,6 +245,41 @@ device_adb() {
   printf '%s\n' "${adb[@]}"
 }
 
+# The package of the activity the device has resumed, e.g. `com.android.chrome`. What a tap handed
+# to another app opened is not on this app's screen, so no flow assertion can see it; this can.
+resumed_package() {
+  local adb
+  mapfile -t adb < <(device_adb)
+  "${adb[@]}" shell dumpsys activity activities | tr -d '\r' |
+    sed -n 's/.*topResumedActivity=ActivityRecord{[^ ]* [^ ]* \([^/]*\)\/.*/\1/p' | sed -n '1p'
+}
+
+# Records which package is resumed into [out]/resumed-activity.txt, and fails unless it is another
+# app's.
+require_another_app_resumed() {
+  local out="$1" package
+  package="$(resumed_package)"
+  echo "resumed after the link tap: $package" | tee "$out/resumed-activity.txt"
+  [ -n "$package" ] && [ "$package" != "$APP" ] ||
+    { echo "expected another app resumed after the link tap, got '$package'" >&2; exit 1; }
+}
+
+# Presses the device's back key in whatever app is in front, and fails unless this app is resumed
+# after it - back from a browser this app opened returns to the app, as Android's task stack has it.
+# Appended to [out]/resumed-activity.txt.
+back_to_app() {
+  local out="$1" adb package tries=0
+  mapfile -t adb < <(device_adb)
+  "${adb[@]}" shell input keyevent KEYCODE_BACK
+  # Polled, not slept: how long the other app takes to finish depends on the host and the device.
+  while package="$(resumed_package)" && [ "$package" != "$APP" ] && [ "$tries" -lt 10 ]; do
+    sleep 1
+    tries=$((tries + 1))
+  done
+  echo "resumed after back: $package" | tee -a "$out/resumed-activity.txt"
+  [ "$package" = "$APP" ] || { echo "expected $APP resumed after back, got '$package'" >&2; exit 1; }
+}
+
 # A flow drives whatever is on the screen, and a locked device shows a lock screen.
 #
 # **This has already cost a measurement.** A fifty-run sweep of `step5-completion` on the tablet
