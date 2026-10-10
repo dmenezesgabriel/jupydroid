@@ -1968,18 +1968,6 @@ is deliberate: seconds-scale gates at the commit, a device at the step. What is 
 backstop: nothing refuses a clone that never installed the hooks or a `git commit --no-verify`,
 and the measures in `scripts/` run wherever a human happens to run them.
 
-### GAP-162 — The Console appends `clear_output` instead of executing it
-
-A JupyterLab console draws each entry through the same `OutputArea` a notebook cell does, so
-`clear_output` empties the entry and `clear_output(wait=True)` empties it when the next output
-arrives (`jupyterlab/packages/outputarea/src/model.ts:301-311`). The notebook here executes both
-against the model (`app/src/main/java/com/jupydroid/app/ui/editor/OutputArrival.kt`, fixed in
-`974ba25c`). The Console does not: `afterOutput` folds a `ClearOutput` into the entry like any
-other output (`app/src/main/java/com/jupydroid/app/ui/console/ConsoleOutputArrival.kt`). It draws
-nothing there, so a `print(); clear_output()` entry keeps its print on screen. The repair is the
-notebook's rule by entry: an immediate clear empties the entry, and a waiting one is spent by the
-entry's next output.
-
 ---
 
 ## 12. Glossary
