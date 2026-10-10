@@ -1407,17 +1407,6 @@ all: the mime falls through `RANKED_MIME_TYPES` to the bundle's `text/plain` or 
 path Compose can draw — a vector-drawable or coil-svg decoder — and an answer to the trust
 question the `safe: false` marks, since an inlined foreign `<svg>` is script-carrying markup.
 
-### GAP-103 — Only PNG of the five image mimes decodes
-
-`imageRendererFactory` covers `image/bmp`, `image/png`, `image/jpeg`, `image/gif` and
-`image/webp` at rank 90 — `renderImage` draws an `<img>` and reads width/height/`needs_background`
-from the mime's metadata (`jupyterlab/packages/rendermime/src/factories.ts:22-30`, `renderers.ts`).
-Ours decodes `image/png` alone (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt:82`);
-the other four fall to `text/plain` or the mime-keys line though `BitmapFactory` decodes every
-one of them. The repair widens the `image/png` arm to the decode-capable set — one decoder, four
-mime keys — and the drawing reads the width/height `CellOutput.DisplayData.metadata` already carries
-(`app/src/main/java/com/jupydroid/app/domain/model/CellOutput.kt`); nothing spends it yet.
-
 ### GAP-105 — Text output never linkifies
 
 `renderTextual` runs `autolink` over every text and error render — `checkWeb` wraps URLs in
@@ -1439,8 +1428,9 @@ all resolved against the workspace by `IResolver.resolveUrl`/`getDownloadUrl`
 flattens `<img>` to nothing, and `RichBlock`/`RichInline` have no image node to draw;
 `PreservedJson` round-trips `attachments` but no resolver answers the scheme
 (`app/src/main/java/com/jupydroid/app/markdown/MarkdownDocument.kt:96-98`). The repair is the
-resolver and the model node together — attachment bundle, workspace path, then the decode
-surface `GAP-103` already names.
+resolver and the model node together — attachment bundle, workspace path, then the decode an
+image output already goes through (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt`,
+`IMAGE_MIME_TYPES`).
 
 ### GAP-108 — A JSON payload prints its mime key, not a tree
 
@@ -1967,6 +1957,42 @@ the framework's design — and at step time on a device (AGENTS.md's evidence ga
 is deliberate: seconds-scale gates at the commit, a device at the step. What is absent is the
 backstop: nothing refuses a clone that never installed the hooks or a `git commit --no-verify`,
 and the measures in `scripts/` run wherever a human happens to run them.
+
+### GAP-163 — An animated GIF draws its first frame
+
+JupyterLab draws an `image/gif` output as an `<img>`, which plays it
+(`jupyterlab@7f0e690 packages/rendermime/src/renderers.ts`, `renderImage`). Ours decodes it with
+`BitmapFactory`, which returns the first frame only, so an animation draws still
+(`app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt`, `OutputImage`). The repair is
+`ImageDecoder` and its `AnimatedImageDrawable`, with a painter Compose can draw a drawable through.
+
+### GAP-164 — An image's `unconfined` is not read
+
+`unconfined: true` in an image's per-mime metadata adds `jp-mod-unconfined`, which lifts the
+`max-width: 100%` cap (`max-width: none`), so a wide image draws at its own width past the column
+(`jupyterlab@7f0e690 packages/rendermime/src/renderers.ts`, `renderImage`; `style/base.css`).
+`IPython.display.Image(unconfined=True)` sends it. Ours caps every image at the column
+([ADR-0086](adr/0086-an-image-draws-at-its-metadata-width-in-dp-capped-at-the-column.md)), because an
+output area here has no horizontal scroll to give an unconfined image.
+
+### GAP-165 — An image's `needs_background` is not read
+
+An output's `needs_background: "light"` or `"dark"` adds `jp-needs-light-background` or
+`jp-needs-dark-background`, which paints a backdrop behind a transparent image drawn for the other
+theme (`jupyterlab@7f0e690 packages/rendermime/src/widgets.ts`, `RenderedImage.render`;
+`renderers.ts`, `renderImage`). Ours draws the image on the output surface as it is
+(`app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt`, `OutputImage`). Nothing in the
+shipped rootfs emits the key, so no output here asks for it yet.
+
+### GAP-166 — An image's alt text is not its content description
+
+`IPython.display.Image(alt=...)` sends `alt` in the image's per-mime metadata (the shipped rootfs's
+`usr/lib/python3.12/site-packages/IPython/core/display.py`, `Image`). JupyterLab's `renderImage` sets
+no `alt` from it; vscode sets one from its own `metadata.vscode_altText` key (`vscode@3f3380c6
+extensions/notebook-renderers/src/index.ts`, `getAltText`). Ours names every image "Cell image
+output" (`app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt`, `OutputImage`), so
+TalkBack reads the same words for every image. The repair reads `alt` into the content description and keeps
+the generic one when there is none.
 
 ---
 
