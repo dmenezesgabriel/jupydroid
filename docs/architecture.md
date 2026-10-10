@@ -1415,19 +1415,8 @@ from the mime's metadata (`jupyterlab/packages/rendermime/src/factories.ts:22-30
 Ours decodes `image/png` alone (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt:82`);
 the other four fall to `text/plain` or the mime-keys line though `BitmapFactory` decodes every
 one of them. The repair widens the `image/png` arm to the decode-capable set — one decoder, four
-mime keys — with the metadata half recorded under `GAP-104`.
-
-### GAP-104 — An output's metadata is dropped at the wire
-
-`OutputModel` keeps the message's `metadata` as observable JSON and serializes it back
-(`jupyterlab/packages/rendermime/src/outputmodel.ts:92-213`), and the renderers spend it —
-`renderImage`'s width/height, `isolated`/`needs_background`/`unconfined` classes, JSON's
-`expanded`/`root`, mermaid's theme overrides, a `fragment` to scroll to. Ours reads `data` and
-nothing else: `KernelOutputs.mimeBundle()`
-(`app/src/main/java/com/jupydroid/app/data/space/KernelOutputs.kt:101`) drops `metadata` and
-`transient` at the port, and `MimeBundle`/`CellOutput` have no carrier for either. The repair
-carries `metadata` through the bundle; `transient`/`display_id` belongs to the display-update
-read and drops on the same line.
+mime keys — and the drawing reads the width/height `CellOutput.DisplayData.metadata` already carries
+(`app/src/main/java/com/jupydroid/app/domain/model/CellOutput.kt`); nothing spends it yet.
 
 ### GAP-105 — Text output never linkifies
 
@@ -1497,18 +1486,6 @@ extension per feature (`jupyterlab/packages/markedparser-extension/src/index.ts`
 `> [!NOTE]` is an ordinary blockquote, `~~del~~` and bare URLs are plain text. The repair adds
 the extension dependencies and maps their AST nodes — commonmark's `TableBlock` already has a
 home in `RichBlock.Table`, which `HtmlTable` fills today.
-
-### GAP-113 — `update_display_data` appends instead of updating
-
-The reference registers every `display_data`/`execute_result` under its `transient.display_id`,
-and an `update_display_data` looks the id up and `set()`s the stored bundle in place — every view
-of that output redraws with the new data
-(`jupyterlab/packages/outputarea/src/widget.ts:804-850`). Ours folds the message into
-`CellOutput.DisplayData` at `KernelOutputs.outputFrom`
-(`app/src/main/java/com/jupydroid/app/data/space/KernelOutputs.kt:64`) and `afterOutput` appends
-it — a `display(..., display_id=)` + `update_display()` pair draws the stale frame above the new
-one. The carrier it needs is `GAP-104`'s `transient`; the repair beyond it is an id-indexed
-replace in `afterOutput`.
 
 ### GAP-114 — An execute result gets no `Out[n]` prompt
 
