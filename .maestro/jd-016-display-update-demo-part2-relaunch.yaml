@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 1. Relaunched and reopened, cell 1 still draws
+# `'frame 3'` alone and cell 3 its image, read back off the disk: no cell runs in this part, so
+# `'frame 3'` is what the kernel produced in part 1 and the file kept. The driver reads the saved
+# file after it.
+#
+# TABLET ONLY (SM-X216B): part 1 runs cells.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "'frame 3'"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- assertNotVisible:
+    text: "'frame 0'"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: "'frame 2'"
+    childOf: {text: "Cell output"}
+- assertVisible: "Cell image output"
+- takeScreenshot: 06-frame-3-and-the-image-after-a-relaunch
