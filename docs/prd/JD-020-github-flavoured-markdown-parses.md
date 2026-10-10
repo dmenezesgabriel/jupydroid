@@ -122,7 +122,7 @@ Ours is **present and partial**: the grid and its renderer exist, and markdown n
   an HTML table stays right-aligned. Run the flow on `SM-X216B`: a markdown cell and a
   `display(Markdown(...))` output each draw the grid.
 - [x] T2 — `~~text~~` draws struck through.
-- [ ] T3 — a bare URL draws as a link.
+- [x] T3 — a bare URL draws as a link.
 - [ ] T4 — the demo above, typed: markdown cell, output, Console, relaunch.
 
 ## Out of scope
