@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# `~~text~~` draws struck through, in a markdown cell and in a `display(Markdown(...))` output. A
+# paragraph is one text node, so the flow reads that its tildes are gone; the line through the struck
+# words is no assertion Maestro has, and is read from the screenshots. `42` is computed by the kernel
+# from `6 * 7`; FakeKernelGateway would echo the source instead. Opened by
+# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-020-gfm-markdown-t2-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+#
+# The markdown cell is rendered on open, so it is read before anything runs.
+# The code cell's own source holds `~~old~~`, so the absent tildes are the markdown cell's source line.
+- assertVisible: "gone and kept, one too"
+- assertNotVisible: ".*~~gone~~.*"
+- assertNotVisible: ".*~one~.*"
+- takeScreenshot: 01-markdown-cell-struck
+# Run all rather than the code cell's own Run: it is the one button on screen with that name, and
+# running a notebook leaves a rendered markdown cell rendered.
+- tapOn: "Run all cells"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- assertVisible:
+    text: "old new"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: ".*~.*"
+    childOf: {text: "Cell output"}
+# The markdown cell is still rendered after the run. Its source, `~~gone~~ and kept, ~one~ too`, can
+# never match this text whole, so the match is the rendered cell's.
+# matches-source: the rendered markdown cell, read on purpose
+- assertVisible: "gone and kept, one too"
+- takeScreenshot: 02-output-struck-and-the-print

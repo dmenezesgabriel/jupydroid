@@ -121,7 +121,7 @@ Ours is **present and partial**: the grid and its renderer exist, and markdown n
 - [x] T1 — a GFM table parses into `RichBlock.Table` and each cell draws at its column's alignment;
   an HTML table stays right-aligned. Run the flow on `SM-X216B`: a markdown cell and a
   `display(Markdown(...))` output each draw the grid.
-- [ ] T2 — `~~text~~` draws struck through.
+- [x] T2 — `~~text~~` draws struck through.
 - [ ] T3 — a bare URL draws as a link.
 - [ ] T4 — the demo above, typed: markdown cell, output, Console, relaunch.
 
