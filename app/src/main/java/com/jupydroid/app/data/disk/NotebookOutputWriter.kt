@@ -10,7 +10,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
 
 /** Writes a [CellOutput] back in the nbformat shape Jupyter itself would have written. */
 fun CellOutput.toFileOutput(): JsonElement = when (this) {
@@ -38,13 +37,14 @@ private fun CellOutput.ExecuteResult.toExecuteResultJson() = buildJsonObject {
   put("output_type", "execute_result")
   put("execution_count", executionCount)
   put("data", mimeBundle.toJsonData())
-  putJsonObject("metadata") { }
+  put("metadata", metadata)
 }
 
+// `displayId` is not written: it is the session's `transient`, which nbformat has no field for.
 private fun CellOutput.DisplayData.toDisplayDataJson() = buildJsonObject {
   put("output_type", "display_data")
   put("data", mimeBundle.toJsonData())
-  putJsonObject("metadata") { }
+  put("metadata", metadata)
 }
 
 private fun CellOutput.Error.toErrorJson() = buildJsonObject {

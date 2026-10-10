@@ -25,7 +25,7 @@ fun JsonElement.toDomainOutput(): CellOutput? {
   return when (output["output_type"].stringOrNull()) {
     "stream" -> output.toStream()
     "execute_result" -> output.toExecuteResult()
-    "display_data" -> CellOutput.DisplayData(output.mimeBundle())
+    "display_data" -> CellOutput.DisplayData(output.mimeBundle(), output.outputMetadata())
     "error" -> output.toError()
     else -> null
   }
@@ -60,7 +60,7 @@ private fun JsonObject.toStream(): CellOutput? {
 }
 
 private fun JsonObject.toExecuteResult(): CellOutput =
-  CellOutput.ExecuteResult(mimeBundle(), get("execution_count").intOrZero())
+  CellOutput.ExecuteResult(mimeBundle(), get("execution_count").intOrZero(), outputMetadata())
 
 private fun JsonObject.toError(): CellOutput? {
   val name = get("ename").stringOrNull() ?: return null
@@ -73,6 +73,9 @@ private fun JsonObject.toError(): CellOutput? {
 
 /** nbformat's `_rejoin_mimebundle`; see [rejoinedBundle] for why a JSON mime is exempt. */
 private fun JsonObject.mimeBundle(): MimeBundle = (get("data") as? JsonObject)?.rejoinedBundle().orEmpty()
+
+/** Kept whole and unread: a renderer's to interpret, and the file's to keep. */
+private fun JsonObject.outputMetadata(): JsonObject = get("metadata") as? JsonObject ?: JsonObject(emptyMap())
 
 /** The content of a JSON string, or null where the value is not a primitive at all. */
 private fun JsonElement?.stringOrNull(): String? = (this as? JsonPrimitive)?.content

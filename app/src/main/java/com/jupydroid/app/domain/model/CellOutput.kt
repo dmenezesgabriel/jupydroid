@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.model
 
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 
 /**
  * A stream output's `name`. [STDIN] is never sent by a kernel: it is the front end's echo of an
@@ -37,9 +38,23 @@ sealed interface CellOutput {
 
   data class Error(val name: String, val value: String, val traceback: List<String>) : CellOutput
 
-  data class DisplayData(val mimeBundle: MimeBundle) : CellOutput
+  /**
+   * [metadata] is the bundle's per-mime metadata (an image's `width`), kept as JSON and saved as it
+   * came. [displayId] is the message's `transient.display_id`, what a later `update_display_data`
+   * finds this output by; it belongs to the session and is never saved, as JupyterLab's `toJSON`
+   * deletes `transient` (jupyterlab@7f0e690 packages/rendermime/src/outputmodel.ts).
+   */
+  data class DisplayData(
+    val mimeBundle: MimeBundle,
+    val metadata: JsonObject = JsonObject(emptyMap()),
+    val displayId: String? = null,
+  ) : CellOutput
 
-  data class ExecuteResult(val mimeBundle: MimeBundle, val executionCount: Int) : CellOutput
+  data class ExecuteResult(
+    val mimeBundle: MimeBundle,
+    val executionCount: Int,
+    val metadata: JsonObject = JsonObject(emptyMap()),
+  ) : CellOutput
 
   /**
    * The kernel's `clear_output` instruction: drop the cell's outputs. With [wait] the drop

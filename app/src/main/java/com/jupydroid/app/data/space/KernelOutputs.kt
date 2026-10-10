@@ -4,13 +4,7 @@ import com.jupydroid.app.data.space.JupyterFrame.content
 import com.jupydroid.app.data.space.JupyterFrame.msgType
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.KernelInputRequest
-import com.jupydroid.app.domain.model.MimeBundle
-import com.jupydroid.app.domain.model.StreamName
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
@@ -27,7 +21,7 @@ object KernelOutputs {
   /** The output this frame carries for our request, or null when it carries none. */
   fun outputOf(frame: String, requestMsgId: String): CellOutput? =
     JupyterFrame.ours(frame, requestMsgId)?.let { message ->
-      message.content()?.let { outputFrom(message.msgType(), it) }
+      message.content()?.toCellOutput(message.msgType())
     }
 
   /**
@@ -73,48 +67,4 @@ object KernelOutputs {
         requestHeader = message["header"].toString(),
       )
     }
-
-  private fun outputFrom(msgType: String?, content: JsonObject): CellOutput? = when (msgType) {
-    "stream" -> content.toStream()
-    "execute_result" -> content.toExecuteResult()
-    "display_data", "update_display_data" -> CellOutput.DisplayData(content.mimeBundle())
-    "error" -> content.toError()
-    "clear_output" -> CellOutput.ClearOutput(content["wait"]?.jsonPrimitive?.booleanOrNull == true)
-    else -> null
-  }
-
-  private fun JsonObject.toStream(): CellOutput? {
-    // Deliberately not defaulting to stdout: mislabelling stderr would render a warning as
-    // ordinary output, and the protocol defines only these two names.
-    val name = when (get("name")?.jsonPrimitive?.content) {
-      "stdout" -> StreamName.STDOUT
-      "stderr" -> StreamName.STDERR
-      else -> return null
-    }
-    return CellOutput.Stream(name, get("text")?.jsonPrimitive?.content.orEmpty())
-  }
-
-  private fun JsonObject.toExecuteResult(): CellOutput? =
-    executionCount()?.let { CellOutput.ExecuteResult(mimeBundle(), it) }
-
-  private fun JsonObject.toError(): CellOutput? {
-    val name = get("ename")?.jsonPrimitive?.content ?: return null
-    return CellOutput.Error(
-      name = name,
-      value = get("evalue")?.jsonPrimitive?.content.orEmpty(),
-      traceback = get("traceback")?.jsonArray.orEmpty().map { it.jsonPrimitive.content },
-    )
-  }
-
-  /**
-   * mime -> payload, each kept as the JSON the kernel sent. A text mime arrives as a string
-   * and `application/json` and friends as objects; `toString()`-ing the latter used to turn a
-   * widget view into a *string* of JSON, which is a shape no Jupyter tool can render back.
-   *
-   * The wire protocol never splits text into lines - that is a file-format convention - so
-   * nothing needs rejoining here, only carrying through.
-   */
-  private fun JsonObject.mimeBundle(): MimeBundle = get("data")?.jsonObject.orEmpty()
-
-  private fun JsonObject.executionCount(): Int? = get("execution_count")?.jsonPrimitive?.intOrNull
 }

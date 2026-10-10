@@ -59,6 +59,36 @@ class KernelOutputsTest {
   }
 
   /**
+   * `metadata` is what a renderer reads an image's width from, and `transient.display_id` is what an
+   * `update_display_data` finds its target by; both used to be dropped here, at the port.
+   */
+  @Test
+  fun outputOf_keepsADisplaysMetadataAndItsDisplayId() {
+    val frame = """
+      {"channel":"iopub","parent_header":{"msg_id":"m1"},"header":{"msg_type":"display_data"},
+       "content":{"data":{"text/plain":"'frame 0'"},"metadata":{"image/png":{"width":100}},
+                  "transient":{"display_id":"d1"}}}
+    """.trimIndent()
+
+    val output = KernelOutputs.outputOf(frame, "m1") as CellOutput.DisplayData
+
+    assertEquals(Json.parseToJsonElement("""{"image/png":{"width":100}}"""), output.metadata)
+    assertEquals("d1", output.displayId)
+  }
+
+  @Test
+  fun outputOf_keepsAnExecuteResultsMetadata() {
+    val frame = """
+      {"channel":"iopub","parent_header":{"msg_id":"m1"},"header":{"msg_type":"execute_result"},
+       "content":{"execution_count":7,"data":{"text/plain":"4"},"metadata":{"isolated":true}}}
+    """.trimIndent()
+
+    val output = KernelOutputs.outputOf(frame, "m1") as CellOutput.ExecuteResult
+
+    assertEquals(Json.parseToJsonElement("""{"isolated":true}"""), output.metadata)
+  }
+
+  /**
    * An `application/json` payload stays an **object**. It used to be `toString()`-ed into a
    * string of JSON, which is the shape no Jupyter tool can render back - and the same flaw
    * that would have stored every widget view as text.

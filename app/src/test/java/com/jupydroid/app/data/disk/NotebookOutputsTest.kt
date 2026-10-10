@@ -137,6 +137,29 @@ class NotebookOutputsTest {
     assertEquals(outputs, reread)
   }
 
+  /** An image's width and similar live in `metadata`, which a save used to write back as `{}`. */
+  @Test
+  fun roundTrip_keepsEachOutputsMetadata() {
+    val file = Json.parseToJsonElement(
+      """
+      [{"output_type":"display_data","data":{"image/png":"iVBOR"},"metadata":{"image/png":{"width":100}}},
+       {"output_type":"execute_result","execution_count":3,"data":{"text/plain":["4"]},"metadata":{"isolated":true}}]
+      """.trimIndent(),
+    ) as JsonArray
+
+    val rewritten = file.mapNotNull { it.toDomainOutput()?.toFileOutput() }
+
+    assertEquals(file.toList(), rewritten)
+  }
+
+  /** `transient` is the session's, never the file's: nbformat has no field for it. */
+  @Test
+  fun toFileOutput_neverWritesADisplayId() {
+    val written = CellOutput.DisplayData(mimeBundleOf("text/plain" to "'frame 0'"), displayId = "d1").toFileOutput()
+
+    assertEquals(CellOutput.DisplayData(mimeBundleOf("text/plain" to "'frame 0'")).toFileOutput(), written)
+  }
+
   /** Jupyter writes stream text as lines; writing one long string is legal but unfriendly. */
   @Test
   fun toFileOutput_writesStreamTextAsLinesTheWayJupyterDoes() {
