@@ -115,6 +115,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.commonmark)
     implementation(libs.commonmark.ext.gfm.tables)
+    implementation(libs.commonmark.ext.gfm.strikethrough)
     implementation(libs.jsoup)
     implementation(libs.commons.compress)
     // @aar: the plain jar publishes no Android ABIs; the AAR carries arm64-v8a's libzstd-jni.

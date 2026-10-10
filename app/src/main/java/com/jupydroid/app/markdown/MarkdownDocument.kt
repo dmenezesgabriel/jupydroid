@@ -2,6 +2,8 @@ package com.jupydroid.app.markdown
 
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
+import org.commonmark.ext.gfm.strikethrough.Strikethrough
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
 import org.commonmark.ext.gfm.tables.TableBlock
 import org.commonmark.ext.gfm.tables.TablesExtension
 import org.commonmark.node.BlockQuote
@@ -36,7 +38,10 @@ import org.commonmark.parser.Parser
  * ```
  */
 object MarkdownDocument {
-  private val parser: Parser = Parser.builder().extensions(listOf(TablesExtension.create())).build()
+  // StrikethroughExtension's default strikes one tilde as well as two, as marked@17.0.6's `gfm.del`
+  // rule, `^(~~?)(?=[^\s~])…\1`, does.
+  private val parser: Parser =
+    Parser.builder().extensions(listOf(TablesExtension.create(), StrikethroughExtension.create())).build()
 
   fun parse(source: String): List<RichBlock> = parser.parse(source).blocks()
 
@@ -111,6 +116,7 @@ object MarkdownDocument {
     is Code -> RichInline.Code(literal)
     is Emphasis -> RichInline.Emphasis(inlines())
     is StrongEmphasis -> RichInline.StrongEmphasis(inlines())
+    is Strikethrough -> RichInline.Strikethrough(inlines())
     is Link -> RichInline.Link(destination, inlines())
     is SoftLineBreak -> RichInline.SoftLineBreak
     is HardLineBreak -> RichInline.HardLineBreak

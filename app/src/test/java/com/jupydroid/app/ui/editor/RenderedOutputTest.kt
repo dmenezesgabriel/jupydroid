@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.PANDAS_DATAFRAME_HTML
 import com.jupydroid.app.mimeBundleOf
 import com.jupydroid.app.richtext.RichBlock
+import com.jupydroid.app.richtext.RichInline
 import com.jupydroid.app.richtext.plainText
 import com.jupydroid.app.terminal.CellStyle
 import com.jupydroid.app.terminal.SgrRun
@@ -171,6 +172,16 @@ class RenderedOutputTest {
     val blocks = (output.render() as RenderedOutput.Document).blocks
 
     assertTrue("got $blocks", blocks.single() is RichBlock.Table)
+  }
+
+  @Test
+  fun render_drawsMarkdownStrikethroughWithoutItsTildes() {
+    val output = CellOutput.DisplayData(mimeBundleOf("text/markdown" to "~~old~~ new"))
+
+    val inlines = ((output.render() as RenderedOutput.Document).blocks.single() as RichBlock.Paragraph).inlines
+
+    assertTrue("got $inlines", inlines.first() is RichInline.Strikethrough)
+    assertEquals("old new", inlines.plainText())
   }
 
   /** `text/html` ranks 50 and `text/markdown` 60 (jupyterlab@7f0e690 packages/rendermime/src/factories.ts). */

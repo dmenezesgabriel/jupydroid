@@ -9,7 +9,13 @@ import androidx.compose.ui.text.withStyle
 const val RICH_LINK_TAG = "rich-link"
 
 /** What each inline mark is painted with. Passed in so this stays testable off a device. */
-data class RichInlineStyles(val emphasis: SpanStyle, val strong: SpanStyle, val code: SpanStyle, val link: SpanStyle)
+data class RichInlineStyles(
+  val emphasis: SpanStyle,
+  val strong: SpanStyle,
+  val code: SpanStyle,
+  val link: SpanStyle,
+  val struck: SpanStyle,
+)
 
 /**
  * Flattens the inline tree into one styled string.
@@ -36,6 +42,7 @@ private fun AnnotatedString.Builder.appendInlines(inlines: List<RichInline>, sty
       is RichInline.Code -> withStyle(styles.code) { append(inline.code) }
       is RichInline.Emphasis -> withStyle(styles.emphasis) { appendInlines(inline.children, styles) }
       is RichInline.StrongEmphasis -> withStyle(styles.strong) { appendInlines(inline.children, styles) }
+      is RichInline.Strikethrough -> withStyle(styles.struck) { appendInlines(inline.children, styles) }
       is RichInline.Link -> appendLink(inline, styles)
       RichInline.SoftLineBreak -> append(" ")
       RichInline.HardLineBreak -> append("\n")

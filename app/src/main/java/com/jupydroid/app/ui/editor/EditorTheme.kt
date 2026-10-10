@@ -81,6 +81,10 @@ fun searchMatchStyles(): SearchMatchStyles = SearchMatchStyles(
  * Rendered prose and the source behind it therefore *disagree* on purpose. A link is
  * `string.other.link` in the source, where it is a string like any other, and the accent in the
  * rendered cell, where it is something to press.
+ *
+ * Struck text is a line and nothing else, keeping its run's colour, as a browser draws `<del>` and
+ * as Jewel draws the same node (intellij-community@406a27a8
+ * platform/jewel/markdown/extensions/gfm-strikethrough/.../GitHubStrikethroughInlineRendererExtension.kt).
  */
 @Composable
 @ReadOnlyComposable
@@ -96,6 +100,7 @@ fun richInlineStyles(): RichInlineStyles = RichInlineStyles(
     color = MaterialTheme.colorScheme.primary,
     textDecoration = TextDecoration.Underline,
   ),
+  struck = SpanStyle(textDecoration = TextDecoration.LineThrough),
 )
 
 /**

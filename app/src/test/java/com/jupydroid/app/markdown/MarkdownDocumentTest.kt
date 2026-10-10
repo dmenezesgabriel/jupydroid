@@ -55,6 +55,24 @@ class MarkdownDocumentTest {
   }
 
   @Test
+  fun readsStrikethroughAsANestedInline() {
+    val inlines = (MarkdownDocument.parse("a ~~b *c*~~ d").single() as RichBlock.Paragraph).inlines
+
+    val struck = inlines.filterIsInstance<RichInline.Strikethrough>().single()
+    assertEquals("b c", struck.children.plainText())
+    assertTrue("got $struck", struck.children.any { it is RichInline.Emphasis })
+    assertEquals("a b c d", inlines.plainText())
+  }
+
+  /** marked@17.0.6's `gfm.del` is `^(~~?)(?=[^\s~])…\1`: one tilde strikes as two do. */
+  @Test
+  fun aSingleTildeStrikesAsMarkedDoes() {
+    val inlines = (MarkdownDocument.parse("~b~").single() as RichBlock.Paragraph).inlines
+
+    assertEquals("b", inlines.filterIsInstance<RichInline.Strikethrough>().single().children.plainText())
+  }
+
+  @Test
   fun readsAFencedCodeBlockWithItsLanguage() {
     val block = MarkdownDocument.parse("```python\nx = 1\n```").single() as RichBlock.CodeBlock
 

@@ -60,6 +60,9 @@ sealed interface RichInline {
 
   data class StrongEmphasis(val children: List<RichInline>) : RichInline
 
+  /** GitHub-flavoured `~~text~~`, which JupyterLab parses under marked's `gfm: true`. */
+  data class Strikethrough(val children: List<RichInline>) : RichInline
+
   data class Code(val code: String) : RichInline
 
   data class Link(val destination: String, val children: List<RichInline>) : RichInline
@@ -78,6 +81,7 @@ fun List<RichInline>.plainText(): String = joinToString("") { inline ->
     is RichInline.Code -> inline.code
     is RichInline.Emphasis -> inline.children.plainText()
     is RichInline.StrongEmphasis -> inline.children.plainText()
+    is RichInline.Strikethrough -> inline.children.plainText()
     is RichInline.Link -> inline.children.plainText()
     RichInline.SoftLineBreak -> " "
     RichInline.HardLineBreak -> "\n"

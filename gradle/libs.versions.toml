@@ -92,6 +92,8 @@ commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" 
 # GitHub-flavoured pipe tables, which JupyterLab parses (marked's `gfm: true`). Released with the
 # core and versioned with it, so it shares the core's ref.
 commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version.ref = "commonmark" }
+# GitHub-flavoured `~~text~~`, the same `gfm: true` and the same release train as the tables.
+commonmark-ext-gfm-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
 # HTML for `text/html` outputs. MIT, pure Java, no runtime dependencies - and its lenient
 # tree builder is the point: a kernel's HTML is whatever a library chose to emit.
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }

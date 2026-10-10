@@ -5,6 +5,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import com.jupydroid.app.markdown.MarkdownDocument
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -20,6 +21,7 @@ class RichInlineStringTest {
     strong = SpanStyle(fontWeight = FontWeight.Bold),
     code = SpanStyle(fontFamily = FontFamily.Monospace, background = Color.Red),
     link = SpanStyle(color = Color.Blue),
+    struck = SpanStyle(textDecoration = TextDecoration.LineThrough),
   )
 
   @Test
@@ -37,6 +39,16 @@ class RichInlineStringTest {
     assertEquals("a b c", built.text)
     val span = built.spanStyles.single()
     assertEquals(FontWeight.Bold, span.item.fontWeight)
+    assertEquals("b", built.text.substring(span.start, span.end))
+  }
+
+  @Test
+  fun strikethroughCoversOnlyTheStruckRun() {
+    val built = MarkdownDocument.parse("a ~~b~~ c").paragraphInlines().toAnnotatedString(styles)
+
+    assertEquals("a b c", built.text)
+    val span = built.spanStyles.single()
+    assertEquals(TextDecoration.LineThrough, span.item.textDecoration)
     assertEquals("b", built.text.substring(span.start, span.end))
   }
 
