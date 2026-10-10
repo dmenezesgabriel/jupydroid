@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 1. Relaunched and reopened, the notebook draws both
+# outputs cut again, read back off the disk: no cell runs in this part, so each full match below is
+# what the kernel produced in part 1 and the file kept. An expansion lasts while its output does,
+# and this one did not outlive the process. The driver reads the saved file after it.
+#
+# TABLET ONLY (SM-X216B): part 1 runs cells.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- scrollUntilVisible:
+    element: "199970 lines hidden"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    text: "199995\n199996\n199997\n199998\n199999\n?"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 06-the-print-is-cut-again-after-a-relaunch
+- scrollUntilVisible:
+    element: "Show more outputs"
+    direction: DOWN
+    timeout: 60000
+- assertVisible:
+    text: "49"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: "50"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 07-the-display-calls-are-cut-again-after-a-relaunch

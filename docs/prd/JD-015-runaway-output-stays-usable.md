@@ -159,7 +159,7 @@ There are no port changes: this is a fold repair and a view.
 - [x] T5b: scrolled mode's tail, settled against a measurement of a scrolled 200k-line print. A scrolled box draws
   the last 5000 lines under the hidden-lines row (`outputTailWindowOf`). On SM-X216B the scrolled 200k-line print's
   longest UI stall fell from 1388 frames (~23 s) to 93 (~1.5 s), and the row's tap draws the rest in ~28 s.
-- [ ] T6: run the demo end to end; write an ADR ("an output is capped in the view, never in the model"); rewrite
+- [x] T6: run the demo end to end; write an ADR ("an output is capped in the view, never in the model"); rewrite
   GAP-115; delete this PRD; ship the backlog row.
 
 ## Out of scope
