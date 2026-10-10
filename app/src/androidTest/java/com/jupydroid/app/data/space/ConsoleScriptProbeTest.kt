@@ -78,12 +78,14 @@ class ConsoleScriptProbeTest {
 
   /**
    * `pkgs/bin` first, so a user's console script shadows the shipped one - the precedence
-   * `~/.local/bin` takes over `/usr/bin` on a desktop, named inside the Space's root.
+   * `~/.local/bin` takes over `/usr/bin` on a desktop, named inside the Space's root. The rest is
+   * the image's own login `PATH` (`etc/profile` in the shipped rootfs), `sbin` entries included,
+   * since `/sbin/apk` resolves through it.
    */
   @Test
   fun theSpacesPathPutsTheUsersScriptsFirst() {
     val path = runInSpace(SPACE_SHELL, "-c", "echo \$PATH").output.trim()
 
-    assertEquals("/pkgs/bin:/usr/local/bin:/usr/bin:/bin", path)
+    assertEquals("/pkgs/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin", path)
   }
 }
