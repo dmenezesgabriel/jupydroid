@@ -270,8 +270,10 @@ private fun ChunkedText(text: AnnotatedString, color: Color) {
 private fun OutputImage(output: RenderedOutput.Image) {
   // Decoded here rather than in RenderedOutput so that stays free of Android types and
   // unit-testable; remembered by content so scrolling does not re-decode every frame.
+  // `BitmapFactory` sniffs the format from the header, and decodes a GIF's first frame only - an
+  // animated GIF draws still, where JupyterLab's `<img>` would play it.
   val bitmap = remember(output) {
-    BitmapFactory.decodeByteArray(output.png, 0, output.png.size)?.asImageBitmap()
+    BitmapFactory.decodeByteArray(output.encoded, 0, output.encoded.size)?.asImageBitmap()
   } ?: return
   Image(
     bitmap = bitmap,

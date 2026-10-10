@@ -19,11 +19,12 @@ sealed interface RenderedOutput {
    */
   data class Text(val text: String, val isError: Boolean, val runs: List<SgrRun> = emptyList()) : RenderedOutput
 
-  data class Image(val png: ByteArray) : RenderedOutput {
+  /** [encoded] is the file's own bytes in whichever of the image mimes it came as; the decoder reads its header. */
+  data class Image(val encoded: ByteArray) : RenderedOutput {
     // ByteArray identity would make two identical images unequal, and Compose would redraw.
-    override fun equals(other: Any?): Boolean = other is Image && png.contentEquals(other.png)
+    override fun equals(other: Any?): Boolean = other is Image && encoded.contentEquals(other.encoded)
 
-    override fun hashCode(): Int = png.contentHashCode()
+    override fun hashCode(): Int = encoded.contentHashCode()
   }
 
   /** Parsed markup - `text/html` today, and whatever else parses to the same model later. */
@@ -57,10 +58,12 @@ private fun CellOutput.Error.readable(): String = traceback.takeIf { it.isNotEmp
  * The best form the bundle offers, richest first, then the mime types themselves as a last
  * resort so an unrenderable output says what it was rather than appearing blank.
  *
- * The order is JupyterLab's, read off `defaultRank` rather than guessed: `text/html` 50,
- * `image/png` 90, `text/plain` 120, walked ascending and first-present wins
- * (`packages/rendermime/src/factories.ts`; `registry.ts:105`). Only the three we can draw are
- * listed - a registry holds the types it has a renderer for, and the rest fall through.
+ * The order is JupyterLab's, read off `defaultRank` rather than guessed: `text/html` 50, the five
+ * image mimes 90, `text/plain` 120, walked ascending and first-present wins; a tie goes to the
+ * type registered first, which for the images is their order in `imageRendererFactory`
+ * (jupyterlab@7f0e690 packages/rendermime/src/factories.ts, `registry.ts` `sortedTypes`). Only the
+ * types we can draw are listed - a registry holds the types it has a renderer for, and the rest
+ * fall through.
  *
  * A type that is present but unusable - a truncated image, markup that parses to nothing -
  * keeps looking rather than rendering blank, which is the one thing JupyterLab's registry
@@ -70,7 +73,10 @@ private fun MimeBundle.renderRichest(): RenderedOutput =
   RANKED_MIME_TYPES.firstNotNullOfOrNull { mime -> get(mime)?.asText()?.let { renderAs(mime, it) } }
     ?: RenderedOutput.Text(keys.joinToString(), isError = false)
 
-private val RANKED_MIME_TYPES = listOf("text/html", "image/png", "text/plain")
+/** `imageRendererFactory`'s mimes, in its own order: one rank, so the order is the tie-break. */
+private val IMAGE_MIME_TYPES = listOf("image/bmp", "image/png", "image/jpeg", "image/gif", "image/webp")
+
+private val RANKED_MIME_TYPES = listOf("text/html") + IMAGE_MIME_TYPES + "text/plain"
 
 /**
  * Null for a payload that is not a string, which is a real answer rather than a guard: every
@@ -82,7 +88,7 @@ private fun JsonElement.asText(): String? = (this as? JsonPrimitive)?.takeIf { i
 
 private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when (mimeType) {
   "text/html" -> HtmlDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)
-  "image/png" -> payload.decodedPng()?.let(RenderedOutput::Image)
+  in IMAGE_MIME_TYPES -> payload.decodedBase64()?.let(RenderedOutput::Image)
   else -> colouredText(payload, isError = false)
 }
 
@@ -93,7 +99,7 @@ private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when 
  * invalid characters, so it happily "decodes" text that is not base64 at all, and the
  * fallback would never fire. nbformat wraps its base64 across lines, hence the stripping.
  */
-private fun String.decodedPng(): ByteArray? = filterNot { it.isWhitespace() }
+private fun String.decodedBase64(): ByteArray? = filterNot { it.isWhitespace() }
   .let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
 
 /** [raw] without its escapes or trailing whitespace, and the colours those escapes asked for. */

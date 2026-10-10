@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.PANDAS_DATAFRAME_HTML
 import com.jupydroid.app.mimeBundleOf
@@ -12,6 +13,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.Base64
 
 class RenderedOutputTest {
   private val red = CellStyle.encode(1, CellStyle.COLOR_INDEX_BACKGROUND, 0)
@@ -97,6 +99,57 @@ class RenderedOutputTest {
     val rendered = output.render()
 
     assertTrue("expected an image, got $rendered", rendered is RenderedOutput.Image)
+  }
+
+  /**
+   * `IPython.display.Image` sends JPEG, GIF and WebP under their own mimes, and a raw display can
+   * send BMP; each one's `text/plain` is `<IPython.core.display.Image object>`, which is what drew.
+   */
+  @Test
+  fun render_drawsEveryImageMimeJupyterLabDraws() {
+    val payloads = mapOf(
+      "image/jpeg" to ONE_PIXEL_JPEG,
+      "image/gif" to ONE_PIXEL_GIF,
+      "image/webp" to ONE_PIXEL_WEBP,
+      "image/bmp" to ONE_PIXEL_BMP,
+    )
+
+    payloads.forEach { (mime, payload) ->
+      val rendered = imageOf(mimeBundleOf("text/plain" to "<IPython.core.display.Image object>", mime to payload))
+      assertTrue("expected $mime decoded, got $rendered", rendered.encoded.contentEquals(base64(payload)))
+    }
+  }
+
+  /**
+   * Every image mime ranks 90, and JupyterLab breaks the tie by the order its factory lists them:
+   * bmp, png, jpeg, gif, webp (jupyterlab@7f0e690 packages/rendermime/src/factories.ts,
+   * `registry.ts` `sortedTypes`).
+   */
+  @Test
+  fun render_breaksAnImageTieInTheOrderJupyterLabRegistersThem() {
+    val bmpOverPng = imageOf(mimeBundleOf("image/png" to ONE_PIXEL_PNG, "image/bmp" to ONE_PIXEL_BMP))
+    val pngOverJpeg = imageOf(mimeBundleOf("image/jpeg" to ONE_PIXEL_JPEG, "image/png" to ONE_PIXEL_PNG))
+    val jpegOverGif = imageOf(mimeBundleOf("image/gif" to ONE_PIXEL_GIF, "image/jpeg" to ONE_PIXEL_JPEG))
+    val gifOverWebp = imageOf(mimeBundleOf("image/webp" to ONE_PIXEL_WEBP, "image/gif" to ONE_PIXEL_GIF))
+
+    assertTrue("bmp should beat png", bmpOverPng.encoded.contentEquals(base64(ONE_PIXEL_BMP)))
+    assertTrue("png should beat jpeg", pngOverJpeg.encoded.contentEquals(base64(ONE_PIXEL_PNG)))
+    assertTrue("jpeg should beat gif", jpegOverGif.encoded.contentEquals(base64(ONE_PIXEL_JPEG)))
+    assertTrue("gif should beat webp", gifOverWebp.encoded.contentEquals(base64(ONE_PIXEL_GIF)))
+  }
+
+  @Test
+  fun render_prefersHtmlOverAJpeg() {
+    val output = CellOutput.DisplayData(mimeBundleOf("image/jpeg" to ONE_PIXEL_JPEG, "text/html" to "<p>a table</p>"))
+
+    assertTrue("expected a document, got ${output.render()}", output.render() is RenderedOutput.Document)
+  }
+
+  @Test
+  fun render_fallsBackToTextWhenAJpegCannotBeDecoded() {
+    val output = CellOutput.DisplayData(mimeBundleOf("text/plain" to "<Image>", "image/jpeg" to "not base64 at all!!"))
+
+    assertEquals("<Image>", text(output).text)
   }
 
   /**
@@ -195,9 +248,30 @@ class RenderedOutputTest {
 
   private fun text(output: CellOutput): RenderedOutput.Text = output.render() as RenderedOutput.Text
 
+  private fun imageOf(bundle: MimeBundle): RenderedOutput.Image =
+    CellOutput.DisplayData(bundle).render() as RenderedOutput.Image
+
+  private fun base64(payload: String): ByteArray = Base64.getDecoder().decode(payload)
+
   private companion object {
     /** A real 1x1 PNG, so the decoder is exercised rather than mocked. */
     const val ONE_PIXEL_PNG =
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+
+    // Real 1x1 images, each written by Pillow 12.1.1 in its own format.
+    const val ONE_PIXEL_JPEG =
+      "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAx" +
+        "NDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy" +
+        "MjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUF" +
+        "BAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVW" +
+        "V1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi" +
+        "4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAEC" +
+        "AxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVm" +
+        "Z2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq" +
+        "8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDi6KKK+ZP3E//Z"
+    const val ONE_PIXEL_GIF = "R0lGODdhAQABAIEAAP8AAAAAAAAAAAAAACwAAAAAAQABAAAIBAABBAQAOw=="
+    const val ONE_PIXEL_WEBP =
+      "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoBAAEAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA="
+    const val ONE_PIXEL_BMP = "Qk06AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABgAAAAAAAQAAADEDgAAxA4AAAAAAAAAAAAAAAD/AA=="
   }
 }
