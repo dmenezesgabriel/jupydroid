@@ -1,11 +1,14 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.html.HtmlDocument
+import com.jupydroid.app.markdown.MarkdownDocument
 import com.jupydroid.app.richtext.RichBlock
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -14,7 +17,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * `text/html`: whether a table is laid out as a grid is not a question any JVM test
+ * `text/html` and markdown: whether a table is laid out as a grid is not a question any JVM test
  * can answer - `HtmlDocumentTest` proves the model, and only a measured layout proves the
  * columns. Unlike a popup's, this geometry *is* observable: the table shares the test's window.
  */
@@ -75,5 +78,48 @@ class RichTableTest {
     )
   }
 
+  /**
+   * A cell's text fills its slot, so its node's bounds are the column's either way; where the line
+   * sits *inside* that box is the alignment, and only the text layout knows it. The column is
+   * widened by a longer cell below, so each short header has room to be placed in.
+   */
+  @Test
+  fun placesEachMarkdownCellWhereItsColumnSays() {
+    compose.setContent {
+      RichTable(markdownTableOf("| l | c | r |\n|:--|:-:|--:|\n| wide value | wide value | wide value |"))
+    }
+
+    val (left, centre, right) = listOf("l", "c", "r").map { lineOf(it) }
+    assertEquals("start: no gap before the line", 0f, left.before, 0.5f)
+    assertEquals("centre: as much gap before as after", centre.before, centre.after, 1f)
+    assertEquals("end: no gap after the line", 0f, right.after, 0.5f)
+  }
+
+  /** `base.css` right-aligns an HTML table's cells, which the pandas path depends on. */
+  @Test
+  fun placesAnHtmlCellAtTheEnd() {
+    compose.setContent {
+      RichTable(tableOf("<table><tr><td>x</td></tr><tr><td>a much longer value</td></tr></table>"))
+    }
+
+    val line = lineOf("x")
+    assertEquals(0f, line.after, 0.5f)
+    assertTrue("expected room before 'x', got $line", line.before > 0f)
+  }
+
+  /** The gap between the text box's edges and its one line, in px. */
+  private data class LineGaps(val before: Float, val after: Float)
+
+  private fun lineOf(text: String): LineGaps {
+    val layouts = mutableListOf<TextLayoutResult>()
+    compose.onNodeWithText(text).fetchSemanticsNode()
+      .config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+    val layout = layouts.single()
+    return LineGaps(layout.getLineLeft(0), layout.size.width - layout.getLineRight(0))
+  }
+
   private fun tableOf(html: String): RichBlock.Table = HtmlDocument.parse(html).single() as RichBlock.Table
+
+  private fun markdownTableOf(source: String): RichBlock.Table =
+    MarkdownDocument.parse(source).single() as RichBlock.Table
 }

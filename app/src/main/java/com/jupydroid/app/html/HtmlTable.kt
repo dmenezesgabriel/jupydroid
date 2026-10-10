@@ -1,5 +1,6 @@
 package com.jupydroid.app.html
 
+import com.jupydroid.app.richtext.CellAlignment
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.TableCell
 import org.jsoup.nodes.Element
@@ -24,7 +25,7 @@ private fun Element.tableRows(): List<Element> = children()
 
 private fun Element.cells(): List<TableCell> = children()
   .filter { it.tagName() in CELL_TAGS }
-  .map { TableCell(it.childInlines(), isHeader = it.tagName() == "th") }
+  .map { TableCell(it.childInlines(), isHeader = it.tagName() == "th", HTML_CELL_ALIGNMENT) }
 
 /**
  * A grid is only a grid if every row is the same length. Ragged rows come from hand-written
@@ -35,7 +36,14 @@ private fun List<List<TableCell>>.padded(): List<List<TableCell>> {
   return map { row -> row + List(columns - row.size) { EMPTY_CELL } }
 }
 
-private val EMPTY_CELL = TableCell(inlines = emptyList(), isHeader = false)
+/**
+ * Every cell of an HTML output, header and body alike, because an output's columns are usually
+ * numbers: `base.css` right-aligns `td`, `th` and `tr` outside a markdown render
+ * (jupyterlab@7f0e690 packages/rendermime/style/base.css, `:not(.jp-RenderedMarkdown)`).
+ */
+private val HTML_CELL_ALIGNMENT = CellAlignment.End
+
+private val EMPTY_CELL = TableCell(inlines = emptyList(), isHeader = false, HTML_CELL_ALIGNMENT)
 
 private val ROW_GROUP_TAGS = setOf("thead", "tbody", "tfoot")
 

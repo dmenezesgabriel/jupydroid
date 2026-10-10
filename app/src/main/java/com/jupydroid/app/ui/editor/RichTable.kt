@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.richtext.CellAlignment
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.TableCell
 import com.jupydroid.app.richtext.toAnnotatedString
@@ -31,9 +32,9 @@ import com.jupydroid.app.theme.Spacing
  * Draws a table the way Jupyter draws one, read off its stylesheet rather than invented:
  * no gridlines at all (`.jp-RenderedHTMLCommon table { border: none }`), a rule under the
  * header cells (`thead { border-bottom }`), striped body rows (`tbody tr:nth-child(odd|even)`),
- * bold headers, `0.5em` of padding, and cells aligned right - which is what JupyterLab does
- * for an output table, since its columns are usually numbers
- * (`packages/rendermime/style/base.css:426-476`).
+ * bold headers and `0.5em` of padding (`packages/rendermime/style/base.css:426-476`). Where each
+ * cell's text sits is the cell's own [TableCell.alignment], because JupyterLab right-aligns an HTML
+ * output's cells and leaves a markdown table's to its delimiter row.
  *
  * It scrolls sideways rather than shrinking to fit, matching `.jp-OutputArea-output`'s
  * `overflow-x: auto` and the same choice already made for a code block: a squeezed column of
@@ -126,9 +127,15 @@ private fun CellText(cell: TableCell, background: Color, rule: Color, underlined
     style = MaterialTheme.typography.bodySmall,
     color = MaterialTheme.colorScheme.onSurface,
     fontWeight = if (cell.isHeader) FontWeight.Bold else null,
-    textAlign = TextAlign.End,
+    textAlign = cell.alignment.asTextAlign(),
     modifier = Modifier.background(background).then(underline).padding(CELL_PADDING),
   )
+}
+
+private fun CellAlignment.asTextAlign(): TextAlign = when (this) {
+  CellAlignment.Start -> TextAlign.Start
+  CellAlignment.Center -> TextAlign.Center
+  CellAlignment.End -> TextAlign.End
 }
 
 private fun DrawScope.drawHeaderRule(color: Color) {

@@ -39,8 +39,18 @@ sealed interface RichBlock {
   data class Table(val rows: List<List<TableCell>>) : RichBlock
 }
 
-/** A cell holds inlines and never blocks, which is Jewel's rule for the same model. */
-data class TableCell(val inlines: List<RichInline>, val isHeader: Boolean)
+/**
+ * A cell holds inlines and never blocks, which is Jewel's rule for the same model.
+ *
+ * [alignment] is the cell's own and never left to the renderer, because the right answer depends on
+ * where the table came from, which a renderer cannot see: `base.css` right-aligns every cell of an
+ * HTML output and leaves a markdown table to its delimiter row
+ * (jupyterlab@7f0e690 packages/rendermime/style/base.css, `:not(.jp-RenderedMarkdown)`).
+ */
+data class TableCell(val inlines: List<RichInline>, val isHeader: Boolean, val alignment: CellAlignment)
+
+/** Where a cell's text sits across its column. */
+enum class CellAlignment { Start, Center, End }
 
 /** The styled runs inside a block. Nested, so `**bold with *italic* inside**` survives. */
 sealed interface RichInline {

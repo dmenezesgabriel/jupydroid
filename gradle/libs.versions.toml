@@ -89,6 +89,9 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 # Markdown for the cells' prose. BSD-2-Clause, pure Java, and its AST is walked directly -
 # org.commonmark.renderer is a separate package we never touch, so no HTML and no WebView.
 commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+# GitHub-flavoured pipe tables, which JupyterLab parses (marked's `gfm: true`). Released with the
+# core and versioned with it, so it shares the core's ref.
+commonmark-ext-gfm-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version.ref = "commonmark" }
 # HTML for `text/html` outputs. MIT, pure Java, no runtime dependencies - and its lenient
 # tree builder is the point: a kernel's HTML is whatever a library chose to emit.
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }

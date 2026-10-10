@@ -2,6 +2,8 @@ package com.jupydroid.app.markdown
 
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
+import org.commonmark.ext.gfm.tables.TableBlock
+import org.commonmark.ext.gfm.tables.TablesExtension
 import org.commonmark.node.BlockQuote
 import org.commonmark.node.BulletList
 import org.commonmark.node.Code
@@ -34,7 +36,7 @@ import org.commonmark.parser.Parser
  * ```
  */
 object MarkdownDocument {
-  private val parser: Parser = Parser.builder().build()
+  private val parser: Parser = Parser.builder().extensions(listOf(TablesExtension.create())).build()
 
   fun parse(source: String): List<RichBlock> = parser.parse(source).blocks()
 
@@ -93,6 +95,7 @@ object MarkdownDocument {
     is BulletList -> RichBlock.ListBlock(ordered = false, startFrom = 1, items = items())
     is OrderedList -> RichBlock.ListBlock(ordered = true, startFrom = startNumber, items = items())
     is ThematicBreak -> RichBlock.ThematicBreak
+    is TableBlock -> asTable { it.inlines() }
     // Anything else - HTML blocks, link reference definitions - has no place in a notebook cell
     // and is dropped rather than shown as its own markup.
     else -> null
@@ -113,7 +116,4 @@ object MarkdownDocument {
     is HardLineBreak -> RichInline.HardLineBreak
     else -> null
   }
-
-  /** commonmark exposes children as a sibling chain, not a collection. */
-  private fun Node.children(): List<Node> = generateSequence(firstChild) { it.next }.toList()
 }

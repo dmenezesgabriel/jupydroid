@@ -164,6 +164,15 @@ class RenderedOutputTest {
     assertEquals("Title", (blocks.first() as RichBlock.Heading).inlines.plainText())
   }
 
+  @Test
+  fun render_drawsAMarkdownTableAsATable() {
+    val output = CellOutput.DisplayData(mimeBundleOf("text/markdown" to "| a | b |\n|:--|--:|\n| x | 1 |"))
+
+    val blocks = (output.render() as RenderedOutput.Document).blocks
+
+    assertTrue("got $blocks", blocks.single() is RichBlock.Table)
+  }
+
   /** `text/html` ranks 50 and `text/markdown` 60 (jupyterlab@7f0e690 packages/rendermime/src/factories.ts). */
   @Test
   fun render_prefersHtmlOverMarkdown() {

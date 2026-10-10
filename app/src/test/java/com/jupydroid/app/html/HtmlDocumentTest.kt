@@ -1,5 +1,6 @@
 package com.jupydroid.app.html
 
+import com.jupydroid.app.richtext.CellAlignment
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
 import com.jupydroid.app.richtext.plainText
@@ -196,6 +197,18 @@ class HtmlDocumentTest {
 
     assertEquals(listOf(2, 2), table.rows.map { it.size })
     assertEquals("", table.rows[1][1].inlines.plainText())
+  }
+
+  /**
+   * Right, header and padding alike: `base.css` right-aligns `td`, `th` and `tr` outside a
+   * markdown render (jupyterlab@7f0e690 packages/rendermime/style/base.css, `/* Tables */`).
+   */
+  @Test
+  fun alignsEveryCellOfAnHtmlTableToTheEnd() {
+    val table = HtmlDocument.parse("<table><tr><th>h</th><th>i</th></tr><tr><td>v</td></tr></table>")
+      .single() as RichBlock.Table
+
+    assertEquals(setOf(CellAlignment.End), table.rows.flatten().map { it.alignment }.toSet())
   }
 
   /** Nothing to draw is better than an empty frame, and lets the output fall back to its text. */

@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.richtext.CellAlignment
 import com.jupydroid.app.richtext.RichInline
 import com.jupydroid.app.richtext.TableCell
 import org.junit.Assert.assertEquals
@@ -33,7 +34,11 @@ class TableStripesTest {
   /** A pandas row leads with a `<th>` index cell, which must not make the row a header row. */
   @Test
   fun aRowWithOneHeaderCellIsStillABodyRow() {
-    val indexed = listOf(TableCell(text("0"), isHeader = true), TableCell(text("1"), isHeader = false))
+    val indexed =
+      listOf(
+        TableCell(text("0"), isHeader = true, CellAlignment.End),
+        TableCell(text("1"), isHeader = false, CellAlignment.End),
+      )
     val rows = listOf(headerRow("", "a"), indexed, indexed)
 
     assertEquals(setOf(2), rows.stripedRows())
@@ -44,9 +49,9 @@ class TableStripesTest {
     assertEquals(emptySet<Int>(), listOf(headerRow("a", "b")).stripedRows())
   }
 
-  private fun headerRow(vararg cells: String) = cells.map { TableCell(text(it), isHeader = true) }
+  private fun headerRow(vararg cells: String) = cells.map { TableCell(text(it), isHeader = true, CellAlignment.End) }
 
-  private fun bodyRow(vararg cells: String) = cells.map { TableCell(text(it), isHeader = false) }
+  private fun bodyRow(vararg cells: String) = cells.map { TableCell(text(it), isHeader = false, CellAlignment.End) }
 
   private fun text(value: String) = listOf(RichInline.Text(value))
 }
