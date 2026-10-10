@@ -1520,16 +1520,6 @@ input side only — `executionLabel`'s `[n]:` — while the result's own number 
 `app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt` never reads it). The repair
 is a prompt beside each execute-result row; the count already arrives.
 
-### GAP-115 — A runaway cell's output is unbounded
-
-`maxNumberOutputs` (500 by default) wraps a newly added output in `TrimmedOutputs` once the model
-is past the cap, and `setMaxNumberOutputs` re-trims on change
-(`jupyterlab/packages/outputarea/src/{model,widget}.ts`). Ours has no bound: `afterOutput`
-appends for as long as the kernel sends, and `CellOutputsView`'s scroll container grows with it —
-`while True: print()` fills the editor with one row per line until the device says otherwise. The
-repair is a cap in `afterOutput` — the same place the stream fold, `withOutputFolded`, already runs — plus the
-"outputs exceeded" surface the cap needs.
-
 ### GAP-116 — An execute reply's `payload` never lands
 
 A reply carrying `payload` entries routes each by `source` — `page` opens the pager for `%page`
