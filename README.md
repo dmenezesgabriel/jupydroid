@@ -45,7 +45,7 @@ greps. Documents are separated by **lifetime**, not by topic
 | `docs/prd/` | how to build one item; written when it is picked up, deleted when it ships | ephemeral |
 | [`docs/research/`](docs/research/) | measured investigations, and questions closed so nobody re-opens them | durable |
 | [`prompt-execution.md`](prompt-execution.md) | the procedure a clean session follows, in order | durable |
-| [`AGENTS.md`](AGENTS.md) | how work is done: the working agreement, per-step procedure, tooling. `CLAUDE.md` points here | durable |
+| [`AGENTS.md`](AGENTS.md) | how work is done: the working agreement, per-step procedure, tooling. Every agent, Claude Code included, reads it | durable |
 | `evidence/<step>/` | the screenshots, snapshots and logs a step closed on | durable |
 
 ## Build
