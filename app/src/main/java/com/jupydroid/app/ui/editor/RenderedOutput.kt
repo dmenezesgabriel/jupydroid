@@ -4,6 +4,7 @@ import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.MimeBundle
 import com.jupydroid.app.domain.model.StreamName
 import com.jupydroid.app.html.HtmlDocument
+import com.jupydroid.app.markdown.MarkdownDocument
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.terminal.SgrRun
 import com.jupydroid.app.terminal.SgrText
@@ -33,7 +34,7 @@ sealed interface RenderedOutput {
     override fun hashCode(): Int = 31 * encoded.contentHashCode() + (width ?: 0)
   }
 
-  /** Parsed markup - `text/html` today, and whatever else parses to the same model later. */
+  /** Parsed markup - `text/html` or `text/markdown`, both parsed to the same model. */
   data class Document(val blocks: List<RichBlock>) : RenderedOutput
 }
 
@@ -64,12 +65,12 @@ private fun CellOutput.Error.readable(): String = traceback.takeIf { it.isNotEmp
  * The best form the bundle offers, richest first, then the mime types themselves as a last
  * resort so an unrenderable output says what it was rather than appearing blank.
  *
- * The order is JupyterLab's, read off `defaultRank` rather than guessed: `text/html` 50, the five
- * image mimes 90, `text/plain` 120, walked ascending and first-present wins; a tie goes to the
- * type registered first, which for the images is their order in `imageRendererFactory`
- * (jupyterlab@7f0e690 packages/rendermime/src/factories.ts, `registry.ts` `sortedTypes`). Only the
- * types we can draw are listed - a registry holds the types it has a renderer for, and the rest
- * fall through.
+ * The order is JupyterLab's, read off `defaultRank` rather than guessed: `text/html` 50,
+ * `text/markdown` 60, the five image mimes 90, `text/plain` 120, walked ascending and first-present
+ * wins; a tie goes to the type registered first, which for the images is their order in
+ * `imageRendererFactory` (jupyterlab@7f0e690 packages/rendermime/src/factories.ts, `registry.ts`
+ * `sortedTypes`). Only the types we can draw are listed - a registry holds the types it has a
+ * renderer for, and the rest fall through.
  *
  * A type that is present but unusable - a truncated image, markup that parses to nothing -
  * keeps looking rather than rendering blank, which is the one thing JupyterLab's registry
@@ -82,7 +83,7 @@ private fun MimeBundle.renderRichest(metadata: JsonObject): RenderedOutput =
 /** `imageRendererFactory`'s mimes, in its own order: one rank, so the order is the tie-break. */
 private val IMAGE_MIME_TYPES = listOf("image/bmp", "image/png", "image/jpeg", "image/gif", "image/webp")
 
-private val RANKED_MIME_TYPES = listOf("text/html") + IMAGE_MIME_TYPES + "text/plain"
+private val RANKED_MIME_TYPES = listOf("text/html", "text/markdown") + IMAGE_MIME_TYPES + "text/plain"
 
 /**
  * Null for a payload that is not a string, which is a real answer rather than a guard: every
@@ -94,6 +95,7 @@ private fun JsonElement.asText(): String? = (this as? JsonPrimitive)?.takeIf { i
 
 private fun renderAs(mimeType: String, payload: String, metadata: JsonObject): RenderedOutput? = when (mimeType) {
   "text/html" -> HtmlDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)
+  "text/markdown" -> MarkdownDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)
   in IMAGE_MIME_TYPES -> payload.decodedBase64()?.let { RenderedOutput.Image(it, metadata.imageWidthOf(mimeType)) }
   else -> colouredText(payload, isError = false)
 }

@@ -87,9 +87,8 @@ fun EditorUiState.tableOfContentsHeadings(includeOutput: Boolean = true): List<T
  * `CodeCell.getHeadings` walks the cell's outputs and reads the HTML or Markdown ones for
  * `<h1>`-`<h6>` (`packages/cells/src/widget.ts:1312-1370`, over `getHTMLHeadings`). Ours reads
  * whatever [CellOutput.render] made of the output instead, which narrows it to the mime types this
- * app actually draws: an entry then always points at something that is on screen. `text/markdown`
- * is not among them because nothing renders it here yet - an entry for prose shown as plain text
- * would be a promise the output does not keep.
+ * app actually draws: an entry then always points at something that is on screen, and an output
+ * that falls back to plain text has no heading to offer.
  */
 private fun EditorUiState.outputHeadingsOf(cellId: String): List<TocHeading> =
   outputs[cellId].orEmpty().flatMapIndexed { at, output ->

@@ -106,6 +106,20 @@ class TableOfContentsHeadingsTest {
     )
   }
 
+  /** `getHeadings` reads Markdown outputs as well as HTML ones (`packages/cells/src/widget.ts`). */
+  @Test
+  fun aCodeCellsMarkdownHeadingIsAnEntry() {
+    val printed = EditorUiState(
+      cells = listOf(code("out")),
+      outputs = mapOf(
+        "out" to listOf(CellOutput.DisplayData(mimeBundle = mapOf("text/markdown" to JsonPrimitive("## Printed")))),
+      ),
+      loaded = true,
+    )
+
+    assertEquals(listOf(TocHeading("out", 2, "Printed", key = "out#0.0")), printed.tableOfContentsHeadings())
+  }
+
   /** `includeOutput` off leaves the outputs out entirely, which is the command's whole job. */
   @Test
   fun withOutputHeadingsOffOnlyTheSourceIsRead() {

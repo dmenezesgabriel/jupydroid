@@ -148,6 +148,48 @@ class RenderedOutputTest {
     assertTrue("expected a document, got ${output.render()}", output.render() is RenderedOutput.Document)
   }
 
+  /**
+   * `IPython.display.Markdown`'s `text/plain` is its repr, `<IPython.core.display.Markdown object>`
+   * (the shipped rootfs's `usr/lib/python3.12/site-packages/IPython/core/display.py`), so the
+   * markdown is the only form that says anything.
+   */
+  @Test
+  fun render_drawsMarkdownAsADocument() {
+    val output = CellOutput.DisplayData(
+      mimeBundleOf("text/plain" to "<IPython.core.display.Markdown object>", "text/markdown" to "# Title\n**bold**"),
+    )
+
+    val blocks = (output.render() as RenderedOutput.Document).blocks
+
+    assertEquals("Title", (blocks.first() as RichBlock.Heading).inlines.plainText())
+  }
+
+  /** `text/html` ranks 50 and `text/markdown` 60 (jupyterlab@7f0e690 packages/rendermime/src/factories.ts). */
+  @Test
+  fun render_prefersHtmlOverMarkdown() {
+    val output = CellOutput.DisplayData(
+      mimeBundleOf("text/markdown" to "# From markdown", "text/html" to "<h1>From html</h1>"),
+    )
+
+    val heading = (output.render() as RenderedOutput.Document).blocks.single() as RichBlock.Heading
+    assertEquals("From html", heading.inlines.plainText())
+  }
+
+  /** `text/markdown` ranks 60 and every image 90. */
+  @Test
+  fun render_prefersMarkdownOverAnImage() {
+    val output = CellOutput.DisplayData(mimeBundleOf("image/png" to ONE_PIXEL_PNG, "text/markdown" to "caption"))
+
+    assertTrue("expected a document, got ${output.render()}", output.render() is RenderedOutput.Document)
+  }
+
+  @Test
+  fun render_fallsBackToTextWhenMarkdownIsBlank() {
+    val output = CellOutput.DisplayData(mimeBundleOf("text/plain" to "<Markdown>", "text/markdown" to "  \n"))
+
+    assertEquals("<Markdown>", text(output).text)
+  }
+
   @Test
   fun render_fallsBackToTextWhenAJpegCannotBeDecoded() {
     val output = CellOutput.DisplayData(mimeBundleOf("text/plain" to "<Image>", "image/jpeg" to "not base64 at all!!"))
