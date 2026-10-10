@@ -2,9 +2,12 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
@@ -18,6 +21,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -68,6 +72,47 @@ class MarkdownCellTest {
     compose.onNodeWithContentDescription(RENDERED_MARKDOWN).performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { asked }
+  }
+
+  /**
+   * A link's tap is the link's own: it follows the destination and leaves the cell rendered.
+   *
+   * The unmerged tree, because the cell is one clickable that merges what it holds: merged, the
+   * node carrying "Jupyter" is the whole row and its centre is empty space beside the link. The
+   * paragraph's own node is as wide as its text, which here is the link and nothing else.
+   */
+  @Test
+  fun tappingALinkFollowsItAndLeavesTheCellRendered() {
+    var asked = false
+    val followed = RecordingUriHandler()
+    compose.setContent {
+      CompositionLocalProvider(LocalUriHandler provides followed) {
+        MarkdownCell(rememberTextFieldState(JUPYTER_LINK), JUPYTER_LINK, rendered = true, { asked = true }, {})
+      }
+    }
+
+    compose.onNodeWithText("Jupyter", useUnmergedTree = true).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { followed.opened == listOf("https://jupyter.org") }
+    assertFalse("a link's tap must not open the cell's editor", asked)
+  }
+
+  /** The other half: text that is not a link still opens the editor, beside a link or not. */
+  @Test
+  fun tappingBesideALinkStillAsksForTheEditor() {
+    var asked = false
+    val followed = RecordingUriHandler()
+    val source = "$JUPYTER_LINK\n\nplain words"
+    compose.setContent {
+      CompositionLocalProvider(LocalUriHandler provides followed) {
+        MarkdownCell(rememberTextFieldState(source), source, rendered = true, { asked = true }, {})
+      }
+    }
+
+    compose.onNodeWithText("plain words").performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { asked }
+    assertEquals(emptyList<String>(), followed.opened)
   }
 
   /**
@@ -390,5 +435,19 @@ class MarkdownCellTest {
     compose.onNodeWithContentDescription(COLLAPSE_HEADING).performClick()
 
     assertEquals(1, toggles)
+  }
+}
+
+private const val JUPYTER_LINK = "[Jupyter](https://jupyter.org)"
+
+/** A [UriHandler] that keeps what a tapped link asked it to open, and opens none of it. */
+private class RecordingUriHandler : UriHandler {
+  private val asked = mutableListOf<String>()
+
+  /** Every `openUri` so far, in order. */
+  val opened: List<String> get() = asked.toList()
+
+  override fun openUri(uri: String) {
+    asked += uri
   }
 }

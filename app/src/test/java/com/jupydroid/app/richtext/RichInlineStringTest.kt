@@ -1,6 +1,7 @@
 package com.jupydroid.app.richtext
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
@@ -80,13 +81,14 @@ class RichInlineStringTest {
   }
 
   @Test
-  fun aLinkShowsItsTextAndCarriesItsDestination() {
+  fun aLinkShowsItsTextAndCanBeTappedToItsDestination() {
     val built = MarkdownDocument.parse("see [docs](https://x.dev)").paragraphInlines().toAnnotatedString(styles)
 
     assertEquals("see docs", built.text)
-    assertEquals(Color.Blue, built.spanStyles.single().item.color)
-    val link = built.getStringAnnotations(RICH_LINK_TAG, 0, built.length).single()
-    assertEquals("https://x.dev", link.item)
+    val link = built.getLinkAnnotations(0, built.length).single()
+    val url = link.item as LinkAnnotation.Url
+    assertEquals("https://x.dev", url.url)
+    assertEquals(Color.Blue, url.styles?.style?.color)
     assertEquals("docs", built.text.substring(link.start, link.end))
   }
 

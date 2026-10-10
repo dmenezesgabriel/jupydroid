@@ -1,12 +1,12 @@
 package com.jupydroid.app.richtext
 
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
-
-/** Where a link's destination is stashed, so a tap can find it without re-parsing. */
-const val RICH_LINK_TAG = "rich-link"
 
 /** What each inline mark is painted with. Passed in so this stays testable off a device. */
 data class RichInlineStyles(
@@ -50,8 +50,13 @@ private fun AnnotatedString.Builder.appendInlines(inlines: List<RichInline>, sty
   }
 }
 
+/**
+ * A link is a [LinkAnnotation.Url], which a `Text` makes tappable by itself and hands to
+ * `LocalUriHandler` - so the tap is the link's own and whatever the text sits in keeps the rest.
+ * The destination is carried as written; judging it is the handler's.
+ */
 private fun AnnotatedString.Builder.appendLink(link: RichInline.Link, styles: RichInlineStyles) {
-  val start = length
-  withStyle(styles.link) { appendInlines(link.children, styles) }
-  addStringAnnotation(RICH_LINK_TAG, link.destination, start, length)
+  withLink(LinkAnnotation.Url(link.destination, TextLinkStyles(styles.link))) {
+    appendInlines(link.children, styles)
+  }
 }

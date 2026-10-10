@@ -39,11 +39,13 @@ class MainActivity : ComponentActivity() {
       val themeSettings by appContainer.themeSettings.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
       JupyterDroidTheme(darkTheme = themeSettings.override.resolvesToDark(isSystemInDarkTheme())) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-          MainNavigation(
-            appContainer = appContainer,
-            importTitle = importTitle,
-            onImportConsumed = { importTitle = null },
-          )
+          RenderedLinksFollowed(appContainer.externalLinkOpener) {
+            MainNavigation(
+              appContainer = appContainer,
+              importTitle = importTitle,
+              onImportConsumed = { importTitle = null },
+            )
+          }
         }
       }
     }
