@@ -1287,18 +1287,6 @@ mis-declared monospace - drifts ink and cells apart. `CodeText` measures honestl
 this is a dormant rendering risk rather than a visible wrongness; the repair is the same
 per-run measure-and-scale if a font ever lies.
 
-### GAP-093 — A rendered link's workspace path is stored and never followed
-
-`rendermime:handle-local-link` mounts a click listener on every `<a>` a renderer draws:
-`contents.get(path)` then `openOrReveal` in the `defaultRendered` factory, with `setFragment`
-for the `#id` and a `kernel` scope delegated to the debugger's source viewer
-(`jupyterlab/packages/rendermime-extension/src/index.ts:68-166`). Ours follows a web link: a tap
-on an `http`, `https` or `mailto` link hands it to `ExternalLinkOpener`
-(`app/src/main/java/com/jupydroid/app/RenderedLinkUriHandler.kt`). Every other destination does
-nothing, so a tap on a link to a notebook or file in the workspace, or to a `#heading`, still goes
-nowhere. The repair is the local route: resolve the destination against the document's directory,
-check that it exists, then `DocumentOpeners.openDocument`.
-
 ### GAP-094 — A markdown file has no rendered preview
 
 `markdownviewer:open` opens a `.md` in the 'Markdown Preview' factory — the same pipeline a
@@ -1398,10 +1386,11 @@ question the `safe: false` marks, since an inlined foreign `<svg>` is script-car
 `renderTextual` runs `autolink` over every text and error render — `checkWeb` wraps URLs in
 `<a>`, `checkPaths` wraps file paths in `data-path` links a file browser or debugger can follow
 (`jupyterlab/packages/rendermime/src/renderers.ts:648-920`). Ours draws `RenderedOutput.Text` as
-one plain string: a printed URL is text, a traceback's `File "<path>", line 3` is text — and
-even an authored markdown link's destination goes nowhere (`GAP-093`). The repair is the
-detection — URLs and `file:line` spans becoming `RichInline.Link`s — before the consumer
-`GAP-093` names has anything new to follow.
+one plain string: a printed URL is text, a traceback's `File "<path>", line 3` is text. A
+`RichInline.Link` is already followed — a web address to the browser
+(`app/src/main/java/com/jupydroid/app/RenderedLinkUriHandler.kt`), a workspace path to its document
+(`app/src/main/java/com/jupydroid/app/ui/editor/WorkspaceLinkUriHandler.kt`) — so the repair is the
+detection alone: URLs and `file:line` spans becoming `RichInline.Link`s.
 
 ### GAP-107 — An embedded image or attachment never draws
 
