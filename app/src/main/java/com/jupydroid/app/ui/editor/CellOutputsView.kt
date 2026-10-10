@@ -6,10 +6,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -275,11 +277,17 @@ private fun OutputImage(output: RenderedOutput.Image) {
   val bitmap = remember(output) {
     BitmapFactory.decodeByteArray(output.encoded, 0, output.encoded.size)?.asImageBitmap()
   } ?: return
+  // JupyterLab's `<img>`: the width the kernel asked for, else the image's own with one pixel to a dp
+  // as a WebView maps a CSS px, at the column's start. `width` is coerced by the column's max
+  // constraint, which is `max-width: 100%`, and the ratio sets the height, which is `height: auto`
+  // (jupyterlab@7f0e690 packages/rendermime/src/renderers.ts `renderImage`, style/base.css; ADR-0086).
   Image(
     bitmap = bitmap,
     contentDescription = "Cell image output",
-    modifier = Modifier.fillMaxWidth(),
-    contentScale = ContentScale.Fit,
+    modifier = Modifier
+      .width((output.width ?: bitmap.width).dp)
+      .aspectRatio(bitmap.width / bitmap.height.toFloat()),
+    contentScale = ContentScale.FillBounds,
   )
 }
 

@@ -8,7 +8,9 @@ import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.terminal.SgrRun
 import com.jupydroid.app.terminal.SgrText
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
 import java.util.Base64
 
 /** What the editor can actually draw for one output. */
@@ -19,12 +21,16 @@ sealed interface RenderedOutput {
    */
   data class Text(val text: String, val isError: Boolean, val runs: List<SgrRun> = emptyList()) : RenderedOutput
 
-  /** [encoded] is the file's own bytes in whichever of the image mimes it came as; the decoder reads its header. */
-  data class Image(val encoded: ByteArray) : RenderedOutput {
+  /**
+   * [encoded] is the file's own bytes in whichever of the image mimes it came as; the decoder reads its header.
+   * [width] is the width the kernel asked for, from its mime's metadata, or null to draw the image at its own.
+   */
+  data class Image(val encoded: ByteArray, val width: Int? = null) : RenderedOutput {
     // ByteArray identity would make two identical images unequal, and Compose would redraw.
-    override fun equals(other: Any?): Boolean = other is Image && encoded.contentEquals(other.encoded)
+    override fun equals(other: Any?): Boolean =
+      other is Image && encoded.contentEquals(other.encoded) && width == other.width
 
-    override fun hashCode(): Int = encoded.contentHashCode()
+    override fun hashCode(): Int = 31 * encoded.contentHashCode() + (width ?: 0)
   }
 
   /** Parsed markup - `text/html` today, and whatever else parses to the same model later. */
@@ -40,8 +46,8 @@ sealed interface RenderedOutput {
 fun CellOutput.render(): RenderedOutput? = when (this) {
   is CellOutput.Stream -> colouredText(text, isError = name == StreamName.STDERR)
   is CellOutput.Error -> colouredText(readable(), isError = true)
-  is CellOutput.ExecuteResult -> mimeBundle.renderRichest()
-  is CellOutput.DisplayData -> mimeBundle.renderRichest()
+  is CellOutput.ExecuteResult -> mimeBundle.renderRichest(metadata)
+  is CellOutput.DisplayData -> mimeBundle.renderRichest(metadata)
   // Instructions to the front end rather than results.
   is CellOutput.ClearOutput, is CellOutput.DisplayUpdate -> null
 }
@@ -69,8 +75,8 @@ private fun CellOutput.Error.readable(): String = traceback.takeIf { it.isNotEmp
  * keeps looking rather than rendering blank, which is the one thing JupyterLab's registry
  * does not do for us: it picks by presence, not by whether the render then worked.
  */
-private fun MimeBundle.renderRichest(): RenderedOutput =
-  RANKED_MIME_TYPES.firstNotNullOfOrNull { mime -> get(mime)?.asText()?.let { renderAs(mime, it) } }
+private fun MimeBundle.renderRichest(metadata: JsonObject): RenderedOutput =
+  RANKED_MIME_TYPES.firstNotNullOfOrNull { mime -> get(mime)?.asText()?.let { renderAs(mime, it, metadata) } }
     ?: RenderedOutput.Text(keys.joinToString(), isError = false)
 
 /** `imageRendererFactory`'s mimes, in its own order: one rank, so the order is the tie-break. */
@@ -86,11 +92,23 @@ private val RANKED_MIME_TYPES = listOf("text/html") + IMAGE_MIME_TYPES + "text/p
  */
 private fun JsonElement.asText(): String? = (this as? JsonPrimitive)?.takeIf { it.isString }?.content
 
-private fun renderAs(mimeType: String, payload: String): RenderedOutput? = when (mimeType) {
+private fun renderAs(mimeType: String, payload: String, metadata: JsonObject): RenderedOutput? = when (mimeType) {
   "text/html" -> HtmlDocument.parse(payload).takeIf { it.isNotEmpty() }?.let(RenderedOutput::Document)
-  in IMAGE_MIME_TYPES -> payload.decodedBase64()?.let(RenderedOutput::Image)
+  in IMAGE_MIME_TYPES -> payload.decodedBase64()?.let { RenderedOutput.Image(it, metadata.imageWidthOf(mimeType)) }
   else -> colouredText(payload, isError = false)
 }
+
+/**
+ * `metadata[mimeType].width` when it is a number, as `renderImage` sets `img.width` only when
+ * `typeof width === 'number'` (jupyterlab@7f0e690 packages/rendermime/src/renderers.ts). A fraction
+ * truncates, as `img.width` is an `unsigned long`; a negative is no width at all.
+ */
+private fun JsonObject.imageWidthOf(mimeType: String): Int? =
+  ((get(mimeType) as? JsonObject)?.get("width") as? JsonPrimitive)
+    ?.takeUnless { it.isString }
+    ?.doubleOrNull
+    ?.takeIf { it >= 0 }
+    ?.toInt()
 
 /**
  * Null when undecodable - a truncated payload degrades to text, never a crash.

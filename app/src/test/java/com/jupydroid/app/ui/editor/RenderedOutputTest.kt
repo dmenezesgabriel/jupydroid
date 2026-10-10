@@ -9,6 +9,9 @@ import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.plainText
 import com.jupydroid.app.terminal.CellStyle
 import com.jupydroid.app.terminal.SgrRun
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -152,6 +155,57 @@ class RenderedOutputTest {
     assertEquals("<Image>", text(output).text)
   }
 
+  /** `Image(..., width=100)` and a retina figure's `w // 2` both arrive as `metadata[mime].width`. */
+  @Test
+  fun render_readsAnImagesWidthFromItsOwnMimesMetadata() {
+    val output = CellOutput.DisplayData(onePixelPng(), metadata = widthUnder("image/png", JsonPrimitive(100)))
+
+    assertEquals(100, (output.render() as RenderedOutput.Image).width)
+  }
+
+  @Test
+  fun render_readsAnExecuteResultsImageWidthToo() {
+    val output = CellOutput.ExecuteResult(onePixelPng(), 1, metadata = widthUnder("image/png", JsonPrimitive(100)))
+
+    assertEquals(100, (output.render() as RenderedOutput.Image).width)
+  }
+
+  @Test
+  fun render_leavesAnImageWithNoWidthToItsOwnSize() {
+    assertNull(imageOf(onePixelPng()).width)
+  }
+
+  /** `renderImage` sets `img.width` only when `typeof width === 'number'` (jupyterlab@7f0e690 renderers.ts). */
+  @Test
+  fun render_ignoresAWidthThatIsNotANumber() {
+    val output = CellOutput.DisplayData(onePixelPng(), metadata = widthUnder("image/png", JsonPrimitive("100")))
+
+    assertNull((output.render() as RenderedOutput.Image).width)
+  }
+
+  /** The width under another mime describes a form of the image that is not the one drawn. */
+  @Test
+  fun render_ignoresAWidthUnderAnotherMime() {
+    val output = CellOutput.DisplayData(onePixelPng(), metadata = widthUnder("image/jpeg", JsonPrimitive(100)))
+
+    assertNull((output.render() as RenderedOutput.Image).width)
+  }
+
+  /** `img.width` is an `unsigned long`, so a fraction is truncated on the way in. */
+  @Test
+  fun render_truncatesAFractionalWidth() {
+    val output = CellOutput.DisplayData(onePixelPng(), metadata = widthUnder("image/png", JsonPrimitive(100.7)))
+
+    assertEquals(100, (output.render() as RenderedOutput.Image).width)
+  }
+
+  @Test
+  fun render_ignoresANegativeWidth() {
+    val output = CellOutput.DisplayData(onePixelPng(), metadata = widthUnder("image/png", JsonPrimitive(-5)))
+
+    assertNull((output.render() as RenderedOutput.Image).width)
+  }
+
   /**
    * `IPython.display.HTML`'s `text/plain` is literally `<IPython.core.display.HTML object>`,
    * so getting the order wrong is not a subtle regression - it is that string on screen.
@@ -252,6 +306,11 @@ class RenderedOutputTest {
     CellOutput.DisplayData(bundle).render() as RenderedOutput.Image
 
   private fun base64(payload: String): ByteArray = Base64.getDecoder().decode(payload)
+
+  private fun onePixelPng(): MimeBundle = mimeBundleOf("image/png" to ONE_PIXEL_PNG)
+
+  private fun widthUnder(mime: String, width: JsonPrimitive): JsonObject =
+    buildJsonObject { put(mime, buildJsonObject { put("width", width) }) }
 
   private companion object {
     /** A real 1x1 PNG, so the decoder is exercised rather than mocked. */

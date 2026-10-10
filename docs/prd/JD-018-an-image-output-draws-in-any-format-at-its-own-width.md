@@ -87,7 +87,7 @@ A bundle carrying two raster forms of one image is rare — `select_figure_forma
 | Metadata carrier | `app/src/main/java/com/jupydroid/app/domain/model/CellOutput.kt` (`DisplayData.metadata`, `ExecuteResult.metadata`) | `jupyterlab@7f0e690 packages/rendermime/src/outputmodel.ts` | complete |
 | Ranking | `app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt` (`RANKED_MIME_TYPES`: html, png, plain) | `factories.ts` | partial: one image mime of five |
 | Decode | `RenderedOutput.kt` (`decodedPng`, strict base64), `CellOutputsView.kt` (`OutputImage`, `BitmapFactory`) | `renderers.ts` | present: the decoder already takes every format |
-| Sizing | `CellOutputsView.kt` `OutputImage` — `fillMaxWidth()` + `ContentScale.Fit`, which never upscales: a full-width node with the image centred at its **pixel** size, shrunk to fit | `base.css`, `renderers.ts` | partial: the cap matches; the unit (px, not dp), the alignment and metadata `width` do not. Measured in T1: a 96×8 px strip draws as a 1176×8 px node on SM-X216B (240 dpi), the image 64 dp wide where JupyterLab draws 96 |
+| Sizing | `CellOutputsView.kt` `OutputImage` — `fillMaxWidth()` + `ContentScale.Fit`, which never upscales: a full-width node with the image centred at its **pixel** size, shrunk to fit | `base.css`, `renderers.ts` | complete (T2, ADR-0086): metadata `width` as a number, else the pixel width, in dp, at the start, capped, height by ratio. Before, measured in T1: a 96×8 px strip drew as a 1176×8 px node on SM-X216B (240 dpi), the image 64 dp wide |
 | Console | `app/src/main/java/com/jupydroid/app/ui/console/ConsoleTranscriptView.kt` draws through `CellOutputs` | — | none of its own: the notebook's change reaches it |
 
 ## Deviations
@@ -109,13 +109,13 @@ None. The sizing rule was chosen with the user (JupyterLab's), and the image ord
 | `data/space` | — |
 | `ui/editor` | `RenderedOutput.kt` (ranking, decode, width), `CellOutputsView.kt` (`OutputImage`) |
 | unit tests | `RenderedOutputTest`, `CollapsedPreviewTest` |
-| instrumented tests | `CellOutputsViewTest` (drawn width, T2) |
+| instrumented tests | `CellOutputImageTest` (drawn width, T2) |
 | `.maestro/` flow + `scripts/` driver | `jd-018-image-formats-*` |
 
 ## Tasks
 
 - [x] T1 — The four other image mimes draw, in JupyterLab's order; a flow on `SM-X216B`
-- [ ] T2 — An image draws at its metadata width, else its own, capped at the column, height by aspect; ADR; a flow on `SM-X216B`
+- [x] T2 — An image draws at its metadata width, else its own, capped at the column, height by aspect; ADR; a flow on `SM-X216B`
 - [ ] T3 — The demo on `SM-X216B`; ship
 
 ## Out of scope
