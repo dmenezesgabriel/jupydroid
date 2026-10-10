@@ -24,7 +24,8 @@ import java.time.Instant
 
 /**
  * A workspace link in a rendered markdown cell reaches the document it names through the handler
- * the editor provides, and a link to nothing says so - the chain a JVM test cannot compose.
+ * the editor provides, a `#heading` link reaches the jump, and a link to nothing says so - the
+ * chain a JVM test cannot compose.
  */
 @RunWith(AndroidJUnit4::class)
 class WorkspaceLinksFollowedTest {
@@ -38,11 +39,18 @@ class WorkspaceLinksFollowedTest {
   private val opened = mutableListOf<String>()
   private val outer = RecordingUriHandler()
   private var editorAsked = false
+  private val jumpedTo = mutableListOf<String>()
+
+  /** Lands on `Results` only, as a notebook holding that one heading would. */
+  private fun jumpToHeadingAnchor(fragment: String): Boolean {
+    jumpedTo += fragment
+    return fragment == "Results"
+  }
 
   private fun showCell(source: String) = compose.setContent {
     val snackbar = remember { SnackbarHostState() }
     CompositionLocalProvider(LocalUriHandler provides outer) {
-      WorkspaceLinksFollowed("a/nb.ipynb", workspace, { opened += it }, {}, snackbar) {
+      WorkspaceLinksFollowed("a/nb.ipynb", workspace, { opened += it }, {}, ::jumpToHeadingAnchor, snackbar) {
         Column {
           MarkdownCell(rememberTextFieldState(source), source, rendered = true, { editorAsked = true }, {})
           SnackbarHost(snackbar)
@@ -71,6 +79,28 @@ class WorkspaceLinksFollowedTest {
       compose.onAllNodesWithText("No file at a/gone.md").fetchSemanticsNodes().isNotEmpty()
     }
     assertEquals(emptyList<String>(), opened)
+  }
+
+  @Test
+  fun tappingAHeadingLinkJumpsInThisDocumentAndLeavesTheCellRendered() {
+    showCell("[results](#Results)")
+
+    compose.onNodeWithText("results", useUnmergedTree = true).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { jumpedTo == listOf("Results") }
+    assertFalse("a link's tap must not open the cell's editor", editorAsked)
+    assertEquals(emptyList<String>(), outer.opened)
+  }
+
+  @Test
+  fun tappingAHeadingLinkToNothingSaysWhichHeading() {
+    showCell("[later](#Conclusion)")
+
+    compose.onNodeWithText("later", useUnmergedTree = true).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      compose.onAllNodesWithText("No heading #Conclusion").fetchSemanticsNodes().isNotEmpty()
+    }
   }
 
   @Test

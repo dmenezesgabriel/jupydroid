@@ -51,15 +51,36 @@ fun String.workspaceLinkPath(directory: String): String? {
 private fun String.isLocalLinkDestination(): Boolean =
   isNotEmpty() && !startsWith('/') && !startsWith('#') && !substringBefore('/').contains(':')
 
+/** The path half of a destination, percent-decoded, or null when an escape is malformed. */
+private fun String.decodedLinkPath(): String? = substringBefore('#').substringBefore('?').percentDecoded()
+
 /**
- * The path half of a destination, percent-decoded, or null when an escape is malformed - which
- * `UrlResolver.isMalformed` (jupyterlab@7f0e690) treats as not local. `+` is a literal in a path,
- * not the space it is in a form, so it is protected from [URLDecoder]. The encoding is named as a
- * string because the `Charset` overload is API 33 and `minSdk` is 32 (`app/build.gradle.kts`).
+ * The heading a bare `#fragment` names in the document the link is drawn in, percent-decoded, or
+ * null when the destination is not a bare fragment - a path's fragment goes with its file - or
+ * names nothing (`#` alone).
+ *
+ * JupyterLab's `handleAnchor` takes over only an `href` that *is* its `hash`
+ * (jupyterlab@7f0e690 `packages/rendermime/src/renderers.ts`), and it compares the escaped `hash`
+ * with an unescaped id; decoding here is what lets `#My%20Notes` find "My Notes".
+ *
+ * ```
+ * "#Results".headingLinkFragment() // "Results"
+ * "notes.md#intro".headingLinkFragment() // null
+ * ```
  */
-private fun String.decodedLinkPath(): String? = runCatching {
-  URLDecoder.decode(substringBefore('#').substringBefore('?').replace("+", "%2B"), "UTF-8")
-}.getOrNull()
+fun String.headingLinkFragment(): String? {
+  if (!startsWith('#')) return null
+  return drop(1).percentDecoded()?.takeIf { it.isNotEmpty() }
+}
+
+/**
+ * Percent-decoded, or null when an escape is malformed - which `UrlResolver.isMalformed`
+ * (jupyterlab@7f0e690) treats as not local. `+` is a literal in a path, not the space it is in a
+ * form, so it is protected from [URLDecoder]. The encoding is named as a string because the
+ * `Charset` overload is API 33 and `minSdk` is 32 (`app/build.gradle.kts`).
+ */
+private fun String.percentDecoded(): String? =
+  runCatching { URLDecoder.decode(replace("+", "%2B"), "UTF-8") }.getOrNull()
 
 /** `PathExt.resolve` for a relative path: `.` and empty segments drop, `..` climbs, above the root is null. */
 private fun String.resolvedAgainst(directory: String): String? {

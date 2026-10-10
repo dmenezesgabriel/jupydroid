@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.ui.platform.UriHandler
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
@@ -82,14 +81,6 @@ class WorkspaceLinkUriHandlerTest {
 
   private fun entry(path: String, kind: WorkspaceEntryKind) =
     WorkspaceEntry(path.substringAfterLast('/'), path, kind, Instant.EPOCH)
-}
-
-private class RecordingUriHandler : UriHandler {
-  val opened = mutableListOf<String>()
-
-  override fun openUri(uri: String) {
-    opened += uri
-  }
 }
 
 private class RefusingWorkspaceRepository : WorkspaceRepository by FakeWorkspaceRepository() {

@@ -76,12 +76,13 @@ private suspend fun WorkspaceRepository.kindAt(path: String): WorkspaceEntryKind
 internal fun missingLinkMessage(path: String): String = "No file at $path"
 
 /**
- * Makes every workspace link drawn inside [content] follow [followWorkspaceLink], the miss said on
- * [snackbar]. Provided by the screen that owns the document, since only it knows where the
- * document lives now and has somewhere to say a miss.
+ * Makes every workspace link drawn inside [content] follow [followWorkspaceLink], and every
+ * `#heading` link ask [jumpToHeadingAnchor], which answers whether it found the heading; either
+ * miss is said on [snackbar]. Provided by the screen that owns the document, since only it knows
+ * where the document lives now, what its headings are, and has somewhere to say a miss.
  *
  * ```
- * WorkspaceLinksFollowed(state.notebookId, workspaceRepository, openDocument, onGoToFolder, snackbar) { ... }
+ * WorkspaceLinksFollowed(state.notebookId, workspace, openDocument, onGoToFolder, jumpToAnchor, snackbar) { ... }
  * ```
  */
 @Composable
@@ -90,6 +91,7 @@ internal fun WorkspaceLinksFollowed(
   workspaceRepository: WorkspaceRepository,
   openDocument: (String) -> Unit,
   onGoToFolder: (String) -> Unit,
+  jumpToHeadingAnchor: (fragment: String) -> Boolean,
   snackbar: SnackbarHostState,
   content: @Composable () -> Unit,
 ) {
@@ -97,13 +99,17 @@ internal fun WorkspaceLinksFollowed(
   val scope = rememberCoroutineScope()
   val currentOpenDocument by rememberUpdatedState(openDocument)
   val currentGoToFolder by rememberUpdatedState(onGoToFolder)
+  val currentJumpToHeadingAnchor by rememberUpdatedState(jumpToHeadingAnchor)
   val links = remember(documentPath, outer, workspaceRepository, snackbar) {
-    WorkspaceLinkUriHandler(documentPath, outer) { path ->
+    val workspaceLinks = WorkspaceLinkUriHandler(documentPath, outer) { path ->
       scope.launch {
         workspaceRepository.followWorkspaceLink(path, currentOpenDocument, currentGoToFolder) {
           snackbar.showSnackbar(missingLinkMessage(it))
         }
       }
+    }
+    HeadingLinkUriHandler(workspaceLinks) { fragment ->
+      if (!currentJumpToHeadingAnchor(fragment)) scope.launch { snackbar.showSnackbar(missingHeadingMessage(fragment)) }
     }
   }
   CompositionLocalProvider(LocalUriHandler provides links, content = content)

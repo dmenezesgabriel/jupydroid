@@ -319,8 +319,17 @@ fun EditorScreen(
       }
     }
     // A link in a cell or an output that names a workspace path opens it from here: this screen
-    // knows where the notebook lives now and owns the snackbar a link to nothing is said on.
-    WorkspaceLinksFollowed(state.notebookId, workspaceRepository, openDocument, onGoToFolder, exportReports) {
+    // knows where the notebook lives now and owns the snackbar a link to nothing is said on. A
+    // `#heading` link lands where the table of contents' jump does, on the heading's cell.
+    val jumpToHeadingAnchor = { fragment: String -> state.cellOfHeadingAnchor(fragment)?.also(jumpToHeading) != null }
+    WorkspaceLinksFollowed(
+      state.notebookId,
+      workspaceRepository,
+      openDocument,
+      onGoToFolder,
+      jumpToHeadingAnchor,
+      exportReports,
+    ) {
       Scaffold(
         // **The notebook consumes the keyboard's inset while the find bar is up, and nothing else
         // does.** Every other surface that can be on screen under an IME carries its own

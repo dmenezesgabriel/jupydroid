@@ -73,7 +73,7 @@ class RichLinkDestinationTest {
     assertNull("100%zz.md".workspaceLinkPath("a"))
   }
 
-  /** The file is the destination; a fragment or a query says where inside it, which T3 decides. */
+  /** The file is the destination; a fragment or a query says where inside it, and a file link goes to the file. */
   @Test
   fun aFragmentOrQueryIsLeftOffThePath() {
     assertEquals("a/notes.md", "notes.md#intro".workspaceLinkPath("a"))
@@ -90,5 +90,23 @@ class RichLinkDestinationTest {
   fun onlyARelativePathIsAWorkspaceLink() {
     listOf("https://jupyter.org", "mailto:a@b.org", "javascript:alert(1)", "/etc/hosts", "//host/x", "#results", "")
       .forEach { assertNull("'$it' is not a workspace link", it.workspaceLinkPath("a")) }
+  }
+
+  @Test
+  fun aBareFragmentNamesAPlaceInThisDocument() {
+    assertEquals("Results", "#Results".headingLinkFragment())
+    assertEquals("my-heading", "#my-heading".headingLinkFragment())
+  }
+
+  /** A browser hands JupyterLab's `handleAnchor` the escaped `hash`; the heading's text is not escaped. */
+  @Test
+  fun anEscapedFragmentIsDecoded() {
+    assertEquals("My Heading+1", "#My%20Heading+1".headingLinkFragment())
+  }
+
+  @Test
+  fun onlyABareFragmentNamesAPlaceInThisDocument() {
+    listOf("#", "", "notes.md#intro", "https://jupyter.org/#a", "Results", "#100%zz")
+      .forEach { assertNull("'$it' is not a place in this document", it.headingLinkFragment()) }
   }
 }

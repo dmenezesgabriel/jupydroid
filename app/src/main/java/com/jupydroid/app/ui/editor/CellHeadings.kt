@@ -90,7 +90,7 @@ fun EditorUiState.tableOfContentsHeadings(includeOutput: Boolean = true): List<T
  * app actually draws: an entry then always points at something that is on screen, and an output
  * that falls back to plain text has no heading to offer.
  */
-private fun EditorUiState.outputHeadingsOf(cellId: String): List<TocHeading> =
+internal fun EditorUiState.outputHeadingsOf(cellId: String): List<TocHeading> =
   outputs[cellId].orEmpty().flatMapIndexed { at, output ->
     (output.render() as? RenderedOutput.Document)?.blocks.orEmpty()
       .filterIsInstance<RichBlock.Heading>()
