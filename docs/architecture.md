@@ -1452,19 +1452,6 @@ v6 — at 57, above `text/markdown`, and `RenderedVega` draws the spec through v
 `VegaLiteChart(...)`. The repair has no in-idiom precedent — there is no Compose Vega — and
 likely resolves to a spec-to-canvas mapper for the common marks or an ADR declining the family.
 
-### GAP-111 — GitHub-flavoured markdown never parses
-
-JupyterLab's marked runs `gfm: true`, and Jewel ships the same surface as extension modules —
-`gfm-tables`, `gfm-strikethrough`, `gfm-alerts`, `autolink` — a processor and a renderer
-extension per feature (`jupyterlab/packages/markedparser-extension/src/index.ts`;
-`intellij-community/platform/jewel/markdown/extensions/`). Ours builds the bare core:
-`Parser.builder().build()` with no `commonmark-ext-*` on the classpath
-(`app/src/main/java/com/jupydroid/app/markdown/MarkdownDocument.kt:37`,
-`gradle/libs.versions.toml`), so a `| a | b |` table is a paragraph of pipe characters, a
-`> [!NOTE]` is an ordinary blockquote, `~~del~~` and bare URLs are plain text. The repair adds
-the extension dependencies and maps their AST nodes — commonmark's `TableBlock` already has a
-home in `RichBlock.Table`, which `HtmlTable` fills today.
-
 ### GAP-114 — An execute result gets no `Out[n]` prompt
 
 Every `execute_result` is wrapped by `OutputPrompt` bound to the model's `executionCount`, so the
@@ -1981,6 +1968,16 @@ extensions/notebook-renderers/src/index.ts`, `getAltText`). Ours names every ima
 output" (`app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt`, `OutputImage`), so
 TalkBack reads the same words for every image. The repair reads `alt` into the content description and keeps
 the generic one when there is none.
+
+### GAP-167 — A task-list item draws no checkbox
+
+marked's `gfm: true` draws `- [x] done` and `- [ ] todo` as list items led by a checked or an
+unchecked box (`jupyterlab@7f0e690 packages/markedparser-extension/src/index.ts`), and commonmark-java
+ships the same as `commonmark-ext-task-list-items`. Ours wires the table, strikethrough and
+autolink extensions and not that one (`app/src/main/java/com/jupydroid/app/markdown/MarkdownDocument.kt`),
+so the brackets stay in the item's text. A list item is a list of blocks
+(`app/src/main/java/com/jupydroid/app/richtext/RichBlock.kt`) with nowhere to hold a checked state. The
+repair adds the extension, a checked state on the item and a box where its bullet draws.
 
 ---
 
