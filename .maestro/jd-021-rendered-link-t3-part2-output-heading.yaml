@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# A `#heading` link lands on a heading an output drew: `display(Markdown('## Printed table'))` in the
+# code cell a long cell above the links. `42` is computed by the kernel from `6 * 7`; FakeKernelGateway would
+# echo the source instead, and draw no heading.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+#
+# Not `stopApp`: the notebook the first part left open is the state under test.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Run all cells"
+# Generous: the first run starts the kernel. Scrolled to, since the first part left the notebook at
+# the links, below the code cell.
+- scrollUntilVisible:
+    element:
+      text: "42"
+      childOf: {text: "Cell output"}
+    direction: UP
+    timeout: 300000
+- scrollUntilVisible:
+    element:
+      # matches-source: navigation back to the links cell, not a result; the kernel's is the 42 above
+      text: "words beside the links"
+    direction: DOWN
+    timeout: 20000
+- assertNotVisible:
+    text: "42"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 01-before-output-heading-link
+- tapOn: "the printed table"
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 10000
+- takeScreenshot: 02-output-heading-reached

@@ -74,6 +74,7 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 | Tap → consumer | Jewel → an `onUrlClick` parameter on every renderer; Compose → `LinkAnnotation.Url` + `LocalUriHandler` | The parameter is explicit and crosses about eight signatures here (`RichText`, `RichTable`, `CellOutputs`, `EditorCell`, `EditorScreen`, the Console); the local is ambient and crosses none | `LinkAnnotation.Url`, with this project's own `UriHandler` provided once in `Navigation.kt`. It is the framework's channel for exactly this |
 | Which schemes leave the app | vscode → `http`, `https`, `mailto`; JupyterLab → whatever its sanitizer left in the `href` | An `intent:` or `file:` href handed to `startActivity` is another app's entry point chosen by a notebook's author | vscode's three. Anything else with a scheme does nothing |
 | A link to nothing | JupyterLab → `contents.get` rejects and nothing opens; intellij-community → `MarkdownLinkOpenerImpl` returns; vscode → an editor opens on "the file was not found" | Silence makes a link look broken (visibility of system status); vscode's own editor is a whole pane for one miss | **Decided in T2:** a snackbar naming the resolved path, on the one `EditorScreen` already shows "No definition found" on. A directory is browsed through `onGoToFolder` |
+| A `#heading` link's name | JupyterLab → `createHeaderId`, the text with spaces made `-`, case kept; vscode → `slugify` of the heading *and* the href, lowercased and stripped of punctuation | Lab's id is what its own `¶` anchor writes and tells `C` from `C++`; the slug is what GitHub- and VS Code-written links carry | **Decided in T3:** Lab's id first across the notebook, then the slug. A miss is said on the snackbar, as a path miss is |
 | A link inside a tap-to-edit cell | JupyterLab → a rendered cell is entered by double click, so a single click is the link's | Ours enters on a single tap | The link takes its own tap; the rest of the cell still opens the editor. Measured by an instrumented test, not assumed |
 
 ## Gap analysis — what we already have vs the references
@@ -83,19 +84,17 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 | The destination | `RichInline.Link.destination`, written under `RICH_LINK_TAG` (`app/src/main/java/com/jupydroid/app/richtext/RichInlineStyles.kt`, renamed from `RichInlineString.kt` in T1) | Jewel `renderLink` | present but unreachable: a string annotation nothing reads |
 | The hand-off to a browser | none; `IntentDocumentSharer` is the shape (`app/src/main/java/com/jupydroid/app/data/intent/`) | termux `ShareUtils.openUrl` | absent |
 | Opening a workspace path | `openDocument` (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`) | JupyterLab `handle-local-link` | present; no link reaches it, and nothing resolves a relative href |
-| A `#heading` link | `TocHeading` jumps from the outline (`app/src/main/java/com/jupydroid/app/ui/editor/CellHeadings.kt`); no heading has an id | JupyterLab `createHeaderId` | absent |
+| A `#heading` link | `TocHeading` jumps from the outline (`app/src/main/java/com/jupydroid/app/ui/editor/CellHeadings.kt`); no heading has an id | JupyterLab `createHeaderId` | closed in T3: `cellOfHeadingAnchor` names the cell, the outline's jump lands on it |
 
 ## Deviations
 
 - No download attribute, no `command:` links and no `kernel` scope: there is no download folder, no
   command registry and no debugger source viewer for them to reach.
 - `ftp` and `tel` are not followed. vscode's three schemes are the set.
-
-## Open decisions
-
-- **T3:** whether a `#heading` link is built here or recorded as a gap. It needs a heading id rule
-  (`createHeaderId`) that nothing here has; decided when T2 is done, on what the outline's jump can
-  already be asked.
+- A `#heading` link lands on the heading's **cell**, where JupyterLab scrolls the heading element
+  itself: the outline's jump is per cell, and a cell holding several headings starts at the first.
+- A path's fragment (`notes.md#intro`) opens the file and goes no further: nothing renders a
+  markdown document for a heading to be in (`GAP-094`).
 
 ## Surface
 
@@ -104,11 +103,11 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
 | `domain/port` | `ExternalLinkOpener.kt` |
 | `data/intent` | `IntentExternalLinkOpener.kt` |
 | `data/fake` | `FakeExternalLinkOpener.kt` |
-| `richtext/` | `RichInlineStyles.kt`, `RichLinkDestination.kt` (`workspaceLinkPath`) |
-| `ui/editor/` | `WorkspaceLinkUriHandler.kt`, provided in `EditorScreen.kt` around its Scaffold; `CellRevealScroll.kt` made the room |
+| `richtext/` | `RichInlineStyles.kt`, `RichLinkDestination.kt` (`workspaceLinkPath`, `headingLinkFragment`) |
+| `ui/editor/` | `WorkspaceLinkUriHandler.kt`, provided in `EditorScreen.kt` around its Scaffold; `CellRevealScroll.kt` made the room. `HeadingLinkUriHandler.kt` inside it, `HeadingAnchors.kt` (`cellOfHeadingAnchor`) |
 | app root | `RenderedLinkUriHandler.kt`, provided in `MainActivity.kt` - `Navigation.kt` is ten lines from the file limit |
 | `di/AppContainer` | the port, defaulting to the fake; `JupydroidApplication` builds the real one |
-| unit tests | `RichInlineStringTest`, `RichLinkDestinationTest`, `FakeExternalLinkOpenerTest`, `WorkspaceLinkUriHandlerTest` |
+| unit tests | `RichInlineStringTest`, `RichLinkDestinationTest`, `FakeExternalLinkOpenerTest`, `WorkspaceLinkUriHandlerTest`, `HeadingAnchorsTest`, `HeadingLinkUriHandlerTest` |
 | instrumented tests | a markdown cell's link tap, `IntentExternalLinkOpenerTest`, `WorkspaceLinksFollowedTest` |
 | `.maestro/` flow + `scripts/` driver | `jd-021-rendered-link-t<n>` |
 
@@ -119,7 +118,8 @@ renderer; Compose's own `Text` hands a `LinkAnnotation.Url` to `LocalUriHandler`
   `CellOutputs`, and is driven in T4's demo.
 - [x] T2 — a workspace link opens the document: resolved against the notebook's directory, checked to
   exist, then `openDocument`.
-- [ ] T3 — a `#heading` link scrolls to its heading, or becomes a gap (see Open decisions).
+- [x] T3 — a `#heading` link scrolls to its heading: the outline's jump could already land on a cell, so
+  it is built, not a gap.
 - [ ] T4 — the demo on `SM-X216B`; ship, delete this PRD, close `GAP-093`.
 
 ## Out of scope
