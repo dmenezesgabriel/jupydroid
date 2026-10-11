@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# Runs the three cells: a path printed to stdout, `traceback.print_exc()` to stderr, and IPython's
+# own traceback for the seeded `mod.py`. Run all stops at the third cell's error, which is last.
+# `1` on stdout is the kernel's `6 - 5`, so FakeKernelGateway's echo never matches the wait.
+# Opened by jd-015-output-caps-baseline-open.yaml; run by
+# scripts/jd-022-text-output-link-t2-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Run all cells"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "~/mod\\.py:1"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- extendedWaitUntil:
+    visible:
+      text: ".*ZeroDivisionError: division by zero"
+    timeout: 30000
+- takeScreenshot: 01-three-outputs

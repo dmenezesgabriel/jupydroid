@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# A Console on the notebook's kernel runs `mod.f()` - `mod` is imported only by the notebook, so
+# the traceback proves the kernel is shared - and a tap on its `~/mod.py:1` opens `mod.py`. After
+# part 4, run by scripts/jd-022-text-output-link-t2-driver.sh.
+#
+# The traceback is one text node of nine 31 px lines, measured on SM-X216B from `maestro
+# hierarchy`: `File ~/mod.py:1, in f()` is line 6, at 61% of its height, and the path's middle
+# 13% across.
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- inputText: "mod.f()"
+- tapOn: "Run"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      text: "-{20,}.*"
+    timeout: 60000
+- takeScreenshot: 01-the-console-error-path
+- tapOn:
+    text: "-{20,}.*"
+    point: "13%,61%"
+- extendedWaitUntil:
+    visible: "def f\\(\\): 1/0\\s*"
+    timeout: 10000
+- assertVisible: "Tab: mod.py"
+- takeScreenshot: 02-mod-opened-from-the-console
+# Back closes the file's tab and returns to the Console.
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "console-input-field"

@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# IPython's own traceback: a tap on `~/mod.py:1` opens `mod.py`. After part 3, run by
+# scripts/jd-022-text-output-link-t2-driver.sh.
+#
+# The traceback is one text node of ten 31 px lines, measured on SM-X216B from `maestro
+# hierarchy`: `File ~/mod.py:1, in f()` is line 7, at 65% of its height, and the path's middle
+# 13% across.
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "-{20,}.*"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 01-the-error-path
+- tapOn:
+    text: "-{20,}.*"
+    point: "13%,65%"
+- extendedWaitUntil:
+    visible: "def f\\(\\): 1/0\\s*"
+    timeout: 10000
+- assertVisible: "Tab: mod.py"
+- takeScreenshot: 02-mod-opened-from-the-error
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "Tab: mod.py"

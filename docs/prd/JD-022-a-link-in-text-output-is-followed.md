@@ -66,7 +66,8 @@ they exist; VS Code in streams too, unchecked.
 | Which URLs are linked | Lab, VS Code → any `scheme://`, `data:`, `www.` | `RenderedLinkUriHandler` follows `http`, `https`, `mailto` only, so an `ftp://` link would draw and do nothing | `http://`, `https://`, `www.` (→ `https://`). A link that does nothing reads as broken |
 | The pattern | Lab and VS Code's `webLinkRegex` | — | Theirs, scheme narrowed, Lab's trailing set (which also drops `'`) |
 | Where detection runs | Lab → at render, cached by prefix | `render()` is called uncached by search and the outline, which need no links | In `OutputText`, remembered on the text, laid on after the colours and before search marks |
-| Which outputs link paths | Lab → errors; VS Code → streams and errors | **Decided in T2** | |
+| Which outputs link paths | Lab → errors; VS Code → streams and errors | Lab misses Python's own `File "…", line N` and a warning's `path:N:`, which reach stderr only; VS Code links a path a cell prints on purpose | Errors and stderr: every traceback shape, and stdout stays what the cell printed |
+| Which paths | Lab → any, checked by the server; VS Code → any, unchecked | A path outside the workspace has no document to open | `~/…` and `/home/jupydroid/…` only, followed from the workspace root, since the kernel's `HOME` is the workspace |
 
 ## Gap analysis — what we already have vs the references
 
@@ -81,23 +82,27 @@ they exist; VS Code in streams too, unchecked.
 
 - No `data:`, `ftp://` or other scheme is linked: nothing would follow it.
 - A path link opens the file and goes no further: no document jumps to a line (`GAP-122`).
+- A path is checked when it is tapped, not before it is drawn as Lab's `resolvePath` does: a link to a
+  file that is gone draws, and its tap says "No file at …", as a markdown link's does.
+- `./x` is not linked: an output does not know the kernel's working directory.
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| `richtext/` | `PlainTextLink.kt` |
-| `ui/editor/` | `OutputTextLinks.kt`, `CellOutputsView.kt` |
-| `ui/console/` | T2: a workspace link handler around the transcript |
-| unit tests | `PlainTextLinkTest`, `OutputTextLinksTest` |
-| instrumented tests | `CellOutputsViewTest` |
+| `domain/model/` | `SpaceWorkspacePath.kt` |
+| `richtext/` | `PlainTextLink.kt`, `RichLinkDestination.kt` |
+| `ui/editor/` | `OutputTextLinks.kt`, `CellOutputsView.kt`, `WorkspaceLinkUriHandler.kt` |
+| `ui/console/` | `ConsoleScreen.kt`: `WorkspaceLinksFollowed` around the screen |
+| unit tests | `PlainTextLinkTest`, `OutputTextLinksTest`, `RichLinkDestinationTest`, `WorkspaceLinkUriHandlerTest` |
+| instrumented tests | `CellOutputsViewTest`, `ConsoleScreenTest` |
 | `.maestro/` flow + `scripts/` driver | `jd-022-text-output-link-t<n>` |
 
 ## Tasks
 
 - [x] T1 — a web address in a stream, error or `text/plain` output draws as a link and opens the
   browser, in the notebook and the Console.
-- [ ] T2 — a traceback's path to a workspace file opens it: `~/mod.py:3`, an absolute path under
+- [x] T2 — a traceback's path to a workspace file opens it: `~/mod.py:3`, an absolute path under
   the workspace, `File "…", line N`; a path outside the workspace stays text; the Console follows
   workspace links too.
 - [ ] T3 — the demo on `SM-X216B`; ship, delete this PRD, close `GAP-105`.
