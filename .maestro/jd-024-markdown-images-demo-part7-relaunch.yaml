@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 6, once the save held the HTML output. Relaunched and
+# reopened, the top of the notebook draws its images again, the edit kept, with No Kernel in the
+# bar: nothing runs after the relaunch. Run by scripts/jd-024-markdown-images-demo-driver.sh.
+#
+# TABLET ONLY (SM-X216B): part 6 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Markdown Images.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Markdown Images.ipynb"
+- extendedWaitUntil:
+    visible: "Beside the notebook: blue plot \\(edited\\)"
+    timeout: 30000
+- assertVisible: "orange chart"
+- assertVisible: "No Kernel"
+- takeScreenshot: 07-relaunched-top

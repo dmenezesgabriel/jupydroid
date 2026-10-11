@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# A markdown cell edited and run renders again with its image. A tap on its prose opens the source,
+# as p2d-run-renders-markdown.yaml does; the typed words and the image are both read back from the
+# rendered cell. Run by scripts/jd-024-markdown-images-demo-driver.sh after part 4.
+#
+# Runs no code cell, so any device draws it; the demo's later parts run cells on the tablet.
+- scrollUntilVisible:
+    element:
+      text: "Beside the notebook:.*"
+    direction: UP
+    timeout: 20000
+- tapOn: "Beside the notebook:.*"
+- extendedWaitUntil:
+    visible: "(?s).*!\\[blue plot\\]\\(img/plot\\.png\\).*"
+    timeout: 10000
+- inputText: " (edited)"
+- hideKeyboard
+- assertVisible: "(?s).*!\\[blue plot\\]\\(img/plot\\.png\\).*\\(edited\\).*"
+- takeScreenshot: 04-the-source-edited
+# This cell's Run is the one in the strip above its own source; the cell above has its own.
+- tapOn:
+    text: "Run cell"
+    above:
+      text: "(?s).*!\\[blue plot\\].*"
+# matches-source: rendering a markdown cell hides its source, so its words read back are the render
+- extendedWaitUntil:
+    visible: "Beside the notebook: blue plot \\(edited\\)"
+    timeout: 10000
+# matches-source: the source is hidden once rendered; the driver requires the image node itself
+- assertVisible: "blue plot"
+- assertNotVisible: "(?s).*!\\[blue plot\\].*"
+- takeScreenshot: 05-rendered-again-with-its-image

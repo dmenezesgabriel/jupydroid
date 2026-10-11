@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# The PRD's demo, seeded: Markdown Images.ipynb opened from a cold start. Seeded by
+# scripts/jd-024-markdown-images-demo-driver.sh.
+#
+# Runs no cell, so any device draws it; the demo's later parts run cells on the tablet.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Markdown Images.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Markdown Images.ipynb"
+# The notebook opens on its markdown cells; its code cells, and their `[ ]:`, are below the fold.
+- extendedWaitUntil:
+    visible: "Beside the notebook:.*"
+    timeout: 30000
+- takeScreenshot: 00-opened

@@ -131,7 +131,7 @@ source at draw time rather than at parse time.
 - [x] T3 — `![alt](https://…)` is fetched, through a port with an HTTP cache and a size cap
 - [x] T4 — `<img src alt width>` draws, in a markdown cell and in a `text/html` output, through
   the same node and resolver
-- [ ] T5 — The demo above, run end to end on SM-X216B
+- [x] T5 — The demo above, run end to end on SM-X216B
 
 ## Out of scope
 
