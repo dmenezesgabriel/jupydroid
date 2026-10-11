@@ -94,7 +94,7 @@ None. ADR-0087 already decided the sample-size rule; this item widens what it co
 ## Tasks
 
 - [x] T1 — an image output too large to draw whole draws shrunk to the column, in the notebook and the Console
-- [ ] T2 — an image shrunk while decoding keeps its own width, as an output and in a markdown cell
+- [x] T2 — an image shrunk while decoding keeps its own width, as an output and in a markdown cell
 - [ ] T3 — the demo on SM-X216B
 
 ## Out of scope

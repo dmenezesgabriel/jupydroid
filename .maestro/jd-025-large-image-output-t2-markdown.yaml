@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# A markdown cell's attachment 300 px wide and 60000 px tall is past the canvas floor and decodes at
+# half size, 150 px wide; it still draws 300 dp wide, its own width (ADR-0087). Opened by
+# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-025-large-image-output-t2-driver.sh.
+#
+# A flow cannot read a width: the driver's `uiautomator dump` measures the image's bounds, and the
+# screenshot shows its bands. The image's line holds its alt as text too, so a fallback would pass
+# this assertion as well: the driver requires the image node from the hierarchy.
+#
+# Runs no cell; the driver runs it on the tablet, where the flow after it runs one.
+- scrollUntilVisible:
+    element: "tall strip"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 01-the-markdown-image-at-its-own-width
