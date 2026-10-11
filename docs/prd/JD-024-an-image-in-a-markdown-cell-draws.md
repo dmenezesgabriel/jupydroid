@@ -123,7 +123,7 @@ source at draw time rather than at parse time.
 
 ## Tasks
 
-- [ ] T1 — `![alt](attachment:name)` in a markdown cell draws the cell's own attachment, capped at
+- [x] T1 — `![alt](attachment:name)` in a markdown cell draws the cell's own attachment, capped at
   the column; a missing one draws its alt text
 - [ ] T2 — `![alt](img/a.png)` draws a workspace file, resolved against the notebook's directory
   and read off the main thread
