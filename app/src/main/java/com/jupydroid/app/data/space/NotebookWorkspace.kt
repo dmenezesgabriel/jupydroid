@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.domain.model.SPACE_WORKSPACE_PATH
 import java.io.File
 
 /**
@@ -18,4 +19,4 @@ import java.io.File
  */
 fun notebookWorkspaceIn(baseDir: File): File = File(baseDir, WORKSPACE_RELATIVE)
 
-private const val WORKSPACE_RELATIVE = "home/jupydroid"
+private val WORKSPACE_RELATIVE = SPACE_WORKSPACE_PATH.removePrefix("/")

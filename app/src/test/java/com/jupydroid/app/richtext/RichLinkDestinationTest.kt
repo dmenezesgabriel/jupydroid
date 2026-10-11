@@ -109,4 +109,18 @@ class RichLinkDestinationTest {
     listOf("#", "", "notes.md#intro", "https://jupyter.org/#a", "Results", "#100%zz")
       .forEach { assertNull("'$it' is not a place in this document", it.headingLinkFragment()) }
   }
+
+  /** The kernel's `HOME` is the workspace, so IPython's `~/` and the absolute path both name a file in it. */
+  @Test
+  fun aPathTheKernelPrintsIntoTheWorkspaceIsAWorkspacePath() {
+    assertEquals("mod.py", "~/mod.py".spaceWorkspaceLinkPath())
+    assertEquals("a/b.py", "/home/jupydroid/a/b.py".spaceWorkspaceLinkPath())
+    assertEquals("b.py", "~/a/../b.py".spaceWorkspaceLinkPath())
+  }
+
+  @Test
+  fun aPathOutsideTheWorkspaceIsNotAWorkspacePath() {
+    listOf("/usr/lib/python3.12/json/__init__.py", "/home/jupydroidx/a.py", "~/../etc/hosts", "./a.py", "mod.py")
+      .forEach { assertNull("'$it' is outside the workspace", it.spaceWorkspaceLinkPath()) }
+  }
 }

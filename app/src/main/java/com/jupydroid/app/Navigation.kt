@@ -481,6 +481,10 @@ fun MainNavigation(
                   ConsoleViewModel(spacePorts.kernelGateway, session, spacePorts.kernelSessions)
                 },
                 editorSettingsRepository = appContainer.editorSettings,
+                sessionPath = console.sessionPath,
+                workspaceRepository = spacePorts.workspaceRepository,
+                openDocument = openDocument,
+                onGoToFolder = goToFolder,
               )
             }
           }

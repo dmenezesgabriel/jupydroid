@@ -330,6 +330,40 @@ class CellOutputsViewTest {
     assertEquals(emptyList<String>(), followed.opened)
   }
 
+  /** IPython's frame header for a workspace file; the path is the kernel's, so it goes as one. */
+  @Test
+  fun tappingAWorkspacePathInATracebackFollowsIt() {
+    val followed = RecordingUriHandler()
+    val traceback = CellOutput.Error("ZeroDivisionError", "division by zero", traceback = listOf(MOD_FRAME))
+    showOutputs(listOf(traceback), scrolled = false, links = followed)
+
+    compose.onNodeWithText(MOD_FRAME).performClick()
+
+    compose.waitUntil(LINK_TIMEOUT_MILLIS) { followed.opened == listOf(MOD_PATH) }
+  }
+
+  @Test
+  fun tappingAWorkspacePathOnStderrFollowsIt() {
+    val followed = RecordingUriHandler()
+    showOutputs(listOf(CellOutput.Stream(StreamName.STDERR, MOD_FRAME)), scrolled = false, links = followed)
+
+    compose.onNodeWithText(MOD_FRAME).performClick()
+
+    compose.waitUntil(LINK_TIMEOUT_MILLIS) { followed.opened == listOf(MOD_PATH) }
+  }
+
+  /** What a cell prints on purpose is not a traceback, so a path in it stays text. */
+  @Test
+  fun tappingAWorkspacePathOnStdoutFollowsNothing() {
+    val followed = RecordingUriHandler()
+    showOutputs(listOf(CellOutput.Stream(StreamName.STDOUT, MOD_FRAME)), scrolled = false, links = followed)
+
+    compose.onNodeWithText(MOD_FRAME).performClick()
+    compose.waitForIdle()
+
+    assertEquals(emptyList<String>(), followed.opened)
+  }
+
   /** Inside a scrolling column, as the editor's cell list is, so a row past the screen can be scrolled to. */
   private fun showOutputs(
     outputs: List<CellOutput>,
@@ -391,5 +425,9 @@ class CellOutputsViewTest {
 
     const val JUPYTER_URL = "https://jupyter.org"
     const val LINK_TIMEOUT_MILLIS = 5_000L
+
+    /** The path alone, so the node's centre - where `performClick` lands - is on the link. */
+    const val MOD_FRAME = "~/mod.py:1"
+    const val MOD_PATH = "/home/jupydroid/mod.py"
   }
 }

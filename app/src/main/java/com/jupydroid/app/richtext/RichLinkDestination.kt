@@ -1,5 +1,6 @@
 package com.jupydroid.app.richtext
 
+import com.jupydroid.app.domain.model.SPACE_WORKSPACE_PATH
 import java.net.URLDecoder
 
 /**
@@ -45,6 +46,29 @@ fun String.isWebLinkDestination(): Boolean =
 fun String.workspaceLinkPath(directory: String): String? {
   if (!isLocalLinkDestination()) return null
   return decodedLinkPath()?.resolvedAgainst(directory)
+}
+
+/**
+ * The workspace path a path the kernel printed names - `~/mod.py` or `/home/jupydroid/mod.py` -
+ * or null when it names somewhere outside the workspace.
+ *
+ * The kernel's `HOME` is the workspace ([SPACE_WORKSPACE_PATH]), which is what IPython's
+ * `compress_user` shortens to `~`; JupyterLab's legacy `resolvePath` expands `~` and strips the
+ * server's root the same way (jupyterlab@7f0e690 `packages/rendermime/src/registry.ts`). Resolved
+ * from the root, not from a document: the kernel printed it, not the notebook's author.
+ *
+ * ```
+ * "~/a/mod.py".spaceWorkspaceLinkPath() // "a/mod.py"
+ * "/usr/lib/python3.12/json/__init__.py".spaceWorkspaceLinkPath() // null
+ * ```
+ */
+fun String.spaceWorkspaceLinkPath(): String? {
+  val underHome = when {
+    startsWith("~/") -> drop(1)
+    startsWith("$SPACE_WORKSPACE_PATH/") -> drop(SPACE_WORKSPACE_PATH.length)
+    else -> return null
+  }
+  return underHome.resolvedAgainst("")
 }
 
 /** `URLExt.isLocal`, less a bare `#fragment`: not empty, no scheme, no leading slash. */

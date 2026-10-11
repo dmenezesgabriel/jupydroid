@@ -16,7 +16,7 @@ class OutputTextLinksTest {
   fun aFoundLinkCanBeTappedToItsDestination() {
     val text = AnnotatedString("see www.x.org now")
 
-    val linked = text.withWebLinks(listOf(PlainTextLink(4, 13, "https://www.x.org")), linkStyle)
+    val linked = text.withPlainTextLinks(listOf(PlainTextLink(4, 13, "https://www.x.org")), linkStyle)
 
     val link = linked.getLinkAnnotations(0, linked.length).single()
     assertEquals("https://www.x.org", (link.item as LinkAnnotation.Url).url)
@@ -30,7 +30,7 @@ class OutputTextLinksTest {
     val red = AnnotatedString.Range(SpanStyle(color = Color.Red), 0, 3)
     val text = AnnotatedString("see https://a.io", listOf(red))
 
-    val linked = text.withWebLinks(listOf(PlainTextLink(4, 16, "https://a.io")), linkStyle)
+    val linked = text.withPlainTextLinks(listOf(PlainTextLink(4, 16, "https://a.io")), linkStyle)
 
     assertEquals(listOf(red), linked.spanStyles)
   }
@@ -39,6 +39,6 @@ class OutputTextLinksTest {
   fun textWithNoLinkIsReturnedAsItIs() {
     val text = AnnotatedString("plain")
 
-    assertSame(text, text.withWebLinks(emptyList(), linkStyle))
+    assertSame(text, text.withPlainTextLinks(emptyList(), linkStyle))
   }
 }

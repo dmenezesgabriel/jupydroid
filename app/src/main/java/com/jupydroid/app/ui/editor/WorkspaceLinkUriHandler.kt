@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.UriHandler
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.richtext.spaceWorkspaceLinkPath
 import com.jupydroid.app.richtext.workspaceLinkPath
 import kotlinx.coroutines.launch
 
@@ -19,6 +20,9 @@ import kotlinx.coroutines.launch
  * A tapped link that names a workspace path, resolved against the document at [documentPath] and
  * handed to [follow]; every other destination goes on to [outer], the handler around this one,
  * which is where a web address leaves the app (`com.jupydroid.app.RenderedLinkUriHandler`).
+ *
+ * A path the kernel printed (`/home/jupydroid/mod.py`, see `spaceWorkspaceLinkPath`) is followed
+ * from the workspace root instead: it is rooted where the kernel is, not where the document is.
  *
  * ```
  * WorkspaceLinkUriHandler("reports/nb.ipynb", LocalUriHandler.current) { path -> open(path) }
@@ -30,7 +34,9 @@ internal class WorkspaceLinkUriHandler(
   private val follow: (path: String) -> Unit,
 ) : UriHandler {
   override fun openUri(uri: String) {
-    val path = uri.workspaceLinkPath(documentPath.parentDirectory()) ?: return outer.openUri(uri)
+    val path = uri.spaceWorkspaceLinkPath()
+      ?: uri.workspaceLinkPath(documentPath.parentDirectory())
+      ?: return outer.openUri(uri)
     follow(path)
   }
 }

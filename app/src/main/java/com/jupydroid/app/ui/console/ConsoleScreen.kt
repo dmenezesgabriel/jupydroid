@@ -9,15 +9,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.ExecutionStatus
+import com.jupydroid.app.ui.editor.WorkspaceLinksFollowed
 
 /**
  * The Console's own screen: [ConsoleTranscript] above, [ConsoleInputRow]
@@ -29,16 +34,23 @@ import com.jupydroid.app.ui.editor.ExecutionStatus
  * and its own factory default. Which kernel session it shares, and where a tap actually opens one,
  * are this sub-step's own two followers.
  *
+ * A link in an output that names a workspace file - a traceback's `~/mod.py:1` - opens it from
+ * here, as it does from a notebook, and a link to nothing is said on this screen's snackbar.
+ *
  * ```kotlin
- * ConsoleScreen(viewModel = consoleViewModel)
+ * ConsoleScreen(consoleViewModel, editorSettings, "nb.ipynb", workspaceRepository, openDocument, goToFolder)
  * ```
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConsoleScreen(
   viewModel: ConsoleViewModel,
   /** `fileeditor:toggle-…-universal` reaches the Console too - its field's rules come from here. */
   editorSettingsRepository: EditorSettingsRepository,
+  /** The session's path, which a relative link in an output is resolved against. */
+  sessionPath: String,
+  workspaceRepository: WorkspaceRepository,
+  openDocument: (String) -> Unit,
+  onGoToFolder: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val entries by viewModel.entries.collectAsStateWithLifecycle()
@@ -47,9 +59,27 @@ fun ConsoleScreen(
   // read the same pair, where this row used to compose `CodeCellField`'s defaults instead.
   val editorSettings by editorSettingsRepository.observeSettings()
     .collectAsStateWithLifecycle(EditorSettings())
+  val linkMisses = remember { SnackbarHostState() }
 
+  // A Console has no headings, so a `#heading` link is always a miss and says so.
+  WorkspaceLinksFollowed(sessionPath, workspaceRepository, openDocument, onGoToFolder, { false }, linkMisses) {
+    ConsoleScaffold(viewModel, entries, running, editorSettings, linkMisses, modifier)
+  }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ConsoleScaffold(
+  viewModel: ConsoleViewModel,
+  entries: List<ConsoleEntry>,
+  running: Boolean,
+  editorSettings: EditorSettings,
+  linkMisses: SnackbarHostState,
+  modifier: Modifier,
+) {
   Scaffold(
     modifier = modifier.fillMaxSize(),
+    snackbarHost = { SnackbarHost(linkMisses) },
     // The document's own background, not a Material role - the rule every other
     // document screen in this tree already follows.
     containerColor = editorPalette.editorBackground,

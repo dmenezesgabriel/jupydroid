@@ -20,13 +20,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelGateway
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.StreamName
+import com.jupydroid.app.domain.model.WorkspaceEntry
+import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import kotlinx.coroutines.CompletableDeferred
@@ -38,6 +42,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 import java.io.FileOutputStream
+import java.time.Instant
 
 /**
  * The Console's own screen - [ConsoleTranscript] and [ConsoleInputRow] under a
@@ -55,28 +60,14 @@ class ConsoleScreenTest {
    */
   @Test
   fun theBarCarriesNoDismissControl() {
-    compose.setContent {
-      JupyterDroidTheme {
-        ConsoleScreen(
-          viewModel = consoleViewModel(),
-          editorSettingsRepository = FakeEditorSettingsRepository(),
-        )
-      }
-    }
+    showConsole(consoleViewModel())
 
     compose.onAllNodesWithContentDescription("Back", substring = true).assertCountEquals(0)
   }
 
   @Test
   fun submittingInputRendersTheEntryInTheTranscript() {
-    compose.setContent {
-      JupyterDroidTheme {
-        ConsoleScreen(
-          viewModel = consoleViewModel(),
-          editorSettingsRepository = FakeEditorSettingsRepository(),
-        )
-      }
-    }
+    showConsole(consoleViewModel())
 
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
@@ -89,14 +80,7 @@ class ConsoleScreenTest {
   @Test
   fun tappingInterruptKernelCancelsTheRunningEntry() {
     val gateway = InterruptibleKernelGateway()
-    compose.setContent {
-      JupyterDroidTheme {
-        ConsoleScreen(
-          viewModel = consoleViewModel(gateway),
-          editorSettingsRepository = FakeEditorSettingsRepository(),
-        )
-      }
-    }
+    showConsole(consoleViewModel(gateway))
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
 
@@ -108,14 +92,7 @@ class ConsoleScreenTest {
 
   @Test
   fun interruptKernelIsDisabledWhileNothingIsRunning() {
-    compose.setContent {
-      JupyterDroidTheme {
-        ConsoleScreen(
-          viewModel = consoleViewModel(),
-          editorSettingsRepository = FakeEditorSettingsRepository(),
-        )
-      }
-    }
+    showConsole(consoleViewModel())
 
     compose.onNodeWithContentDescription("Console actions").performClick()
 
@@ -131,16 +108,7 @@ class ConsoleScreenTest {
   @Test
   fun aBracketStaysOpenWhenAutoClosingIsOff() {
     val viewModel = consoleViewModel()
-    compose.setContent {
-      JupyterDroidTheme {
-        ConsoleScreen(
-          viewModel = viewModel,
-          editorSettingsRepository = FakeEditorSettingsRepository(
-            EditorSettings(autoClosingBrackets = false),
-          ),
-        )
-      }
-    }
+    showConsole(viewModel, FakeEditorSettingsRepository(EditorSettings(autoClosingBrackets = false)))
 
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("print(")
 
@@ -149,14 +117,7 @@ class ConsoleScreenTest {
 
   @Test
   fun tappingClearRemovesTheTranscript() {
-    compose.setContent {
-      JupyterDroidTheme {
-        ConsoleScreen(
-          viewModel = consoleViewModel(),
-          editorSettingsRepository = FakeEditorSettingsRepository(),
-        )
-      }
-    }
+    showConsole(consoleViewModel())
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
     compose.onAllNodesWithText("1 + 1").assertCountEquals(2)
@@ -170,14 +131,7 @@ class ConsoleScreenTest {
   /** Real on-device evidence: a PNG of the whole screen. */
   @Test
   fun capturesTheScreenScreenshotForEvidence() {
-    compose.setContent {
-      JupyterDroidTheme {
-        ConsoleScreen(
-          viewModel = consoleViewModel(),
-          editorSettingsRepository = FakeEditorSettingsRepository(),
-        )
-      }
-    }
+    showConsole(consoleViewModel())
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput("1 + 1")
     compose.onNodeWithContentDescription("Run").performClick()
     compose.onAllNodesWithText("1 + 1").assertCountEquals(2)
@@ -191,6 +145,47 @@ class ConsoleScreenTest {
     val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
     automation.executeShellCommand("cp ${file.absolutePath} /sdcard/$EVIDENCE_FILE_NAME").use {
       it.fileDescriptor.let { fd -> java.io.FileInputStream(fd).use { stream -> stream.readBytes() } }
+    }
+  }
+
+  /** A traceback's path to a workspace file opens it from the Console, as from a notebook. */
+  @Test
+  fun tappingAWorkspacePathInAnOutputOpensTheFile() {
+    val opened = mutableListOf<String>()
+    val workspace = FakeWorkspaceRepository(
+      entriesByPath = mapOf("" to listOf(WorkspaceEntry("mod.py", "mod.py", WorkspaceEntryKind.FILE, Instant.EPOCH))),
+    )
+    showConsole(consoleViewModel(StderrEchoKernelGateway()), workspaceRepository = workspace, openDocument = {
+      opened +=
+        it
+    })
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performTextInput(MOD_FRAME)
+    compose.onNodeWithContentDescription("Run").performClick()
+    compose.onAllNodesWithText(MOD_FRAME).assertCountEquals(2)
+
+    // The second: the entry's own input line draws first, its stderr output below it.
+    compose.onAllNodesWithText(MOD_FRAME)[1].performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { opened == listOf("mod.py") }
+  }
+
+  private fun showConsole(
+    viewModel: ConsoleViewModel,
+    editorSettingsRepository: FakeEditorSettingsRepository = FakeEditorSettingsRepository(),
+    workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
+    openDocument: (String) -> Unit = {},
+  ) {
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleScreen(
+          viewModel = viewModel,
+          editorSettingsRepository = editorSettingsRepository,
+          sessionPath = "Analysis.ipynb",
+          workspaceRepository = workspaceRepository,
+          openDocument = openDocument,
+          onGoToFolder = {},
+        )
+      }
     }
   }
 
@@ -211,6 +206,9 @@ class ConsoleScreenTest {
     const val PNG_QUALITY = 100
     const val EVIDENCE_FILE_NAME = "p6b-9-console-screen.png"
     const val TIMEOUT_MILLIS = 5_000L
+
+    /** IPython's frame header for a workspace file, alone so the node's centre is on the link. */
+    const val MOD_FRAME = "~/mod.py:1"
   }
 }
 
@@ -235,5 +233,13 @@ private class InterruptibleKernelGateway(private val fake: KernelGateway = FakeK
   override suspend fun interrupt(session: KernelSession) {
     interruptCount++
     interrupted.complete(Unit)
+  }
+}
+
+/** Answers every run with its own code on stderr, where a traceback's path is linked. */
+private class StderrEchoKernelGateway(private val fake: KernelGateway = FakeKernelGateway()) : KernelGateway by fake {
+  override suspend fun execute(session: KernelSession, cellId: String, code: String): Flow<KernelEvent> = flow {
+    emit(KernelEvent.Output(cellId, CellOutput.Stream(StreamName.STDERR, code)))
+    emit(KernelEvent.Idle)
   }
 }

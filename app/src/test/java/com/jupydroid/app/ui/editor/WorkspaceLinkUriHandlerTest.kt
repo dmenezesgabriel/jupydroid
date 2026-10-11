@@ -65,6 +65,16 @@ class WorkspaceLinkUriHandlerTest {
     assertEquals(emptyList<String>(), outer.opened)
   }
 
+  /** A traceback's path is the kernel's, rooted at the workspace, not at the notebook's folder. */
+  @Test
+  fun aPathTheKernelPrintedIsFollowedFromTheWorkspaceRoot() {
+    val outer = RecordingUriHandler()
+    WorkspaceLinkUriHandler("a/nb.ipynb", outer) { followed += it }.openUri("/home/jupydroid/mod.py")
+
+    assertEquals(listOf("mod.py"), followed)
+    assertEquals(emptyList<String>(), outer.opened)
+  }
+
   @Test
   fun anythingElseGoesToTheHandlerAroundIt() {
     val outer = RecordingUriHandler()
