@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.KernelInputRequest
+import com.jupydroid.app.richtext.plainTextWebLinks
 import com.jupydroid.app.theme.LocalAnsiPalette
 import com.jupydroid.app.theme.Spacing
 
@@ -194,7 +195,11 @@ private fun OutputText(
 ) {
   // An `AnnotatedString` rather than a second transformation: an output is drawn, never typed
   // into, so there is no `TextFieldBuffer` here and nothing to keep in step with a caret.
-  val text = output.coloured(LocalAnsiPalette.current).withSearchMatches(search, searchMatchStyles())
+  // Found once per text rather than per frame: a streaming output recomposes on every chunk.
+  val links = remember(output.text) { output.text.plainTextWebLinks() }
+  val text = output.coloured(LocalAnsiPalette.current)
+    .withWebLinks(links, richInlineStyles().link)
+    .withSearchMatches(search, searchMatchStyles())
   // Per output and saveable, as JupyterLab's "Show more outputs" is per output area and lasts the
   // widget's life: a re-run empties the outputs first, which drops this, so the next run is cut again.
   var showAll by rememberSaveable { mutableStateOf(false) }

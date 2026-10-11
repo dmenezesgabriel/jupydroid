@@ -5,22 +5,29 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellOutput
@@ -285,24 +292,65 @@ class CellOutputsViewTest {
     return List(RUNAWAY_OUTPUTS) { if (it == at) hit else CellSearchHighlight.NONE }
   }
 
+  /**
+   * Tapped on a device, so the pattern also runs on ART's ICU regex engine, which no JVM test reaches.
+   * The output is the address alone, so the node's centre - where `performClick` lands - is on it.
+   */
+  @Test
+  fun tappingAPrintedAddressFollowsIt() {
+    val followed = RecordingUriHandler()
+    showOutputs(listOf(CellOutput.Stream(StreamName.STDOUT, JUPYTER_URL)), scrolled = false, links = followed)
+
+    compose.onNodeWithText(JUPYTER_URL).performClick()
+
+    compose.waitUntil(LINK_TIMEOUT_MILLIS) { followed.opened == listOf(JUPYTER_URL) }
+  }
+
+  /** A traceback draws in its own tinted frame; the link inside it is tappable all the same. */
+  @Test
+  fun tappingAnAddressInATracebackFollowsIt() {
+    val followed = RecordingUriHandler()
+    val traceback = CellOutput.Error("ValueError", JUPYTER_URL, traceback = listOf(JUPYTER_URL))
+    showOutputs(listOf(traceback), scrolled = false, links = followed)
+
+    compose.onNodeWithText(JUPYTER_URL).performClick()
+
+    compose.waitUntil(LINK_TIMEOUT_MILLIS) { followed.opened == listOf(JUPYTER_URL) }
+  }
+
+  /** The words around an address are text: a tap on them follows nothing. */
+  @Test
+  fun tappingBesideAnAddressFollowsNothing() {
+    val followed = RecordingUriHandler()
+    showOutputs(listOf(CellOutput.Stream(StreamName.STDOUT, "see $JUPYTER_URL")), scrolled = false, links = followed)
+
+    compose.onNodeWithText("see $JUPYTER_URL").performTouchInput { click(Offset(1f, centerY)) }
+    compose.waitForIdle()
+
+    assertEquals(emptyList<String>(), followed.opened)
+  }
+
   /** Inside a scrolling column, as the editor's cell list is, so a row past the screen can be scrolled to. */
   private fun showOutputs(
     outputs: List<CellOutput>,
     scrolled: Boolean,
+    links: UriHandler = RecordingUriHandler(),
     search: () -> List<CellSearchHighlight> = { emptyList() },
   ) {
     compose.setContent {
       JupyterDroidTheme {
-        Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-          CellOutputs(
-            outputs = outputs,
-            hidden = false,
-            scrolled = scrolled,
-            search = search(),
-            onExpand = {},
-            inputRequest = null,
-            onAnswerInput = {},
-          )
+        CompositionLocalProvider(LocalUriHandler provides links) {
+          Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+            CellOutputs(
+              outputs = outputs,
+              hidden = false,
+              scrolled = scrolled,
+              search = search(),
+              onExpand = {},
+              inputRequest = null,
+              onAnswerInput = {},
+            )
+          }
         }
       }
     }
@@ -340,5 +388,8 @@ class CellOutputsViewTest {
 
     /** The reference line this test compares an output against - see the test's own docstring. */
     const val CODE_LINE = "one-line-of-code"
+
+    const val JUPYTER_URL = "https://jupyter.org"
+    const val LINK_TIMEOUT_MILLIS = 5_000L
   }
 }
