@@ -1381,21 +1381,6 @@ all: the mime falls through `RANKED_MIME_TYPES` to the bundle's `text/plain` or 
 path Compose can draw — a vector-drawable or coil-svg decoder — and an answer to the trust
 question the `safe: false` marks, since an inlined foreign `<svg>` is script-carrying markup.
 
-### GAP-107 — An embedded image or attachment never draws
-
-Three surfaces feed one machinery: markdown `![alt](src)`, HTML `<img src>`, and the
-`attachment:name` scheme `AttachmentsResolver` answers from the cell's own attachment bundle —
-all resolved against the workspace by `IResolver.resolveUrl`/`getDownloadUrl`
-(`jupyterlab/packages/attachments/src/model.ts:328-390`; Jewel's `ImageRendererExtension` +
-`ImageSourceResolver` + Coil3 is the in-idiom precedent). Ours drops all three at the parse:
-`MarkdownDocument`'s `else -> null` eats the `Image` node and its alt text, `HtmlInlines`
-flattens `<img>` to nothing, and `RichBlock`/`RichInline` have no image node to draw;
-`PreservedJson` round-trips `attachments` but no resolver answers the scheme
-(`app/src/main/java/com/jupydroid/app/markdown/MarkdownDocument.kt:96-98`). The repair is the
-resolver and the model node together — attachment bundle, workspace path, then the decode an
-image output already goes through (`app/src/main/java/com/jupydroid/app/ui/editor/RenderedOutput.kt`,
-`IMAGE_MIME_TYPES`).
-
 ### GAP-108 — A JSON payload prints its mime key, not a tree
 
 `json-extension`'s `RenderedJSON` ranks `application/json` and the three json-lines mimes at 0 —
