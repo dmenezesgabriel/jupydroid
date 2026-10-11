@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# A tap on the printed URL; the driver reads the resumed activity, which must be another app's,
+# then presses back and requires this app's. Run by scripts/jd-022-text-output-link-demo-driver.sh
+# after part 1, whose output is still drawn.
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    text: "see https://jupyter\\.org"
+    childOf: {text: "Cell output"}
+# Measured from part 1's hierarchy and 01's ink on SM-X216B: the node is [720,1061] and the URL's
+# ink 779-1060, so 60% (925) is inside it.
+- tapOn:
+    text: "see https://jupyter\\.org"
+    childOf: {text: "Cell output"}
+    point: "60%,50%"
+# No screenshot after the tap: what is on screen then is the browser.
+- waitForAnimationToEnd:
+    timeout: 5000

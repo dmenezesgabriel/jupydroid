@@ -105,7 +105,7 @@ they exist; VS Code in streams too, unchecked.
 - [x] T2 — a traceback's path to a workspace file opens it: `~/mod.py:3`, an absolute path under
   the workspace, `File "…", line N`; a path outside the workspace stays text; the Console follows
   workspace links too.
-- [ ] T3 — the demo on `SM-X216B`; ship, delete this PRD, close `GAP-105`.
+- [x] T3 — the demo on `SM-X216B`; ship, delete this PRD, close `GAP-105`.
 
 ## Out of scope
 

@@ -1,0 +1,57 @@
+appId: com.jupydroid.app
+---
+# A third code cell calls the seeded `mod.f()`, and a tap on `~/mod.py:1` in IPython's traceback
+# opens `mod.py` as a tab; back closes it. Run by scripts/jd-022-text-output-link-demo-driver.sh
+# after part 3.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Cell actions"
+    index: 1
+- tapOn: "Cell menu Insert code below"
+# The new cell's field, where uiautomator put it on SM-X216B's 1920x1200: [805,886][1884,958].
+- tapOn:
+    point: "1300,922"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "import mod; mod.f()"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 2
+- extendedWaitUntil:
+    visible: ".*ZeroDivisionError: division by zero"
+    timeout: 60000
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+# Centred: the traceback starts under the kernel bar, and a node clipped there still counts as
+# visible to a plain scrollUntilVisible, which then does not scroll.
+- scrollUntilVisible:
+    element:
+      text: "-{20,}.*ZeroDivisionError: division by zero"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: 01-the-error-path
+# The traceback is one text node of nine 31 px lines, [732,705][1844,984] on SM-X216B once
+# centred, from `uiautomator dump`: `File ~/mod.py:1, in f()` is line 6, at 61% of its height,
+# and the path's middle 13% across.
+- tapOn:
+    text: "-{20,}.*ZeroDivisionError: division by zero"
+    point: "13%,61%"
+# The file editor's text node holds the file whole, its final newline included.
+- extendedWaitUntil:
+    visible: "def f\\(\\): 1/0\\s*"
+    timeout: 10000
+- assertVisible: "Tab: mod.py"
+- takeScreenshot: 02-mod-opened
+# Back closes the file's tab, and the notebook under it is still there.
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "Tab: mod.py"
