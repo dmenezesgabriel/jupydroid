@@ -10,7 +10,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.Placeholder
@@ -53,10 +52,10 @@ internal fun RichInlineText(inlines: List<RichInline>, styles: RichInlineStyles,
 
 /** Each image's picture, null until it resolves and for good when it resolves to nothing. */
 @Composable
-private fun rememberResolvedImages(images: List<RichInline.Image>): List<ImageBitmap?> {
+private fun rememberResolvedImages(images: List<RichInline.Image>): List<DecodedImage?> {
   val resolver = LocalRichImageResolver.current
-  val pictures by produceState<List<ImageBitmap?>>(List(images.size) { null }, images, resolver) {
-    value = images.map { image -> resolver.imageBytes(image.source)?.decodedImageBitmap() }
+  val pictures by produceState<List<DecodedImage?>>(List(images.size) { null }, images, resolver) {
+    value = images.map { image -> resolver.imageBytes(image.source)?.decodedImage() }
   }
   return pictures
 }
@@ -64,7 +63,7 @@ private fun rememberResolvedImages(images: List<RichInline.Image>): List<ImageBi
 @Composable
 private fun inlineImages(
   images: List<RichInline.Image>,
-  pictures: List<ImageBitmap?>,
+  pictures: List<DecodedImage?>,
   columnWidth: Dp,
 ): Map<String, InlineTextContent> = pictures.withIndex()
   .mapNotNull { (index, picture) -> picture?.let { richImageId(index) to inlineImage(it, images[index], columnWidth) } }
@@ -76,15 +75,15 @@ private fun inlineImages(
  * and `height: auto` on every `<img>`.
  */
 @Composable
-private fun inlineImage(picture: ImageBitmap, image: RichInline.Image, columnWidth: Dp): InlineTextContent {
-  val width = minOf((image.width ?: picture.width).dp, columnWidth)
-  val height = width * (picture.height / picture.width.toFloat())
+private fun inlineImage(picture: DecodedImage, image: RichInline.Image, columnWidth: Dp): InlineTextContent {
+  val width = minOf((image.width ?: picture.ownWidth).dp, columnWidth)
+  val height = width * (picture.bitmap.height / picture.bitmap.width.toFloat())
   val placeholder = with(LocalDensity.current) {
     Placeholder(width.toSp(), height.toSp(), PlaceholderVerticalAlign.Bottom)
   }
   return InlineTextContent(placeholder) {
     Image(
-      bitmap = picture,
+      bitmap = picture.bitmap,
       contentDescription = image.altText(),
       modifier = Modifier.fillMaxSize(),
       contentScale = ContentScale.FillBounds,

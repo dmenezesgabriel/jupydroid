@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.editor
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -78,6 +80,18 @@ class CellOutputImageTest {
     assertEquals(WIDE_COLUMN.value, image.height.value, TOLERANCE)
   }
 
+  /**
+   * 300 x 60000 pixels are past the canvas floor at the worst case's eight bytes a pixel, so they
+   * decode at half size, 150 wide. The image is still 300 pixels wide, and draws 300 dp wide: an
+   * `<img>` draws at its natural width whatever its decoder did (ADR-0087).
+   */
+  @Test
+  fun anImageShrunkWhileDecodingDrawsAtItsOwnWidth() {
+    showImage(pngOf(TALL_WIDTH, TALL_HEIGHT), width = null, column = WIDE_COLUMN)
+
+    assertEquals(TALL_WIDTH.toFloat(), imageBounds().width.value, TOLERANCE)
+  }
+
   private fun showImage(png: String, width: Int?, column: Dp) {
     val metadata = buildJsonObject {
       width?.let { put("image/png", buildJsonObject { put("width", it) }) }
@@ -85,7 +99,9 @@ class CellOutputImageTest {
     val output = CellOutput.DisplayData(mapOf("image/png" to JsonPrimitive(png)), metadata = metadata)
     compose.setContent {
       JupyterDroidTheme {
-        Box(modifier = Modifier.width(column)) {
+        // Scrolled, as the cell list is: under a bounded height `aspectRatio` sizes an image taller than
+        // the screen from the height instead, and its width is no longer the one asked for.
+        Box(modifier = Modifier.width(column).verticalScroll(rememberScrollState())) {
           CellOutputs(
             outputs = listOf(output),
             hidden = false,
@@ -119,6 +135,8 @@ class CellOutputImageTest {
     const val ASKED_WIDTH = 100
     const val OVERSIZED_WIDTH = 2000
     const val HUGE_SIDE = 6400
+    const val TALL_WIDTH = 300
+    const val TALL_HEIGHT = 60000
     val WIDE_COLUMN = 600.dp
     val NARROW_COLUMN = 300.dp
 

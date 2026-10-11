@@ -280,17 +280,17 @@ private fun OutputImage(output: RenderedOutput.Image) {
   // unit-testable; remembered by content so scrolling does not re-decode every frame.
   // The decode reads a GIF's first frame only - an animated GIF draws still, where JupyterLab's
   // `<img>` would play it - and shrinks an image too large for a canvas, which a browser draws whole.
-  val bitmap = remember(output) { output.encoded.decodedImageBitmap() } ?: return
+  val image = remember(output) { output.encoded.decodedImage() } ?: return
   // JupyterLab's `<img>`: the width the kernel asked for, else the image's own with one pixel to a dp
   // as a WebView maps a CSS px, at the column's start. `width` is coerced by the column's max
   // constraint, which is `max-width: 100%`, and the ratio sets the height, which is `height: auto`
   // (jupyterlab@7f0e690 packages/rendermime/src/renderers.ts `renderImage`, style/base.css; ADR-0086).
   Image(
-    bitmap = bitmap,
+    bitmap = image.bitmap,
     contentDescription = "Cell image output",
     modifier = Modifier
-      .width((output.width ?: bitmap.width).dp)
-      .aspectRatio(bitmap.width / bitmap.height.toFloat()),
+      .width((output.width ?: image.ownWidth).dp)
+      .aspectRatio(image.bitmap.width / image.bitmap.height.toFloat()),
     contentScale = ContentScale.FillBounds,
   )
 }

@@ -54,7 +54,7 @@ precedent for meeting it is this app's own markdown path (ADR-0087).
 | Concern | Files |
 |---|---|
 | Sample size | `app/src/main/java/com/jupydroid/app/ui/editor/ImageSampleSize.kt` (`imageSampleSize`), `ImageSampleSizeTest` |
-| Decode | `app/src/main/java/com/jupydroid/app/ui/editor/RichInlineText.kt` (`decodedImageBitmap`, private) |
+| Decode | `app/src/main/java/com/jupydroid/app/ui/editor/DecodedImage.kt` (`decodedImage`) |
 | Instrumented | `app/src/androidTest/java/com/jupydroid/app/ui/editor/RichTextImageTest.kt` (`anImageTooLargeToDrawWholeDrawsShrunkToTheColumn`) |
 
 ## Trade-offs and what we adopt

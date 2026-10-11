@@ -85,11 +85,16 @@ images at the cap, in `cacheDir/remote-images`, and name the app before the libr
 `Jupydroid/<versionName> okhttp/<version>`.
 
 **Every image is decoded to fit the canvas floor**, a markdown cell's and an image output alike
-(`decodedImageBitmap`, `app/src/main/java/com/jupydroid/app/ui/editor/DecodedImageBitmap.kt`;
+(`decodedImage`, `app/src/main/java/com/jupydroid/app/ui/editor/DecodedImage.kt`;
 `imageSampleSize`, `ImageSampleSize.kt` beside it). The header is read first, and
 `inSampleSize` is doubled until `width × height × 8` divided by its square is at most 100 MiB. The 8
 is the worst case: a PNG with 16 bits per channel decodes to `RGBA_F16`. 100 MiB is the floor on
 every release from `minSdk` on.
+
+**An image shrunk this way still draws at its own width.** The header's width is carried beside the
+bitmap (`DecodedImage.ownWidth`), because the bitmap's is a fraction of it: a 300 × 60000 image
+decodes 150 wide and draws 300 dp wide, as an `<img>` draws at its natural width whatever its
+decoder did.
 
 ## Consequences
 

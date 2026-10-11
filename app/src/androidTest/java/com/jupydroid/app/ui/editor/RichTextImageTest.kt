@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.editor
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
@@ -119,6 +121,18 @@ class RichTextImageTest {
     assertEquals(WIDE_COLUMN.value, image.height.value, TOLERANCE)
   }
 
+  /**
+   * 300 x 60000 pixels are past the canvas floor at the worst case's eight bytes a pixel, so they
+   * decode at half size, 150 wide. The image is still 300 pixels wide, and draws 300 dp wide: an
+   * `<img>` draws at its natural width whatever its decoder did (ADR-0087).
+   */
+  @Test
+  fun anImageShrunkWhileDecodingDrawsAtItsOwnWidth() {
+    showFromWorkspace("![chart](img/chart.png)", pngBytesOf(TALL_WIDTH, TALL_HEIGHT))
+
+    assertEquals(TALL_WIDTH.toFloat(), imageBounds().width.value, TOLERANCE)
+  }
+
   /** JupyterLab's `<img width>`: the width written, in pixels, with the picture's own ratio. */
   @Test
   fun anImgDrawsAtItsWidthAttribute() {
@@ -164,7 +178,9 @@ class RichTextImageTest {
     runBlocking { workspace.writeBytes("reports/img/chart.png", png) }
     compose.setContent {
       JupyterDroidTheme {
-        Box(modifier = Modifier.width(WIDE_COLUMN)) {
+        // Scrolled, as the cell list is: under a bounded height `aspectRatio` sizes an image taller than
+        // the screen from the height instead, and its width is no longer the one asked for.
+        Box(modifier = Modifier.width(WIDE_COLUMN).verticalScroll(rememberScrollState())) {
           RemoteImagesResolved(FakeRemoteImageReader(mapOf(CHART_URL to png))) {
             WorkspaceImagesResolved("reports/nb.ipynb", workspace) { around { RichText(blocks) } }
           }
@@ -204,6 +220,8 @@ class RichTextImageTest {
     const val IMG_WIDTH = 48
     const val OVERSIZED_WIDTH = 2000
     const val HUGE_SIDE = 6400
+    const val TALL_WIDTH = 300
+    const val TALL_HEIGHT = 60000
     const val CHART_URL = "https://images.example/chart.png"
     val WIDE_COLUMN = 600.dp
     val NARROW_COLUMN = 300.dp
