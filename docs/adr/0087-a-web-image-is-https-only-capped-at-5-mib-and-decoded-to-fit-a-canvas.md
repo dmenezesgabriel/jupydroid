@@ -44,7 +44,8 @@ Measured on SM-X216B (API 36, `ro.hwui.max_texture_allocation_size` unset, so 15
 
 - A 6400² PNG drawn whole threw `Canvas: trying to draw too large(163840000bytes) bitmap.` in
   `RichTextImageTest.anImageTooLargeToDrawWholeDrawsShrunkToTheColumn` before the decode below
-  existed.
+  existed, and the same in `CellOutputImageTest`'s test of that name while an image output was
+  still decoded whole.
 - upload.wikimedia.org answered 403 to OkHttp's default `okhttp/5.4.0` User-Agent and to an empty
   one, and 200 to one naming its client, `Jupydroid/1.0` (its policy:
   https://foundation.wikimedia.org/wiki/Policy:Wikimedia_Foundation_User-Agent_Policy).
@@ -83,8 +84,9 @@ declares no length only to one byte past the cap. Requests go through an OkHttp 
 images at the cap, in `cacheDir/remote-images`, and name the app before the library:
 `Jupydroid/<versionName> okhttp/<version>`.
 
-**Every markdown image is decoded to fit the canvas floor** (`imageSampleSize`,
-`app/src/main/java/com/jupydroid/app/ui/editor/ImageSampleSize.kt`). The header is read first, and
+**Every image is decoded to fit the canvas floor**, a markdown cell's and an image output alike
+(`decodedImageBitmap`, `app/src/main/java/com/jupydroid/app/ui/editor/DecodedImageBitmap.kt`;
+`imageSampleSize`, `ImageSampleSize.kt` beside it). The header is read first, and
 `inSampleSize` is doubled until `width × height × 8` divided by its square is at most 100 MiB. The 8
 is the worst case: a PNG with 16 bits per channel decodes to `RGBA_F16`. 100 MiB is the floor on
 every release from `minSdk` on.
@@ -102,8 +104,3 @@ What a future reader will be tempted to "fix":
 - **Reading the real `MAX_BITMAP_SIZE`.** It is `@hide`. Reflection on it is what a hidden-API
   blocklist exists to break.
 - **Dropping the User-Agent.** Wikimedia refuses OkHttp's default with a 403.
-
-Not covered:
-
-- Image outputs decode through `OutputImage`, which has no such guard. A `display(Image(...))` that
-  large still throws at draw.

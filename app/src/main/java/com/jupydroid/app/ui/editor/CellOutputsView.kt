@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -30,7 +29,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -280,11 +278,9 @@ private fun ChunkedText(text: AnnotatedString, color: Color) {
 private fun OutputImage(output: RenderedOutput.Image) {
   // Decoded here rather than in RenderedOutput so that stays free of Android types and
   // unit-testable; remembered by content so scrolling does not re-decode every frame.
-  // `BitmapFactory` sniffs the format from the header, and decodes a GIF's first frame only - an
-  // animated GIF draws still, where JupyterLab's `<img>` would play it.
-  val bitmap = remember(output) {
-    BitmapFactory.decodeByteArray(output.encoded, 0, output.encoded.size)?.asImageBitmap()
-  } ?: return
+  // The decode reads a GIF's first frame only - an animated GIF draws still, where JupyterLab's
+  // `<img>` would play it - and shrinks an image too large for a canvas, which a browser draws whole.
+  val bitmap = remember(output) { output.encoded.decodedImageBitmap() } ?: return
   // JupyterLab's `<img>`: the width the kernel asked for, else the image's own with one pixel to a dp
   // as a WebView maps a CSS px, at the column's start. `width` is coerced by the column's max
   // constraint, which is `max-width: 100%`, and the ratio sets the height, which is `height: auto`

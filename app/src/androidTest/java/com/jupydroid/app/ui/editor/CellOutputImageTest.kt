@@ -65,6 +65,19 @@ class CellOutputImageTest {
     assertEquals(NARROW_COLUMN.value * STRIP_HEIGHT / OVERSIZED_WIDTH, image.height.value, TOLERANCE)
   }
 
+  /**
+   * 6400² pixels decode to 160 MiB, past even API 36's 150 MiB canvas limit, and drawn whole they
+   * throw at draw. Shrunk while decoding, the image fills the column with its ratio kept (ADR-0087).
+   */
+  @Test
+  fun anImageTooLargeToDrawWholeDrawsShrunkToTheColumn() {
+    showImage(pngOf(HUGE_SIDE, HUGE_SIDE), width = null, column = WIDE_COLUMN)
+
+    val image = imageBounds()
+    assertEquals(WIDE_COLUMN.value, image.width.value, TOLERANCE)
+    assertEquals(WIDE_COLUMN.value, image.height.value, TOLERANCE)
+  }
+
   private fun showImage(png: String, width: Int?, column: Dp) {
     val metadata = buildJsonObject {
       width?.let { put("image/png", buildJsonObject { put("width", it) }) }
@@ -105,6 +118,7 @@ class CellOutputImageTest {
     const val STRIP_HEIGHT = 8
     const val ASKED_WIDTH = 100
     const val OVERSIZED_WIDTH = 2000
+    const val HUGE_SIDE = 6400
     val WIDE_COLUMN = 600.dp
     val NARROW_COLUMN = 300.dp
 

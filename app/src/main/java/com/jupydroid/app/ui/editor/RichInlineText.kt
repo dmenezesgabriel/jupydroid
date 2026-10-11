@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,7 +11,6 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.Placeholder
@@ -61,19 +59,6 @@ private fun rememberResolvedImages(images: List<RichInline.Image>): List<ImageBi
     value = images.map { image -> resolver.imageBytes(image.source)?.decodedImageBitmap() }
   }
   return pictures
-}
-
-/**
- * Decoded as an image output is (`OutputImage`): `BitmapFactory` sniffs the format from the header,
- * and null is bytes that are no image it reads. The header is read first, so an image too large to
- * draw is shrunk while it decodes ([imageSampleSize]) rather than decoded whole and thrown at draw.
- */
-private fun ByteArray.decodedImageBitmap(): ImageBitmap? {
-  val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-  BitmapFactory.decodeByteArray(this, 0, size, bounds)
-  if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-  val sampled = BitmapFactory.Options().apply { inSampleSize = imageSampleSize(bounds.outWidth, bounds.outHeight) }
-  return BitmapFactory.decodeByteArray(this, 0, size, sampled)?.asImageBitmap()
 }
 
 @Composable
