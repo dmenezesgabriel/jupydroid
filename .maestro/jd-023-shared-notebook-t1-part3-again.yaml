@@ -1,0 +1,14 @@
+appId: com.jupydroid.app
+---
+# The driver sends the same VIEW intent again while the first copy is open. Its name is taken, so
+# the second copy opens under the next free one and the first is left as the run saved it - which
+# the driver reads off the workspace. Run by scripts/jd-023-shared-notebook-t1-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the notebook before it ran a cell.
+- extendedWaitUntil:
+    visible: "Shared analysis1\\.ipynb"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "A shared analysis"
+    timeout: 30000
+- takeScreenshot: 01-second-copy

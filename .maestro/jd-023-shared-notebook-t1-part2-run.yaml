@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Runs the shared notebook. `45` is the kernel's `sum(range(10))`, which FakeKernelGateway's echo of
+# the source never prints. Its cell is the first code cell on purpose: `childOf` scopes to the first
+# `Cell output` only (cross-cutting.md section 8.6), and before the run that one was the saved output. Run by scripts/jd-023-shared-notebook-t1-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run all cells"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "45"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 01-run
