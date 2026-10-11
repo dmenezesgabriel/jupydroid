@@ -70,3 +70,31 @@ require_width_dp() {
     tee "$out/${name// /-}-width.txt"
   ((width_dp >= want_dp - 1 && width_dp <= want_dp + 1)) || { echo "$name is not $want_dp dp"; exit 1; }
 }
+
+# Fails unless the first image [name] in [out]/image-bounds.txt spans the first `Cell output`, edge to
+# edge, and is [ratio] times as wide as it is tall, and records the measure in
+# [out]/image-measure.txt. A layout rounds to whole pixels, so the ratio holds to 4 px.
+require_across_column() {
+  local out="$1" name="$2" ratio="$3" left top right bottom column_left column_right
+  read -r left top right bottom < <(node_edges "$out" "$name")
+  read -r column_left _ column_right _ < <(node_edges "$out" "Cell output")
+  echo "$name $((right - left)) x $((bottom - top)) px, column $((column_right - column_left)) px wide" |
+    tee "$out/image-measure.txt"
+  [ "$left" -eq "$column_left" ] && [ "$right" -eq "$column_right" ] || { echo "$name is not the column's width"; exit 1; }
+  local width=$((right - left)) height=$((bottom - top))
+  ((height * ratio >= width - 4 && height * ratio <= width + 4)) || { echo "$name is not $ratio:1"; exit 1; }
+}
+
+# The left, top, right and bottom of the first node in [out]/image-bounds.txt described [name].
+node_edges() {
+  grep -m1 "content-desc=\"$2\"" "$1/image-bounds.txt" |
+    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/'
+}
+
+# Fails unless exactly one image [name] is in [out]/image-bounds.txt, so a measure of it cannot be
+# another image's.
+require_one_drawn() {
+  local count
+  count="$(grep -c "content-desc=\"$2\"" "$1/image-bounds.txt" || true)"
+  [ "$count" -eq 1 ] || { echo "$count images drawn for $2, expected 1"; exit 1; }
+}

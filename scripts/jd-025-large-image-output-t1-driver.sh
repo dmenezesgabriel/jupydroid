@@ -28,18 +28,4 @@ run_flow "$ROOT/.maestro/jd-025-large-image-output-t1.yaml" "$EVIDENCE/run"
 
 image_bounds "$EVIDENCE/run"
 require_drawn "$EVIDENCE/run" "Cell image output"
-
-# The left, top, right and bottom of the node described [name].
-edges_of() {
-  grep "content-desc=\"$1\"" "$EVIDENCE/run/image-bounds.txt" |
-    sed -E 's/.*bounds="\[([0-9]+),([0-9]+)\]\[([0-9]+),([0-9]+)\]".*/\1 \2 \3 \4/'
-}
-read -r left top right bottom < <(edges_of "Cell image output")
-read -r column_left _ column_right _ < <(edges_of "Cell output")
-width=$((right - left))
-height=$((bottom - top))
-echo "image $width x $height px, column $((column_right - column_left)) px wide" |
-  tee "$EVIDENCE/run/image-measure.txt"
-[ "$left" -eq "$column_left" ] && [ "$right" -eq "$column_right" ] || { echo "the image is not the column's width"; exit 1; }
-# A layout rounds to whole pixels.
-((height * 4 >= width - 4 && height * 4 <= width + 4)) || { echo "the image is not 4:1"; exit 1; }
+require_across_column "$EVIDENCE/run" "Cell image output" 4

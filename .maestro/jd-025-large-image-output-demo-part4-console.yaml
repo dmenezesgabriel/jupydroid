@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# A Console on the notebook's kernel displays `wide`, the 12800 x 3200 image cell 1 bound, and draws
+# it across its entry as cell 1 did. `wide` exists only in that kernel's namespace, so the image
+# proves the Console shares it; FakeKernelGateway draws no image. Run by
+# scripts/jd-025-large-image-output-demo-driver.sh after part 3, on the screen part 3 left.
+#
+# TABLET ONLY (SM-X216B): parts 2 and 3 run cells.
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- inputText: "display(wide)"
+- tapOn: "Run"
+# The soft keyboard covers the transcript's newest entry, so it goes before the wait looks for it.
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "Cell image output"
+    timeout: 60000
+- takeScreenshot: 04-the-console-draws-it-across-the-entry
