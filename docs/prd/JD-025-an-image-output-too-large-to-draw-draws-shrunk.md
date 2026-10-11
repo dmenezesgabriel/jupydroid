@@ -12,12 +12,13 @@ notebook that saved it opens again.
 
 On the arm64 tablet (`SM-X216B`) — steps 2 and 4 run a cell.
 
-1. Cold start: seed `Large Image Output.ipynb`, whose one code cell builds a 6400² PNG with `zlib`
-   and `struct`, displays it and prints `6 * 7`, and open it.
-2. Run the cell: the image draws across the column, square, above the kernel's `42`.
+1. Cold start: seed `Large Image Output.ipynb`, whose code cell builds a 12800 × 3200 PNG with `zlib`
+   and `struct`, displays it and prints `6 * 7`, and open it. (A 6400² one draws taller than the
+   screen, so its bounds cannot be read whole; this one is the same 163 840 000 bytes decoded.)
+2. Run the cell: the image draws across the column, a quarter as tall, above the kernel's `42`.
 3. A second cell displays a 300 × 60000 PNG: it draws 300 dp wide, not 150.
-4. Open a Console on the notebook's kernel and display the 6400² image there: it draws across the
-   entry.
+4. Open a Console on the notebook's kernel and display the 12800 × 3200 image there: it draws
+   across the entry.
 5. Force-stop and relaunch — the notebook opens and both images draw again from the saved file.
 
 The item is not `shipped` until this has been run on that device, with screenshots, snapshots and
@@ -92,7 +93,7 @@ None. ADR-0087 already decided the sample-size rule; this item widens what it co
 
 ## Tasks
 
-- [ ] T1 — an image output too large to draw whole draws shrunk to the column, in the notebook and the Console
+- [x] T1 — an image output too large to draw whole draws shrunk to the column, in the notebook and the Console
 - [ ] T2 — an image shrunk while decoding keeps its own width, as an output and in a markdown cell
 - [ ] T3 — the demo on SM-X216B
 
