@@ -20,7 +20,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.richtext.RichBlock
-import com.jupydroid.app.richtext.toAnnotatedString
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
@@ -48,9 +47,8 @@ fun RichText(blocks: List<RichBlock>, modifier: Modifier = Modifier) {
 private fun RichBlockText(block: RichBlock) {
   val styles = richInlineStyles()
   when (block) {
-    is RichBlock.Heading -> Text(block.inlines.toAnnotatedString(styles), style = headingStyle(block.level))
-    is RichBlock.Paragraph ->
-      Text(block.inlines.toAnnotatedString(styles), style = richTextProseStyle())
+    is RichBlock.Heading -> RichInlineText(block.inlines, styles, headingStyle(block.level))
+    is RichBlock.Paragraph -> RichInlineText(block.inlines, styles, richTextProseStyle())
     is RichBlock.CodeBlock -> CodeBlockText(block)
     is RichBlock.BlockQuote -> BlockQuoteText(block)
     is RichBlock.ListBlock -> ListBlockText(block)

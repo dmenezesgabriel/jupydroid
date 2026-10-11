@@ -92,6 +92,36 @@ class RichInlineStringTest {
     assertEquals("docs", built.text.substring(link.start, link.end))
   }
 
+  /**
+   * An image is a slot in the string, numbered in document order, so the renderer can put the
+   * picture in it; its alt is the text the slot holds, which is what draws when nothing fills it.
+   */
+  @Test
+  fun anImageIsASlotHoldingItsAltText() {
+    val built = MarkdownDocument.parse("a ![one](x.png) b ![two](y.png)").paragraphInlines().toAnnotatedString(styles)
+
+    assertEquals("a one b two", built.text)
+    val slots = built.getStringAnnotations(0, built.length)
+    assertEquals(listOf(richImageId(0), richImageId(1)), slots.map { it.item })
+    assertEquals(listOf("one", "two"), slots.map { built.text.substring(it.start, it.end) })
+  }
+
+  /** A slot cannot hold nothing, so an image with no alt holds Lab's default, `handleDefaults`'s "Image". */
+  @Test
+  fun anImageWithNoAltHoldsTheWordImage() {
+    val built = MarkdownDocument.parse("![](x.png)").paragraphInlines().toAnnotatedString(styles)
+
+    assertEquals("Image", built.text)
+  }
+
+  /** The renderer pairs slot `n` with the `n`th of these, so both walk the tree in the same order. */
+  @Test
+  fun imagesAreListedInTheOrderTheirSlotsAreNumbered() {
+    val inlines = MarkdownDocument.parse("![a](1.png) **![b](2.png)** [![c](3.png)](x)").paragraphInlines()
+
+    assertEquals(listOf("1.png", "2.png", "3.png"), inlines.images().map { it.source })
+  }
+
   @Test
   fun aSoftBreakBecomesASpaceAndAHardBreakANewline() {
     assertEquals("one two", MarkdownDocument.parse("one\ntwo").paragraphInlines().toAnnotatedString(styles).text)

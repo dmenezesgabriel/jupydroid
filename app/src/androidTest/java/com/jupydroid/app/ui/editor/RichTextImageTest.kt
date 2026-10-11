@@ -1,0 +1,98 @@
+package com.jupydroid.app.ui.editor
+
+import android.graphics.Bitmap
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.markdown.MarkdownDocument
+import com.jupydroid.app.theme.JupyterDroidTheme
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import java.io.ByteArrayOutputStream
+import java.util.Base64
+
+/**
+ * A markdown image naming the cell's own attachment draws in its line, at an image output's size -
+ * its own pixels in dp, capped at the column (ADR-0086) - and one naming nothing draws its alt text.
+ */
+@RunWith(AndroidJUnit4::class)
+class RichTextImageTest {
+  @get:Rule val compose = createComposeRule()
+
+  @Test
+  fun anAttachmentDrawsAtItsOwnPixelsInDp() {
+    show("![chart](attachment:chart.png)", pngOf(STRIP_WIDTH, STRIP_HEIGHT), column = WIDE_COLUMN)
+
+    val image = imageBounds()
+    assertEquals(STRIP_WIDTH.toFloat(), image.width.value, TOLERANCE)
+    assertEquals(STRIP_HEIGHT.toFloat(), image.height.value, TOLERANCE)
+  }
+
+  @Test
+  fun anAttachmentWiderThanTheColumnShrinksToIt() {
+    show("![chart](attachment:chart.png)", pngOf(OVERSIZED_WIDTH, STRIP_HEIGHT), column = NARROW_COLUMN)
+
+    val image = imageBounds()
+    assertEquals(NARROW_COLUMN.value, image.width.value, TOLERANCE)
+    assertEquals(NARROW_COLUMN.value * STRIP_HEIGHT / OVERSIZED_WIDTH, image.height.value, TOLERANCE)
+  }
+
+  @Test
+  fun anImageNamingNoAttachmentDrawsItsAltText() {
+    show("![missing chart](attachment:other.png)", pngOf(STRIP_WIDTH, STRIP_HEIGHT), column = WIDE_COLUMN)
+
+    compose.onNodeWithText("missing chart").assertExists()
+    compose.onAllNodesWithContentDescription("missing chart", useUnmergedTree = true).assertCountEquals(0)
+  }
+
+  private fun show(source: String, png: String, column: Dp) {
+    val preserved = buildJsonObject {
+      putJsonObject("attachments") { putJsonObject("chart.png") { put("image/png", png) } }
+    }
+    compose.setContent {
+      JupyterDroidTheme {
+        Box(modifier = Modifier.width(column)) {
+          CellAttachmentImagesResolved(preserved) { RichText(MarkdownDocument.parse(source)) }
+        }
+      }
+    }
+  }
+
+  private fun imageBounds(): DpRect =
+    compose.onNodeWithContentDescription("chart", useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+  /** A real PNG, encoded on the device, so the decoder the app uses is the one measured. */
+  private fun pngOf(width: Int, height: Int): String {
+    val bytes = ByteArrayOutputStream()
+    Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, bytes)
+    return Base64.getEncoder().encodeToString(bytes.toByteArray())
+  }
+
+  private companion object {
+    const val STRIP_WIDTH = 96
+    const val STRIP_HEIGHT = 8
+    const val OVERSIZED_WIDTH = 2000
+    val WIDE_COLUMN = 600.dp
+    val NARROW_COLUMN = 300.dp
+
+    /** A layout rounds to whole pixels, which at any density is under a dp. */
+    const val TOLERANCE = 1f
+  }
+}

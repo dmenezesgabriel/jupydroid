@@ -81,7 +81,7 @@ private fun MimeBundle.renderRichest(metadata: JsonObject): RenderedOutput =
     ?: RenderedOutput.Text(keys.joinToString(), isError = false)
 
 /** `imageRendererFactory`'s mimes, in its own order: one rank, so the order is the tie-break. */
-private val IMAGE_MIME_TYPES = listOf("image/bmp", "image/png", "image/jpeg", "image/gif", "image/webp")
+internal val IMAGE_MIME_TYPES = listOf("image/bmp", "image/png", "image/jpeg", "image/gif", "image/webp")
 
 private val RANKED_MIME_TYPES = listOf("text/html", "text/markdown") + IMAGE_MIME_TYPES + "text/plain"
 
@@ -119,7 +119,7 @@ private fun JsonObject.imageWidthOf(mimeType: String): Int? =
  * invalid characters, so it happily "decodes" text that is not base64 at all, and the
  * fallback would never fire. nbformat wraps its base64 across lines, hence the stripping.
  */
-private fun String.decodedBase64(): ByteArray? = filterNot { it.isWhitespace() }
+internal fun String.decodedBase64(): ByteArray? = filterNot { it.isWhitespace() }
   .let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
 
 /** [raw] without its escapes or trailing whitespace, and the colours those escapes asked for. */

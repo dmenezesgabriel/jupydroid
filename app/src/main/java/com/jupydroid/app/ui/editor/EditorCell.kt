@@ -239,24 +239,26 @@ internal fun EditorCell(
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )
 
-          CellKind.MARKDOWN -> MarkdownCell(
-            state = field,
-            source = cell.source,
-            rendered = markdownRendered,
-            // Null on anything that is not a heading, which is the reference's `level > 0` guard.
-            fold = cell.headingLevel?.let { HeadingFold(it, cell.headingCollapsed) },
-            onToggleHeadingCollapse = { act(CellAction.ToggleHeadingCollapse) },
-            headingPrefix = headingPrefix,
-            editing = editing,
-            onEditRequested = onMarkdownEditRequested,
-            onSourceEdited = onSourceEdited,
-            input = cellInput,
-            takesCaret = markdownTakesCaret,
-            lineNumbersShown = lineNumbersShown,
-            codeFontSizeSp = codeFontSizeSp,
-            search = search,
-            modifier = Modifier.fillMaxWidth(),
-          )
+          CellKind.MARKDOWN -> CellAttachmentImagesResolved(cell.preserved) {
+            MarkdownCell(
+              state = field,
+              source = cell.source,
+              rendered = markdownRendered,
+              // Null on anything that is not a heading, which is the reference's `level > 0` guard.
+              fold = cell.headingLevel?.let { HeadingFold(it, cell.headingCollapsed) },
+              onToggleHeadingCollapse = { act(CellAction.ToggleHeadingCollapse) },
+              headingPrefix = headingPrefix,
+              editing = editing,
+              onEditRequested = onMarkdownEditRequested,
+              onSourceEdited = onSourceEdited,
+              input = cellInput,
+              takesCaret = markdownTakesCaret,
+              lineNumbersShown = lineNumbersShown,
+              codeFontSizeSp = codeFontSizeSp,
+              search = search,
+              modifier = Modifier.fillMaxWidth(),
+            )
+          }
 
           // The code cell's panel rather than the markdown editor's: the reference gives a raw
           // cell no styling of its own, so it draws in the same input area a code cell does.

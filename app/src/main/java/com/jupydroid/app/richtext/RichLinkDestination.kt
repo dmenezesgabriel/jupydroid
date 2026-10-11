@@ -103,7 +103,7 @@ fun String.headingLinkFragment(): String? {
  * form, so it is protected from [URLDecoder]. The encoding is named as a string because the
  * `Charset` overload is API 33 and `minSdk` is 32 (`app/build.gradle.kts`).
  */
-private fun String.percentDecoded(): String? =
+internal fun String.percentDecoded(): String? =
   runCatching { URLDecoder.decode(replace("+", "%2B"), "UTF-8") }.getOrNull()
 
 /** `PathExt.resolve` for a relative path: `.` and empty segments drop, `..` climbs, above the root is null. */

@@ -14,6 +14,7 @@ import org.commonmark.node.Emphasis
 import org.commonmark.node.FencedCodeBlock
 import org.commonmark.node.HardLineBreak
 import org.commonmark.node.Heading
+import org.commonmark.node.Image
 import org.commonmark.node.IndentedCodeBlock
 import org.commonmark.node.Link
 import org.commonmark.node.ListItem
@@ -123,6 +124,7 @@ object MarkdownDocument {
     is StrongEmphasis -> RichInline.StrongEmphasis(inlines())
     is Strikethrough -> RichInline.Strikethrough(inlines())
     is Link -> RichInline.Link(destination, inlines())
+    is Image -> RichInline.Image(destination, inlines())
     is SoftLineBreak -> RichInline.SoftLineBreak
     is HardLineBreak -> RichInline.HardLineBreak
     else -> null

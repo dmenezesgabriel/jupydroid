@@ -67,6 +67,13 @@ sealed interface RichInline {
 
   data class Link(val destination: String, val children: List<RichInline>) : RichInline
 
+  /**
+   * [source] is carried as written, as a link's destination is: what it names - an attachment, a
+   * workspace file, a web address - is resolved where it draws, which is where all three of
+   * JupyterLab, VS Code and Jewel resolve it. [alt] is what the reader is told instead.
+   */
+  data class Image(val source: String, val alt: List<RichInline>) : RichInline
+
   /** A wrapped line inside one paragraph; renders as a space. */
   data object SoftLineBreak : RichInline
 
@@ -83,7 +90,27 @@ fun List<RichInline>.plainText(): String = joinToString("") { inline ->
     is RichInline.StrongEmphasis -> inline.children.plainText()
     is RichInline.Strikethrough -> inline.children.plainText()
     is RichInline.Link -> inline.children.plainText()
+    is RichInline.Image -> inline.alt.plainText()
     RichInline.SoftLineBreak -> " "
     RichInline.HardLineBreak -> "\n"
+  }
+}
+
+/**
+ * Every image in these inlines, depth first in document order - the order `toAnnotatedString`
+ * numbers their slots in, which is how a renderer pairs a slot with its picture.
+ *
+ * ```
+ * MarkdownDocument.parse("![a](1.png) **![b](2.png)**").single().inlines.images() // [1.png, 2.png]
+ * ```
+ */
+fun List<RichInline>.images(): List<RichInline.Image> = flatMap { inline ->
+  when (inline) {
+    is RichInline.Image -> listOf(inline)
+    is RichInline.Emphasis -> inline.children.images()
+    is RichInline.StrongEmphasis -> inline.children.images()
+    is RichInline.Strikethrough -> inline.children.images()
+    is RichInline.Link -> inline.children.images()
+    else -> emptyList()
   }
 }

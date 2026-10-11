@@ -124,6 +124,24 @@ class MarkdownDocumentTest {
     assertEquals("docs", link.children.plainText())
   }
 
+  /** The source is kept as written: what it names is resolved where it draws, as a link's is. */
+  @Test
+  fun readsAnImageWithItsSourceAndAlt() {
+    val inlines = (MarkdownDocument.parse("![a *chart*](attachment:x.png)").single() as RichBlock.Paragraph).inlines
+
+    val image = inlines.single() as RichInline.Image
+    assertEquals("attachment:x.png", image.source)
+    assertEquals("a chart", image.alt.plainText())
+  }
+
+  /** What the reader is told instead of the picture is what search and the outline read. */
+  @Test
+  fun anImageReadsAsItsAltText() {
+    val inlines = (MarkdownDocument.parse("see ![the chart](c.png) here").single() as RichBlock.Paragraph).inlines
+
+    assertEquals("see the chart here", inlines.plainText())
+  }
+
   @Test
   fun readsABareUrlAsALinkToItself() {
     val inlines = (MarkdownDocument.parse("see https://jupyter.org").single() as RichBlock.Paragraph).inlines
