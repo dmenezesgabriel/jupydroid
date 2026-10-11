@@ -1469,17 +1469,6 @@ the decode outright, an output without `output_type` drops silently at `toDomain
 structural break is indistinguishable from an empty document. The repair is a read-side
 validation pass whose finding surfaces the way `model["message"]` does.
 
-### GAP-119 — An opened `.ipynb` is a name with no content
-
-`DocumentManager.open` on a notebook path reads the file's bytes through the contents API and
-builds the model from them — a document is its content
-(`jupyterlab/packages/docmanager/src/manager.ts`). Ours answers a VIEW intent by taking the
-display name only: `importTitleFrom` strips the `.ipynb` suffix into a title and `MainActivity`
-creates an empty notebook under it, so a shared file's cells never arrive
-(`app/src/main/java/com/jupydroid/app/import/ImportTitles.kt`,
-`app/src/main/java/com/jupydroid/app/MainActivity.kt`). The repair reads the intent URI's bytes
-through `NotebookFile.readNotebook` and stores the result under the imported title.
-
 ### GAP-007 — The execution stall is parked, not closed
 
 Reproducible and understood as far as the frames go; the request never reached the kernel, and the
