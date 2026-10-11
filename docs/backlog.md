@@ -141,6 +141,15 @@ audit's, `GAP-093`–`GAP-119` in [`architecture.md` §11](architecture.md).
 | `JD-024` | **An image in a markdown cell draws:** a pasted attachment, a file beside the notebook, a web address and an HTML `<img>` draw where they are written, no wider than the column, and one that resolves to nothing draws its alt text | shipped | — | `GAP-107` |
 | `JD-025` | **An image output too large to draw draws shrunk:** a `display(Image(...))` past the canvas limit draws across the column at its own ratio instead of crashing the app, in the notebook and the Console, and the notebook that saved it opens again | shipped | — | `GAP-168` |
 
+### M5 — Durability
+
+What a document survives. The gap is the format half's, `GAP-023` in
+[`architecture.md` §11](architecture.md).
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `JD-026` | **A save cut short never leaves half a document:** a notebook or a workspace file whose save is cut short by a kill or a dead battery opens as what it was before the save or what the save wrote, never as half of it | in-progress ← next | [PRD](prd/JD-026-a-save-cut-short-never-leaves-half-a-document.md) | `GAP-023` |
+
 ### Known gaps
 
 Measured gaps are recorded as `GAP-NNN` in
