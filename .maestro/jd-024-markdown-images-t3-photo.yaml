@@ -1,0 +1,8 @@
+appId: com.jupydroid.app
+---
+# The photo just under the 5 MiB cap, 5200 x 6800 pixels, which decodes past the canvas limit whole
+# and so is decoded at half its sides, drawn across the column. Run by
+# scripts/jd-024-markdown-images-t3-driver.sh after jd-024-markdown-images-t3.yaml scrolled to it and
+# the photo's node appeared.
+- assertVisible: "scandinavia from orbit"
+- takeScreenshot: 02-photo-under-the-cap

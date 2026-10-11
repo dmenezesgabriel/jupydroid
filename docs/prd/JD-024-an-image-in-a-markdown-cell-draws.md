@@ -101,10 +101,11 @@ source at draw time rather than at parse time.
 ## Deviations
 
 - A failed image draws its alt text rather than a broken glyph — in a comment where the image draws.
+- An `http:` image draws its alt text, where Lab and VS Code's notebook fetch it — ADR-0087.
 
 ## Open decisions
 
-- T3: the largest remote image fetched, decided on a measurement of what decodes on the tablet.
+- None. T3's cap is 5 MiB, https only, every markdown image decoded under the canvas floor — ADR-0087.
 
 ## Surface
 
@@ -112,7 +113,7 @@ source at draw time rather than at parse time.
 |---|---|
 | `domain/model` | — (attachments stay in `PreservedJson`) |
 | `domain/port` | `RemoteImageReader` (T3) |
-| `data/<mechanism>` | `OkHttpRemoteImageReader` (T3) |
+| `data/<mechanism>` | `data/http/OkHttpRemoteImageReader` (T3) |
 | `data/fake` | `FakeRemoteImageReader` (T3) |
 | `richtext/`, `markdown/`, `html/` | `RichInline.Image`, its parse from markdown and `<img>` |
 | `ui/editor` | the attachment lookup, the resolver seam, `RichText`'s inline image, `MarkdownCell`/`EditorCell` wiring |
@@ -127,7 +128,7 @@ source at draw time rather than at parse time.
   the column; a missing one draws its alt text
 - [x] T2 — `![alt](img/a.png)` draws a workspace file, resolved against the notebook's directory
   and read off the main thread
-- [ ] T3 — `![alt](https://…)` is fetched, through a port with an HTTP cache and a size cap
+- [x] T3 — `![alt](https://…)` is fetched, through a port with an HTTP cache and a size cap
 - [ ] T4 — `<img src alt width>` draws, in a markdown cell and in a `text/html` output, through
   the same node and resolver
 - [ ] T5 — The demo above, run end to end on SM-X216B
