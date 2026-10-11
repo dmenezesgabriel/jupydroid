@@ -38,6 +38,19 @@ class RichLinkDestinationTest {
   }
 
   @Test
+  fun anHttpsAddressIsAWebImage() {
+    assertTrue("https://jupyter.org/logo.png".isWebImageSource())
+    assertTrue("HTTPS://jupyter.org/logo.png".isWebImageSource())
+  }
+
+  /** Cleartext is refused by this app's network security config everywhere but loopback (ADR-0087). */
+  @Test
+  fun noOtherSourceIsAWebImage() {
+    listOf("http://jupyter.org/logo.png", "mailto:a@b.org", "attachment:a.png", "img/a.png", "//host/a.png", "")
+      .forEach { assertFalse("'$it' is not a web image", it.isWebImageSource()) }
+  }
+
+  @Test
   fun aRelativeLinkResolvesAgainstTheNotebooksDirectory() {
     assertEquals("a/notes.md", "notes.md".workspaceLinkPath("a"))
     assertEquals("a/notes.md", "./notes.md".workspaceLinkPath("a"))

@@ -1944,6 +1944,17 @@ so the brackets stay in the item's text. A list item is a list of blocks
 (`app/src/main/java/com/jupydroid/app/richtext/RichBlock.kt`) with nowhere to hold a checked state. The
 repair adds the extension, a checked state on the item and a box where its bullet draws.
 
+### GAP-168 — An image output too large to draw crashes the app
+
+A hardware canvas throws when a bitmap is over `RecordingCanvas.MAX_BITMAP_SIZE`, 100 MiB on API 32
+and 150 MiB on API 36 (AOSP `graphics/java/android/graphics/RecordingCanvas.java`), and a PNG of a
+few kilobytes can decode past it. A markdown image is decoded at a sample size that keeps it under
+the floor ([ADR-0087](adr/0087-a-web-image-is-https-only-capped-at-5-mib-and-decoded-to-fit-a-canvas.md),
+`app/src/main/java/com/jupydroid/app/ui/editor/ImageSampleSize.kt`). An image output is decoded whole
+(`app/src/main/java/com/jupydroid/app/ui/editor/CellOutputsView.kt`, `OutputImage`), so
+`display(Image(...))` of a 6400² PNG throws at draw. The repair decodes through `imageSampleSize` there
+too. JupyterLab's browser draws such an image.
+
 ---
 
 ## 12. Glossary

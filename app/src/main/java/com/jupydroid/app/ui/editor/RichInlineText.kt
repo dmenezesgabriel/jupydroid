@@ -65,9 +65,16 @@ private fun rememberResolvedImages(images: List<RichInline.Image>): List<ImageBi
 
 /**
  * Decoded as an image output is (`OutputImage`): `BitmapFactory` sniffs the format from the header,
- * and null is bytes that are no image it reads.
+ * and null is bytes that are no image it reads. The header is read first, so an image too large to
+ * draw is shrunk while it decodes ([imageSampleSize]) rather than decoded whole and thrown at draw.
  */
-private fun ByteArray.decodedImageBitmap(): ImageBitmap? = BitmapFactory.decodeByteArray(this, 0, size)?.asImageBitmap()
+private fun ByteArray.decodedImageBitmap(): ImageBitmap? {
+  val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+  BitmapFactory.decodeByteArray(this, 0, size, bounds)
+  if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+  val sampled = BitmapFactory.Options().apply { inSampleSize = imageSampleSize(bounds.outWidth, bounds.outHeight) }
+  return BitmapFactory.decodeByteArray(this, 0, size, sampled)?.asImageBitmap()
+}
 
 @Composable
 private fun inlineImages(

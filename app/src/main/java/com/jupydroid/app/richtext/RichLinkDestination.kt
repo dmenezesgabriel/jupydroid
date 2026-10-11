@@ -26,6 +26,18 @@ fun String.isWebLinkDestination(): Boolean =
   substringBefore(':', missingDelimiterValue = "").lowercase() in WEB_LINK_SCHEMES
 
 /**
+ * Whether an image source is a web address this app fetches: `https` only, since the network
+ * security config refuses cleartext to every host but loopback, and widening it can only be done
+ * per host or app-wide, never for one caller (ADR-0087).
+ *
+ * ```
+ * "https://jupyter.org/logo.png".isWebImageSource() // true
+ * "http://jupyter.org/logo.png".isWebImageSource() // false
+ * ```
+ */
+fun String.isWebImageSource(): Boolean = substringBefore(':', missingDelimiterValue = "").lowercase() == "https"
+
+/**
  * The workspace path a link's destination names, resolved against [directory] - the directory of
  * the document the link is drawn in, `""` for the root - or null when the destination is not a
  * workspace path.

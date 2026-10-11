@@ -11,6 +11,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -22,6 +23,7 @@ import com.jupydroid.app.domain.model.resolvesToDark
 import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.import.sharedNotebookFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.editor.RemoteImagesResolved
 
 class MainActivity : ComponentActivity() {
   /**
@@ -40,7 +42,7 @@ class MainActivity : ComponentActivity() {
       val themeSettings by appContainer.themeSettings.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
       JupyterDroidTheme(darkTheme = themeSettings.override.resolvesToDark(isSystemInDarkTheme())) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-          RenderedLinksFollowed(appContainer.externalLinkOpener) {
+          RenderedDocumentsServed {
             MainNavigation(
               appContainer = appContainer,
               sharedNotebook = sharedNotebook,
@@ -49,6 +51,14 @@ class MainActivity : ComponentActivity() {
           }
         }
       }
+    }
+  }
+
+  /** What a rendered document reaches past itself on every screen: where its links go, and its web images. */
+  @Composable
+  private fun RenderedDocumentsServed(content: @Composable () -> Unit) {
+    RenderedLinksFollowed(appContainer.externalLinkOpener) {
+      RemoteImagesResolved(appContainer.remoteImageReader, content)
     }
   }
 
