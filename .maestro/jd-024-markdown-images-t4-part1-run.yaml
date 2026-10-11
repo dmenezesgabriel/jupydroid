@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# An HTML <img> draws in a markdown cell at its width attribute and inside a line of prose, and in a
+# code cell's text/html output once it runs (ADR-0088). Opened by
+# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-024-markdown-images-t4-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+# Each image is its own node, named by its alt. Its line's text holds the alt too, so a fallback
+# would pass these as well: the driver requires the image nodes from the hierarchy.
+- assertVisible: "sized plot"
+- assertVisible: "inline plot"
+- takeScreenshot: 01-markdown-imgs
+- tapOn: "Run all cells"
+# "output plot" is the output image's alt, which the source splits in two, so FakeKernelGateway's
+# echo never reads it. Its cell is the first on purpose: `childOf` scopes to the first `Cell output`.
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "output plot"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 02-html-output

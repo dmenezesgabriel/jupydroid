@@ -1965,6 +1965,16 @@ VS Code draw the mark through the browser. Jewel matches the open and close tags
 between them (intellij-community@406a27a8
 `platform/jewel/markdown/core/.../processing/html/MarkdownHtmlInlinesConverter.kt`). That is the repair.
 
+### GAP-170 — An HTML block's `align` is dropped
+
+`<p align="center"><img …></p>`, the usual way a README centres a logo, draws its image at the start
+of the line: `HtmlDocument` reads no attribute of a `p`, `div` or heading, and `RichBlock` has no
+alignment for one. JupyterLab's sanitizer keeps `align` on `p`, `div` and `h1`-`h6`
+(jupyterlab@7f0e690 `packages/apputils/src/sanitizer.ts`, `allowedAttributes`), so the browser centres
+it. A table cell already carries a `CellAlignment`
+(`app/src/main/java/com/jupydroid/app/richtext/RichBlock.kt`). The repair gives a paragraph and a
+heading one too.
+
 ---
 
 ## 12. Glossary

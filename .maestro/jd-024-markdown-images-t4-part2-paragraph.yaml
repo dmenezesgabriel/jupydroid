@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# An HTML <img> inside an HTML paragraph draws, and one naming no file draws its alt text
+# (ADR-0088). Run after jd-024-markdown-images-t4-part1-run.yaml by
+# scripts/jd-024-markdown-images-t4-driver.sh.
+#
+# TABLET ONLY (SM-X216B): part 1 ran a cell, and this reads the notebook it left.
+- scrollUntilVisible:
+    element:
+      text: "Missing: no such img"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "paragraph plot"
+# No file at that path: the alt is drawn as text in its line, and no image carries it.
+- assertNotVisible: "no such img"
+- takeScreenshot: 03-paragraph-and-missing

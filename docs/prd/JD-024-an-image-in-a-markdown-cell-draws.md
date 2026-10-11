@@ -129,7 +129,7 @@ source at draw time rather than at parse time.
 - [x] T2 — `![alt](img/a.png)` draws a workspace file, resolved against the notebook's directory
   and read off the main thread
 - [x] T3 — `![alt](https://…)` is fetched, through a port with an HTTP cache and a size cap
-- [ ] T4 — `<img src alt width>` draws, in a markdown cell and in a `text/html` output, through
+- [x] T4 — `<img src alt width>` draws, in a markdown cell and in a `text/html` output, through
   the same node and resolver
 - [ ] T5 — The demo above, run end to end on SM-X216B
 
