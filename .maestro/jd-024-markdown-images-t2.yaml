@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# A markdown image naming a workspace file beside the notebook draws in the rendered cell: a plot
+# at its own width, a strip found under an escaped file name, and an image naming no file drawing
+# its alt text. Opened by jd-015-output-caps-baseline-open.yaml, seeded by
+# scripts/jd-024-markdown-images-t2-driver.sh.
+#
+# Runs no cell, so any device draws it; the driver runs it on the tablet the item's demo needs.
+# Each image is its own node, named by its alt. Its line's text holds the alt too, so a fallback
+# would pass these as well: the driver requires the image nodes from the hierarchy.
+- assertVisible: "blue plot"
+- assertVisible: "purple strip"
+# No file at that path: the alt is drawn as text in its line, and no image carries it.
+- assertVisible: "Missing: no such file"
+- assertNotVisible: "no such file"
+- takeScreenshot: 01-workspace-files
