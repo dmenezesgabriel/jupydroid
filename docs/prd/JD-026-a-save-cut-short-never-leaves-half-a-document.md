@@ -112,7 +112,7 @@ None open: the shape is ADR-0089.
 
 ## Tasks
 
-- [ ] T1 — A notebook save replaces its file whole: `AtomicFileWrite.kt`, `DiskNotebookRepository`
+- [x] T1 — A notebook save replaces its file whole: `AtomicFileWrite.kt`, `DiskNotebookRepository`
       through it, ADR-0089; a kill mid-save on the tablet, measured before and after.
 - [ ] T2 — A workspace file save replaces its file whole: `DiskWorkspaceRepository.writeText` and
       `writeBytes` through it (the file editor, replace-all, export); the kill on the file editor.
