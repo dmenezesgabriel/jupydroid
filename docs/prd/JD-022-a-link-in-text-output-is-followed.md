@@ -86,16 +86,16 @@ they exist; VS Code in streams too, unchecked.
 
 | Layer | Files |
 |---|---|
-| `richtext/` | `PlainTextLinks.kt` |
+| `richtext/` | `PlainTextLink.kt` |
 | `ui/editor/` | `OutputTextLinks.kt`, `CellOutputsView.kt` |
 | `ui/console/` | T2: a workspace link handler around the transcript |
-| unit tests | `PlainTextLinksTest`, `OutputTextLinksTest` |
+| unit tests | `PlainTextLinkTest`, `OutputTextLinksTest` |
 | instrumented tests | `CellOutputsViewTest` |
 | `.maestro/` flow + `scripts/` driver | `jd-022-text-output-link-t<n>` |
 
 ## Tasks
 
-- [ ] T1 — a web address in a stream, error or `text/plain` output draws as a link and opens the
+- [x] T1 — a web address in a stream, error or `text/plain` output draws as a link and opens the
   browser, in the notebook and the Console.
 - [ ] T2 — a traceback's path to a workspace file opens it: `~/mod.py:3`, an absolute path under
   the workspace, `File "…", line N`; a path outside the workspace stays text; the Console follows

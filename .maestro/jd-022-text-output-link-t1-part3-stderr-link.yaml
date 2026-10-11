@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# A tap on the URL printed to stderr, which draws in the error tint; the driver reads the resumed
+# activity. Run by scripts/jd-022-text-output-link-t1-driver.sh after part 2.
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "https://jupyter\\.org/43"
+- takeScreenshot: 01-the-stderr-link
+- tapOn: "https://jupyter\\.org/43"
+# No screenshot after the tap: what is on screen then is the browser.
+- waitForAnimationToEnd:
+    timeout: 5000
