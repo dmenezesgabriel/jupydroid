@@ -1,7 +1,8 @@
 appId: com.jupydroid.app
 ---
-# The driver sends a VIEW intent for `Shared analysis.ipynb` from a cold start; no launchApp here,
-# since the import must land in the process the intent started. What the notebook holds is drawn
+# The driver has `Shared analysis.ipynb` opened from a cold start, by a VIEW intent or through My
+# Files (jd-023-shared-notebook-open-from-my-files.yaml); no launchApp here, since the import must
+# land in the process the intent started. What the notebook holds is drawn
 # before anything runs, so every line on screen came from the shared file's own bytes: its rendered
 # heading, and the output the other app saved. The empty notebook this replaces had neither.
 # Run by scripts/jd-023-shared-notebook-t1-driver.sh.

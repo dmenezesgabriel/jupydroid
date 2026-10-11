@@ -103,7 +103,7 @@ None.
 
 - [x] T1 — A VIEW intent's bytes land in the workspace under its name, incremented when taken, and
   open: the cells, a saved output and a run cell, on SM-X216B
-- [ ] T2 — The demo above, run end to end on SM-X216B
+- [x] T2 — The demo above, run end to end on SM-X216B
 
 ## Out of scope
 

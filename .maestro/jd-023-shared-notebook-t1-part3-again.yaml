@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The driver sends the same VIEW intent again while the first copy is open. Its name is taken, so
+# The driver opens the same file again, the same way, while the first copy is open. Its name is taken, so
 # the second copy opens under the next free one and the first is left as the run saved it - which
 # the driver reads off the workspace. Run by scripts/jd-023-shared-notebook-t1-driver.sh.
 #
