@@ -67,4 +67,5 @@ run_flow "$FLOWS-part3-again.yaml" "$EVIDENCE/part3-again"
 
 "${adb[@]}" shell am force-stop "$APP"
 run_flow "$FLOWS-part4-relaunch.yaml" "$EVIDENCE/part4-relaunch"
-"${adb[@]}" shell rm -f "$REMOTE"
+# Quoted again for the device shell, which would otherwise split the name at its space.
+"${adb[@]}" shell rm -f "'$REMOTE'"
