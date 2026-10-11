@@ -1381,17 +1381,6 @@ all: the mime falls through `RANKED_MIME_TYPES` to the bundle's `text/plain` or 
 path Compose can draw — a vector-drawable or coil-svg decoder — and an answer to the trust
 question the `safe: false` marks, since an inlined foreign `<svg>` is script-carrying markup.
 
-### GAP-105 — Text output never linkifies
-
-`renderTextual` runs `autolink` over every text and error render — `checkWeb` wraps URLs in
-`<a>`, `checkPaths` wraps file paths in `data-path` links a file browser or debugger can follow
-(`jupyterlab/packages/rendermime/src/renderers.ts:648-920`). Ours draws `RenderedOutput.Text` as
-one plain string: a printed URL is text, a traceback's `File "<path>", line 3` is text. A
-`RichInline.Link` is already followed — a web address to the browser
-(`app/src/main/java/com/jupydroid/app/RenderedLinkUriHandler.kt`), a workspace path to its document
-(`app/src/main/java/com/jupydroid/app/ui/editor/WorkspaceLinkUriHandler.kt`) — so the repair is the
-detection alone: URLs and `file:line` spans becoming `RichInline.Link`s.
-
 ### GAP-107 — An embedded image or attachment never draws
 
 Three surfaces feed one machinery: markdown `![alt](src)`, HTML `<img src>`, and the

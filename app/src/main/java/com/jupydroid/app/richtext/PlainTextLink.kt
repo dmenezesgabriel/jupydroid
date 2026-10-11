@@ -54,7 +54,10 @@ private val PATH_LINK_PATTERN = Regex("((?:~|\\.)?(?:/[A-Za-z0-9_.-]*)+)(?:(?::|
  * only on what its `WebLinker` left (jupyterlab@7f0e690 packages/rendermime/src/renderers.ts), so
  * an address's own path is never a second link. A path's destination is the workspace path as the
  * kernel sees it, `$SPACE_WORKSPACE_PATH/...`, whatever form it was printed in; a path outside the
- * workspace, or relative to a working directory an output does not know, stays text.
+ * workspace, or relative to a working directory an output does not know, stays text. A path draws
+ * as a link whether or not its file is there, where Lab's `handlePathAnchor` asks the server's
+ * `resolvePath` first: the tap checks it instead, and says when nothing is there
+ * (`com.jupydroid.app.ui.editor.followWorkspaceLink`).
  *
  * ```
  * "File ~/mod.py:1, in f()".plainTextLinks(withPaths = true) // [PlainTextLink(5, 15, "/home/jupydroid/mod.py")]
