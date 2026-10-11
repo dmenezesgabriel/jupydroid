@@ -99,7 +99,7 @@ class OpenDocumentsNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           openDocuments = open,
           // Pinned for `NotebookNavigationTest`'s reason: a physical tablet's own rotation puts

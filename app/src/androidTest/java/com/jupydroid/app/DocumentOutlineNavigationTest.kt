@@ -84,7 +84,7 @@ class DocumentOutlineNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           outline = outline,
           // Pinned narrow, the same pin OpenDocumentsNavigationTest carries: the strip's arrow

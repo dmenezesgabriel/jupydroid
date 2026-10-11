@@ -63,7 +63,7 @@ class SettingsNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           // Single pane: the explorer and Settings share the window otherwise, and "opened" would
           // already be true before the tap.

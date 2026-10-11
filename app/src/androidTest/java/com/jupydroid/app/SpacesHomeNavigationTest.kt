@@ -16,6 +16,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
+import com.jupydroid.app.data.fake.FakeSharedDocumentReader
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.di.AppContainer
@@ -28,6 +29,7 @@ import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.domain.model.spaceWithId
+import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -123,15 +125,16 @@ class SpacesHomeNavigationTest {
   /**
    * An imported notebook opens inside base's workspace, with the browser beside it - not on the
    * bare home, where there is no list pane for it to pair with. Base is run on the way in, since a
-   * Space is only entered running.
+   * Space is only entered running, and what lands there is the shared file as it was served.
    */
   @Test
   fun anImportOpensInsideTheWorkspace() {
-    startApp(twoPane = true, importTitle = "Imported")
+    startApp(twoPane = true, sharedNotebook = SharedNotebook(SHARED_URI, SHARED_NOTEBOOK))
 
     waitForText(LISTED_FILE)
     compose.onNodeWithContentDescription(OPEN_BASE_SPACE).assertDoesNotExist()
     assertEquals(setOf(BASE_SPACE.id), spaceServers.running.value)
+    assertEquals(SHARED_JSON, File(workspaceOf(BASE_SPACE.id), SHARED_NOTEBOOK).readText())
   }
 
   /**
@@ -193,14 +196,14 @@ class SpacesHomeNavigationTest {
   private fun runningIn(spaceId: String): List<String> =
     runBlocking { container.portsOf(spaceId).kernelSessions.running().map { it.path } }
 
-  private fun startApp(twoPane: Boolean, importTitle: String? = null) {
+  private fun startApp(twoPane: Boolean, sharedNotebook: SharedNotebook? = null) {
     File(workspaceOf(BASE_SPACE.id), LISTED_FILE).writeText("a file for the listing")
     File(workspaceOf(THESIS_ID), THESIS_FILE).writeText("a file in Thesis")
     compose.setContent {
       JupyterDroidTheme {
         MainNavigation(
           appContainer = container,
-          importTitle = importTitle,
+          sharedNotebook = sharedNotebook,
           onImportConsumed = {},
           twoPane = twoPane,
         )
@@ -225,6 +228,7 @@ class SpacesHomeNavigationTest {
       ),
       launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
       spaceServers = spaceServers,
+      sharedDocumentReader = FakeSharedDocumentReader(mapOf(SHARED_URI to SHARED_JSON.toByteArray())),
     )
   }
 
@@ -245,5 +249,8 @@ class SpacesHomeNavigationTest {
     const val THESIS_NAME = "Thesis"
     const val THESIS_FILE = "chapter.txt"
     const val THESIS_NOTEBOOK = "chapter.ipynb"
+    const val SHARED_URI = "content://media/external/file/7"
+    const val SHARED_NOTEBOOK = "Imported.ipynb"
+    const val SHARED_JSON = """{"cells": [], "metadata": {}, "nbformat": 4, "nbformat_minor": 5}"""
   }
 }

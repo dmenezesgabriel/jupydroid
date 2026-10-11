@@ -142,7 +142,7 @@ class OpenDocumentMarkingTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           // Two panes, because `openDocumentPath` is the list-pane marking and there is no list
           // pane beside the document at one.

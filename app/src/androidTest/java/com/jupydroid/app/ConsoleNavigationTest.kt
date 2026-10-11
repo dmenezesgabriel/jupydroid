@@ -193,7 +193,7 @@ class ConsoleNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           // Pinned rather than measured: `currentWindowAdaptiveInfo()` reads the real window, which
           // this physical tablet's own current rotation can put on either side of the two-pane

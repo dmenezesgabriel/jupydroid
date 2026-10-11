@@ -132,7 +132,7 @@ class LauncherAutoCreateTest {
             },
             launcherSettings = settings,
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           twoPane = twoPane,
         )

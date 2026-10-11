@@ -8,9 +8,13 @@ import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
+import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.port.KernelSessionModel
+import com.jupydroid.app.domain.port.SharedDocumentReader
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
+import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.import.SharedNotebook
 import kotlinx.coroutines.launch
 
 /**
@@ -111,7 +115,7 @@ internal fun rememberNewTerminal(backStack: MutableList<NavKey>, terminalGateway
 /**
  * `terminal:create-new`'s mint and reveal, as a suspend on the stack so the refused half is
  * testable without Compose. **A refused `open` is no terminal opened, not a crash** - the same
- * `runCatching` the VIEW intent gives `createNotebook` ([ImportedNotebookEffect]), since this reach has
+ * `runCatching` the VIEW intent gives its copy ([ImportedNotebookEffect]), since this reach has
  * no error surface the way the launcher card's `LauncherViewModel.error` is.
  */
 internal suspend fun MutableList<NavKey>.openNewTerminal(terminalGateway: TerminalGateway, cwd: String) {
@@ -121,13 +125,13 @@ internal suspend fun MutableList<NavKey>.openNewTerminal(terminalGateway: Termin
 
 /**
  * The VIEW intent, which used to be Home's because Home was the first screen. It is an app-level
- * act rather than a screen's - nothing about it belongs to the browser. Keyed on the title so a
+ * act rather than a screen's - nothing about it belongs to the browser. Keyed on the request so a
  * second import in the same process is not swallowed.
  *
  * **Opened, not merely listed.** Home added a row and left it there, which was defensible when
  * Home was a list of notebooks; an ACTION_VIEW intent asks to *view* the document, and opening
  * it is also what makes the result deterministic - a row only appears once the browser has
- * listed again, and the create races that listing on a cold start. Opening also records it as a
+ * listed again, and the copy races that listing on a cold start. Opening also records it as a
  * recent, so it is on the browser's first section when the editor is left.
  *
  * **Inside a workspace.** A document belongs to one, so the act itself is [importNotebook]: it lands
@@ -135,20 +139,25 @@ internal suspend fun MutableList<NavKey>.openNewTerminal(terminalGateway: Termin
  * list pane the document pairs with, rather than a bare home underneath it.
  *
  * ```
- * ImportedNotebookEffect(importTitle, appContainer, backStack, openDocument, onImportConsumed)
+ * ImportedNotebookEffect(sharedNotebook, appContainer, backStack, openDocument, onImportConsumed)
  * ```
  */
 @Composable
 internal fun ImportedNotebookEffect(
-  importTitle: String?,
+  sharedNotebook: SharedNotebook?,
   appContainer: AppContainer,
   backStack: MutableList<NavKey>,
   openDocument: (String) -> Unit,
   onImportConsumed: () -> Unit,
 ) {
-  LaunchedEffect(importTitle) {
-    importTitle?.let { title ->
-      backStack.importNotebook(title, appContainer::portsOf, appContainer.spaceServers)
+  LaunchedEffect(sharedNotebook) {
+    sharedNotebook?.let { shared ->
+      backStack.importNotebook(
+        shared,
+        appContainer::portsOf,
+        appContainer.spaceServers,
+        appContainer.sharedDocumentReader,
+      )
         ?.let(openDocument)
       onImportConsumed()
     }
@@ -156,30 +165,43 @@ internal fun ImportedNotebookEffect(
 }
 
 /**
- * The VIEW intent's act on the stack, testable without Compose: create the notebook in the Space it
- * lands in, and enter that Space. **Inside a workspace it stays in the Space entered**, since the
- * workspace never switches Space in place. **From the home it runs base first**, because a Space is
- * only entered running (the home's Open is gated on it). A refused run or create opens nothing and
- * returns null, the `runCatching` [openNewTerminal] gives a refused mint. The notebook records that
- * Space's default kernel, asked after the run so a running server answers it, as
- * `ExplorerViewModel.create` does.
+ * The VIEW intent's act on the stack, testable without Compose: copy the shared notebook into the
+ * Space it lands in, and enter that Space. **Inside a workspace it stays in the Space entered**,
+ * since the workspace never switches Space in place. **From the home it runs base first**, because
+ * a Space is only entered running (the home's Open is gated on it). A refused read, run or write
+ * opens nothing and returns null, the `runCatching` [openNewTerminal] gives a refused mint.
+ *
+ * The document is read before anything runs, so a file that cannot be read starts no Space.
  *
  * ```
- * backStack.importNotebook("Imported", appContainer::portsOf, spaceServers)
+ * backStack.importNotebook(shared, appContainer::portsOf, spaceServers, sharedDocumentReader)
  * ```
  */
 internal suspend fun MutableList<NavKey>.importNotebook(
-  title: String,
+  shared: SharedNotebook,
   portsOf: (spaceId: String) -> EnteredSpacePorts,
   spaceServers: SpaceServers,
+  reader: SharedDocumentReader,
 ): String? {
   val spaceId = enteredSpaceId()
   return runCatching {
+    val bytes = reader.readBytes(shared.uri)
     if (!isInWorkspace()) spaceServers.run(spaceId)
-    val ports = portsOf(spaceId)
-    ports.notebookRepository.createNotebook(title, ports.kernelSpecs.specs(ports.space).defaultSpec)
-  }.getOrNull()?.let { notebook ->
-    enterWorkspace(spaceId)
-    notebook.id
-  }
+    portsOf(spaceId).workspaceRepository.copyIn(shared.fileName, bytes)
+  }.getOrNull()?.also { enterWorkspace(spaceId) }
+}
+
+/**
+ * Writes [bytes] at the workspace root under [fileName], or the first name after it nothing holds.
+ *
+ * **A taken name is counted past**, as `createNotebook` counts. JupyterLab asks before an upload
+ * overwrites (`jupyterlab@7f0e690 packages/docmanager/src/dialogs.ts` `shouldOverwrite`) and Termux
+ * overwrites without asking (`termux-app@3df69d1 app/src/main/java/com/termux/app/api/file/FileReceiverActivity.java`);
+ * a VIEW intent asks to *view* a document, never to replace the one the user already has.
+ */
+private suspend fun WorkspaceRepository.copyIn(fileName: String, bytes: ByteArray): String {
+  val taken = list("").mapTo(HashSet()) { it.name }
+  val path = incrementedFileName(fileName) { it in taken }
+  writeBytes(path, bytes)
+  return path
 }

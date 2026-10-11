@@ -7,6 +7,7 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeSharedDocumentReader
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
@@ -23,6 +24,7 @@ import com.jupydroid.app.domain.port.ExternalLinkOpener
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
+import com.jupydroid.app.domain.port.SharedDocumentReader
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
@@ -98,6 +100,8 @@ class AppContainer(
   val launcherSettings: LauncherSettingsRepository = FakeLauncherSettingsRepository(),
   /** Where a rendered link's web address goes when it is tapped - see [ExternalLinkOpener]. */
   val externalLinkOpener: ExternalLinkOpener = FakeExternalLinkOpener(),
+  /** Where a notebook another app hands over is read from - see [SharedDocumentReader]. */
+  val sharedDocumentReader: SharedDocumentReader = FakeSharedDocumentReader(),
   /**
    * For work that must finish after the screen that asked for it is gone - closing a notebook
    * flushes its last edit and closes its socket from here, because `viewModelScope` is already

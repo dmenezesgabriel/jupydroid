@@ -350,7 +350,7 @@ class SidePaneNavigationTest {
                 )
               },
             ),
-            importTitle = null,
+            sharedNotebook = null,
             onImportConsumed = {},
             twoPane = twoPane.value,
           )

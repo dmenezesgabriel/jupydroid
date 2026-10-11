@@ -151,7 +151,7 @@ class ExplorerNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           // Single pane, or the explorer and the editor would share the window and "reached it"
           // would be true before anything was tapped.

@@ -112,7 +112,7 @@ class LauncherNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           twoPane = false,
         )

@@ -26,6 +26,7 @@ import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.console.ConsoleScreen
 import com.jupydroid.app.ui.console.ConsoleViewModel
@@ -47,7 +48,7 @@ import java.util.concurrent.atomic.AtomicInteger
 @Composable
 fun MainNavigation(
   appContainer: AppContainer,
-  importTitle: String?,
+  sharedNotebook: SharedNotebook?,
   onImportConsumed: () -> Unit,
   // Passed in rather than read at the point of use, for the reason `CellActionsTest` records:
   // `currentWindowAdaptiveInfo()` measures the *activity's* window, which a
@@ -215,7 +216,7 @@ fun MainNavigation(
   val backSelectsFiles = !twoPane && onePanePanel != SidePanel.FILES && backStack.lastOrNull() is Explorer
 
   // The VIEW intent - opened in the Space entered, or in base from the home; see the effect's own KDoc.
-  ImportedNotebookEffect(importTitle, appContainer, backStack, openDocument, onImportConsumed)
+  ImportedNotebookEffect(sharedNotebook, appContainer, backStack, openDocument, onImportConsumed)
 
   // `maybeCreate` and the fill's provenance - extracted with the rest of the launcher lifecycle,
   // for the same reason `openLaunched` below is: a lambda's branches count toward this function's

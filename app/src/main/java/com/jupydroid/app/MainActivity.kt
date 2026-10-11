@@ -19,7 +19,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.model.resolvesToDark
-import com.jupydroid.app.import.importTitleFrom
+import com.jupydroid.app.import.SharedNotebook
+import com.jupydroid.app.import.sharedNotebookFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
 
 class MainActivity : ComponentActivity() {
@@ -29,11 +30,11 @@ class MainActivity : ComponentActivity() {
    */
   internal val appContainer: AppContainer get() = (application as JupydroidApplication).container
 
-  private var importTitle by mutableStateOf<String?>(null)
+  private var sharedNotebook by mutableStateOf<SharedNotebook?>(null)
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    importTitle = importTitleFrom(intent)
+    sharedNotebook = sharedNotebookIn(intent)
     enableEdgeToEdge()
     setContent {
       val themeSettings by appContainer.themeSettings.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
@@ -42,8 +43,8 @@ class MainActivity : ComponentActivity() {
           RenderedLinksFollowed(appContainer.externalLinkOpener) {
             MainNavigation(
               appContainer = appContainer,
-              importTitle = importTitle,
-              onImportConsumed = { importTitle = null },
+              sharedNotebook = sharedNotebook,
+              onImportConsumed = { sharedNotebook = null },
             )
           }
         }
@@ -53,12 +54,13 @@ class MainActivity : ComponentActivity() {
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-    importTitle = importTitleFrom(intent)
+    sharedNotebook = sharedNotebookIn(intent)
   }
 
-  private fun importTitleFrom(intent: Intent): String? {
-    val name = intent.data?.let(::displayNameOf) ?: return null
-    return name.takeIf { it.endsWith(".ipynb", ignoreCase = true) }?.let(::importTitleFrom)
+  /** Only the URI and its name here: the bytes are read off the main thread, by the import itself. */
+  private fun sharedNotebookIn(intent: Intent): SharedNotebook? {
+    val uri = intent.data ?: return null
+    return sharedNotebookFrom(uri.toString(), displayNameOf(uri))
   }
 
   private fun displayNameOf(uri: Uri): String? = contentResolver

@@ -135,7 +135,7 @@ class NotebookNavigationTest {
             // The list is the explorer, and it lists the *workspace* - the default fake
             // is empty, so without this there are no rows to tap and the test proves nothing.
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           // Pinned rather than measured: `currentWindowAdaptiveInfo()` reads the real window, and
           // a physical tablet's own current rotation can put this on either side of the two-pane

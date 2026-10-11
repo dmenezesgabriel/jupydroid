@@ -149,7 +149,7 @@ class MultiDocumentNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           openDocuments = open,
           // Two panes on purpose: the list has to stay beside the editor for the second tap to

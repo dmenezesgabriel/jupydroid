@@ -96,7 +96,7 @@ class TerminalNavigationTest {
               )
             },
           ),
-          importTitle = null,
+          sharedNotebook = null,
           onImportConsumed = {},
           // Single pane by default: the explorer and the terminal share the window otherwise,
           // and "opened" would already be true before the tap.

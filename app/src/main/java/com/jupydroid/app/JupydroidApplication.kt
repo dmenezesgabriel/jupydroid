@@ -25,6 +25,7 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
+import com.jupydroid.app.data.intent.ContentResolverSharedDocumentReader
 import com.jupydroid.app.data.intent.IntentDocumentSharer
 import com.jupydroid.app.data.intent.IntentExternalLinkOpener
 import com.jupydroid.app.data.space.JupyterSpaceServers
@@ -186,6 +187,7 @@ class JupydroidApplication : Application() {
     themeSettings = DiskThemeSettingsRepository(filesDir),
     launcherSettings = DiskLauncherSettingsRepository(filesDir),
     externalLinkOpener = IntentExternalLinkOpener(this),
+    sharedDocumentReader = ContentResolverSharedDocumentReader(contentResolver),
     applicationScope = applicationScope,
     // Where no Space can run there is no server import to read, so the default reads nothing.
     preReadServerImports = servers?.let { { serverImportPreReader(this, spaceRepository, it).preReadAll() } } ?: {},

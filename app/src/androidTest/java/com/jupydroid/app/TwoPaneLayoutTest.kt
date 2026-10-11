@@ -206,7 +206,7 @@ class TwoPaneLayoutTest {
               // The list pane is the explorer, and it lists the *workspace* - a fake
               // one would leave both panes' rows empty and every assertion here vacuous.
             ),
-            importTitle = null,
+            sharedNotebook = null,
             onImportConsumed = {},
             twoPane = twoPane,
           )
@@ -236,7 +236,7 @@ class TwoPaneLayoutTest {
                 )
               },
             ),
-            importTitle = null,
+            sharedNotebook = null,
             onImportConsumed = {},
             twoPane = twoPane,
           )
