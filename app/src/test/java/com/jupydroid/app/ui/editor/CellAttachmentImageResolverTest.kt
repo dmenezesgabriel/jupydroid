@@ -77,16 +77,6 @@ class CellAttachmentImageResolverTest {
   private fun resolverOver(attachments: String): CellAttachmentImageResolver =
     CellAttachmentImageResolver(Json.parseToJsonElement(attachments).jsonObject, outer)
 
-  /** The resolver a cell's sits inside: answers nothing, and records what it was asked. */
-  private class SourceRecordingImageResolver : RichImageResolver {
-    val asked = mutableListOf<String>()
-
-    override suspend fun imageBytes(source: String): ByteArray? {
-      asked += source
-      return null
-    }
-  }
-
   private companion object {
     const val PNG = "iVBORw0KGgo="
     val PNG_BYTES: ByteArray = Base64.getDecoder().decode(PNG)

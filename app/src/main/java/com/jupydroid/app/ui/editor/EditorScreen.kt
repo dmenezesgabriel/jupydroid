@@ -386,34 +386,38 @@ fun EditorScreen(
         // owns its own `ViewModelStore` (`docs/architecture/runtime-views.md`), so it could reach
         // neither this notebook's `EditorViewModel` for the headings nor its `listState` to scroll.
         Row(modifier = Modifier.padding(innerPadding)) {
-          EditorContent(
-            state = state,
-            onRunCell = viewModel.kernel::runCell,
-            onStopCell = viewModel.kernel::stopRunningCell,
-            onAnswerInput = viewModel.kernel::answerInput,
-            onEditCell = viewModel::editCell,
-            onToggleBreakpoint = viewModel.debugger::toggle,
-            onSetCondition = viewModel.debugger::setCondition,
-            completionsAt = viewModel.kernel.asks::completionsAt,
-            hoverAt = viewModel.kernel.asks::hoverAt,
-            signatureHelpAt = viewModel.kernel.asks::signatureHelpAt,
-            onCellAction = viewModel::cellAction,
-            onCellFocusChanged = viewModel::cellFocusChanged,
-            onToggleSelected = viewModel.selection::extendTo,
-            onMarkdownEditRequested = viewModel::markdownEditRequested,
-            cellInput = cellInput,
-            autoClosingBrackets = editorSettings.autoClosingBrackets,
-            indentUnit = editorSettings.indentUnit,
-            lineNumbersShown = editorSettings.lineNumbersShown,
-            codeFontSizeSp = editorSettings.codeFontSizeSp,
-            wrapEnabled = editorSettings.codeWrapEnabled,
-            completionEnabled = editorSettings.completionEnabled,
-            tocNumbering = editorSettings.tocNumbering(),
-            tocHeadings = tocHeadings,
-            listState = listState,
-            onCaretLanded = viewModel.edits::caretLanded,
-            modifier = Modifier.weight(1f),
-          )
+          // An image in a cell or an output that names a workspace path is read from beside the
+          // notebook, wherever it lives now.
+          WorkspaceImagesResolved(state.notebookId, workspaceRepository) {
+            EditorContent(
+              state = state,
+              onRunCell = viewModel.kernel::runCell,
+              onStopCell = viewModel.kernel::stopRunningCell,
+              onAnswerInput = viewModel.kernel::answerInput,
+              onEditCell = viewModel::editCell,
+              onToggleBreakpoint = viewModel.debugger::toggle,
+              onSetCondition = viewModel.debugger::setCondition,
+              completionsAt = viewModel.kernel.asks::completionsAt,
+              hoverAt = viewModel.kernel.asks::hoverAt,
+              signatureHelpAt = viewModel.kernel.asks::signatureHelpAt,
+              onCellAction = viewModel::cellAction,
+              onCellFocusChanged = viewModel::cellFocusChanged,
+              onToggleSelected = viewModel.selection::extendTo,
+              onMarkdownEditRequested = viewModel::markdownEditRequested,
+              cellInput = cellInput,
+              autoClosingBrackets = editorSettings.autoClosingBrackets,
+              indentUnit = editorSettings.indentUnit,
+              lineNumbersShown = editorSettings.lineNumbersShown,
+              codeFontSizeSp = editorSettings.codeFontSizeSp,
+              wrapEnabled = editorSettings.codeWrapEnabled,
+              completionEnabled = editorSettings.completionEnabled,
+              tocNumbering = editorSettings.tocNumbering(),
+              tocHeadings = tocHeadings,
+              listState = listState,
+              onCaretLanded = viewModel.edits::caretLanded,
+              modifier = Modifier.weight(1f),
+            )
+          }
         }
       }
     }

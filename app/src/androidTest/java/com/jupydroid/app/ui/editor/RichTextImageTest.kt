@@ -16,8 +16,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.markdown.MarkdownDocument
 import com.jupydroid.app.theme.JupyterDroidTheme
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
@@ -29,8 +31,9 @@ import java.io.ByteArrayOutputStream
 import java.util.Base64
 
 /**
- * A markdown image naming the cell's own attachment draws in its line, at an image output's size -
- * its own pixels in dp, capped at the column (ADR-0086) - and one naming nothing draws its alt text.
+ * A markdown image naming the cell's own attachment or a workspace file draws in its line, at an
+ * image output's size - its own pixels in dp, capped at the column (ADR-0086) - and one naming
+ * nothing draws its alt text.
  */
 @RunWith(AndroidJUnit4::class)
 class RichTextImageTest {
@@ -62,6 +65,38 @@ class RichTextImageTest {
     compose.onAllNodesWithContentDescription("missing chart", useUnmergedTree = true).assertCountEquals(0)
   }
 
+  /** Read from beside the notebook, through the attachment resolver a markdown cell sits in. */
+  @Test
+  fun aWorkspaceFileDrawsAtItsOwnPixelsInDp() {
+    showFromWorkspace("![chart](img/chart.png)")
+
+    val image = imageBounds()
+    assertEquals(STRIP_WIDTH.toFloat(), image.width.value, TOLERANCE)
+    assertEquals(STRIP_HEIGHT.toFloat(), image.height.value, TOLERANCE)
+  }
+
+  @Test
+  fun anImageNamingNoWorkspaceFileDrawsItsAltText() {
+    showFromWorkspace("![missing chart](img/gone.png)")
+
+    compose.onNodeWithText("missing chart").assertExists()
+    compose.onAllNodesWithContentDescription("missing chart", useUnmergedTree = true).assertCountEquals(0)
+  }
+
+  private fun showFromWorkspace(source: String) {
+    val workspace = FakeWorkspaceRepository()
+    runBlocking { workspace.writeBytes("reports/img/chart.png", pngBytesOf(STRIP_WIDTH, STRIP_HEIGHT)) }
+    compose.setContent {
+      JupyterDroidTheme {
+        Box(modifier = Modifier.width(WIDE_COLUMN)) {
+          WorkspaceImagesResolved("reports/nb.ipynb", workspace) {
+            CellAttachmentImagesResolved(buildJsonObject {}) { RichText(MarkdownDocument.parse(source)) }
+          }
+        }
+      }
+    }
+  }
+
   private fun show(source: String, png: String, column: Dp) {
     val preserved = buildJsonObject {
       putJsonObject("attachments") { putJsonObject("chart.png") { put("image/png", png) } }
@@ -79,10 +114,12 @@ class RichTextImageTest {
     compose.onNodeWithContentDescription("chart", useUnmergedTree = true).getUnclippedBoundsInRoot()
 
   /** A real PNG, encoded on the device, so the decoder the app uses is the one measured. */
-  private fun pngOf(width: Int, height: Int): String {
+  private fun pngOf(width: Int, height: Int): String = Base64.getEncoder().encodeToString(pngBytesOf(width, height))
+
+  private fun pngBytesOf(width: Int, height: Int): ByteArray {
     val bytes = ByteArrayOutputStream()
     Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).compress(Bitmap.CompressFormat.PNG, 100, bytes)
-    return Base64.getEncoder().encodeToString(bytes.toByteArray())
+    return bytes.toByteArray()
   }
 
   private companion object {
