@@ -5,6 +5,7 @@ import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
 import com.jupydroid.app.richtext.plainText
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -226,6 +227,38 @@ class HtmlDocumentTest {
     assertTrue("got ${table.rows[0][0]}", table.rows[0][0].inlines.any { it is RichInline.StrongEmphasis })
   }
 
+  /** An `<img>` is the image a markdown `![]()` is, so one resolver and one renderer draw both. */
+  @Test
+  fun readsAnImgWithItsSourceAltAndWidth() {
+    val image = paragraphOf("<img src=\"img/plot.png\" alt=\"a plot\" width=\"120\">").single() as RichInline.Image
+
+    assertEquals("img/plot.png", image.source)
+    assertEquals("a plot", image.alt.plainText())
+    assertEquals(120, image.width)
+  }
+
+  /** Jewel's `parseDimensionSize`: a width in px or no unit is pixels, any other unit is no width. */
+  @Test
+  fun anImgWidthIsPixelsOnly() {
+    assertEquals(120, imageOf("<img src=\"a.png\" width=\"120px\">").width)
+    assertNull(imageOf("<img src=\"a.png\" width=\"50%\">").width)
+    assertNull(imageOf("<img src=\"a.png\">").width)
+  }
+
+  @Test
+  fun anImgWithNoAltHasAnEmptyAlt() {
+    assertEquals(emptyList<RichInline>(), imageOf("<img src=\"a.png\">").alt)
+  }
+
+  /** An image inside a centred paragraph is the paragraph's, between its text. */
+  @Test
+  fun anImgSitsInTheLineItIsWrittenIn() {
+    val inlines = paragraphOf("<p align=\"center\">before <img src=\"a.png\" alt=\"a\"> after</p>")
+
+    assertEquals("before a after", inlines.plainText())
+    assertEquals("a.png", inlines.filterIsInstance<RichInline.Image>().single().source)
+  }
+
   /** An output is whatever the kernel sent; malformed markup must degrade, never throw. */
   @Test
   fun toleratesEmptyAndMalformedMarkup() {
@@ -236,4 +269,6 @@ class HtmlDocumentTest {
 
   private fun paragraphOf(html: String): List<RichInline> =
     (HtmlDocument.parse(html).single() as RichBlock.Paragraph).inlines
+
+  private fun imageOf(html: String): RichInline.Image = paragraphOf(html).single() as RichInline.Image
 }

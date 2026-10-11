@@ -71,8 +71,13 @@ sealed interface RichInline {
    * [source] is carried as written, as a link's destination is: what it names - an attachment, a
    * workspace file, a web address - is resolved where it draws, which is where all three of
    * JupyterLab, VS Code and Jewel resolve it. [alt] is what the reader is told instead.
+   *
+   * [width] is an `<img width>` in CSS pixels, null when it was not written in pixels and always for
+   * `![]()`, which has no way to say one. There is no height: JupyterLab's `height: auto` on every
+   * `<img>` overrides the attribute, so the picture keeps its own ratio
+   * (jupyterlab@7f0e690 packages/rendermime/style/base.css).
    */
-  data class Image(val source: String, val alt: List<RichInline>) : RichInline
+  data class Image(val source: String, val alt: List<RichInline>, val width: Int? = null) : RichInline
 
   /** A wrapped line inside one paragraph; renders as a space. */
   data object SoftLineBreak : RichInline

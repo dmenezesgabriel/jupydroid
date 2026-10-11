@@ -1955,6 +1955,16 @@ the floor ([ADR-0087](adr/0087-a-web-image-is-https-only-capped-at-5-mib-and-dec
 `display(Image(...))` of a 6400² PNG throws at draw. The repair decodes through `imageSampleSize` there
 too. JupyterLab's browser draws such an image.
 
+### GAP-169 — A paired inline HTML tag in a markdown cell drops its mark
+
+commonmark hands inline HTML over one tag at a time, so `a <b>bold</b> word` reaches
+`MarkdownDocument` as two `HtmlInline` nodes around a text node. The text stays and both tags drop, so
+the word draws unbolded. Only a void `<img>` converts on its own
+([ADR-0088](adr/0088-an-html-block-in-a-markdown-cell-renders-as-an-html-output.md)). JupyterLab and
+VS Code draw the mark through the browser. Jewel matches the open and close tags across the nodes
+between them (intellij-community@406a27a8
+`platform/jewel/markdown/core/.../processing/html/MarkdownHtmlInlinesConverter.kt`). That is the repair.
+
 ---
 
 ## 12. Glossary

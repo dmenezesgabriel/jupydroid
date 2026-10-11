@@ -49,8 +49,8 @@ still-collapsed H2 shows the H2 and leaves the H2's own children hidden, because
 union on its own account. Measured on screen rather than reasoned about.
 
 The level comes from `MarkdownDocument.headingLevel`, over the same commonmark AST the cell already
-renders from — with one narrowing this app already had: an HTML `<h1>` block is dropped rather than
-counted, because `MarkdownDocument` has never modelled HTML blocks.
+renders from. An HTML `<h1>` block counts as JupyterLab's table of contents counts it, since
+[ADR-0088](0088-an-html-block-in-a-markdown-cell-renders-as-an-html-output.md) parses HTML blocks.
 
 **The operand is the head, not the marked run**, which is the reference's own narrowing —
 `toggleCurrentHeadingCollapse` reads `notebook.activeCell` and never the selection. It keeps the run for

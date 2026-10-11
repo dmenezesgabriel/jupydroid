@@ -86,13 +86,13 @@ private fun inlineImages(
   .toMap()
 
 /**
- * The picture at its own width with a pixel to a dp, shrunk to the column with its ratio kept -
- * an image output's rule (ADR-0086), which is JupyterLab's `max-width: 100%` and `height: auto` on
- * every `<img>`.
+ * The picture at its `<img width>`, else its own width, with a pixel to a dp, shrunk to the column
+ * with its ratio kept - an image output's rule (ADR-0086), which is JupyterLab's `max-width: 100%`
+ * and `height: auto` on every `<img>`.
  */
 @Composable
 private fun inlineImage(picture: ImageBitmap, image: RichInline.Image, columnWidth: Dp): InlineTextContent {
-  val width = minOf(picture.width.dp, columnWidth)
+  val width = minOf((image.width ?: picture.width).dp, columnWidth)
   val height = width * (picture.height / picture.width.toFloat())
   val placeholder = with(LocalDensity.current) {
     Placeholder(width.toSp(), height.toSp(), PlaceholderVerticalAlign.Bottom)

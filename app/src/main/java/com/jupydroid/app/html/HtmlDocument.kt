@@ -23,6 +23,20 @@ object HtmlDocument {
   fun parse(html: String): List<RichBlock> = Jsoup.parseBodyFragment(html).body().blocks()
 
   /**
+   * The image a single inline HTML tag is, or null when it is any other tag. A markdown parser hands
+   * inline HTML over one tag at a time, so only a void tag stands alone; `<img>` is the one that
+   * draws, Jewel's void-tag branch (intellij-community@406a27a8
+   * platform/jewel/markdown/core/.../MarkdownHtmlInlinesConverter.kt) - ADR-0088.
+   *
+   * ```
+   * HtmlDocument.inlineImage("<img src=\"a.png\">")  // Image(source = "a.png", …)
+   * HtmlDocument.inlineImage("<b>")                  // null
+   * ```
+   */
+  fun inlineImage(tag: String): RichInline.Image? =
+    Jsoup.parseBodyFragment(tag).body().children().singleOrNull()?.takeIf { it.tagName() == "img" }?.asImage()
+
+  /**
    * Children into blocks, with any run of loose inlines gathered into a paragraph of its own.
    * That is what a browser does with `<div>text<p>para</p></div>`, and the only way
    * `display(HTML("hello"))` draws at all.

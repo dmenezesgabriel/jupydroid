@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -18,7 +19,9 @@ import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeRemoteImageReader
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.html.HtmlDocument
 import com.jupydroid.app.markdown.MarkdownDocument
+import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
@@ -34,7 +37,7 @@ import java.util.Base64
 /**
  * A markdown image naming the cell's own attachment, a workspace file or a web address draws in its
  * line, at an image output's size - its own pixels in dp, capped at the column (ADR-0086) - and one
- * naming nothing draws its alt text.
+ * naming nothing draws its alt text. An HTML `<img>` draws through the same node, at its `width`.
  */
 @RunWith(AndroidJUnit4::class)
 class RichTextImageTest {
@@ -116,17 +119,54 @@ class RichTextImageTest {
     assertEquals(WIDE_COLUMN.value, image.height.value, TOLERANCE)
   }
 
+  /** JupyterLab's `<img width>`: the width written, in pixels, with the picture's own ratio. */
+  @Test
+  fun anImgDrawsAtItsWidthAttribute() {
+    showFromWorkspace("<img src=\"img/chart.png\" alt=\"chart\" width=\"$IMG_WIDTH\">")
+
+    val image = imageBounds()
+    assertEquals(IMG_WIDTH.toFloat(), image.width.value, TOLERANCE)
+    assertEquals(IMG_WIDTH.toFloat() * STRIP_HEIGHT / STRIP_WIDTH, image.height.value, TOLERANCE)
+  }
+
+  /** `max-width: 100%` caps the written width too. */
+  @Test
+  fun anImgWiderThanTheColumnShrinksToIt() {
+    showFromWorkspace("<img src=\"img/chart.png\" alt=\"chart\" width=\"$OVERSIZED_WIDTH\">")
+
+    val image = imageBounds()
+    assertEquals(WIDE_COLUMN.value, image.width.value, TOLERANCE)
+    assertEquals(WIDE_COLUMN.value * STRIP_HEIGHT / STRIP_WIDTH, image.height.value, TOLERANCE)
+  }
+
+  /** A `text/html` output draws as `CellOutputsView` draws one, outside any cell's attachments. */
+  @Test
+  fun anImgInAnHtmlOutputDrawsAWorkspaceFile() {
+    showBlocksFromWorkspace(HtmlDocument.parse("<p>Plot: <img src=\"img/chart.png\" alt=\"chart\"></p>"))
+
+    val image = imageBounds()
+    assertEquals(STRIP_WIDTH.toFloat(), image.width.value, TOLERANCE)
+    assertEquals(STRIP_HEIGHT.toFloat(), image.height.value, TOLERANCE)
+  }
+
   /** [png] is `reports/img/chart.png` beside `reports/nb.ipynb`, and is served at [CHART_URL]. */
-  private fun showFromWorkspace(source: String, png: ByteArray = pngBytesOf(STRIP_WIDTH, STRIP_HEIGHT)) {
+  private fun showFromWorkspace(source: String, png: ByteArray = pngBytesOf(STRIP_WIDTH, STRIP_HEIGHT)) =
+    showBlocksFromWorkspace(MarkdownDocument.parse(source), png) { cell ->
+      CellAttachmentImagesResolved(buildJsonObject {}) { cell() }
+    }
+
+  private fun showBlocksFromWorkspace(
+    blocks: List<RichBlock>,
+    png: ByteArray = pngBytesOf(STRIP_WIDTH, STRIP_HEIGHT),
+    around: @Composable (@Composable () -> Unit) -> Unit = { it() },
+  ) {
     val workspace = FakeWorkspaceRepository()
     runBlocking { workspace.writeBytes("reports/img/chart.png", png) }
     compose.setContent {
       JupyterDroidTheme {
         Box(modifier = Modifier.width(WIDE_COLUMN)) {
           RemoteImagesResolved(FakeRemoteImageReader(mapOf(CHART_URL to png))) {
-            WorkspaceImagesResolved("reports/nb.ipynb", workspace) {
-              CellAttachmentImagesResolved(buildJsonObject {}) { RichText(MarkdownDocument.parse(source)) }
-            }
+            WorkspaceImagesResolved("reports/nb.ipynb", workspace) { around { RichText(blocks) } }
           }
         }
       }
@@ -161,6 +201,7 @@ class RichTextImageTest {
   private companion object {
     const val STRIP_WIDTH = 96
     const val STRIP_HEIGHT = 8
+    const val IMG_WIDTH = 48
     const val OVERSIZED_WIDTH = 2000
     const val HUGE_SIDE = 6400
     const val CHART_URL = "https://images.example/chart.png"

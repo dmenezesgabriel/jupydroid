@@ -29,9 +29,35 @@ private fun Element.markedInlines(): List<RichInline> = when (tagName()) {
   "code", "kbd", "samp", "tt" -> listOf(RichInline.Code(wholeText()))
   "a" -> listOf(RichInline.Link(attr("href"), childInlines()))
   "br" -> listOf(RichInline.HardLineBreak)
+  "img" -> listOf(asImage())
   // Anything unrecognised - span, font, u, sup - contributes its content and no mark of its
   // own, which is what dropping an unsupported wrapper should look like.
   else -> childInlines()
+}
+
+/**
+ * An `<img>` as the image a markdown `![]()` is, its `src` carried as written for the resolver where
+ * it draws (jupyterlab@7f0e690 packages/rendermime/src/renderers.ts, `handleAttr`).
+ *
+ * ```
+ * Jsoup.parseBodyFragment("<img src=\"a.png\" width=\"120\">").selectFirst("img")!!.asImage() // width 120
+ * ```
+ */
+internal fun Element.asImage(): RichInline.Image = RichInline.Image(
+  source = attr("src"),
+  alt = listOfNotNull(attr("alt").takeIf { it.isNotEmpty() }?.let(RichInline::Text)),
+  width = attr("width").cssPixels(),
+)
+
+/**
+ * Jewel's rule for an `<img>` dimension: leading digits with no unit or `px` are pixels, and any other
+ * unit is no width at all, so the picture draws at its own
+ * (intellij-community@406a27a8 platform/jewel/markdown/core/.../DimensionSize.kt, `parseDimensionSize`).
+ */
+private fun String.cssPixels(): Int? {
+  val digits = trim().takeWhile(Char::isDigit)
+  val unit = trim().removePrefix(digits).trim().trimEnd(';').lowercase()
+  return digits.toIntOrNull()?.takeIf { unit == "" || unit == "px" }
 }
 
 /**

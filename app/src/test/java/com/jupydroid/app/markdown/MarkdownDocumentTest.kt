@@ -2,6 +2,7 @@ package com.jupydroid.app.markdown
 
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
+import com.jupydroid.app.richtext.images
 import com.jupydroid.app.richtext.plainText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -142,6 +143,44 @@ class MarkdownDocumentTest {
     assertEquals("see the chart here", inlines.plainText())
   }
 
+  /**
+   * An HTML block reads as an HTML output does, as JupyterLab's marked and VS Code's
+   * `MarkdownIt({ html: true })` both draw it (ADR-0088): an `<img>` on its own line is an image.
+   */
+  @Test
+  fun anHtmlBlockReadsAsAnHtmlOutputDoes() {
+    val blocks = MarkdownDocument.parse("<img src=\"img/plot.png\" alt=\"plot\" width=\"120\">")
+
+    val image = (blocks.single() as RichBlock.Paragraph).inlines.single() as RichInline.Image
+    assertEquals("img/plot.png", image.source)
+    assertEquals(120, image.width)
+  }
+
+  @Test
+  fun aCentredImageBlockKeepsItsImage() {
+    val blocks = MarkdownDocument.parse("<p align=\"center\">\n  <img src=\"logo.png\" alt=\"logo\">\n</p>")
+
+    assertEquals("logo.png", (blocks.single() as RichBlock.Paragraph).inlines.images().single().source)
+  }
+
+  /** An `<img>` written inside a line of prose is an image in that line, Jewel's void-tag branch. */
+  @Test
+  fun anInlineImgIsAnImageInItsLine() {
+    val inlines = (MarkdownDocument.parse("see <img src=\"a.png\" alt=\"a\"> here").single() as RichBlock.Paragraph)
+      .inlines
+
+    assertEquals("see a here", inlines.plainText())
+    assertEquals("a.png", inlines.images().single().source)
+  }
+
+  /** A paired inline tag is two `HtmlInline` nodes around markdown text: the tags drop, the text stays. */
+  @Test
+  fun aPairedInlineTagDropsAndKeepsItsText() {
+    val inlines = (MarkdownDocument.parse("a <b>bold</b> word").single() as RichBlock.Paragraph).inlines
+
+    assertEquals("a bold word", inlines.plainText())
+  }
+
   @Test
   fun readsABareUrlAsALinkToItself() {
     val inlines = (MarkdownDocument.parse("see https://jupyter.org").single() as RichBlock.Paragraph).inlines
@@ -268,5 +307,14 @@ class MarkdownDocumentTest {
     assertNull(MarkdownDocument.headingLevel("> # quoted"))
     assertNull(MarkdownDocument.headingLevel("- # inside an item"))
     assertEquals(2, MarkdownDocument.headingLevel("## Real\n\n> # quoted"))
+  }
+
+  /**
+   * `getHeadingTokens` keeps an `html` token holding a heading tag and reads its level off the
+   * rendered `<h1>`-`<h6>` (jupyterlab@7f0e690 packages/markedparser-extension/src/index.ts:281-309).
+   */
+  @Test
+  fun anHtmlHeadingBlockIsTheCellsHeading() {
+    assertEquals(1, MarkdownDocument.headingLevel("<h1>Title</h1>"))
   }
 }

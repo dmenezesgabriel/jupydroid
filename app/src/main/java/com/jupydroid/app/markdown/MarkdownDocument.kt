@@ -1,5 +1,6 @@
 package com.jupydroid.app.markdown
 
+import com.jupydroid.app.html.HtmlDocument
 import com.jupydroid.app.richtext.RichBlock
 import com.jupydroid.app.richtext.RichInline
 import org.commonmark.ext.autolink.AutolinkExtension
@@ -14,6 +15,8 @@ import org.commonmark.node.Emphasis
 import org.commonmark.node.FencedCodeBlock
 import org.commonmark.node.HardLineBreak
 import org.commonmark.node.Heading
+import org.commonmark.node.HtmlBlock
+import org.commonmark.node.HtmlInline
 import org.commonmark.node.Image
 import org.commonmark.node.IndentedCodeBlock
 import org.commonmark.node.Link
@@ -95,7 +98,13 @@ object MarkdownDocument {
    */
   fun headingLevel(source: String): Int? = heading(source)?.level
 
-  private fun Node.blocks(): List<RichBlock> = children().mapNotNull { it.asBlock() }
+  /**
+   * An HTML block reads as an HTML output does, through [HtmlDocument], whose subset parse is the
+   * sanitizer: JupyterLab's marked and VS Code's `MarkdownIt({ html: true })` both draw it (ADR-0088).
+   */
+  private fun Node.blocks(): List<RichBlock> = children().flatMap { child ->
+    if (child is HtmlBlock) HtmlDocument.parse(child.literal) else listOfNotNull(child.asBlock())
+  }
 
   private fun Node.asBlock(): RichBlock? = when (this) {
     is Heading -> RichBlock.Heading(level, inlines())
@@ -107,8 +116,8 @@ object MarkdownDocument {
     is OrderedList -> RichBlock.ListBlock(ordered = true, startFrom = startNumber, items = items())
     is ThematicBreak -> RichBlock.ThematicBreak
     is TableBlock -> asTable { it.inlines() }
-    // Anything else - HTML blocks, link reference definitions - has no place in a notebook cell
-    // and is dropped rather than shown as its own markup.
+    // Anything else - link reference definitions - has no place in a notebook cell and is dropped
+    // rather than shown as its own markup.
     else -> null
   }
 
@@ -127,6 +136,8 @@ object MarkdownDocument {
     is Image -> RichInline.Image(destination, inlines())
     is SoftLineBreak -> RichInline.SoftLineBreak
     is HardLineBreak -> RichInline.HardLineBreak
+    // One tag at a time: an `<img>` draws, and a paired tag's halves drop around the text between them.
+    is HtmlInline -> HtmlDocument.inlineImage(literal)
     else -> null
   }
 }
