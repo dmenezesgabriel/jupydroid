@@ -19,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.nio.file.Files
 
 class DiskNotebookRepositoryTest {
   @get:Rule val tempFolder = TemporaryFolder()
@@ -278,6 +279,34 @@ class DiskNotebookRepositoryTest {
     val read = repository().readNotebook("legacy.ipynb")
 
     assertEquals("legacy.ipynb", read.title)
+  }
+
+  /**
+   * A save replaces the file rather than rewriting it where it sits, so a kill mid-write leaves the
+   * notebook before the save, never half of it (ADR-0089). A hard link taken first still names the
+   * old inode, which is what tells the two apart: rewritten in place, the link would read the new
+   * notebook too.
+   */
+  @Test
+  fun saveNotebook_replacesTheFileRatherThanRewritingIt() = runTest {
+    val repository = repository()
+    repository.saveNotebook(notebook(id = "nb-1.ipynb"))
+    val before = notebookFile("nb-1.ipynb").readText()
+    val link = File(tempFolder.root, "taken-before-the-save")
+    Files.createLink(link.toPath(), notebookFile("nb-1.ipynb").toPath())
+
+    val cell = Cell(id = "c1", kind = CellKind.CODE, source = "value = 1", outputs = emptyList())
+    repository.saveNotebook(notebook(id = "nb-1.ipynb").copy(cells = listOf(cell)))
+
+    assertEquals(before, link.readText())
+    assertTrue(notebookFile("nb-1.ipynb").readText() != before)
+  }
+
+  @Test
+  fun saveNotebook_leavesNothingButTheNotebookBesideIt() = runTest {
+    repository().saveNotebook(notebook(id = "nb-1.ipynb"))
+
+    assertEquals(listOf("nb-1.ipynb"), tempFolder.root.list()?.toList())
   }
 
   private fun notebook(id: String): Notebook = Notebook(id = id, title = id, kernelId = "python3", cells = emptyList())

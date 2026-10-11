@@ -72,7 +72,9 @@ class DiskNotebookRepository(
   private fun writeFile(notebook: Notebook) {
     val file = fileFor(notebook.id)
     file.parentFile?.mkdirs()
-    file.writeText(json.encodeToString(JsonObject.serializer(), notebook.toFileJson()))
+    // Encoded before the temp is opened, so a large notebook's encoding is not time the temp sits empty.
+    val bytes = json.encodeToString(JsonObject.serializer(), notebook.toFileJson()).toByteArray()
+    file.writeAtomically { it.write(bytes) }
   }
 
   /** The id is already the path - there is no suffix to add and none to strip. */
