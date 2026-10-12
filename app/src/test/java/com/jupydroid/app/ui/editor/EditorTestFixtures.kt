@@ -15,6 +15,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.CellOutput
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.KernelInputRequest
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
@@ -421,9 +422,9 @@ internal class RecordingNotebookRepository(private val delegate: FakeNotebookRep
   var saveCount = 0
     private set
 
-  override suspend fun saveNotebook(notebook: Notebook) {
+  override suspend fun saveNotebook(notebook: Notebook, expected: FileStamp?): FileStamp {
     saveCount++
-    delegate.saveNotebook(notebook)
+    return delegate.saveNotebook(notebook, expected)
   }
 }
 
@@ -443,10 +444,9 @@ internal class SlowToSaveNotebookRepository(private val delegate: FakeNotebookRe
   /** Every write that reached the delegate, in completion order - a cancelled one never arrives. */
   val completedWrites = mutableListOf<Notebook>()
 
-  override suspend fun saveNotebook(notebook: Notebook) {
+  override suspend fun saveNotebook(notebook: Notebook, expected: FileStamp?): FileStamp {
     if (holding) CompletableDeferred<Unit>().also { held.addLast(it) }.await()
-    delegate.saveNotebook(notebook)
-    completedWrites += notebook
+    return delegate.saveNotebook(notebook, expected).also { completedWrites += notebook }
   }
 
   /** From here every write suspends in arrival order until its release. */
@@ -535,7 +535,7 @@ internal fun TestScope.loadedEditor(
 /** Reads like the tree it was, refuses every write - the directory went while this was open. */
 internal class VanishedNotebookRepository(private val stillReadable: NotebookRepository = FakeNotebookRepository()) :
   NotebookRepository by stillReadable {
-  override suspend fun saveNotebook(notebook: Notebook): Unit =
+  override suspend fun saveNotebook(notebook: Notebook, expected: FileStamp?): FileStamp =
     throw FileNotFoundException("${notebook.id}: open failed: ENOENT (No such file or directory)")
 }
 

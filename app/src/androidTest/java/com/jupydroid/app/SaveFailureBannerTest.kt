@@ -13,6 +13,7 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.NotebookRepository
@@ -46,7 +47,7 @@ class SaveFailureBannerTest {
   /** Reads like the tree it was, refuses every write - the directory went while this was open. */
   private class VanishedNotebookRepository(private val stillReadable: NotebookRepository) :
     NotebookRepository by stillReadable {
-    override suspend fun saveNotebook(notebook: Notebook): Unit =
+    override suspend fun saveNotebook(notebook: Notebook, expected: FileStamp?): FileStamp =
       throw FileNotFoundException("${notebook.id}: open failed: ENOENT (No such file or directory)")
   }
 

@@ -4,8 +4,10 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.model.Notebook
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -58,4 +60,62 @@ abstract class NotebookRepositoryContract {
 
     assertEquals("xpython", repository.readNotebook(created.id).kernelId)
   }
+
+  /**
+   * A save handed the stamp of its read is refused once someone else has written the file, and
+   * what they wrote is still there. "Someone else" is a save with no stamp: the port's own
+   * unconditional write, which is what a kernel's `open(path, "w")` is to this repository.
+   */
+  @Test
+  fun aSaveOverANotebookWrittenSinceItWasReadIsRefused() = runTest {
+    val repository = repository()
+    val opened = repository.readStampedNotebook(newNotebookIn(repository))
+    repository.saveNotebook(opened.notebook.withSource("theirs = 1"))
+
+    val refusal = runCatching { repository.saveNotebook(opened.notebook.withSource("ours = 2"), opened.stamp) }
+
+    assertTrue("expected a refusal, got $refusal", refusal.exceptionOrNull() is FileChangedOnDiskException)
+    assertEquals(listOf("theirs = 1"), repository.readNotebook(opened.notebook.id).cells.map { it.source })
+  }
+
+  /** Each save answers with the stamp the next one expects, so an editor's own writes never refuse it. */
+  @Test
+  fun aSaveHandedTheStampOfTheLastSaveGoesThrough() = runTest {
+    val repository = repository()
+    val opened = repository.readStampedNotebook(newNotebookIn(repository))
+
+    val first = repository.saveNotebook(opened.notebook.withSource("x = 1"), opened.stamp)
+    repository.saveNotebook(opened.notebook.withSource("x = 22"), first)
+
+    assertEquals(listOf("x = 22"), repository.readNotebook(opened.notebook.id).cells.map { it.source })
+  }
+
+  /** A file that already holds what the save would write has not changed in any way that matters. */
+  @Test
+  fun aSaveOfWhatIsAlreadyThereIsNotAConflict() = runTest {
+    val repository = repository()
+    val opened = repository.readStampedNotebook(newNotebookIn(repository))
+    val same = opened.notebook.withSource("x = 1")
+    repository.saveNotebook(same)
+
+    repository.saveNotebook(same, opened.stamp)
+
+    assertEquals(listOf("x = 1"), repository.readNotebook(same.id).cells.map { it.source })
+  }
+
+  /** The stamp of a read is the stamp of the save before it, so reopening owes no conflict. */
+  @Test
+  fun aReadAnswersTheStampTheLastSaveLeft() = runTest {
+    val repository = repository()
+    val opened = repository.readStampedNotebook(newNotebookIn(repository))
+
+    val saved = repository.saveNotebook(opened.notebook.withSource("x = 1"), opened.stamp)
+
+    assertEquals(saved, repository.readStampedNotebook(opened.notebook.id).stamp)
+  }
+
+  private suspend fun newNotebookIn(repository: NotebookRepository): String =
+    repository.createNotebook(title = "Shared", kernel = BASE_SPACE.kernels.single()).id
+
+  private fun Notebook.withSource(source: String): Notebook = copy(cells = listOf(Cell("c1", CellKind.CODE, source)))
 }

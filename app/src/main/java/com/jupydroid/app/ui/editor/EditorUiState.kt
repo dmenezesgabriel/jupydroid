@@ -53,6 +53,17 @@ data class EditorUiState(
    */
   val saveFailure: String? = null,
   /**
+   * A save was refused because the file is no longer the one this notebook was read from, and the
+   * user has not yet said which of the two to keep - see [NotebookSaveConflict].
+   *
+   * Apart from [saveFailure] because it is a question rather than a report: nothing failed, and
+   * both answers are available. A state rather than an event for the reason that one is, and so
+   * that a second refused save while the question is up is the same question, as
+   * `_conflictModalIsOpen` makes it in the reference
+   * (jupyterlab@7f0e690 `packages/docregistry/src/context.ts`).
+   */
+  val saveConflict: Boolean = false,
+  /**
    * The file behind this notebook was deleted, so the screen showing it should close.
    *
    * `DocumentManager.deleteFile` closes every widget open on the path (`manager.ts:351-363`).

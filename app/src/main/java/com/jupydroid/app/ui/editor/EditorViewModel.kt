@@ -11,6 +11,7 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
@@ -141,6 +142,14 @@ class EditorViewModel(
   private var notebook: Notebook? = null
 
   /**
+   * What the file looked like when it was last read or written here - what the next save expects
+   * to find, so one that would replace somebody else's write is refused instead. Up here beside
+   * [notebook] because `init` assigns both, and a property declared below `init` is reset by its
+   * own initialiser afterwards.
+   */
+  private var stamp: FileStamp? = null
+
+  /**
    * The settings the save machinery consults, as a `StateFlow` because the answers it needs are
    * synchronous: `schedule()` gates at call time, and the run-end `checkpoint` lambda picks its
    * branch on the current value.
@@ -232,9 +241,12 @@ class EditorViewModel(
     viewModelScope.launch {
       _uiState.value =
         try {
-          notebookRepository.readNotebook(notebookId)
-            .also { notebook = it }
-            .toEditorUiState(defaultCellId = newCellId())
+          notebookRepository.readStampedNotebook(notebookId)
+            .also { read ->
+              notebook = read.notebook
+              stamp = read.stamp
+            }
+            .notebook.toEditorUiState(defaultCellId = newCellId())
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
@@ -384,6 +396,20 @@ class EditorViewModel(
    */
   private val writeMutex = Mutex()
 
+  /** What to do about a refused save. Driven straight from the screen; see [NotebookSaveConflict]. */
+  val conflict = NotebookSaveConflict(
+    uiState = _uiState,
+    scope = viewModelScope,
+    repository = notebookRepository,
+    notebookId = { notebookId },
+    writes = writeMutex,
+    saveOver = { persist(overwriting = true) },
+    adopt = { read ->
+      notebook = read.notebook
+      stamp = read.stamp
+    },
+  )
+
   /**
    * Writes the notebook back - and **adopts the result only if the write happened**. Answers
    * whether the file on disk is this notebook now, which [NotebookExport] needs: nbconvert reads
@@ -399,17 +425,24 @@ class EditorViewModel(
    *
    * `EditorUiState.dirty` says it is *"cleared by the save, not by the edit"*, which is only true
    * from here. See [EditorUiState.saveFailure] for why the report is not `error`.
+   *
+   * The write carries [stamp], so a file somebody else wrote since is left alone and the refusal
+   * becomes [EditorUiState.saveConflict]. [overwriting] is that question answered "Overwrite": the
+   * one save made whatever is on disk.
    */
-  private suspend fun persist(): Boolean {
+  private suspend fun persist(overwriting: Boolean = false): Boolean {
     if (notebookIsGone) return false
     return writeMutex.withLock {
       val base = notebook ?: return@withLock false
       val written = base.copy(cells = _uiState.value.withResultsOnCells())
-      runCatching { notebookRepository.saveNotebook(written) }
-        .onSuccess { adoptWritten(base, written) }
+      runCatching { notebookRepository.saveNotebook(written, expected = stamp.takeUnless { overwriting }) }
+        .onSuccess { saved ->
+          stamp = saved
+          adoptWritten(base, written)
+        }
         .onFailure { failure ->
           if (failure is CancellationException) throw failure
-          _uiState.update { it.copy(saveFailure = failure.message) }
+          _uiState.update { it.reportingSave(failure) }
         }
         .isSuccess
     }

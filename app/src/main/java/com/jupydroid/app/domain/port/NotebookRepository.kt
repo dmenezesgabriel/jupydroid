@@ -1,7 +1,9 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.StampedNotebook
 
 /**
  * Persistence for one notebook, as nbformat JSON. `DiskNotebookRepository` is the real one.
@@ -21,7 +23,36 @@ interface NotebookRepository {
    */
   suspend fun createNotebook(title: String, kernel: KernelSpec): Notebook
 
-  suspend fun readNotebook(id: String): Notebook
+  /** The notebook at [id], for a reader that will not write it back. */
+  suspend fun readNotebook(id: String): Notebook = readStampedNotebook(id).notebook
 
-  suspend fun saveNotebook(notebook: Notebook)
+  /**
+   * The notebook at [id] and the stamp of the file it came from, for a caller that will save it:
+   * the stamp is what [saveNotebook] is handed back as `expected`.
+   *
+   * ```
+   * val (notebook, stamp) = repository.readStampedNotebook("reports/Analysis.ipynb")
+   * ```
+   */
+  suspend fun readStampedNotebook(id: String): StampedNotebook
+
+  /**
+   * Writes [notebook] over its file and answers with the stamp the file has now - the `expected`
+   * of the save after this one.
+   *
+   * With an [expected] stamp the write is refused when the file is no longer the one that stamp
+   * describes, because the workspace is the kernel's too and a cell may have rewritten it. A file
+   * that already holds exactly what this would write is not a change, and a file that is gone is
+   * written back, as `Context._maybeSave` saves on a 404 (jupyterlab@7f0e690
+   * `packages/docregistry/src/context.ts`). With `null` the write is unconditional - a new
+   * notebook, or the user's own "Overwrite".
+   *
+   * ```
+   * stamp = repository.saveNotebook(edited, expected = stamp)
+   * ```
+   *
+   * @throws FileChangedOnDiskException when the file changed since [expected] was taken.
+   */
+  @Throws(FileChangedOnDiskException::class)
+  suspend fun saveNotebook(notebook: Notebook, expected: FileStamp? = null): FileStamp
 }

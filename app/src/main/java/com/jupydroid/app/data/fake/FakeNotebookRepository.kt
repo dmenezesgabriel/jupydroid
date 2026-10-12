@@ -1,7 +1,10 @@
 package com.jupydroid.app.data.fake
 
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.StampedNotebook
+import com.jupydroid.app.domain.port.FileChangedOnDiskException
 import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.time.Instant
@@ -17,6 +20,10 @@ import java.time.Instant
 class FakeNotebookRepository : NotebookRepository {
   private val notebooks = MutableStateFlow<Map<String, Notebook>>(emptyMap())
   private val written = MutableStateFlow<Map<String, Instant>>(emptyMap())
+
+  /** Each write's stamp is its ordinal, so two writes never share one and no clock is read. */
+  private val stamps = mutableMapOf<String, FileStamp>()
+  private var writes = 0L
 
   override suspend fun createNotebook(title: String, kernel: KernelSpec): Notebook {
     // The id *is* the name, as it is on disk. It was a UUID here long after the disk
@@ -34,14 +41,24 @@ class FakeNotebookRepository : NotebookRepository {
 
   // IllegalArgumentException, not IllegalStateException: DiskNotebookRepository is the
   // reference behaviour for this port and callers catch that type.
-  override suspend fun readNotebook(id: String): Notebook =
-    requireNotNull(notebooks.value[id]) { "no notebook with id '$id'" }
+  override suspend fun readStampedNotebook(id: String): StampedNotebook =
+    StampedNotebook(requireNotNull(notebooks.value[id]) { "no notebook with id '$id'" }, stamps.getValue(id))
 
-  override suspend fun saveNotebook(notebook: Notebook) = put(notebook)
+  /**
+   * Refuses what the disk one refuses: a stamp that is no longer the notebook's, unless what is
+   * stored is already what the save would write.
+   */
+  override suspend fun saveNotebook(notebook: Notebook, expected: FileStamp?): FileStamp {
+    val found = stamps[notebook.id]
+    val unchanged = expected == null || found == null || found == expected || notebooks.value[notebook.id] == notebook
+    if (!unchanged) throw FileChangedOnDiskException(notebook.id, checkNotNull(expected), checkNotNull(found))
+    return put(notebook)
+  }
 
   /** The one way in, so no mutation can forget to count as an update. */
-  private fun put(notebook: Notebook) {
+  private fun put(notebook: Notebook): FileStamp {
     notebooks.value = notebooks.value + (notebook.id to notebook)
     written.value = written.value + (notebook.id to Instant.now())
+    return FileStamp(modifiedNanos = ++writes, size = 0).also { stamps[notebook.id] = it }
   }
 }

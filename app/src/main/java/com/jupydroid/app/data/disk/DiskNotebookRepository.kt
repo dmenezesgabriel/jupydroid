@@ -2,9 +2,11 @@
 
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.Notebook
+import com.jupydroid.app.domain.model.StampedNotebook
 import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.CoroutineDispatcher
@@ -53,28 +55,30 @@ class DiskNotebookRepository(
     notebook
   }
 
-  override suspend fun readNotebook(id: String): Notebook = withContext(ioDispatcher) {
+  override suspend fun readStampedNotebook(id: String): StampedNotebook = withContext(ioDispatcher) {
     val file = fileFor(id)
     if (!file.exists()) {
       throw IllegalArgumentException("no notebook file for id '$id' at '$file'")
     }
     try {
-      json.readNotebook(file, id)
+      // Stamped before the read: a write landing in between leaves a stamp older than the cells,
+      // which the next save refuses - the safe side of that race.
+      val stamp = file.stamp()
+      StampedNotebook(json.readNotebook(file, id), stamp)
     } catch (e: SerializationException) {
       throw IllegalArgumentException("notebook file '$file' is not valid nbformat JSON: ${e.message}")
     }
   }
 
-  override suspend fun saveNotebook(notebook: Notebook) = withContext(ioDispatcher) {
-    writeFile(notebook)
-  }
+  override suspend fun saveNotebook(notebook: Notebook, expected: FileStamp?): FileStamp =
+    withContext(ioDispatcher) { writeFile(notebook, expected) }
 
-  private fun writeFile(notebook: Notebook) {
+  private fun writeFile(notebook: Notebook, expected: FileStamp? = null): FileStamp {
     val file = fileFor(notebook.id)
     file.parentFile?.mkdirs()
     // Encoded before the temp is opened, so a large notebook's encoding is not time the temp sits empty.
     val bytes = json.encodeToString(JsonObject.serializer(), notebook.toFileJson()).toByteArray()
-    file.writeAtomically { it.write(bytes) }
+    return file.writeIfUnchanged(expected, bytes, named = notebook.id)
   }
 
   /** The id is already the path - there is no suffix to add and none to strip. */

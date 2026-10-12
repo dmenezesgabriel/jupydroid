@@ -49,6 +49,7 @@ import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.app.ui.FileChangedDialog
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.SaveBeforeCloseGate
 import com.jupydroid.app.ui.ancestorCrumbsFor
@@ -214,6 +215,15 @@ fun EditorScreen(
     discardChanges = viewModel::discardChanges,
     onClose = onBack,
   )
+  // Over the notebook, never instead of it: both versions are still there to choose between.
+  if (state.saveConflict) {
+    FileChangedDialog(
+      state.title,
+      viewModel.conflict::overwrite,
+      viewModel.conflict::revert,
+      viewModel.conflict::cancel,
+    )
+  }
   // Back in edit mode returns to command mode instead of leaving the notebook - the touch
   // analogue of `Escape`, which is what both references bind it to. Dropping focus is what
   // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
