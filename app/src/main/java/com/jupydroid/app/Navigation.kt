@@ -69,10 +69,9 @@ fun MainNavigation(
    * Where every open document is reached by path, for something that is not its own screen -
    * today, the search panel's replace.
    *
-   * Remembered here rather than owned by [AppContainer] for [OpenDocumentOutline]'s reason: it
-   * holds a live ViewModel, and a process-scoped holder would outlive the composition that made it.
+   * Retained by the activity, as the documents it holds are - see [RetainedOpenDocuments].
    */
-  openDocuments: OpenDocuments = remember { OpenDocuments() },
+  openDocuments: OpenDocuments = rememberRetainedOpenDocuments(),
 ) {
   // The Spaces home is what the app opens on: a Space is chosen and managed before it is entered,
   // never from a panel inside one - see [SpacesHome]. Entering one pushes the explorer, the
