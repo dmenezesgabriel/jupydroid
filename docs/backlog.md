@@ -147,14 +147,16 @@ What a document, and the app's own state, survives. The gaps were the format hal
 app's own state files, `GAP-171`, both closed by
 [ADR-0089](adr/0089-a-document-save-writes-beside-the-file-and-renames-over-it.md), and the save that
 wrote over a change made on disk, `GAP-065`, closed by
-[ADR-0090](adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md).
+[ADR-0090](adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md), and the edit saved
+over a file that is not text, the first half of `GAP-097`, closed by
+[ADR-0091](adr/0091-a-file-that-is-not-utf-8-is-refused-by-the-text-read.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
 | `JD-026` | **A save cut short never leaves half a document:** a notebook or a workspace file whose save is cut short by a kill or a dead battery opens as what it was before the save or what the save wrote, never as half of it | shipped | — | `GAP-023` |
 | `JD-027` | **A setting, a recent or a Space's kernel survives a write cut short:** the settings stores, the recents, a Space's config and its kernelspecs are written beside the file and renamed over it, as a document is | shipped | — | `GAP-171` |
 | `JD-028` | **A save never silently overwrites a change made on disk:** when a cell, a terminal or a second client rewrites an open notebook or file, the next save asks — the disk's version or the editor's — instead of writing over it | shipped | — | `GAP-065` |
-| `JD-029` | **A file that is not text is never opened as editable text:** an image or any other file that is not UTF-8 says why it is not shown and offers no field, so no edit is ever saved back over it | in-progress ← next | [PRD](prd/JD-029-a-file-that-is-not-text-is-never-editable.md) | `GAP-097` (first step) |
+| `JD-029` | **A file that is not text is never opened as editable text:** an image or any other file that is not UTF-8 says why it is not shown and offers no field, so no edit is ever saved back over it | shipped | — | `GAP-097` (first step) |
 
 ### Known gaps
 

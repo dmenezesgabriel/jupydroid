@@ -1304,17 +1304,17 @@ through `RenderedOutput`'s ranking to the bundle-keys line
 typesetter itself — the `ILatexTypesetter` plug and the `text:latex` renderer are the rendermime
 half's read — and the two commands are context-menu rows once a rendered equation exists.
 
-### GAP-097 — An image file opens as editable text, and an edit corrupts it
+### GAP-097 — An image file has no viewer
 
 `imageviewer:*` is eight transform acts — zoom, rotate, flip, invert, reset — over an
 `ImageViewer` that `defaultFor` claims `.png`/`.jpeg`/`.gif`/`.bmp`/`.webp`
 (`imageviewer-extension/src/index.ts:203-304`). Ours has no image document surface: a `.png`
-tap lands in `FileEditorScreen` via `readText`, which decodes the bytes leniently into mojibake
-in an *editable* field (`app/src/main/java/com/jupydroid/app/data/disk/DiskWorkspaceRepository.kt`).
-The reference's own text editor shares that failure mode, but there a factory claims the file
-first — here nothing stands between the bytes and a field whose save writes the lossy decoding
-back over the image. The repair is two steps: refuse or read-only the payloads a text field
-cannot represent, then the viewer the eight acts mutate.
+tap lands in `FileEditorScreen`, whose read refuses a file that is not UTF-8, so the tab says why
+the image is not shown and offers no field
+(`app/src/main/java/com/jupydroid/app/domain/port/FileNotTextException.kt`,
+[ADR-0091](adr/0091-a-file-that-is-not-utf-8-is-refused-by-the-text-read.md)).
+That was the first of the repair's two steps, and it took the corrupting edit away. What is left is
+the second: the viewer the eight acts mutate.
 
 ### GAP-098 — A CSV/TSV file has no grid viewer, and no line to jump to
 
@@ -1376,11 +1376,12 @@ already scrolls, so the payload has somewhere to grow.
 (`jupyterlab/packages/pdf-extension/src/index.ts:132-133`), the sanitizer's whitelist admits
 `<audio>`/`<video>` tags, and the media extensions mount document widgets for each format. Ours
 answers each the same way it answers a `.png`: an `application/pdf` bundle prints its keys, the
-tags flatten out of `HtmlInlines`'s subset, and `.pdf`/`.mp3`/`.mp4` files open as editable
-mojibake — `GAP-097`'s failure mode with no factory to claim the file first
-(`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`). The repair is a per-format surface
-decision — viewer, external-intent hand-off, or read-only refusal — before the
-binary-corrupting edit can be closed for media the way `GAP-097` names it for images.
+tags flatten out of `HtmlInlines`'s subset, and `.pdf`/`.mp3`/`.mp4` files open as a tab that
+says the file is not UTF-8 text and offers no field — the refusal a `.png` gets, with no factory
+to claim the file first (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`,
+[ADR-0091](adr/0091-a-file-that-is-not-utf-8-is-refused-by-the-text-read.md)).
+The repair is a per-format surface decision — viewer or external-intent hand-off — now that no edit
+can be saved over the bytes.
 
 ### GAP-110 — A Vega or Vega-Lite spec never draws
 
