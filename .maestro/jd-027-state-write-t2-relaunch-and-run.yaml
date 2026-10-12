@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# Relaunches after scripts/jd-027-state-write-t2-driver.sh has read the replaced config and spec:
+# the home still says Dissertation, and the notebook bound to `stats` runs its cell in the venv.
+# The output is the kernel's `sys.prefix`, which FakeKernelGateway's echo of the source never holds.
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Dissertation \\(space-1\\)"
+    timeout: 10000
+- assertNotVisible: "Thesis"
+- takeScreenshot: 01-relaunched-still-dissertation
+- tapOn: "Run Dissertation \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Dissertation \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Dissertation \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Registered.ipynb"
+    timeout: 10000
+- tapOn: "Registered.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: ".*prefix=/home/jupydroid/envs/stats.*"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 120000
+- assertVisible: ".*Python \\(stats\\).*"
+- takeScreenshot: 02-cell-ran-in-the-registered-venv
