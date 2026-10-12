@@ -3068,10 +3068,11 @@ What the read found, beyond the rows:
   so this is a recorded edge, not a defect: tolerance is promised for *partial* files, not
   *wrongly-typed* ones, and the fix would be per-field `as?` decoding the contract never asked
   for.
-- **Neither side writes config atomically, and neither validates a name.** `writeText` and
-  `FileUtils.writeString` can both leave a torn file that reads as default; `create("")` and
+- **Neither side validates a name, and only ours writes config atomically.** `create("")` and
   `etName`'s straight-through to `data.put` both mint a blank-named entry. Parity — noted so a
-  later hardening does not mistake either for a regression.
+  later hardening does not mistake it for a regression. `FileUtils.writeString` can leave a torn
+  file that reads as default; ours is written beside the file and renamed over it, so it cannot
+  (ADR-0089).
 - **A `rename` on `base` writes `config.json` into the extracted rootfs.** Lawful — the port
   refuses only `delete` — and the file survives a `rootfs-version` bump because the installer
   never clears (`T3`'s arm); the only hazard is a future archive shipping a top-level

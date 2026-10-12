@@ -1939,21 +1939,6 @@ heading one too.
 
 ---
 
-### GAP-171 — The app's own state files are written in place
-
-A settings store, the recents list, a Space's config and its kernelspecs end in a bare
-`File.writeText` (`app/src/main/java/com/jupydroid/app/data/disk/DiskThemeSettingsRepository.kt` and
-its four siblings, `DiskRecentDocumentsFile.kt`, `DiskSpaceRepository.kt`,
-`app/src/main/java/com/jupydroid/app/data/space/SpaceKernelSpec.kt`), so a kill mid-write truncates
-them. Unlike a document, a store, the recents and a Space's config each read an unreadable file as
-their default (`DiskThemeSettingsRepository.loadValidated`, `DiskSpaceRepository.read`), and the base
-kernelspec is written again on every launch (`SpaceKernelSpec.install`); an environment's kernelspec
-is not, so a truncated one loses that kernel until it is registered again. The loss is a preference
-or a registration, never the user's work. The repair is the documents' own write, beside the file
-and renamed over it.
-
----
-
 ## 12. Glossary
 
 In [`architecture/cross-cutting.md`](architecture/cross-cutting.md).

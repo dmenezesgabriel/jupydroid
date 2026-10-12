@@ -143,13 +143,14 @@ audit's, `GAP-093`–`GAP-119` in [`architecture.md` §11](architecture.md).
 
 ### M5 — Durability
 
-What a document, and the app's own state, survives. The gap was the format half's, `GAP-023`, closed by
+What a document, and the app's own state, survives. The gaps were the format half's, `GAP-023`, and the
+app's own state files, `GAP-171`, both closed by
 [ADR-0089](adr/0089-a-document-save-writes-beside-the-file-and-renames-over-it.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
 | `JD-026` | **A save cut short never leaves half a document:** a notebook or a workspace file whose save is cut short by a kill or a dead battery opens as what it was before the save or what the save wrote, never as half of it | shipped | — | `GAP-023` |
-| `JD-027` | **A setting, a recent or a Space's kernel survives a write cut short:** the settings stores, the recents, a Space's config and its kernelspecs are written beside the file and renamed over it, as a document is | in-progress ← next | [PRD](prd/JD-027-app-state-survives-a-write-cut-short.md) | `GAP-171` |
+| `JD-027` | **A setting, a recent or a Space's kernel survives a write cut short:** the settings stores, the recents, a Space's config and its kernelspecs are written beside the file and renamed over it, as a document is | shipped | — | `GAP-171` |
 
 ### Known gaps
 

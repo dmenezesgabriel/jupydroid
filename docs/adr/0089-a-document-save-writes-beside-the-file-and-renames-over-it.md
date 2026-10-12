@@ -58,6 +58,12 @@ Option 2.
   in the file editor. jupyter_server's in-place write keeps the mode; VS Code's rename does not.
 - Every document save goes through it: a notebook (`DiskNotebookRepository`), and a workspace file
   written by the file editor, replace-all or an export (`DiskWorkspaceRepository`).
+- The app's own state goes through it too, as text (`File.writeTextAtomically`): the five settings
+  stores (`Disk*SettingsRepository`), the recents (`DiskRecentDocumentsFile`), a Space's config
+  (`DiskSpaceRepository`) and both kernelspec writes (`SpaceKernelSpec`), which was `GAP-171`. The
+  stores, the recents and a Space's config each read an unreadable file as their default, so a torn
+  one lost a preference rather than the user's work. An environment's kernelspec is not written
+  again on launch, so a torn one lost that kernel until it was registered again.
 
 ## Consequences
 
@@ -74,6 +80,9 @@ What a future reader will be tempted to "fix":
 - **Adding jupyter_server's `.invalid` recovery.** This write never leaves a partial target, so that
   read would have nothing to recover.
 
-Not covered:
+Not covered, on purpose:
 
-- The app's own state files (settings, recents, a Space's config, kernelspecs) — `GAP-171`.
+- A Space's pip config (`SpacePipConfig.ensure`) is written only when it is missing; after that it
+  is the user's file, edited in the Space's terminal.
+- The version stamps (`BaseSpaceInstaller.stampVersion`, `NotebookWorkspaceMigration.runOnce`) are
+  a few bytes each, written once.
