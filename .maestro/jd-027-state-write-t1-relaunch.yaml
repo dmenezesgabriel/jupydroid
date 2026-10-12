@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# Relaunches after scripts/jd-027-state-write-t1-driver.sh has read the stores: the theme the
+# replaced store holds is still Dark, and the notebook the replaced recents hold is still recent.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Recent"
+- takeScreenshot: 01-relaunched-the-notebook-recent
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 02-relaunched-dark-still-chosen

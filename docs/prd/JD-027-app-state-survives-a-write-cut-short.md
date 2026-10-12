@@ -75,7 +75,7 @@ No port, UI or `AppContainer` change: the capability is how existing adapters wr
 
 ## Tasks
 
-- [ ] T1 — The five settings stores and the recents write through `File.writeTextAtomically`. Red:
+- [x] T1 — The five settings stores and the recents write through `File.writeTextAtomically`. Red:
   each store's test takes a hard link before `update` and finds the old file there afterwards.
   Device: a theme change and a recent each get a new inode, leave no `.~` file, and survive a
   relaunch.
