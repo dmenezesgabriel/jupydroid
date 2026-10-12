@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.data.disk.writeTextAtomically
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_DISPLAY_NAME
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -23,6 +24,10 @@ import java.io.File
  *
  * A registered environment's spec runs the same module under the environment's interpreter
  * ([installEnvironment]); both carry the same flags, environment and metadata.
+ *
+ * Both replace the spec whole rather than rewriting it where it sits (ADR-0089): half a spec is a
+ * kernel the server cannot start, and a registered environment's spec is written once, so nothing
+ * would put it back.
  */
 object SpaceKernelSpec {
   private const val KERNEL_PATH = "usr/share/jupyter/kernels/python3/kernel.json"
@@ -71,7 +76,9 @@ object SpaceKernelSpec {
   suspend fun install(baseDir: File, ioDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(ioDispatcher) {
     val kernelJson = File(baseDir, KERNEL_PATH)
     kernelJson.parentFile?.mkdirs()
-    kernelJson.writeText(kernelSpecJson(listOf(SPACE_INTERPRETER, "-m", KERNEL_MODULE), DEFAULT_KERNEL_DISPLAY_NAME))
+    kernelJson.writeTextAtomically(
+      kernelSpecJson(listOf(SPACE_INTERPRETER, "-m", KERNEL_MODULE), DEFAULT_KERNEL_DISPLAY_NAME),
+    )
   }
 
   /**
@@ -91,7 +98,7 @@ object SpaceKernelSpec {
   ) = withContext(ioDispatcher) {
     val kernelJson = File(spaceDir, "$ENVIRONMENT_KERNELS_PATH/$name/kernel.json")
     kernelJson.parentFile?.mkdirs()
-    kernelJson.writeText(kernelSpecJson(listOf(interpreter, "-c", RUN_KERNEL_MODULE_BY_PATH), displayName))
+    kernelJson.writeTextAtomically(kernelSpecJson(listOf(interpreter, "-c", RUN_KERNEL_MODULE_BY_PATH), displayName))
   }
 
   private fun kernelSpecJson(launch: List<String>, displayName: String): String = buildJsonObject {

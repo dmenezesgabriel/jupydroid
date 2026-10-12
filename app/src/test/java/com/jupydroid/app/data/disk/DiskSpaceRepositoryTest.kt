@@ -177,6 +177,22 @@ class DiskSpaceRepositoryTest : SpaceRepositoryContract() {
   }
 
   /**
+   * A rename replaces the config whole rather than rewriting it where it sits, so a kill mid-write
+   * leaves the Space its old name rather than the default (ADR-0089). `configure` writes through
+   * the same path.
+   */
+  @Test
+  fun rename_replacesTheConfigRatherThanRewritingIt() = runTest {
+    val created = repository().create("Thesis")
+    val taken = File(File(spacesDir, created.id), SPACE_CONFIG_FILE_NAME).linkTakenBeforeTheWrite(temp.root)
+    val before = taken.readText()
+
+    openStore().rename(created.id, "Dissertation")
+
+    assertEquals(before, taken.readText())
+  }
+
+  /**
    * A config that states only some of its fields yields the ones it states.
    *
    * The half that made the whole-file fallback a defect rather than a policy: before this, a config

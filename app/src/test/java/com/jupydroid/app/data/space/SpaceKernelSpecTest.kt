@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.data.disk.linkTakenBeforeTheWrite
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -108,6 +109,36 @@ class SpaceKernelSpecTest {
     )
     assertEquals("Python (stats)", spec.getValue("display_name").jsonPrimitive.content)
     assertTrue(spec.toString(), spec.toString().contains("PYTHONFAULTHANDLER"))
+  }
+
+  /**
+   * The spec is written on every launch, so the write that matters is the one over a spec already
+   * there: it replaces the file whole, and a kill mid-write leaves the old spec rather than half of
+   * one, which would leave the Space with no kernel to start (ADR-0089).
+   */
+  @Test
+  fun install_replacesTheSpecRatherThanRewritingIt() = runTest {
+    val baseDir = tempFolder.newFolder("base")
+    kernelJson(baseDir).apply { parentFile?.mkdirs() }.writeText("""{"argv":["python"]}""")
+    val taken = kernelJson(baseDir).linkTakenBeforeTheWrite(tempFolder.root)
+
+    SpaceKernelSpec.install(baseDir)
+
+    assertEquals("""{"argv":["python"]}""", taken.readText())
+  }
+
+  /** A registered environment's spec is replaced whole too: half of one loses that kernel (ADR-0089). */
+  @Test
+  fun installEnvironment_replacesTheSpecRatherThanRewritingIt() = runTest {
+    val spaceDir = tempFolder.newFolder("space-1")
+    SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python", "Python (stats)")
+    val taken = File(spaceDir, "usr/local/share/jupyter/kernels/stats/kernel.json")
+      .linkTakenBeforeTheWrite(tempFolder.root)
+    val before = taken.readText()
+
+    SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python", "Stats")
+
+    assertEquals(before, taken.readText())
   }
 
   private fun argv(baseDir: File): List<String> = Json.parseToJsonElement(kernelJson(baseDir).readText())

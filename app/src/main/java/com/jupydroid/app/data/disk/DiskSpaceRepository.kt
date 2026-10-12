@@ -138,7 +138,7 @@ class DiskSpaceRepository(
 
   private fun writeInto(directory: File, config: SpaceConfig) {
     File(directory, SPACE_CONFIG_FILE_NAME)
-      .writeText(json.encodeToString(StoredSpaceConfig.serializer(), config.stored()))
+      .writeTextAtomically(json.encodeToString(StoredSpaceConfig.serializer(), config.stored()))
   }
 
   private companion object {
