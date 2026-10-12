@@ -18,9 +18,13 @@ workspace and the kill lands on the real app process.
    (`kill -9`) the moment the write is under way.
 3. Relaunch and open the notebook: it opens with its cells, holding the text before the edit or
    after it.
-4. Repeat 2–3 against the file editor on `notes.txt` beside it.
-5. A clean save leaves no `.~` file beside either document, and the file is replaced (its inode
-   changes) rather than rewritten in place.
+4. Repeat 2–3 against a ~30 MiB `notes.txt` beside it, written by Replace All from the search
+   panel. The file editor cannot hold a file whose save takes long enough to be caught: on the
+   tablet a 4 MB file is not responding on open, and a 2 MB one draws nothing in a minute. Both
+   write through `WorkspaceRepository.writeText`.
+5. A clean save, of the notebook and of an executable `notes.txt` in the file editor, leaves no `.~`
+   file beside either. The file is replaced (its inode changes) rather than rewritten in place, and
+   it keeps its mode.
 
 The item is not `shipped` until this has been run on that device, with screenshots, snapshots and
 `maestro.log` committed under `evidence/<flow-name>/`. Unit tests alone never close it.
@@ -78,6 +82,7 @@ leaves the target partial: it is the old file until the rename, the new one afte
 | Durability | jupyter_server, IntelliJ → `fsync` before finishing; vscode → `fdatasync` on closing a write handle (microsoft/vscode#9589) | One sync per save | Sync the temp before the rename, as all three do, or a power cut can rename an empty file into place |
 | Temp name | jupyter_server → `.~<name>`; IntelliJ → `<name>~`; vscode → `<name><postfix>` | A non-dot name shows in the explorer and the search | `.~<name>`: the explorer and the search skip dotfiles already (`WorkspaceListing.kt`) |
 | Symlinked target | jupyter_server → resolve it; vscode → write directly | Rename onto the link replaces the link | Resolve the link and write beside its target, as jupyter_server does |
+| Mode | jupyter_server, IntelliJ → kept, the inode is the same; vscode → the temp's default | A new inode takes the app's 0600 | Carry the target's permissions onto the temp, so a script made executable in the terminal stays executable (ADR-0089) |
 
 ## Gap analysis — what we already have vs the references
 
@@ -108,14 +113,15 @@ None open: the shape is ADR-0089.
 | `di/AppContainer` | — |
 | unit tests | new `AtomicFileWriteTest`; `DiskNotebookRepositoryTest`; `DiskWorkspaceRepositoryTest` |
 | instrumented tests | — (nothing new to press) |
-| `.maestro/` flow + `scripts/` driver | `jd-026-atomic-save` |
+| `.maestro/` flow + `scripts/` driver | `jd-026-atomic-save-*`; `scripts/jd-026-atomic-save-kill.sh` shared by the drivers |
 
 ## Tasks
 
 - [x] T1 — A notebook save replaces its file whole: `AtomicFileWrite.kt`, `DiskNotebookRepository`
       through it, ADR-0089; a kill mid-save on the tablet, measured before and after.
-- [ ] T2 — A workspace file save replaces its file whole: `DiskWorkspaceRepository.writeText` and
-      `writeBytes` through it (the file editor, replace-all, export); the kill on the file editor.
+- [x] T2 — A workspace file save replaces its file whole and keeps its mode:
+      `DiskWorkspaceRepository.writeText` and `writeBytes` through it (the file editor, replace-all,
+      export); the kill on Replace All, the clean save in the file editor.
 - [ ] T3 — The demo, run on the tablet.
 
 ## Out of scope

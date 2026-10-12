@@ -19,6 +19,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
+# shellcheck source=scripts/jd-026-atomic-save-kill.sh
+. "$ROOT/scripts/jd-026-atomic-save-kill.sh"
 
 EVIDENCE="$ROOT/evidence/jd-026-atomic-save/t1/${1:?before or after}"
 TRIALS="${2:-5}"
@@ -58,15 +60,6 @@ seed_large_notebook() {
   "$ADB" shell rm /data/local/tmp/jd-026.ipynb
 }
 
-# Runs on the device, so no host round trip sits between seeing the write and stopping the app.
-# `run-as` may not signal the app (SELinux refuses it), so it only watches; the stop is the shell's
-# `cmd activity force-stop`, issued the moment the watch returns. Prints what the watch saw.
-start_kill_on_write() {
-  local seeded
-  seeded="$("$ADB" shell "run-as $APP stat -c %s \"$REMOTE\"" | tr -d '\r')"
-  "$ADB" shell "run-as $APP sh -c 'end=\$((\$(date +%s)+120)); while [ \$(date +%s) -lt \$end ]; do if [ -e \"$TEMP\" ]; then echo temp \$(stat -c %s \"$TEMP\"); exit 0; fi; s=\$(stat -c %s \"$REMOTE\"); if [ \"\$s\" != $seeded ]; then echo target \$s; exit 0; fi; done; echo no-write; exit 1' && cmd activity force-stop $APP" | tr -d '\r'
-}
-
 # Reads the notebook the kill left back as JSON on the host. Prints its size and cell count, or why
 # it is not a notebook.
 read_left_notebook() {
@@ -85,7 +78,7 @@ PY
 run_trial() {
   local n="$1" out="$EVIDENCE/trial-$1" seen left
   seed_large_notebook
-  start_kill_on_write >"$out.watch" &
+  kill_on_write "$REMOTE" "$TEMP" >"$out.watch" &
   local watch=$!
   run_flow "$ROOT/.maestro/jd-026-atomic-save-t1-edit.yaml" "$out/edit" || true
   wait "$watch" || true
@@ -97,20 +90,14 @@ run_trial() {
   echo "trial $n: stopped at $seen; left $left; reopen $reopened" | tee -a "$EVIDENCE/trials.txt"
 }
 
-# Returns once the notebook's inode has held for 10 s with no temp beside it: one edit can be
-# followed by more than one autosave, and a listing taken during one shows that save's temp.
-wait_for_saves_to_settle() {
-  "$ADB" shell "run-as $APP sh -c 'last=; quiet=0; end=\$((\$(date +%s)+120)); while [ \$(date +%s) -lt \$end ] && [ \$quiet -lt 10 ]; do i=\$(stat -c %i \"$REMOTE\"); if [ \"\$i\" = \"\$last\" ] && [ ! -e \"$TEMP\" ]; then quiet=\$((quiet+1)); else quiet=0; fi; last=\$i; sleep 1; done; [ \$quiet -ge 10 ]'"
-}
-
 # One save left to finish: the inode before and after, and the listing, say how it was written.
 clean_save() {
   local out="$EVIDENCE/clean" before after
   seed_large_notebook
-  before="$("$ADB" shell "run-as $APP stat -c %i \"$REMOTE\"" | tr -d '\r')"
+  before="$(inode_and_mode "$REMOTE" | cut -d' ' -f1)"
   run_flow "$ROOT/.maestro/jd-026-atomic-save-t1-edit.yaml" "$out/edit"
-  wait_for_saves_to_settle
-  after="$("$ADB" shell "run-as $APP stat -c %i \"$REMOTE\"" | tr -d '\r')"
+  wait_for_saves_to_settle "$REMOTE" "$TEMP"
+  after="$(inode_and_mode "$REMOTE" | cut -d' ' -f1)"
   "$ADB" shell "run-as $APP ls -la \"$NOTEBOOK_DIR\"" | tr -d '\r' >"$out/listing-after-save.txt"
   echo "clean save: inode $before -> $after; $(read_left_notebook)" | tee -a "$EVIDENCE/trials.txt"
 }

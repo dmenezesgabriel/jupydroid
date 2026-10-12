@@ -1,0 +1,14 @@
+appId: com.jupydroid.app
+---
+# Relaunches after the clean save and opens ${MAESTRO_FILE} again in the file editor: the file the
+# save put in place opens, with the typing in it. Seeded by scripts/jd-026-atomic-save-t2-driver.sh,
+# which reads the bytes on disk.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "(?s)notes for the save test.*edited.*"
+    timeout: 60000
+- takeScreenshot: 02-reopened-with-the-typing
