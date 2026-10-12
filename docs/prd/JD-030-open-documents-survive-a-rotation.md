@@ -115,8 +115,9 @@ Ours is **present and partial**: the stack and the ViewModels survive, the holde
 
 ## Tasks
 
-- [ ] T1 — The document registry survives a relaunch: after a rotation a dirty tab keeps its dot,
-  its close still asks, and a workspace replace edits the open editor.
+- [x] T1 — The document registry survives a relaunch: after a rotation a dirty tab beneath the top
+  keeps its dot and its close still asks. A workspace replace reads the same registry; the demo's
+  step 5 is where it is seen on the device.
 - [ ] T2 — The strip keeps its opening order, a renamed tab keeps its new name and a terminal keeps
   its reported title across a rotation.
 - [ ] T3 — An open Console still draws after a rotation and after a dark-mode switch.

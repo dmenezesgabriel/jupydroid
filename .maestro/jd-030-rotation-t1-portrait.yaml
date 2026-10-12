@@ -1,0 +1,8 @@
+appId: com.jupydroid.app
+---
+# The middle of the turn, at one pane: only a frame of where the rotation passed through.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-portrait-one-pane
