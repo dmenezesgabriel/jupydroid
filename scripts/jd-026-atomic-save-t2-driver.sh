@@ -21,6 +21,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 # shellcheck source=scripts/jd-026-atomic-save-kill.sh
 . "$ROOT/scripts/jd-026-atomic-save-kill.sh"
+# shellcheck source=scripts/jd-026-atomic-save-fixtures.sh
+. "$ROOT/scripts/jd-026-atomic-save-fixtures.sh"
 
 EVIDENCE="$ROOT/evidence/jd-026-atomic-save/t2/${1:?before or after}"
 TRIALS="${2:-5}"
@@ -35,39 +37,10 @@ LARGE="$ROOT/build/jd-026/notes-large.txt"
 SMALL="$ROOT/build/jd-026/notes-small.txt"
 export MAESTRO_FILE="$FILE"
 
-build_fixture() {
-  mkdir -p "$(dirname "$1")"
-  python3 - "$1" "$2" <<'PY'
-import sys
-lines = ["notes for the save test"] + [f"{i:08d} " + "x" * 90 for i in range(int(sys.argv[2]))]
-open(sys.argv[1], "w").write("\n".join(lines + ["the last line of the notes"]) + "\n")
-PY
-}
-
-# Too large for seed_file's base64 argument, so it is pushed and copied in by the app's own uid.
-# The autosave interval is set to its minimum, so the editor's save follows its typing within the
-# flow's reach.
 seed_text_file() {
-  local fixture="$1" mode="$2"
   reset_notebooks
-  "$ADB" push "$fixture" /data/local/tmp/jd-026.txt >/dev/null
-  "$ADB" shell "chmod 644 /data/local/tmp/jd-026.txt && run-as $APP sh -c 'cp /data/local/tmp/jd-026.txt \"$REMOTE\" && chmod $mode \"$REMOTE\" && echo {\\\"autosaveIntervalSeconds\\\":5} > $EDITOR_SETTINGS_STORE'"
-  "$ADB" shell rm /data/local/tmp/jd-026.txt
-}
-
-# Whole is the seeded file, or the seeded file with one write in it: its first and last lines both
-# there, and no more or less than that write between. Prints its size, or why it is half.
-read_left_file() {
-  local fixture="$1" left="$ROOT/build/jd-026/left.txt"
-  "$ADB" exec-out run-as "$APP" cat "$REMOTE" >"$left"
-  python3 - "$left" "$fixture" <<'PY'
-import sys
-left, seeded = open(sys.argv[1]).read(), open(sys.argv[2]).read()
-grown = len(left) - len(seeded)
-# Replace All grows the file by "saved"'s one letter, the editor by its " edited".
-whole = left.startswith("notes for the save") and left.endswith("the last line of the notes\n") and 0 <= grown <= 7
-print(f"{'whole' if whole else 'HALF'}: {len(left)} bytes of {len(seeded)} seeded, {grown:+d}")
-PY
+  push_into_workspace "$1" "$FILE" "$2"
+  set_minimum_autosave
 }
 
 run_trial() {
@@ -79,7 +52,7 @@ run_trial() {
   wait "$watch" || true
   seen="$(cat "$out.watch")"
   rm -f "$out.watch"
-  left="$(read_left_file "$LARGE")"
+  left="$(read_left_file "$REMOTE" "$LARGE")"
   "$ADB" shell "run-as $APP ls -la \"$NOTEBOOK_DIR\"" | tr -d '\r' >"$out/listing-after-kill.txt"
   run_flow "$ROOT/.maestro/jd-026-atomic-save-t2-find-the-end.yaml" "$out/find-the-end" && found=found || found=FAILED
   echo "trial $n: stopped at $seen; left $left; last line $found" | tee -a "$EVIDENCE/trials.txt"
@@ -95,14 +68,14 @@ clean_save() {
   wait_for_saves_to_settle "$REMOTE" "$TEMP"
   after="$(inode_and_mode "$REMOTE")"
   "$ADB" shell "run-as $APP ls -la \"$NOTEBOOK_DIR\"" | tr -d '\r' >"$out/listing-after-save.txt"
-  echo "clean save: inode mode $before -> $after; $(read_left_file "$SMALL")" | tee -a "$EVIDENCE/trials.txt"
+  echo "clean save: inode mode $before -> $after; $(read_left_file "$REMOTE" "$SMALL")" | tee -a "$EVIDENCE/trials.txt"
   run_flow "$ROOT/.maestro/jd-026-atomic-save-t2-reopen.yaml" "$out/reopen"
 }
 
 mkdir -p "$EVIDENCE"
 rm -f "$EVIDENCE/trials.txt"
-build_fixture "$LARGE" "${JD026_LARGE_LINES:-300000}"
-build_fixture "$SMALL" 4000
+build_notes "$LARGE" "${JD026_LARGE_LINES:-300000}"
+build_notes "$SMALL" 4000
 for n in $(seq 1 "$TRIALS"); do mkdir -p "$EVIDENCE/trial-$n"; run_trial "$n"; done
 clean_save
 ! grep -qE "HALF|FAILED" "$EVIDENCE/trials.txt"
