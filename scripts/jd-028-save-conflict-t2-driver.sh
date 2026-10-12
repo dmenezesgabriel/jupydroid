@@ -18,38 +18,33 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
+# shellcheck source=scripts/jd-028-save-conflict-reads.sh
+. "$ROOT/scripts/jd-028-save-conflict-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-028-save-conflict/t2"
 NOTES="notes.txt"
 FLOWS="$ROOT/.maestro/jd-028-save-conflict-t2"
 export MAESTRO_FILE="$NOTES"
 
-# Appends what the file holds now, on one line.
-record_disk() {
-  local held
-  held="$("$ADB" exec-out run-as "$APP" cat "$NOTEBOOK_DIR/$NOTES" | tr '\n' '|')"
-  echo "$1: $held" | tee -a "$EVIDENCE/disk.txt"
-}
-
 mkdir -p "$EVIDENCE"
 rm -f "$EVIDENCE/disk.txt"
 reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/jd-028-save-conflict-notes.txt" "$NOTES"
-record_disk seeded
+record_notes_disk seeded
 run_flow "$FLOWS-part1-terminal-writes.yaml" "$EVIDENCE/terminal-writes"
 wait_for_workspace_text "$NOTES" "changed on disk"
-record_disk "after the shell wrote"
+record_notes_disk "after the shell wrote"
 run_flow "$FLOWS-part2-revert.yaml" "$EVIDENCE/revert"
-record_disk "after Revert"
+record_notes_disk "after Revert"
 run_flow "$FLOWS-part3-terminal-writes-again.yaml" "$EVIDENCE/terminal-writes-again"
 wait_for_workspace_text "$NOTES" "shell again"
-record_disk "after the shell wrote again"
+record_notes_disk "after the shell wrote again"
 run_flow "$FLOWS-part4-overwrite.yaml" "$EVIDENCE/overwrite"
 wait_for_workspace_text "$NOTES" "mine"
-record_disk "after Overwrite"
+record_notes_disk "after Overwrite"
 run_flow "$FLOWS-part5-plain-edit.yaml" "$EVIDENCE/plain-edit"
 wait_for_workspace_text "$NOTES" "too"
-record_disk "after a plain edit"
+record_notes_disk "after a plain edit"
 grep -qx "after the shell wrote: changed on disk|" "$EVIDENCE/disk.txt"
 grep -qx "after Revert: changed on disk|" "$EVIDENCE/disk.txt"
 grep -qx "after the shell wrote again: shell again|" "$EVIDENCE/disk.txt"

@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# Force-stops and relaunches after scripts/jd-028-save-conflict-demo-driver.sh has answered every
+# File Changed, and opens both documents again: each opens as it was left, and neither asks. The
+# notebook holds the cell the kernel added and Revert kept, the output Overwrite saved and the plain
+# edit; ${MAESTRO_FILE} holds the shell's line that Revert kept.
+#
+# No cell runs and nothing is typed here, so the marker, the output and the shell's line can only
+# have come off the disk. The driver reads both files before and after for the half no screen shows.
+#
+# Both names are also rows under Recent by now, and either row opens the document.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_NOTEBOOK}.ipynb"
+- extendedWaitUntil:
+    visible: "ADDED ON DISK 3"
+    timeout: 60000
+- assertVisible: "value = 1 \\+ 1"
+- assertVisible:
+    text: "cells on disk: 4"
+    childOf: {text: "Cell output"}
+- assertNotVisible: "ADDED ON DISK 4"
+- assertNotVisible: "File Changed"
+- takeScreenshot: 08-the-notebook-opens-as-it-was-left
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "changed on disk\\s*"
+    timeout: 60000
+- assertNotVisible: "File Changed"
+- takeScreenshot: 09-the-file-opens-as-it-was-left
