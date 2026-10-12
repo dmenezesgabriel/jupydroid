@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# A cell rewrites the notebook it lives in, and the save that follows asks instead of writing over
+# it. Seeded by scripts/jd-028-save-conflict-t1-driver.sh: the first cell calls `diskwriter`, which
+# appends a markdown cell `ADDED ON DISK 3` to ${MAESTRO_NOTEBOOK}.ipynb in place. The run's own
+# save is then refused, and Revert shows the cell the kernel added.
+#
+# **File Changed needs a kernel.** FakeKernelGateway echoes the cell's source and writes no file,
+# so on a device without a Space the dialog never appears and this flow times out on it. The marker
+# is in `diskwriter.py`, not in any cell's source, so only a re-read of the file can put it on
+# screen. The driver reads the file back for the half no screen shows.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "${MAESTRO_NOTEBOOK}.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "${MAESTRO_NOTEBOOK}.ipynb"
+- extendedWaitUntil:
+    visible: "value = 1"
+    timeout: 60000
+- assertNotVisible: "File Changed"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "File Changed"
+    timeout: 120000
+- assertVisible: "Cancel"
+- assertVisible: "Revert"
+- assertVisible: "Overwrite"
+- takeScreenshot: 01-the-save-asks-after-the-cell-rewrote-the-file
+- tapOn: "Revert"
+- extendedWaitUntil:
+    visible: "ADDED ON DISK 3"
+    timeout: 10000
+- assertNotVisible: "File Changed"
+- takeScreenshot: 02-reverted-to-the-cell-the-kernel-added
