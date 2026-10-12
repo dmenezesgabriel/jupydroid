@@ -1,5 +1,7 @@
 package com.jupydroid.app.domain.port
 
+import com.jupydroid.app.domain.model.FileStamp
+import com.jupydroid.app.domain.model.StampedText
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import kotlinx.coroutines.flow.Flow
@@ -50,9 +52,20 @@ interface WorkspaceRepository {
    *
    * One string rather than a stream: this serves an editor, and `Contents.IModel.content` for a
    * text file is likewise the whole thing (`fileFormat: 'text'` in the type registry). Refuses a
-   * path outside the root, and a path that names nothing, the same way [list] does.
+   * path outside the root, and a path that names nothing, the same way [list] does. For a reader
+   * that will not write it back.
    */
-  suspend fun readText(path: String): String
+  suspend fun readText(path: String): String = readStampedText(path).text
+
+  /**
+   * The file at [path] as text and the stamp of the file it came from, for a caller that will save
+   * it: the stamp is what [writeText] is handed back as `expected`.
+   *
+   * ```
+   * val (text, stamp) = repository.readStampedText("reports/notes.txt")
+   * ```
+   */
+  suspend fun readStampedText(path: String): StampedText
 
   /**
    * Replaces the file at [path] with [text], creating it when it is not there.
@@ -60,8 +73,22 @@ interface WorkspaceRepository {
    * Whole-file too, because that is what `contents.save` sends. The parent directory must already
    * exist - creating one is a separate act with its own name, as `newUntitled(type: 'directory')`
    * is in the reference.
+   *
+   * Answers with the stamp the file has now - the `expected` of the save after this one. With an
+   * [expected] stamp the write is refused when the file is no longer the one that stamp describes,
+   * because the workspace is the shell's and the kernel's too; a file that already holds exactly
+   * [text] is not a change, and a file that is gone is written back. With `null` the write is
+   * unconditional - a caller with a check of its own, or the user's own "Overwrite". The rule is
+   * [NotebookRepository.saveNotebook]'s.
+   *
+   * ```
+   * stamp = repository.writeText("reports/notes.txt", edited, expected = stamp)
+   * ```
+   *
+   * @throws FileChangedOnDiskException when the file changed since [expected] was taken.
    */
-  suspend fun writeText(path: String, text: String)
+  @Throws(FileChangedOnDiskException::class)
+  suspend fun writeText(path: String, text: String, expected: FileStamp? = null): FileStamp
 
   /**
    * The whole file at [path] as bytes, for content this app did not author as text.

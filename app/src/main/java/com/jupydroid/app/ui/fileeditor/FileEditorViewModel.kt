@@ -6,6 +6,7 @@ import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
@@ -16,6 +17,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.syntaxForFile
 import com.jupydroid.app.ui.editor.DocumentAutosave
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,6 +26,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * What the editor is showing of one file.
@@ -55,6 +59,12 @@ data class FileEditorUiState(
   val dirty: Boolean = false,
   /** The file was deleted, so the screen showing it should close - see `EditorUiState.gone`. */
   val gone: Boolean = false,
+  /**
+   * The save was refused because the file changed on disk, and the user has not yet said which
+   * version wins - `EditorUiState.saveConflict` for a document that is one string. A state rather
+   * than an event, so a second refusal while the question is up sets what is already set.
+   */
+  val saveConflict: Boolean = false,
 )
 
 /**
@@ -116,6 +126,12 @@ class FileEditorViewModel(
   /** Set when the file this editor is on is deleted; see [stopWriting]. */
   private var fileIsGone = false
 
+  /** The file as it was last read or written here: what the next save expects to find. */
+  private var stamp: FileStamp? = null
+
+  /** One writer at a time, so a revert never lands in the middle of a save - `EditorViewModel`'s own. */
+  private val writeMutex = Mutex()
+
   init {
     // **Open before it has loaded, on purpose.** A replace arriving mid-read must not be handed the
     // empty string that is on screen, and must not be allowed to write the file either - this
@@ -125,9 +141,10 @@ class FileEditorViewModel(
     viewModelScope.launch {
       // A shared workspace can lose a file under the user - a cell can `os.remove` it - so a read
       // that fails is an ordinary event to report, not a corrupt state to crash on.
-      runCatching { workspaceRepository.readText(filePath) }
-        .onSuccess { text ->
-          _uiState.update { it.copy(text = text, syntax = syntaxForFile(it.name), loaded = true, error = null) }
+      runCatching { workspaceRepository.readStampedText(filePath) }
+        .onSuccess { read ->
+          stamp = read.stamp
+          _uiState.update { it.copy(text = read.text, syntax = syntaxForFile(it.name), loaded = true, error = null) }
         }
         .onFailure { failure -> _uiState.update { it.copy(error = failure.message, loaded = false) } }
     }
@@ -209,6 +226,17 @@ class FileEditorViewModel(
     save.discard()
   }
 
+  /** What to do about a refused save. Driven straight from the screen; see [FileSaveConflict]. */
+  val conflict = FileSaveConflict(
+    uiState = _uiState,
+    scope = viewModelScope,
+    repository = workspaceRepository,
+    filePath = { filePath },
+    writes = writeMutex,
+    saveOver = { persist(overwriting = true) },
+    adopt = { stamp = it },
+  )
+
   public override fun onCleared() {
     openDocuments.closed(this)
     val hadUnsavedWork = save.cancelPending()
@@ -227,13 +255,27 @@ class FileEditorViewModel(
    * `Context.save()`'s failure path is `showErrorMessage`, not a rethrow.
    *
    * Cleared by a save that works, so a failure that has passed does not sit on screen for ever.
+   *
+   * The write carries [stamp], so a file somebody else wrote since is left alone and the refusal
+   * becomes [FileEditorUiState.saveConflict] - a question, where every other failure is a report.
+   * [overwriting] is that question answered "Overwrite": the one save made whatever is on disk.
    */
-  private suspend fun persist() {
+  private suspend fun persist(overwriting: Boolean = false) {
     if (fileIsGone || !_uiState.value.loaded) return
-    runCatching { workspaceRepository.writeText(filePath, _uiState.value.text) }
-      .fold(
-        onSuccess = { _uiState.update { it.copy(error = null, dirty = false) } },
-        onFailure = { failure -> _uiState.update { it.copy(error = failure.message) } },
-      )
+    writeMutex.withLock {
+      runCatching { workspaceRepository.writeText(filePath, _uiState.value.text, stamp.takeUnless { overwriting }) }
+        .fold(
+          onSuccess = ::adoptWritten,
+          onFailure = { failure ->
+            if (failure is CancellationException) throw failure
+            _uiState.update { it.reportingSave(failure) }
+          },
+        )
+    }
+  }
+
+  private fun adoptWritten(written: FileStamp) {
+    stamp = written
+    _uiState.update { it.copy(error = null, dirty = false) }
   }
 }

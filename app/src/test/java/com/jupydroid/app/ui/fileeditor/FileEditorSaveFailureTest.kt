@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.fileeditor
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -34,7 +35,7 @@ class FileEditorSaveFailureTest {
     private val stillReadable: WorkspaceRepository =
       FakeWorkspaceRepository(textByPath = mapOf("reports/notes.txt" to "cat")),
   ) : WorkspaceRepository by stillReadable {
-    override suspend fun writeText(path: String, text: String): Unit =
+    override suspend fun writeText(path: String, text: String, expected: FileStamp?): FileStamp =
       throw FileNotFoundException("$path: open failed: ENOENT (No such file or directory)")
   }
 

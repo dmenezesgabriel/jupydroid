@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.explorer
 
+import com.jupydroid.app.domain.model.FileStamp
+import com.jupydroid.app.domain.model.StampedText
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -35,9 +37,10 @@ internal class SlowListingWorkspaceRepository(
     return workspace.list(path)
   }
 
-  override suspend fun readText(path: String): String = workspace.readText(path)
+  override suspend fun readStampedText(path: String): StampedText = workspace.readStampedText(path)
 
-  override suspend fun writeText(path: String, text: String) = workspace.writeText(path, text)
+  override suspend fun writeText(path: String, text: String, expected: FileStamp?): FileStamp =
+    workspace.writeText(path, text, expected)
 
   override suspend fun readBytes(path: String): ByteArray = workspace.readBytes(path)
 

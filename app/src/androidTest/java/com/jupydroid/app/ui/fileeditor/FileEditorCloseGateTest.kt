@@ -22,6 +22,7 @@ import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
@@ -70,7 +71,7 @@ class FileEditorCloseGateTest {
     private val stillReadable: WorkspaceRepository =
       FakeWorkspaceRepository(textByPath = mapOf("notes.py" to "cat")),
   ) : WorkspaceRepository by stillReadable {
-    override suspend fun writeText(path: String, text: String): Unit =
+    override suspend fun writeText(path: String, text: String, expected: FileStamp?): FileStamp =
       throw FileNotFoundException("$path: open failed: ENOENT (No such file or directory)")
   }
 

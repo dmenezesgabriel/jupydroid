@@ -1,5 +1,7 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.FileStamp
+import com.jupydroid.app.domain.model.StampedText
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.idBeside
@@ -42,18 +44,24 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     directory.workspaceEntriesUnder(path)
   }
 
-  override suspend fun readText(path: String): String = withContext(ioDispatcher) {
+  override suspend fun readStampedText(path: String): StampedText = withContext(ioDispatcher) {
     val file = root.fileAt(path)
     require(file.isFile) { "no file at '$path' in the workspace" }
-    file.readText()
+    // Stamped before the read: a write landing in between leaves a stamp older than the text,
+    // which the next save refuses - the safe side of that race.
+    val stamp = file.stamp()
+    StampedText(file.readText(), stamp)
   }
 
-  override suspend fun writeText(path: String, text: String): Unit = withContext(ioDispatcher) {
+  override suspend fun writeText(path: String, text: String, expected: FileStamp?): FileStamp =
+    withContext(ioDispatcher) { writeTextFile(path, text, expected) }
+
+  private fun writeTextFile(path: String, text: String, expected: FileStamp?): FileStamp {
     // `resolve` refuses an escape before anything is written, so a bad path cannot reach the
     // filesystem at all - jupyter_server validates before it saves for the same reason.
     val file = root.fileAt(path)
     require(!file.isDirectory) { "'$path' is a directory in the workspace, not a file" }
-    file.writeTextAtomically(text)
+    return file.writeIfUnchanged(expected, text.toByteArray(), named = path)
   }
 
   override suspend fun readBytes(path: String): ByteArray = withContext(ioDispatcher) {

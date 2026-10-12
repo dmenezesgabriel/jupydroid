@@ -209,7 +209,12 @@ class WorkspaceReplace(
   private suspend fun write(edits: ResourceEdits) {
     val open = openDocuments.at(edits.path)
     if (open != null) return open.applyEdits(edits.cell, edits.edits)
-    val cell = edits.cell ?: return workspaceRepository.writeText(edits.path, edits.rewritten())
+    val cell = edits.cell
+    if (cell == null) {
+      // No stamp: `sourceOnDisk` already refused a file whose text is not the one the match was in.
+      workspaceRepository.writeText(edits.path, edits.rewritten())
+      return
+    }
     val notebook = notebookRepository.readNotebook(edits.path)
     val rewritten = notebook.cells.mapIndexed { at, existing ->
       if (at == cell) existing.copy(source = edits.rewritten()) else existing

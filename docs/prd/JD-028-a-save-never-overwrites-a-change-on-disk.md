@@ -122,9 +122,9 @@ None that the references leave open.
 | `data/fake` | `FakeNotebookRepository.kt`, `FakeWorkspaceRepository.kt` (T2) |
 | `ui` | `FileChangedDialog.kt` |
 | `ui/editor` | `EditorViewModel.kt`, `EditorUiState.kt`, `EditorScreen.kt`, `NotebookSaveConflict.kt` |
-| `ui/fileeditor` | `FileEditorViewModel.kt` (T2) |
-| unit tests | `NotebookRepositoryContract.kt`, `StampedFileWriteTest.kt`, `NotebookSaveConflictTest.kt` |
-| instrumented tests | `FileChangedDialogTest.kt` |
+| `ui/fileeditor` | `FileEditorViewModel.kt`, `FileEditorScreen.kt`, `FileSaveConflict.kt` (T2) |
+| unit tests | `NotebookRepositoryContract.kt`, `StampedFileWriteTest.kt`, `NotebookSaveConflictTest.kt`, `WorkspaceTextSaveContract.kt` (T2), `FileEditorSaveConflictTest.kt` (T2) |
+| instrumented tests | `FileChangedDialogTest.kt`, `FileEditorSaveConflictScreenTest.kt` (T2) |
 | `.maestro/` flow + `scripts/` driver | `jd-028-save-conflict-*` |
 
 ## Tasks

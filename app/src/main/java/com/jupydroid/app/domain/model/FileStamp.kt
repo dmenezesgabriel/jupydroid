@@ -27,3 +27,13 @@ data class FileStamp(val modifiedNanos: Long, val size: Long)
  * ```
  */
 data class StampedNotebook(val notebook: Notebook, val stamp: FileStamp)
+
+/**
+ * A text file's content and the [FileStamp] of the file it was read from - [StampedNotebook] for
+ * a document that is one string.
+ *
+ * ```
+ * val (text, stamp) = repository.readStampedText("reports/notes.txt")
+ * ```
+ */
+data class StampedText(val text: String, val stamp: FileStamp)

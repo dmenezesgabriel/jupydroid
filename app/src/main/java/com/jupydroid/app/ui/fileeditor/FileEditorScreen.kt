@@ -35,6 +35,7 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.Breadcrumb
+import com.jupydroid.app.ui.FileChangedDialog
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.SaveBeforeCloseGate
 import com.jupydroid.app.ui.ancestorCrumbsFor
@@ -139,6 +140,16 @@ fun FileEditorScreen(
     discardChanges = viewModel::discardChanges,
     onClose = onBack,
   )
+
+  // The save found a file it did not write, and asks which version wins - the notebook editor's dialog.
+  if (state.saveConflict) {
+    FileChangedDialog(
+      state.name,
+      viewModel.conflict::overwrite,
+      viewModel.conflict::revert,
+      viewModel.conflict::cancel,
+    )
+  }
 
   // Its file was deleted, so the screen goes with it - `deleteWidgets`, asked for by the document.
   LaunchedEffect(state.gone) { if (state.gone) onBack() }
