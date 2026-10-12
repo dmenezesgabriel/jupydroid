@@ -953,20 +953,10 @@ first when dirty (`jupyterlab/packages/docmanager-extension/src/index.tsx:968-10
 same. Ours opens a file once and never reads it again: `WorkspaceRepository.changes` announces
 only what this app moved
 (`app/src/main/java/com/jupydroid/app/domain/port/WorkspaceRepository.kt`), so a file a cell
-rewrote — or a second Jupyter client — sits stale until the next autosave overwrites it. The
+rewrote — or a second Jupyter client — sits stale until the next save is refused and asks
+([ADR-0090](adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md)). The
 repair is a re-read act on the document; whether it merges or replaces is the question `revert`'s
 own dirty-guard already answers.
-
-### GAP-065 — A save never checks what it is overwriting
-
-`Context._maybeSave` re-reads the model (`hash: true`) before every write and raises a conflict
-dialog when the disk's hash or `last_modified` is newer than the client's by more than
-`lastModifiedCheckMargin` — 500 ms
-(`jupyterlab/packages/docregistry/src/context.ts:741-790`) — and the same `_maybeOverWrite` ask
-guards `saveAs`. Ours' `writeText` and `saveNotebook` write blind: the workspace is shared with
-the kernel, so a cell that rewrites an open file — or any second client on the same directory —
-is silently overwritten at the next debounce. The repair is a compare in the write path; the
-machinery is the `last_modified` a document already records at read, not a second channel.
 
 ### GAP-066 — Nothing remembers a closed document
 

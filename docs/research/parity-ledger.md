@@ -1142,7 +1142,7 @@ by `RecentsSection` at the explorer root with `RecentsActionsMenu`'s clear.
 | `autosaveInterval` (`plugin.json:119-124`, default 120, unbounded) | `EditorSettings.autosaveIntervalSeconds` — the same 120, clamped 5–600 by `AutosaveInterval` | **adapted** | The bound is written (`EditorSettings.kt:204-213`): a touch stepper needs edges, and under 5 s the poll is a chore the 500 ms debounce does better. The fixed interval also declines `SaveHandler`'s `10 * duration` growth and `isConnectedCallback` pause — `DocumentAutosave`'s docstring carries that reason. |
 | `confirmClosingDocument` (`plugin.json:125-130`, default false — on asks for a clean close too, `widgetmanager.ts:478-487`) | not carried — a dirty close always asks, a clean one never does | **adapted** | Pinned at the schema's own default; the reason is written on `MainAreaCloseGate`'s docstring. |
 | `defaultViewers` (`plugin.json:137-146` — a file-type → widget-factory override, `index.tsx:297-315`) | `DocumentOpeners`' suffix split — one factory per type | **adapted** | No second factory exists for any type, so an override would have nothing to point at — `DocumentOpeners`' docstring says so. |
-| `lastModifiedCheckMargin` (`plugin.json:131-136`, default 500 ms — bounds `_maybeSave`'s disk-vs-client comparison, `context.ts:741-790`) | — | **absent** | `GAP-065`. The knob parameterises a check that does not exist: `writeText`/`saveNotebook` write blind over whatever the kernel or another client left. |
+| `lastModifiedCheckMargin` (`plugin.json:131-136`, default 500 ms — bounds `_maybeSave`'s disk-vs-client comparison, `context.ts:741-790`) | `File.writeIfUnchanged` — `saveNotebook` and `writeText` are handed the `FileStamp` of the read and refuse a file that is not the one it describes | **adapted** | No margin, so no knob: any difference refuses unless the file already holds the bytes being written, since on a local disk 500 ms would hide a cell's write landing just after a save ([ADR-0090](../adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md)). |
 | `maxNumberRecents` (`plugin.json:153-158`, default 10 — `maximalRecentsLength` truncates both lists, `recents.ts:63-77`) | `MAX_RECENTS = 10`, a domain constant | **adapted** | The schema's own default, not carried as a setting — the constant's docstring states the decline. |
 | `renameUntitledFileOnSave` (`plugin.json:147-152`, default true — the first-save rename prompt, `index.tsx:1155-1190`) | — | **absent** | `GAP-061`. Its premise — a manual save — is the command row above's hole. |
 | the save machinery — `SaveHandler`'s debounce, interval re-arm, `10 * duration` growth, `isConnectedCallback` pause (`savehandler.ts:130-137`, `index.tsx:216-221`) | `DocumentAutosave` — 500 ms debounce plus a dirt-gated poll at the configured interval | **adapted** | Debounce and poll are the same; the growth and the pause answer a write that crosses a network, and this one's never leaves the disk — the class docstring states it. |
@@ -1230,8 +1230,9 @@ What it found, beyond the rows above:
   cause, and the close gate keeps the document open — `context.save()` rejecting keeps the widget
   open, the same rule. What another *process* does to the workspace arrives nowhere: `changes` is
   in-process and non-replay, so a cell's `os.remove` or a second client is invisible to an open
-  document until its own write trips on it — `GAP-064`'s missing reload and `GAP-065`'s blind
-  save are where the ledger already charges that. The defects the walk owes the ledger, all fixed
+  document until its own write is refused for it
+  ([ADR-0090](../adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md)) —
+  `GAP-064`'s missing reload is where the ledger already charges that. The defects the walk owes the ledger, all fixed
   red-first: **`docmanager:open` revealed by key equality, and a key keeps the path it opened
   under** — rename a file beside its open document and the next tap pushed a second editor, two
   autosaves on one file — `fbd21a99`,
