@@ -9,8 +9,6 @@ import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneSt
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -18,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
-import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -83,24 +80,12 @@ fun MainNavigation(
   // Saved rather than remembered, because a rotation is what most often brings the rail into range
   // in the first place, and `SidePanel?` round-trips through a Bundle unaided.
   var sidePanel by rememberSaveable { mutableStateOf<SidePanel?>(SidePanel.FILES) }
-  // Where each open document lives *now*, per entry. A navigation key keeps the path it was opened
-  // under, because replacing it would re-create the entry and discard the editor's state; a rename
-  // is reported here instead, keyed by the entry's own key since many editors are open at once.
-  // `_contextsForPath` does the same - it filters live contexts by their current path, never
-  // by the one a widget was created with. FileEditor keys join Editor's here: the tab strip
-  // reads live paths for titles and dirty lookups; dead keys drop with the order's own reconcile.
-  val openDocumentPaths = remember { mutableStateMapOf<NavKey, String>() }
-  // The strip's tab order - **opening order**, not the stack's. The stack promotes an activated
-  // entry to its top because that is what the scene draws, but `activateById` never moves a tab:
-  // this list keeps the order the row is drawn in, reconciled against the stack each pass (closed
-  // entries drop out, new ones join at the end) - see `orderedAsOpened`.
-  val openTabOrder = remember { mutableStateListOf<NavKey>() }
+  // The strip's opening order, live paths and live titles - see [RetainedTabStrip] for each.
+  val tabStrip = rememberRetainedTabStrip()
+  val openDocumentPaths = tabStrip.liveDocumentPaths
+  val openTabOrder = tabStrip.openingOrder
   val orderedTabs = backStack.mainAreaTabs().orderedAsOpened(openTabOrder)
-  // What a tab's label is *now* where the key's own title is not live: a terminal's shell reports
-  // its OSC title (`widget.ts:486-488` sends it to `title.label`, which is the tab), so the
-  // screen writes it here and the strip reads it ahead of the key's static "Terminal N". Keys a
-  // closed tab left behind drop out with the same reconcile that keeps the order honest.
-  val liveTabTitles = remember { mutableStateMapOf<NavKey, String>() }
+  val liveTabTitles = tabStrip.liveTabTitles
   LaunchedEffect(orderedTabs) { reconcileOpenTabs(orderedTabs, openTabOrder, liveTabTitles, openDocumentPaths) }
   /**
    * `application:close`'s dirty gate, mounted here rather than inside an entry - the Running

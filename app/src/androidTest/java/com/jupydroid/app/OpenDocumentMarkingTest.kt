@@ -1,21 +1,14 @@
 package com.jupydroid.app
 
-import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextClearance
-import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
@@ -27,7 +20,6 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.RENAME_FIELD_TAG
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -59,12 +51,12 @@ class OpenDocumentMarkingTest {
   fun aRenamedTabMarksTheRowItsFileMovedTo() {
     startAppWithNotebook("a.ipynb")
 
-    listingRow("a.ipynb").performClick()
-    waitForTab("a.ipynb")
-    renameTab(from = "a.ipynb", to = "b.ipynb")
-    waitForTab("b.ipynb")
+    compose.listingRow("a.ipynb").performClick()
+    compose.waitForTab("a.ipynb")
+    compose.renameTab(from = "a.ipynb", to = "b.ipynb")
+    compose.waitForTab("b.ipynb")
 
-    waitForRow("b.ipynb").assertIsSelected()
+    compose.waitForRow("b.ipynb").assertIsSelected()
     compose.waitUntil(ROW_TIMEOUT_MILLIS) {
       compose.onAllNodes(hasText("a.ipynb") and hasContentDescription("File")).fetchSemanticsNodes().isEmpty()
     }
@@ -82,41 +74,21 @@ class OpenDocumentMarkingTest {
   fun aClosedTabsLivePathStopsAnswering() {
     startAppWithNotebook("a.ipynb")
 
-    listingRow("a.ipynb").performClick()
-    waitForTab("a.ipynb")
-    renameTab(from = "a.ipynb", to = "b.ipynb")
-    waitForTab("b.ipynb")
+    compose.listingRow("a.ipynb").performClick()
+    compose.waitForTab("a.ipynb")
+    compose.renameTab(from = "a.ipynb", to = "b.ipynb")
+    compose.waitForTab("b.ipynb")
     closeTab("b.ipynb")
 
     File(tempFolder.root, "a.ipynb").writeText("{")
-    waitForRow("b.ipynb")
-    waitForRow("a.ipynb").performClick()
-    waitForTab("a.ipynb")
+    compose.waitForRow("b.ipynb")
+    compose.waitForRow("a.ipynb").performClick()
+    compose.waitForTab("a.ipynb")
 
     compose.onNodeWithContentDescription("Tab: a.ipynb").assertExists()
     compose.onAllNodesWithContentDescription("Tab: b.ipynb").assertCountEquals(0)
-    listingRow("a.ipynb").assertIsSelected()
-    listingRow("b.ipynb").assertIsNotSelected()
-  }
-
-  private fun listingRow(title: String) = compose.onNode(hasText(title) and hasContentDescription("File"))
-
-  private fun waitForRow(title: String): SemanticsNodeInteraction {
-    compose.waitUntil(ROW_TIMEOUT_MILLIS) {
-      compose.onAllNodes(hasText(title) and hasContentDescription("File")).fetchSemanticsNodes().isNotEmpty()
-    }
-    return listingRow(title)
-  }
-
-  private fun waitForTab(title: String) = compose.waitUntil(TIMEOUT_MILLIS) {
-    compose.onAllNodesWithContentDescription("Tab: $title").fetchSemanticsNodes().isNotEmpty()
-  }
-
-  private fun renameTab(from: String, to: String) {
-    compose.onNodeWithContentDescription("Tab: $from").performTouchInput { longClick() }
-    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
-    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput(to)
-    compose.onNodeWithText("Rename").performClick()
+    compose.listingRow("a.ipynb").assertIsSelected()
+    compose.listingRow("b.ipynb").assertIsNotSelected()
   }
 
   private fun closeTab(title: String) {
@@ -154,8 +126,6 @@ class OpenDocumentMarkingTest {
   }
 
   private companion object {
-    const val TIMEOUT_MILLIS = 5_000L
-
     // The recreated row appears only when the listing's poll re-reads the directory,
     // so it waits past `EXPLORER_REFRESH_INTERVAL` rather than a test-step timeout.
     const val ROW_TIMEOUT_MILLIS = 20_000L
