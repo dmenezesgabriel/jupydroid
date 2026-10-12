@@ -118,4 +118,42 @@ class DiskWorkspaceRepositoryTest : WorkspaceRepositoryContract() {
     assertEquals(listOf("real"), repository.list("").map { it.name })
     assertTrue("the target must survive", File(temp.root, "real/inside.txt").exists())
   }
+
+  /**
+   * A write replaces the file rather than rewriting it where it sits, so a kill mid-save leaves the
+   * file before the save, never half of it (ADR-0089). A hard link taken first still names the old
+   * inode: rewritten in place, it would read the new text too.
+   */
+  @Test
+  fun writeText_replacesTheFileRatherThanRewritingIt() = runTest {
+    given("notes.txt")
+    val link = linkTakenBeforeTheSave("notes.txt")
+
+    repository().writeText("notes.txt", "after")
+
+    assertEquals("x", link.readText())
+    assertEquals("after", File(temp.root, "notes.txt").readText())
+  }
+
+  @Test
+  fun writeBytes_replacesTheFileRatherThanRewritingIt() = runTest {
+    given("export.html")
+    val link = linkTakenBeforeTheSave("export.html")
+
+    repository().writeBytes("export.html", "after".toByteArray())
+
+    assertEquals("x", link.readText())
+    assertEquals("after", File(temp.root, "export.html").readText())
+  }
+
+  @Test
+  fun writeText_leavesNothingButTheFileBesideIt() = runTest {
+    repository().writeText("notes.txt", "after")
+
+    assertEquals(listOf("notes.txt"), temp.root.list()?.toList())
+  }
+
+  private fun linkTakenBeforeTheSave(path: String): File = File(temp.root, "taken-before-the-save").also {
+    Files.createLink(it.toPath(), File(temp.root, path).toPath())
+  }
 }

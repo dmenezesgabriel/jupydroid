@@ -9,6 +9,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermissions
 
 class AtomicFileWriteTest {
   @get:Rule val tempFolder = TemporaryFolder()
@@ -69,5 +70,20 @@ class AtomicFileWriteTest {
 
     assertEquals(true, Files.isSymbolicLink(target().toPath()))
     assertEquals("after", real.readText())
+  }
+
+  /**
+   * The rename makes a new inode, which would take the app's default mode; a script made
+   * executable in the terminal must stay executable after the file editor saves it.
+   */
+  @Test
+  fun aFilesPermissionsSurviveTheSave() {
+    target().writeText("before")
+    val executable = PosixFilePermissions.fromString("rwxr-xr-x")
+    Files.setPosixFilePermissions(target().toPath(), executable)
+
+    target().writeAtomically { it.write("after".toByteArray()) }
+
+    assertEquals(executable, Files.getPosixFilePermissions(target().toPath()))
   }
 }

@@ -32,10 +32,22 @@ internal fun File.writeAtomically(write: (OutputStream) -> Unit) {
       // and the file comes back empty - microsoft/vscode#9589.
       stream.fd.sync()
     }
+    temp.takePermissionsOf(target)
     Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
   } finally {
     temp.delete()
   }
+}
+
+/**
+ * Gives the temp the mode of the file it replaces. The rename makes a new inode, which would
+ * otherwise take the app's default mode, and a script made executable in the terminal would stop
+ * being one when the file editor saved it; jupyter_server's in-place write keeps the mode, as a
+ * user expects of a save. A new file keeps the default.
+ */
+private fun File.takePermissionsOf(target: File) {
+  if (!target.exists()) return
+  Files.setPosixFilePermissions(toPath(), Files.getPosixFilePermissions(target.toPath()))
 }
 
 /**

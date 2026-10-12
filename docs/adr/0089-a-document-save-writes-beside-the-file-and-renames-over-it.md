@@ -53,6 +53,9 @@ Option 2.
   already (`WorkspaceListing.kt`).
 - A symlinked target is resolved one level, as jupyter_server does. The link stays and the file it
   names is replaced.
+- The temp takes the target's permissions before the rename. The rename makes a new inode, and
+  without this a script made executable in the terminal would lose its exec bit on its first save
+  in the file editor. jupyter_server's in-place write keeps the mode; VS Code's rename does not.
 - Every document save goes through it: a notebook (`DiskNotebookRepository`), and a workspace file
   written by the file editor, replace-all or an export (`DiskWorkspaceRepository`).
 

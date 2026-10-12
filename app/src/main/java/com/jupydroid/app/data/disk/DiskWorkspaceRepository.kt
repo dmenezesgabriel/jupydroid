@@ -53,7 +53,9 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     // filesystem at all - jupyter_server validates before it saves for the same reason.
     val file = root.fileAt(path)
     require(!file.isDirectory) { "'$path' is a directory in the workspace, not a file" }
-    file.writeText(text)
+    // Encoded before the temp is opened, so encoding a large file is not time the temp sits empty.
+    val bytes = text.toByteArray()
+    file.writeAtomically { it.write(bytes) }
   }
 
   override suspend fun readBytes(path: String): ByteArray = withContext(ioDispatcher) {
@@ -67,7 +69,7 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     // a bad path never reaches the filesystem.
     val file = root.fileAt(path)
     require(!file.isDirectory) { "'$path' is a directory in the workspace, not a file" }
-    file.writeBytes(bytes)
+    file.writeAtomically { it.write(bytes) }
   }
 
   override suspend fun createFile(directory: String, extension: String): String = withContext(ioDispatcher) {
