@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# After the driver turned the device to portrait and back, which relaunched the activity twice in
+# the same process. The renamed tab and the terminal's reported title are still drawn; the order
+# they are drawn in is measured by the driver from the window's own bounds, not read off this frame.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_FIRST}"
+    timeout: 10000
+- assertVisible: "Tab: ${MAESTRO_RENAMED_STEM}.py"
+- assertVisible: "Tab: ${MAESTRO_TITLE}"
+- takeScreenshot: 03-after-the-rotation-the-strip-is-as-it-was-left
