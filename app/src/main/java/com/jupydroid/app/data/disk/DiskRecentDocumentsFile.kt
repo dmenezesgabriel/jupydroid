@@ -67,7 +67,7 @@ class DiskRecentDocumentsFile(private val stateDir: File, private val json: Json
 
   private fun write(documents: List<StoredRecent>) {
     stateDir.mkdirs()
-    storeFile().writeText(json.encodeToString(StoredRecents(documents)))
+    storeFile().writeTextAtomically(json.encodeToString(StoredRecents(documents)))
   }
 
   private fun storeFile(): File = File(stateDir, RECENTS_FILE_NAME)

@@ -60,6 +60,22 @@ class DiskRecentDocumentsRepositoryTest : RecentDocumentsRepositoryContract() {
   }
 
   /**
+   * A record replaces the list whole rather than rewriting it where it sits, so a kill mid-write
+   * leaves the previous list rather than half of it (ADR-0089).
+   */
+  @Test
+  fun record_replacesTheFileRatherThanRewritingIt() = runTest {
+    givenInWorkspace("first.ipynb", "second.ipynb")
+    openStore().record(RecentDocument("first.ipynb", WorkspaceEntryKind.FILE))
+    val taken = File(stateDir, RECENTS_FILE_NAME).linkTakenBeforeTheWrite(temp.root)
+    val before = taken.readText()
+
+    openStore().record(RecentDocument("second.ipynb", WorkspaceEntryKind.FILE))
+
+    assertEquals(before, taken.readText())
+  }
+
+  /**
    * A path that is no longer there is dropped rather than offered.
    *
    * `_isValid` asks the Contents API for the path and treats a **404** as invalid

@@ -37,7 +37,7 @@ class DiskLauncherSettingsRepository(
 
   /**
    * One write at a time, and the publish lands after it - the flow only repeats what the file
-   * holds. A `writeText` the filesystem refuses must not broadcast a value the next launch never
+   * holds. A write the filesystem refuses must not broadcast a value the next launch never
    * kept, and two writes racing on `applicationScope` must not leave the file and the flow
    * disagreeing about which update was last.
    */
@@ -48,7 +48,7 @@ class DiskLauncherSettingsRepository(
   override suspend fun update(settings: LauncherSettings) = withContext(ioDispatcher) {
     writeMutex.withLock {
       stateDir.mkdirs()
-      storeFile().writeText(json.encodeToString(LauncherSettings.serializer(), settings))
+      storeFile().writeTextAtomically(json.encodeToString(LauncherSettings.serializer(), settings))
       this@DiskLauncherSettingsRepository.settings.value = settings
     }
   }

@@ -40,6 +40,19 @@ internal fun File.writeAtomically(write: (OutputStream) -> Unit) {
 }
 
 /**
+ * [writeAtomically] for text: encoded before the temp is opened, so encoding is not time the temp
+ * sits empty.
+ *
+ * ```
+ * File(stateDir, "theme-settings.json").writeTextAtomically(json)
+ * ```
+ */
+internal fun File.writeTextAtomically(text: String) {
+  val bytes = text.toByteArray()
+  writeAtomically { it.write(bytes) }
+}
+
+/**
  * Gives the temp the mode of the file it replaces. The rename makes a new inode, which would
  * otherwise take the app's default mode, and a script made executable in the terminal would stop
  * being one when the file editor saved it; jupyter_server's in-place write keeps the mode, as a

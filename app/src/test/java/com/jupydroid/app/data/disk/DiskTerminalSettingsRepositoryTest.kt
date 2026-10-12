@@ -54,7 +54,7 @@ class DiskTerminalSettingsRepositoryTest : TerminalSettingsRepositoryContract() 
 
   /**
    * The file is the record and the flow repeats it - so a refused write announces nothing:
-   * publishing before `writeText` would leave every collector showing a value the next launch
+   * publishing before the write would leave every collector showing a value the next launch
    * never kept. A directory standing where the file belongs is a write the filesystem refuses.
    */
   @Test
@@ -66,5 +66,20 @@ class DiskTerminalSettingsRepositoryTest : TerminalSettingsRepositoryContract() 
 
     assertTrue(refused.exceptionOrNull() is java.io.IOException)
     assertEquals(TerminalSettings(), store.observeSettings().first())
+  }
+
+  /**
+   * An update replaces the store whole rather than rewriting it where it sits, so a kill mid-write
+   * leaves the previous settings rather than half of them (ADR-0089).
+   */
+  @Test
+  fun update_replacesTheFileRatherThanRewritingIt() = runTest {
+    openStore().update(TerminalSettings(fontSizeSp = 20))
+    val taken = File(stateDir, TERMINAL_SETTINGS_FILE_NAME).linkTakenBeforeTheWrite(temp.root)
+    val before = taken.readText()
+
+    openStore().update(TerminalSettings(fontSizeSp = 22))
+
+    assertEquals(before, taken.readText())
   }
 }

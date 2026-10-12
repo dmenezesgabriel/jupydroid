@@ -53,9 +53,7 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     // filesystem at all - jupyter_server validates before it saves for the same reason.
     val file = root.fileAt(path)
     require(!file.isDirectory) { "'$path' is a directory in the workspace, not a file" }
-    // Encoded before the temp is opened, so encoding a large file is not time the temp sits empty.
-    val bytes = text.toByteArray()
-    file.writeAtomically { it.write(bytes) }
+    file.writeTextAtomically(text)
   }
 
   override suspend fun readBytes(path: String): ByteArray = withContext(ioDispatcher) {

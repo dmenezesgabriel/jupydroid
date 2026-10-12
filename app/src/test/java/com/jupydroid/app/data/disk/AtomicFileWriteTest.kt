@@ -29,6 +29,18 @@ class AtomicFileWriteTest {
   }
 
   @Test
+  fun aTextWriteReplacesTheFileAndLeavesNoTemp() {
+    target().writeText("before")
+    val taken = target().linkTakenBeforeTheWrite(tempFolder.newFolder())
+
+    target().writeTextAtomically("after")
+
+    assertEquals("after", target().readText())
+    assertEquals("before", taken.readText())
+    assertFalse(temp().exists())
+  }
+
+  @Test
   fun aWriteThatFailsPartwayLeavesThePreviousFileWhole() {
     target().writeText("before")
 

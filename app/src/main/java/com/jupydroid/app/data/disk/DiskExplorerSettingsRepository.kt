@@ -37,7 +37,7 @@ class DiskExplorerSettingsRepository(
 
   /**
    * One write at a time, and the publish lands after it - the flow only repeats what the file
-   * holds. A `writeText` the filesystem refuses must not broadcast a value the next launch never
+   * holds. A write the filesystem refuses must not broadcast a value the next launch never
    * kept, and two writes racing on `applicationScope` must not leave the file and the flow
    * disagreeing about which update was last.
    */
@@ -48,7 +48,7 @@ class DiskExplorerSettingsRepository(
   override suspend fun update(settings: ExplorerSettings) = withContext(ioDispatcher) {
     writeMutex.withLock {
       stateDir.mkdirs()
-      storeFile().writeText(json.encodeToString(ExplorerSettings.serializer(), settings))
+      storeFile().writeTextAtomically(json.encodeToString(ExplorerSettings.serializer(), settings))
       this@DiskExplorerSettingsRepository.settings.value = settings
     }
   }
