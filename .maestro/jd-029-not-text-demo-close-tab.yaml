@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# The image's tab is closed after scripts/jd-029-not-text-demo-driver.sh opened it and typed where a
+# field would be. A close is the editor's farewell flush, the last chance an unrepaired editor has
+# to save its decoding over the file.
+#
+# **This flow cannot say the file was left alone.** No screen shows what the file holds: the driver
+# compares the file's sha256 against the fixture's once this flow ends.
+- launchApp:
+    stopApp: false
+- assertVisible: ".*is not UTF-8 text.*"
+- tapOn: "Close tab: ${MAESTRO_IMAGE}"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: ".*is not UTF-8 text.*"
+- assertNotVisible: "Close tab: ${MAESTRO_IMAGE}"
+- takeScreenshot: 03-the-images-tab-is-closed

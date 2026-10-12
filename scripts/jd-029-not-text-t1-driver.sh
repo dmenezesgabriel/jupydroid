@@ -16,6 +16,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
+# shellcheck source=scripts/jd-029-not-text-reads.sh
+. "$ROOT/scripts/jd-029-not-text-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-029-not-text/t1"
 FIXTURE="$ROOT/.maestro/fixtures/jd-029-not-text-plot.png"
@@ -23,13 +25,6 @@ IMAGE="plot.png"
 NOTES="notes.txt"
 FLOWS="$ROOT/.maestro/jd-029-not-text-t1"
 export MAESTRO_IMAGE="$IMAGE" MAESTRO_FILE="$NOTES"
-
-# Appends the image's sha256 as the device reads it, on one line.
-record_image_disk() {
-  local held
-  held="$("$ADB" exec-out run-as "$APP" sha256sum "$NOTEBOOK_DIR/$IMAGE" | cut -d' ' -f1)"
-  echo "$1: $held" | tee -a "$EVIDENCE/disk.txt"
-}
 
 mkdir -p "$EVIDENCE"
 rm -f "$EVIDENCE/disk.txt"
