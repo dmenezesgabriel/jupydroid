@@ -497,18 +497,6 @@ the cells most recently edited (`jupyterlab@7f0e690680a763d3c3db5dc0231803b0ba0e
 of contents has no toolbar. The stack is the reference's `@experimental` API. The table of contents
 itself belongs to the search audit, so the gap is recorded rather than costed.
 
-### GAP-023 — A save is not atomic, so an interrupted write can leave half a notebook
-
-`DiskNotebookRepository.saveNotebook` ends in a bare `File.writeText`
-(`app/src/main/java/com/jupydroid/app/data/disk/DiskNotebookRepository.kt`): the file is
-truncated where it sits and rewritten in place. The reference stack's save is atomic —
-jupyter_server's contents manager routes every save through `atomic_writing`, a temporary file
-moved over the target by `os.replace`
-(`usr/lib/python3.12/site-packages/jupyter_server/services/contents/fileio.py:103`, `:528-530`,
-in the shipped rootfs). The window is narrow — a process kill or a dead battery mid-write — and
-the failure it leaves is the worst kind there is: a notebook that opens as invalid JSON.
-Closing it is a write to a sibling file and a rename, and nothing more.
-
 ### GAP-024 — A completion row's documentation is never fetched
 
 `completionItem/resolve` is the ask that turns a completion row into its documentation, and the

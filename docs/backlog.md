@@ -143,12 +143,12 @@ audit's, `GAP-093`–`GAP-119` in [`architecture.md` §11](architecture.md).
 
 ### M5 — Durability
 
-What a document survives. The gap is the format half's, `GAP-023` in
-[`architecture.md` §11](architecture.md).
+What a document survives. The gap was the format half's, `GAP-023`, closed by
+[ADR-0089](adr/0089-a-document-save-writes-beside-the-file-and-renames-over-it.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-026` | **A save cut short never leaves half a document:** a notebook or a workspace file whose save is cut short by a kill or a dead battery opens as what it was before the save or what the save wrote, never as half of it | in-progress ← next | [PRD](prd/JD-026-a-save-cut-short-never-leaves-half-a-document.md) | `GAP-023` |
+| `JD-026` | **A save cut short never leaves half a document:** a notebook or a workspace file whose save is cut short by a kill or a dead battery opens as what it was before the save or what the save wrote, never as half of it | shipped | — | `GAP-023` |
 
 ### Known gaps
 

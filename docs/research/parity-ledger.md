@@ -364,9 +364,9 @@ What it found, beyond the rows above:
   model where ours writes the whole document. `NotebookSaveInFlightTest` pins all five cases;
   `DocumentAutosaveTest.aWriteInFlightIsNotCancelledByTheNextSchedule` is the machinery-level
   pin.
-- **And one gap the walk records rather than repairs** — `GAP-023`:
-  `DiskNotebookRepository.saveNotebook` is a bare `File.writeText` where the reference stack's
-  save is `atomic_writing`, so an interrupted write can leave half a notebook.
+- **And one gap the walk records rather than repairs** — `GAP-023`, closed since by ADR-0089:
+  `DiskNotebookRepository.saveNotebook` was a bare `File.writeText` where the reference stack's
+  save is `atomic_writing`, so an interrupted write could leave half a notebook.
 
 ---
 
@@ -2121,7 +2121,7 @@ python3 scripts/read_port_surface.py --unused
 
 **Carried in, recorded not rejudged.** `GAP-013`'s comm-channel absence lands here as the missing
 widget-view renderer; `GAP-014`'s `allow_stdin: false` as the missing `Stdin` (closed since by ADR-0082); `GAP-017` is what
-`notebook:copy-to-clipboard` is measured against; `GAP-023` is the format half's open wound.
+`notebook:copy-to-clipboard` is measured against; `GAP-023`, the format half's un-atomic save, is closed since by ADR-0089.
 `GAP-019` was verdicted `absent` under `AUD-002` `T2b` — `render-all-markdown` sets cell state,
 not rendering — and is recorded, not rejudged. Five ADRs already carry this area's decisions:
 `ADR-0009` (kernel logging out of output), `ADR-0021` (`PreservedJson`), `ADR-0035` (unrendered
@@ -2299,7 +2299,7 @@ to disk as `{}`, an output `nbformat.validate` refuses. `EditorUiStateTest`'s th
 `afterOutput` now executes the instruction against the model — immediate clears drop the list,
 `wait` sets `clearsPending` and the next output spends it (`model.ts:301-311`'s two cases) — so
 it never lands in `outputs`, never renders, and never writes. Eight GAPs opened — `GAP-112` through `GAP-119`, `GAP-112` closed since by `withOutputFolded` (`domain/model/StreamFold.kt`); `GAP-014`,
-`GAP-023` and `GAP-104` are cited where the read lands on their ground. Fold calls the PRD left
+`GAP-023` (closed since by ADR-0089) and `GAP-104` are cited where the read lands on their ground. Fold calls the PRD left
 open: the stdin row cited `GAP-014` rather than re-gapping (its stream-name echo dropped on the
 same lines; both closed since by ADR-0082), `isolated` verdicts `adapted` under ADR-0039's no-DOM answer rather than `absent`
 (there is nothing rendered for an iframe to isolate, consistent with `notebook:trust` at `T2`),
@@ -2327,7 +2327,7 @@ frame, a visible wrongness no comment states — while the carrier it needs stay
 | `nbformat`/`nbformat_minor` — TS `MINOR_VERSION` 4, Python `nbformat_minor` 5 | `nbformat = 4`, `nbformatMinor = 5` | present | matches the shipped rootfs's own writer — minor 5 because cell ids are a 4.5 requirement, stated on `NotebookFile` |
 | `MultilineString`/`split_lines`/`rejoin_lines`/`_rejoin_mimebundle` — `text/*` and the two special mimes split on write, non-text JSON stays structured, lists rejoin on read (`nbformat/v4/nbjson.py`) | `MimeBundleLines` + `joinedText`/`toJsonLines` + `MultiLineSourceSerializer`; cell `source` emits the string form | present | the asymmetry is transcribed function-for-function, comments naming each; the string form is a shape `split_lines=False` also produces, and ours reads both |
 | `nbformat.validate` — run on read and on save; `capture_validation_error` → `model["message"]` reports the failure; `.invalid` renames an unparseable file (`contents/{manager,filemanager}.py`, `nbformat/v4`) | nothing validates anywhere — a structurally broken notebook throws in decode or drops silently | **absent** | `GAP-118`. The reference's answer is *report*, not refuse — invalid structure opens with a warning; ours cannot say why a file opened degraded |
-| `atomic_writing` + `.invalid` recovery — `.{name}~` temp, flush+fsync, rename, prior file restored on failure (`contents/fileio.py`) | `DiskNotebookRepository.writeFile` is `File.writeText` direct | **absent** | `GAP-023` — recorded: a save cut mid-flight can leave the notebook truncated |
+| `atomic_writing` + `.invalid` recovery — `.{name}~` temp, flush+fsync, rename, prior file restored on failure (`contents/fileio.py`) | `DiskNotebookRepository.writeFile` goes through `writeAtomically`: a `.~<name>` temp beside the file, synced, then moved over it in one rename, with the target's mode carried (`AtomicFileWrite.kt`) | adapted | ADR-0089. A rename never leaves a partial target, so there is no `.invalid` recovery to read for; the save replaces the inode, so a hard link keeps the old content |
 | `strip_transient` — `nbformat`'s own I/O pops `cell.metadata.trusted`, `signature`, `orig_nbformat` on reads and writes (`nbformat/v4/nbjson.py`) | `PreservedJson` keeps every field byte-for-byte | adapted | the reference disagrees with itself here — JupyterLab's model carries `trusted` while the Python layer strips it at both ends; ours sides with file-faithful preservation (ADR-0021's open format) |
 | open schema — every interface `extends PartialJSONObject`; `nbbase`/`toJSON` keep unknown keys (`nbformat/src/index.ts`) | `PreservedJson` + `ignoreUnknownKeys` + the overlay writer | present | same contract, one level stronger — untouched regions round-trip byte-for-byte rather than field-for-field |
 | `api/nbconvert` + `NbconvertFileHandler` — format listing, GET `nbconvert/<fmt>/<path>?download`, POST variant, `respond_zip`, CSP sandbox header, `redirect_to_files` for non-notebooks (`nbconvert/handlers.py`) | `OkHttpNotebookExporter.formats()`/`export()` over the same two endpoints; `OfferedExportFormat` intersects; `DocumentSharer` hands bytes off | adapted | verdicted at `T2` — the GET pair is the half both clients call; POST, the zip branch and the redirect have no caller on either frontend, and the CSP header guards a browsing surface ADR-0039 never built |
@@ -2361,7 +2361,7 @@ over it, `nbformat_minor` forced to 5 because cell ids are written regardless,
 `metadata.jupydroid` stripped, `kernelspec.name` updated while `display_name` keeps the file's
 own, `outputsJson()` returning the preserved `JsonArray` itself when the domain list reads back
 unchanged — byte-for-byte on the untouched path — and `toFileOutput` regenerating when it does
-not → `File.writeText` direct — `GAP-023`'s un-atomic wound — → `adoptWritten` clearing `dirty`
+not → `writeAtomically`'s temp and rename (ADR-0089) → `adoptWritten` clearing `dirty`
 only where the write still covers the live state → `onCleared`'s farewell `persist()` on
 `applicationScope`, outliving the ViewModel and gated by `save.discarded`. **A run's output:**
 `runCell` → `NotebookCellRuns.run` → `startingRun` — `outputs - cellId`, `execute()`'s pre-run
@@ -2452,7 +2452,7 @@ What the walk found, beyond the rows above:
   `stopWriting`/`notebookIsGone` gating the farewell write so a deleted file is not
   resurrected, and `getUriForFile`'s refusal staying unreachable behind a `writeBytes` that
   just succeeded — `DiskWorkspaceRepository.writeText`/`writeBytes` sharing `GAP-023`'s
-  non-atomic wound is worth naming while here.
+  non-atomic wound was worth naming while here; ADR-0089 closed both since.
 - **Coupling is one type spoken by two translators, and one junction where wire-state meets
   file-state.** `CellOutput` is the wire's model *and* the file's — `KernelOutputs.outputFrom`
   produces it from frames, `NotebookOutputReader.toDomainOutput`/`NotebookOutputWriter`'s
