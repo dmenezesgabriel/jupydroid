@@ -3,6 +3,7 @@ appId: com.jupydroid.app
 # Relaunches after the driver stopped the app mid-replace and searches ${MAESTRO_FILE} for its last
 # line: a file the write left whole still ends with it, and half of one does not. Seeded and stopped
 # by scripts/jd-026-atomic-save-t2-driver.sh, which also checks the bytes on disk.
+# scripts/jd-026-atomic-save-demo-driver.sh runs it too, as part of the PRD's demo.
 #
 # A search, not the editor, for the reason jd-026-atomic-save-t2-replace.yaml gives. The screenshot
 # is taken before the wait, so a file that has lost its end still leaves a frame of what was found.

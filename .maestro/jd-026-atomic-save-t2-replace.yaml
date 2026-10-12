@@ -3,7 +3,7 @@ appId: com.jupydroid.app
 # Replaces the first line of the ~30 MiB ${MAESTRO_FILE} from the search panel, so Replace All writes
 # the whole file through WorkspaceRepository.writeText - while the driver's poller, started before
 # this flow, watches the file and stops the app once the write is under way. Seeded by
-# scripts/jd-026-atomic-save-t2-driver.sh.
+# scripts/jd-026-atomic-save-t2-driver.sh and scripts/jd-026-atomic-save-demo-driver.sh.
 #
 # Replace All rather than the file editor: the editor cannot hold a file whose save takes long
 # enough to be caught (on SM-X216B, 4 MB is not responding on open and 2 MB draws nothing in a

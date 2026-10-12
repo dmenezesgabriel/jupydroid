@@ -3,6 +3,7 @@ appId: com.jupydroid.app
 # Opens ${MAESTRO_FILE} in the file editor and types into it, so its autosave writes the file with
 # nothing to stop it: the clean save scripts/jd-026-atomic-save-t2-driver.sh reads the inode and the
 # mode around. That driver seeds the file executable and sets the autosave interval to its minimum.
+# scripts/jd-026-atomic-save-demo-driver.sh runs it too, as part of the PRD's demo.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

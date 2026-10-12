@@ -3,6 +3,7 @@ appId: com.jupydroid.app
 # Relaunches after the clean save and opens ${MAESTRO_FILE} again in the file editor: the file the
 # save put in place opens, with the typing in it. Seeded by scripts/jd-026-atomic-save-t2-driver.sh,
 # which reads the bytes on disk.
+# scripts/jd-026-atomic-save-demo-driver.sh runs it too, as part of the PRD's demo.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

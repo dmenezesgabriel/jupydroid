@@ -122,7 +122,7 @@ None open: the shape is ADR-0089.
 - [x] T2 — A workspace file save replaces its file whole and keeps its mode:
       `DiskWorkspaceRepository.writeText` and `writeBytes` through it (the file editor, replace-all,
       export); the kill on Replace All, the clean save in the file editor.
-- [ ] T3 — The demo, run on the tablet.
+- [x] T3 — The demo, run on the tablet.
 
 ## Out of scope
 
