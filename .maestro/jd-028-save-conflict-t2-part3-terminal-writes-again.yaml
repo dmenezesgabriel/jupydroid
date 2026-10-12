@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# The shell rewrites the file a second time, under the editor that has just reverted to it. As in
+# part 1, the driver's read of the file is what proves the shell wrote.
+- launchApp:
+    stopApp: false
+- hideKeyboard
+- tapOn: "Tab: Terminal .*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    id: "terminal-input"
+- inputText: "echo shell again > ${MAESTRO_FILE}"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000

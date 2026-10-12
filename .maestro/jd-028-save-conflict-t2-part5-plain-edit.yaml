@@ -1,0 +1,14 @@
+appId: com.jupydroid.app
+---
+# With nobody else writing, an edit is saved without a question: the stamp of the Overwrite's own
+# save is the one this save expects.
+- launchApp:
+    stopApp: false
+- tapOn:
+    point: "95%,25%"
+- inputText: " too"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "File Changed"
+- takeScreenshot: 06-a-plain-edit-saves-without-asking

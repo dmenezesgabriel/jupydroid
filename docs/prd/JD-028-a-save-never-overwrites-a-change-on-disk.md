@@ -131,7 +131,7 @@ None that the references leave open.
 
 - [x] T1 — A notebook's save is refused when its file changed since it was read, and the editor asks:
   Cancel, Revert, Overwrite.
-- [ ] T2 — A workspace text file's save is refused the same way, and the file editor asks with the
+- [x] T2 — A workspace text file's save is refused the same way, and the file editor asks with the
   same dialog.
 - [ ] T3 — The demo above, seeded, on the tablet.
 

@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# The same question, answered the other way: Overwrite puts the editor's text on disk and the
+# shell's second line is gone. The editor never showed that line, so the screen cannot tell the two
+# outcomes apart; the driver reads the file back for the half no screen shows.
+- launchApp:
+    stopApp: false
+- tapOn: "Tab: ${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "changed on disk\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " mine"
+- extendedWaitUntil:
+    visible: "File Changed"
+    timeout: 20000
+- takeScreenshot: 04-the-save-asks-again
+- tapOn: "Overwrite"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "File Changed"
+- assertVisible: "(?s).*mine.*"
+- takeScreenshot: 05-overwrote-with-the-editors-text

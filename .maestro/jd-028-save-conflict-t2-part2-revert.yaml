@@ -1,0 +1,28 @@
+appId: com.jupydroid.app
+---
+# The editor still shows what it read, and the file now holds the shell's line. Typing owes a save,
+# the save finds a file it did not write, and it asks instead of writing. Revert shows the shell's
+# line - text that was never typed here, so only a re-read of the file can put it on screen.
+- launchApp:
+    stopApp: false
+- tapOn: "Tab: ${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "notes for the conflict test\\s*"
+    timeout: 10000
+- assertNotVisible: "File Changed"
+- tapOn:
+    point: "95%,25%"
+- inputText: " mine"
+- extendedWaitUntil:
+    visible: "File Changed"
+    timeout: 20000
+- assertVisible: "Cancel"
+- assertVisible: "Revert"
+- assertVisible: "Overwrite"
+- takeScreenshot: 02-the-save-asks-after-the-shell-rewrote-the-file
+- tapOn: "Revert"
+- extendedWaitUntil:
+    visible: "changed on disk\\s*"
+    timeout: 10000
+- assertNotVisible: "File Changed"
+- takeScreenshot: 03-reverted-to-the-line-the-shell-wrote
