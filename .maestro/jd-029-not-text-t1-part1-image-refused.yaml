@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# An image is tapped in the explorer. Seeded by scripts/jd-029-not-text-t1-driver.sh as
+# ${MAESTRO_IMAGE}; the document has to say why it is not shown, and offer nothing to type into.
+#
+# **This flow cannot say the file was left alone.** Typing where a field would be is what an
+# unrepaired editor saves over the image, and no screen shows what the file holds: the driver
+# compares the file's sha256 against the fixture's before the next flow starts.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_IMAGE}"
+- extendedWaitUntil:
+    visible: ".*is not UTF-8 text.*"
+    timeout: 60000
+- takeScreenshot: 01-the-image-says-why-it-is-not-shown
+- tapOn:
+    point: "95%,25%"
+- inputText: "typed over an image"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: ".*is not UTF-8 text.*"
+- takeScreenshot: 02-typing-where-a-field-would-be-lands-nowhere

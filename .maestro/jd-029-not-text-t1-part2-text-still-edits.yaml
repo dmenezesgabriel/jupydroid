@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# The control: a text file beside the image still opens in the field and takes an edit, so the
+# refusal in part 1 is of the image and not of every file. The driver reads the edit back from disk.
+- launchApp:
+    stopApp: false
+# Part 1 ends with the Files panel shut, so the listing is asked for again.
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "${MAESTRO_FILE}"
+    timeout: 10000
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "notes that are text\\s*"
+    timeout: 60000
+- assertNotVisible: ".*is not UTF-8 text.*"
+- tapOn:
+    point: "95%,25%"
+- inputText: " still"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-a-text-file-beside-it-still-edits

@@ -116,7 +116,7 @@ None that the references leave open.
 
 ## Tasks
 
-- [ ] T1 — A file that is not UTF-8 text is refused by the read, the file editor says why and
+- [x] T1 — A file that is not UTF-8 text is refused by the read, the file editor says why and
   offers no field, a workspace replace leaves it alone, and its bytes are unchanged on the device.
 - [ ] T2 — The demo above, seeded, from a cold start with a relaunch.
 
