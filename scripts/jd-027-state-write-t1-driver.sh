@@ -20,29 +20,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 # shellcheck source=scripts/jd-026-atomic-save-kill.sh
 . "$ROOT/scripts/jd-026-atomic-save-kill.sh"
+# shellcheck source=scripts/jd-027-state-write-reads.sh
+. "$ROOT/scripts/jd-027-state-write-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-027-state-write/t1"
 NOTEBOOK="jd-027-state-write"
 export MAESTRO_FILE="$NOTEBOOK.ipynb"
 
-seed_stores() {
-  "$ADB" shell "run-as $APP sh -c 'echo {\\\"override\\\":\\\"LIGHT\\\"} > $THEME_SETTINGS_STORE'"
-  "$ADB" shell "run-as $APP sh -c 'echo {\\\"documents\\\":[]} > $RECENTS_STORE'"
-}
-
-# Returns once [store] holds [needle], or fails after 30 s: the write runs on the app's own scope,
-# after the tap that asked for it.
-wait_for_store() {
-  local store="$1" needle="$2"
-  "$ADB" shell "run-as $APP sh -c 'end=\$((\$(date +%s)+30)); while [ \$(date +%s) -lt \$end ]; do grep -q \"$needle\" $store && exit 0; sleep 1; done; exit 1'"
-}
-
-# `<label> <inode> <mode> <content>` for each store, appended to the record.
+# Both stores, appended to the record.
 record_stores() {
-  local label="$1" store
-  for store in "$THEME_SETTINGS_STORE" "$RECENTS_STORE"; do
-    echo "$label $store: $(inode_and_mode "$store") $("$ADB" shell "run-as $APP cat $store" | tr -d '\r')"
-  done | tee -a "$EVIDENCE/stores.txt"
+  record "$1" "$THEME_SETTINGS_STORE"
+  record "$1" "$RECENTS_STORE"
 }
 
 mkdir -p "$EVIDENCE"

@@ -76,12 +76,6 @@ kill_the_replace_all() {
   report "notes.txt last line $found"
 }
 
-# A clean save's inode and mode around it: `replaced` when the inode changed and the mode held.
-replaced_or_not() {
-  local before="$1" after="$2"
-  if [ "${before% *}" != "${after% *}" ] && [ "${before#* }" = "${after#* }" ]; then echo replaced; else echo NOT-REPLACED; fi
-}
-
 # Step 5, the notebook: one edit with nothing to stop its save, and the markdown source it left.
 clean_notebook_save() {
   local before after source

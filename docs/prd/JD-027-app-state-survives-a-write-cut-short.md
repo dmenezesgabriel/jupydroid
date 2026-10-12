@@ -82,7 +82,7 @@ No port, UI or `AppContainer` change: the capability is how existing adapters wr
 - [x] T2 — A Space's config and both kernelspec writes go through it. Red: `DiskSpaceRepositoryTest`
   and `SpaceKernelSpecTest`, the same way. Device: a rename and an environment registration each get
   a new inode, and that kernel runs a cell after a relaunch.
-- [ ] T3 — The demo above, seeded, on SM-X216B. Then ship: ADR-0089's "Not covered" becomes covered,
+- [x] T3 — The demo above, seeded, on SM-X216B. Then ship: ADR-0089's "Not covered" becomes covered,
   GAP-171 leaves `architecture.md` §11, the backlog row goes to `shipped`, and this PRD is deleted.
 
 ## Out of scope

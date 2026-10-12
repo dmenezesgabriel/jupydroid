@@ -31,3 +31,9 @@ wait_for_saves_to_settle() {
 inode_and_mode() {
   "$ADB" shell "run-as $APP stat -c '%i %a' \"$1\"" | tr -d '\r'
 }
+
+# A write's [inode_and_mode] before and after it: `replaced` when the inode changed and the mode held.
+replaced_or_not() {
+  local before="$1" after="$2"
+  if [ "${before% *}" != "${after% *}" ] && [ "${before#* }" = "${after#* }" ]; then echo replaced; else echo NOT-REPLACED; fi
+}

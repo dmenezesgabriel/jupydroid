@@ -23,6 +23,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 # shellcheck source=scripts/jd-026-atomic-save-kill.sh
 . "$ROOT/scripts/jd-026-atomic-save-kill.sh"
+# shellcheck source=scripts/jd-027-state-write-reads.sh
+. "$ROOT/scripts/jd-027-state-write-reads.sh"
 
 MODEL="$("$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell getprop ro.product.model | tr -d '\r')"
 case "$MODEL" in
@@ -37,18 +39,6 @@ THESIS_HOME="$THESIS/home/jupydroid"
 CONFIG="$THESIS/config.json"
 STATS_SPEC_DIR="$THESIS/usr/local/share/jupyter/kernels/stats"
 BASE_SPEC_DIR="files/spaces/base/usr/share/jupyter/kernels/python3"
-
-# `<label> <file>: <inode> <mode> <content>`, appended to the record.
-record() {
-  local label="$1" file="$2"
-  echo "$label $file: $(inode_and_mode "$file") $("$ADB" shell "run-as $APP cat $file" | tr -d '\r')" |
-    tee -a "$EVIDENCE/stores.txt"
-}
-
-# Every file in [dir], appended to the listing; the driver fails at the end if any is a `.~` temp.
-list_beside() {
-  { echo "# $1"; "$ADB" shell "run-as $APP ls -la $1" | tr -d '\r'; echo; } >>"$EVIDENCE/listing-after.txt"
-}
 
 run_part() { run_flow "$1" "$EVIDENCE/$2" || exit 1; }
 
