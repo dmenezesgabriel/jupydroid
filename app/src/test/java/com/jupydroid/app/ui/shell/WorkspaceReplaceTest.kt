@@ -13,6 +13,7 @@ import com.jupydroid.app.domain.model.TextEdit
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -136,6 +137,24 @@ class WorkspaceReplaceTest {
     assertEquals(ReplaceOutcome.Refused(listOf("b.py")), outcome)
     assertEquals("cat = 1", workspace.readText("a.py"))
     assertEquals("cow = 2", workspace.readText("b.py"))
+  }
+
+  /**
+   * **A file that is not UTF-8 is refused, not rewritten.** The walk decodes leniently and so can
+   * report a match in a Latin-1 file; writing the replacement would save that lenient decoding over
+   * every byte the decoder gave up on.
+   */
+  @Test
+  fun aFileThatIsNotUtf8RefusesTheWholeOperation() = runTest {
+    val latin1 = byteArrayOf(0x63, 0x61, 0x74, 0x20, 0xE9.toByte())
+    workspace.writeBytes("latin.txt", latin1)
+    val files = listOf(fileMatch("a.py", "cat = 1"), fileMatch("latin.txt", "cat \uFFFD"))
+
+    val outcome = replace.replaceAll(files, "dog", cat, preserveCase = false)
+
+    assertEquals(ReplaceOutcome.Refused(listOf("latin.txt")), outcome)
+    assertArrayEquals(latin1, workspace.readBytes("latin.txt"))
+    assertEquals("cat = 1", workspace.readText("a.py"))
   }
 
   /** A notebook that lost the cell the walk found is the same refusal, by the same rule. */

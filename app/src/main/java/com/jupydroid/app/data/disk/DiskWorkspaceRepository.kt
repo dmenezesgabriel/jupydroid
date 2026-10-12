@@ -8,6 +8,7 @@ import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.isValidFileName
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.decodedAsTextOf
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -50,7 +51,7 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     // Stamped before the read: a write landing in between leaves a stamp older than the text,
     // which the next save refuses - the safe side of that race.
     val stamp = file.stamp()
-    StampedText(file.readText(), stamp)
+    StampedText(file.readBytes().decodedAsTextOf(path), stamp)
   }
 
   override suspend fun writeText(path: String, text: String, expected: FileStamp?): FileStamp =

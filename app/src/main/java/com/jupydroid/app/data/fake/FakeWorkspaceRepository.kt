@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.port.FileChangedOnDiskException
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.decodedAsTextOf
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
@@ -40,7 +41,7 @@ class FakeWorkspaceRepository(
   override suspend fun list(path: String): List<WorkspaceEntry> = entriesByPath[path].orEmpty()
 
   override suspend fun readStampedText(path: String): StampedText =
-    StampedText(readBytes(path).decodeToString(), stamps.getValue(path))
+    StampedText(readBytes(path).decodedAsTextOf(path), stamps.getValue(path))
 
   /**
    * Refuses what the disk one refuses: a stamp that is no longer the file's, unless what is

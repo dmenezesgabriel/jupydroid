@@ -10,7 +10,9 @@ import com.jupydroid.app.syntax.PythonSyntax
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -57,6 +59,36 @@ class FileEditorViewModelTest {
 
     assertTrue(python.uiState.value.syntax is PythonSyntax)
     assertTrue(json.uiState.value.syntax is JsonSyntax)
+  }
+
+  /**
+   * A file a text field cannot represent is not shown in one: the read refuses it, so there is
+   * nothing loaded to edit and the reason is what the document carries instead.
+   */
+  @Test
+  fun aFileThatIsNotTextIsNotLoadedAndSaysWhy() = runTest {
+    val viewModel = FileEditorViewModel("plot.png", workspaceHoldingAnImage(), this)
+    advanceUntilIdle()
+
+    val state = viewModel.uiState.value
+    assertFalse("an image must not load as text", state.loaded)
+    assertEquals("", state.text)
+    assertTrue("expected the reason to name the file, got '${state.error}'", "plot.png" in state.error.orEmpty())
+  }
+
+  /** Not by a stray edit and not on the way out: the image holds the bytes it held. */
+  @Test
+  fun nothingIsWrittenOverAFileThatIsNotText() = runTest {
+    val workspace = workspaceHoldingAnImage()
+    val viewModel = FileEditorViewModel("plot.png", workspace, this)
+    advanceUntilIdle()
+
+    viewModel.edit("typed over an image")
+    advanceUntilIdle()
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertArrayEquals(PNG_HEADER, workspace.readBytes("plot.png"))
   }
 
   /**
@@ -331,4 +363,10 @@ class FileEditorViewModelTest {
     open: String = file.first,
     registeredIn: OpenDocuments = OpenDocuments(),
   ) = FileEditorViewModel(open, FakeWorkspaceRepository(textByPath = mapOf(file)), this, registeredIn)
+
+  private suspend fun workspaceHoldingAnImage() = FakeWorkspaceRepository().apply { writeBytes("plot.png", PNG_HEADER) }
+
+  private companion object {
+    val PNG_HEADER = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00)
+  }
 }

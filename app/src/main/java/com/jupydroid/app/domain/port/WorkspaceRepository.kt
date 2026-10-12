@@ -54,7 +54,10 @@ interface WorkspaceRepository {
    * text file is likewise the whole thing (`fileFormat: 'text'` in the type registry). Refuses a
    * path outside the root, and a path that names nothing, the same way [list] does. For a reader
    * that will not write it back.
+   *
+   * @throws FileNotTextException when the file is not UTF-8; see [readStampedText].
    */
+  @Throws(FileNotTextException::class)
   suspend fun readText(path: String): String = readStampedText(path).text
 
   /**
@@ -64,7 +67,13 @@ interface WorkspaceRepository {
    * ```
    * val (text, stamp) = repository.readStampedText("reports/notes.txt")
    * ```
+   *
+   * A file that is not UTF-8 is refused rather than decoded leniently: [writeText] writes UTF-8,
+   * so the string would be saved over every byte the decoder gave up on. [readBytes] still reads it.
+   *
+   * @throws FileNotTextException when the file is not UTF-8 text - an image, an archive, another encoding.
    */
+  @Throws(FileNotTextException::class)
   suspend fun readStampedText(path: String): StampedText
 
   /**
