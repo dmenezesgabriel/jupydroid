@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/jd-033-renamed-tab-t1-driver.sh. `second.py` is opened and
+# a terminal opened over it, so the file's tab sits beneath one whose screen is not a document; the
+# file is then renamed from its own tab's long press. The flow asserts nothing about the name the
+# tab reads afterwards - that is the measurement, and the driver reads it off the window.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_SECOND}"
+    timeout: 10000
+- tapOn: "Tab: Launcher"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 01-second-beneath-the-terminal
+- longPressOn: "Tab: ${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "${MAESTRO_RENAMED_STEM}"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "${MAESTRO_RENAMED_STEM}.py"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Tab: Terminal .*"
+- takeScreenshot: 02-renamed-beneath-the-terminal

@@ -89,10 +89,10 @@ None.
 
 ## Open decisions
 
-- Once the path is observable, which `openDocumentPaths[key] = moved` writes are still needed? The
-  map also answers `liveDocumentPath` for a key whose document is not registered, and
-  `Navigation.kt`'s side-pane reveal reads it. Settle by test in T1: remove a write only when a test
-  proves the observable path covers it.
+- Once the path is observable, which `openDocumentPaths[key] = moved` writes are still needed?
+  **Settled in T1: all of them stay.** `Navigation.kt`'s side-pane reveal and the explorer's open-row
+  marking read the map alone, never through `documentIn`, so the observable path does not cover them
+  (`OpenDocumentMarkingTest` is the proof the map still carries).
 
 ## Surface
 
@@ -106,7 +106,7 @@ None.
 
 ## Tasks
 
-- [ ] T1 — The fix: before-flow on SM-X216B, red JVM + instrumented tests, the live path as snapshot
+- [x] T1 — The fix: before-flow on SM-X216B, red JVM + instrumented tests, the live path as snapshot
   state, after-flow.
 - [ ] T2 — The demo on a fresh install; ship: delete this PRD, close GAP-172, backlog row `shipped`.
 
