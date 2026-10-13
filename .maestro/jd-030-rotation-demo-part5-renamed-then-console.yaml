@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# After a second turn to portrait and back. The renamed tab still carries its new name; then a
+# Console is opened from the Launcher's card, for the third turn to keep. Nothing is run in it:
+# what is asked of it afterwards is that it still draws its prompt.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_RENAMED_STEM}.ipynb"
+    timeout: 10000
+- assertNotVisible: "Tab: ${MAESTRO_NOTEBOOK}"
+- takeScreenshot: 09-after-the-turn-the-tab-keeps-its-new-name
+- tapOn: "Tab: Launcher"
+- tapOn:
+    id: "launcher-card-NEW_CONSOLE"
+- extendedWaitUntil:
+    visible: "Tab: Console 1"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- takeScreenshot: 10-a-console-opened

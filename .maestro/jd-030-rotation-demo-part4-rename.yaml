@@ -1,0 +1,20 @@
+appId: com.jupydroid.app
+---
+# The notebook is renamed from its own tab's long press, while it is the top tab: beneath another
+# tab the strip keeps the name it left with no rotation at all, which is not this flow's question.
+- launchApp:
+    stopApp: false
+- tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+- waitForAnimationToEnd:
+    timeout: 5000
+- longPressOn: "Tab: ${MAESTRO_NOTEBOOK}"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "${MAESTRO_RENAMED_STEM}"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_RENAMED_STEM}.ipynb"
+    timeout: 10000
+- hideKeyboard
+- takeScreenshot: 07-the-notebook-renamed-from-its-tab

@@ -15,22 +15,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
+# shellcheck source=scripts/jd-030-rotation-reads.sh
+. "$ROOT/scripts/jd-030-rotation-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-030-rotation/t1"
 FLOWS="$ROOT/.maestro/jd-030-rotation-t1"
 FIRST="first.py"
 SECOND="second.py"
 export MAESTRO_FIRST="$FIRST" MAESTRO_SECOND="$SECOND"
-mapfile -t adb < <(device_adb)
 
-rotate_to() { # rotate_to <0=portrait|1=landscape>
-  "${adb[@]}" shell settings put system accelerometer_rotation 0
-  "${adb[@]}" shell settings put system user_rotation "$1"
-  sleep 5
-}
-restore_rotation() { "${adb[@]}" shell settings put system accelerometer_rotation 1; }
 trap restore_rotation EXIT
-app_pid() { "${adb[@]}" shell pidof "$APP" | tr -d '\r'; }
 
 mkdir -p "$EVIDENCE"
 reset_notebooks

@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# After the driver turned the device to portrait and back, which relaunched the activity twice in
+# the same process. The three tabs are drawn - their order is measured by the driver from the
+# window's own bounds - and the dirty tab beneath the top is still known for dirty: its close asks.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_SECOND}"
+    timeout: 10000
+- assertVisible: "Tab: ${MAESTRO_FIRST}"
+- assertVisible: "Tab: ${MAESTRO_NOTEBOOK}"
+- takeScreenshot: 03-after-the-turn-three-tabs-and-second-carries-its-dot
+- tapOn: "Close tab: ${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- takeScreenshot: 04-its-close-still-asks
+- tapOn: "Cancel"
+- assertNotVisible: "Save your work"
+- assertVisible: "Tab: ${MAESTRO_SECOND}"
+- takeScreenshot: 05-cancel-keeps-the-tab

@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# After the turn, a replace across the workspace from the search panel. `first.py` is open, clean
+# and beneath the top, so only the registry can route the replace to its editor rather than to the
+# file. With autosave off the two differ where the driver can read it: the editor shows the new
+# word and owes a save, and the file on disk still holds the old one.
+- launchApp:
+    stopApp: false
+- tapOn:
+    text: "^Search$"
+- assertVisible: "Search the workspace"
+- tapOn: "Show replace"
+- tapOn: "Search the workspace"
+- inputText: "${MAESTRO_OLD_WORD}"
+- extendedWaitUntil:
+    visible: "1 result in 1 file"
+    timeout: 15000
+- hideKeyboard
+- tapOn: "Replace across the workspace"
+- inputText: "${MAESTRO_NEW_WORD}"
+- hideKeyboard
+- tapOn: "Replace all in workspace"
+- assertVisible: "Replace 1 occurrence across 1 file with '${MAESTRO_NEW_WORD}'\\?"
+- tapOn:
+    text: "^Replace$"
+- extendedWaitUntil:
+    visible: "Replaced 1 occurrence across 1 file with '${MAESTRO_NEW_WORD}'\\."
+    timeout: 15000
+- tapOn: "Tab: ${MAESTRO_FIRST}"
+- extendedWaitUntil:
+    visible: "first = \"${MAESTRO_NEW_WORD} open\"\\s*"
+    timeout: 10000
+- takeScreenshot: 06-the-open-editor-shows-the-replacement-and-owes-a-save

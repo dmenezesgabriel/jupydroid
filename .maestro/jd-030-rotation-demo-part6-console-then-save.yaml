@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# After a third turn to portrait and back. The Console still draws its prompt; then `second.py`,
+# dirty since before the first turn, is closed and Save is answered. The driver reads the file.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Tab: Console 1"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- takeScreenshot: 12-after-the-turn-the-console-still-draws-its-prompt
+- tapOn: "Close tab: ${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Tab: ${MAESTRO_SECOND}"
+    timeout: 10000
+- takeScreenshot: 13-saved-and-closed

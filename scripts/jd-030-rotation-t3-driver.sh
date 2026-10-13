@@ -16,24 +16,19 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
+# shellcheck source=scripts/jd-030-rotation-reads.sh
+. "$ROOT/scripts/jd-030-rotation-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-030-rotation/t3"
 FLOWS="$ROOT/.maestro/jd-030-rotation-t3"
-mapfile -t adb < <(device_adb)
 
-rotate_to() { # rotate_to <0=portrait|1=landscape>
-  "${adb[@]}" shell settings put system accelerometer_rotation 0
-  "${adb[@]}" shell settings put system user_rotation "$1"
-  sleep 5
-}
 # `auto` afterwards, as `u1-palette-driver.sh` restores it: a theme left forced would decide the
 # look of every flow that runs after this one.
 restore_device() {
-  "${adb[@]}" shell settings put system accelerometer_rotation 1
+  restore_rotation
   "${adb[@]}" shell cmd uimode night auto >/dev/null
 }
 trap restore_device EXIT
-app_pid() { "${adb[@]}" shell pidof "$APP" | tr -d '\r'; }
 
 mkdir -p "$EVIDENCE"
 reset_notebooks
