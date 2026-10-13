@@ -1928,6 +1928,34 @@ changes for that tab. JupyterLab's `title.label` is a signal that the context's 
 sets (`packages/docregistry/src/context.ts`). The repair makes the open document's path
 observable state.
 
+### GAP-173 — The app's theme and the device's disagree on screen when they differ
+
+Reported from the tablet with the app set to Dark and the device on light: a white stripe stands
+between the side panel and the main content, and the terminal draws white inside a dark app. No
+flow has measured either yet, and no evidence exists for any combination but the one where the
+app follows the device. By reading, two surfaces take the **device's** theme whatever the app's
+override says, and a third is not located:
+
+- the terminal's palette is chosen from `darkTheme: Boolean = isSystemInDarkTheme()`, which no
+  caller passes (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`, called
+  from `Navigation.kt`), where the rest of the app takes
+  `themeSettings.override.resolvesToDark(isSystemInDarkTheme())`
+  (`app/src/main/java/com/jupydroid/app/MainActivity.kt`). It is also chosen once, in the
+  ViewModel's factory, so a terminal already open keeps its palette through a later change;
+- the window's own background is a resource split by the device's night qualifier
+  (`app/src/main/res/values/colors.xml`, `app/src/main/res/values-night/colors.xml`,
+  `window_background`), and `enableEdgeToEdge()` is called with its defaults, which pick the
+  system bars' icon colours from the device as well - so whatever Compose does not paint, and the
+  status bar's icons, follow the device;
+- what draws the stripe between the panes is not yet read. `MainActivity`'s root `Surface` is
+  inside the app's theme, so the window showing through is a guess, not a finding.
+
+The repair is an item of its own, and wider than these three: every surface is checked in each of
+the six combinations - the app on System, Light and Dark, against the device on light and dark -
+for a colour that comes from the wrong side and for text or icons that lose their contrast, and
+each combination leaves a screenshot. One source decides dark for everything drawn, the window and
+the system bars included.
+
 ---
 
 ## 12. Glossary
