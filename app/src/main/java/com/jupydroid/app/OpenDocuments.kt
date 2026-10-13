@@ -46,8 +46,10 @@ interface OpenDocument {
   val dirty: StateFlow<Boolean>
 
   /**
-   * `docmanager:save` on the way out: the owed write is made first and [onSaved] runs only if it
-   * left nothing dirty - a failed save keeps the document open, as `saveBeforeClose`'s does.
+   * `docmanager:save`: the owed write is made first and [onSaved] runs only if it left nothing
+   * dirty. On the way out that is the close itself - a failed save keeps the document open, as
+   * `saveBeforeClose`'s does - and from the strip's save icon there is nothing to run afterwards,
+   * because the document stays.
    */
   fun saveNow(onSaved: () -> Unit)
 

@@ -275,6 +275,16 @@ private fun MainAreaTabStrip(
           )
         }
       }
+      // Fixed behind the scrolling tabs as the Up arrow is fixed ahead of them, so it never
+      // scrolls away. The strip's own height rather than an `IconButton`'s 48dp, which would
+      // make the strip taller at two panes than its tabs are.
+      val top = backStack.lastOrNull()?.takeIf { it in tabs }
+      ActiveTabSave(
+        title = top?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
+        document = top?.documentIn(openDocuments),
+        height = TAB_HEIGHT + ACTIVE_EDGE,
+        modifier = Modifier.align(Alignment.CenterVertically),
+      )
     }
   }
 }

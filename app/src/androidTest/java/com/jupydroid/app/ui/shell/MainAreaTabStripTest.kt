@@ -2,12 +2,9 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -30,22 +27,18 @@ import com.jupydroid.app.Editor
 import com.jupydroid.app.Explorer
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.Launcher
-import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.Settings
 import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.RENAME_FIELD_TAG
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -68,35 +61,6 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class MainAreaTabStripTest {
   @get:Rule val compose = createComposeRule()
-
-  /** A document for the registry alone - the strip never asks it to render. */
-  private class FakeTabDocument(override val openedAs: String, isDirty: Boolean = false) : OpenDocument {
-    /** The live path - snapshot state, so a rename landing on it recomposes the tab like an adoption would. */
-    var livePath: String by mutableStateOf(openedAs)
-    val dirtyFlow = MutableStateFlow(isDirty)
-    var savesRequested = 0
-      private set
-    var discards = 0
-      private set
-
-    override val path: String get() = livePath
-    override val dirty: StateFlow<Boolean> = dirtyFlow
-
-    override fun saveNow(onSaved: () -> Unit) {
-      savesRequested++
-      dirtyFlow.value = false
-      onSaved()
-    }
-
-    override fun discardChanges() {
-      discards++
-      dirtyFlow.value = false
-    }
-
-    override fun sourceOf(cell: Int?): String? = null
-
-    override fun applyEdits(cell: Int?, edits: List<TextEdit>) = Unit
-  }
 
   /**
    * The workspace the strip's rename goes through - `context.rename` is a contents call, so the
