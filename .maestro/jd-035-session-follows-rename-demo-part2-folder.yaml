@@ -1,0 +1,128 @@
+appId: com.jupydroid.app
+---
+# The same process, with `b.ipynb` open and its kernel running. A folder `f` is created and a
+# notebook created inside it, which runs a cell; `f` is then renamed to `g` from the explorer while
+# the notebook sits beneath the Launcher. Its kernel row still opens the live tab, which holds the
+# output it printed: a rename of the folder above a notebook reaches its session by prefix, as
+# `_onFileChanged` does (jupyterlab@7f0e6906 `packages/docregistry/src/context.ts`).
+#
+# The explorer has no move, so the notebook is created in the folder rather than moved into it.
+#
+# `54` is in no source - the cell reads `print(6 * 9)` - and an editor opened on the path the
+# folder left would hold no output at all.
+- launchApp:
+    stopApp: false
+# Part 1 left its second cell in edit mode with the keyboard down, and one `back` is edit mode's
+# exit to command mode. Without it the keyboard comes back up when the rename dialog closes, and
+# `tapOn: "f"` presses the keyboard's own F key.
+- back
+# The rail's Files toggles the panel, so it is tapped only when the panel is closed.
+- runFlow:
+    when:
+      notVisible: "New"
+    commands:
+      - tapOn: "Files"
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New folder"
+    timeout: 5000
+- tapOn: "New folder"
+- extendedWaitUntil:
+    visible: "Untitled Folder"
+    timeout: 15000
+- longPressOn: "Untitled Folder"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename folder"
+    timeout: 5000
+- inputText: "f"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "f"
+    timeout: 10000
+- tapOn: "f"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 15000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: Untitled.ipynb"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+# A notebook in a folder draws its crumbs above the cell, so the empty field sits lower than at the
+# root: [805,391][1884,463] (`uiautomator dump`).
+- tapOn:
+    point: "1300,427"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "print(6 * 9)"
+- hideKeyboard
+- tapOn: "Run cell"
+# Generous: this is a second kernel starting.
+- extendedWaitUntil:
+    visible:
+      text: "54[\\s\\S]*"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 06-a-notebook-inside-f-ran-a-cell
+# Out of edit mode, for the reason at the top.
+- back
+
+# ---- the folder above it renamed: the row still opens the live tab ----
+# The Launcher goes on top first: the notebook draws "Workspace" and "f" crumbs of its own, and
+# beneath another tab the browser's are the only ones on screen. It also means the row has to
+# bring the notebook back, not find it already showing.
+- tapOn: "Tab: Launcher"
+- tapOn: "Workspace"
+# Recents is cleared for the reason explorer-rename-open-document.yaml gives: an opened folder is
+# listed twice, and only the listing's row carries the menu.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- longPressOn: "f"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename folder"
+    timeout: 5000
+- inputText: "g"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "g"
+    timeout: 10000
+- assertNotVisible: "f"
+- takeScreenshot: 07-f-renamed-to-g-from-the-explorer
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: Untitled.ipynb"
+    timeout: 15000
+- assertVisible: "Open kernel session: b.ipynb"
+- takeScreenshot: 08-both-kernel-rows-after-the-folder-rename
+- tapOn: "Open kernel session: Untitled.ipynb"
+# The live document still holds what it printed; an editor opened on the path the folder left
+# would hold nothing.
+- extendedWaitUntil:
+    visible:
+      text: "54[\\s\\S]*"
+      childOf: {text: "Cell output"}
+    timeout: 10000
+- assertVisible: "Tab: Untitled.ipynb"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 09-the-row-opens-the-live-tab-beneath-g

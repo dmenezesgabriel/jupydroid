@@ -18,8 +18,9 @@ On the arm64 tablet (`SM-X216B`), because it runs a cell.
 4. Open Sessions and Tabs. The kernel row reads `b.ipynb`, and no row reads `a.ipynb`.
 5. Tap the row. It reveals the `b.ipynb` tab, and no third tab opens.
 6. Run `x + 1` in `b.ipynb`. It prints `42`: the same kernel, which the rename did not restart.
-7. Create a folder `f`, move a notebook into it, and run a cell there. Rename `f` to `g` from the
-   explorer. The kernel row reads the notebook's name, and tapping it reveals the open tab.
+7. Create a folder `f`, create a notebook inside it, and run a cell there. Rename `f` to `g` from
+   the explorer. The kernel row reads the notebook's name, and tapping it reveals the open tab.
+   (Created there, not moved: the explorer has no move.)
 
 The item is not `shipped` until this has run on that device, with screenshots and `maestro.log`
 committed under `evidence/<flow-name>/`.
@@ -108,7 +109,7 @@ decision, and gets an ADR if taken.
 - [x] T1 — `KernelSessions.setPath` PATCHes `path` and `name` and moves the tracked entry, and the
   notebook asks it from `adopt`. Unit tests, plus a flow on the tablet: rename from the tab and from a
   folder, then check the row's name and that tapping it reveals the tab.
-- [ ] T2 — the demo above on a fresh install on SM-X216B. Then GAP-068 closes in
+- [x] T2 — the demo above on a fresh install on SM-X216B. Then GAP-068 closes in
   `docs/architecture.md` §11, ADR-0095's not-covered bullet is updated, the backlog row is marked
   shipped, and this PRD is deleted.
 
