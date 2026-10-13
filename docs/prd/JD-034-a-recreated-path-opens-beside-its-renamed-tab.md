@@ -67,9 +67,9 @@ moves (jupyterlab's id, intellij's file object). Either way, the old path stops 
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
-| What a tab's key is | vscode → re-key on rename; jupyterlab → opaque id per open; intellij → the file object | Navigation3 keys an entry's `ViewModelStore` by `contentKey`, the key's `toString()` by default, so re-keying drops the editor's state, unsaved work included. There is no file object that outlives a path on our side | **jupyterlab's**: `Editor` and `FileEditor` carry an opaque id minted when a new tab is pushed. The path stays on the key as the one it was opened under |
+| What a tab's key is | vscode → re-key on rename; jupyterlab → opaque id per open; intellij → the file object | Navigation3 keys an entry's `ViewModelStore` by `contentKey`, the key's `toString()` by default, so re-keying drops the editor's state, unsaved work included. There is no file object that outlives a path on our side | **jupyterlab's**, narrowed: `Editor` and `FileEditor` carry an `opening` ordinal, the lowest no open tab on that path holds, beside the path they opened under (`DocumentOpening`). A DOM id must be unique across the page; a key only among the tabs open on one path, and the ordinal keeps keys readable and tests deterministic, with no clock or random source to inject |
 | What a reveal matches | jupyterlab → a context's live path | — | the stack key whose **live** path is the asked one, else a fresh key |
-| How a tab finds its document | ours today → `OpenDocuments.openedUnder(openedAs)`, ambiguous once two documents opened under one path | — | by the key's id: `OpenDocument.openId` |
+| How a tab finds its document | ours today → `OpenDocuments.openedUnder(openedAs)`, ambiguous once two documents opened under one path | — | by the key's opening: `OpenDocument.openedAs` is a `DocumentOpening`, looked up by `OpenDocuments.openedAs` |
 
 ## Gap analysis — what we already have vs the references
 
@@ -104,7 +104,7 @@ None. The key shape is settled above, and an ADR records it when the item ships.
 
 ## Tasks
 
-- [ ] T1 — a tab's key carries an opaque id per open, and `openDocument` reveals by live path. A file
+- [x] T1 — a tab's key carries an opaque id per open, and `openDocument` reveals by live path. A file
   recreated at a renamed tab's old name opens its own tab: unit, instrumented, and a flow on the tablet.
 - [ ] T2 — the demo above on a fresh install on SM-X216B. Then the ADR, GAP-141 closed in
   `docs/architecture.md` §11, the backlog row shipped, and this PRD deleted.
