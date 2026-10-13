@@ -163,6 +163,7 @@ the save the user asks for, the first half of `GAP-061`, closed by
 | `JD-029` | **A file that is not text is never opened as editable text:** an image or any other file that is not UTF-8 says why it is not shown and offers no field, so no edit is ever saved back over it | shipped | — | `GAP-097` (first step) |
 | `JD-030` | **Open documents survive a rotation:** after the activity is relaunched a tab with unsaved work keeps its dot and still asks before it closes, a workspace replace still edits the open editor, and the strip keeps its order, its renamed titles and its open Console | shipped | — | `GAP-143` |
 | `JD-031` | **A document is saved when the user asks:** a notebook or a file with unsaved work is written by one tap on the tab strip's save icon, without closing it, so with autosave off an edit no longer waits for its tab to close | shipped | — | `GAP-061` (first step) |
+| `JD-038` | **An open document reloads from disk:** a notebook or a file rewritten by a cell, a shell command or a second client is read back into its tab by one tap on the strip's reload icon, asking first when the tab has unsaved work | in-progress ← next | [PRD](prd/JD-038-an-open-document-reloads-from-disk.md) | `GAP-064` (first step) |
 
 ### M6 — Presentation
 
