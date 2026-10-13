@@ -68,12 +68,33 @@ Option 5: the relaunch is survived, not declined, and the holders are `ViewModel
   for every cause of one.
 - **The relaunch is tested as a relaunch:** `OpenDocumentsRecreationTest`, `TabStripRecreationTest`
   and `ConsoleRecreationTest` recreate the activity and read what survived.
+- **A document's live path is snapshot state**, `FileEditorViewModel.livePath` and
+  `EditorViewModel.liveNotebookId`, so a rename retitles its tab whether or not it is on top. A
+  plain `var` had been read by the strip and never observed: beneath another document something else
+  recomposed the strip and hid it, and beneath a terminal nothing did, so the tab kept the name it
+  had left (`GAP-172`). Every reader of `OpenDocuments` - `runningTabTitle`, `documentIn`, `at`, the
+  close gate, the workspace replace - is observed with no change to its signature. Each reference
+  that draws a document tab pushes the title to every tab from the rename: jupyterlab@7f0e6906
+  `packages/docregistry/src/default.ts` (`_onPathChanged` sets `title.label` from the context's
+  `pathChanged`), vscode@3f3380c6 `src/vs/workbench/services/editor/browser/editorService.ts`
+  (`handleMovedFile` replaces every group's matching editor, inactive ones too) and
+  intellij-community@406a27a8
+  `platform/platform-impl/src/com/intellij/openapi/fileEditor/impl/FileEditorManagerImpl.kt`
+  (`updateFileNames` calls `setText` on every composite). The strip's own `openDocumentPaths` writes
+  stay: the side pane's reveal and the explorer's open-row marking read that map alone
+  (`OpenDocumentMarkingTest`). Tested by
+  `FileEditorViewModelTest.aRenameInvalidatesAComposedReadOfThePath`,
+  `EditorViewModelOpenDocumentTest.aRenameInvalidatesAComposedReadOfThePath` and
+  `RenamedTabBeneathTest`.
 
 ## Consequences
 
 After a rotation or a dark-mode switch a dirty tab keeps its dot and its close asks, a workspace
 replace edits the open editor, the strip keeps its opening order, a renamed tab keeps its new name,
 a terminal keeps its reported title, and an open Console keeps its transcript and its kernel.
+
+A file or notebook renamed while its tab is beneath a terminal or another document takes its new
+name on the strip and in Open Tabs at once, without the strip being touched.
 
 What a future reader will be tempted to "fix":
 
@@ -83,6 +104,8 @@ What a future reader will be tempted to "fix":
   indexes.
 - **Turning a holder back into `remember` because the screen "re-reports" its state.** Only the top
   tab composes.
+- **Turning a live path back into a plain `var` because the strip "already shows the new name".**
+  It shows it only when something else happens to recompose the strip.
 
 Not covered, on purpose:
 
@@ -91,4 +114,8 @@ Not covered, on purpose:
   composes nothing, which is what is left of `GAP-142`.
 - **`browseRequest` and `revealRequest`**, which stay plain `remember`: one-shot requests, consumed
   as they are made.
-- **A tab key that is not the path**, `GAP-141`, and a tab renamed beneath a terminal, `GAP-172`.
+- **A tab key that is not the path**, `GAP-141`: a stack restored after a process death still keys
+  a renamed document by the path it opened under.
+- **Retitling other tabs that share the new name**, IntelliJ's unique-name titles: no tab here shows
+  a disambiguating directory. Nor does a rename move a kernel session's path, the other half of
+  jupyterlab's `_updatePath`.

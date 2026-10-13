@@ -1913,19 +1913,6 @@ it. A table cell already carries a `CellAlignment`
 (`app/src/main/java/com/jupydroid/app/richtext/RichBlock.kt`). The repair gives a paragraph and a
 heading one too.
 
-### GAP-172 — A tab renamed beneath a terminal keeps its old title
-
-Measured on SM-X216B, before and after the strip's holders became retained: `second.py` open
-beneath a terminal tab, renamed from its own tab's long press. The file moves on disk and the
-explorer lists the new name, but the tab still reads `second.py`. The same rename beneath
-another file's tab retitles it. By reading, a document tab's title comes from
-`documentIn(openDocuments)?.path`, which is a plain `var` on the ViewModel
-(`app/src/main/java/com/jupydroid/app/MainAreaTabs.kt`, `runningTabTitle`). That read returns
-before the live-path map that the rename writes is ever read, so nothing the strip observes
-changes for that tab. JupyterLab's `title.label` is a signal that the context's `pathChanged`
-sets (`packages/docregistry/src/context.ts`). The repair makes the open document's path
-observable state.
-
 ---
 
 ## 12. Glossary
