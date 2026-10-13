@@ -28,7 +28,6 @@ import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.console.ConsoleScreen
 import com.jupydroid.app.ui.console.ConsoleViewModel
 import com.jupydroid.app.ui.editor.EditorScreen
-import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.launcher.LauncherScreen
 import com.jupydroid.app.ui.launcher.LauncherViewModel
@@ -39,7 +38,6 @@ import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.spaces.SpacesHomeScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
-import java.util.concurrent.atomic.AtomicInteger
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -116,20 +114,8 @@ fun MainNavigation(
       content,
     )
   }
-  // The session `NotebookKernel.attachConsole()` minted for whichever notebook's Console was last
-  // opened - `outline`/`debugPanel`/`openDocuments`' own shape, the side channel a live object
-  // needs to flow between two `NavEntry`s that own separate `ViewModelStore`s. Plain `remember`,
-  // not saveable, for `openDocumentPaths`' own reason: a `NotebookKernelSession` cannot survive a
-  // process death any more than an `EditorViewModel`'s own kernel connection can, so there is
-  // nothing this could round-trip through a Bundle. A Console entry restored without one composes
-  // no screen - the same silent gap every other holder here already leaves unaddressed rather than
-  // one this row invents a fallback for.
-  var consoleSession by remember { mutableStateOf<NotebookKernelSession?>(null) }
-  // `Private.count` (`packages/console/src/panel.ts:332`) - how many consoles this composition has
-  // minted, so the second card is "Console 2". Hoisted beside `consoleSession` rather than inside
-  // the Launcher entry: a `viewModel {}` there is per-entry, and each launcher push would restart
-  // the numbering at "Console 1".
-  val consoleOrdinal = remember { AtomicInteger(0) }
+  // The open Console's session and the count that titles the next one - see [RetainedConsole].
+  val retainedConsole = rememberRetainedConsole()
   // The directory the explorer is showing, reported up rather than pulled - the launcher's `cwd`,
   // which the reference keeps bound to the filebrowser's path (`ILauncher.cwd` follows the browser
   // widget's). Saveable so a rotation does not send the launcher back to the root the explorer
@@ -231,7 +217,7 @@ fun MainNavigation(
   // A hoisted lambda like `goToFolder`, for the same reason: the card-to-document mapping is the
   // navigation's own, not the launcher's - and the `when` inside it must not count toward this
   // function's complexity budget.
-  val openLaunched = rememberLaunchHandler(backStack, openDocument) { consoleSession = it }
+  val openLaunched = rememberLaunchHandler(backStack, openDocument) { retainedConsole.session = it }
 
   // **The activity bar is beside the whole shell, not inside the side area.** The reference's
   // `hboxPanel` holds `leftHandler.sideBar` next to the split that contains both the panel and the
@@ -411,7 +397,7 @@ fun MainNavigation(
               // it at two panes). How the document is left is the strip's own act.
               twoPane = twoPane,
               onOpenConsole = { session ->
-                consoleSession = session
+                retainedConsole.session = session
                 backStack.openConsole(editor.notebookId)
               },
               onNotebookMoved = { moved -> openDocumentPaths[editor] = moved },
@@ -449,7 +435,7 @@ fun MainNavigation(
                   spacePorts.kernelGateway,
                   spacePorts.kernelSpecs,
                   spacePorts.space,
-                  consoleOrdinal = { consoleOrdinal.incrementAndGet() },
+                  consoleOrdinal = retainedConsole::nextOrdinal,
                 )
               },
               onLaunched = openLaunched,
@@ -458,9 +444,9 @@ fun MainNavigation(
         }
         entry<Console>(metadata = ListDetailSceneStrategy.detailPane()) { console ->
           tabbedPane {
-            // Null only when this entry was restored without the live session that opened it - see
-            // `consoleSession`'s own doc comment; there is nothing to compose against in that case.
-            consoleSession?.let { session ->
+            // Null only after a process death: the stack is restored from its Bundle, but a live
+            // kernel session cannot round-trip through one, so there is nothing to compose against.
+            retainedConsole.session?.let { session ->
               ConsoleScreen(
                 viewModel = viewModel {
                   ConsoleViewModel(spacePorts.kernelGateway, session, spacePorts.kernelSessions)
