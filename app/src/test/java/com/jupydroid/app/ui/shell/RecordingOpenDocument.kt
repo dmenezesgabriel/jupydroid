@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.shell
 
+import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.withEditsApplied
@@ -19,7 +20,7 @@ class RecordingOpenDocument(override val path: String, private var text: String?
     private set
 
   /** Nothing renames a recording document: what it opened under is where it still lives. */
-  override val openedAs: String = path
+  override val openedAs: DocumentOpening = DocumentOpening(path)
 
   // The close half of the contract - a clean document: these tests never ask it to leave.
   override val dirty: StateFlow<Boolean> = MutableStateFlow(false)

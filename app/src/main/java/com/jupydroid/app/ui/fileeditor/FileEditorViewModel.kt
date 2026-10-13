@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
@@ -100,6 +101,8 @@ class FileEditorViewModel(
    * so a test driving the editor alone reads the shipped defaults.
    */
   private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
+  /** Which of [filePath]'s opens this editor is - its tab's key says; see [DocumentOpening]. */
+  opening: Int = 0,
 ) : ViewModel(),
   OpenDocument {
   /**
@@ -117,8 +120,8 @@ class FileEditorViewModel(
   /** Where this document lives now - read live by [OpenDocuments], so a rename moves it. */
   override val path: String get() = livePath
 
-  /** The path the editor opened under - [livePath]'s first value, kept so a rename cannot hide it. */
-  override val openedAs: String = filePath
+  /** Where the editor's tab opened it - [livePath]'s first value, kept so a rename cannot hide it. */
+  override val openedAs: DocumentOpening = DocumentOpening(filePath, opening)
 
   /** Live, because the tab strip's dot has to follow the save rather than a snapshot of it. */
   override val dirty: StateFlow<Boolean> =

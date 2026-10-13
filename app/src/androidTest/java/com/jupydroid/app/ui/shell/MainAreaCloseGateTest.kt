@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.Editor
 import com.jupydroid.app.Explorer
 import com.jupydroid.app.OpenDocument
@@ -121,7 +122,7 @@ class MainAreaCloseGateTest {
    * [discardChanges] records rather than writes, so the test can tell the dialog's button ran.
    */
   private class UnsavedDocument(override val path: String) : OpenDocument {
-    override val openedAs: String = path
+    override val openedAs: DocumentOpening = DocumentOpening(path)
     override val dirty: StateFlow<Boolean> = MutableStateFlow(true)
     var discarded = false
       private set

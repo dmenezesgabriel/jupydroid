@@ -2,8 +2,6 @@ package com.jupydroid.app
 
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.domain.model.TextEdit
-import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -77,7 +75,7 @@ class NotebookBackStackTest {
   @Test
   fun openingARenamedDocumentRevealsItInsteadOfOpeningItAgain() {
     val open = OpenDocuments()
-    val document = MovedDocument("a.ipynb")
+    val document = MovedOpenDocument(DocumentOpening("a.ipynb"))
     open.opened(document)
     val backStack = mutableListOf<NavKey>(Explorer(BASE_SPACE.id), Editor("a.ipynb"))
 
@@ -601,15 +599,5 @@ class NotebookBackStackTest {
     assertEquals(listOf(Explorer(BASE_SPACE.id), Terminal("1")), order)
     assertEquals(mapOf(Terminal("1") to "bash"), titles)
     assertEquals(emptyMap<NavKey, String>(), paths)
-  }
-
-  /** A document whose path has moved since it opened - the registry contract, nothing more. */
-  private class MovedDocument(override val openedAs: String) : OpenDocument {
-    override var path: String = openedAs
-    override val dirty = MutableStateFlow(false)
-    override fun saveNow(onSaved: () -> Unit) = onSaved()
-    override fun discardChanges() = Unit
-    override fun sourceOf(cell: Int?): String? = null
-    override fun applyEdits(cell: Int?, edits: List<TextEdit>) = Unit
   }
 }

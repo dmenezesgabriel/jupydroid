@@ -42,11 +42,11 @@ interface OpenDocument {
   val path: String
 
   /**
-   * Where it was opened - the path the *navigation key* still carries, immutable. A tab's key
-   * keeps it while [path] moves under a rename, so this is how the strip finds the document its
-   * key opened - the inverse of [OpenDocuments.at]'s lookup by live path.
+   * Where it was opened - what the *navigation key* still carries, immutable. A tab's key keeps
+   * it while [path] moves under a rename, so this is how the strip finds the document its key
+   * opened - the inverse of [OpenDocuments.at]'s lookup by live path.
    */
-  val openedAs: String
+  val openedAs: DocumentOpening
 
   /** Whether the document owes a write - `model.dirty`, live so a tab's dot follows the save. */
   val dirty: StateFlow<Boolean>
@@ -68,6 +68,22 @@ interface OpenDocument {
   /** Rewrites the resource [cell] names. What that costs - a save, a revision - is the document's. */
   fun applyEdits(cell: Int?, edits: List<TextEdit>)
 }
+
+/**
+ * Which open a tab is: the path it was opened under, and which of that path's opens.
+ *
+ * The path alone is not an identity once a rename moves a document off it: a file recreated at
+ * the old name is a second document opened under the same path. jupyterlab@7f0e6906 gives every
+ * main-area widget an id of its own for the same reason (`packages/apputils/src/mainareawidget.ts`,
+ * `DOMUtils.createDomID`); [ordinal] is that id narrowed to what has to stay unique - the tabs open
+ * on one path at once, since a navigation entry's `ViewModelStore` is keyed by its key.
+ *
+ * ```
+ * DocumentOpening("a.ipynb")      // the first tab opened on a.ipynb
+ * DocumentOpening("a.ipynb", 1)   // a.ipynb recreated while that tab, renamed, is still open
+ * ```
+ */
+data class DocumentOpening(val path: String, val ordinal: Int = 0)
 
 /**
  * The documents open right now, so something that is not their screen can reach them by path.
@@ -100,11 +116,11 @@ class OpenDocuments {
   fun at(path: String): OpenDocument? = documents.firstOrNull { it.path == path }
 
   /**
-   * The document opened under [path] - the *original* path, not the live one. A tab's key knows
-   * only where its document started, so this is the lookup that survives the document's own
-   * rename - including one that landed while its screen was out of composition.
+   * The document a tab opened as [opening] - where it started, not where it lives. A tab's key
+   * knows only that, so this is the lookup that survives the document's own rename - including
+   * one that landed while its screen was out of composition (`RecreatedPathOpeningTest`).
    */
-  fun openedUnder(path: String): OpenDocument? = documents.firstOrNull { it.openedAs == path }
+  fun openedAs(opening: DocumentOpening): OpenDocument? = documents.firstOrNull { it.openedAs == opening }
 
   /**
    * A screen's document is ready. Registered **by identity**: a ViewModel is created once per

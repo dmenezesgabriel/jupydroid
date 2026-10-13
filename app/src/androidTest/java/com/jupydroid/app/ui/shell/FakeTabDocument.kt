@@ -3,15 +3,18 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.TextEdit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** A document for the registry alone - the strip never asks it to render. */
-internal class FakeTabDocument(override val openedAs: String, isDirty: Boolean = false) : OpenDocument {
+internal class FakeTabDocument(openedUnder: String, isDirty: Boolean = false) : OpenDocument {
+  override val openedAs = DocumentOpening(openedUnder)
+
   /** The live path - snapshot state, so a rename landing on it recomposes the tab like an adoption would. */
-  var livePath: String by mutableStateOf(openedAs)
+  var livePath: String by mutableStateOf(openedUnder)
   val dirtyFlow = MutableStateFlow(isDirty)
   var savesRequested = 0
     private set

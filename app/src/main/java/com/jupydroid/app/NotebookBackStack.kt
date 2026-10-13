@@ -29,13 +29,13 @@ import androidx.navigation3.runtime.NavKey
  * backStack.openNotebook("6f0b…")   // -> [Explorer, Editor("a91c…"), Editor("6f0b…")]
  * ```
  */
-fun MutableList<NavKey>.openNotebook(notebookId: String) {
-  openInMainArea(Editor(notebookId))
+fun MutableList<NavKey>.openNotebook(notebookId: String, opening: Int = 0) {
+  openInMainArea(Editor(notebookId, opening))
 }
 
 /** Opens a plain file - [openNotebook] for the file editor's document kind. */
-fun MutableList<NavKey>.openFile(filePath: String) {
-  openInMainArea(FileEditor(filePath))
+fun MutableList<NavKey>.openFile(filePath: String, opening: Int = 0) {
+  openInMainArea(FileEditor(filePath, opening))
 }
 
 /**

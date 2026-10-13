@@ -42,7 +42,7 @@ import com.jupydroid.app.OpenDocument
  * is refused is drawn by the document's screen, which is composed because its tab is on top.
  *
  * ```
- * ActiveTabSave(title = "notes.py", document = openDocuments.openedUnder("notes.py"), height = 34.dp)
+ * ActiveTabSave(title = "notes.py", document = openDocuments.openedAs(DocumentOpening("notes.py")), height = 34.dp)
  * ```
  */
 @Composable

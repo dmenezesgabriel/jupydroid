@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
@@ -131,6 +132,8 @@ class EditorViewModel(
    * resolves against. Defaulted to base for the tests that drive the editor alone.
    */
   private val space: Space = BASE_SPACE,
+  /** Which of [notebookId]'s opens this editor is - its tab's key says; see [DocumentOpening]. */
+  opening: Int = 0,
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -229,7 +232,13 @@ class EditorViewModel(
    * Registered from here rather than by itself, because the lifetime is this ViewModel's.
    */
   val document =
-    NotebookDocument(viewModelScope, _uiState, save, notebookId = { liveNotebookId }, openedAs = notebookId)
+    NotebookDocument(
+      viewModelScope,
+      _uiState,
+      save,
+      notebookId = { liveNotebookId },
+      openedAs = DocumentOpening(notebookId, opening),
+    )
 
   /**
    * `notebook:export-to-format`. Writes a file *beside* the notebook rather than to it, so it

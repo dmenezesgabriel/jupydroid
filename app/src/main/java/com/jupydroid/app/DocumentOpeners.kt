@@ -28,21 +28,27 @@ import kotlinx.coroutines.launch
  * factory) because every type here has exactly one factory - an override would have nothing to
  * point at.
  *
- * The reveal asks [OpenDocuments] first. `openOrReveal` matches a widget by its context's
- * **current** path - `manager.ts:481-503` reaches it through `_contextsForPath`, which filters
- * on where a context lives *now* - and a `NavKey` keeps only the path it was opened under, so a
- * document renamed since it opened answers to a path the stack has never seen. `at` resolves the
- * live path to the `openedAs` the key still carries; a path nothing is open on falls through to
- * the suffix split, and a renamed file's `openedAs` still points the right kind at it.
+ * The reveal matches a tab by where its document lives **now**: `openOrReveal` reaches a widget
+ * through `_contextsForPath`, which filters on a context's current path (`manager.ts:481-503`),
+ * and a key keeps only where it opened. So a renamed tab answers to its new name and never to the
+ * old one, and a file recreated at the old name opens a tab of its own, under the lowest
+ * [DocumentOpening.ordinal] no open tab on that path holds (`RecreatedPathOpeningTest`). The tab
+ * revealed keeps its own kind, so a notebook renamed to `.py` still reveals the notebook editor.
  */
 internal fun MutableList<NavKey>.openDocument(path: String, openDocuments: OpenDocuments) {
-  val openedAs = openDocuments.at(path)?.openedAs ?: path
-  if (openedAs.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
-    openNotebook(openedAs)
+  val open = firstOrNull { it.livePathIn(openDocuments) == path }
+  if (open != null) return openInMainArea(open)
+  val opening = unusedOpeningOf(path)
+  if (path.endsWith(NOTEBOOK_SUFFIX, ignoreCase = true)) {
+    openNotebook(path, opening)
   } else {
-    openFile(openedAs)
+    openFile(path, opening)
   }
 }
+
+/** The lowest ordinal no tab on this stack opened [path] under - a new tab's [DocumentOpening]. */
+private fun List<NavKey>.unusedOpeningOf(path: String): Int =
+  generateSequence(0) { it + 1 }.first { n -> none { it.documentOpening() == DocumentOpening(path, n) } }
 
 /**
  * `running:kernel-open-session` - `docmanager:open` for a document row, `console:open` for a

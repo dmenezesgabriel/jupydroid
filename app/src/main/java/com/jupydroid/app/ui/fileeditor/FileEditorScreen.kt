@@ -117,10 +117,12 @@ fun FileEditorScreen(
    * file. Defaulted so a test driving this screen alone need not supply one.
    */
   openDocuments: OpenDocuments = remember { OpenDocuments() },
+  /** Which of [path]'s opens this screen's tab is - see `DocumentOpening`. */
+  opening: Int = 0,
   modifier: Modifier = Modifier,
   viewModel: FileEditorViewModel =
     viewModel {
-      FileEditorViewModel(path, workspaceRepository, applicationScope, openDocuments, editorSettingsRepository)
+      FileEditorViewModel(path, workspaceRepository, applicationScope, openDocuments, editorSettingsRepository, opening)
     },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()

@@ -76,23 +76,32 @@ fun NavKey.liveDocumentPath(liveDocumentPaths: Map<NavKey, String>): String? = w
 }
 
 /**
- * The path this key opened its document under - what its field still says. Unlike
- * [liveDocumentPath] it never moves, which is the point: the strip finds a document *through*
- * its own rename by it, in the one case where the live-path map cannot know yet.
+ * Which open this key is - the path it opened its document under, and which of that path's
+ * opens. Unlike [liveDocumentPath] it never moves, which is the point: the strip finds a document
+ * *through* its own rename by it, in the one case where the live-path map cannot know yet. Null
+ * for the kinds that open no document.
  */
-fun NavKey.openedUnderPath(): String? = when (this) {
-  is Editor -> notebookId
-  is FileEditor -> path
+fun NavKey.documentOpening(): DocumentOpening? = when (this) {
+  is Editor -> DocumentOpening(notebookId, opening)
+  is FileEditor -> DocumentOpening(path, opening)
   else -> null
 }
 
 /**
  * The live document this key opened - a tab's own lookup. By [OpenDocument.openedAs] rather than
  * [liveDocumentPath]: a rename that lands while the document's screen is out of composition moves
- * [OpenDocument.path] before the map learns of it, and the opened-under path is the one address
- * that survives.
+ * [OpenDocument.path] before the map learns of it, and the opening is the one address that
+ * survives.
  */
-fun NavKey.documentIn(openDocuments: OpenDocuments): OpenDocument? = openedUnderPath()?.let(openDocuments::openedUnder)
+fun NavKey.documentIn(openDocuments: OpenDocuments): OpenDocument? = documentOpening()?.let(openDocuments::openedAs)
+
+/**
+ * Where this key's document lives now, as far as [openDocuments] knows: a document that has not
+ * registered yet - a tab beneath the top registers when it first composes - has not been renamed
+ * either, so it still lives where it opened. Null for the kinds that open no document.
+ */
+fun NavKey.livePathIn(openDocuments: OpenDocuments): String? =
+  documentIn(openDocuments)?.path ?: documentOpening()?.path
 
 /**
  * `title.label` for one tab.

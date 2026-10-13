@@ -166,6 +166,8 @@ fun EditorScreen(
   openDocuments: OpenDocuments = remember { OpenDocuments() },
   /** Where a breakpoint outlives this screen's `EditorViewModel`; see [NotebookBreakpoints]. */
   notebookBreakpoints: NotebookBreakpoints = remember { NotebookBreakpoints() },
+  /** Which of [notebookId]'s opens this screen's tab is - see `DocumentOpening`. */
+  opening: Int = 0,
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
     EditorViewModel(
@@ -184,6 +186,7 @@ fun EditorScreen(
       kernelSessions,
       kernelSpecs,
       space,
+      opening,
     )
   },
 ) {

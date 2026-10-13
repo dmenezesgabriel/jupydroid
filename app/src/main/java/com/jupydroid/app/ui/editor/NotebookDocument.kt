@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.withEditsApplied
@@ -36,8 +37,8 @@ class NotebookDocument(
   private val uiState: MutableStateFlow<EditorUiState>,
   private val save: DocumentAutosave,
   private val notebookId: () -> String,
-  /** The id the editor opened under - unlike [path], it stays put through a rename. */
-  override val openedAs: String,
+  /** Where the editor's tab opened it - unlike [path], it stays put through a rename. */
+  override val openedAs: DocumentOpening,
 ) : OpenDocument {
   override val path: String get() = notebookId()
 

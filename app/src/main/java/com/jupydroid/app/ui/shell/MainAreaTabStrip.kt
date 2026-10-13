@@ -61,12 +61,12 @@ import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.activateMainAreaTab
 import com.jupydroid.app.documentIn
+import com.jupydroid.app.documentOpening
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.launcherIsClosable
 import com.jupydroid.app.liveDocumentPath
 import com.jupydroid.app.mainAreaTabTitle
-import com.jupydroid.app.openedUnderPath
 import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
@@ -267,7 +267,7 @@ private fun MainAreaTabStrip(
             // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
             closable = tab !is Launcher || backStack.launcherIsClosable(),
             // `docmanager:rename` only exists for what has a path (`document-title` tabs).
-            renameable = tab.openedUnderPath() != null,
+            renameable = tab.documentOpening() != null,
             width = tabWidth,
             onActivate = { backStack.activateMainAreaTab(tab) },
             onClose = { onCloseTab(tab) },

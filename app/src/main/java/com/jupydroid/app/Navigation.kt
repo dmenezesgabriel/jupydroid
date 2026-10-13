@@ -362,6 +362,7 @@ fun MainNavigation(
               reveal = revealRequest,
               onRevealHandled = { revealRequest = null },
               openDocuments = openDocuments,
+              opening = file.opening,
             )
           }
         }
@@ -407,6 +408,7 @@ fun MainNavigation(
               reveal = revealRequest,
               onRevealHandled = { revealRequest = null },
               openDocuments = openDocuments,
+              opening = editor.opening,
             )
           }
         }

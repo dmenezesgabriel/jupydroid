@@ -21,7 +21,7 @@ class OpenDocumentsTest {
       private set
 
     /** Nothing renames a fake: what it opened under is where it still lives. */
-    override val openedAs: String = path
+    override val openedAs: DocumentOpening = DocumentOpening(path)
 
     // The strip's half of the contract - never asked of a document in this suite.
     override val dirty = MutableStateFlow(false)
@@ -133,6 +133,23 @@ class OpenDocumentsTest {
     open.opened(document)
 
     assertEquals(listOf(document), open.all)
+  }
+
+  /**
+   * A tab finds its document by where it opened it, and a path renamed away from and recreated has
+   * been opened under twice - so the opening, not the path, tells the two apart.
+   */
+  @Test
+  fun twoDocumentsOpenedUnderOnePathAreToldApartByTheirOpening() {
+    val open = OpenDocuments()
+    val renamed = MovedOpenDocument(DocumentOpening("a.py")).also { it.path = "b.py" }
+    val recreated = MovedOpenDocument(DocumentOpening("a.py", 1))
+    open.opened(renamed)
+    open.opened(recreated)
+
+    assertSame(renamed, open.openedAs(DocumentOpening("a.py")))
+    assertSame(recreated, open.openedAs(DocumentOpening("a.py", 1)))
+    assertNull(open.openedAs(DocumentOpening("b.py")))
   }
 
   /** The registry hands the document over; what an edit *means* is the document's own business. */
