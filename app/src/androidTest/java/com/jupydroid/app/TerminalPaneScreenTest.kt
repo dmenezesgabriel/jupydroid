@@ -5,18 +5,28 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
+import com.jupydroid.app.terminal.CellStyle
+import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneViewModel
 import com.jupydroid.app.ui.terminal.terminalCellMetrics
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -84,6 +94,36 @@ class TerminalPaneScreenTest {
         "not roughly ${2 * expectedRows} (a doubled inset)",
       shrunkByRows in (expectedRows - LOWER_SLACK_ROWS)..(expectedRows + UPPER_SLACK_ROWS),
     )
+  }
+
+  /**
+   * The ViewModel outlives the activity a theme change relaunches (ADR-0092), so the palette it
+   * was built with is not the one the terminal may draw with afterwards. Built light and passed
+   * in, as a retained one is; the theme then turns dark, and the empty grid's centre has to follow.
+   */
+  @Test
+  fun aRetainedTerminalRedrawsInTheNewThemesPalette() {
+    val gateway = FakeTerminalGateway()
+    val session = runBlocking { gateway.open() }
+    val viewModel = TerminalPaneViewModel(session, gateway, palette = TerminalPalette.VS_CODE_LIGHT)
+    var dark by mutableStateOf(false)
+    compose.setContent {
+      JupyterDroidTheme(darkTheme = dark) {
+        TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)
+      }
+    }
+    compose.waitForIdle()
+
+    dark = true
+    compose.waitForIdle()
+
+    // The terminal's own top edge, not the screen's centre: the focused field raises the keyboard
+    // on a device, and the extra-keys row it pushes up sits there instead.
+    val terminal = compose.onNodeWithTag(TERMINAL_INPUT_TAG).getBoundsInRoot()
+    val x = with(compose.density) { ((terminal.left + terminal.right) / 2).roundToPx() }
+    val y = with(compose.density) { terminal.top.roundToPx() } + 2
+    val pixels = compose.onRoot().captureToImage().toPixelMap()
+    assertEquals(TerminalPalette.VS_CODE_DARK.at(CellStyle.COLOR_INDEX_BACKGROUND), pixels[x, y].toArgb())
   }
 
   /**

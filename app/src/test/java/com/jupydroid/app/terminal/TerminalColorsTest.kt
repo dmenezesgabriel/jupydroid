@@ -111,6 +111,52 @@ class TerminalColorsTest {
     assertEquals(4, notices.colorsChanged)
   }
 
+  /** A new palette replaces every one of the 259, and the screen hears that it must redraw. */
+  @Test
+  fun adoptingAnotherPalettePutsEveryIndexAtItsColourAndReports() {
+    val notices = RecordingNotices()
+    val colors = TerminalColors(TerminalPalette.VS_CODE_LIGHT, notices)
+    colors.adopt(TerminalPalette.VS_CODE_DARK)
+    for (index in 0 until CellStyle.INDEXED_COLOR_COUNT) {
+      assertEquals("index $index", TerminalPalette.VS_CODE_DARK.at(index), colors.at(index))
+    }
+    assertEquals(1, notices.colorsChanged)
+  }
+
+  /**
+   * A colour a program set by `OSC` belongs to the palette it was set against, so a new palette
+   * drops it - termux-app `3df69d1d` `checkForFontAndColors` resets after `updateWith`, and
+   * xterm.js 5.5.0 `ThemeService._setTheme` rebuilds the ANSI table from the theme.
+   */
+  @Test
+  fun adoptingAnotherPaletteDropsAColourAProgramSet() {
+    val colors = TerminalColors(TerminalPalette.VS_CODE_LIGHT, RecordingNotices())
+    colors.tryParse(5, "#00FF00")
+    colors.adopt(TerminalPalette.VS_CODE_DARK)
+    assertEquals(TerminalPalette.VS_CODE_DARK.at(5), colors.at(5))
+  }
+
+  /** A relaunch that changes no theme hands the same palette back, and must not cost the shell's colours. */
+  @Test
+  fun adoptingThePaletteInForceKeepsAColourAProgramSetAndReportsNothing() {
+    val notices = RecordingNotices()
+    val colors = TerminalColors(TerminalPalette.VS_CODE_LIGHT, notices)
+    colors.tryParse(5, "#00FF00")
+    colors.adopt(TerminalPalette.VS_CODE_LIGHT)
+    assertEquals(OPAQUE or 0x00FF00, colors.at(5))
+    assertEquals(1, notices.colorsChanged)
+  }
+
+  /** `OSC 104;5` after a theme change puts the entry back to the palette now in force. */
+  @Test
+  fun resettingOneIndexAfterAdoptingReturnsToTheNewPalette() {
+    val colors = TerminalColors(TerminalPalette.VS_CODE_LIGHT, RecordingNotices())
+    colors.adopt(TerminalPalette.VS_CODE_DARK)
+    colors.tryParse(5, "#00FF00")
+    colors.reset(5)
+    assertEquals(TerminalPalette.VS_CODE_DARK.at(5), colors.at(5))
+  }
+
   /**
    * The 216-cube and the 24 greys are **generated**, so this checks the generator against the
    * reference's literal table at its corners and seams rather than restating 240 numbers - the

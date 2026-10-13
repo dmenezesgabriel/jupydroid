@@ -62,7 +62,7 @@ platform answer every native surface. JupyterLab and IntelliJ have no native sur
 | Axis | Options seen (project → approach) | Trade-off | Our choice, and why |
 |---|---|---|---|
 | Where dark is decided | vscode → `nativeTheme.themeSource`; termux → `AppCompatDelegate` night mode; ours today → `resolvesToDark` inside Compose only | Threading the boolean to every site (terminal, window background, `enableEdgeToEdge` styles) cannot reach the window drawn **before** Compose exists, so a cold launch still flashes the device's colour | `UiModeManager.setApplicationNightMode` (API 31, minSdk is 32; the app has no AppCompat), behind `PlatformNightMode` with `UiModeManagerPlatformNightMode` and `FakePlatformNightMode`, driven from `AppContainer.applicationScope` collecting the theme settings (ADR-0094). One call makes the configuration, `values-night`, the window, `SystemBarStyle.auto` and `isSystemInDarkTheme()` follow the app |
-| The terminal's palette | ours → chosen once in the ViewModel factory and held by `TerminalEmulator` | A retained ViewModel outlives a theme change ([ADR-0092](../adr/0092-open-documents-survive-the-activitys-relaunch-in-its-retained-scope.md)) | Read `LocalAnsiPalette` (`theme/Theme.kt`), which already follows `darkTheme`, and hand the emulator the new palette on change, keeping colours a program set by OSC |
+| The terminal's palette | termux@3df69d1d `checkForFontAndColors` → `updateWith` then `mColors.reset()`; xterm.js 5.5.0 `ThemeService._setTheme` → the ANSI table rebuilt from the theme; ours → chosen once in the ViewModel factory and held by `TerminalEmulator` | A retained ViewModel outlives a theme change ([ADR-0092](../adr/0092-open-documents-survive-the-activitys-relaunch-in-its-retained-scope.md)); keeping colours a program set by OSC across a new palette would need a per-index override set neither reference has | Read `LocalAnsiPalette` (`theme/Theme.kt`), which already follows `darkTheme`, and `TerminalColors.adopt` it on change: a new palette resets every colour as both references do, the same palette is a no-op so a rotation keeps OSC colours |
 
 ## Gap analysis — what we already have vs the references
 
@@ -72,7 +72,7 @@ platform answer every native surface. JupyterLab and IntelliJ have no native sur
 | Compose surfaces | `JupyterDroidTheme(darkTheme = …)` (`app/src/main/java/com/jupydroid/app/MainActivity.kt`) | — | complete |
 | The window | `window_background` split by `values-night`, now resolved against the app's night mode (`app/src/main/java/com/jupydroid/app/data/uimode/UiModeManagerPlatformNightMode.kt`) | termux, vscode | complete; the first frame is T4's to measure |
 | The system bars | `enableEdgeToEdge()` defaults, reading the app's night mode | termux, vscode | complete: 8.36:1 / 17.43:1 in all six |
-| The terminal | `isSystemInDarkTheme()` default, never passed (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`) | — | follows the device, and only once |
+| The terminal | `LocalAnsiPalette`, adopted on every change (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`, `app/src/main/java/com/jupydroid/app/terminal/TerminalColors.kt`) | termux, xterm.js | complete |
 | The stripe between the panes | not drawn in any of T1's six combinations on Settings, a file, a notebook or a terminal | — | not reproduced; T4 looks again, including the first frame and the Spaces home |
 
 Present and partial: the choice exists and reaches every Compose surface, and nothing below Compose.
@@ -94,7 +94,8 @@ night mode is the push-down of it, never read back as a second source.
 | `domain/port` | `PlatformNightMode.kt` (T2) |
 | `data/<mechanism>` | `data/uimode/UiModeManagerPlatformNightMode.kt` (T2) |
 | `data/fake` | `FakePlatformNightMode.kt` (T2) |
-| `ui/terminal` | `TerminalPaneScreen.kt`, `TerminalPaneViewModel.kt` (T3) |
+| `terminal/` | `TerminalColors.kt` (T3) |
+| `ui/terminal` | `TerminalPaneScreen.kt` (T3) |
 | `di/AppContainer` | the collector that pushes the setting down (T2) |
 | unit tests | the mapping and the collector (T2); the palette swap (T3) |
 | instrumented tests | the terminal's background after a theme change (T3) |
@@ -107,7 +108,7 @@ night mode is the push-down of it, never read back as a second source.
   GAP-173 learns what draws the stripe.
 - [x] T2 — One source decides dark: the app's choice pushed down to the platform, so the window,
   `values-night` and the system bars follow it.
-- [ ] T3 — The terminal follows the theme live, without being reopened.
+- [x] T3 — The terminal follows the theme live, without being reopened.
 - [ ] T4 — The demo, measured against T1.
 
 T1's finding may reorder T2 and T3.

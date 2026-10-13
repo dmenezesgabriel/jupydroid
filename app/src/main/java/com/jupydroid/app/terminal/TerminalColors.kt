@@ -21,7 +21,7 @@ package com.jupydroid.app.terminal
  * colors.reset(5)                 // and back to the palette's
  * ```
  */
-class TerminalColors(private val palette: TerminalPalette, private val notices: TerminalNotices) {
+class TerminalColors(private var palette: TerminalPalette, private val notices: TerminalNotices) {
   private val current = IntArray(CellStyle.INDEXED_COLOR_COUNT).also(palette::copyInto)
 
   /** The colour in force at [index], as opaque `0xFFRRGGBB`. */
@@ -31,6 +31,20 @@ class TerminalColors(private val palette: TerminalPalette, private val notices: 
   fun reset() {
     palette.copyInto(current)
     notices.onColorsChanged()
+  }
+
+  /**
+   * Make [palette] the one every reset returns to, and put every colour back to it - so a colour a
+   * program set by `OSC` is dropped with the palette it was set against. Both references do the
+   * same: termux-app `3df69d1d` `TermuxTerminalSessionActivityClient.checkForFontAndColors` calls
+   * `mColors.reset()` after `updateWith`, and xterm.js 5.5.0 `ThemeService._setTheme` rebuilds the
+   * ANSI table from the theme. The palette already in force is a no-op, so a relaunch that
+   * changed no theme keeps the shell's colours.
+   */
+  fun adopt(palette: TerminalPalette) {
+    if (palette === this.palette) return
+    this.palette = palette
+    reset()
   }
 
   /** Put one colour back to the palette's. */

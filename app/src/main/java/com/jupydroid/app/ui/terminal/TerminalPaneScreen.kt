@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.terminal
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -58,6 +57,7 @@ import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalPalette
+import com.jupydroid.app.theme.LocalAnsiPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.codeSourceStyle
@@ -71,7 +71,7 @@ const val TERMINAL_INPUT_TAG = "terminal-input"
 /**
  * A shell, reachable, typeable and drawn faithfully, sub-steps 1 and 2:
  * batched-run glyphs and a block cursor on a real [TerminalCanvas], the VS Code palette resolved
- * to the system's own dark/light theme, and a cell measured on this device rather than restated.
+ * to the app's own dark/light theme, and a cell measured on this device rather than restated.
  *
  * ```
  * TerminalPaneScreen(session = TerminalSession("1"), terminalGateway)
@@ -84,9 +84,10 @@ fun TerminalPaneScreen(
   modifier: Modifier = Modifier,
   /** The terminal's own font-size setting - 3c. */
   terminalSettingsRepository: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
-  // Read here, not inside the factory lambda below - `isSystemInDarkTheme` is itself composable
-  // and the factory runs once, outside recomposition, the way `viewModel {}` always does.
-  darkTheme: Boolean = isSystemInDarkTheme(),
+  // Read here, not inside the factory lambda below - `LocalAnsiPalette` is read in composition and
+  // the factory runs once, outside recomposition, the way `viewModel {}` always does. It follows the
+  // app's Theme row through `JupyterDroidTheme`, where the device's night mode would not.
+  palette: TerminalPalette = LocalAnsiPalette.current,
   /**
    * The shell's OSC title, reported up to the tab that carries it - `term.onTitleChange` sets
    * `this.title.label` in the reference (`packages/terminal/src/widget.ts:486-488`), and the
@@ -95,11 +96,13 @@ fun TerminalPaneScreen(
    */
   onTitleChanged: (String?) -> Unit = {},
   viewModel: TerminalPaneViewModel = viewModel {
-    val palette = if (darkTheme) TerminalPalette.VS_CODE_DARK else TerminalPalette.VS_CODE_LIGHT
     TerminalPaneViewModel(session, terminalGateway, terminalSettingsRepository, palette = palette)
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  // The ViewModel outlives the activity a theme change relaunches (ADR-0092), so the palette it was
+  // built with goes stale; the emulator takes the current one and its `onColorsChanged` redraws.
+  LaunchedEffect(palette) { viewModel.emulator.screen.colors.adopt(palette) }
   KeepTheShellAttached(viewModel)
   // `term.onTitleChange` → `title.label` (`packages/terminal/src/widget.ts:486-488`): the OSC title
   // is a *tab* fact, reported up every time it lands rather than drawn on a panel row the tab took.
