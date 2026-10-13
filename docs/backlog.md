@@ -164,6 +164,15 @@ the save the user asks for, the first half of `GAP-061`, closed by
 | `JD-030` | **Open documents survive a rotation:** after the activity is relaunched a tab with unsaved work keeps its dot and still asks before it closes, a workspace replace still edits the open editor, and the strip keeps its order, its renamed titles and its open Console | shipped | — | `GAP-143` |
 | `JD-031` | **A document is saved when the user asks:** a notebook or a file with unsaved work is written by one tap on the tab strip's save icon, without closing it, so with autosave off an edit no longer waits for its tab to close | shipped | — | `GAP-061` (first step) |
 
+### M6 — Presentation
+
+What the app draws against what its own theme says. The gap is `GAP-173` in
+[`architecture.md` §11](architecture.md): the app's Theme row reaches Compose and nothing beneath it.
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `JD-032` | **One theme decides every surface:** whatever the app's Theme row says and the device is set to, the window, the system bars, the panes and the terminal take one theme, and no text or icon loses its contrast | in-progress ← next | [PRD](prd/JD-032-one-theme-decides-every-surface.md) | `GAP-173` |
+
 ### Known gaps
 
 Measured gaps are recorded as `GAP-NNN` in
