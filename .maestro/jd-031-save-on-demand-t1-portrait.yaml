@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# Portrait, one pane: the strip gains its Up arrow at the leading edge, and the save icon keeps the
+# trailing one. The driver measures both ends of the strip while this is on screen.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_FILE}"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: ${MAESTRO_FILE}"
+    enabled: true
+- takeScreenshot: 01b-portrait-the-arrow-leads-and-the-save-icon-trails

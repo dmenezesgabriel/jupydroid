@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/jd-031-save-on-demand-t1-driver.sh with autosave off, so
+# a typed line stays owed until something writes it: the tab wears its dot and the strip's save
+# icon is live. The driver reads the strip and the disk after this - the file is still as seeded.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "notes = \"seeded\"\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # ${MAESTRO_TYPED}"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Unsaved changes"
+- assertVisible:
+    text: "Save tab: ${MAESTRO_FILE}"
+    enabled: true
+- takeScreenshot: 01-typed-the-tab-wears-its-dot-and-the-save-icon-is-live

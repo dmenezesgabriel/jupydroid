@@ -1,0 +1,14 @@
+appId: com.jupydroid.app
+---
+# A new process: the driver force-stopped the app with both tabs open and nothing closed. What the
+# file editor reads back is what the save icon wrote.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "(?s).*# ${MAESTRO_TYPED}.*"
+    timeout: 10000
+- assertNotVisible: "Unsaved changes"
+- takeScreenshot: 05-after-a-kill-the-file-opens-holding-the-saved-line

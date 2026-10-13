@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# The same process, the same dirty tab. One tap on the strip's save icon: the dot gives way to the
+# close and the icon greys, and the tab is still open. The driver reads the file after this.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Save tab: ${MAESTRO_FILE}"
+    timeout: 10000
+- tapOn: "Save tab: ${MAESTRO_FILE}"
+- extendedWaitUntil:
+    notVisible: "Unsaved changes"
+    timeout: 10000
+- assertVisible: "Tab: ${MAESTRO_FILE}"
+- assertVisible:
+    text: "Save tab: ${MAESTRO_FILE}"
+    enabled: false
+- takeScreenshot: 02-saved-the-dot-is-gone-the-icon-is-grey-and-the-tab-is-open

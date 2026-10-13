@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# The same act on the other kind of document: a notebook's cell is edited, the strip's icon is now
+# the notebook's, and a tap writes it. The driver reads the .ipynb after this.
+- launchApp:
+    stopApp: false
+- tapOn: "${MAESTRO_NOTEBOOK}"
+- extendedWaitUntil:
+    visible: "p8e_marker_first = 1"
+    timeout: 30000
+- tapOn: "p8e_marker_first = 1"
+- inputText: "0"
+- assertVisible: ".*p8e_marker_first = 10.*"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Unsaved changes"
+- takeScreenshot: 03-a-notebook-cell-is-edited-and-the-icon-is-the-notebooks
+- tapOn: "Save tab: ${MAESTRO_NOTEBOOK}"
+- extendedWaitUntil:
+    notVisible: "Unsaved changes"
+    timeout: 10000
+- assertVisible: "Tab: ${MAESTRO_NOTEBOOK}"
+- takeScreenshot: 04-the-notebook-is-saved-and-still-open
