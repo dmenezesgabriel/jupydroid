@@ -875,18 +875,6 @@ that is not `.ipynb` to the plain file editor
 (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`): a `.md` the editor would happily open
 cannot be made. The repair is a menu row, not a new op — the editor is already the fallback.
 
-### GAP-058 — Deleting a file never stops the sessions it was running
-
-`DocumentManager.deleteFile` runs `services.sessions.stopIfNeeded(path)` *first*
-(`jupyterlab/packages/docmanager/src/manager.ts:351-363`), so deleting the notebook a kernel is
-running ends the session — and `overwrite` gets the same half free, since it deletes the target
-through that call (`manager.ts:522`). Ours' `WorkspaceRepository.delete` announces `Deleted` and
-an open document goes `gone`, but the kernel it was running on is left running; only the Running
-panel's own row can stop it
-(`app/src/main/java/com/jupydroid/app/ui/shell/RunningSidePanel.kt`). The repair composes the two
-ports at the caller — the workspace port cannot look a session up, and the reference puts the
-pairing in its document manager for the same reason.
-
 ### GAP-059 — The open document's own surface answers only rename
 
 `docmanager:delete`, `docmanager:duplicate` and the tab context menu they sit on

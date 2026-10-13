@@ -174,7 +174,9 @@ tab renamed beneath another keeping the name it left, is closed by
 `GAP-141`, a renamed tab still owning the name it left, is closed by
 [ADR-0095](adr/0095-a-tab-is-keyed-by-its-opening-not-its-path.md). `GAP-068`, a kernel session
 keeping the path its notebook was renamed away from, is closed by `KernelSessions.setPath`
-(`app/src/main/java/com/jupydroid/app/domain/port/KernelSessions.kt`).
+(`app/src/main/java/com/jupydroid/app/domain/port/KernelSessions.kt`). `GAP-058`, a deleted
+notebook's kernel session left running, is closed by `DeletedDocumentSessions`
+(`app/src/main/java/com/jupydroid/app/domain/model/DeletedDocumentSessions.kt`).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
@@ -182,7 +184,7 @@ keeping the path its notebook was renamed away from, is closed by `KernelSession
 | `JD-033` | **A tab renamed beneath another takes its new name:** a file or notebook renamed while a terminal, a console or another document is on top reads its new name on the strip and in Open Tabs | shipped | — | `GAP-172` |
 | `JD-034` | **A file recreated at a renamed tab's old name opens:** a file or notebook created where an open tab was renamed away from opens in a tab of its own, and the renamed tab keeps its document and its unsaved work | shipped | — | `GAP-141` |
 | `JD-035` | **A notebook's kernel session follows its rename:** after a notebook with a running kernel is renamed, from its tab, the explorer or a folder above it, the Running panel's row carries the new name and tapping it reveals the renamed tab | shipped | — | `GAP-068` |
-| `JD-036` | **Deleting a notebook stops its kernel session:** after a notebook with a running kernel is deleted from the explorer, or replaced by a rename over it, the Running panel no longer lists its kernel, whether its tab was open or closed | in-progress ← next | [PRD](prd/JD-036-deleting-a-notebook-stops-its-kernel-session.md) | `GAP-058` |
+| `JD-036` | **Deleting a notebook stops its kernel session:** after a notebook with a running kernel is deleted from the explorer, or replaced by a rename over it, the Running panel no longer lists its kernel, whether its tab was open or closed | shipped | — | `GAP-058` |
 
 ### Known gaps
 
