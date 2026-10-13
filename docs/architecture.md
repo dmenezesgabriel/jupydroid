@@ -969,18 +969,6 @@ list cannot be dropped without dropping all ten. `RecentRow`'s stated reason —
 no per-row act because rename and delete belong to the file — was written before Forget was
 weighed, and the repair is the row act it declined.
 
-### GAP-069 — A file act on a tab fails without saying so
-
-`renameFile`'s catch rethrows every refusal that is not a 409
-(`jupyterlab/packages/docmanager/src/dialogs.ts`), so a rename refused for another reason at
-least reaches the console, and the browser's own row reports it on the listing's error line.
-Ours' tab-strip rename keeps only the `FileNameTakenException` arm and the overwrite that follows
-it has no failure arm at all
-(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`) — so a refusal by the disk
-answers with silence: the dialog is gone, the tab is unchanged, and nothing learns why. The
-strip has no error surface to put it on; the repair is the one a kept-open dialog or the
-document's own error line would provide.
-
 ### GAP-070 — Every disk-backed state file is read on the main thread at launch
 
 `MutableStateFlow(loadValidated())` in each `Disk*SettingsRepository` — and in
@@ -1646,9 +1634,10 @@ names it.
 `runCatching` — a refused mint is no document and no message
 (`app/src/main/java/com/jupydroid/app/Navigation.kt`'s import effect,
 `DocumentOpeners.kt:93`). The launcher's own card mint already has the arm these two lack —
-`LauncherViewModel.error` carries a refused launch onto the card — and `GAP-069` records the
-same shape on a tab's rename. The repair is one failure surface the shell already owns (the
-snackbar the transient reports use), not new machinery.
+`LauncherViewModel.error` carries a refused launch onto the card — and a tab's refused rename
+has its "Rename Error" dialog (`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`).
+The repair is one failure surface the shell already owns (the snackbar the transient reports use),
+not new machinery.
 
 ### GAP-145 — A Space cannot be duplicated
 

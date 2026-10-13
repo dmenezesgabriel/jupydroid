@@ -1244,8 +1244,9 @@ What it found, beyond the rows above:
   pending `goTo` — `f631fea2`, `aRename…`/`aDeleteFinishedMidNavigationRelistsWhereWeAreGoing`;
   **a landing listing retracted the overwrite question** — `listingOf`'s fresh state dropped
   `nameTaken`, so a poll tick answered the ask nobody answered — `068d08c9`,
-  `aPollDoesNotRetractTheOverwriteQuestion`. One more failure found and not repaired: a rename or
-  overwrite refused on the *tab strip* lands nowhere at all — `GAP-069`.
+  `aPollDoesNotRetractTheOverwriteQuestion`. One more failure found and not repaired here: a rename or
+  overwrite refused on the *tab strip* landed nowhere at all; it now draws the browser's
+  "Rename Error" dialog (`MainAreaTabStrip.kt`). That was `GAP-069`, closed.
 - **Coupling is the walk's real yield — one channel, one direction, and who never hears.**
   `WorkspaceRepository.changes` is the only channel every tree act announces on, and
   `emit`-suspends-until-collected is the ordering `TabbedDocumentPane`'s `openDocumentPaths` write
