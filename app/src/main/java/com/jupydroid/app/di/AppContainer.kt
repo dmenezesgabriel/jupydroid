@@ -18,6 +18,7 @@ import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
+import com.jupydroid.app.domain.model.DeletedDocumentSessions
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.EditorSettingsRepository
@@ -170,7 +171,16 @@ class AppContainer(
    * ```
    */
   fun portsOf(spaceId: String): EnteredSpacePorts =
-    portsBySpace.computeIfAbsent(spaceId) { enteredSpacePorts(it, activeTerminals) }
+    portsBySpace.computeIfAbsent(spaceId) { enteredSpacePorts(it, activeTerminals).also(::stopSessionsOfDeletedFiles) }
+
+  /**
+   * Started with the ports and not by a screen: the explorer and the tab strip both remove files,
+   * a notebook's kernel outlives its tab, and the ports live for the process - so the watch that
+   * ends a deleted file's session has to as well.
+   */
+  private fun stopSessionsOfDeletedFiles(ports: EnteredSpacePorts) {
+    DeletedDocumentSessions(ports.workspaceRepository.changes, ports.kernelSessions).watchIn(applicationScope)
+  }
 
   /**
    * Stop every running Space's server when the app goes away - but only once nothing is still running,

@@ -10,8 +10,10 @@ import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
+import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
+import com.jupydroid.app.ui.editor.AnnouncingWorkspaceRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.advanceTimeBy
@@ -62,6 +64,32 @@ class AppContainerTest {
 
     assertEquals(emptyList<String>(), container.portsOf("space-1").kernelSessions.running().map { it.path })
     assertEquals(listOf("Analysis.ipynb"), container.portsOf("base").kernelSessions.running().map { it.path })
+  }
+
+  /**
+   * `DocumentManager.deleteFile` stops the session at the path it deletes (jupyterlab@7f0e6906
+   * `packages/docmanager/src/manager.ts`). The watch that does it here starts with a Space's ports,
+   * so it is running before any screen is, and it hears that Space's workspace alone.
+   */
+  @Test
+  fun deletingAFileInASpaceEndsThatSpacesSessionAtItsPath() = runTest {
+    val workspaces = mutableMapOf<String, AnnouncingWorkspaceRepository>()
+    val container = AppContainer(
+      enteredSpacePorts = { spaceId, _ ->
+        val workspace = AnnouncingWorkspaceRepository().also { workspaces[spaceId] = it }
+        EnteredSpacePorts(FakeNotebookRepository(), workspaceRepository = workspace)
+      },
+      applicationScope = backgroundScope,
+    )
+    container.portsOf("base").kernelGateway.connect(space, "Analysis.ipynb")
+    container.portsOf("space-1").kernelGateway.connect(space, "Analysis.ipynb")
+    runCurrent()
+
+    workspaces.getValue("base").announce(WorkspaceChange.Deleted("Analysis.ipynb"))
+    runCurrent()
+
+    assertEquals(emptyList<String>(), container.portsOf("base").kernelSessions.running().map { it.path })
+    assertEquals(listOf("Analysis.ipynb"), container.portsOf("space-1").kernelSessions.running().map { it.path })
   }
 
   /**
