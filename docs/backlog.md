@@ -166,13 +166,14 @@ the save the user asks for, the first half of `GAP-061`, closed by
 
 ### M6 — Presentation
 
-What the app draws against what its own theme says. `GAP-173`, the app's Theme row reaching
+What the app draws against what its own state says. `GAP-173`, the app's Theme row reaching
 Compose and nothing beneath it, is closed by
 [ADR-0094](adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
 | `JD-032` | **One theme decides every surface:** whatever the app's Theme row says and the device is set to, the window, the system bars, the panes and the terminal take one theme, and no text or icon loses its contrast | shipped | — | `GAP-173` |
+| `JD-033` | **A tab renamed beneath another takes its new name:** a file or notebook renamed while a terminal, a console or another document is on top reads its new name on the strip and in Open Tabs | in-progress ← next | [PRD](prd/JD-033-a-renamed-tab-takes-its-new-name.md) | `GAP-172` |
 
 ### Known gaps
 
