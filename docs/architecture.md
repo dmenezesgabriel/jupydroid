@@ -1654,19 +1654,6 @@ and logcat — ADR-0009's recorded answer — and §1 names `logconsole` itself 
 is missing is the window: an in-app reader over the same stream, with the ring's checkpoint and
 level. The repair is a log panel reading the file the launcher already writes.
 
-### GAP-141 — A renamed tab still owns the name it left
-
-A `NavKey` is the path it was opened under — `Editor("a.ipynb")` stays `Editor("a.ipynb")`
-after its document is renamed to `b.ipynb`, because re-keying the entry would drop its
-`ViewModelStore` (`app/src/main/java/com/jupydroid/app/Editor.kt`,
-`MainAreaTabStrip.kt`'s rename flow). `openInMainArea` reveals by key equality, so a file
-recreated at `a.ipynb` while that tab lives can never be opened: every tap resolves to the same
-key and reveals the renamed tab instead — the new document is unreachable without closing the
-old one. JupyterLab keys widgets, not paths — `openOrReveal` matches a live context through
-`_contextsForPath` and a second widget for the old name is lawful
-(`packages/docmanager/src/manager.ts`). The repair is a key identity that is not the path — an
-opaque id per open, so two documents that share a path across time are two keys.
-
 ### GAP-142 — A restored console composes nothing
 
 `RetainedConsole` holds the Console's `NotebookKernelSession` for as long as the activity's

@@ -114,8 +114,9 @@ Not covered, on purpose:
   composes nothing, which is what is left of `GAP-142`.
 - **`browseRequest` and `revealRequest`**, which stay plain `remember`: one-shot requests, consumed
   as they are made.
-- **A tab key that is not the path**, `GAP-141`: a stack restored after a process death still keys
-  a renamed document by the path it opened under.
+- **A renamed document's key after a process death.** A key carries the path it opened under
+  ([ADR-0095](0095-a-tab-is-keyed-by-its-opening-not-its-path.md)), so a stack restored after a
+  process death still keys a renamed document by that path.
 - **Retitling other tabs that share the new name**, IntelliJ's unique-name titles: no tab here shows
   a disambiguating directory. Nor does a rename move a kernel session's path, the other half of
   jupyterlab's `_updatePath`.

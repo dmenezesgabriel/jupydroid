@@ -2846,10 +2846,10 @@ What the walk found, beyond the rows above:
   recorded silences: `importTitle`'s `createNotebook` and the explorer's `openNewTerminal` ride
   a bare `runCatching` — a user act that lands nowhere, unsaid — `GAP-144`. A `Console` key
   restored after a process death without its session composes a blank pane under a live tab —
-  `GAP-142`. And under the fixed half sits the wound the same stale-key family leaves open: a tab renamed off
-  `a.ipynb` still *is* `Editor("a.ipynb")`, so a file recreated at that name can never open
-  while the tab lives — `openInMainArea`'s equal-key remove reveals the renamed tab instead —
-  `GAP-141`, a key-identity change rather than a walk-time patch.
+  `GAP-142`. The same stale-key family's other wound, a tab renamed off `a.ipynb` still being
+  `Editor("a.ipynb")` so that a file recreated at that name could never open, was `GAP-141`, closed
+  by a key identity rather than a walk-time patch
+  ([ADR-0095](../adr/0095-a-tab-is-keyed-by-its-opening-not-its-path.md)).
 - **Coupling is five holders hoisted to `MainNavigation`'s scope and the `WorkspaceChange`
   nerve between them.** Nav entries own separate `ViewModelStore`s, so what crosses between
   them — the document registry, the live-path map, the strip's order, the OSC titles, the

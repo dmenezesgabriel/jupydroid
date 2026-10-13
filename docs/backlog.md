@@ -171,12 +171,14 @@ Compose and nothing beneath it, is closed by
 [ADR-0094](adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md). `GAP-172`, a
 tab renamed beneath another keeping the name it left, is closed by
 [ADR-0092](adr/0092-open-documents-survive-the-activitys-relaunch-in-its-retained-scope.md).
+`GAP-141`, a renamed tab still owning the name it left, is closed by
+[ADR-0095](adr/0095-a-tab-is-keyed-by-its-opening-not-its-path.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
 | `JD-032` | **One theme decides every surface:** whatever the app's Theme row says and the device is set to, the window, the system bars, the panes and the terminal take one theme, and no text or icon loses its contrast | shipped | — | `GAP-173` |
 | `JD-033` | **A tab renamed beneath another takes its new name:** a file or notebook renamed while a terminal, a console or another document is on top reads its new name on the strip and in Open Tabs | shipped | — | `GAP-172` |
-| `JD-034` | **A file recreated at a renamed tab's old name opens:** a file or notebook created where an open tab was renamed away from opens in a tab of its own, and the renamed tab keeps its document and its unsaved work | open ← next | [PRD](prd/JD-034-a-recreated-path-opens-beside-its-renamed-tab.md) | `GAP-141` |
+| `JD-034` | **A file recreated at a renamed tab's old name opens:** a file or notebook created where an open tab was renamed away from opens in a tab of its own, and the renamed tab keeps its document and its unsaved work | shipped | — | `GAP-141` |
 
 ### Known gaps
 
