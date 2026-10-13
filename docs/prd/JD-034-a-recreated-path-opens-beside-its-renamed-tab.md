@@ -106,7 +106,7 @@ None. The key shape is settled above, and an ADR records it when the item ships.
 
 - [x] T1 — a tab's key carries an opaque id per open, and `openDocument` reveals by live path. A file
   recreated at a renamed tab's old name opens its own tab: unit, instrumented, and a flow on the tablet.
-- [ ] T2 — the demo above on a fresh install on SM-X216B. Then the ADR, GAP-141 closed in
+- [x] T2 — the demo above on a fresh install on SM-X216B. Then the ADR, GAP-141 closed in
   `docs/architecture.md` §11, the backlog row shipped, and this PRD deleted.
 
 ## Out of scope

@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# Creates a document from the explorer's New menu and renames it from its row, so it exists under
+# a name of the demo's choosing without ever having been opened.
+#
+# **Not a flow.** The demo's parts call it with `runFlow` and `env`: NEW_ITEM is the menu's entry,
+# UNTITLED the name the server gives it (`ExplorerViewModel.create`), STEM the name to rename it
+# to and NAME the full name that results.
+# The rail's Files toggles the panel, so it is tapped only when the panel is closed.
+- runFlow:
+    when:
+      notVisible: "New"
+    commands:
+      - tapOn: "Files"
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "${NEW_ITEM}"
+    timeout: 5000
+- tapOn: "${NEW_ITEM}"
+- extendedWaitUntil:
+    visible: "${UNTITLED}"
+    timeout: 15000
+- longPressOn: "${UNTITLED}"
+# Delete is on the row's menu and not in the tab's dialog: the press reached the explorer's row.
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "${STEM}"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "${NAME}"
+    timeout: 10000

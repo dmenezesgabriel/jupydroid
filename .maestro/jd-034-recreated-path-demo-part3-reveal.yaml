@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# The same process. `b.ipynb`'s row is tapped in the explorer: it reveals the renamed tab, with its
+# typed cell, and opens no third notebook tab. The driver compares the strip with part 2's.
+- launchApp:
+    stopApp: false
+# The rail's Files toggles the panel, so it is tapped only when the panel is closed.
+- runFlow:
+    when:
+      notVisible: "New"
+    commands:
+      - tapOn: "Files"
+# Recents lists what was opened beside the listing's row, so the section is emptied to leave the
+# listing's row the one match.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- tapOn: "b.ipynb"
+- extendedWaitUntil:
+    visible: ".*${MAESTRO_TYPED}.*"
+    timeout: 10000
+- assertVisible: "Unsaved changes"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 09-b-ipynb-row-reveals-the-renamed-tab
