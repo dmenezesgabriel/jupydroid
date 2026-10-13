@@ -120,7 +120,7 @@ Ours is **present and partial**: the stack and the ViewModels survive, the holde
   step 5 is where it is seen on the device.
 - [x] T2 — The strip keeps its opening order, a renamed tab keeps its new name and a terminal keeps
   its reported title across a rotation.
-- [ ] T3 — An open Console still draws after a rotation and after a dark-mode switch.
+- [x] T3 — An open Console still draws after a rotation and after a dark-mode switch.
 - [ ] T4 — The demo above, seeded, from a cold start.
 
 ## Out of scope

@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# After the driver turned the device to portrait and back, which relaunched the activity twice in
+# the same process. The Console draws its prompt and the transcript it had, and its kernel still
+# answers a new entry.
+#
+# TABLET ONLY (SM-X216B): the flow runs a Console entry.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Tab: Console 1"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- assertVisible:
+    text: "before the turn 54"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 03-after-the-turn-the-console-is-as-it-was-left
+# Not scoped by `childOf: {text: "Cell output"}`: Maestro resolves that selector to the first such
+# node, entry 1's (docs/architecture/cross-cutting.md, 8.6). The f-string keeps the value out of
+# every typed source, so the source field cannot satisfy the wait either.
+- tapOn:
+    id: "console-input-field"
+- inputText: "print(f'after the turn {7*8}')"
+- tapOn: "Run"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      text: "after the turn 56"
+    timeout: 60000
+- takeScreenshot: 04-after-the-turn-the-console-still-answers

@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# After the driver switched the device to dark mode, which relaunched the activity in the same
+# process - the cause no `configChanges` list in the manifest would have declined. The Console
+# draws both earlier entries and answers a third.
+#
+# TABLET ONLY (SM-X216B): the flow runs a Console entry.
+- launchApp:
+    stopApp: false
+# Not scoped by `childOf: {text: "Cell output"}`: Maestro resolves that selector to the first such
+# node, entry 1's (docs/architecture/cross-cutting.md, 8.6). The f-string keeps the value out of
+# every typed source, so the source field cannot satisfy the wait either.
+- extendedWaitUntil:
+    visible: "Tab: Console 1"
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- assertVisible:
+    text: "after the turn 56"
+- takeScreenshot: 05-in-dark-mode-the-console-is-as-it-was-left
+- tapOn:
+    id: "console-input-field"
+- inputText: "print(f'in the dark {8*9}')"
+- tapOn: "Run"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      text: "in the dark 72"
+    timeout: 60000
+- takeScreenshot: 06-in-dark-mode-the-console-still-answers
