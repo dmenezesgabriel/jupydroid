@@ -1957,9 +1957,11 @@ terminal (`scripts/theme-six-combinations-driver.sh`, pixels read by `scripts/re
 The app's choice is now pushed down to the platform's per-app night mode (ADR-0094), so the window,
 `values-night` and the system bars follow the row. Re-measured over the same six combinations, the
 status bar's icons sit at 8.36:1 on Light and 17.43:1 on Dark in every frame, whatever the device
-says. **The terminal is still open**: its palette is chosen when it opens and kept by its retained
-ViewModel, so a terminal opened on one theme keeps that canvas after the row moves (`#FFFFFF` in a
-`#121314` pane with the app Dark and the device light).
+says. The terminal now reads its palette from `LocalAnsiPalette` and hands each change to the
+emulator (`TerminalColors.adopt`, `app/src/main/java/com/jupydroid/app/terminal/TerminalColors.kt`),
+so a terminal opened once and never reopened draws `#191A1B` with the app Dark and the device
+light, and `#FFFFFF` with the app Light and the device dark, in every frame. The stripe remains
+unreproduced.
 ---
 
 ## 12. Glossary
