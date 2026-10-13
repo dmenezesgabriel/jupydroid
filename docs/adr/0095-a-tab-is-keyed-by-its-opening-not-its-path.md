@@ -96,6 +96,7 @@ Not covered, on purpose:
 
 - **A stack restored after a process death** still keys a renamed document by the path it opened
   under, since the ViewModel that knew the live path does not survive it (ADR-0092).
-- **A session's record of its notebook's path**, which does not follow a rename (`GAP-068`), so an
-  attached Console still names the old path.
+- **A Console attached to a notebook**, whose key and title keep the path the notebook had when it
+  was opened. The session beneath it does follow the rename (`KernelSessions.setPath`,
+  `app/src/main/java/com/jupydroid/app/domain/port/KernelSessions.kt`).
 - **Recent documents** keep the name a document was opened under after it is renamed.

@@ -981,20 +981,6 @@ list cannot be dropped without dropping all ten. `RecentRow`'s stated reason —
 no per-row act because rename and delete belong to the file — was written before Forget was
 weighed, and the repair is the row act it declined.
 
-### GAP-068 — A session's record does not follow its file's rename
-
-`Context._onFileChanged` answers a rename by pointing the session at the new path —
-`sessionContext.session?.setPath(newPath)`
-(`jupyterlab/packages/docregistry/src/context.ts:540-555`) — so the running panel's row keeps
-naming a live file. Ours' `KernelSessions` has no path op — `running()` lists and `shutdown()`
-ends, and that is the whole surface
-(`app/src/main/java/com/jupydroid/app/domain/port/KernelSessions.kt`) — so a rename moves the
-open document (its `Renamed` adoption is the same event) while the server's session record keeps
-the old path: the Running row built from `running()` goes stale, and its tap opens the dead
-path as a fresh editor. The repair is a `setPath` on the port PATCHing the session, asked from
-the same `changes` collector that already adopts the rename — which is where the reference puts
-it, inside the context that heard `fileChanged`.
-
 ### GAP-069 — A file act on a tab fails without saying so
 
 `renameFile`'s catch rethrows every refusal that is not a 409
