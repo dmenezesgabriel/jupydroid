@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, on a fresh install. Seeded by scripts/jd-033-renamed-tab-demo-driver.sh.
+# `second.py` is opened and a terminal opened over it, then the file is renamed from its own tab's
+# long press. The terminal stays on top, and the tab beneath it and the Running panel's Open Tabs
+# row both read the new name without the strip being touched.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_FILE}"
+    timeout: 10000
+- tapOn: "Tab: Launcher"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 01-the-file-beneath-the-terminal
+- longPressOn: "Tab: ${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "${MAESTRO_RENAMED_FILE_STEM}"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_RENAMED_FILE_STEM}.py"
+    timeout: 10000
+- assertNotVisible: "Tab: ${MAESTRO_FILE}"
+- assertVisible: "Tab: Terminal .*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-the-tab-beneath-the-terminal-reads-the-new-name
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open Tabs"
+    timeout: 10000
+- assertVisible: "Open tab: ${MAESTRO_RENAMED_FILE_STEM}.py"
+- assertNotVisible: "Open tab: ${MAESTRO_FILE}"
+- takeScreenshot: 03-open-tabs-reads-the-new-name

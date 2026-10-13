@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# The same process. `second.ipynb` is opened, the terminal brought back on top of it, and the
+# notebook renamed from the explorer's row rather than from its tab. The tab beneath the terminal
+# reads the new name.
+- launchApp:
+    stopApp: false
+- tapOn: "Files"
+- tapOn: "${MAESTRO_NOTEBOOK}"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_NOTEBOOK}"
+    timeout: 15000
+- tapOn: "Tab: Terminal .*"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Recents lists what was opened beside the listing's row, and only the listing's row has a menu
+# (.maestro/explorer-rename-open-document.yaml), so the section is emptied to leave one match.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- longPressOn: "${MAESTRO_NOTEBOOK}"
+# Delete is on the row's menu and not in the tab's dialog: the press reached the explorer's row.
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "${MAESTRO_RENAMED_NOTEBOOK_STEM}"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_RENAMED_NOTEBOOK_STEM}.ipynb"
+    timeout: 10000
+- assertNotVisible: "Tab: ${MAESTRO_NOTEBOOK}"
+- assertVisible: "Tab: Terminal .*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 04-the-notebook-renamed-from-its-row-beneath-the-terminal

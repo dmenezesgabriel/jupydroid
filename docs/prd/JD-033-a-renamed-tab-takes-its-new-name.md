@@ -23,7 +23,8 @@ On the arm64 tablet (`SM-X216B`) — a terminal is one of the tabs, and only arm
 4. Same for `second.ipynb` beneath the terminal, renamed from the explorer's row: its tab reads the
    new name.
 5. Tap the renamed tab: it opens on the moved file, and an edit saves to the new path only.
-6. Kill and relaunch: the tab and the file both carry the new name.
+6. Force-stop and relaunch, which clears saved state, so no tab comes back: the explorer lists the
+   new names only, and the file opens holding the edit under a tab reading its new name.
 
 Not `shipped` until this has run on that device, with screenshots, snapshots and `maestro.log`
 committed under `evidence/jd-033-renamed-tab/`.
@@ -108,7 +109,7 @@ None.
 
 - [x] T1 — The fix: before-flow on SM-X216B, red JVM + instrumented tests, the live path as snapshot
   state, after-flow.
-- [ ] T2 — The demo on a fresh install; ship: delete this PRD, close GAP-172, backlog row `shipped`.
+- [x] T2 — The demo on a fresh install; ship: delete this PRD, close GAP-172, backlog row `shipped`.
 
 ## Out of scope
 

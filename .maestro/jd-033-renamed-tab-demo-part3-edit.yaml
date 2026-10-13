@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# The same process. The renamed file's tab is tapped: it opens on the moved file, and a line typed
+# into it is autosaved. The driver reads the disk afterwards - the new path holds it, the old one
+# does not exist.
+- launchApp:
+    stopApp: false
+- tapOn: "Tab: ${MAESTRO_RENAMED_FILE_STEM}.py"
+- extendedWaitUntil:
+    visible: "second = \"typed into\"\\s*"
+    timeout: 10000
+- takeScreenshot: 05-the-renamed-tab-opens-on-the-moved-file
+- tapOn:
+    point: "95%,25%"
+- inputText: " # ${MAESTRO_TYPED}"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 06-an-edit-to-the-moved-file

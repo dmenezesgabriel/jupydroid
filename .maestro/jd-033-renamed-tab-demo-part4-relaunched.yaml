@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# A new process: the driver force-stopped the app, which clears its saved state, so no tab comes
+# back. The explorer lists both files under their new names only, and the file opens holding the
+# edit under a tab that reads its new name.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "${MAESTRO_RENAMED_FILE_STEM}.py"
+    timeout: 10000
+- assertVisible: "${MAESTRO_RENAMED_NOTEBOOK_STEM}.ipynb"
+- assertNotVisible: "${MAESTRO_FILE}"
+- assertNotVisible: "${MAESTRO_NOTEBOOK}"
+- tapOn: "${MAESTRO_RENAMED_FILE_STEM}.py"
+- extendedWaitUntil:
+    visible: "(?s).*# ${MAESTRO_TYPED}.*"
+    timeout: 10000
+- assertVisible: "Tab: ${MAESTRO_RENAMED_FILE_STEM}.py"
+- takeScreenshot: 07-after-a-kill-the-file-and-its-tab-carry-the-new-name
