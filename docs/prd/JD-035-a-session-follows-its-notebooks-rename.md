@@ -105,7 +105,7 @@ decision, and gets an ADR if taken.
 
 ## Tasks
 
-- [ ] T1 — `KernelSessions.setPath` PATCHes `path` and `name` and moves the tracked entry, and the
+- [x] T1 — `KernelSessions.setPath` PATCHes `path` and `name` and moves the tracked entry, and the
   notebook asks it from `adopt`. Unit tests, plus a flow on the tablet: rename from the tab and from a
   folder, then check the row's name and that tapping it reveals the tab.
 - [ ] T2 — the demo above on a fresh install on SM-X216B. Then GAP-068 closes in
