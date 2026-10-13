@@ -1,0 +1,20 @@
+appId: com.jupydroid.app
+---
+# Run by scripts/theme-first-frame-driver.sh once per app theme, with MAESTRO_THEME naming the
+# Settings row's choice (System, Light or Dark). Only picks it: the driver then stops the app and
+# records the next cold launch, whose first frames are what is measured.
+#
+# TABLET ONLY (SM-X216B): it is the demo of a theme that reaches the terminal, run where the
+# terminal is real, and the Space it enters is the real one.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+- tapOn: "${MAESTRO_THEME}"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-theme-picked

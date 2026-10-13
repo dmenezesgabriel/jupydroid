@@ -218,6 +218,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
 | palette-consumers gate | a palette states colours something draws | `scripts/check_palette_consumers.py` (+ `_test.py`) |
 | pane-width measure | what each column of the shell gets, on device | `scripts/read_pane_widths.py` (+ `_test.py`) — a measurement, not a gate |
+| launch-frames measure | what colour each frame of a cold launch is, from screenrecord's raw frames | `scripts/read_launch_frames.py` (+ `_test.py`) — a measurement, not a gate |
 | vscode-theme resolve | what colour a VS Code role *actually* is, after its `include` chain | `scripts/resolve_vscode_theme.py` (+ `_test.py`) — a measurement, not a gate |
 | reference-surface measure | what each reference offers, enumerated with the pattern that counted it | `scripts/read_reference_commands.py` (+ `_test.py`) — a measurement, not a gate |
 | port-surface measure | every port operation, and whether production code uses it | `scripts/read_port_surface.py` (+ `_test.py`) — a measurement, not a gate |
