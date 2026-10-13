@@ -1926,42 +1926,6 @@ changes for that tab. JupyterLab's `title.label` is a signal that the context's 
 sets (`packages/docregistry/src/context.ts`). The repair makes the open document's path
 observable state.
 
-### GAP-173 — The app's theme and the device's disagree on screen when they differ
-
-Reported from the tablet with the app set to Dark and the device on light: a white stripe stands
-between the side panel and the main content, and the terminal draws white inside a dark app.
-Measured on SM-X216B in landscape, two panes, in all six combinations of the app on System, Light
-and Dark against the device's night mode off and on, over Settings, a file, a notebook and a
-terminal (`scripts/theme-six-combinations-driver.sh`, pixels read by `scripts/read_chrome_parts.py`):
-
-- **The terminal takes the device's theme in every combination.** With the app on Dark and the
-  device light its canvas is `#FFFFFF` across 1188px of a `#121314` pane, and the reverse
-  combination draws it `#191A1B` in a light app. Its palette is chosen from
-  `darkTheme: Boolean = isSystemInDarkTheme()`, which no caller passes
-  (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`, called from
-  `Navigation.kt`), where the rest of the app takes
-  `themeSettings.override.resolvesToDark(isSystemInDarkTheme())`
-  (`app/src/main/java/com/jupydroid/app/MainActivity.kt`), and it is chosen once, in the
-  ViewModel's factory, and held by `TerminalEmulator`;
-- **the status bar's icons take the device's theme.** Where the two disagree, the icons sit on the
-  app's bar at a contrast of 1.15:1 (app Dark, device light) and 1.05:1 (app Light, device dark),
-  against 8.36:1 and 17.43:1 where they agree. `enableEdgeToEdge()` runs with its defaults, which
-  pick the bars' icon colours from the device;
-- **no stripe between the panes was drawn in any of the six.** The gap between the side panel and
-  the main content is the editor's own colour in every frame, so on these four screens it is not
-  the window showing through. The window's background is still split by the device's night
-  qualifier (`app/src/main/res/values/colors.xml`, `app/src/main/res/values-night/colors.xml`,
-  `window_background`), so whatever Compose leaves unpainted, and the frame before it draws, would
-  follow the device; the screen and the moment the report saw it on are not yet reproduced.
-
-The app's choice is now pushed down to the platform's per-app night mode (ADR-0094), so the window,
-`values-night` and the system bars follow the row. Re-measured over the same six combinations, the
-status bar's icons sit at 8.36:1 on Light and 17.43:1 on Dark in every frame, whatever the device
-says. The terminal now reads its palette from `LocalAnsiPalette` and hands each change to the
-emulator (`TerminalColors.adopt`, `app/src/main/java/com/jupydroid/app/terminal/TerminalColors.kt`),
-so a terminal opened once and never reopened draws `#191A1B` with the app Dark and the device
-light, and `#FFFFFF` with the app Light and the device dark, in every frame. The stripe remains
-unreproduced.
 ---
 
 ## 12. Glossary

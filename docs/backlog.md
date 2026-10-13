@@ -166,12 +166,13 @@ the save the user asks for, the first half of `GAP-061`, closed by
 
 ### M6 — Presentation
 
-What the app draws against what its own theme says. The gap is `GAP-173` in
-[`architecture.md` §11](architecture.md): the app's Theme row reaches Compose and nothing beneath it.
+What the app draws against what its own theme says. `GAP-173`, the app's Theme row reaching
+Compose and nothing beneath it, is closed by
+[ADR-0094](adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-032` | **One theme decides every surface:** whatever the app's Theme row says and the device is set to, the window, the system bars, the panes and the terminal take one theme, and no text or icon loses its contrast | in-progress ← next | [PRD](prd/JD-032-one-theme-decides-every-surface.md) | `GAP-173` |
+| `JD-032` | **One theme decides every surface:** whatever the app's Theme row says and the device is set to, the window, the system bars, the panes and the terminal take one theme, and no text or icon loses its contrast | shipped | — | `GAP-173` |
 
 ### Known gaps
 

@@ -74,11 +74,28 @@ Measured on SM-X216B:
   mode off and dark with it on.
 - **The status bar's icons follow the app** in all six combinations of the row against the device:
   8.36:1 on Light and 17.43:1 on Dark, where they had been 1.15:1 and 1.05:1.
+- **The first frame of a cold launch is the row's theme** in all six combinations, recorded from
+  the launcher (`scripts/theme-first-frame-driver.sh`, frames read by
+  `scripts/read_launch_frames.py`): the first opaque frame is `#121314` with the app on Dark (86% and
+  87% of the frame) and `#FFFFFF` with the app on Light (90% and 92%), whichever way the device is
+  set, and the app on System takes the device's. Only the splash's fade-in comes before it; no frame
+  of the device's colour does.
+- **No stripe between the panes was drawn** in any frame of the six combinations - Settings, a file,
+  a notebook, a terminal, the launch, and the Spaces home it settles on, one part across its whole
+  width. The report that a white stripe stood between the side panel and the main content with the
+  app on Dark and the device light was never reproduced, before the push-down or after it.
 
 ## Consequences
 
 The window, `values-night`, the system bars and every `isSystemInDarkTheme()` now answer with the
 app's choice, and a new surface that reads the configuration follows it without being told.
+
+The terminal is the one surface that holds colours of its own: its emulator lives in a retained
+ViewModel that outlives the relaunch a theme change causes (ADR-0092). It reads `LocalAnsiPalette`
+and hands each change to the emulator (`TerminalColors.adopt`,
+`app/src/main/java/com/jupydroid/app/terminal/TerminalColors.kt`), so a terminal opened once and
+never reopened follows the row; a colour a program set by `OSC` is dropped with the palette it was
+set against, as termux-app and xterm.js both do.
 
 What a future reader will be tempted to "fix":
 
@@ -91,8 +108,5 @@ What a future reader will be tempted to "fix":
 
 Not covered, on purpose:
 
-- **The terminal's palette** is chosen once when the terminal opens and held by its retained
-  ViewModel, so an open terminal keeps the palette it opened with until it is redrawn on change.
-  That is the next repair under `GAP-173`.
 - **Clearing the app's data without uninstalling** leaves the platform holding the last mode until
   the next launch pushes the default.
