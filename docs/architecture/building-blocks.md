@@ -107,6 +107,7 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `LanguageServerPort` | LSP over stdio — diagnostics, completion, hover, signature help, definition, format, rename | `StdioLanguageServer` against `pylsp` in the rootfs |
 | `TerminalGateway` | open, write to, resize and close a terminado shell | `RealTerminalGateway`, behind `ActivityTrackedTerminalGateway` so a live terminal holds the server up |
 | `ThemeSettingsRepository` | the app-wide theme preference | `DiskThemeSettingsRepository` |
+| `PlatformNightMode` | hand the theme choice down, so what the platform draws follows it | `UiModeManagerPlatformNightMode` → `setApplicationNightMode` |
 | `LauncherSettingsRepository` | the launcher's own preferences | `DiskLauncherSettingsRepository` |
 | `ServerLauncher` | start/stop the `jupyter_server` process for a Space, and wait for it to exit | `JupyterServerLauncher` → `ProcessBuilder` → rootfs dynamic loader |
 | `SpaceServers` | run and stop each Space's server, several at once, and which are running | `JupyterSpaceServers`, one `SpaceServer` with its own launcher per Space |

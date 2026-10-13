@@ -1,6 +1,7 @@
 package com.jupydroid.app
 
 import android.app.Application
+import android.app.UiModeManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -49,6 +50,7 @@ import com.jupydroid.app.data.space.spaceImageInstaller
 import com.jupydroid.app.data.space.spaceKernelSpecsOnDisk
 import com.jupydroid.app.data.space.spaceServers
 import com.jupydroid.app.data.space.spacesDir
+import com.jupydroid.app.data.uimode.UiModeManagerPlatformNightMode
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.ActiveTerminals
@@ -187,6 +189,7 @@ class JupydroidApplication : Application() {
     terminalSettings = DiskTerminalSettingsRepository(filesDir),
     explorerSettings = DiskExplorerSettingsRepository(filesDir),
     themeSettings = DiskThemeSettingsRepository(filesDir),
+    platformNightMode = UiModeManagerPlatformNightMode(getSystemService(UiModeManager::class.java)),
     launcherSettings = DiskLauncherSettingsRepository(filesDir),
     externalLinkOpener = IntentExternalLinkOpener(this),
     sharedDocumentReader = ContentResolverSharedDocumentReader(contentResolver),

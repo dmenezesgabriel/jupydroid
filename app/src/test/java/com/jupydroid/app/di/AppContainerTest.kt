@@ -3,9 +3,13 @@ package com.jupydroid.app.di
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakePlatformNightMode
+import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.model.ThemeOverride
+import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
 import kotlinx.coroutines.flow.first
@@ -86,6 +90,41 @@ class AppContainerTest {
     runCurrent()
 
     assertEquals(1, preReads)
+  }
+
+  /** The stored choice reaches the platform as the container is built, before any screen asks. */
+  @Test
+  fun buildingTheContainer_pushesTheStoredThemeToThePlatform() = runTest {
+    val platformNightMode = FakePlatformNightMode()
+
+    AppContainer(
+      themeSettings = FakeThemeSettingsRepository(ThemeSettings(ThemeOverride.DARK)),
+      platformNightMode = platformNightMode,
+      applicationScope = backgroundScope,
+    )
+    runCurrent()
+
+    assertEquals(listOf(ThemeOverride.DARK), platformNightMode.followed)
+  }
+
+  /** A changed row is pushed; a rewrite of the same choice is not, so nothing relaunches for it. */
+  @Test
+  fun changingTheTheme_pushesOnlyWhatChanged() = runTest {
+    val themeSettings = FakeThemeSettingsRepository()
+    val platformNightMode = FakePlatformNightMode()
+    AppContainer(
+      themeSettings = themeSettings,
+      platformNightMode = platformNightMode,
+      applicationScope = backgroundScope,
+    )
+    runCurrent()
+
+    themeSettings.update(ThemeSettings(ThemeOverride.LIGHT))
+    runCurrent()
+    themeSettings.update(ThemeSettings(ThemeOverride.LIGHT))
+    runCurrent()
+
+    assertEquals(listOf(ThemeOverride.SYSTEM, ThemeOverride.LIGHT), platformNightMode.followed)
   }
 
   /**

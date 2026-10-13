@@ -7,6 +7,7 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakePlatformNightMode
 import com.jupydroid.app.data.fake.FakeRemoteImageReader
 import com.jupydroid.app.data.fake.FakeSharedDocumentReader
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
@@ -25,6 +26,7 @@ import com.jupydroid.app.domain.port.ExternalLinkOpener
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
+import com.jupydroid.app.domain.port.PlatformNightMode
 import com.jupydroid.app.domain.port.RemoteImageReader
 import com.jupydroid.app.domain.port.SharedDocumentReader
 import com.jupydroid.app.domain.port.SpaceEnvironments
@@ -35,6 +37,8 @@ import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
@@ -94,6 +98,8 @@ class AppContainer(
   val explorerSettings: ExplorerSettingsRepository = FakeExplorerSettingsRepository(),
   /** The app-wide theme preference - System/Light/Dark, 3. */
   val themeSettings: ThemeSettingsRepository = FakeThemeSettingsRepository(),
+  /** Where [themeSettings]' choice is handed down, so what the platform draws follows it too. */
+  private val platformNightMode: PlatformNightMode = FakePlatformNightMode(),
   /**
    * The launcher bookkeeping - whether it has ever presented itself, which is what keeps the
    * one-pane first-run push a once-only act. At two panes the reference's
@@ -122,6 +128,15 @@ class AppContainer(
 ) {
   init {
     applicationScope.launch { preReadServerImports() }
+    applicationScope.launch { pushThemeToPlatform() }
+  }
+
+  /**
+   * For the process's life, because the platform keeps what it is told across launches: only a
+   * changed choice is pushed, so a rewrite of the same one costs no configuration change.
+   */
+  private suspend fun pushThemeToPlatform() {
+    themeSettings.observeSettings().map { it.override }.distinctUntilChanged().collect(platformNightMode::follow)
   }
 
   /**
