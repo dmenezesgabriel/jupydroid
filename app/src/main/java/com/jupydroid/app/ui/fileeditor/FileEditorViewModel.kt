@@ -179,8 +179,14 @@ class FileEditorViewModel(
     _uiState.update { it.copy(gone = true) }
   }
 
-  /** Takes an edit from the field. Written back on a debounce, as a cell's source is. */
+  /**
+   * Takes an edit from the field. Written back on a debounce, as a cell's source is.
+   *
+   * A report of the text already held is no edit: the field reports once more as it leaves the
+   * screen (`reportCellEdits`), and after a save that would mark the saved file dirty again.
+   */
   fun edit(text: String) {
+    if (text == _uiState.value.text) return
     _uiState.update { it.copy(text = text, dirty = true) }
     save.schedule()
   }

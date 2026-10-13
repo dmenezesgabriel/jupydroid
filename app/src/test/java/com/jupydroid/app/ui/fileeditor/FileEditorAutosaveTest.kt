@@ -91,6 +91,23 @@ class FileEditorAutosaveTest {
     assertEquals("after", workspace.readText("notes.txt"))
   }
 
+  /**
+   * The field reports its text once more as it leaves the screen - a tab going beneath another -
+   * and that text is what was just saved. It changes nothing, so it must not mark the file dirty
+   * and undo the save the strip's icon reported.
+   */
+  @Test
+  fun anEditThatChangesNothingLeavesASavedFileClean() = runTest {
+    val viewModel = editorFor(editorSettings = autosaveOff())
+    viewModel.edit("after")
+    viewModel.saveNow {}
+    advanceUntilIdle()
+
+    viewModel.edit("after")
+
+    assertFalse(viewModel.uiState.value.dirty)
+  }
+
   private fun TestScope.editorFor(
     workspace: FakeWorkspaceRepository = FakeWorkspaceRepository(textByPath = mapOf("notes.txt" to "before")),
     editorSettings: FakeEditorSettingsRepository = FakeEditorSettingsRepository(),

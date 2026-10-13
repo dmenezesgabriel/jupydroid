@@ -108,6 +108,19 @@ class EditorAutosaveTest {
    * leaving, and a failed write must not be followed out - the reference's `saveBeforeClose`
    * keeps the widget open on a failed save the same way (`docmanager/src/manager.ts`).
    */
+  /** The file editor's case, on a cell: a re-report of the saved source is no edit. */
+  @Test
+  fun anEditThatChangesNothingLeavesASavedNotebookClean() = runTest {
+    val viewModel = loadedEditor(editorSettings = autosaveOff())
+    viewModel.editCell("c1", "print(99)")
+    viewModel.saveNow {}
+    advanceUntilIdle()
+
+    viewModel.editCell("c1", "print(99)")
+
+    assertFalse(viewModel.uiState.value.dirty)
+  }
+
   @Test
   fun saveNowOnAFailedWriteDoesNotCallBack() = runTest {
     val viewModel = editorWhoseWorkspaceWentAway(editorSettings = autosaveOff())

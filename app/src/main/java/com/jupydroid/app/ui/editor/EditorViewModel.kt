@@ -295,6 +295,9 @@ class EditorViewModel(
    * screen is going away and the debounce will not get its chance.
    */
   fun editCell(cellId: String, source: String) {
+    // A report of the source already held is no edit: the field reports once more as it leaves
+    // the screen (`reportCellEdits`), and after a save that would mark the saved notebook dirty.
+    if (_uiState.value.cells.any { it.id == cellId && it.source == source }) return
     // `onTextChange` -> `reset()` (`packages/notebook/src/history.ts:313-319`): typing ends a walk
     // through the kernel's history, so the next tap starts one against the cell as it is now. It
     // ignores the edit the walk itself caused, which is why it is told the source rather than that
