@@ -25,10 +25,12 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -138,6 +140,8 @@ fun TabbedDocumentPane(
   // The rename the repository refused - `renameFile`'s 409 becomes `shouldOverwrite`, the dialog
   // below, and only then `overwrite` (`packages/docmanager/src/dialogs.ts`).
   var overwriting by remember { mutableStateOf<TakenTabName?>(null) }
+  // Why the disk refused a rename or an overwrite, until the user has read it.
+  var refusal by remember { mutableStateOf<String?>(null) }
   val scope = rememberCoroutineScope()
 
   Column(modifier = Modifier.fillMaxSize()) {
@@ -172,7 +176,13 @@ fun TabbedDocumentPane(
         scope.launch {
           runCatching { workspaceRepository.rename(pending.path, name) }
             .onSuccess { moved -> openDocumentPaths[pending.key] = moved }
-            .onFailure { if (it is FileNameTakenException) overwriting = TakenTabName(pending.key, pending.path, name) }
+            .onFailure {
+              if (it is FileNameTakenException) {
+                overwriting = TakenTabName(pending.key, pending.path, name)
+              } else {
+                refusal = it.message ?: "could not rename '${pending.path}' to '$name'"
+              }
+            }
         }
       },
       onDismiss = { renaming = null },
@@ -187,9 +197,23 @@ fun TabbedDocumentPane(
         scope.launch {
           runCatching { workspaceRepository.overwrite(taken.path, taken.name) }
             .onSuccess { openDocumentPaths[taken.key] = it }
+            .onFailure { refusal = it.message ?: "could not overwrite '${taken.name}' with '${taken.path}'" }
         }
       },
       onDismiss = { overwriting = null },
+    )
+  }
+
+  // The browser's answer, not the tab's: `_doRename` shows every refusal but the user's own cancel
+  // as `showErrorMessage('Rename Error', error)` (jupyterlab@7f0e690
+  // packages/filebrowser/src/listing.ts), while `context.rename` lets the tab's refusal reach the
+  // console alone - which, on a device, is silence.
+  refusal?.let { message ->
+    AlertDialog(
+      onDismissRequest = { refusal = null },
+      title = { Text("Rename Error") },
+      text = { Text(message) },
+      confirmButton = { TextButton(onClick = { refusal = null }) { Text("OK") } },
     )
   }
 }

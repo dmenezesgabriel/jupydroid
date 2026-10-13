@@ -73,13 +73,19 @@ class MainAreaTabStripTest {
     /** Set before the tap: the rename then refuses the way a 409 does. */
     var nameIsTaken = false
 
+    /** Set before the tap: the disk refuses for any other reason, as `DiskWorkspaceRepository` does. */
+    var renameRefusal: Throwable? = null
+    var overwriteRefusal: Throwable? = null
+
     override suspend fun rename(path: String, name: String): String {
       if (nameIsTaken) throw FileNameTakenException(name)
+      renameRefusal?.let { throw it }
       renames += path to name
       return movedTo(path, name)
     }
 
     override suspend fun overwrite(path: String, name: String): String {
+      overwriteRefusal?.let { throw it }
       overwrites += path to name
       return movedTo(path, name)
     }
@@ -304,10 +310,7 @@ class MainAreaTabStripTest {
     open.opened(FakeTabDocument("dir/a.ipynb"))
     strip(Editor("dir/a.ipynb"), FileEditor("b.py"))
 
-    tab("a.ipynb").performTouchInput { longClick() }
-    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
-    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("renamed.ipynb")
-    compose.onNodeWithText("Rename").performClick()
+    renameTab("a.ipynb", to = "renamed.ipynb")
 
     compose.waitUntil(5_000) { workspace.renames.isNotEmpty() }
     assertEquals(listOf("dir/a.ipynb" to "renamed.ipynb"), workspace.renames)
@@ -322,16 +325,53 @@ class MainAreaTabStripTest {
     workspace.nameIsTaken = true
     strip(Editor("a.ipynb"))
 
-    tab("a.ipynb").performTouchInput { longClick() }
-    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
-    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput("taken.ipynb")
-    compose.onNodeWithText("Rename").performClick()
+    renameTab("a.ipynb", to = "taken.ipynb")
 
     compose.onNodeWithText("Overwrite file?").assertIsDisplayed()
     compose.onNodeWithText("Overwrite").performClick()
 
     compose.waitUntil(5_000) { workspace.overwrites.isNotEmpty() }
     assertEquals(listOf("a.ipynb" to "taken.ipynb"), workspace.overwrites)
+  }
+
+  /**
+   * A refusal that is not a taken name says why - the browser's `_doRename` answers every one but
+   * the user's own cancel with `showErrorMessage('Rename Error', error)`
+   * (`packages/filebrowser/src/listing.ts`), where a closed dialog alone would leave the user
+   * guessing.
+   */
+  @Test
+  fun aRenameTheDiskRefusesSaysWhy() {
+    workspace.renameRefusal = IllegalArgumentException("nothing at 'a.ipynb' in the workspace to rename")
+    strip(Editor("a.ipynb"))
+
+    renameTab("a.ipynb", to = "b.ipynb")
+
+    compose.waitUntil(5_000) { compose.onAllNodesWithText("Rename Error").fetchSemanticsNodes().isNotEmpty() }
+    compose.onNodeWithText("nothing at 'a.ipynb' in the workspace to rename").assertIsDisplayed()
+    compose.onNodeWithText("OK").performClick()
+    compose.onAllNodesWithText("Rename Error").assertCountEquals(0)
+  }
+
+  /** The overwrite after a taken name is refused the same way, and says so the same way. */
+  @Test
+  fun anOverwriteTheDiskRefusesSaysWhy() {
+    workspace.nameIsTaken = true
+    workspace.overwriteRefusal = IllegalStateException("could not replace 'full' in the workspace")
+    strip(Editor("a.ipynb"))
+
+    renameTab("a.ipynb", to = "full")
+    compose.onNodeWithText("Overwrite").performClick()
+
+    compose.waitUntil(5_000) { compose.onAllNodesWithText("Rename Error").fetchSemanticsNodes().isNotEmpty() }
+    compose.onNodeWithText("could not replace 'full' in the workspace").assertIsDisplayed()
+  }
+
+  private fun renameTab(title: String, to: String) {
+    tab(title).performTouchInput { longClick() }
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput(to)
+    compose.onNodeWithText("Rename").performClick()
   }
 
   /**
