@@ -14,8 +14,8 @@ On the arm64 tablet (`SM-X216B`), because it runs a cell.
 
 1. Cold start: install, launch, enter `base`.
 2. Create `a.ipynb`, open it, and run `x = 41`. Sessions and Tabs lists one kernel row, `a.ipynb`.
-3. Delete `a.ipynb` from the explorer and confirm. The kernel row is gone, and the open tab says
-   its file is gone.
+3. Delete `a.ipynb` from the explorer and confirm. Its tab closes with it, and the kernel row is
+   gone.
 4. Create `b.ipynb`, run a cell, and close its tab. The kernel row `b.ipynb` is still listed.
 5. Delete `b.ipynb` from the explorer. The kernel row is gone.
 6. Create `c.ipynb` and run a cell. Create `d.ipynb`, rename it to `c.ipynb` and accept the
@@ -126,7 +126,7 @@ None.
 
 ## Tasks
 
-- [ ] T1 — a deleted path's one session is shut down, from a listener on the workspace's changes
+- [x] T1 — a deleted path's one session is shut down, from a listener on the workspace's changes
   started with each Space's ports. Unit tests, plus a flow on the tablet: delete a notebook with
   its tab open, one with its tab closed, and one replaced by an overwrite, checking the kernel row
   goes each time and another notebook's row stays.

@@ -1,0 +1,198 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/jd-036-delete-stops-session-t1-driver.sh with five copies
+# of one notebook, whose cell counts its own runs in the kernel: `run_37`, then `run_74`.
+#
+# `DocumentManager.deleteFile` stops the session at the path it deletes, and `overwrite` deletes
+# its target through the same call (jupyterlab@7f0e6906 `packages/docmanager/src/manager.ts`). So
+# a kernel row leaves the Running panel with its file three ways: deleted with its tab open,
+# deleted with its tab closed, and replaced by a rename over it.
+#
+# `keep.ipynb` is the control, and every absence below is read beside its row: a panel that listed
+# nothing at all would pass "the row is gone" for a reason that is not this one. Its second run
+# printing `run_74` at the end is the same kernel, so the stops took only what they were aimed at.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "keep.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: keep.ipynb"
+    timeout: 30000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "run_37[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+
+# ---- deleted with its tab open ----
+- tapOn: "a.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: a.ipynb"
+    timeout: 30000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "run_37[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: a.ipynb"
+    timeout: 15000
+- assertVisible: "Open kernel session: keep.ipynb"
+- takeScreenshot: 01-a-and-keep-each-hold-a-kernel
+- tapOn: "Files"
+# Recents is cleared before each long press, for the reason explorer-rename-open-document.yaml
+# gives: an opened file is listed twice, and only the listing's row carries the menu.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- longPressOn: "a.ipynb"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: a.ipynb?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "Tab: a.ipynb"
+    timeout: 15000
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: keep.ipynb"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Open kernel session: a.ipynb"
+    timeout: 15000
+- takeScreenshot: 02-a-deleted-its-kernel-row-gone
+
+# ---- deleted with its tab closed: the session outlives the tab, and still ends with the file ----
+- tapOn: "Files"
+- tapOn: "b.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: b.ipynb"
+    timeout: 30000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "run_37[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- tapOn: "Close tab: b.ipynb"
+- extendedWaitUntil:
+    notVisible: "Tab: b.ipynb"
+    timeout: 10000
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: b.ipynb"
+    timeout: 15000
+- takeScreenshot: 03-b-closed-its-kernel-still-listed
+- tapOn: "Files"
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- longPressOn: "b.ipynb"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: b.ipynb?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "b.ipynb"
+    timeout: 15000
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: keep.ipynb"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Open kernel session: b.ipynb"
+    timeout: 15000
+- takeScreenshot: 04-b-deleted-its-kernel-row-gone
+
+# ---- replaced by a rename over it ----
+- tapOn: "Files"
+- tapOn: "c.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: c.ipynb"
+    timeout: 30000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "run_37[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- tapOn: "Close tab: c.ipynb"
+- extendedWaitUntil:
+    notVisible: "Tab: c.ipynb"
+    timeout: 10000
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: c.ipynb"
+    timeout: 15000
+- tapOn: "Files"
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- longPressOn: "d.ipynb"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "c"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Overwrite file?"
+    timeout: 10000
+- takeScreenshot: 05-d-renamed-over-c-asks
+- tapOn: "Overwrite"
+- extendedWaitUntil:
+    notVisible: "d.ipynb"
+    timeout: 15000
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: keep.ipynb"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Open kernel session: c.ipynb"
+    timeout: 15000
+- takeScreenshot: 06-c-overwritten-its-kernel-row-gone
+
+# ---- the control's kernel is the one it started on ----
+- tapOn: "Open kernel session: keep.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: keep.ipynb"
+    timeout: 10000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "run_74[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 07-keep-still-on-its-own-kernel
