@@ -130,7 +130,7 @@ None.
   started with each Space's ports. Unit tests, plus a flow on the tablet: delete a notebook with
   its tab open, one with its tab closed, and one replaced by an overwrite, checking the kernel row
   goes each time and another notebook's row stays.
-- [ ] T2 — the demo above on a fresh install on SM-X216B. Then GAP-058 closes in
+- [x] T2 — the demo above on a fresh install on SM-X216B. Then GAP-058 closes in
   `docs/architecture.md` §11, the parity ledger's `filebrowser:delete` and `docmanager:delete`
   rows say the session stops, the backlog row is marked shipped, and this PRD is deleted.
 
