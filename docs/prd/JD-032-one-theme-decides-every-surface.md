@@ -109,7 +109,7 @@ night mode is the push-down of it, never read back as a second source.
 - [x] T2 — One source decides dark: the app's choice pushed down to the platform, so the window,
   `values-night` and the system bars follow it.
 - [x] T3 — The terminal follows the theme live, without being reopened.
-- [ ] T4 — The demo, measured against T1.
+- [x] T4 — The demo, measured against T1.
 
 T1's finding may reorder T2 and T3.
 
