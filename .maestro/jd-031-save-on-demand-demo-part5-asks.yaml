@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# Continues part4 on the open file, which the driver has rewritten through run-as since it was
+# saved. One tap on the strip's save icon: the write is refused and the app asks which version to
+# keep. The driver reads the disk while the question is up - the rewrite is still there.
+- tapOn: "Save tab: ${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "File Changed"
+    timeout: 10000
+- assertVisible: "Cancel"
+- assertVisible: "Revert"
+- assertVisible: "Overwrite"
+- takeScreenshot: 06-the-save-asks-because-the-file-changed-beneath-it

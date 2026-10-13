@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# The same process, the notebook on top. Back to the file's tab, whose saved line is on screen, and
+# a second line typed: the dot is back. The driver then rewrites the file beneath the open editor.
+- launchApp:
+    stopApp: false
+- tapOn: "Tab: ${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "(?s).*# ${MAESTRO_TYPED}.*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # ${MAESTRO_TYPED_AGAIN}"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Unsaved changes"
+- assertVisible:
+    text: "Save tab: ${MAESTRO_FILE}"
+    enabled: true
+- takeScreenshot: 05-typed-again-the-dot-is-back

@@ -107,7 +107,7 @@ Ours is **present but unreachable**: the write exists and no act reaches it.
 - [x] T1 — The strip's save icon writes the active document: enabled while it is dirty, greyed when
   it is clean or the top tab is not a document, and after a tap the file on disk holds the edit
   while the tab stays open - a file and a notebook, on the tablet.
-- [ ] T2 — The demo above, seeded, from a cold start, including the save that asks. Then the ADR,
+- [x] T2 — The demo above, seeded, from a cold start, including the save that asks. Then the ADR,
   the ledger's `docmanager:save` row, `GAP-061` out of `architecture.md`, this file deleted.
 
 ## Out of scope

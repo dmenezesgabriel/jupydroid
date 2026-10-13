@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# A new process: the driver force-stopped the app with both tabs open and nothing closed. What the
+# file editor reads back is what Overwrite kept - the second line, not the rewrite.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "(?s).*# ${MAESTRO_TYPED_AGAIN}.*"
+    timeout: 10000
+- assertNotVisible: "rewritten on disk"
+- assertNotVisible: "Unsaved changes"
+- takeScreenshot: 08-after-a-kill-the-file-opens-holding-what-overwrite-kept

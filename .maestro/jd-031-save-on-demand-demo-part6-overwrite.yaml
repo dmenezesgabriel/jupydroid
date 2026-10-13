@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# Continues part5 with the question up. Overwrite keeps the editor's version: the question goes,
+# the dot gives way to the close, the icon greys, and the tab is still open. The driver reads the
+# disk after this - the second line is there and the rewrite is not.
+- tapOn: "Overwrite"
+- extendedWaitUntil:
+    notVisible: "File Changed"
+    timeout: 10000
+- extendedWaitUntil:
+    notVisible: "Unsaved changes"
+    timeout: 10000
+- assertVisible: "Tab: ${MAESTRO_FILE}"
+- assertVisible:
+    text: "Save tab: ${MAESTRO_FILE}"
+    enabled: false
+- takeScreenshot: 07-overwritten-the-dot-is-gone-and-the-tab-is-open
