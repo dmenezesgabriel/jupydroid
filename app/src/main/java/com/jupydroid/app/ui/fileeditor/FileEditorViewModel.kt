@@ -1,5 +1,8 @@
 package com.jupydroid.app.ui.fileeditor
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocument
@@ -80,12 +83,8 @@ data class FileEditorUiState(
  *   the same arrangement `EditorViewModel` uses.
  */
 class FileEditorViewModel(
-  /**
-   * Where this file lives - **mutable**, because a rename made anywhere moves it.
-   *
-   * `Context._path`, which `_updatePath` reassigns in place while the open widget carries on.
-   */
-  private var filePath: String,
+  /** The file this editor opened - where it lives from then on is [livePath]. */
+  filePath: String,
   private val workspaceRepository: WorkspaceRepository,
   private val applicationScope: CoroutineScope,
   /**
@@ -103,13 +102,22 @@ class FileEditorViewModel(
   private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
 ) : ViewModel(),
   OpenDocument {
+  /**
+   * Where this file lives - **mutable**, because a rename made anywhere moves it.
+   *
+   * `Context._path`, which `_updatePath` reassigns in place while the open widget carries on.
+   * Snapshot state, because the tab strip reads it in composition through [path] - see
+   * `EditorViewModel.liveNotebookId` for the tab it left stale as a plain `var`.
+   */
+  private var livePath: String by mutableStateOf(filePath)
+
   private val _uiState = MutableStateFlow(FileEditorUiState(path = filePath, name = notebookLeafOf(filePath)))
   val uiState: StateFlow<FileEditorUiState> = _uiState
 
   /** Where this document lives now - read live by [OpenDocuments], so a rename moves it. */
-  override val path: String get() = this.filePath
+  override val path: String get() = livePath
 
-  /** The path the editor opened under - [filePath]'s first value, kept so a rename cannot hide it. */
+  /** The path the editor opened under - [livePath]'s first value, kept so a rename cannot hide it. */
   override val openedAs: String = filePath
 
   /** Live, because the tab strip's dot has to follow the save rather than a snapshot of it. */
@@ -141,7 +149,7 @@ class FileEditorViewModel(
     viewModelScope.launch {
       // A shared workspace can lose a file under the user - a cell can `os.remove` it - so a read
       // that fails is an ordinary event to report, not a corrupt state to crash on.
-      runCatching { workspaceRepository.readStampedText(filePath) }
+      runCatching { workspaceRepository.readStampedText(livePath) }
         .onSuccess { read ->
           stamp = read.stamp
           _uiState.update { it.copy(text = read.text, syntax = syntaxForFile(it.name), loaded = true, error = null) }
@@ -153,8 +161,8 @@ class FileEditorViewModel(
     viewModelScope.launch {
       workspaceRepository.changes.collect { change ->
         when (change) {
-          is WorkspaceChange.Renamed -> pathAfterRename(filePath, change.from, change.to)?.let { adopt(it) }
-          is WorkspaceChange.Deleted -> if (change.path == filePath) stopWriting()
+          is WorkspaceChange.Renamed -> pathAfterRename(livePath, change.from, change.to)?.let { adopt(it) }
+          is WorkspaceChange.Deleted -> if (change.path == livePath) stopWriting()
         }
       }
     }
@@ -162,7 +170,7 @@ class FileEditorViewModel(
 
   /** Takes on where the file lives now; the document did not change, only its path. */
   private fun adopt(moved: String) {
-    filePath = moved
+    livePath = moved
     _uiState.update { it.copy(path = moved, name = notebookLeafOf(moved)) }
   }
 
@@ -237,7 +245,7 @@ class FileEditorViewModel(
     uiState = _uiState,
     scope = viewModelScope,
     repository = workspaceRepository,
-    filePath = { filePath },
+    filePath = { livePath },
     writes = writeMutex,
     saveOver = { persist(overwriting = true) },
     adopt = { stamp = it },
@@ -269,7 +277,7 @@ class FileEditorViewModel(
   private suspend fun persist(overwriting: Boolean = false) {
     if (fileIsGone || !_uiState.value.loaded) return
     writeMutex.withLock {
-      runCatching { workspaceRepository.writeText(filePath, _uiState.value.text, stamp.takeUnless { overwriting }) }
+      runCatching { workspaceRepository.writeText(livePath, _uiState.value.text, stamp.takeUnless { overwriting }) }
         .fold(
           onSuccess = ::adoptWritten,
           onFailure = { failure ->

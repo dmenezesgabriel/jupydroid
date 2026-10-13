@@ -1,5 +1,8 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.OpenDocuments
@@ -53,16 +56,8 @@ import kotlinx.coroutines.sync.withLock
  * `notebook:undo-cell-action` on the document. See [CellUndo].
  */
 class EditorViewModel(
-  /**
-   * The notebook this editor is on - **mutable**, because the id is the file's name and a rename
-   * moves the file.
-   *
-   * This is JupyterLab's `Context._path`, which `_updatePath` reassigns in place while the open
-   * widget carries on (`packages/docregistry/src/context.ts`). Keeping it here rather than in the
-   * navigation key is what lets a rename leave the editor's cells, outputs and execution state
-   * alone; re-creating the screen instead would throw away everything that is not on disk.
-   */
-  private var notebookId: String,
+  /** The notebook this editor opened - where it lives from then on is [liveNotebookId]. */
+  notebookId: String,
   private val notebookRepository: NotebookRepository,
   /**
    * The tree the notebook sits in, for two things and neither of them this notebook's own bytes -
@@ -213,11 +208,28 @@ class EditorViewModel(
   val replace = NotebookReplace(_uiState, save)
 
   /**
+   * The notebook this editor is on - **mutable**, because the id is the file's name and a rename
+   * moves the file.
+   *
+   * This is JupyterLab's `Context._path`, which `_updatePath` reassigns in place while the open
+   * widget carries on (`packages/docregistry/src/context.ts`). Keeping it here rather than in the
+   * navigation key is what lets a rename leave the editor's cells, outputs and execution state
+   * alone; re-creating the screen instead would throw away everything that is not on disk.
+   *
+   * **Snapshot state, because the tab strip reads it in composition** through [document]'s path:
+   * `_updatePath` emits `pathChanged` and `title.label` follows it
+   * (`packages/docregistry/src/default.ts`). A plain `var` left a tab beneath a terminal on the
+   * name it was renamed from, with nothing on screen to redraw it (`RenamedTabBeneathTest`).
+   */
+  private var liveNotebookId: String by mutableStateOf(notebookId)
+
+  /**
    * This notebook as something a **workspace** replace can edit by path; see [NotebookDocument].
    *
    * Registered from here rather than by itself, because the lifetime is this ViewModel's.
    */
-  val document = NotebookDocument(viewModelScope, _uiState, save, notebookId = { notebookId }, openedAs = notebookId)
+  val document =
+    NotebookDocument(viewModelScope, _uiState, save, notebookId = { liveNotebookId }, openedAs = notebookId)
 
   /**
    * `notebook:export-to-format`. Writes a file *beside* the notebook rather than to it, so it
@@ -229,7 +241,7 @@ class EditorViewModel(
     workspace = workspaceRepository,
     scope = viewModelScope,
     // Asked for rather than captured: a rename moves the file while this object lives on.
-    notebookId = { notebookId },
+    notebookId = { liveNotebookId },
     persist = { persist() },
   )
 
@@ -241,7 +253,7 @@ class EditorViewModel(
     viewModelScope.launch {
       _uiState.value =
         try {
-          notebookRepository.readStampedNotebook(notebookId)
+          notebookRepository.readStampedNotebook(liveNotebookId)
             .also { read ->
               notebook = read.notebook
               stamp = read.stamp
@@ -260,12 +272,12 @@ class EditorViewModel(
       workspaceRepository.changes.collect { change ->
         when (change) {
           is WorkspaceChange.Renamed ->
-            pathAfterRename(notebookId, change.from, change.to)?.let { adopt(it) }
+            pathAfterRename(liveNotebookId, change.from, change.to)?.let { adopt(it) }
           // The file is gone, so nothing more goes to it. `SaveHandler.dispose()` clears its timer
           // and writes nothing; ours has to say so, because `onCleared` *does* write and a
           // farewell flush after a delete puts the notebook back.
           is WorkspaceChange.Deleted ->
-            if (change.path == notebookId) {
+            if (change.path == liveNotebookId) {
               notebookIsGone = true
               save.discard()
               _uiState.update { it.copy(gone = true) }
@@ -331,7 +343,7 @@ class EditorViewModel(
    * reassigned in place and everything the editor holds carries on.
    */
   private fun adopt(moved: String) {
-    notebookId = moved
+    liveNotebookId = moved
     notebook = notebook?.copy(id = moved, title = moved)
     // The id is the path and the bar shows the name: `PathExt.basename(sender.localPath)`
     // (`packages/docregistry/src/default.ts:618-621`).
@@ -404,7 +416,7 @@ class EditorViewModel(
     uiState = _uiState,
     scope = viewModelScope,
     repository = notebookRepository,
-    notebookId = { notebookId },
+    notebookId = { liveNotebookId },
     writes = writeMutex,
     saveOver = { persist(overwriting = true) },
     adopt = { read ->

@@ -32,7 +32,13 @@ import kotlinx.coroutines.flow.StateFlow
  * is what learns of that (`Context._updatePath`).
  */
 interface OpenDocument {
-  /** Where this document lives **now** - see the interface docstring for why that word matters. */
+  /**
+   * Where this document lives **now** - see the interface docstring for why that word matters.
+   *
+   * Backed by snapshot state, so a composition that read it redraws when a rename moves it: a tab
+   * title is `title.label` following `pathChanged` (`packages/docregistry/src/default.ts`), on
+   * top or beneath (`RenamedTabBeneathTest`).
+   */
   val path: String
 
   /**

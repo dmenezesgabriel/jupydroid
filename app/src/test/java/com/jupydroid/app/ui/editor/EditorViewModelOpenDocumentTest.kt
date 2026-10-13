@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.SnapshotReadWatch
 import com.jupydroid.app.domain.model.TextEdit
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -137,5 +138,22 @@ class EditorViewModelOpenDocumentTest {
 
     assertNull(open.at("nb-1"))
     assertSame(viewModel.document, open.at(viewModel.uiState.value.notebookId))
+  }
+
+  /**
+   * The tab strip reads the document's path in composition, so a rename has to invalidate that
+   * read - the tab beneath a terminal has nothing else to redraw it (`pathChanged` ->
+   * `title.label`, `packages/docregistry/src/default.ts`).
+   */
+  @Test
+  fun aRenameInvalidatesAComposedReadOfThePath() = runTest {
+    val workspace = AnnouncingWorkspaceRepository()
+    val viewModel = loadedEditor(cells = cells, workspace = workspace, openDocuments = OpenDocuments())
+    val watch = SnapshotReadWatch { viewModel.document.path }
+
+    workspace.announce("nb-1", "Renamed")
+    advanceUntilIdle()
+
+    assertTrue("a composed read of the path is never told it moved", watch.sawChange())
   }
 }

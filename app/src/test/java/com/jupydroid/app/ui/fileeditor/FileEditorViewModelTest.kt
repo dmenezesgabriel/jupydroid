@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.fileeditor
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.SnapshotReadWatch
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.TextEdit
@@ -356,6 +357,26 @@ class FileEditorViewModelTest {
 
     assertNull(open.at("notes.txt"))
     assertSame(viewModel, open.at("kept.txt"))
+  }
+
+  /**
+   * The tab strip reads [FileEditorViewModel.path] in composition, so a rename has to invalidate
+   * that read - the tab beneath a terminal has nothing else to redraw it (`pathChanged` ->
+   * `title.label`, `packages/docregistry/src/default.ts`).
+   */
+  @Test
+  fun aRenameInvalidatesAComposedReadOfThePath() = runTest {
+    val temp = TemporaryFolder().also { it.create() }
+    val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    File(temp.root, "notes.txt").writeText("cat")
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, OpenDocuments())
+    advanceUntilIdle()
+    val watch = SnapshotReadWatch { viewModel.path }
+
+    workspace.rename("notes.txt", "kept.txt")
+    advanceUntilIdle()
+
+    assertTrue("a composed read of the path is never told it moved", watch.sawChange())
   }
 
   private fun kotlinx.coroutines.test.TestScope.editorFor(
