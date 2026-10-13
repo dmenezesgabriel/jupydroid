@@ -28,6 +28,8 @@ class OpenDocumentsTest {
     override fun saveNow(onSaved: () -> Unit) = onSaved()
     override fun discardChanges() = Unit
 
+    override fun reloadFromDisk() = Unit
+
     override fun sourceOf(cell: Int?): String? = text.takeIf { cell == null }
 
     override fun applyEdits(cell: Int?, edits: List<TextEdit>) {

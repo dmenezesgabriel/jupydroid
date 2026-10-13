@@ -62,6 +62,14 @@ interface OpenDocument {
   /** The close dialog's Discard - `SaveHandler.dispose()`: owed work dropped, nothing writes again. */
   fun discardChanges()
 
+  /**
+   * `docmanager:reload` - `context.revert()`: the file is read back over what is open, and a
+   * write the document owed is dropped with the edit it was for. Asking first is the caller's,
+   * as it is the command's rather than the context's (jupyterlab@7f0e690
+   * `packages/docmanager-extension/src/index.tsx`).
+   */
+  fun reloadFromDisk()
+
   /** The text of the resource [cell] names, or null when this document has no such resource. */
   fun sourceOf(cell: Int?): String?
 

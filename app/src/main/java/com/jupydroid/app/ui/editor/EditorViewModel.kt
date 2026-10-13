@@ -237,6 +237,7 @@ class EditorViewModel(
       _uiState,
       save,
       notebookId = { liveNotebookId },
+      reread = { conflict.revert() },
       openedAs = DocumentOpening(notebookId, opening),
     )
 
@@ -429,6 +430,7 @@ class EditorViewModel(
     notebookId = { liveNotebookId },
     writes = writeMutex,
     saveOver = { persist(overwriting = true) },
+    dropOwedWrite = { save.cancelPending() },
     adopt = { read ->
       notebook = read.notebook
       stamp = read.stamp

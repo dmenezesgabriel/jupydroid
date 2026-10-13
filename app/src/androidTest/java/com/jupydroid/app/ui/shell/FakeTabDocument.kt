@@ -20,6 +20,8 @@ internal class FakeTabDocument(openedUnder: String, isDirty: Boolean = false) : 
     private set
   var discards = 0
     private set
+  var reloads = 0
+    private set
 
   override val path: String get() = livePath
   override val dirty: StateFlow<Boolean> = dirtyFlow
@@ -32,6 +34,11 @@ internal class FakeTabDocument(openedUnder: String, isDirty: Boolean = false) : 
 
   override fun discardChanges() {
     discards++
+    dirtyFlow.value = false
+  }
+
+  override fun reloadFromDisk() {
+    reloads++
     dirtyFlow.value = false
   }
 

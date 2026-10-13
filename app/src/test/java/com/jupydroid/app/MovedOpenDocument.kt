@@ -12,6 +12,7 @@ class MovedOpenDocument(override val openedAs: DocumentOpening) : OpenDocument {
   override val dirty = MutableStateFlow(false)
   override fun saveNow(onSaved: () -> Unit) = onSaved()
   override fun discardChanges() = Unit
+  override fun reloadFromDisk() = Unit
   override fun sourceOf(cell: Int?): String? = null
   override fun applyEdits(cell: Int?, edits: List<TextEdit>) = Unit
 }

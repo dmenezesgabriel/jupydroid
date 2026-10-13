@@ -132,6 +132,8 @@ class MainAreaCloseGateTest {
       discarded = true
     }
 
+    override fun reloadFromDisk() = Unit
+
     override fun sourceOf(cell: Int?): String? = null
     override fun applyEdits(cell: Int?, edits: List<TextEdit>) = Unit
   }

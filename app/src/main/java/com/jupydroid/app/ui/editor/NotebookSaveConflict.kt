@@ -35,6 +35,12 @@ class NotebookSaveConflict(
   private val writes: Mutex,
   /** The save, made whatever is on disk. */
   private val saveOver: suspend () -> Unit,
+  /**
+   * Cancels the debounced write an edit armed. A revert drops that edit, and the write must not
+   * follow it: it would put the bytes just read back under a new modification time, which every
+   * other holder of the file reads as a change (ADR-0096).
+   */
+  private val dropOwedWrite: () -> Unit,
   /** Hands the ViewModel what was read, so the next save expects the file as it is now. */
   private val adopt: (StampedNotebook) -> Unit,
 ) {
@@ -46,6 +52,7 @@ class NotebookSaveConflict(
 
   /** The disk's version wins: the cells are read back and the edits that were owed are dropped. */
   fun revert() {
+    dropOwedWrite()
     scope.launch { writes.withLock { reread() } }
   }
 

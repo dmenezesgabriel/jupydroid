@@ -243,6 +243,9 @@ class FileEditorViewModel(
     save.discard()
   }
 
+  /** `docmanager:reload`, through the same re-read File Changed's Revert makes. */
+  override fun reloadFromDisk() = conflict.revert()
+
   /** What to do about a refused save. Driven straight from the screen; see [FileSaveConflict]. */
   val conflict = FileSaveConflict(
     uiState = _uiState,
@@ -251,6 +254,7 @@ class FileEditorViewModel(
     filePath = { livePath },
     writes = writeMutex,
     saveOver = { persist(overwriting = true) },
+    dropOwedWrite = { save.cancelPending() },
     adopt = { stamp = it },
   )
 

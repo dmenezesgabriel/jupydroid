@@ -37,6 +37,8 @@ class NotebookDocument(
   private val uiState: MutableStateFlow<EditorUiState>,
   private val save: DocumentAutosave,
   private val notebookId: () -> String,
+  /** The disk's version read back over the cells - [NotebookSaveConflict.revert], the one re-read. */
+  private val reread: () -> Unit,
   /** Where the editor's tab opened it - unlike [path], it stays put through a rename. */
   override val openedAs: DocumentOpening,
 ) : OpenDocument {
@@ -65,6 +67,9 @@ class NotebookDocument(
   override fun discardChanges() {
     save.discard()
   }
+
+  /** `docmanager:reload`, through the same re-read File Changed's Revert makes. */
+  override fun reloadFromDisk() = reread()
 
   /**
    * One cell's source - a notebook's resources are its **cells**, and the notebook itself is not one.

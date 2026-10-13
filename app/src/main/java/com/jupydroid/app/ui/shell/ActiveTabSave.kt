@@ -52,7 +52,7 @@ internal fun ActiveTabSave(title: String, document: OpenDocument?, height: Dp, m
   Box(
     contentAlignment = Alignment.Center,
     modifier = modifier
-      .size(width = SAVE_SLOT_WIDTH, height = height)
+      .size(width = TRAILING_SLOT_WIDTH, height = height)
       .semantics { contentDescription = "Save tab: $title" }
       .clickable(enabled = dirty, role = Role.Button) { document?.saveNow {} },
   ) {
@@ -60,16 +60,19 @@ internal fun ActiveTabSave(title: String, document: OpenDocument?, height: Dp, m
       imageVector = Icons.Filled.Save,
       contentDescription = null,
       tint = if (dirty) tint else tint.copy(alpha = DISABLED_ICON_ALPHA),
-      modifier = Modifier.size(SAVE_ICON),
+      modifier = Modifier.size(TRAILING_ICON),
     )
   }
 }
 
-/** Wider than the strip is tall: the slot is the whole tap target, and it sits at the window's edge. */
-private val SAVE_SLOT_WIDTH = 40.dp
+/**
+ * Wider than the strip is tall: the slot is the whole tap target, and it sits at the window's edge.
+ * Shared with [ActiveTabReload], so the strip's trailing controls are one size.
+ */
+internal val TRAILING_SLOT_WIDTH = 40.dp
 
 /** `jp-icon3`'s 16px, a step over a tab's own glyph because this one is pressed rather than read. */
-private val SAVE_ICON = 18.dp
+internal val TRAILING_ICON = 18.dp
 
 /** Material's disabled-content opacity, the one `IconButton` applies to a disabled icon. */
-private const val DISABLED_ICON_ALPHA = 0.38f
+internal const val DISABLED_ICON_ALPHA = 0.38f

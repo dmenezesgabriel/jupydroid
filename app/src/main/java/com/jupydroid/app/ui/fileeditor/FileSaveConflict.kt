@@ -33,6 +33,12 @@ class FileSaveConflict(
   private val writes: Mutex,
   /** The save, made whatever is on disk. */
   private val saveOver: suspend () -> Unit,
+  /**
+   * Cancels the debounced write an edit armed. A revert drops that edit, and the write must not
+   * follow it: it would put the bytes just read back under a new modification time, which every
+   * other holder of the file reads as a change (ADR-0096).
+   */
+  private val dropOwedWrite: () -> Unit,
   /** Hands the ViewModel the stamp that was read, so the next save expects the file as it is now. */
   private val adopt: (FileStamp) -> Unit,
 ) {
@@ -44,6 +50,7 @@ class FileSaveConflict(
 
   /** The disk's text wins: it is read back and the edit that was owed is dropped. */
   fun revert() {
+    dropOwedWrite()
     scope.launch { writes.withLock { reread() } }
   }
 

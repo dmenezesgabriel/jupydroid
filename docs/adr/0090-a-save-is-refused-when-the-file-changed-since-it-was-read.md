@@ -96,8 +96,8 @@ What a future reader will be tempted to "fix":
 
 Not covered, on purpose:
 
-- **Revert is offered only inside the dialog.** A standing re-read of a clean document, and noticing
-  a change before a save is owed, is `GAP-064`.
+- **Noticing a change before a save is owed.** A re-read asked for outside the dialog is
+  ADR-0096's reload; one made by itself, on a watcher, is still `GAP-064`.
 - **A save made as the screen is torn down is refused silently.** `onCleared` has no screen left to
   ask on, so the disk's version stays and the edit owed is dropped. The close gate asks first.
 - **The check and the rename are two steps.** A writer landing between them is still replaced, as it
