@@ -287,7 +287,8 @@ heavy command therefore runs through it:
 ```sh
 devjob git commit -F msg.txt                  # the whole hook gate: one job, one warm daemon
 devjob ./gradlew testDebugUnitTest
-devjob scripts/<driver>.sh
+devjob scripts/<driver>.sh                    # one that starts the emulator or calls Gradle
+nice -n 10 timeout 3600 scripts/<driver>.sh   # one that only drives the external tablet
 DEVJOB_MAX_SEC=7200 devjob ./gradlew connectedDebugAndroidTest
 devjob --status                               # slots in use, jobs running
 ```
@@ -298,6 +299,11 @@ devjob --status                               # slots in use, jobs running
 - **Wrap whole jobs, not each Gradle call.** A daemon dies with its job, and a cold one costs 10-13 s
   against a warm 2.7 s (`detekt`, measured). `devjob` inside a job runs inline, so a wrapped driver
   that calls Gradle does not deadlock on a second slot.
+- **A driver that only drives the external tablet does not wait for a slot.** The app, its kernel
+  and its shell run on the tablet; the host carries Maestro's JVM (about one core and a few hundred
+  MB), `adb` and a pixel read, so holding the flow behind a slot only delays it. It still runs under
+  `nice -n 10 timeout <limit>`. A driver that starts the emulator, or installs through Gradle, is
+  host work and stays on `devjob`.
 - **Never run Gradle on the host while a device flow runs**, and stop the emulator when its tests are
   done: `dev36` alone is 4 GB and 4 cores (its `config.ini`).
 - `connectedDebugAndroidTest` uninstalls the app from **every** attached device, `ANDROID_SERIAL`
