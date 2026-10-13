@@ -73,7 +73,7 @@ platform answer every native surface. JupyterLab and IntelliJ have no native sur
 | The window | `window_background` split by `values-night` (`app/src/main/res/values*/colors.xml`, `themes.xml`) | termux, vscode | follows the device |
 | The system bars | `enableEdgeToEdge()` defaults (`MainActivity.kt`) | termux, vscode | follows the device |
 | The terminal | `isSystemInDarkTheme()` default, never passed (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`) | — | follows the device, and only once |
-| The stripe between the panes | not located | — | T1 measures it |
+| The stripe between the panes | not drawn in any of T1's six combinations on Settings, a file, a notebook or a terminal | — | not reproduced; T4 looks again, including the first frame and the Spaces home |
 
 Present and partial: the choice exists and reaches every Compose surface, and nothing below Compose.
 
@@ -86,7 +86,7 @@ night mode is the push-down of it, never read back as a second source.
 
 - Whether `setApplicationNightMode` relaunches the activity on every launch when the value is
   unchanged, and whether `SYSTEM` maps cleanly onto `MODE_NIGHT_AUTO`. Measured on the tablet in T2.
-- What draws the stripe. Measured in T1.
+- What draws the stripe. T1 found none on four screens in six combinations; the report's screen and moment are not yet reproduced.
 
 ## Surface
 
@@ -104,7 +104,7 @@ night mode is the push-down of it, never read back as a second source.
 
 ## Tasks
 
-- [ ] T1 — The baseline, before any fix: the six combinations on `SM-X216B`, each surface
+- [x] T1 — The baseline, before any fix: the six combinations on `SM-X216B`, each surface
   screenshotted, and the stripe, the bars' icons and the terminal's background sampled by pixel.
   GAP-173 learns what draws the stripe.
 - [ ] T2 — One source decides dark: the app's choice pushed down to the platform, so the window,

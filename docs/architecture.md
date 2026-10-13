@@ -1929,31 +1929,33 @@ observable state.
 ### GAP-173 — The app's theme and the device's disagree on screen when they differ
 
 Reported from the tablet with the app set to Dark and the device on light: a white stripe stands
-between the side panel and the main content, and the terminal draws white inside a dark app. No
-flow has measured either yet, and no evidence exists for any combination but the one where the
-app follows the device. By reading, two surfaces take the **device's** theme whatever the app's
-override says, and a third is not located:
+between the side panel and the main content, and the terminal draws white inside a dark app.
+Measured on SM-X216B in landscape, two panes, in all six combinations of the app on System, Light
+and Dark against the device's night mode off and on, over Settings, a file, a notebook and a
+terminal (`scripts/jd-032-theme-t1-driver.sh`, pixels read by `scripts/read_chrome_parts.py`):
 
-- the terminal's palette is chosen from `darkTheme: Boolean = isSystemInDarkTheme()`, which no
-  caller passes (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`, called
-  from `Navigation.kt`), where the rest of the app takes
+- **The terminal takes the device's theme in every combination.** With the app on Dark and the
+  device light its canvas is `#FFFFFF` across 1188px of a `#121314` pane, and the reverse
+  combination draws it `#191A1B` in a light app. Its palette is chosen from
+  `darkTheme: Boolean = isSystemInDarkTheme()`, which no caller passes
+  (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`, called from
+  `Navigation.kt`), where the rest of the app takes
   `themeSettings.override.resolvesToDark(isSystemInDarkTheme())`
-  (`app/src/main/java/com/jupydroid/app/MainActivity.kt`). It is also chosen once, in the
-  ViewModel's factory, so a terminal already open keeps its palette through a later change;
-- the window's own background is a resource split by the device's night qualifier
-  (`app/src/main/res/values/colors.xml`, `app/src/main/res/values-night/colors.xml`,
-  `window_background`), and `enableEdgeToEdge()` is called with its defaults, which pick the
-  system bars' icon colours from the device as well - so whatever Compose does not paint, and the
-  status bar's icons, follow the device;
-- what draws the stripe between the panes is not yet read. `MainActivity`'s root `Surface` is
-  inside the app's theme, so the window showing through is a guess, not a finding.
+  (`app/src/main/java/com/jupydroid/app/MainActivity.kt`), and it is chosen once, in the
+  ViewModel's factory, and held by `TerminalEmulator`;
+- **the status bar's icons take the device's theme.** Where the two disagree, the icons sit on the
+  app's bar at a contrast of 1.15:1 (app Dark, device light) and 1.05:1 (app Light, device dark),
+  against 8.36:1 and 17.43:1 where they agree. `enableEdgeToEdge()` runs with its defaults, which
+  pick the bars' icon colours from the device;
+- **no stripe between the panes was drawn in any of the six.** The gap between the side panel and
+  the main content is the editor's own colour in every frame, so on these four screens it is not
+  the window showing through. The window's background is still split by the device's night
+  qualifier (`app/src/main/res/values/colors.xml`, `app/src/main/res/values-night/colors.xml`,
+  `window_background`), so whatever Compose leaves unpainted, and the frame before it draws, would
+  follow the device; the screen and the moment the report saw it on are not yet reproduced.
 
-The repair is an item of its own, and wider than these three: every surface is checked in each of
-the six combinations - the app on System, Light and Dark, against the device on light and dark -
-for a colour that comes from the wrong side and for text or icons that lose their contrast, and
-each combination leaves a screenshot. One source decides dark for everything drawn, the window and
-the system bars included.
-
+The repair makes one source decide dark for everything drawn, the terminal, the window and the
+system bars included, and re-measures the six combinations against these numbers.
 ---
 
 ## 12. Glossary
