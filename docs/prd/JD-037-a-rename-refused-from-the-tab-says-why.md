@@ -83,7 +83,7 @@ None.
 
 ## Tasks
 
-- [ ] T1 — a rename or overwrite refused from the tab opens a "Rename Error" dialog carrying the
+- [x] T1 — a rename or overwrite refused from the tab opens a "Rename Error" dialog carrying the
   refusal. Instrumented tests, plus a flow on the tablet: overwrite onto a folder with something
   in it, and rename a file removed from a terminal.
 - [ ] T2 — the demo above on a fresh install on SM-X216B. Then GAP-069 closes in
