@@ -84,6 +84,15 @@ class KernelSessionRegistry {
     _rebound.emit(session)
   }
 
+  /**
+   * The document the session was minted for moved - `setPath` (jupyterlab@7f0e6906
+   * `packages/services/src/session/default.ts`). The session lives on, so nothing is announced:
+   * the entry only takes the path a `running()` built from it must now report.
+   */
+  fun moved(serverSessionId: String, documentPath: String) {
+    tracked[serverSessionId]?.let { tracked[serverSessionId] = it.copy(documentPath = documentPath) }
+  }
+
   /** The server itself went: everything it issued is dead, so say so for all of it. */
   suspend fun endAll() {
     val gone = tracked.keys.toList()

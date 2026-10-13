@@ -164,6 +164,12 @@ class NotebookKernel(
   val history = NotebookHistory(session, kernelGateway, scope)
 
   /**
+   * The session following this notebook's rename - see [NotebookSessionRename]. Exposed rather than
+   * forwarded for [history]'s reason: it is the session's bookkeeping, not a kernel act.
+   */
+  val sessionRename = NotebookSessionRename(session, kernelSessions, scope)
+
+  /**
    * The language-server-first ask [completionsAt] delegates to - see [NotebookCompletion] for
    * the ordering and why it lives beside this class rather than in it.
    */

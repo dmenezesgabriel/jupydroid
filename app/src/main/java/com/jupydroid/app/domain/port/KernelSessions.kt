@@ -30,6 +30,13 @@ interface KernelSessions {
   /** Every session the server is holding now - `GET api/sessions`, reconciled against [ended]. */
   suspend fun running(): List<KernelSessionModel>
 
+  /**
+   * Points the session at its document's new path, and names it by that path's basename - what
+   * `Context._updatePath` asks of the session through `setPath` and `setName` (jupyterlab@7f0e6906
+   * `packages/docregistry/src/context.ts`), so a Running row names the file as it is now.
+   */
+  suspend fun setPath(serverSessionId: String, documentPath: String)
+
   /** `DELETE api/sessions/<serverSessionId>` - ends the session and the kernel behind it. */
   suspend fun shutdown(serverSessionId: String)
 }

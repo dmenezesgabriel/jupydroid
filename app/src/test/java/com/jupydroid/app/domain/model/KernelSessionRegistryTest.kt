@@ -102,6 +102,35 @@ class KernelSessionRegistryTest {
     assertEquals(setOf("ss1"), registry.liveIds)
   }
 
+  /**
+   * `setPath` (`session/default.ts`): a renamed notebook keeps its session, so the tracked entry
+   * takes the new path and stays live - a move is not an end, and nothing is announced.
+   */
+  @Test
+  fun movingASessionTracksItUnderTheNewPathAndEndsNothing() = runTest {
+    val registry = KernelSessionRegistry()
+    registry.register(SESSION, "a.ipynb")
+    val heard = async { registry.ended.take(1).toList() }
+    advanceUntilIdle()
+
+    registry.moved(SESSION.serverSessionId, "f/b.ipynb")
+
+    assertEquals("f/b.ipynb", registry.trackedBy(SESSION.serverSessionId)?.documentPath)
+    assertEquals(SESSION, registry.trackedBy(SESSION.serverSessionId)?.kernelSession)
+    assertEquals(setOf("ss1"), registry.liveIds)
+    assertEquals("a move is no end", false, heard.isCompleted)
+    heard.cancel()
+  }
+
+  @Test
+  fun movingAnUnknownSessionTracksNothing() {
+    val registry = KernelSessionRegistry()
+
+    registry.moved("nobody's", "b.ipynb")
+
+    assertEquals(emptySet<String>(), registry.liveIds)
+  }
+
   private companion object {
     val SESSION = KernelSession(
       id = "c1",

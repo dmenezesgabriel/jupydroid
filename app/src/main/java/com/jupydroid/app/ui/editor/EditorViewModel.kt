@@ -357,6 +357,7 @@ class EditorViewModel(
     // The id is the path and the bar shows the name: `PathExt.basename(sender.localPath)`
     // (`packages/docregistry/src/default.ts:618-621`).
     _uiState.update { it.copy(title = notebookLeafOf(moved), notebookId = moved) }
+    kernel.sessionRename.follow(moved)
   }
 
   /**

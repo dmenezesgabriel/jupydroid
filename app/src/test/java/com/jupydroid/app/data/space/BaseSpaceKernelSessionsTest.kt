@@ -109,6 +109,40 @@ class BaseSpaceKernelSessionsTest {
     assertEquals(listOf("ss1"), heard.await())
   }
 
+  /**
+   * A rename reaches the server's session and this process's record of it alike, so the panel's
+   * next `running()` - and the fake's, built from the registry - lists the new path.
+   */
+  @Test
+  fun setPath_patchesTheSessionAndTracksItUnderTheNewPath() = runTest {
+    val lifecycle = FakeKernelLifecycle()
+    val minted = lifecycle.start("a.ipynb")
+    val registry = KernelSessionRegistry()
+    registry.register(session(minted.serverSessionId), "a.ipynb")
+    val sockets = sockets(server(OneStartLauncher()), lifecycle = lifecycle)
+    val sessions = BaseSpaceKernelSessions(sockets, registry)
+    sockets.get()
+
+    sessions.setPath(minted.serverSessionId, "g/b.ipynb")
+
+    assertEquals(listOf(minted.serverSessionId to "g/b.ipynb"), lifecycle.movedSessions)
+    assertEquals("g/b.ipynb", registry.trackedBy(minted.serverSessionId)?.documentPath)
+    assertEquals("g/b.ipynb", sessions.running().single().path)
+  }
+
+  /** Passive like [BaseSpaceKernelSessions.shutdown]: a rename must never boot a runtime. */
+  @Test
+  fun setPath_onAStoppedServerStartsNothing() = runTest {
+    val launcher = OneStartLauncher()
+    val lifecycle = FakeKernelLifecycle()
+    val sessions = BaseSpaceKernelSessions(sockets(server(launcher), lifecycle = lifecycle), KernelSessionRegistry())
+
+    sessions.setPath("ss1", "b.ipynb")
+
+    assertEquals(0, launcher.startCount)
+    assertEquals(emptyList<Pair<String, String>>(), lifecycle.movedSessions)
+  }
+
   private fun session(serverSessionId: String) = KernelSession(
     id = "c-$serverSessionId",
     spaceId = "base",

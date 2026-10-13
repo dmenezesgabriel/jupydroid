@@ -11,9 +11,11 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -117,6 +119,15 @@ interface KernelLifecycle {
   suspend fun changeKernel(serverSessionId: String, kernel: KernelChoice): StartedKernelSession
 
   /**
+   * Moves the session to its document's new path: `PATCH api/sessions/<serverSessionId>` with
+   * `{"path", "name"}`. jupyterlab sends `setPath` and `setName` as two PATCHes
+   * (`packages/services/src/session/default.ts`); `SessionHandler.patch` applies both fields from
+   * one body (`jupyter_server/services/sessions/handlers.py` in the shipped rootfs), so one
+   * request reaches the same end state. The session id and its kernel are kept.
+   */
+  suspend fun setPath(serverSessionId: String, documentPath: String)
+
+  /**
    * `GET api/kernelspecs` - the `KernelSpec.IManager.specs` feed the picker's "Start Kernel"
    * groups are built from (`sessioncontext.tsx:1657-1663`). The answer is
    * `{default, kernelspecs: {<name>: {name, spec: {display_name, language, …}}}}`
@@ -177,6 +188,14 @@ class OkHttpKernelLifecycle(
       """{"kernel":${Json.encodeToString(KernelRef.serializer(), kernel.ref())}}""",
     )
     return Json.parseToJsonElement(body).jsonObject.toStartedSession(serverSessionId)
+  }
+
+  override suspend fun setPath(serverSessionId: String, documentPath: String) {
+    val moved = buildJsonObject {
+      put("path", documentPath)
+      put("name", documentPath.substringAfterLast('/'))
+    }
+    rest.patch("api/sessions/$serverSessionId", moved.toString())
   }
 
   override suspend fun kernelSpecs(): KernelSpecModels {

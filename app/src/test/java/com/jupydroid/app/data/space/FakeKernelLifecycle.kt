@@ -62,6 +62,17 @@ class FakeKernelLifecycle(
     return changed
   }
 
+  /** What [setPath] was asked, in order - a rename reaching the server's session. */
+  val movedSessions = mutableListOf<Pair<String, String>>()
+
+  override suspend fun setPath(serverSessionId: String, documentPath: String) {
+    failWith?.let { throw it }
+    movedSessions += serverSessionId to documentPath
+    issued[serverSessionId] = issued.getValue(serverSessionId).let {
+      it.copy(path = documentPath, name = documentPath.substringAfterLast('/'))
+    }
+  }
+
   /** What the server would mint for [kernel]: a fresh id for a spec, the given id for a running one. */
   private fun startedKernel(serverSessionId: String, kernel: KernelChoice): StartedKernelSession = when (kernel) {
     is KernelChoice.Spec ->

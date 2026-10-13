@@ -36,6 +36,11 @@ class FakeKernelSessions(private val registry: KernelSessionRegistry = KernelSes
     )
   }
 
+  /** [running] reads the registry's path, so moving the entry is the whole PATCH here. */
+  override suspend fun setPath(serverSessionId: String, documentPath: String) {
+    registry.moved(serverSessionId, documentPath)
+  }
+
   override suspend fun shutdown(serverSessionId: String) {
     registry.end(serverSessionId)
   }

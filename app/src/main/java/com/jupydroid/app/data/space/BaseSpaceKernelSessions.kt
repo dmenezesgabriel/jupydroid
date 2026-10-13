@@ -40,6 +40,16 @@ class BaseSpaceKernelSessions(
   }
 
   /**
+   * `PATCH api/sessions/<id>` against the live server, then the tracked entry follows. Passive
+   * like [shutdown]: with no server there is no session to move, and [running] ends it anyway.
+   */
+  override suspend fun setPath(serverSessionId: String, documentPath: String) {
+    val sockets = sharedSockets.liveOrNull() ?: return
+    sockets.lifecycle.setPath(serverSessionId, documentPath)
+    registry.moved(serverSessionId, documentPath)
+  }
+
+  /**
    * `DELETE api/sessions/<id>` against the live server - and `ended` either way, because a dead
    * server's sessions ended with it even though there is nothing left to DELETE them on.
    */
