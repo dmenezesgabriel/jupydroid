@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# Run by scripts/jd-032-theme-t1-driver.sh once per app theme, with MAESTRO_THEME naming the
+# Run by scripts/theme-six-combinations-driver.sh once per app theme, with MAESTRO_THEME naming the
 # Settings row's choice (System, Light or Dark). Picks it, then shows each open surface in turn.
-# Nothing is fixed here: this is the baseline before any repair, so it asserts only that each
-# surface is on screen, and the driver samples the screenshots' pixels.
+# It asserts only that each surface is on screen: what colour each one takes is the driver's
+# reading of the screenshots' pixels, the same before a repair and after it.
 #
 # TABLET ONLY (SM-X216B): the terminal is the Space's real shell.
 - launchApp:

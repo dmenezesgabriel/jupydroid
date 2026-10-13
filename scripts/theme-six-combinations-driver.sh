@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# The baseline, before any repair: every surface in each of the six combinations of the app's Theme
-# row (System, Light, Dark) against the device's own night mode (no, yes). Each combination leaves
-# a screenshot per surface - Settings, a file, a notebook, a terminal - and the driver reads their
-# pixels: the shell's vertical parts and the seams between them (read_chrome_parts.py), and the
-# status bar's ground and the ink drawn on it.
+# Every surface in each of the six combinations of the app's Theme row (System, Light, Dark)
+# against the device's own night mode (no, yes). Each combination leaves a screenshot per surface -
+# Settings, a file, a notebook, a terminal - and the driver reads their pixels: the shell's vertical
+# parts and the seams between them (read_chrome_parts.py), and the status bar's ground and the ink
+# drawn on it. One measurement, run before a repair and after it, into the directory it is named.
 #
-#   scripts/jd-032-theme-t1-driver.sh
+#   scripts/theme-six-combinations-driver.sh evidence/jd-032-theme/t2
 #
 # The terminal is the Space's real shell, so this goes on the arm64 tablet.
 set -euo pipefail
@@ -19,8 +19,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/jd-030-rotation-reads.sh
 . "$ROOT/scripts/jd-030-rotation-reads.sh"
 
-EVIDENCE="$ROOT/evidence/jd-032-theme/t1"
-FLOWS="$ROOT/.maestro/jd-032-theme-t1"
+EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo>}"
+FLOWS="$ROOT/.maestro/theme-six-combinations"
 FILE="notes.py"
 NOTEBOOK="theme-baseline"
 export MAESTRO_FILE="$FILE" MAESTRO_NOTEBOOK="$NOTEBOOK.ipynb"

@@ -61,7 +61,7 @@ platform answer every native surface. JupyterLab and IntelliJ have no native sur
 
 | Axis | Options seen (project → approach) | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Where dark is decided | vscode → `nativeTheme.themeSource`; termux → `AppCompatDelegate` night mode; ours today → `resolvesToDark` inside Compose only | Threading the boolean to every site (terminal, window background, `enableEdgeToEdge` styles) cannot reach the window drawn **before** Compose exists, so a cold launch still flashes the device's colour | **To be settled by T2's measurement; recommended:** `UiModeManager.setApplicationNightMode` (API 31, minSdk is 32; the app has no AppCompat), behind a port with a `UiModeManager…` adapter and a `Fake…`, driven from `AppContainer.applicationScope` collecting the theme settings. One call makes the configuration, `values-night`, the window, `SystemBarStyle.auto` and `isSystemInDarkTheme()` follow the app |
+| Where dark is decided | vscode → `nativeTheme.themeSource`; termux → `AppCompatDelegate` night mode; ours today → `resolvesToDark` inside Compose only | Threading the boolean to every site (terminal, window background, `enableEdgeToEdge` styles) cannot reach the window drawn **before** Compose exists, so a cold launch still flashes the device's colour | `UiModeManager.setApplicationNightMode` (API 31, minSdk is 32; the app has no AppCompat), behind `PlatformNightMode` with `UiModeManagerPlatformNightMode` and `FakePlatformNightMode`, driven from `AppContainer.applicationScope` collecting the theme settings (ADR-0094). One call makes the configuration, `values-night`, the window, `SystemBarStyle.auto` and `isSystemInDarkTheme()` follow the app |
 | The terminal's palette | ours → chosen once in the ViewModel factory and held by `TerminalEmulator` | A retained ViewModel outlives a theme change ([ADR-0092](../adr/0092-open-documents-survive-the-activitys-relaunch-in-its-retained-scope.md)) | Read `LocalAnsiPalette` (`theme/Theme.kt`), which already follows `darkTheme`, and hand the emulator the new palette on change, keeping colours a program set by OSC |
 
 ## Gap analysis — what we already have vs the references
@@ -70,8 +70,8 @@ platform answer every native surface. JupyterLab and IntelliJ have no native sur
 |---|---|---|---|
 | The app's choice | `ThemeOverride`, `resolvesToDark` (`app/src/main/java/com/jupydroid/app/domain/model/ThemeOverride.kt`), stored by `ThemeSettingsRepository` | termux `NightMode.java` | complete |
 | Compose surfaces | `JupyterDroidTheme(darkTheme = …)` (`app/src/main/java/com/jupydroid/app/MainActivity.kt`) | — | complete |
-| The window | `window_background` split by `values-night` (`app/src/main/res/values*/colors.xml`, `themes.xml`) | termux, vscode | follows the device |
-| The system bars | `enableEdgeToEdge()` defaults (`MainActivity.kt`) | termux, vscode | follows the device |
+| The window | `window_background` split by `values-night`, now resolved against the app's night mode (`app/src/main/java/com/jupydroid/app/data/uimode/UiModeManagerPlatformNightMode.kt`) | termux, vscode | complete; the first frame is T4's to measure |
+| The system bars | `enableEdgeToEdge()` defaults, reading the app's night mode | termux, vscode | complete: 8.36:1 / 17.43:1 in all six |
 | The terminal | `isSystemInDarkTheme()` default, never passed (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalPaneScreen.kt`) | — | follows the device, and only once |
 | The stripe between the panes | not drawn in any of T1's six combinations on Settings, a file, a notebook or a terminal | — | not reproduced; T4 looks again, including the first frame and the Spaces home |
 
@@ -84,8 +84,6 @@ night mode is the push-down of it, never read back as a second source.
 
 ## Open decisions
 
-- Whether `setApplicationNightMode` relaunches the activity on every launch when the value is
-  unchanged, and whether `SYSTEM` maps cleanly onto `MODE_NIGHT_AUTO`. Measured on the tablet in T2.
 - What draws the stripe. T1 found none on four screens in six combinations; the report's screen and moment are not yet reproduced.
 
 ## Surface
@@ -93,21 +91,21 @@ night mode is the push-down of it, never read back as a second source.
 | Layer | Files |
 |---|---|
 | `domain/model` | `ThemeOverride.kt` (unchanged) |
-| `domain/port` | a port that applies the app's night mode (T2) |
-| `data/<mechanism>` | its `UiModeManager…` adapter (T2) |
-| `data/fake` | its `Fake…` (T2) |
+| `domain/port` | `PlatformNightMode.kt` (T2) |
+| `data/<mechanism>` | `data/uimode/UiModeManagerPlatformNightMode.kt` (T2) |
+| `data/fake` | `FakePlatformNightMode.kt` (T2) |
 | `ui/terminal` | `TerminalPaneScreen.kt`, `TerminalPaneViewModel.kt` (T3) |
 | `di/AppContainer` | the collector that pushes the setting down (T2) |
 | unit tests | the mapping and the collector (T2); the palette swap (T3) |
 | instrumented tests | the terminal's background after a theme change (T3) |
-| `.maestro/` flow + `scripts/` driver | `theme-six-combinations.yaml`, `scripts/theme-six-combinations-driver.sh` |
+| `.maestro/` flow + `scripts/` driver | `theme-six-combinations-part1-open.yaml`, `theme-six-combinations-part2-each-surface.yaml`, `scripts/theme-six-combinations-driver.sh` |
 
 ## Tasks
 
 - [x] T1 — The baseline, before any fix: the six combinations on `SM-X216B`, each surface
   screenshotted, and the stripe, the bars' icons and the terminal's background sampled by pixel.
   GAP-173 learns what draws the stripe.
-- [ ] T2 — One source decides dark: the app's choice pushed down to the platform, so the window,
+- [x] T2 — One source decides dark: the app's choice pushed down to the platform, so the window,
   `values-night` and the system bars follow it.
 - [ ] T3 — The terminal follows the theme live, without being reopened.
 - [ ] T4 — The demo, measured against T1.

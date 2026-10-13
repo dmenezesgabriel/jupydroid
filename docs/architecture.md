@@ -1932,7 +1932,7 @@ Reported from the tablet with the app set to Dark and the device on light: a whi
 between the side panel and the main content, and the terminal draws white inside a dark app.
 Measured on SM-X216B in landscape, two panes, in all six combinations of the app on System, Light
 and Dark against the device's night mode off and on, over Settings, a file, a notebook and a
-terminal (`scripts/jd-032-theme-t1-driver.sh`, pixels read by `scripts/read_chrome_parts.py`):
+terminal (`scripts/theme-six-combinations-driver.sh`, pixels read by `scripts/read_chrome_parts.py`):
 
 - **The terminal takes the device's theme in every combination.** With the app on Dark and the
   device light its canvas is `#FFFFFF` across 1188px of a `#121314` pane, and the reverse
@@ -1954,8 +1954,12 @@ terminal (`scripts/jd-032-theme-t1-driver.sh`, pixels read by `scripts/read_chro
   `window_background`), so whatever Compose leaves unpainted, and the frame before it draws, would
   follow the device; the screen and the moment the report saw it on are not yet reproduced.
 
-The repair makes one source decide dark for everything drawn, the terminal, the window and the
-system bars included, and re-measures the six combinations against these numbers.
+The app's choice is now pushed down to the platform's per-app night mode (ADR-0094), so the window,
+`values-night` and the system bars follow the row. Re-measured over the same six combinations, the
+status bar's icons sit at 8.36:1 on Light and 17.43:1 on Dark in every frame, whatever the device
+says. **The terminal is still open**: its palette is chosen when it opens and kept by its retained
+ViewModel, so a terminal opened on one theme keeps that canvas after the row moves (`#FFFFFF` in a
+`#121314` pane with the app Dark and the device light).
 ---
 
 ## 12. Glossary

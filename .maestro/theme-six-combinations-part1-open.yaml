@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Run by scripts/jd-032-theme-t1-driver.sh, once per device mode, which the driver has already set.
+# Run by scripts/theme-six-combinations-driver.sh, once per device mode, which the driver has already set.
 # Opens what the theme has to reach: a file, a notebook, a terminal with a line in it, and Settings,
 # whose tab every later part comes back to. The app's theme is reset by the driver, so this opens
 # on System.
