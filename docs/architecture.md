@@ -1671,28 +1671,15 @@ opaque id per open, so two documents that share a path across time are two keys.
 
 ### GAP-142 — A restored console composes nothing
 
-`consoleSession` is process-scoped composition state — a `NotebookKernelSession` cannot
-round-trip a Bundle — so the saveable `Console` key survives a process death and the session it
-draws from does not (`app/src/main/java/com/jupydroid/app/Navigation.kt`). The restored entry
-composes no `ConsoleScreen`: a blank pane under a live tab title. A configuration change gets
-there without a process death: `cmd uimode night no` recreates the activity, the plain-`remember`
-holder starts empty, and an open Console tab draws blank while its kernel lives on. JupyterLab's console tracker
+`RetainedConsole` holds the Console's `NotebookKernelSession` for as long as the activity's
+retained scope lives — a session cannot round-trip a Bundle — so the saveable `Console` key
+survives a process death and the session it draws from does not
+(`app/src/main/java/com/jupydroid/app/RetainedConsole.kt`). The restored entry composes no
+`ConsoleScreen`: a blank pane under a live tab title. A relaunch of the activity alone keeps the
+session ([ADR-0092](adr/0092-open-documents-survive-the-activitys-relaunch-in-its-retained-scope.md)). JupyterLab's console tracker
 restores by reconnecting to the kernel session the key names. The repair is reattach-by-name
 through `KernelGateway`'s session list, or dropping the restored key with the stack entry that
 names it.
-
-### GAP-143 — A rotation keeps the stack and forgets its tabs
-
-`rememberNavBackStack` is saveable, but the holders beside it are not: `openTabOrder`,
-`openDocumentPaths`, `liveTabTitles`, `consoleSession`, `browseRequest`, `revealRequest` and
-`openDocuments` are all plain `remember` where `browsedDirectory` is `rememberSaveable`
-(`app/src/main/java/com/jupydroid/app/Navigation.kt`). Across a rotation the entries survive
-but the strip reseeds to the stack's activation order rather than the opening order it drew,
-OSC titles drop until the next report, and — the sharpest edge — background tabs' documents
-never re-enter `openDocuments` because only the top entry composes: their `documentIn` lookups
-miss, so the close gate reads a dirty background tab as clean and closes it with no ask. The
-repair is `rememberSaveable`/saver forms of the per-tab holders, or a re-registration pass for
-stacked entries.
 
 ### GAP-144 — A refused import or terminal open lands nowhere
 

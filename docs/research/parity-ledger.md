@@ -2843,8 +2843,8 @@ What the walk found, beyond the rows above:
   surfaces on `LauncherViewModel.error`; a dead key stopped answering at `46164a51`. The
   recorded silences: `importTitle`'s `createNotebook` and the explorer's `openNewTerminal` ride
   a bare `runCatching` — a user act that lands nowhere, unsaid — `GAP-144`. A `Console` key
-  restored without its session composes a blank pane under a live tab — `GAP-142`. And under
-  the fixed half sits the wound the same stale-key family leaves open: a tab renamed off
+  restored after a process death without its session composes a blank pane under a live tab —
+  `GAP-142`. And under the fixed half sits the wound the same stale-key family leaves open: a tab renamed off
   `a.ipynb` still *is* `Editor("a.ipynb")`, so a file recreated at that name can never open
   while the tab lives — `openInMainArea`'s equal-key remove reveals the renamed tab instead —
   `GAP-141`, a key-identity change rather than a walk-time patch.
@@ -2856,10 +2856,10 @@ What the walk found, beyond the rows above:
   moved `path`, the screens report it back into `openDocumentPaths`, and the strip, the close
   gate and the row marker read through `documentIn`-then-map. That is also why `46164a51` was a
   reconcile fix and not a marking fix — the map can only lie where no document remains to
-  correct it. Three of the holders are plain `remember` where `browsedDirectory` is
-  `rememberSaveable`: a rotation keeps the stack and loses the strip's order, the live titles,
-  and — via `openDocuments` itself resetting — every background tab's `documentIn` until it is
-  revealed, the close gate's dirty read included — `GAP-143`.
+  correct it. The five live in three `ViewModel`s of the activity where `browsedDirectory` is
+  `rememberSaveable`: a rotation keeps the stack and, beside it, the strip's order, the live
+  titles and every background tab's `documentIn`, the close gate's dirty read included
+  ([ADR-0092](../adr/0092-open-documents-survive-the-activitys-relaunch-in-its-retained-scope.md)).
 
 ## Spaces and runtime — `AUD-010`
 
