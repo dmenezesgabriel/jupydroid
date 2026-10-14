@@ -101,7 +101,7 @@ None.
 - [x] T1 — the strip's Reload icon re-reads the top document, asking first when it is dirty, and a
   reload drops the write it owed. Unit and instrumented tests, ADR, plus a flow on the tablet: a
   cell rewrites an open file and an open notebook, and each is reloaded, clean and dirty.
-- [ ] T2 — the demo above on a fresh install on SM-X216B. Then GAP-064 narrows to the watcher in
+- [x] T2 — the demo above on a fresh install on SM-X216B. Then GAP-064 narrows to the watcher in
   `docs/architecture.md` §11, the parity ledger's two rows naming it are updated, the backlog row
   is marked shipped, and this PRD is deleted.
 
