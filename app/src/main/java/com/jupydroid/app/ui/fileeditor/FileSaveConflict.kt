@@ -41,6 +41,8 @@ class FileSaveConflict(
   private val dropOwedWrite: () -> Unit,
   /** Hands the ViewModel the stamp that was read, so the next save expects the file as it is now. */
   private val adopt: (FileStamp) -> Unit,
+  /** The stamp the ViewModel holds - what it last read or wrote - or null before the file has loaded. */
+  private val held: () -> FileStamp?,
 ) {
   /** The editor's text wins: what is on disk is replaced, which is what was asked. */
   fun overwrite() {
@@ -57,6 +59,22 @@ class FileSaveConflict(
   /** Neither yet: the edit stays owed and the file stays as it is, and the next save asks again. */
   fun cancel() {
     uiState.update { it.copy(saveConflict = false) }
+  }
+
+  /**
+   * The file was written while this editor had it open: re-read it, unless the editor has unsaved
+   * work or [seen] is the stamp it holds, which is its own save heard back.
+   *
+   * vscode@3f3380c "never reload[s] dirty models" (`textFileEditorModelManager.ts`), and its
+   * resolve skips a file whose etag it already holds (`textFileEditorModel.ts`, `resolveFromFile`).
+   * Under the write lock, so a save still in flight adopts its stamp before this compares.
+   */
+  suspend fun followDisk(seen: FileStamp) {
+    writes.withLock {
+      val ours = held() ?: return
+      if (uiState.value.dirty || seen == ours) return
+      reread()
+    }
   }
 
   /**

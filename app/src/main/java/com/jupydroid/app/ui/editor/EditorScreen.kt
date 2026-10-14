@@ -32,6 +32,7 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
+import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
@@ -48,6 +49,7 @@ import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceWatcher
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.FileChangedDialog
 import com.jupydroid.app.ui.ROOT_LABEL
@@ -62,6 +64,8 @@ fun EditorScreen(
   notebookRepository: NotebookRepository,
   /** Only listened to: a rename made in the browser beside this document moves it. */
   workspaceRepository: WorkspaceRepository,
+  /** Hears the file written by anything else. Defaulted for a test that drives this screen alone. */
+  workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
   kernelGateway: KernelGateway,
   /** DAP over the same kernel session - the handshake `EditorViewModel.debugger` sends. */
   kernelDebugger: KernelDebugger,
@@ -187,6 +191,7 @@ fun EditorScreen(
       kernelSpecs,
       space,
       opening,
+      workspaceWatcher,
     )
   },
 ) {

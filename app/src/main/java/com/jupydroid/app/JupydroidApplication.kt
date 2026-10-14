@@ -17,6 +17,7 @@ import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
 import com.jupydroid.app.data.disk.DiskThemeSettingsRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
+import com.jupydroid.app.data.disk.InotifyWorkspaceWatcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
@@ -134,7 +135,11 @@ class JupydroidApplication : Application() {
    * `filesDir`, deliberately not in a workspace: the workspace is the kernel's HOME and the
    * server's root_dir, so bookkeeping there would show up in the explorer and in an `ls` from a
    * cell. The reference keeps recents in `IStateDB`, not in the Contents API.
+   *
+   * One named argument per port and no logic, so its length grows with the ports - [containerFor]'s
+   * reason for the same suppression.
    */
+  @Suppress("LongMethod")
   private fun enteredSpacePortsOf(
     spaceId: String,
     servers: JupyterSpaceServers?,
@@ -149,6 +154,7 @@ class JupydroidApplication : Application() {
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
       workspaceSearcher = DiskWorkspaceSearcher(workspace),
+      workspaceWatcher = InotifyWorkspaceWatcher(workspace),
       recentDocuments = DiskRecentDocumentsRepository(recentsFile, spaceId, workspace),
       documentSharer = IntentDocumentSharer(this, workspace),
       space = kernels.space,

@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.StampedNotebook
 import com.jupydroid.app.domain.port.FileChangedOnDiskException
@@ -43,6 +44,8 @@ class NotebookSaveConflict(
   private val dropOwedWrite: () -> Unit,
   /** Hands the ViewModel what was read, so the next save expects the file as it is now. */
   private val adopt: (StampedNotebook) -> Unit,
+  /** The stamp the ViewModel holds - what it last read or wrote - or null before the notebook has loaded. */
+  private val held: () -> FileStamp?,
 ) {
   /** The editor's version wins: what is on disk is replaced, which is what was asked. */
   fun overwrite() {
@@ -59,6 +62,21 @@ class NotebookSaveConflict(
   /** Neither yet: the edit stays owed and the file stays as it is, and the next save asks again. */
   fun cancel() {
     uiState.update { it.copy(saveConflict = false) }
+  }
+
+  /**
+   * The file was written while this notebook had it open: its cells are re-read, unless it has
+   * unsaved work or [seen] is the stamp it holds, which is its own save heard back.
+   *
+   * vscode@3f3380c's rule over a notebook's working copy (`storedFileWorkingCopyManager.ts`,
+   * `onDidFilesChange`). Under the write lock, so a save still in flight adopts its stamp first.
+   */
+  suspend fun followDisk(seen: FileStamp) {
+    writes.withLock {
+      val ours = held() ?: return
+      if (uiState.value.dirty || seen == ours) return
+      reread()
+    }
   }
 
   /**

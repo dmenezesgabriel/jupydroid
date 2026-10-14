@@ -10,6 +10,7 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.Cell
@@ -41,6 +42,7 @@ import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceWatcher
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -517,6 +519,8 @@ internal fun TestScope.loadedEditor(
   notebook: Notebook? = null,
   // Only the cases about an entered Space pass one; every other case runs in base.
   space: Space = BASE_SPACE,
+  // Only the cases about a file written outside the app announce on one.
+  watcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
 ): EditorViewModel {
   launch { repository.saveNotebook(notebook ?: Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
@@ -526,7 +530,7 @@ internal fun TestScope.loadedEditor(
     EditorViewModel(
       notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns,
       openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer, kernelSessions, kernelSpecs,
-      space,
+      space, workspaceWatcher = watcher,
     )
   advanceUntilIdle()
   return viewModel

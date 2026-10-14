@@ -12,6 +12,7 @@ import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
+import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.EditorSettings
@@ -19,9 +20,7 @@ import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.Space
-import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
-import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
@@ -31,6 +30,7 @@ import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceWatcher
 import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -134,6 +134,8 @@ class EditorViewModel(
   private val space: Space = BASE_SPACE,
   /** Which of [notebookId]'s opens this editor is - its tab's key says; see [DocumentOpening]. */
   opening: Int = 0,
+  /** Hears the file written by anything else, so a clean notebook shows it; defaulted as [kernelSpecs] is. */
+  workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -278,23 +280,20 @@ class EditorViewModel(
     // The rename that did not come from this screen - from the browser beside it, or from a folder
     // above it. `Context._onFileChanged` -> `_updatePath`, and without it the next debounced save
     // writes the old path back into existence.
-    viewModelScope.launch {
-      workspaceRepository.changes.collect { change ->
-        when (change) {
-          is WorkspaceChange.Renamed ->
-            pathAfterRename(liveNotebookId, change.from, change.to)?.let { adopt(it) }
-          // The file is gone, so nothing more goes to it. `SaveHandler.dispose()` clears its timer
-          // and writes nothing; ours has to say so, because `onCleared` *does* write and a
-          // farewell flush after a delete puts the notebook back.
-          is WorkspaceChange.Deleted ->
-            if (change.path == liveNotebookId) {
-              notebookIsGone = true
-              save.discard()
-              _uiState.update { it.copy(gone = true) }
-            }
-        }
-      }
-    }
+    DocumentFileFollow(workspaceRepository.changes, workspaceWatcher, { liveNotebookId }, ::adopt, ::stopWriting) {
+      conflict.followDisk(it)
+    }.followIn(viewModelScope)
+  }
+
+  /**
+   * The file is gone, so nothing more goes to it. `SaveHandler.dispose()` clears its timer and
+   * writes nothing; ours has to say so, because `onCleared` *does* write and a farewell flush after
+   * a delete puts the notebook back.
+   */
+  private fun stopWriting() {
+    notebookIsGone = true
+    save.discard()
+    _uiState.update { it.copy(gone = true) }
   }
 
   /**
@@ -435,6 +434,7 @@ class EditorViewModel(
       notebook = read.notebook
       stamp = read.stamp
     },
+    held = { stamp },
   )
 
   /**

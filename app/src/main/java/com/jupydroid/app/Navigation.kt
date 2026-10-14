@@ -354,6 +354,7 @@ fun MainNavigation(
             FileEditorScreen(
               path = file.path,
               workspaceRepository = spacePorts.workspaceRepository,
+              workspaceWatcher = spacePorts.workspaceWatcher,
               applicationScope = appContainer.applicationScope,
               editorSettingsRepository = appContainer.editorSettings,
               onBack = { backStack.removeLastOrNull() },
@@ -372,6 +373,7 @@ fun MainNavigation(
               notebookId = editor.notebookId,
               notebookRepository = spacePorts.notebookRepository,
               workspaceRepository = spacePorts.workspaceRepository,
+              workspaceWatcher = spacePorts.workspaceWatcher,
               kernelGateway = spacePorts.kernelGateway,
               kernelDebugger = spacePorts.kernelDebugger,
               kernelSessions = spacePorts.kernelSessions,

@@ -9,18 +9,19 @@ import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.TextEdit
-import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.notebookLeafOf
-import com.jupydroid.app.domain.model.pathAfterRename
 import com.jupydroid.app.domain.model.withEditsApplied
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceWatcher
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.syntaxForFile
 import com.jupydroid.app.ui.editor.DocumentAutosave
+import com.jupydroid.app.ui.editor.DocumentFileFollow
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -103,6 +104,8 @@ class FileEditorViewModel(
   private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
   /** Which of [filePath]'s opens this editor is - its tab's key says; see [DocumentOpening]. */
   opening: Int = 0,
+  /** Hears the file written by anything else, so a clean editor shows it; defaulted as [openDocuments] is. */
+  private val workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
 ) : ViewModel(),
   OpenDocument {
   /**
@@ -161,14 +164,9 @@ class FileEditorViewModel(
     }
     // `Context._onFileChanged`: the open document follows its file rather than waiting to be told
     // by whichever screen moved it. Without this the next write re-creates the old path.
-    viewModelScope.launch {
-      workspaceRepository.changes.collect { change ->
-        when (change) {
-          is WorkspaceChange.Renamed -> pathAfterRename(livePath, change.from, change.to)?.let { adopt(it) }
-          is WorkspaceChange.Deleted -> if (change.path == livePath) stopWriting()
-        }
-      }
-    }
+    DocumentFileFollow(workspaceRepository.changes, workspaceWatcher, { livePath }, ::adopt, ::stopWriting) {
+      conflict.followDisk(it)
+    }.followIn(viewModelScope)
   }
 
   /** Takes on where the file lives now; the document did not change, only its path. */
@@ -256,6 +254,7 @@ class FileEditorViewModel(
     saveOver = { persist(overwriting = true) },
     dropOwedWrite = { save.cancelPending() },
     adopt = { stamp = it },
+    held = { stamp },
   )
 
   public override fun onCleared() {

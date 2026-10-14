@@ -10,6 +10,7 @@ import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
+import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.data.space.ActivityTrackedTerminalGateway
 import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.BASE_SPACE
@@ -26,6 +27,7 @@ import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceSearcher
+import com.jupydroid.app.domain.port.WorkspaceWatcher
 
 /**
  * The ports one entered Space binds, built for that Space alone and never pointed at another.
@@ -54,6 +56,11 @@ class EnteredSpacePorts(
    * different question with a different shape, so a port of its own.
    */
   val workspaceSearcher: WorkspaceSearcher = FakeWorkspaceSearcher(),
+  /**
+   * The same tree again, heard rather than read: what the kernel, a shell or a second client wrote,
+   * which [workspaceRepository]'s `changes` - this app's own moves - cannot report.
+   */
+  val workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
   /**
    * What was opened, which no listing of the tree can answer - a recent is a record of an act.
    * Kept apart from [notebookRepository] for that reason, and because it remembers plain files

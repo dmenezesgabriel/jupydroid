@@ -26,12 +26,14 @@ import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.rangeIn
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceWatcher
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.Breadcrumb
@@ -78,6 +80,8 @@ fun FileEditorScreen(
   path: String,
   workspaceRepository: WorkspaceRepository,
   applicationScope: CoroutineScope,
+  /** Hears the file written by anything else. Defaulted for a test that drives this screen alone. */
+  workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
   /**
    * `fileeditor:toggle-autoclosing-brackets-universal` - the same setting the notebook's cells
    * read, and the toggle for it lives on the notebook's View menu since this screen has no top
@@ -122,7 +126,15 @@ fun FileEditorScreen(
   modifier: Modifier = Modifier,
   viewModel: FileEditorViewModel =
     viewModel {
-      FileEditorViewModel(path, workspaceRepository, applicationScope, openDocuments, editorSettingsRepository, opening)
+      FileEditorViewModel(
+        path,
+        workspaceRepository,
+        applicationScope,
+        openDocuments,
+        editorSettingsRepository,
+        opening,
+        workspaceWatcher,
+      )
     },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
