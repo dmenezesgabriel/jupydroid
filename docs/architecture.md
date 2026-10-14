@@ -931,18 +931,18 @@ different ask — and no write-a-copy exists; GAP-050 already notes there is no 
 to ride. The repair is a path prompt writing the document's bytes through the repository the
 editor already writes, then opening the result.
 
-### GAP-064 — An open document never re-reads its file
+### GAP-064 — An open document re-reads its file only when asked
 
-`docmanager:reload` is `context.revert()` — the file read back and the model reinitialised, asked
-first when dirty (`jupyterlab/packages/docmanager-extension/src/index.tsx:968-1018`,
-`jupyterlab/packages/docregistry/src/context.ts:676`) — and VS Code's `files.revert` does the
-same. Ours opens a file once and never reads it again: `WorkspaceRepository.changes` announces
-only what this app moved
-(`app/src/main/java/com/jupydroid/app/domain/port/WorkspaceRepository.kt`), so a file a cell
-rewrote — or a second Jupyter client — sits stale until the next save is refused and asks
-([ADR-0090](adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md)). The
-repair is a re-read act on the document; whether it merges or replaces is the question `revert`'s
-own dirty-guard already answers.
+VS Code re-reads a clean model on a file-change event and "never reload[s] dirty models"
+(`vscode/src/vs/workbench/services/textfile/common/textFileEditorModelManager.ts`,
+`onDidFilesChange`), and IntelliJ re-reads a document with no unsaved changes on a VFS change
+(`FileDocumentManagerImpl.contentsChanged`). Ours re-reads only when the user taps the tab strip's
+reload icon ([ADR-0096](adr/0096-an-open-document-is-reloaded-from-disk-on-demand-from-the-tab-strip.md)):
+`WorkspaceRepository.changes` announces only what this app moved
+(`app/src/main/java/com/jupydroid/app/domain/port/WorkspaceRepository.kt`), so a clean tab whose
+file a cell rewrote shows what it opened until that tap. The repair is a watcher over the
+workspace, which the kernel writes under proot, re-reading a clean document by itself and leaving a
+dirty one to the reload's question.
 
 ### GAP-066 — Nothing remembers a closed document
 
