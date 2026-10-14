@@ -166,6 +166,7 @@ asks for, the first half of `GAP-064`, closed by
 | `JD-030` | **Open documents survive a rotation:** after the activity is relaunched a tab with unsaved work keeps its dot and still asks before it closes, a workspace replace still edits the open editor, and the strip keeps its order, its renamed titles and its open Console | shipped | — | `GAP-143` |
 | `JD-031` | **A document is saved when the user asks:** a notebook or a file with unsaved work is written by one tap on the tab strip's save icon, without closing it, so with autosave off an edit no longer waits for its tab to close | shipped | — | `GAP-061` (first step) |
 | `JD-038` | **An open document reloads from disk:** a notebook or a file rewritten by a cell, a shell command or a second client is read back into its tab by one tap on the strip's reload icon, asking first when the tab has unsaved work | shipped | — | `GAP-064` (first step) |
+| `JD-039` | **An open document follows its file:** a notebook or a file with no unsaved work shows what a cell, a shell command or a second client wrote to it without a tap, and one with unsaved work keeps it | in-progress ← next | [PRD](prd/JD-039-an-open-document-follows-its-file.md) | `GAP-064` |
 
 ### M6 — Presentation
 
