@@ -1,0 +1,56 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Runs after part 3, so `old/gone.py` has a checkpoint.
+#
+# Deleting the file deletes its checkpoint, as `ContentsManager.delete` follows `delete_file` with
+# `delete_all_checkpoints`, and `old`, which then holds only `.ipynb_checkpoints`, deletes as empty:
+# `is_non_empty_dir` leaves the checkpoint folder out
+# (`usr/lib/python3.12/site-packages/jupyter_server/services/contents/filemanager.py`).
+#
+# Recents is cleared first so the listing row is the only `gone.py` with a menu to open, the reason
+# `explorer-delete-open-document.yaml` gives.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- tapOn: "old"
+- extendedWaitUntil:
+    visible: "gone.py"
+    timeout: 10000
+- longPressOn: "gone.py"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: gone.py?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "gone.py"
+    timeout: 10000
+- takeScreenshot: 01-the-file-deleted-the-folder-looks-empty
+- tapOn: "Workspace"
+- longPressOn: "old"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: old?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "old"
+    timeout: 10000
+- assertNotVisible: ".*folder with something in it.*"
+- takeScreenshot: 02-the-folder-deletes-as-empty

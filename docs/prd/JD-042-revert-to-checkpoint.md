@@ -99,7 +99,7 @@ server's `root_dir`, so the Jupyter answer is the one a second client sees.
 | Opening seam | `rememberDocumentOpener` (`DocumentOpeners.kt`) | `_populate` | present, makes none |
 | User's save | `ActiveTabSave.kt` → `saveNow {}` | the `save` command | present, makes none |
 | Tab menu | `MainAreaTabStrip.kt`: Rename…, Save As… | — | present, no revert |
-| Rename/delete carry it | `DiskWorkspaceRepository.rename/overwrite/delete` (T2 hands them the checkpoint's layout) | `rename_all_checkpoints`, `delete_all_checkpoints` | absent |
+| Rename/delete carry it | `DiskWorkspaceRepository.rename/overwrite/delete` through `CheckpointFiles` | `rename_all_checkpoints`, `delete_all_checkpoints` | present |
 
 Ours is **absent**.
 
@@ -131,7 +131,7 @@ None: the item and the adapter were settled with the user when it was picked up.
 - [x] T1 — the checkpoint ops, made at first open, the strip's Save and Save As, and the tab's
   Revert to Checkpoint…; flow on SM-X216B: a saved then edited file and notebook revert to the save,
   clean, the checkpoint at its layout path, and a file without one says No Checkpoints
-- [ ] T2 — a checkpoint follows its file: rename and overwrite move it, delete removes it, a folder
+- [x] T2 — a checkpoint follows its file: rename and overwrite move it, delete removes it, a folder
   holding only `.ipynb_checkpoints` deletes as empty; flow on SM-X216B
 - [ ] T3 — the demo on a fresh install, then ship: an ADR narrowing ADR-0050, delete this PRD,
   GAP-062 closes
