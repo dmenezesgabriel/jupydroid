@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# Continues the T1 flows after a kill. Driven by scripts/jd-040-save-all-demo-driver.sh.
+#
+# `launchApp` stops the process first, and the open tabs live in the process's `AppContainer`
+# (ADR-0092), so nothing is held in memory: both documents are opened again from the explorer, and
+# what they show is what Save All wrote to the disk. Each comes up clean.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: ".*typed_a # typed_b.*"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: false
+- takeScreenshot: 09-after-a-kill-notes-holds-both-saved-edits
+- tapOn: "target.ipynb"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 100"
+    timeout: 30000
+- assertVisible:
+    text: "Save tab: target.ipynb"
+    enabled: false
+- takeScreenshot: 10-after-a-kill-target-holds-its-saved-edit

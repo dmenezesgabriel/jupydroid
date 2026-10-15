@@ -113,7 +113,7 @@ None left: placement and refusal were settled with the user when the item was pi
 
 - [x] T1 — `OpenDocument.saveAndConfirm()`, the sweep, Save All on Open Tabs; flow on SM-X216B: two dirty tabs
   saved, then a refused one brought to the top asking File Changed with the next keeping its dot
-- [ ] T2 — the demo on a fresh install, then ship: ADR-0098, delete this PRD, GAP-061 closes
+- [x] T2 — the demo on a fresh install, then ship: ADR-0098, delete this PRD, GAP-061 closes
 
 ## Out of scope
 
