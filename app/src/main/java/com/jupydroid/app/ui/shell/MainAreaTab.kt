@@ -64,7 +64,7 @@ import com.jupydroid.app.ui.DirtyMarker
  * activates. Every tab's menu leads with `application:close-other-tabs` and
  * `application:close-right-tabs`, bound to every main-area tab at ranks 4 and 5 (jupyterlab@7f0e690
  * `packages/application-extension/schema/commands.json` `context`) - the close group VS Code's
- * `EditorTitleContext` and IntelliJ's `EditorTabPopupMenu` lead with too. Beneath them, a document
+ * `EditorTitleContext` and IntelliJ's `EditorTabPopupMenu` lead with too (ADR-0103). Beneath them, a document
  * tab holds `docmanager:rename`, the `document-title`-bound command,
  * Save As, which VS Code keeps on the same menu (vscode@3f3380c
  * `src/vs/workbench/contrib/files/browser/fileActions.contribution.ts`, `SAVE_FILE_AS_COMMAND_ID`),

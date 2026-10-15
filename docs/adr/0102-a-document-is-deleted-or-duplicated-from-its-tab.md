@@ -106,6 +106,4 @@ Not covered, on purpose:
 
 - **Clone**, a second view on one document (`GAP-060`).
 - **Show in file browser** on the tab.
-- **Closing the tab's siblings** from its menu, `application:close-other-tabs` and
-  `close-right-tabs` (`GAP-174`).
 - **Duplicating or deleting several explorer rows at once** (`GAP-050`).

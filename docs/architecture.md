@@ -875,17 +875,6 @@ that is not `.ipynb` to the plain file editor
 (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`): a `.md` the editor would happily open
 cannot be made. The repair is a menu row, not a new op — the editor is already the fallback.
 
-### GAP-174 — The tab's menu closes none of its siblings
-
-`application:close-other-tabs` ("Close All Other Tabs") and `application:close-right-tabs`
-("Close Tabs to Right") sit on JupyterLab's main-area tab context menu, ranks 4 and 5, beside
-`application:close` (jupyterlab@7f0e690 `packages/application-extension/schema/commands.json`
-`context`, `packages/application-extension/src/index.tsx`). Ours' tab long-press menu acts only on
-the document it names - Rename…, Save As…, Revert to Checkpoint…, Duplicate, Delete…
-(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTab.kt`) - and the only bulk close is the
-Running panel's Close All. The repair is two rows on that menu, each closing through
-`MainAreaCloseGate` as Close All does, so a tab with unsaved work still asks.
-
 ### GAP-060 — A document cannot be viewed twice
 
 `docmanager:clone` → `cloneWidget` opens a second view on one context, split-right by default —

@@ -193,7 +193,9 @@ notebook's kernel session left running, is closed by `DeletedDocumentSessions`
 rename refused from a tab closing in silence, is closed by the strip's "Rename Error" dialog
 (`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`). `GAP-059`, the open document's
 own tab offering only rename, is closed by
-[ADR-0102](adr/0102-a-document-is-deleted-or-duplicated-from-its-tab.md).
+[ADR-0102](adr/0102-a-document-is-deleted-or-duplicated-from-its-tab.md). `GAP-174`, a tab's menu
+closing none of its siblings, is closed by
+[ADR-0103](adr/0103-a-tabs-menu-closes-its-siblings.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
@@ -204,7 +206,7 @@ own tab offering only rename, is closed by
 | `JD-036` | **Deleting a notebook stops its kernel session:** after a notebook with a running kernel is deleted from the explorer, or replaced by a rename over it, the Running panel no longer lists its kernel, whether its tab was open or closed | shipped | — | `GAP-058` |
 | `JD-037` | **A rename refused from the tab says why:** when the disk refuses a rename or an overwrite asked from a document's tab, a dialog says why instead of closing in silence | shipped | — | `GAP-069` |
 | `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
-| `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | in-progress ← next | [JD-044](prd/JD-044-close-sibling-tabs.md) | `GAP-174` |
+| `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
 
 ### Known gaps
 

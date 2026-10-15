@@ -312,7 +312,7 @@ private fun MainAreaTabStrip(
             onActivate = { backStack.activateMainAreaTab(tab) },
             onClose = { onCloseTab(tab) },
             // A `widget.close()` per sibling, as the reference's two commands do: each goes through
-            // the close gate, so a dirty one still asks and the rest close around it.
+            // the close gate, so a dirty one still asks and the rest close around it (ADR-0103).
             onCloseOthers = { (tabs - tab).forEach(onCloseTab) },
             onCloseRight = { toTheRight.forEach(onCloseTab) },
             onRename = { onRenameTab(tab) },
