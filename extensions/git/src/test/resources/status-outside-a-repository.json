@@ -1,0 +1,1 @@
+{"code": 128, "command": "git status --porcelain -b -u -z", "message": "fatal: not a git repository (or any of the parent directories): .git\n"}

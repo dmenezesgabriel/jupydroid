@@ -57,7 +57,8 @@ repos:
       # none for Kotlin it resolved to the `.kts` build scripts and reported "Passed" for months
       # (ADR-0016). Named explicitly, a plugin that stops seeing a source set fails with
       # "Task not found" instead of passing quietly. `ktlintCheck` stays first so the scripts are
-      # still covered.
+      # still covered. The extension modules (ADR-0104) are named by path for the same reason: an
+      # unqualified task runs wherever it exists, and passes for a module where it does not.
       - id: monospace-home
         name: what code looks like has one home
         entry: python3 scripts/check_monospace_home.py
@@ -77,8 +78,8 @@ repos:
       # A comment cites something that still resolves in a fresh clone (ADR-0001). A shrinking
       # allowlist is what let this land green on a tree where 507 files carried a retired
       # citation; the sweep reached zero, so there is no allowlist any more. Every file under
-      # app/src/ and tools/ is read, each language by its own scanner, and a type with no scanner
-      # fails the run by name - a four-extension glob is what left Dockerfile, the ANTLR grammars
+      # app/src/, tools/ and each extension module's src/ is read, each language by its own
+      # scanner, and a type with no scanner fails the run by name - a four-extension glob is what left Dockerfile, the ANTLR grammars
       # and AndroidManifest.xml unread while the gate reported them clean.
       - id: doc-citations
         name: a comment cites what still resolves
@@ -93,19 +94,22 @@ repos:
         types: [text]
       - id: ktlint-check
         name: ktlint format check
-        entry: scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck
+        entry: >-
+          scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck
+          :extension-api:ktlintMainSourceSetCheck
+          :extensions:git:ktlintMainSourceSetCheck :extensions:git:ktlintTestSourceSetCheck
         language: system
         pass_filenames: false
         always_run: true
       - id: detekt
         name: detekt static analysis
-        entry: scripts/gradlew-jbr detekt
+        entry: scripts/gradlew-jbr detekt :extension-api:detekt :extensions:git:detekt
         language: system
         pass_filenames: false
         always_run: true
       - id: android-lint
         name: android lint
-        entry: scripts/gradlew-jbr :app:lintDebug
+        entry: scripts/gradlew-jbr :app:lintDebug :extension-api:lintDebug :extensions:git:lintDebug
         language: system
         pass_filenames: false
         always_run: true
@@ -115,7 +119,7 @@ repos:
       # test file that cannot compile still passed the gate until it was named (ADR-0016).
       - id: unit-tests
         name: unit tests, and androidTest compiles
-        entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin
+        entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :extensions:git:testDebugUnitTest
         language: system
         pass_filenames: false
         always_run: true

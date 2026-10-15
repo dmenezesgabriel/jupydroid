@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -9,8 +11,10 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.extension.api.SidePanelContribution
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -28,7 +32,7 @@ import org.junit.runner.RunWith
 class SidePanelRailTest {
   @get:Rule val compose = createComposeRule()
 
-  private val chosen = mutableListOf<SidePanel>()
+  private val chosen = mutableListOf<ShownPanel>()
 
   /** Five items - one per [SidePanel], which is what the rail iterates. */
   @Test
@@ -75,7 +79,7 @@ class SidePanelRailTest {
 
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).performClick()
 
-    compose.runOnIdle { assertEquals(listOf(SidePanel.TABLE_OF_CONTENTS), chosen) }
+    compose.runOnIdle { assertEquals(listOf(ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS)), chosen) }
   }
 
   /**
@@ -84,7 +88,7 @@ class SidePanelRailTest {
    */
   @Test
   fun aCollapsedAreaStillDrawsItsRailWithNothingSelected() {
-    show(selected = null)
+    show(null as ShownPanel?)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
     compose.onNodeWithContentDescription(FILES).assertIsNotSelected()
@@ -100,13 +104,46 @@ class SidePanelRailTest {
 
     compose.onNodeWithContentDescription(FILES).performClick()
 
-    compose.runOnIdle { assertEquals(listOf(SidePanel.FILES), chosen) }
+    compose.runOnIdle { assertEquals(listOf(ShownPanel.Shell(SidePanel.FILES)), chosen) }
   }
 
-  private fun show(selected: SidePanel?) {
+  /** An extension's panel is an item like the shell's own, after Search (ADR-0104). */
+  @Test
+  fun aContributedPanelIsOnTheRail() {
+    show(SidePanel.FILES)
+
+    compose.onNodeWithContentDescription(SOURCE_CONTROL).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SOURCE_CONTROL).assertIsNotSelected()
+  }
+
+  @Test
+  fun pickingAContributedPanelReportsItsId() {
+    show(SidePanel.FILES)
+
+    compose.onNodeWithContentDescription(SOURCE_CONTROL).performClick()
+
+    compose.runOnIdle { assertEquals(listOf(ShownPanel.Contributed(SOURCE_CONTROL_ID)), chosen) }
+  }
+
+  @Test
+  fun aContributedPanelShowingIsTheSelectedOne() {
+    show(ShownPanel.Contributed(SOURCE_CONTROL_ID))
+
+    compose.onNodeWithContentDescription(SOURCE_CONTROL).assertIsSelected()
+    compose.onNodeWithContentDescription(SEARCH).assertIsNotSelected()
+  }
+
+  private fun show(selected: SidePanel?) = show(selected?.let { ShownPanel.Shell(it) })
+
+  private fun show(selected: ShownPanel?) {
     compose.setContent {
       JupyterDroidTheme {
-        SidePanelRail(selected = selected, onChoose = { chosen += it }, onOpenLauncher = {})
+        SidePanelRail(
+          selected = selected,
+          onChoose = { chosen += it },
+          onOpenLauncher = {},
+          contributions = listOf(SidePanelContribution(SOURCE_CONTROL_ID, SOURCE_CONTROL, Icons.Filled.AccountTree) {}),
+        )
       }
     }
   }
@@ -118,5 +155,7 @@ class SidePanelRailTest {
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
     const val DEBUGGER = "Debugger"
+    const val SOURCE_CONTROL = "Source Control"
+    const val SOURCE_CONTROL_ID = "test.sourceControl"
   }
 }

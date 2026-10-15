@@ -31,3 +31,6 @@ plugins {
 
 rootProject.name = "JupyterDroid"
 include(":app")
+// Extensions are modules beside `:app`, built against `:extension-api` (ADR-0104).
+include(":extension-api")
+include(":extensions:git")

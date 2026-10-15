@@ -85,13 +85,15 @@ enum class SidePanel {
  *
  * A pure function rather than a holder, because `SidePanel?` round-trips through `rememberSaveable`
  * on its own: the state needs no `Saver` and the one rule that is not Compose's gets a JVM test.
+ * Generic over the panel's type, because a panel an extension contributed toggles by the same rule
+ * ([ShownPanel]).
  *
  * ```
  * var panel by rememberSaveable { mutableStateOf<SidePanel?>(SidePanel.FILES) }
  * NavigationRailItem(onClick = { panel = panel.chosen(SidePanel.TABLE_OF_CONTENTS) }, …)
  * ```
  */
-internal fun SidePanel?.chosen(panel: SidePanel): SidePanel? = if (this == panel) null else panel
+internal fun <T : Any> T?.chosen(panel: T): T? = if (this == panel) null else panel
 
 /**
  * The panels a **one-pane** window offers on its bottom bar, in the rail's own rank order.

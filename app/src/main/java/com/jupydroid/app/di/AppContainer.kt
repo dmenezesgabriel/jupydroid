@@ -35,6 +35,9 @@ import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
+import com.jupydroid.extension.api.Extension
+import com.jupydroid.extension.api.SidePanelContribution
+import com.jupydroid.extensions.git.GitExtension
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,9 +48,10 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Manual composition root (single :app module). Constructed once in MainActivity and passed
- * down. Every port defaults to its fake, which is what tests get for free and what a device
- * with no runnable Space keeps, so the UI works where the runtime cannot.
+ * Manual composition root, in `:app` - the one module that sees every extension module (ADR-0104).
+ * Constructed once in MainActivity and passed down. Every port defaults to its fake, which is what
+ * tests get for free and what a device with no runnable Space keeps, so the UI works where the
+ * runtime cannot.
  */
 class AppContainer(
   /**
@@ -114,6 +118,12 @@ class AppContainer(
   /** Where a rendered image's web address is fetched from - see [RemoteImageReader]. */
   val remoteImageReader: RemoteImageReader = FakeRemoteImageReader(),
   /**
+   * Every extension built into the APK (ADR-0104) - the one place one is constructed. The real
+   * extension rather than a fake by default, because an extension already falls back on its own
+   * fakes where the Space has no server (`SidePanelHost.server`).
+   */
+  extensions: List<Extension> = listOf(GitExtension()),
+  /**
    * For work that must finish after the screen that asked for it is gone - closing a notebook
    * flushes its last edit and closes its socket from here, because `viewModelScope` is already
    * cancelled by then. It lives on the container because an external scope belongs to something
@@ -127,6 +137,9 @@ class AppContainer(
    */
   preReadServerImports: suspend () -> Unit = {},
 ) {
+  /** Every extension's side panels, in the order the extensions were given - see `railOrder`. */
+  val sidePanelContributions: List<SidePanelContribution> = extensions.flatMap { it.sidePanels }
+
   init {
     applicationScope.launch { preReadServerImports() }
     applicationScope.launch { pushThemeToPlatform() }

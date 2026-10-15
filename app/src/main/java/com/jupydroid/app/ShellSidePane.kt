@@ -17,6 +17,7 @@ import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.explorer.ExplorerScreen
+import com.jupydroid.app.ui.shell.ContributedSidePanel
 import com.jupydroid.app.ui.shell.DebuggerSidePanel
 import com.jupydroid.app.ui.shell.RunningSidePanel
 import com.jupydroid.app.ui.shell.SearchSidePanel
@@ -24,6 +25,7 @@ import com.jupydroid.app.ui.shell.SidePanelBar
 import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
 import com.jupydroid.app.ui.shell.WorkspaceReplace
 import com.jupydroid.app.ui.shell.trailingBorder
+import com.jupydroid.extension.api.SidePanelHost
 
 /**
  * The shell's side pane: the one panel it is showing, and - where it is the whole window - the bar
@@ -58,6 +60,8 @@ import com.jupydroid.app.ui.shell.trailingBorder
  *   document rather than a [SidePanel], so it is a callback here and not a `chosen`.
  * @param onBrowsedDirectory where the explorer reports the directory it is showing - the
  *   launcher's cwd, hoisted to the navigation above both entries.
+ * @param browsedDirectory what [onBrowsedDirectory] last reported, which a contributed panel reads
+ *   as jupyterlab-git reads the file browser's path (`SidePanelHost`).
  * @param spacePorts the entered Space's files - what the explorer lists, search walks and Recents
  *   remembers. Handed in rather than looked up here, so the pane cannot bind to a Space other than
  *   the one the navigation entered.
@@ -66,7 +70,7 @@ import com.jupydroid.app.ui.shell.trailingBorder
  */
 @Composable
 fun ShellSidePane(
-  showingPanel: SidePanel?,
+  showingPanel: ShownPanel?,
   onePanePanel: SidePanel,
   twoPane: Boolean,
   onChoosePanel: (SidePanel) -> Unit,
@@ -105,6 +109,7 @@ fun ShellSidePane(
   onOpenSettings: () -> Unit,
   onOpenLauncher: () -> Unit,
   onBrowsedDirectory: (String) -> Unit,
+  browsedDirectory: String,
 ) {
   // **`sideBar.border`, drawn by the side bar itself** - the seam between this pane and the
   // document, which the reference states (`workbench/common/theme.ts:623`, *"on the side separating
@@ -120,7 +125,12 @@ fun ShellSidePane(
       // (`packages/application/src/shell.ts:2630-2643`). The collapsed branch draws nothing here
       // and the caller's directive has already dropped this pane, so it is unreachable - a one-pane
       // window has no side area to collapse, and `SidePanel.showingAtOnePane` never answers null.
-      when (showingPanel) {
+      val contributed = (showingPanel as? ShownPanel.Contributed)
+        ?.let { shown -> appContainer.sidePanelContributions.find { it.id == shown.id } }
+      if (contributed != null) {
+        ContributedSidePanel(contributed, SidePanelHost(browsedDirectory, spacePorts.extensionServer))
+      }
+      when ((showingPanel as? ShownPanel.Shell)?.panel) {
         SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
         SidePanel.DEBUGGER -> DebuggerSidePanel(
           stack = debugStack.current,

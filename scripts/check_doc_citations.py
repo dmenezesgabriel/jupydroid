@@ -57,13 +57,17 @@ ROOT = Path(__file__).resolve().parent.parent
 ADR_DIR = ROOT / "docs" / "adr"
 
 #: Every file under these is read. `scripts/` is not one of them - `docs/backlog.md` says why.
-SCANNED_TREES = ("app/src", "tools")
+#: Globs, so an extension module added under `extensions/` (ADR-0104) is read the day it arrives;
+#: `src` rather than the module, because a module's `build/` holds generated code, not our prose.
+SCANNED_TREES = ("app/src", "tools", "extension-api/src", "extensions/*/src")
 
 #: The build and repo-root configuration files, which carry prose but live in no scanned tree.
 #: `.editorconfig` cited `docs/DECISIONS.md` for why ktlint had checked nothing, and `.gitignore`
 #: cited it for why history was rewritten - both pointing into a file deleted eight commits earlier.
 SCANNED_FILES = (
     "app/build.gradle.kts",
+    "extension-api/build.gradle.kts",
+    "extensions/*/build.gradle.kts",
     "build.gradle.kts",
     "settings.gradle.kts",
     "gradle/libs.versions.toml",
@@ -136,8 +140,9 @@ SCANNERS: dict[str, Callable[[str], str]] = {
 }
 
 #: A `.md` under a scanned tree is documentation, and documentation is allowed to name what the code
-#: may not - that is the whole split ADR-0001 records.
-NO_PROSE = frozenset({".md"})
+#: may not - that is the whole split ADR-0001 records. A `.json` has no comment syntax at all
+#: (RFC 8259), so it cannot carry a citation: the server answers recorded as test fixtures are data.
+NO_PROSE = frozenset({".md", ".json"})
 
 #: How many leading bytes decide whether a file is binary. Git's own rule, so the gate agrees with
 #: the tool that decides what `git diff` will show: `buffer_is_binary()` looks for a NUL byte in the
@@ -254,8 +259,9 @@ def scanned_files(package: str | None) -> list[Path]:
     Whole trees rather than a list of extensions, so a language added to `tools/` is read on the day
     it arrives instead of on the day somebody notices. [NO_PROSE] drops what cannot carry a comment.
     """
-    tree = {f for name in SCANNED_TREES for f in (ROOT / name).rglob("*") if f.is_file()}
-    named = {ROOT / name for name in SCANNED_FILES}
+    roots = [root for name in SCANNED_TREES for root in ROOT.glob(name)]
+    tree = {f for root in roots for f in root.rglob("*") if f.is_file()}
+    named = {f for name in SCANNED_FILES for f in ROOT.glob(name)}
     candidates = tree | named
     files = sorted(
         f for f in candidates if f.exists() and f.suffix not in NO_PROSE and not is_binary(f)

@@ -85,6 +85,10 @@ ktlint {
 val antlrTool: Configuration by configurations.creating
 
 dependencies {
+    // `:app` is the only module that sees every extension; each sees `:extension-api` alone (ADR-0104).
+    implementation(project(":extension-api"))
+    implementation(project(":extensions:git"))
+
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
     androidTestImplementation(composeBom)

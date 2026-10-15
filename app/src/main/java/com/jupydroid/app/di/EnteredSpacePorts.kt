@@ -32,6 +32,7 @@ import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.domain.port.WorkspaceWatcher
+import com.jupydroid.extension.api.SpaceServerEndpoint
 
 /**
  * The ports one entered Space binds, built for that Space alone and never pointed at another.
@@ -105,6 +106,11 @@ class EnteredSpacePorts(
   val kernelDebugger: KernelDebugger = FakeKernelDebugger(),
   /** `notebook:export-to-format`, over this Space's own nbconvert, which resolves paths in its root. */
   val notebookExporter: NotebookExporter = FakeNotebookExporter(),
+  /**
+   * This Space's `jupyter_server` as an extension reaches it (ADR-0104), or null where the Space has
+   * none to run - which an extension answers with its own fakes.
+   */
+  val extensionServer: SpaceServerEndpoint? = null,
   /**
    * This Space's shells, on its own `jupyter_server`. Its fake echoes what is typed, so the terminal
    * screen composes and takes input on a device with no Space; only the shell is missing.

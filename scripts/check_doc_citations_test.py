@@ -7,6 +7,7 @@ import unittest
 
 from check_doc_citations import (
     BANNED,
+    ROOT,
     citations_in,
     is_binary,
     scanned_files,
@@ -173,6 +174,21 @@ class ScannedFilesTest(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertIn(name, found)
                 self.assertIsNotNone(scanner_for(pathlib.Path(name).suffix or name))
+
+    def test_every_extension_module_is_discovered(self):
+        """An extension is a module beside `:app` (ADR-0104), so `app/src` alone passes it unread.
+
+        Each module's sources and its build script are read, and a module added under `extensions/`
+        is read with no edit here - while its `build/` output, which holds no prose of ours, is not.
+        """
+        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
+        for prefix in ("extension-api/src/", "extensions/git/src/"):
+            with self.subTest(prefix=prefix):
+                self.assertTrue(any(path.startswith(prefix) for path in found))
+        for script in ("extension-api/build.gradle.kts", "extensions/git/build.gradle.kts"):
+            with self.subTest(script=script):
+                self.assertIn(script, found)
+        self.assertEqual([], [path for path in found if "/build/" in path])
 
     def test_a_package_narrows_to_that_package(self):
         found = scanned_files("domain")

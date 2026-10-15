@@ -81,7 +81,7 @@ fun MainNavigation(
   // Which side panel is showing, or null when the area is collapsed - see [SidePanel.chosen].
   // Saved rather than remembered, because a rotation is what most often brings the rail into range
   // in the first place, and `SidePanel?` round-trips through a Bundle unaided.
-  var sidePanel by rememberSaveable { mutableStateOf<SidePanel?>(SidePanel.FILES) }
+  var sidePanel by rememberSaveable { mutableStateOf<ShownPanel?>(ShownPanel.Shell(SidePanel.FILES)) }
   // The strip's opening order, live paths and live titles - see [RetainedTabStrip] for each.
   val tabStrip = rememberRetainedTabStrip()
   val openDocumentPaths = tabStrip.liveDocumentPaths
@@ -184,7 +184,7 @@ fun MainNavigation(
   // The two are held apart because the bar needs the **non-null** answer to mark its selection,
   // where `showingPanel` still has a collapsed state to carry for the two-pane case.
   val onePanePanel = sidePanel.showingAtOnePane()
-  val showingPanel = if (twoPane) sidePanel else onePanePanel
+  val showingPanel = if (twoPane) sidePanel else ShownPanel.Shell(onePanePanel)
   // **A collapsed side area is a one-pane layout**, which is what `collapseLeft` does there:
   // the panel goes and the document area takes the width, while the activity bar stays
   // (`packages/application/src/shell.ts:2383-2394`). So the collapse is spelled here rather
@@ -212,7 +212,7 @@ fun MainNavigation(
   val goToFolder: (String) -> Unit = { folder ->
     browseRequest = folder
     if (twoPane) {
-      sidePanel = SidePanel.FILES
+      sidePanel = ShownPanel.Shell(SidePanel.FILES)
     } else {
       // One pane, and the browser is only ever shown as the top entry: bring it forward rather
       // than popping the document - the entries beneath are still-open tabs, so Back
@@ -253,6 +253,7 @@ fun MainNavigation(
       SidePanelRail(
         selected = sidePanel,
         onChoose = { sidePanel = sidePanel.chosen(it) },
+        contributions = appContainer.sidePanelContributions,
         onOpenLauncher = openLauncher,
         modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
       )
@@ -267,7 +268,7 @@ fun MainNavigation(
       // and only on the browser, since over a document Back belongs to the document. Both rules
       // live here rather than in a `BackHandler`, which loses the gesture to the display's own.
       onBack = {
-        if (backSelectsFiles) sidePanel = SidePanel.FILES else backStack.popWorkspaceEntry(twoPane)
+        if (backSelectsFiles) sidePanel = ShownPanel.Shell(SidePanel.FILES) else backStack.popWorkspaceEntry(twoPane)
       },
       // NavDisplay's default is the saveable-state decorator ALONE, so without this the
       // ViewModelStoreOwner inside an entry is the Activity: viewModel {} keys on the class name
@@ -319,7 +320,7 @@ fun MainNavigation(
             // own border needed a third reading of it. Two parameters that have to agree
             // is a defect waiting to be written; the pane decides from the fact itself.
             twoPane = twoPane,
-            onChoosePanel = { sidePanel = it },
+            onChoosePanel = { sidePanel = ShownPanel.Shell(it) },
             appContainer = appContainer,
             spacePorts = spacePorts,
             outline = outline,
@@ -351,6 +352,7 @@ fun MainNavigation(
             onOpenSettings = { backStack.openSettings() },
             onOpenLauncher = openLauncher,
             onBrowsedDirectory = { browsedDirectory = it },
+            browsedDirectory = browsedDirectory,
           )
         }
         entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
@@ -409,9 +411,9 @@ fun MainNavigation(
               outline = outline,
               // `toc:show-panel` where there is a side area to activate, and null where there is not -
               // which is what puts the overlay up on a compact window instead.
-              onShowTableOfContents = { sidePanel = SidePanel.TABLE_OF_CONTENTS }.takeIf { twoPane },
+              onShowTableOfContents = { sidePanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS) }.takeIf { twoPane },
               debugPanel = debugPanel,
-              onShowDebugger = { sidePanel = SidePanel.DEBUGGER }.takeIf { twoPane },
+              onShowDebugger = { sidePanel = ShownPanel.Shell(SidePanel.DEBUGGER) }.takeIf { twoPane },
               onGoToFolder = goToFolder,
               openDocument = openDocument,
               // Its own entry, as the file editor's is: the strip may have closed it already.

@@ -1,0 +1,1 @@
+{"code": 0, "branch": "master", "remote": null, "ahead": 0, "behind": 0, "files": [{"x": " ", "y": "M", "to": "a.txt", "from": "a.txt", "is_binary": false}, {"x": "?", "y": "?", "to": "c.txt", "from": "c.txt", "is_binary": null}], "state": 0}

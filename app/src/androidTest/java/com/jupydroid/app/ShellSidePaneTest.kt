@@ -64,7 +64,7 @@ class ShellSidePaneTest {
     compose.setContent {
       JupyterDroidTheme(darkTheme = true) {
         ShellSidePane(
-          showingPanel = SidePanel.TABLE_OF_CONTENTS,
+          showingPanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS),
           onePanePanel = SidePanel.TABLE_OF_CONTENTS,
           twoPane = twoPane,
           onChoosePanel = {},
@@ -89,6 +89,7 @@ class ShellSidePaneTest {
           onOpenSettings = {},
           onOpenLauncher = {},
           onBrowsedDirectory = {},
+          browsedDirectory = "",
         )
       }
     }

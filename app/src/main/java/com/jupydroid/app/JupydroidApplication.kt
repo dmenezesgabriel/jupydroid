@@ -35,6 +35,7 @@ import com.jupydroid.app.data.intent.ContentResolverSharedDocumentReader
 import com.jupydroid.app.data.intent.IntentDocumentSharer
 import com.jupydroid.app.data.intent.IntentExternalLinkOpener
 import com.jupydroid.app.data.space.JupyterSpaceServers
+import com.jupydroid.app.data.space.RunningSpaceServerEndpoint
 import com.jupydroid.app.data.space.SpaceServer
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
@@ -67,6 +68,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.TerminalGateway
+import com.jupydroid.extension.api.SpaceServerEndpoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -167,6 +169,7 @@ class JupydroidApplication : Application() {
       kernelSpecs = kernels.specs,
       kernelDebugger = kernels.debugger,
       notebookExporter = kernels.exporter,
+      extensionServer = kernels.extensionServer,
       terminalGateway = kernels.terminals,
       activeTerminals = activeTerminals,
     )
@@ -253,6 +256,9 @@ class JupydroidApplication : Application() {
     val debugger: KernelDebugger = kernelSockets?.let(::baseSpaceKernelDebugger) ?: FakeKernelDebugger()
 
     val exporter: NotebookExporter = server?.let(::baseSpaceNotebookExporter) ?: FakeNotebookExporter()
+
+    /** The same server, as an extension's panel asks it (ADR-0104). */
+    val extensionServer: SpaceServerEndpoint? = server?.let(::RunningSpaceServerEndpoint)
 
     /** `api/terminals` and their sockets, on the same server - so a shell runs inside this Space. */
     val terminals: TerminalGateway = server?.let(::baseSpaceTerminalGateway) ?: FakeTerminalGateway()

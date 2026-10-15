@@ -212,7 +212,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
 | device-secrets gate | evidence proves the app, not the house it ran in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |
 | monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
-| doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/` read, an unknown type fails |
+| doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/`+each extension module's `src/` read, an unknown type fails |
 | retired-doc gate | no file names a document ADR-0001 deleted | `scripts/check_retired_doc_citations.py` (+ `_test.py`); the three names, and the eight files whose job is to hold them |
 | comment scanners | one prose reader per comment syntax, shared by the gates | `scripts/kotlin_source.py` (`//`, `/* */`), `script_source.py` (`#`, docstrings), `xml_source.py` (`<!-- -->`) (+ `_test.py` each) |
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
@@ -229,13 +229,20 @@ Local verification command (same as the commit gate):
 ```sh
 JAVA_HOME=<jdk> ./gradlew \
   ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck \
-  detekt lintDebug testDebugUnitTest compileDebugAndroidTestKotlin assembleDebug
+  :extension-api:ktlintMainSourceSetCheck \
+  :extensions:git:ktlintMainSourceSetCheck :extensions:git:ktlintTestSourceSetCheck \
+  detekt :extension-api:detekt :extensions:git:detekt \
+  lintDebug :extension-api:lintDebug :extensions:git:lintDebug \
+  testDebugUnitTest :extensions:git:testDebugUnitTest compileDebugAndroidTestKotlin assembleDebug
 ```
 
 **The source sets are named on purpose.** `ktlintCheck` alone is an aggregate over whatever tasks
 the plugin registered, and for months it registered none for Kotlin - so it checked the `.kts`
 build scripts and reported success (`docs/adr/0016-*`). Named, a plugin that stops seeing a
 source set fails with "Task not found" instead of passing quietly.
+The extension modules ([ADR-0104](docs/adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md))
+are named by path for that reason too: an unqualified task runs in every module that has it and says
+nothing about one that does not.
 `compileDebugAndroidTestKotlin` is named for the same reason: nothing else in the list reaches
 `androidTest` - `assembleDebug` compiles `main`, `testDebugUnitTest` compiles `test`, and the
 ktlint check is a formatter, which parses without resolving.
@@ -315,7 +322,8 @@ devjob --status                               # slots in use, jobs running
 ## Architecture (locked)
 
 - Pragmatic hexagonal + UDF/MVVM.
-- Single `:app` module; manual DI via `di/AppContainer` (no DI framework).
+- `:app`, plus one module per extension built against `:extension-api` and never against `:app`
+  (ADR-0104); manual DI via `di/AppContainer` (no DI framework).
 - Domain layer: pure Kotlin, **zero `android.*` imports** — enforced by an
   architecture-guard test.
 - Ports (contract-tested in Step 1): `NotebookRepository`, `KernelGateway`,
