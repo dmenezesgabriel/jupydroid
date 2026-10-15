@@ -86,16 +86,19 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
 
 ## Open decisions
 
-- Whether `:extension-api` carries Compose, so that a panel is a `@Composable`, or only a model that
-  `:app` draws. Settled in T2 by what the git panel needs. The leaning is Compose, because a model
-  `:app` draws would put every extension's UI back into `:app`.
-- The server half costs every Space start about 0.95 s. Warm boot (`server.starting` to
-  `server.listening`) went from 2.62–2.96 s to 3.85–3.98 s on SM-X216B, because the server imports and
-  loads `jupyterlab_git` before it listens. Before the panel ships, measure which import pays it
-  (`python3 -X importtime` inside the Space) and choose between three things: accept it, load the
-  extension only when the Git extension is enabled, or defer what it imports.
+- **Settled in T2: `:extension-api` carries Compose.** A panel is a `@Composable` body
+  (`SidePanelContribution.content`), and the host draws the title bar, surface and inset around it
+  from `:app`'s palette and spacing. A model drawn by `:app` would have put every extension's UI back
+  into `:app`. Goes into T5's ADR.
+- **Settled in T2: what a Space's start pays.** T1's +0.95 s is imports, and two server extensions
+  account for 0.91 s of it (`python3 -X importtime` in the Space; see the T2 evidence):
+  jupyterlab-git's handlers cost 319 ms and nbdime's own server extension costs 587 ms.
+  jupyterlab-git's cost is accepted, because it is the feature. nbdime's is not: nbdime enables that
+  extension for itself (`jupyter_server_config.d/nbdime.json`), and nothing calls it. jupyterlab-git
+  diffs through its own `/git/diffnotebook` handler using nbdime as a library, and this app has no
+  WebView for nbdime's pages. T4 stops the image from enabling it.
 - The `pluginmanager:*` and `extensionmanager:*` parity-ledger rows, which cite ADR-0071, are verdicted
-  again in T4, against the registry T2 builds.
+  again in T5, against the registry T2 built (`AppContainer.sidePanelContributions`).
 
 ## Surface
 
@@ -115,12 +118,14 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
 
 - [x] T1 — the image ships `git` and jupyterlab-git's server extension, and the server answers
   `POST /git/<path>/status` on the tablet; image size and cold start measured before and after
-- [ ] T2 — `:extension-api`, `:extensions:git` and the host: the Source Control panel on the rail
+- [x] T2 — `:extension-api`, `:extensions:git` and the host: the Source Control panel on the rail
   reads the browsed directory's branch, and says so when the directory is not a repository; every
   gate names the new modules; the server half's import cost measured inside the Space and decided
 - [ ] T3 — the panel lists every changed file with its status, red parser test first over the
   recorded `status.json`
-- [ ] T4 — the demo on a fresh install; ledger rows, ADR, ship
+- [ ] T4 — the image stops enabling nbdime's server extension, which nothing calls; a red image check
+  first, then the rootfs version bump, and warm boot measured before and after
+- [ ] T5 — the demo on a fresh install; ledger rows, ADR, ship
 
 ## Out of scope
 
