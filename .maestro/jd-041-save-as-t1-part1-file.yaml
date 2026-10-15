@@ -1,0 +1,77 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/jd-041-save-as-t1-driver.sh with autosave off and
+# `notes.py`, so an edit stays unsaved until something writes it.
+#
+# `docmanager:save-as` from the tab's long-press menu, where VS Code's tab menu carries Save As
+# (vscode@3f3380c `contrib/files/browser/fileActions.contribution.ts`). The dialog holds the whole
+# path with the leaf's stem selected, so typing `notes-copy` asks for `notes-copy.py`. The edit goes
+# to the copy, the old tab closes unwritten and the copy opens clean; the driver reads both files.
+# Then a copy into a folder that is not there says why, and the tab stays.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "notes = \"seeded\"\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_a"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: true
+
+# ---- the tab's menu ----
+- longPressOn: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: "Save As…"
+    timeout: 5000
+- assertVisible: "Rename…"
+- takeScreenshot: 01-the-tab-menu-offers-rename-and-save-as
+- tapOn: "Save As…"
+- extendedWaitUntil:
+    visible: "Save File As…"
+    timeout: 5000
+- takeScreenshot: 02-the-dialog-holds-the-path
+- inputText: "notes-copy"
+- tapOn: "Save"
+
+# ---- the copy replaces the tab, clean, with the edit ----
+- extendedWaitUntil:
+    visible: "Tab: notes-copy.py"
+    timeout: 10000
+- assertNotVisible: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: ".*typed_a.*"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: notes-copy.py"
+    enabled: false
+- takeScreenshot: 03-the-copy-opens-clean-with-the-edit
+
+# ---- a folder that is not there ----
+- longPressOn: "Tab: notes-copy.py"
+- extendedWaitUntil:
+    visible: "Save As…"
+    timeout: 5000
+- tapOn: "Save As…"
+- extendedWaitUntil:
+    visible: "Save File As…"
+    timeout: 5000
+- inputText: "gone/notes"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Save Error"
+    timeout: 10000
+- takeScreenshot: 04-a-missing-folder-says-why
+- tapOn: "OK"
+- extendedWaitUntil:
+    notVisible: "Save Error"
+    timeout: 5000
+- assertVisible: "Tab: notes-copy.py"
+- takeScreenshot: 05-the-tab-stays

@@ -19,7 +19,7 @@ On the arm64 tablet (`SM-X216B`) - the notebook's copy is checked by running a c
    `notes-copy`, Save. The `notes.py` tab is gone; `notes-copy.py` is on top, clean, showing the
    typed line. `adb shell cat` shows the line in `notes-copy.py` and not in `notes.py`.
 5. Open `target.ipynb`, edit a cell, Save As… onto `notes-copy.py`'s neighbour `other.ipynb`, which
-   already exists: "File Overwrite?" asks; Overwrite. `other.ipynb` opens with the edited cell; run
+   already exists: "Overwrite file?" asks; Overwrite. `other.ipynb` opens with the edited cell; run
    it.
 6. Save As… into a folder that does not exist: "Save Error" says why, and the tab stays as it was.
 7. Kill and relaunch - both copies open with what Save As wrote.
@@ -72,7 +72,7 @@ VS Code replaces the editor in place, keeping its position. Settled below with t
 | Where it is pressed | jupyterlab → File menu, key; vscode → File menu, tab context menu | No menu bar and no keymap here; a strip icon costs tab width at phone size for a rare act | **The tab's long press becomes a menu: Rename…, Save As…** - VS Code's tab-context place, and the menu GAP-059's comment declined only while it was one item deep |
 | What is asked | jupyterlab → full path; vscode → platform dialog with folders | A bare name cannot save into another folder | **A path**, prefilled with the current one and the leaf's stem selected; every segment passes `isValidFileName` |
 | Enabled rule | jupyterlab → writable; vscode tab menu → dirty | A copy of a clean document is still a copy | **Always**, on a document tab |
-| Taken path | jupyterlab → "File Overwrite?" | — | **`OverwriteFileDialog`**, then an unconditional write |
+| Taken path | jupyterlab → "File Overwrite?" | — | **`OverwriteFileDialog`** ("Overwrite file?", the rename's own), then an unconditional write |
 | Afterwards | jupyterlab → close + open; vscode → replace in place | In place needs a new path-adoption through both editors and the kernel sessions | **Close the old tab without writing it, open the new path** - jupyterlab's, through `openDocument`; a notebook's copy gets its own kernel |
 | Same path | jupyterlab → saves | The strip's save icon already saves | **Dismisses**, `RenameFileDialog`'s unchanged rule |
 
@@ -81,7 +81,7 @@ VS Code replaces the editor in place, keeping its position. Settled below with t
 | Concern | Ours today (file) | Best reference | Gap |
 |---|---|---|---|
 | Write the model elsewhere | `persist` in `FileEditorViewModel`/`EditorViewModel` writes to the live path only | `_finishSaveAs` | absent |
-| Probe a path | — (`rename` throws `FileNameTakenException` on its own target) | `contents.get(path, {content:false})` | absent - `WorkspaceRepository.exists` |
+| Probe a path | `WorkspaceRepository.list` of the target's folder - exact, because the listing hides only hidden names and the path rule refuses them | `contents.get(path, {content:false})` | present - no new port operation |
 | Path prompt | `RenameFileDialog`, parameterised heading/validator/selection/confirm label | `getSavePath` | present - reused |
 | Overwrite ask | `OverwriteFileDialog` | `_maybeOverWrite` | present - reused |
 | Close without asking | the close gate's Discard: `discardChanges` + `closeMainAreaTab` (`ui/shell/MainAreaCloseGate.kt`) | `closeFile` | present |
@@ -103,18 +103,17 @@ was picked up.
 
 | Layer | Files |
 |---|---|
-| `domain/port` | `WorkspaceRepository.exists` |
-| `data/disk`, `data/fake` | `DiskWorkspaceRepository`, `FakeWorkspaceRepository` |
+| `domain/model` | `isValidWorkspacePath` (`NotebookFileName.kt`) |
 | port seam | `OpenDocuments.kt` - `OpenDocument.writeCopyTo(path)` |
-| ViewModels | `ui/fileeditor/FileEditorViewModel.kt`, `ui/editor/NotebookDocument.kt`, `ui/editor/EditorViewModel.kt` |
-| `ui/shell` | `TabSaveAs.kt` (new), `MainAreaTabStrip.kt`; `Navigation.kt` wiring |
-| unit tests | repository contract cases, `writeCopyTo` cases in both editors' tests, `saveDocumentAs` |
-| instrumented tests | `MainAreaTabStripTest`, `WorkspaceTabs` rename helper |
+| ViewModels | `ui/fileeditor/FileEditorViewModel.kt` (its save moved to `FileEditorWrites.kt` to stay at detekt's eleven functions), `ui/editor/NotebookDocument.kt`, `ui/editor/EditorViewModel.kt` |
+| `ui/shell` | `SaveAsOutcome.kt`, `TabSaveAs.kt`, `MainAreaTabStrip.kt`; `Navigation.kt` wiring; `ui/RenameFileDialog.kt` takes a field label |
+| unit tests | `SaveDocumentAsTest`, `FileEditorSaveAsTest`, `EditorSaveAsTest`, `NotebookFileNameTest` |
+| instrumented tests | `TabSaveAsTest`, `MainAreaTabStripTest`, `WorkspaceTabs` rename helper |
 | `.maestro/` flow + `scripts/` driver | `jd-041-save-as-t1-*.yaml`, `scripts/jd-041-save-as-t1-driver.sh` |
 
 ## Tasks
 
-- [ ] T1 — `exists`, `writeCopyTo`, the tab's menu and the Save As flow; flow on SM-X216B: a dirty
+- [x] T1 — `writeCopyTo`, the tab's menu and the Save As flow; flow on SM-X216B: a dirty
   file saved as a new name opens clean with the edit while the original keeps its own, and a
   notebook saved over a taken name asks File Overwrite? and opens
 - [ ] T2 — the demo on a fresh install, then ship: ADR-0099, delete this PRD, GAP-063 closes
