@@ -1,0 +1,200 @@
+package com.jupydroid.app.ui.shell
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
+import com.jupydroid.app.Console
+import com.jupydroid.app.Editor
+import com.jupydroid.app.FileEditor
+import com.jupydroid.app.Launcher
+import com.jupydroid.app.OpenDocument
+import com.jupydroid.app.Settings
+import com.jupydroid.app.Terminal
+import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.ui.DirtyMarker
+
+/**
+ * One `lm-TabBar-tab`: the kind's icon, the `title.label`, and the close icon that swaps for the
+ * `jp-mod-dirty` busy dot while the document owes a write (`ui-components/style/icons.css:268-278`).
+ * The dot stays the close *button* - the reference hides the swap behind `:hover`, and a touch
+ * screen has none, so here the dot itself is what a dirty tab's close is tapped on.
+ *
+ * A long press is the tab's context menu - the press is the only gesture left once click
+ * activates. On a document tab it holds `docmanager:rename`, the `document-title`-bound command,
+ * Save As, which VS Code keeps on the same menu (vscode@3f3380c
+ * `src/vs/workbench/contrib/files/browser/fileActions.contribution.ts`, `SAVE_FILE_AS_COMMAND_ID`),
+ * and `docmanager:restore-checkpoint`, which the reference keeps in the File menu beside them.
+ */
+@Composable
+internal fun MainAreaTab(
+  key: NavKey,
+  title: String,
+  document: OpenDocument?,
+  active: Boolean,
+  closable: Boolean,
+  renameable: Boolean,
+  width: Dp,
+  onActivate: () -> Unit,
+  onClose: () -> Unit,
+  onRename: () -> Unit,
+  onSaveAs: () -> Unit,
+  onRevert: () -> Unit,
+) {
+  val chrome = chromePalette
+  var menuOpen by remember { mutableStateOf(false) }
+  val dirty by document?.dirty?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
+  Column(modifier = Modifier.width(width)) {
+    // `jp-mod-current::before` / `tab.activeBorderTop` - the brand line the current tab wears.
+    Box(
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(ACTIVE_EDGE)
+        .background(if (active) chrome.tabActiveBorderTop else Color.Transparent),
+    )
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      modifier = Modifier
+        .fillMaxWidth()
+        .height(TAB_HEIGHT)
+        .background(if (active) chrome.tabActiveBackground else chrome.tabInactiveBackground)
+        .trailingBorder(chrome.tabBorder)
+        .semantics {
+          contentDescription = "Tab: $title"
+          selected = active
+        }
+        .combinedClickable(
+          onClick = onActivate,
+          onLongClick = if (renameable) ({ menuOpen = true }) else null,
+          onLongClickLabel = if (renameable) "Document actions" else null,
+        )
+        .padding(start = Spacing.sm, end = Spacing.xs),
+    ) {
+      Icon(
+        imageVector = tabIcon(key),
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(TAB_ICON),
+      )
+      Text(
+        text = title,
+        style = MaterialTheme.typography.bodySmall,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        // Cleared, not merged: the row already announces itself as "Tab: $title", and a bare
+        // text node here is the document's title a second time - which turns every
+        // `onNodeWithText(title)` in the navigation tests into a two-node match.
+        modifier = Modifier.padding(start = Spacing.xs).weight(1f).clearAndSetSemantics {},
+      )
+      if (closable) {
+        Box(
+          contentAlignment = Alignment.Center,
+          modifier = Modifier
+            .size(TAB_CLOSE_TOUCH)
+            .semantics { contentDescription = "Close tab: $title" }
+            .clickable(onClick = onClose),
+        ) {
+          if (dirty) {
+            DirtyMarker()
+          } else {
+            Icon(
+              imageVector = Icons.Filled.Close,
+              contentDescription = null,
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(TAB_ICON),
+            )
+          }
+        }
+      }
+    }
+    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+      DropdownMenuItem(
+        text = { Text("Rename…") },
+        onClick = {
+          menuOpen = false
+          onRename()
+        },
+      )
+      // Greyed for a tab whose document has not registered: nothing is held on screen to copy.
+      DropdownMenuItem(
+        text = { Text("Save As…") },
+        enabled = document != null,
+        onClick = {
+          menuOpen = false
+          onSaveAs()
+        },
+      )
+      DropdownMenuItem(
+        text = { Text("Revert to Checkpoint…") },
+        enabled = document != null,
+        onClick = {
+          menuOpen = false
+          onRevert()
+        },
+      )
+    }
+  }
+}
+
+/**
+ * `title.icon` - the kind's own glyph (its `filetype` SVG), in the Material equivalents the app
+ * draws. `internal` because the Running panel's Open Tabs row wears the same one - `OpenTab.icon()`
+ * returns `widget.title.icon`, the strip's own property (`running-extension/src/opentabs.ts:110-112`).
+ */
+internal fun tabIcon(key: NavKey): ImageVector = when (key) {
+  is Editor -> Icons.AutoMirrored.Filled.MenuBook
+  is FileEditor -> Icons.AutoMirrored.Filled.InsertDriveFile
+  is Terminal -> Icons.Filled.Terminal
+  is Console -> Icons.Filled.Code
+  Launcher -> Icons.AutoMirrored.Filled.OpenInNew
+  Settings -> Icons.Filled.Settings
+  else -> Icons.AutoMirrored.Filled.InsertDriveFile
+}
+
+/**
+ * The `filetype` glyph's slot - a step under the reference's `jp-icon3` 16px so the ellipsized
+ * label keeps the extra room where a tab is squeezed to the 80dp floor.
+ */
+private val TAB_ICON = 14.dp
+
+/** A ✕-sized slot - JupyterLab's close icon is ~16px; the tap target is the slot around it. */
+private val TAB_CLOSE_TOUCH = 24.dp

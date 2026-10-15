@@ -18,6 +18,7 @@ import com.jupydroid.app.Explorer
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
@@ -195,6 +196,7 @@ class FileEditorCloseGateTest {
         val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
         TabbedDocumentPane(
           backStack, open, paths, tabs, liveTitles, repository, twoPane = false, closeTab, onOpenDocument = {},
+          documentCheckpoints = FakeDocumentCheckpoints(repository),
         ) {
           FileEditorScreen(
             path = "notes.py",

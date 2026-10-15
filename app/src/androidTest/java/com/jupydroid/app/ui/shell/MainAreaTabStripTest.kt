@@ -31,6 +31,7 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.Settings
 import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
+import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.port.FileNameTakenException
@@ -117,6 +118,7 @@ class MainAreaTabStripTest {
         val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
         TabbedDocumentPane(
           backStack, open, paths, tabs, liveTitles, workspace, twoPane = twoPane, closeTab, onOpenDocument = {},
+          documentCheckpoints = FakeDocumentCheckpoints(workspace),
         ) {
           Text("the document")
         }

@@ -117,7 +117,8 @@ fun MainNavigation(
       twoPane = twoPane,
       onCloseTab = closeTab,
       onOpenDocument = openDocument,
-      content,
+      documentCheckpoints = spacePorts.documentCheckpoints,
+      content = content,
     )
   }
   // The open Console's session and the count that titles the next one - see [RetainedConsole].

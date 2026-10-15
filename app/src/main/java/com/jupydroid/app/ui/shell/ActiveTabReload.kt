@@ -94,4 +94,4 @@ private fun ReloadFromDiskDialog(documentType: String, onReload: () -> Unit, onC
  * jupyterlab's `fileType` names the first registered file type's `displayName`; with no registry
  * here, the editor is chosen by `.ipynb` alone, so that is the one distinction there is to name.
  */
-private fun documentTypeOf(path: String): String = if (path.endsWith(".ipynb")) "Notebook" else "File"
+internal fun documentTypeOf(path: String): String = if (path.endsWith(".ipynb")) "Notebook" else "File"

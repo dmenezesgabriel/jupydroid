@@ -22,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.Explorer
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.WorkspaceEntry
@@ -66,6 +67,7 @@ class TabSaveAsTest {
           workspaceRepository = workspace,
           onCloseTab = {},
           onOpenDocument = { opened += it },
+          documentCheckpoints = FakeDocumentCheckpoints(workspace),
         ) { Text("the document") }
       }
     }

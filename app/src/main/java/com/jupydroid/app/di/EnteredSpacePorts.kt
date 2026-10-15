@@ -1,5 +1,6 @@
 package com.jupydroid.app.di
 
+import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
@@ -16,6 +17,7 @@ import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
+import com.jupydroid.app.domain.port.DocumentCheckpoints
 import com.jupydroid.app.domain.port.DocumentSharer
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelGateway
@@ -61,6 +63,11 @@ class EnteredSpacePorts(
    * which [workspaceRepository]'s `changes` - this app's own moves - cannot report.
    */
   val workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
+  /**
+   * The same tree again, as what each file was: the one point it can be put back to, which no
+   * read of the tree as it is now can answer.
+   */
+  val documentCheckpoints: DocumentCheckpoints = FakeDocumentCheckpoints(workspaceRepository),
   /**
    * What was opened, which no listing of the tree can answer - a recent is a record of an act.
    * Kept apart from [notebookRepository] for that reason, and because it remembers plain files

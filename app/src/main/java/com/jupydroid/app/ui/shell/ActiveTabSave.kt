@@ -38,7 +38,8 @@ import com.jupydroid.app.OpenDocument
  * rather than removed, and drawn for a tab that is not a document at all, so the strip keeps its
  * shape whichever tab is on top.
  *
- * It reports nothing of its own. A write that succeeds turns the dot back into the close; one that
+ * It reports nothing of its own. A write that succeeds turns the dot back into the close and runs
+ * [onSaved] - where the checkpoint moves, as `docmanager:save` makes one after its write; one that
  * is refused is drawn by the document's screen, which is composed because its tab is on top.
  *
  * ```
@@ -46,7 +47,13 @@ import com.jupydroid.app.OpenDocument
  * ```
  */
 @Composable
-internal fun ActiveTabSave(title: String, document: OpenDocument?, height: Dp, modifier: Modifier = Modifier) {
+internal fun ActiveTabSave(
+  title: String,
+  document: OpenDocument?,
+  height: Dp,
+  modifier: Modifier = Modifier,
+  onSaved: (OpenDocument) -> Unit = {},
+) {
   val dirty by document?.dirty?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
   val tint = MaterialTheme.colorScheme.onSurfaceVariant
   Box(
@@ -54,7 +61,7 @@ internal fun ActiveTabSave(title: String, document: OpenDocument?, height: Dp, m
     modifier = modifier
       .size(width = TRAILING_SLOT_WIDTH, height = height)
       .semantics { contentDescription = "Save tab: $title" }
-      .clickable(enabled = dirty, role = Role.Button) { document?.saveNow {} },
+      .clickable(enabled = dirty, role = Role.Button) { document?.let { it.saveNow { onSaved(it) } } },
   ) {
     Icon(
       imageVector = Icons.Filled.Save,

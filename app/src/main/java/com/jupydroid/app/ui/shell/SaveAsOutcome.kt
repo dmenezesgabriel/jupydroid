@@ -4,7 +4,7 @@ import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.isValidWorkspacePath
 import com.jupydroid.app.domain.model.parentDirectory
 import com.jupydroid.app.domain.port.WorkspaceRepository
-import kotlinx.coroutines.CancellationException
+import com.jupydroid.app.domain.port.catchingRefusal
 
 /** How a Save As ended: written, stopped at a taken path to ask, or refused by the disk with its reason. */
 sealed interface SaveAsOutcome {
@@ -32,12 +32,11 @@ suspend fun saveDocumentAs(
   workspace: WorkspaceRepository,
   overwrite: Boolean = false,
 ): SaveAsOutcome {
-  val attempt = runCatching {
-    if (!overwrite && workspace.holds(target)) return@runCatching SaveAsOutcome.Taken
+  val attempt = catchingRefusal {
+    if (!overwrite && workspace.holds(target)) return@catchingRefusal SaveAsOutcome.Taken
     document.writeCopyTo(target)
     SaveAsOutcome.Written
   }
-  (attempt.exceptionOrNull() as? CancellationException)?.let { throw it }
   return attempt.getOrElse { SaveAsOutcome.Refused(it.message ?: "could not save '${document.path}' as '$target'") }
 }
 

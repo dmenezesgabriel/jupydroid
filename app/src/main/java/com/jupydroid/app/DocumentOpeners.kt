@@ -70,7 +70,8 @@ internal fun MutableList<NavKey>.openRunningSession(
 }
 
 /**
- * Opening a document, wherever it was opened from: the right editor, and a line in Recents.
+ * Opening a document, wherever it was opened from: the right editor, a line in Recents, and a
+ * checkpoint when it has none.
  *
  * **One opener rather than one per screen.** Home knew which of its rows was a notebook and the
  * explorer worked it out from the suffix, so the same rule lived in two places and only one of
@@ -93,8 +94,9 @@ internal fun rememberDocumentOpener(
 ): (String) -> Unit = remember(backStack, appContainer, openDocuments) {
   { path ->
     backStack.openDocument(path, openDocuments)
-    val recentDocuments = appContainer.portsOf(backStack.enteredSpaceId()).recentDocuments
-    appContainer.applicationScope.launch { recentDocuments.recordOpening(path) }
+    val ports = appContainer.portsOf(backStack.enteredSpaceId())
+    appContainer.applicationScope.launch { ports.recentDocuments.recordOpening(path) }
+    appContainer.applicationScope.launch { ports.documentCheckpoints.checkpointIfNone(path) }
   }
 }
 

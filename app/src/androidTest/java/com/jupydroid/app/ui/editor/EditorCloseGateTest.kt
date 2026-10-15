@@ -18,6 +18,7 @@ import com.jupydroid.app.Explorer
 import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
@@ -201,6 +202,7 @@ class EditorCloseGateTest {
         twoPane = false,
         closeTab,
         onOpenDocument = {},
+        documentCheckpoints = FakeDocumentCheckpoints(),
       ) {
         EditorScreen(
           notebookId = NOTEBOOK_ID,

@@ -17,6 +17,7 @@ import com.jupydroid.app.Explorer
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.Terminal
+import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.mainAreaTabs
@@ -54,6 +55,7 @@ class MainAreaTabReloadTest {
           workspaceRepository = FakeWorkspaceRepository(),
           onCloseTab = {},
           onOpenDocument = {},
+          documentCheckpoints = FakeDocumentCheckpoints(),
         ) { Text("the document") }
       }
     }

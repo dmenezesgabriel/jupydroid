@@ -5,6 +5,7 @@ import android.app.UiModeManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.jupydroid.app.data.disk.DiskDocumentCheckpoints
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
 import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
@@ -155,6 +156,7 @@ class JupydroidApplication : Application() {
       workspaceRepository = DiskWorkspaceRepository(workspace),
       workspaceSearcher = DiskWorkspaceSearcher(workspace),
       workspaceWatcher = InotifyWorkspaceWatcher(workspace),
+      documentCheckpoints = DiskDocumentCheckpoints(workspace),
       recentDocuments = DiskRecentDocumentsRepository(recentsFile, spaceId, workspace),
       documentSharer = IntentDocumentSharer(this, workspace),
       space = kernels.space,
