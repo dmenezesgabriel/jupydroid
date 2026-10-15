@@ -115,7 +115,7 @@ None. Each axis above follows the three references, which agree.
 ## Tasks
 
 - [x] T1 — Close All Other Tabs and Close Tabs to Right on every tab's menu, each through the close gate
-- [ ] T2 — the demo on a fresh install; ADR, ledger rows, ship
+- [x] T2 — the demo on a fresh install; ADR, ledger rows, ship
 
 ## Out of scope
 
