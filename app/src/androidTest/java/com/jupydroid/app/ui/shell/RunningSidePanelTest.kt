@@ -49,6 +49,7 @@ class RunningSidePanelTest {
   private val closed = mutableListOf<NavKey>()
   private val opened = mutableListOf<KernelSessionModel>()
   private val reattached = mutableListOf<TerminalSession>()
+  private var saveAllPresses = 0
 
   /** The panel's own chrome: the three section names and the toolbar's refresh. */
   @Test
@@ -224,6 +225,28 @@ class RunningSidePanelTest {
     assertEquals(tabs.map { it.key }, closed)
   }
 
+  /**
+   * `workbench.action.files.saveAll` in Open Editors' title, beside Close All (vscode@3f3380c
+   * `contrib/files/browser/views/openEditorsView.ts`): a press saves, and asks nothing first.
+   */
+  @Test
+  fun saveAllTabsSavesWithoutAsking() {
+    show(tabs = listOf(RunningTab(FileEditor("b.py"), "b.py")), saveAllEnabled = true)
+
+    compose.onNodeWithContentDescription("Save All: Open Tabs").performClick()
+
+    assertEquals(1, saveAllPresses)
+    compose.onNodeWithText("Save All?").assertDoesNotExist()
+  }
+
+  /** `DirtyWorkingCopiesContext`: with nothing to write, Save All is greyed rather than gone. */
+  @Test
+  fun saveAllIsDisabledWhileNoTabOwesAWrite() {
+    show(tabs = listOf(RunningTab(FileEditor("b.py"), "b.py")), saveAllEnabled = false)
+
+    compose.onNodeWithContentDescription("Save All: Open Tabs").assertIsNotEnabled()
+  }
+
   /** `jp-mod-disabled` - a section with nothing in it offers no bulk action to confirm. */
   @Test
   fun aSectionsBulkActionIsDisabledWhileItIsEmpty() {
@@ -260,7 +283,7 @@ class RunningSidePanelTest {
     compose.onNodeWithText("late.ipynb", substring = true).assertIsDisplayed()
   }
 
-  private fun show(tabs: List<RunningTab> = emptyList()) {
+  private fun show(tabs: List<RunningTab> = emptyList(), saveAllEnabled: Boolean = false) {
     viewModel = RunningPanelViewModel(kernelSessions, terminalGateway)
     compose.setContent {
       JupyterDroidTheme {
@@ -270,6 +293,8 @@ class RunningSidePanelTest {
           openTabs = tabs,
           onActivateTab = { activated += it },
           onCloseTab = { closed += it },
+          saveAllEnabled = saveAllEnabled,
+          onSaveAllTabs = { saveAllPresses++ },
           onOpenSession = { opened += it },
           onOpenTerminal = { reattached += it },
           viewModel = viewModel,

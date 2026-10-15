@@ -34,10 +34,14 @@ import com.jupydroid.app.ui.launcher.LauncherViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
+import com.jupydroid.app.ui.shell.anyOpenDocumentDirty
 import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
+import com.jupydroid.app.ui.shell.saveAllOpenDocuments
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.spaces.SpacesHomeScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -324,6 +328,14 @@ fun MainNavigation(
             onActivateTab = backStack::activateMainAreaTab,
             // The same gate the strip's ✕ runs through - a panel row's close is the identical act.
             onCloseTab = closeTab,
+            saveAllEnabled = anyOpenDocumentDirty(openDocuments),
+            // On the application's scope, so closing the panel mid-sweep cannot cut a write short;
+            // on Main, because a refused save's reveal moves the back stack.
+            onSaveAllTabs = {
+              appContainer.applicationScope.launch(Dispatchers.Main) {
+                saveAllOpenDocuments(orderedTabs, openDocuments, backStack::activateMainAreaTab)
+              }
+            },
             onOpenSession = { backStack.openRunningSession(it, orderedTabs, openDocument) },
             // `terminal:open` - the stack's open-or-reveal reattaches to the named shell's socket.
             onOpenTerminal = { backStack.openTerminal(it.name) },

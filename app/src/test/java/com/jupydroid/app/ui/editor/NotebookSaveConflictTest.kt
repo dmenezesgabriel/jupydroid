@@ -178,6 +178,25 @@ class NotebookSaveConflictTest {
     assertEquals(listOf("x = 22"), repository.sourcesOnDisk())
   }
 
+  /** Save All waits on the write and must learn of the refusal: a refused save answers false. */
+  @Test
+  fun aSaveRefusedByAnOutsideWriteAnswersFalse() = runTest {
+    val viewModel = editorAskedAboutAConflict(FakeNotebookRepository())
+
+    assertFalse(viewModel.document.saveAndConfirm())
+    assertTrue(viewModel.uiState.value.saveConflict)
+  }
+
+  @Test
+  fun aSaveThatWritesAnswersTrue() = runTest {
+    val repository = FakeNotebookRepository()
+    val viewModel = loadedEditor(repository = repository)
+    viewModel.editCell(codeCell.id, "x = 1")
+
+    assertTrue(viewModel.document.saveAndConfirm())
+    assertEquals(listOf("x = 1"), repository.sourcesOnDisk())
+  }
+
   /** The file can be gone or unreadable by the time Revert is tapped; that is reported, not fatal. */
   @Test
   fun aRevertThatCannotReadTheFileIsReportedAndKeepsTheWork() = runTest {

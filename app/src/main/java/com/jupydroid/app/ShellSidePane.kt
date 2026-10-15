@@ -90,6 +90,10 @@ fun ShellSidePane(
    * dirty question the strip's would.
    */
   onCloseTab: (NavKey) -> Unit,
+  /** Whether any open document owes a write, for Open Tabs' Save All. */
+  saveAllEnabled: Boolean,
+  /** `docmanager:save-all` - see `saveAllOpenDocuments`. */
+  onSaveAllTabs: () -> Unit,
   /** `running:kernel-open-session` - opens (or reveals) the document a session row names. */
   onOpenSession: (KernelSessionModel) -> Unit,
   /** `terminal:open` - reveals the terminal's tab or reattaches to the named shell. */
@@ -131,6 +135,8 @@ fun ShellSidePane(
             openTabs = openTabs,
             onActivateTab = onActivateTab,
             onCloseTab = onCloseTab,
+            saveAllEnabled = saveAllEnabled,
+            onSaveAllTabs = onSaveAllTabs,
             onOpenSession = onOpenSession,
             onOpenTerminal = onOpenTerminal,
           )

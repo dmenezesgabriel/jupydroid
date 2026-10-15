@@ -26,6 +26,12 @@ internal class FakeTabDocument(openedUnder: String, isDirty: Boolean = false) : 
   override val path: String get() = livePath
   override val dirty: StateFlow<Boolean> = dirtyFlow
 
+  override suspend fun saveAndConfirm(): Boolean {
+    savesRequested++
+    dirtyFlow.value = false
+    return true
+  }
+
   override fun saveNow(onSaved: () -> Unit) {
     savesRequested++
     dirtyFlow.value = false

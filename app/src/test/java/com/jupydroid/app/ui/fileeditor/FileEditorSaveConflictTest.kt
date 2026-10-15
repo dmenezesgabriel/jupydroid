@@ -144,6 +144,24 @@ class FileEditorSaveConflictTest {
     assertEquals(THEIRS, workspace.readText(NOTES))
   }
 
+  /** Save All waits on the write and must learn of the refusal: a refused save answers false. */
+  @Test
+  fun aSaveRefusedByAChangedFileAnswersFalse() = runTest {
+    val viewModel = refusedEditor()
+
+    assertFalse(viewModel.saveAndConfirm())
+    assertTrue(viewModel.uiState.value.saveConflict)
+  }
+
+  @Test
+  fun aSaveThatWritesAnswersTrue() = runTest {
+    val viewModel = openedEditor()
+    viewModel.edit(OURS)
+
+    assertTrue(viewModel.saveAndConfirm())
+    assertEquals(OURS, workspace.readText(NOTES))
+  }
+
   private suspend fun TestScope.openedEditor(): FileEditorViewModel {
     val viewModel = FileEditorViewModel(NOTES, workspace, this)
     advanceUntilIdle()

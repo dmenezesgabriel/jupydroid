@@ -78,6 +78,11 @@ import kotlin.time.Duration.Companion.seconds
  * @param openTabs the main area's entries in opening order - `labShell.widgets('main')`.
  * @param onActivateTab `OpenTab.open()` - `labShell.activateById`.
  * @param onCloseTab `OpenTab.shutdown()` - `widget.close()`, through the caller's dirty gate.
+ * @param saveAllEnabled whether any open tab's document owes a write - VS Code's
+ *   `DirtyWorkingCopiesContext`.
+ * @param onSaveAllTabs `workbench.action.files.saveAll`, which VS Code's Open Editors view draws
+ *   beside Close All (vscode@3f3380c `contrib/files/browser/views/openEditorsView.ts`); jupyterlab's
+ *   Open Tabs has no save. Unconfirmed, as there: a save loses nothing.
  * @param onOpenSession `running:kernel-open-session` - `docmanager:open`, or `console:open` for a
  *   console row (the caller decides, for the reason the class doc gives).
  * @param onOpenTerminal `terminal:open` - reattaches to the shell the server still holds.
@@ -90,6 +95,8 @@ fun RunningSidePanel(
   openTabs: List<RunningTab>,
   onActivateTab: (NavKey) -> Unit,
   onCloseTab: (NavKey) -> Unit,
+  saveAllEnabled: Boolean,
+  onSaveAllTabs: () -> Unit,
   onOpenSession: (KernelSessionModel) -> Unit,
   onOpenTerminal: (TerminalSession) -> Unit,
   modifier: Modifier = Modifier,
@@ -138,6 +145,10 @@ fun RunningSidePanel(
           pendingBulk = PendingBulk("Close All?", "Are you sure you want to close all open tabs?", "Close All") {
             openTabs.forEach { onCloseTab(it.key) }
           }
+        },
+        // VS Code's order: Save All (20) ahead of Close All (30) in Open Editors' title.
+        leadingAction = {
+          SectionActionButton("Save All", OPEN_TABS_SECTION, enabled = saveAllEnabled, onClick = onSaveAllTabs)
         },
       ) {
         openTabs.forEach { tab ->
@@ -221,7 +232,7 @@ fun RunningSidePanel(
 
 /**
  * One `Section` - the accordion header, then while open its toolbar (the bulk action, disabled on
- * an empty section the way `jp-mod-disabled` dims it) and its rows.
+ * an empty section the way `jp-mod-disabled` dims it, after any [leadingAction]) and its rows.
  */
 @Composable
 private fun RunningSection(
@@ -231,6 +242,7 @@ private fun RunningSection(
   bulkLabel: String,
   bulkEnabled: Boolean,
   onBulk: () -> Unit,
+  leadingAction: @Composable () -> Unit = {},
   rows: @Composable () -> Unit,
 ) {
   Column(modifier = Modifier.fillMaxWidth()) {
@@ -258,16 +270,23 @@ private fun RunningSection(
     if (title !in collapsed) {
       Row(modifier = Modifier.fillMaxWidth()) {
         Spacer(modifier = Modifier.weight(1f))
-        TextButton(
-          onClick = onBulk,
-          enabled = bulkEnabled,
-          modifier = Modifier.semantics { contentDescription = "$bulkLabel: $title" },
-        ) {
-          Text(bulkLabel)
-        }
+        leadingAction()
+        SectionActionButton(bulkLabel, title, enabled = bulkEnabled, onClick = onBulk)
       }
       rows()
     }
+  }
+}
+
+/** A section toolbar's button, named with its section so "Close All" in two sections stays two acts. */
+@Composable
+private fun SectionActionButton(label: String, section: String, enabled: Boolean, onClick: () -> Unit) {
+  TextButton(
+    onClick = onClick,
+    enabled = enabled,
+    modifier = Modifier.semantics { contentDescription = "$label: $section" },
+  ) {
+    Text(label)
   }
 }
 

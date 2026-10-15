@@ -59,6 +59,14 @@ interface OpenDocument {
    */
   fun saveNow(onSaved: () -> Unit)
 
+  /**
+   * The same write as [saveNow], awaited by its caller: true when it left nothing dirty, false when
+   * the disk refused it - a file changed since it was read, or a write that failed. A refusal is
+   * already in the document's own state, drawn when its screen is; the answer tells a sweep over
+   * every tab which one to bring up.
+   */
+  suspend fun saveAndConfirm(): Boolean
+
   /** The close dialog's Discard - `SaveHandler.dispose()`: owed work dropped, nothing writes again. */
   fun discardChanges()
 

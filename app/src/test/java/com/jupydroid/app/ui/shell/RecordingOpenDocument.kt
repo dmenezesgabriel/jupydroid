@@ -24,6 +24,7 @@ class RecordingOpenDocument(override val path: String, private var text: String?
 
   // The close half of the contract - a clean document: these tests never ask it to leave.
   override val dirty: StateFlow<Boolean> = MutableStateFlow(false)
+  override suspend fun saveAndConfirm(): Boolean = true
   override fun saveNow(onSaved: () -> Unit) = onSaved()
   override fun discardChanges() = Unit
 

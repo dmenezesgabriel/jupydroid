@@ -227,10 +227,12 @@ class FileEditorViewModel(
    * `saveBeforeClose` keeps its widget open on the same failure.
    */
   override fun saveNow(onSaved: () -> Unit) {
-    viewModelScope.launch {
-      save.flush()
-      if (!_uiState.value.dirty) onSaved()
-    }
+    viewModelScope.launch { if (saveAndConfirm()) onSaved() }
+  }
+
+  override suspend fun saveAndConfirm(): Boolean {
+    save.flush()
+    return !_uiState.value.dirty
   }
 
   /**
@@ -285,17 +287,15 @@ class FileEditorViewModel(
     writeMutex.withLock {
       runCatching { workspaceRepository.writeText(livePath, _uiState.value.text, stamp.takeUnless { overwriting }) }
         .fold(
-          onSuccess = ::adoptWritten,
+          onSuccess = { written ->
+            stamp = written
+            _uiState.update { it.copy(error = null, dirty = false) }
+          },
           onFailure = { failure ->
             if (failure is CancellationException) throw failure
             _uiState.update { it.reportingSave(failure) }
           },
         )
     }
-  }
-
-  private fun adoptWritten(written: FileStamp) {
-    stamp = written
-    _uiState.update { it.copy(error = null, dirty = false) }
   }
 }

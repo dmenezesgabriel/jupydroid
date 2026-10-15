@@ -78,6 +78,8 @@ class ShellSidePaneTest {
           openTabs = emptyList(),
           onActivateTab = {},
           onCloseTab = {},
+          saveAllEnabled = false,
+          onSaveAllTabs = {},
           onOpenSession = {},
           onOpenTerminal = {},
           browseRequest = null,

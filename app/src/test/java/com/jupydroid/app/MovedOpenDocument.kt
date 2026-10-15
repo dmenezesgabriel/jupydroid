@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class MovedOpenDocument(override val openedAs: DocumentOpening) : OpenDocument {
   override var path: String = openedAs.path
   override val dirty = MutableStateFlow(false)
+  override suspend fun saveAndConfirm(): Boolean = true
   override fun saveNow(onSaved: () -> Unit) = onSaved()
   override fun discardChanges() = Unit
   override fun reloadFromDisk() = Unit

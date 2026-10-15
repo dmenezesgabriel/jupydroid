@@ -54,10 +54,12 @@ class NotebookDocument(
    * it off screen, which is what the reference's `saveBeforeClose` does on the same failure.
    */
   override fun saveNow(onSaved: () -> Unit) {
-    scope.launch {
-      save.flush()
-      if (!uiState.value.dirty) onSaved()
-    }
+    scope.launch { if (saveAndConfirm()) onSaved() }
+  }
+
+  override suspend fun saveAndConfirm(): Boolean {
+    save.flush()
+    return !uiState.value.dirty
   }
 
   /**

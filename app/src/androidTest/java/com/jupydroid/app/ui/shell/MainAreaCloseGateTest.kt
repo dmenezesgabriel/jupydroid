@@ -127,6 +127,7 @@ class MainAreaCloseGateTest {
     var discarded = false
       private set
 
+    override suspend fun saveAndConfirm(): Boolean = true
     override fun saveNow(onSaved: () -> Unit) = onSaved()
     override fun discardChanges() {
       discarded = true
