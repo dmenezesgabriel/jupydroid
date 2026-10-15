@@ -1152,7 +1152,7 @@ by `RecentsSection` at the explorer root with `RecentsActionsMenu`'s clear.
 | recents surface — `recentmenu:open-recent` items in the File menu and the running panel's two sections (`mainmenu-extension/src/recents.ts`, `running-extension/src/recents.ts`) | `RecentsSection` at the explorer root — directories first, tap to open or navigate | **adapted** | A pinned section rather than a menu — the phone has no File menu and the explorer root is where a next-open starts; `RecentsSection`'s docstring and `inRecentsOrder` carry the shape. |
 | VS Code `workbench.action.files.save` (`fileCommands.ts:497-540`), on the tab's context menu while the editor is dirty | `ActiveTabSave` on the tab strip, live while the top document is dirty | **adapted** | [ADR-0093](../adr/0093-a-document-is-saved-on-demand-from-the-tab-strip.md): the same dirty rule, on a visible icon rather than a long press nobody is shown. |
 | VS Code `saveAll`, `saveAs` (`fileCommands.ts:497-540`) | — | **absent** | `GAP-061` and `GAP-063` — the same holes the `docmanager:` family left. |
-| VS Code `workbench.action.files.revert` (`fileCommands.ts:565`) | `ActiveTabReload` on the tab strip | **adapted** | [ADR-0096](../adr/0096-an-open-document-is-reloaded-from-disk-on-demand-from-the-tab-strip.md): live on a clean document too, JupyterLab's rule — VS Code greys it there because its watcher re-reads one, and the watcher is `GAP-064`. |
+| VS Code `workbench.action.files.revert` (`fileCommands.ts:565`) | `ActiveTabReload` on the tab strip | **adapted** | [ADR-0096](../adr/0096-an-open-document-is-reloaded-from-disk-on-demand-from-the-tab-strip.md): live on a clean document too, JupyterLab's rule — VS Code greys it there because its watcher re-reads one; ours has that watcher ([ADR-0097](../adr/0097-an-open-document-with-no-unsaved-work-follows-its-file.md)) and keeps the icon live, since it is how a dirty document takes the disk's version. |
 | VS Code `workbench.action.openRecent` — a quick pick over MRU'd workspaces and files, a remove button per row (`windowActions.ts:48-56,290-310`) | `RecentsSection` — always-on-screen at the explorer root | **adapted** | The pick's job — reopen something recent without hunting — is a root-level section; the per-row remove button the pick mounts is `GAP-067`. |
 | VS Code `files.autoSave` — `off`/`afterDelay`/`onFocusChange`/`onWindowChange` (`files.contribution.ts:261-268`) | `autosaveEnabled` + `autosaveIntervalSeconds` — an on/off and a delay | **adapted** | The four-valued trigger collapses: `afterDelay` is this app everywhere (a phone's focus is one window's), and `onFocusChange`/`onWindowChange` have no surface to hang from — `EditorSettings`' docstring carries the JupyterLab half of the same collapse. |
 
@@ -1230,12 +1230,12 @@ What it found, beyond the rows above:
   create banner; a failed listing leaves the browser where it stood; a cancelled listing says
   nothing — both pinned. A failed write leaves `dirty` set with `saveFailure`/`error` carrying the
   cause, and the close gate keeps the document open — `context.save()` rejecting keeps the widget
-  open, the same rule. What another *process* does to the workspace arrives nowhere: `changes` is
-  in-process and non-replay, so a cell's `os.remove` or a second client is invisible to an open
-  document until its own write is refused for it
-  ([ADR-0090](../adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md)) —
-  the strip's reload icon re-reads one when asked (ADR-0096), and `GAP-064`'s missing watcher is
-  where the ledger charges the rest. The defects the walk owes the ledger, all fixed
+  open, the same rule. What another *process* does to the workspace reaches an open document
+  only as a write: `changes` is in-process and non-replay, so a cell's `os.remove` is invisible to
+  an open document until its own write is refused for it
+  ([ADR-0090](../adr/0090-a-save-is-refused-when-the-file-changed-since-it-was-read.md)), while a
+  write to its file re-reads a clean one by itself (ADR-0097) and the strip's reload icon re-reads
+  one when asked (ADR-0096). The defects the walk owes the ledger, all fixed
   red-first: **`docmanager:open` revealed by key equality, and a key keeps the path it opened
   under** — rename a file beside its open document and the next tap pushed a second editor, two
   autosaves on one file — `fbd21a99`,

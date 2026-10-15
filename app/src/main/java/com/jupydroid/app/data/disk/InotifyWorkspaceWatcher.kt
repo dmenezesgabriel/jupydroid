@@ -27,7 +27,7 @@ import java.util.concurrent.CopyOnWriteArraySet
  * **`CLOSE_WRITE` and `MOVED_TO`**, measured on the device under proot: a cell's
  * `open('notes.py', 'w').write(...)` is reported as `CLOSE_WRITE` on the file, and this app's own save
  * as `MOVED_TO` onto it, because a save writes beside and renames over (ADR-0089). A `MODIFY` per
- * chunk would report a file half-written.
+ * chunk would report a file half-written. The measurement is restated in ADR-0097.
  *
  * ```
  * InotifyWorkspaceWatcher(notebookWorkspace(context)).writesTo("reports/notes.txt")

@@ -97,7 +97,8 @@ What a future reader will be tempted to "fix":
 Not covered, on purpose:
 
 - **Noticing a change before a save is owed.** A re-read asked for outside the dialog is
-  ADR-0096's reload; one made by itself, on a watcher, is still `GAP-064`.
+  ADR-0096's reload; one made by itself, on a watcher, is ADR-0097's, and only for a document with
+  no unsaved work, so a dirty one still meets this refusal.
 - **A save made as the screen is torn down is refused silently.** `onCleared` has no screen left to
   ask on, so the disk's version stays and the edit owed is dropped. The close gate asks first.
 - **The check and the rename are two steps.** A writer landing between them is still replaced, as it

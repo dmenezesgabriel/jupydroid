@@ -82,6 +82,7 @@ What a future reader will be tempted to "fix":
 Not covered, on purpose:
 
 - **A watcher that re-reads a clean document by itself.** That needs an observer over a directory
-  the kernel writes under proot, and a policy for every change it reports; `GAP-064` keeps it.
+  the kernel writes under proot, and a policy for every change it reports; ADR-0097 is that
+  watcher, and it keeps this icon live.
 - **Reloading a tab beneath the top.** Only the top tab composes, as ADR-0093 says of Save.
 - **Checkpoints to reload to** (`GAP-062`).
