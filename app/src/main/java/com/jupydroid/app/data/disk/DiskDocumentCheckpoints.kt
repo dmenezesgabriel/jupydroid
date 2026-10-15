@@ -17,7 +17,7 @@ import java.time.Instant
  * Written from disk rather than through the server, because the server's checkpoint is a file copy
  * and nothing more - `copy2_safe` in the same package's `fileio.py` - and the server is down most of
  * the time. In the same layout so a server started on this tree, and any Jupyter client talking to
- * it, lists the checkpoint this app made.
+ * it, lists the checkpoint this app made (ADR-0100).
  *
  * ```
  * DiskDocumentCheckpoints(notebookWorkspace(context)).create("notes.py")

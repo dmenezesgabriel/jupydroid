@@ -85,4 +85,5 @@ Not covered, on purpose:
   the kernel writes under proot, and a policy for every change it reports; ADR-0097 is that
   watcher, and it keeps this icon live.
 - **Reloading a tab beneath the top.** Only the top tab composes, as ADR-0093 says of Save.
-- **Checkpoints to reload to** (`GAP-062`).
+- **Checkpoints to reload to.** Revert to Checkpoint is the tab's own act
+  ([ADR-0100](0100-a-document-reverts-to-its-checkpoint-kept-beside-it.md)).

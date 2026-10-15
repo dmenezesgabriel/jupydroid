@@ -95,5 +95,6 @@ Not covered, on purpose:
 
 - **A key binding.** No editor reads a hardware key, and there is no keymap (`GAP-134`).
 - **Save-as**, which is the tab's own act
-  ([ADR-0099](0099-a-document-is-saved-under-a-new-name-from-its-tab.md)), and **checkpoints**,
-  `GAP-062`.
+  ([ADR-0099](0099-a-document-is-saved-under-a-new-name-from-its-tab.md)), and **a checkpoint**,
+  which Save All does not make, as the reference's does not
+  ([ADR-0100](0100-a-document-reverts-to-its-checkpoint-kept-beside-it.md)).

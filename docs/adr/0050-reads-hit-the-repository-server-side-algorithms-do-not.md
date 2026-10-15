@@ -52,3 +52,14 @@ missing piece; the renderer is.
 The thing a future reader will be tempted to "fix" is routing writes through `/api/contents` to get signing
 for free. That makes every save require a running server, which is the opposite of what the idle stopper is
 for.
+
+## Amendment — 2026-10-15
+
+Narrowed by [ADR-0100](0100-a-document-reverts-to-its-checkpoint-kept-beside-it.md): checkpoints
+are not an algorithm. The shipped server's `FileCheckpoints` writes one by copying the file with
+`copy2_safe` (`usr/lib/python3.12/site-packages/jupyter_server/services/contents/filecheckpoints.py`,
+`fileio.py`), so the app writes it from disk, in the same layout, and a server started later lists
+it.
+
+Unchanged: notebook signing and nbconvert still go through the server, and a notebook this app
+writes is still unsigned.

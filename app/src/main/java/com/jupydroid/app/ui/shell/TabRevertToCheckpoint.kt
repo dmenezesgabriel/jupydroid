@@ -27,7 +27,7 @@ private class PendingCheckpointAsk(val document: OpenDocument, val ask: Checkpoi
  * The Revert to Checkpoint a tab's menu starts: says there is none, or asks with the reference's
  * words and the checkpoint's time, then restores and reads the file back; a restore the disk
  * refuses says why (jupyterlab@7f0e690 `packages/docmanager-extension/src/index.tsx`,
- * `CommandIDs.restoreCheckpoint`, `Private.createRevertConfirmNode`).
+ * `CommandIDs.restoreCheckpoint`, `Private.createRevertConfirmNode`; ADR-0100).
  *
  * Mounted once by the pane, like `rememberTabSaveAs`, so the dialogs outlive the menu that started
  * them. Answers with the starter.

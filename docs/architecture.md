@@ -897,18 +897,6 @@ the same ask with a second editor group. Ours opens reveal-don't-reopen over one
 unoffered — the stack's own rule refuses it. The repair is a clone act on the surface GAP-059
 names plus a per-key tab that tolerates two keys for one path.
 
-### GAP-062 — There are no checkpoints
-
-`context.save()` ends in `createCheckpoint()`
-(`jupyterlab/packages/docregistry/src/context.ts:528-540`), and `_maybeCheckpoint` creates one at
-first open when a writable file has none (`:841-860`), so `docmanager:restore-checkpoint` always
-has a point to return to
-(`jupyterlab/packages/docmanager-extension/src/index.tsx:1020-1084`). The shipped backend serves
-the API — `jupyter_server/services/contents/filecheckpoints.py` is in the rootfs — but no port
-operation names it and nothing ever creates one. The repair starts with the checkpoint calls on
-the repository an editor writes through; the picker the command offers is a dialog over
-`listCheckpoints`.
-
 ### GAP-066 — Nothing remembers a closed document
 
 `RecentsManager` keeps two lists, `opened` and `closed`

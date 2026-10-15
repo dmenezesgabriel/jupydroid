@@ -106,4 +106,3 @@ Not covered, on purpose:
 
 - **Delete, duplicate and clone on the tab's menu** (`GAP-059`, `GAP-060`).
 - **`Accel Shift S`.** No editor reads a hardware key, and there is no keymap (`GAP-134`).
-- **A checkpoint** after the copy is written (`GAP-062`).
