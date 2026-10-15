@@ -289,6 +289,9 @@ private fun MainAreaTabStrip(
       Row(modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
         tabs.forEach { tab ->
           val document = tab.documentIn(openDocuments)
+          // `widgetsRightOf` (jupyterlab@7f0e690 `packages/application-extension/src/index.tsx`): the
+          // tabs after this one, in the strip's opening order.
+          val toTheRight = tabs.dropWhile { it != tab }.drop(1)
           MainAreaTab(
             key = tab,
             // Live wins over static, in both its forms: a document's current path (`title.label`
@@ -304,8 +307,14 @@ private fun MainAreaTabStrip(
             // `docmanager:rename` only exists for what has a path (`document-title` tabs).
             renameable = tab.documentOpening() != null,
             width = tabWidth,
+            canCloseOthers = tabs.size > 1,
+            canCloseRight = toTheRight.isNotEmpty(),
             onActivate = { backStack.activateMainAreaTab(tab) },
             onClose = { onCloseTab(tab) },
+            // A `widget.close()` per sibling, as the reference's two commands do: each goes through
+            // the close gate, so a dirty one still asks and the rest close around it.
+            onCloseOthers = { (tabs - tab).forEach(onCloseTab) },
+            onCloseRight = { toTheRight.forEach(onCloseTab) },
             onRename = { onRenameTab(tab) },
             onSaveAs = { onSaveTabAs(tab) },
             onRevert = { onRevertTab(tab) },

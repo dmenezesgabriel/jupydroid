@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -60,7 +61,11 @@ import com.jupydroid.app.ui.DirtyMarker
  * screen has none, so here the dot itself is what a dirty tab's close is tapped on.
  *
  * A long press is the tab's context menu - the press is the only gesture left once click
- * activates. On a document tab it holds `docmanager:rename`, the `document-title`-bound command,
+ * activates. Every tab's menu leads with `application:close-other-tabs` and
+ * `application:close-right-tabs`, bound to every main-area tab at ranks 4 and 5 (jupyterlab@7f0e690
+ * `packages/application-extension/schema/commands.json` `context`) - the close group VS Code's
+ * `EditorTitleContext` and IntelliJ's `EditorTabPopupMenu` lead with too. Beneath them, a document
+ * tab holds `docmanager:rename`, the `document-title`-bound command,
  * Save As, which VS Code keeps on the same menu (vscode@3f3380c
  * `src/vs/workbench/contrib/files/browser/fileActions.contribution.ts`, `SAVE_FILE_AS_COMMAND_ID`),
  * `docmanager:restore-checkpoint`, which the reference keeps in the File menu beside them, and
@@ -75,8 +80,14 @@ internal fun MainAreaTab(
   closable: Boolean,
   renameable: Boolean,
   width: Dp,
+  /** `closeOtherTabs.isEnabled`: a second tab exists. */
+  canCloseOthers: Boolean,
+  /** `closeRightTabs.isEnabled`: a tab exists after this one. */
+  canCloseRight: Boolean,
   onActivate: () -> Unit,
   onClose: () -> Unit,
+  onCloseOthers: () -> Unit,
+  onCloseRight: () -> Unit,
   onRename: () -> Unit,
   onSaveAs: () -> Unit,
   onRevert: () -> Unit,
@@ -107,8 +118,8 @@ internal fun MainAreaTab(
         }
         .combinedClickable(
           onClick = onActivate,
-          onLongClick = if (renameable) ({ menuOpen = true }) else null,
-          onLongClickLabel = if (renameable) "Document actions" else null,
+          onLongClick = { menuOpen = true },
+          onLongClickLabel = "Tab actions",
         )
         .padding(start = Spacing.sm, end = Spacing.xs),
     ) {
@@ -150,6 +161,25 @@ internal fun MainAreaTab(
       }
     }
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+      DropdownMenuItem(
+        text = { Text("Close All Other Tabs") },
+        enabled = canCloseOthers,
+        onClick = {
+          menuOpen = false
+          onCloseOthers()
+        },
+      )
+      DropdownMenuItem(
+        text = { Text("Close Tabs to Right") },
+        enabled = canCloseRight,
+        onClick = {
+          menuOpen = false
+          onCloseRight()
+        },
+      )
+      // `docmanager:*` binds to `[data-type="document-title"]` alone: a tab without a path stops here.
+      if (!renameable) return@DropdownMenu
+      HorizontalDivider()
       DropdownMenuItem(
         text = { Text("Rename…") },
         onClick = {

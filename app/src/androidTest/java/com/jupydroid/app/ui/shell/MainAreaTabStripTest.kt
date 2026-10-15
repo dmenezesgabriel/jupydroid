@@ -312,9 +312,9 @@ class MainAreaTabStripTest {
     compose.onNodeWithTag(RENAME_FIELD_TAG).assertIsDisplayed()
   }
 
-  /** A tab without a path has nothing to rename or save - the press stays inert there. */
+  /** A tab without a path has nothing to rename or save - its menu holds no document row. */
   @Test
-  fun aLongPressOnATerminalTabOpensNoMenu() {
+  fun aLongPressOnATerminalTabOffersNoDocumentRow() {
     strip(Terminal("1"), Editor("a.ipynb"))
 
     tab("Terminal 1").performTouchInput { longClick() }
