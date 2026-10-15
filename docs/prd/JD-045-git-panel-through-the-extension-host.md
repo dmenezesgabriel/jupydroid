@@ -67,7 +67,8 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
 | Server half | jupyterlab-git → Python handlers on `jupyter_server`; vscode → the `git` CLI from the extension host | — | jupyterlab-git's own handlers in the Space (ADR-0104) |
 | Where `git` comes from | both → the host's own `git` | per-Space `apk add` needs a network and a step per Space | `apk add git` in the base image, measured |
 | Rail position | jupyterlab-git → rank 200, the same rank as Running; vscode → order 2, after Search | — | after Search, VS Code's order, since our rail already follows VS Code for Search ([ADR-0062](../adr/0062-the-activity-bars-order-takes-both-references.md)) |
-| Refresh | jupyterlab-git → a poll (`refreshInterval`); vscode → a file watcher | — | read when the panel opens, plus the existing workspace watcher's signal; decided in T2 |
+| Refresh | jupyterlab-git → a poll (`refreshInterval`); vscode → a file watcher | — | read when the panel opens, keyed on the browsed directory: demo steps 3–4 reopen the panel, so a watcher is not needed to meet them |
+| Bottom bar at one pane | — | the bar already carries five items, Material's ceiling (`onePaneDestinations`, `SidePanelBar.kt`) | a contributed panel is on the rail only; at one pane it falls back to Files, as the table of contents does |
 
 ## Gap analysis — what we already have vs the references
 
@@ -94,7 +95,7 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
   (`python3 -X importtime` inside the Space) and choose between three things: accept it, load the
   extension only when the Git extension is enabled, or defer what it imports.
 - The `pluginmanager:*` and `extensionmanager:*` parity-ledger rows, which cite ADR-0071, are verdicted
-  again in T3, against the registry T2 builds.
+  again in T4, against the registry T2 builds.
 
 ## Surface
 
@@ -114,9 +115,12 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
 
 - [x] T1 — the image ships `git` and jupyterlab-git's server extension, and the server answers
   `POST /git/<path>/status` on the tablet; image size and cold start measured before and after
-- [ ] T2 — `:extension-api`, `:extensions:git` and the host: the Source Control panel lists the branch
-  and the changed files; every gate names the new modules
-- [ ] T3 — the demo on a fresh install; ledger rows, ADR, ship
+- [ ] T2 — `:extension-api`, `:extensions:git` and the host: the Source Control panel on the rail
+  reads the browsed directory's branch, and says so when the directory is not a repository; every
+  gate names the new modules; the server half's import cost measured inside the Space and decided
+- [ ] T3 — the panel lists every changed file with its status, red parser test first over the
+  recorded `status.json`
+- [ ] T4 — the demo on a fresh install; ledger rows, ADR, ship
 
 ## Out of scope
 
