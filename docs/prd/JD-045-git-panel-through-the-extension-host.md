@@ -121,7 +121,7 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
 - [x] T2 — `:extension-api`, `:extensions:git` and the host: the Source Control panel on the rail
   reads the browsed directory's branch, and says so when the directory is not a repository; every
   gate names the new modules; the server half's import cost measured inside the Space and decided
-- [ ] T3 — the panel lists every changed file with its status, red parser test first over the
+- [x] T3 — the panel lists every changed file with its status, red parser test first over the
   recorded `status.json`
 - [ ] T4 — the image stops enabling nbdime's server extension, which nothing calls; a red image check
   first, then the rootfs version bump, and warm boot measured before and after
