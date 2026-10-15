@@ -7,6 +7,13 @@
 # The tarball is a build artifact, not a committed file: it is far too big for
 # git and is reproducible from the pinned Dockerfile + requirements.lock.
 #
+# arm64-v8a on an x86_64 host runs every RUN under qemu, so the host needs an arm64 binfmt handler,
+# and that handler does not survive a reboot. Without it the first RUN fails with
+# `exec /bin/sh: exec format error`. `ls /proc/sys/fs/binfmt_misc/qemu-aarch64` says whether it is
+# there, and this registers it (privileged, host-wide until the next reboot):
+#
+#   docker run --privileged --rm tonistiigi/binfmt --install arm64
+#
 # zstd rather than gzip (ADR-0012): decompressing the gzip arm64 tarball was ~9 s of
 # single-threaded CPU on the tablet, the floor under every write-side optimisation.
 # The decoder is zstd-jni via commons-compress, the same

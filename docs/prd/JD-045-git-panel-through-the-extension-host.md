@@ -88,6 +88,11 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
 - Whether `:extension-api` carries Compose, so that a panel is a `@Composable`, or only a model that
   `:app` draws. Settled in T2 by what the git panel needs. The leaning is Compose, because a model
   `:app` draws would put every extension's UI back into `:app`.
+- The server half costs every Space start about 0.95 s. Warm boot (`server.starting` to
+  `server.listening`) went from 2.62–2.96 s to 3.85–3.98 s on SM-X216B, because the server imports and
+  loads `jupyterlab_git` before it listens. Before the panel ships, measure which import pays it
+  (`python3 -X importtime` inside the Space) and choose between three things: accept it, load the
+  extension only when the Git extension is enabled, or defer what it imports.
 - The `pluginmanager:*` and `extensionmanager:*` parity-ledger rows, which cite ADR-0071, are verdicted
   again in T3, against the registry T2 builds.
 
@@ -107,7 +112,7 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
 
 ## Tasks
 
-- [ ] T1 — the image ships `git` and jupyterlab-git's server extension, and the server answers
+- [x] T1 — the image ships `git` and jupyterlab-git's server extension, and the server answers
   `POST /git/<path>/status` on the tablet; image size and cold start measured before and after
 - [ ] T2 — `:extension-api`, `:extensions:git` and the host: the Source Control panel lists the branch
   and the changed files; every gate names the new modules

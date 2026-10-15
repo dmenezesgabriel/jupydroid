@@ -101,6 +101,6 @@ class BaseSpaceInstaller(
     const val CONSOLE_SCRIPT_DIR = "usr/local/bin"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
-    const val BUNDLED_ROOTFS_VERSION = 11
+    const val BUNDLED_ROOTFS_VERSION = 12
   }
 }

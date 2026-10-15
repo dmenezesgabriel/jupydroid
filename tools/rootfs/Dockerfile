@@ -81,7 +81,8 @@ RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
 
 FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
 
-RUN apk add --no-cache python3 py3-pip
+# git is what jupyterlab-git's server half runs for every answer it gives (ADR-0104).
+RUN apk add --no-cache python3 py3-pip git
 
 # --break-system-packages: Alpine marks the system interpreter PEP 668
 # externally-managed. This image *is* the environment, so there is nothing to
@@ -191,6 +192,18 @@ assert 'uri' in checkers, 'uri format checker missing';\
 assert 'iri' not in checkers, 'iri checker should be absent with rfc3987-syntax gone';\
 assert 'iri-reference' not in checkers, 'iri-reference checker should be absent';\
 print('jupyter_events imports without rfc3987-syntax; uri checker intact')"
+
+# The Git extension's server half is jupyterlab-git's own handlers under /git (ADR-0104), and they
+# shell out to `git` (jupyterlab-git@b62a87b7 packages/core/jupyterlab_git_core/git.py). Gated
+# after the strip, so a strip that took a file either needs fails here and not on the device: the
+# binary runs, and the server lists the extension enabled and loadable - the wheel's own
+# `etc/jupyter/jupyter_server_config.d/jupyterlab_git.json` is what enables it. The list colours
+# `enabled` and `OK` with ANSI escapes even into a pipe, hence the `.*` before each word.
+RUN git --version \
+ && jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
+ && grep -Eq 'jupyterlab_git .*enabled' /tmp/extensions.txt \
+ && grep -Eq 'jupyterlab_git [0-9.]+ .*OK' /tmp/extensions.txt \
+ && rm /tmp/extensions.txt
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.
