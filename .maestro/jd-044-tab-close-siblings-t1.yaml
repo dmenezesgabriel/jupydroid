@@ -1,0 +1,102 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/jd-044-tab-close-siblings-t1-driver.sh with autosave off
+# and `a.py`, `b.py`, `c.py`, so an edit to b.py stays unsaved until something writes it. The
+# terminal opens first, from the Launcher's card: at two panes the Launcher fills the main area
+# until a document opens, and the bar's terminal icon is the one-pane reach.
+#
+# "Close Tabs to Right" and "Close All Other Tabs" on a tab's long-press menu -
+# `application:close-right-tabs` and `application:close-other-tabs`, bound to every main-area tab
+# (jupyterlab@7f0e690 `packages/application-extension/schema/commands.json` `context`). Each closes
+# its siblings one `widget.close()` at a time, so dirty b.py asks: Cancel keeps it, Discard closes
+# it. The driver reads b.py back from the disk.
+#
+# Whether a menu row is greyed is not readable by Maestro (a Material item reports enabled either
+# way): the lone tab's greyed rows are the screenshot's and TabCloseSiblingsTest's to see.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+
+# ---- a terminal, a.py, b.py with an unsaved edit, c.py, in that order ----
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal 1"
+    timeout: 30000
+- hideKeyboard
+- tapOn: "a.py"
+- extendedWaitUntil:
+    visible: "Tab: a.py"
+    timeout: 10000
+- tapOn: "b.py"
+- extendedWaitUntil:
+    visible: "other = \"other_seeded\"\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: b.py"
+    enabled: true
+- tapOn: "c.py"
+- extendedWaitUntil:
+    visible: "Tab: c.py"
+    timeout: 10000
+
+# ---- a document's menu leads with the close rows, its own rows beneath ----
+- longPressOn: "Tab: a.py"
+- extendedWaitUntil:
+    visible: "Close Tabs to Right"
+    timeout: 5000
+- assertVisible: "Close All Other Tabs"
+- assertVisible: "Rename…"
+- assertVisible: "Delete…"
+- takeScreenshot: 01-a-document-tab-menu
+
+# ---- to the right: dirty b.py asks, Cancel keeps it, c.py closes ----
+- tapOn: "Close Tabs to Right"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- takeScreenshot: 02-dirty-b-py-asks
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Tab: c.py"
+    timeout: 5000
+- assertVisible: "Tab: Terminal 1"
+- assertVisible: "Tab: a.py"
+- assertVisible: "Tab: b.py"
+- takeScreenshot: 03-cancel-kept-b-py-and-c-py-closed
+
+# ---- a terminal's menu holds the two close rows and no document row ----
+- longPressOn: "Tab: Terminal 1"
+- extendedWaitUntil:
+    visible: "Close All Other Tabs"
+    timeout: 5000
+- assertVisible: "Close Tabs to Right"
+- assertNotVisible: "Rename…"
+- takeScreenshot: 04-a-terminal-tab-offers-the-close-rows-alone
+
+# ---- all others: b.py asks again, Discard leaves the terminal alone ----
+- tapOn: "Close All Other Tabs"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- tapOn: "Discard"
+- extendedWaitUntil:
+    notVisible: "Tab: b.py"
+    timeout: 5000
+- assertNotVisible: "Tab: a.py"
+- assertVisible: "Tab: Terminal 1"
+- takeScreenshot: 05-discard-left-the-terminal-alone
+
+# ---- a lone tab: both rows greyed ----
+- longPressOn: "Tab: Terminal 1"
+- extendedWaitUntil:
+    visible: "Close All Other Tabs"
+    timeout: 5000
+- takeScreenshot: 06-a-lone-tab-greys-both-rows
