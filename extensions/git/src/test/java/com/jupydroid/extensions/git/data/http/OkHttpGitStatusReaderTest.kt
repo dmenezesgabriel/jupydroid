@@ -3,8 +3,10 @@ package com.jupydroid.extensions.git.data.http
 import com.jupydroid.extension.api.ServerAddress
 import com.jupydroid.extensions.git.domain.GitStatusReader
 import com.jupydroid.extensions.git.domain.GitStatusReaderContract
+import com.jupydroid.extensions.git.domain.RepositoryStatus
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
@@ -19,7 +21,10 @@ import java.util.concurrent.TimeUnit
 class OkHttpGitStatusReaderTest : GitStatusReaderContract() {
   @get:Rule val serverRule = MockWebServerRule()
 
-  override fun reader(repositories: Map<String, String>, failures: Map<String, String>): GitStatusReader {
+  override fun reader(
+    repositories: Map<String, RepositoryStatus.Repository>,
+    failures: Map<String, String>,
+  ): GitStatusReader {
     serverRule.server.dispatcher = GitStatusLikeTheTabletsServer(repositories, failures)
     return readerUnderTest()
   }
@@ -30,7 +35,9 @@ class OkHttpGitStatusReaderTest : GitStatusReaderContract() {
    */
   @Test
   fun status_postsToTheDirectorysOwnStatusEndpointWithTheToken() = runTest {
-    serverRule.server.dispatcher = GitStatusLikeTheTabletsServer(repositories = mapOf("my work/demo" to "master"))
+    serverRule.server.dispatcher = GitStatusLikeTheTabletsServer(
+      repositories = mapOf("my work/demo" to RepositoryStatus.Repository("master")),
+    )
 
     readerUnderTest().status("my work/demo")
 
@@ -65,14 +72,14 @@ class OkHttpGitStatusReaderTest : GitStatusReaderContract() {
  * (jupyterlab-git@b62a87b7 `packages/jupyterlab/jupyterlab_git/handlers.py`).
  */
 private class GitStatusLikeTheTabletsServer(
-  private val repositories: Map<String, String> = emptyMap(),
+  private val repositories: Map<String, RepositoryStatus.Repository> = emptyMap(),
   private val failures: Map<String, String> = emptyMap(),
 ) : Dispatcher() {
   override fun dispatch(request: RecordedRequest): MockResponse {
     // `git/<segments…>/status`, decoded: the directory is what lies between the two.
     val path = request.url.pathSegments.drop(1).dropLast(1).joinToString("/")
-    val branch = repositories[path]
-    if (branch != null) return answer(200, """{"code": 0, "branch": "$branch", "files": []}""")
+    val repository = repositories[path]
+    if (repository != null) return answer(200, statusOf(repository).toString())
     val message = failures[path] ?: "fatal: not a git repository (or any of the parent directories): .git\n"
     val refusal = buildJsonObject {
       put("code", JsonPrimitive(128))
@@ -80,6 +87,27 @@ private class GitStatusLikeTheTabletsServer(
       put("message", JsonPrimitive(message))
     }
     return answer(500, refusal.toString())
+  }
+
+  /** `x`, `y` and `to` as `git.py`'s `status` builds each file; `from` equals `to` but for a rename. */
+  private fun statusOf(repository: RepositoryStatus.Repository) = buildJsonObject {
+    put("code", JsonPrimitive(0))
+    put("branch", JsonPrimitive(repository.branch))
+    put(
+      "files",
+      buildJsonArray {
+        repository.changes.forEach { file ->
+          add(
+            buildJsonObject {
+              put("x", JsonPrimitive(file.index.toString()))
+              put("y", JsonPrimitive(file.workTree.toString()))
+              put("to", JsonPrimitive(file.path))
+              put("from", JsonPrimitive(file.path))
+            },
+          )
+        }
+      },
+    )
   }
 
   private fun answer(code: Int, body: String) = MockResponse.Builder().code(code).body(body).build()

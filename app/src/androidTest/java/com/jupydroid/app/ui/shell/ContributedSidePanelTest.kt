@@ -8,6 +8,7 @@ import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.git.GitExtension
 import com.jupydroid.extensions.git.data.fake.FakeGitStatusReader
+import com.jupydroid.extensions.git.domain.RepositoryStatus
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,8 +24,9 @@ import org.junit.runner.RunWith
 class ContributedSidePanelTest {
   @get:Rule val compose = createComposeRule()
 
-  private val sourceControl =
-    GitExtension(readerFor = { FakeGitStatusReader(repositories = mapOf("demo" to "master")) }).sidePanels.single()
+  private val sourceControl = GitExtension(
+    readerFor = { FakeGitStatusReader(repositories = mapOf("demo" to RepositoryStatus.Repository("master"))) },
+  ).sidePanels.single()
 
   @Test
   fun theHostTitlesThePanelWithItsLabel() {

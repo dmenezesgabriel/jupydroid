@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.git.data.http
 
+import com.jupydroid.extensions.git.domain.ChangedFile
 import com.jupydroid.extensions.git.domain.GitStatusException
 import com.jupydroid.extensions.git.domain.RepositoryStatus
 import org.junit.Assert.assertEquals
@@ -15,7 +16,21 @@ class GitStatusAnswerTest {
   fun aRepositorysAnswerReadsItsBranch() {
     val status = GitStatusAnswer.parse(path = "demo", body = recorded("status-in-a-repository.json"))
 
-    assertEquals(RepositoryStatus.Repository(branch = "master"), status)
+    assertEquals("master", (status as RepositoryStatus.Repository).branch)
+  }
+
+  /** `x` is the index's letter and `y` the work tree's, exactly as `git status --porcelain` prints them. */
+  @Test
+  fun aRepositorysAnswerListsItsChangedFiles() {
+    val status = GitStatusAnswer.parse(path = "demo", body = recorded("status-in-a-repository.json"))
+
+    assertEquals(
+      listOf(
+        ChangedFile(path = "a.txt", index = ' ', workTree = 'M'),
+        ChangedFile(path = "c.txt", index = '?', workTree = '?'),
+      ),
+      (status as RepositoryStatus.Repository).changes,
+    )
   }
 
   @Test

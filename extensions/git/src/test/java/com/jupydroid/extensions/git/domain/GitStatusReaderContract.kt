@@ -13,26 +13,41 @@ import org.junit.Test
  */
 abstract class GitStatusReaderContract {
   /**
-   * A reader over a workspace in which each of [repositories] is a repository on the branch it maps
+   * A reader over a workspace in which each of [repositories] is a repository standing as it maps
    * to, each of [failures] makes git fail with the message it maps to, and every other directory is
    * not a repository at all.
    */
   protected abstract fun reader(
-    repositories: Map<String, String> = emptyMap(),
+    repositories: Map<String, RepositoryStatus.Repository> = emptyMap(),
     failures: Map<String, String> = emptyMap(),
   ): GitStatusReader
 
   @Test
   fun aRepositoryAnswersItsBranch() = runTest {
-    val status = reader(repositories = mapOf("demo" to "master")).status("demo")
+    val status = reader(repositories = mapOf("demo" to RepositoryStatus.Repository("master"))).status("demo")
 
     assertEquals(RepositoryStatus.Repository(branch = "master"), status)
+  }
+
+  /** The demo's repository: one tracked file edited, one new file staged, one new file left alone. */
+  @Test
+  fun aRepositoryAnswersItsChangedFiles() = runTest {
+    val demo = RepositoryStatus.Repository(
+      branch = "master",
+      changes = listOf(
+        ChangedFile(path = "a.txt", index = ' ', workTree = 'M'),
+        ChangedFile(path = "s.txt", index = 'A', workTree = ' '),
+        ChangedFile(path = "c.txt", index = '?', workTree = '?'),
+      ),
+    )
+
+    assertEquals(demo, reader(repositories = mapOf("demo" to demo)).status("demo"))
   }
 
   /** The workspace root is the case the demo opens on: a path with no segment at all. */
   @Test
   fun aDirectoryOutsideEveryRepositoryAnswersSoRatherThanFailing() = runTest {
-    val status = reader(repositories = mapOf("demo" to "master")).status("")
+    val status = reader(repositories = mapOf("demo" to RepositoryStatus.Repository("master"))).status("")
 
     assertTrue(status is RepositoryStatus.NotARepository)
   }

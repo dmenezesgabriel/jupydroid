@@ -1,17 +1,23 @@
 package com.jupydroid.extensions.git.data.http
 
+import com.jupydroid.extensions.git.domain.ChangedFile
 import com.jupydroid.extensions.git.domain.GitStatusException
 import com.jupydroid.extensions.git.domain.RepositoryStatus
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 /**
- * The body `POST /git/<path>/status` answers: `{"code": 0, "branch": …}` inside a repository, and
+ * The body `POST /git/<path>/status` answers: `{"code": 0, "branch": …, "files": […]}` inside a repository, and
  * `{"code": <git's exit code>, "message": <git's stderr>}` otherwise
  * (jupyterlab-git@b62a87b7 `packages/core/jupyterlab_git_core/git.py`, `status`).
  */
 @Serializable
-internal data class GitStatusAnswer(val code: Int, val branch: String? = null, val message: String? = null) {
+internal data class GitStatusAnswer(
+  val code: Int,
+  val branch: String? = null,
+  val message: String? = null,
+  val files: List<StatusFile> = emptyList(),
+) {
   companion object {
     private val lenient = Json { ignoreUnknownKeys = true }
 
@@ -33,11 +39,23 @@ internal data class GitStatusAnswer(val code: Int, val branch: String? = null, v
         throw GitStatusException(path, "the server did not answer a status: ${body.take(BODY_EXCERPT)}")
       }
       val reason = answer.message.orEmpty().trim()
-      if (answer.code == 0 && answer.branch != null) return RepositoryStatus.Repository(answer.branch)
+      if (answer.code == 0 && answer.branch != null) {
+        return RepositoryStatus.Repository(answer.branch, answer.files.map(StatusFile::toChangedFile))
+      }
       if (NOT_A_REPOSITORY in reason.lowercase()) return RepositoryStatus.NotARepository(reason)
       throw GitStatusException(path, "code ${answer.code}, ${reason.ifEmpty { body.take(BODY_EXCERPT) }}")
     }
 
     private const val NOT_A_REPOSITORY = "fatal: not a git repository"
   }
+}
+
+/**
+ * One of `files`: `x` and `y` are a status line's first two characters, and `to` the rest of it
+ * (`status` in jupyterlab-git@b62a87b7 `packages/core/jupyterlab_git_core/git.py`). `from` and
+ * `is_binary` are left unread, since nothing shows them yet.
+ */
+@Serializable
+internal data class StatusFile(val x: Char, val y: Char, val to: String) {
+  fun toChangedFile(): ChangedFile = ChangedFile(path = to, index = x, workTree = y)
 }
