@@ -135,6 +135,9 @@ These are the SHAs the local clones are pinned at:
 | `winlator` | `fb66541b93a4eb3ee585a433b4c7b20544d58e40` | `git clone --depth 1 https://github.com/brunodev85/winlator` |
 | `box64` | `9c11c5671c6d385357321856ff75894afab4ee5f` | `git clone --depth 1 https://github.com/ptitseb/box64` |
 | `box86` | `0579f8b9c47d87d700724f4cce559b06cbd2b0f5` | `git clone --depth 1 https://github.com/ptitseb/box86` |
+| `jupyterlab-git` | `b62a87b719cd151a2c60eaaa6a70a6755784c4ef` | `git clone --depth 1 https://github.com/jupyterlab/jupyterlab-git` |
+| `jupyter-ai` | `5b23f55d15ba245347013ffe0a238f26b1f4f1e8` | `git clone --depth 1 https://github.com/jupyterlab/jupyter-ai` (a metapackage; its packages are submodules) |
+| `colab-vscode` | `96e23580c6a6b77bef88beb855cae2d00d42d50e` | `git clone --depth 1 https://github.com/googlecolab/colab-vscode` |
 
 Clone into `reference/research_repos/`. `reference/xeus-android/` is two prose documents
 (`FEASIBILITY.md`, `STUDY_CASES.md`), not source.

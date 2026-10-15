@@ -40,7 +40,7 @@ memory. Follow these steps in order.
 ## 3. Build — strict TDD, evidence over assumption
 
 - Read how the references named in the PRD solve the task before writing code, and take the best of them.
-  Act on what you measured and read, never on assumption. `docs/README.md` has the nine pinned SHAs and the
+  Act on what you measured and read, never on assumption. `docs/README.md` has the pinned SHAs and the
   clone commands; `cross-cutting.md` §8.3 says which reference is authoritative for which question, and
   what each was checked and found **empty** for.
 - RED → GREEN → REFACTOR, strictly. Every new or refactored line gets unit tests, and instrumented tests

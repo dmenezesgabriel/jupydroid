@@ -68,6 +68,9 @@ travels with no clone; the pinned SHAs and clone commands are in [`../README.md`
 | **IntelliJ** | the editor: syntax, LSP client shape (`platform/lsp`), markdown (`platform/jewel/markdown`), notebook layout (`notebooks/visualization`), terminal **integration** (`plugins/terminal`) | the Jupyter kernel-protocol client; the Jupyter file browser; a terminal **emulator** — that is JediTerm, an external library |
 | **Termux** | the **terminal**: a VT emulator (`terminal-emulator/`), drawing a buffer with a monospace font (`terminal-view/TerminalRenderer.java`), the extra-keys row with its latching modifiers | its exec model — it sets `targetSdkVersion=28` |
 | **Winlator** | container lifecycle: install, version-stamp, create/duplicate/remove, browse | its exec model — it sets `targetSdkVersion 28` |
+| **jupyterlab-git** | the Git extension: its REST surface (`specification/Git_REST_API.yml`), what each endpoint answers, and its panel | — |
+| **jupyter-ai** | the AI extension: its chat, personas and providers, across the packages its `.gitmodules` names | — |
+| **colab-vscode** | reaching a Colab runtime: the sign-in (`src/auth/`) and the runtime API (`src/colab/client/`) | — |
 | **Compose docs**, developer.android.com | which component exists and how it behaves on a phone or tablet | — |
 
 **Two references answer for presentation, and the split is deliberate.** VS Code decides how the
@@ -87,6 +90,8 @@ What may be copied is decided per reference, and it is load-bearing rather than 
 | VS Code, vscode-jupyter | MIT | **transcribe** with attribution — every transcribed colour carries its colour id in a doc comment |
 | Termux `terminal-emulator`, `terminal-view` | Apache 2.0 — carved out of the repo's GPLv3, inherited from Jack Palevich's Android Terminal Emulator | **transcribe**, naming the upstream path and the pinned SHA in the file's KDoc |
 | JediTerm | Apache 2.0 at the reader's option | transcribe with attribution |
+| jupyterlab-git, jupyter-ai | BSD-3-Clause | **transcribe** with attribution; their Python server halves are installed into the image, not vendored |
+| colab-vscode | Apache 2.0 | transcribe with attribution |
 | Winlator | LGPL-2.1 | **clean-room only** — techniques studied, no code vendored |
 | sora-editor | LGPL-2.1 | **clean-room only**; a fork would stay LGPL-2.1, which answers the fork question with "no" |
 | Callisto | proprietary | **clean-room only** |

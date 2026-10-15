@@ -1,6 +1,6 @@
 # ADR-0071 — Nothing extends the app; the feature set is fixed
 
-Status: accepted
+Status: superseded by [ADR-0104](0104-extensions-are-compile-time-modules-against-an-extension-api.md)
 Date: 2026-10-03
 
 ## Context

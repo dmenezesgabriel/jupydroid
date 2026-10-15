@@ -208,6 +208,20 @@ closing none of its siblings, is closed by
 | `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
 | `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
 
+### M7 — Extensions
+
+What JupyterLab users install, built in. An extension is a Gradle module against `:extension-api`, and
+its server half is the reference's own Python server extension running in the Space
+([ADR-0104](adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md), which
+supersedes [ADR-0071](adr/0071-nothing-extends-the-app.md)). The first item proves the host and the
+module boundary with the smallest of the three.
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `JD-045` | **The Git panel shows the workspace's branch and changes:** a Source Control panel, contributed by the Git extension module, lists the current branch and every changed file with its status, from jupyterlab-git's server in the running Space | in-progress ← next | [JD-045](prd/JD-045-git-panel-through-the-extension-host.md) | — |
+| `JD-046` | **An AI chat panel:** jupyter-ai's chat, contributed by its own extension module, answering from a provider the user configures | open | — | — |
+| `JD-047` | **A Colab runtime runs a notebook:** colab-vscode's sign-in and runtime, contributed by its own extension module, as a kernel the notebook can choose | open | — | — |
+
 ### Known gaps
 
 Measured gaps are recorded as `GAP-NNN` in

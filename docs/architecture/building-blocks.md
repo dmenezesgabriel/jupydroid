@@ -6,7 +6,10 @@ only true today, §5.4 says that too.
 
 ## 5.1 Level 1 — layers
 
-Pragmatic hexagonal + UDF/MVVM in a **single `:app` module** (no premature modularity).
+Pragmatic hexagonal + UDF/MVVM in **one `:app` module, plus one module per extension**
+([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)): an
+extension under `extensions/<name>/` depends on `:extension-api` and never on `:app`, and `:app` is the
+only module that depends on all of them. Everything below describes `:app`.
 Dependencies point inward: `ui → domain`, `data → domain`, `domain → nothing`.
 
 ```
@@ -217,8 +220,8 @@ nouns, even though nothing serialises it.
 
 ## 5.6 Deliberate simplifications
 
-- One module, manual DI, constructor injection defaulting to fakes — no DI framework, no
-  multi-module Gradle split until a real boundary appears.
+- One app module, manual DI, constructor injection defaulting to fakes — no DI framework. The only
+  split is the extension boundary ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)).
 - Recents is a history of what was *opened*, persisted outside the workspace and validated against
   it — not a scan of a directory, so it survives files moving.
 - `KernelEvent.Idle` is the kernel-busy signal: the ViewModel derives Running/Idle from the event
