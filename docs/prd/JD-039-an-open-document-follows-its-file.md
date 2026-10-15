@@ -130,7 +130,7 @@ because inotify reports a write and not who made it, so we take VS Code's compar
 
 - [x] T1 — A clean open notebook or file re-reads its file when something else writes it, and a dirty
   one keeps its edit. The port, the inotify adapter, the fake and both editors, with the tablet flow.
-- [ ] T2 — The demo on a fresh install, ADR-0097, GAP-064 closed, and this PRD deleted.
+- [x] T2 — The demo on a fresh install, ADR-0097, GAP-064 closed, and this PRD deleted.
 
 ## Out of scope
 
