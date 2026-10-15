@@ -116,7 +116,7 @@ was picked up.
 - [x] T1 — `writeCopyTo`, the tab's menu and the Save As flow; flow on SM-X216B: a dirty
   file saved as a new name opens clean with the edit while the original keeps its own, and a
   notebook saved over a taken name asks File Overwrite? and opens
-- [ ] T2 — the demo on a fresh install, then ship: ADR-0099, delete this PRD, GAP-063 closes
+- [x] T2 — the demo on a fresh install, then ship: ADR-0099, delete this PRD, GAP-063 closes
 
 ## Out of scope
 
