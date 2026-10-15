@@ -119,7 +119,7 @@ None open: each axis above is settled by the reference it names.
 
 - [x] T1 — Delete… on the tab's menu: asks, deletes, closes the tab (background too), and says why a refusal failed
 - [x] T2 — `WorkspaceFiles.copy` with the server's `-Copy<n>` naming (Disk, Fake, contract test), and Duplicate on the tab's menu
-- [ ] T3 — the demo on a fresh install; ADR, ledger rows, ship
+- [x] T3 — the demo on a fresh install; ADR, ledger rows, ship
 
 ## Out of scope
 

@@ -1,0 +1,94 @@
+appId: com.jupydroid.app
+---
+# Continues the T2 driver, on the copies it left. Driven by scripts/jd-043-tab-demo-driver.sh.
+#
+# `other-Copy2.py` is deleted from its tab, then `launchApp` stops the process. The open tabs live
+# in the process's `AppContainer` (ADR-0092), so after it nothing is held in memory: what the
+# explorer lists and what each copy opens with is read from the disk.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "other-Copy2.py"
+- extendedWaitUntil:
+    visible: "Tab: other-Copy2.py"
+    timeout: 10000
+- longPressOn: "Tab: other-Copy2.py"
+- extendedWaitUntil:
+    visible: "Delete…"
+    timeout: 5000
+- tapOn: "Delete…"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: other-Copy2.py\\?"
+    timeout: 5000
+# Index 1: the dialog's title is "Delete" too, and a tap on it closes nothing.
+- tapOn:
+    text: "Delete"
+    index: 1
+# The ask goes first: while it is up, the strip's tabs are not in the hierarchy, so "not visible"
+# would pass with the tab still open.
+- extendedWaitUntil:
+    notVisible: "Are you sure you want to permanently delete: other-Copy2.py\\?"
+    timeout: 5000
+- extendedWaitUntil:
+    notVisible: "Tab: other-Copy2.py"
+    timeout: 10000
+# Recents cleared, for the reason explorer-rename-open-document.yaml gives: an opened file is
+# listed twice, and the name waited on below must be the listing's.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+# The explorer drops a deleted file at its next poll, at most 10 s later.
+- extendedWaitUntil:
+    notVisible: "other-Copy2.py"
+    timeout: 15000
+- takeScreenshot: 01-copy2-deleted-from-its-tab
+
+# ---- after a kill ----
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "other-Copy3.py"
+    timeout: 15000
+- assertNotVisible: "other-Copy2.py"
+- assertVisible: "other-Copy1.py"
+- takeScreenshot: 02-after-a-kill-copy2-stays-gone
+- tapOn: "other-Copy1.py"
+- extendedWaitUntil:
+    visible: "Tab: other-Copy1.py"
+    timeout: 10000
+- assertVisible: "other = \"seeded\"\\s*"
+- takeScreenshot: 03-copy1-opens-with-its-content
+- tapOn: "other-Copy3.py"
+- extendedWaitUntil:
+    visible: "Tab: other-Copy3.py"
+    timeout: 10000
+- assertVisible: "other = \"seeded\"\\s*"
+- takeScreenshot: 04-copy3-opens-with-its-content
+
+# ---- the notebook's copy runs ----
+- tapOn: "kernel-Copy1.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: kernel-Copy1.ipynb"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "print\\(6 \\* 7\\)"
+    timeout: 30000
+- tapOn: "print\\(6 \\* 7\\)"
+- hideKeyboard
+- tapOn: "Run cell"
+# Generous: the process was killed, so this run starts the Space's kernel again.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf:
+        text: "Cell output"
+    timeout: 180000
+- back
+- takeScreenshot: 05-after-a-kill-the-notebook-copy-runs
