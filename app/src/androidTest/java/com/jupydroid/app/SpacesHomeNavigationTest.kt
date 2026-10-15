@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeSharedDocumentReader
@@ -217,6 +218,7 @@ class SpacesHomeNavigationTest {
         EnteredSpacePorts(
           notebookRepository = DiskNotebookRepository(workspaceOf(spaceId)),
           workspaceRepository = DiskWorkspaceRepository(workspaceOf(spaceId)),
+          workspaceFiles = DiskWorkspaceFiles(workspaceOf(spaceId)),
           space = spaceWithId(spaceId),
         )
       },

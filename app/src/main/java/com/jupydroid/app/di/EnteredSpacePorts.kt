@@ -9,6 +9,7 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
@@ -27,6 +28,7 @@ import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
 import com.jupydroid.app.domain.port.TerminalGateway
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.domain.port.WorkspaceWatcher
@@ -54,13 +56,18 @@ class EnteredSpacePorts(
    */
   val workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
   /**
+   * The same tree, acted on rather than read: what creates, renames and deletes its files, and the
+   * `changes` those acts announce to whatever is open on them.
+   */
+  val workspaceFiles: WorkspaceFiles = FakeWorkspaceFiles(),
+  /**
    * The same tree again, asked which files hold something rather than what is at a path - a
    * different question with a different shape, so a port of its own.
    */
   val workspaceSearcher: WorkspaceSearcher = FakeWorkspaceSearcher(),
   /**
    * The same tree again, heard rather than read: what the kernel, a shell or a second client wrote,
-   * which [workspaceRepository]'s `changes` - this app's own moves - cannot report.
+   * which [workspaceFiles]' `changes` - this app's own moves - cannot report.
    */
   val workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
   /**

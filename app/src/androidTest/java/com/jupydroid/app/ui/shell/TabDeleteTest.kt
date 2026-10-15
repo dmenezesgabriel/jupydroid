@@ -19,9 +19,10 @@ import com.jupydroid.app.Explorer
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
@@ -41,7 +42,7 @@ class TabDeleteTest {
   @get:Rule val compose = createComposeRule()
 
   /** Records each delete, or refuses it the way the disk refuses a folder with something in it. */
-  private class DeletingWorkspace : WorkspaceRepository by FakeWorkspaceRepository() {
+  private class DeletingFiles : WorkspaceFiles by FakeWorkspaceFiles() {
     val deletes = mutableListOf<String>()
     var deleteRefusal: Throwable? = null
 
@@ -55,7 +56,7 @@ class TabDeleteTest {
   private val open = OpenDocuments()
   private val notes = FakeTabDocument("notes.py", isDirty = true)
   private val other = FakeTabDocument("other.py")
-  private val workspace = DeletingWorkspace()
+  private val workspace = DeletingFiles()
   private val paths = mutableStateMapOf<NavKey, String>()
 
   private fun strip() {
@@ -71,10 +72,11 @@ class TabDeleteTest {
           openDocumentPaths = paths,
           tabs = backStack.mainAreaTabs(),
           liveTabTitles = emptyMap(),
-          workspaceRepository = workspace,
+          workspaceRepository = FakeWorkspaceRepository(),
+          workspaceFiles = workspace,
           onCloseTab = {},
           onOpenDocument = {},
-          documentCheckpoints = FakeDocumentCheckpoints(workspace),
+          documentCheckpoints = FakeDocumentCheckpoints(),
         ) { Text("the document") }
       }
     }

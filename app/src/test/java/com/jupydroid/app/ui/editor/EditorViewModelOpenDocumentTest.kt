@@ -129,9 +129,9 @@ class EditorViewModelOpenDocumentTest {
    */
   @Test
   fun aRenamedNotebookIsReachedByWhereItLivesNow() = runTest {
-    val workspace = AnnouncingWorkspaceRepository()
+    val workspace = AnnouncingWorkspaceFiles()
     val open = OpenDocuments()
-    val viewModel = loadedEditor(cells = cells, workspace = workspace, openDocuments = open)
+    val viewModel = loadedEditor(cells = cells, files = workspace, openDocuments = open)
 
     workspace.announce("nb-1", "Renamed")
     advanceUntilIdle()
@@ -147,8 +147,8 @@ class EditorViewModelOpenDocumentTest {
    */
   @Test
   fun aRenameInvalidatesAComposedReadOfThePath() = runTest {
-    val workspace = AnnouncingWorkspaceRepository()
-    val viewModel = loadedEditor(cells = cells, workspace = workspace, openDocuments = OpenDocuments())
+    val workspace = AnnouncingWorkspaceFiles()
+    val viewModel = loadedEditor(cells = cells, files = workspace, openDocuments = OpenDocuments())
     val watch = SnapshotReadWatch { viewModel.document.path }
 
     workspace.announce("nb-1", "Renamed")

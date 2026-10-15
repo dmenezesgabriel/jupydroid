@@ -28,7 +28,7 @@ import kotlinx.coroutines.launch
  * One class for a notebook and a text file, which follow their files the same way.
  *
  * ```
- * DocumentFileFollow(workspaceRepository.changes, workspaceWatcher, { livePath }, ::adopt, ::stopWriting) {
+ * DocumentFileFollow(workspaceFiles.changes, workspaceWatcher, { livePath }, ::adopt, ::stopWriting) {
  *   conflict.followDisk(it)
  * }.followIn(viewModelScope)
  * ```

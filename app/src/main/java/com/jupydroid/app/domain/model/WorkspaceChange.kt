@@ -12,7 +12,7 @@ package com.jupydroid.app.domain.model
  * anywhere - the browser beside the document, or a second client on the same tree.
  *
  * ```
- * workspaceRepository.changes.collect { change ->
+ * workspaceFiles.changes.collect { change ->
  *   when (change) {
  *     is WorkspaceChange.Renamed -> pathAfterRename(path, change.from, change.to)?.let(::adopt)
  *     is WorkspaceChange.Deleted -> if (path == change.path) stopWriting()

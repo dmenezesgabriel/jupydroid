@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
@@ -128,6 +129,7 @@ class LauncherAutoCreateTest {
               EnteredSpacePorts(
                 notebookRepository = repository,
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
               )
             },
             launcherSettings = settings,

@@ -32,10 +32,11 @@ import com.jupydroid.app.Settings
 import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.port.FileNameTakenException
-import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -67,14 +68,14 @@ class MainAreaTabStripTest {
    * The workspace the strip's rename goes through - `context.rename` is a contents call, so the
    * fake records the ask rather than moving anything; adoption is the document's own business.
    */
-  private class RecordingWorkspace : WorkspaceRepository by FakeWorkspaceRepository() {
+  private class RecordingFiles : WorkspaceFiles by FakeWorkspaceFiles() {
     val renames = mutableListOf<Pair<String, String>>()
     val overwrites = mutableListOf<Pair<String, String>>()
 
     /** Set before the tap: the rename then refuses the way a 409 does. */
     var nameIsTaken = false
 
-    /** Set before the tap: the disk refuses for any other reason, as `DiskWorkspaceRepository` does. */
+    /** Set before the tap: the disk refuses for any other reason, as `DiskWorkspaceFiles` does. */
     var renameRefusal: Throwable? = null
     var overwriteRefusal: Throwable? = null
 
@@ -98,7 +99,7 @@ class MainAreaTabStripTest {
 
   private var backStack = mutableStateListOf<NavKey>()
   private val open = OpenDocuments()
-  private val workspace = RecordingWorkspace()
+  private val workspace = RecordingFiles()
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
 
@@ -117,8 +118,8 @@ class MainAreaTabStripTest {
         // The gate `MainNavigation` mounts for it - the strip's closes run through it.
         val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
         TabbedDocumentPane(
-          backStack, open, paths, tabs, liveTitles, workspace, twoPane = twoPane, closeTab, onOpenDocument = {},
-          documentCheckpoints = FakeDocumentCheckpoints(workspace),
+          backStack, open, paths, tabs, liveTitles, FakeWorkspaceRepository(), workspace, twoPane = twoPane, closeTab,
+          onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),
         ) {
           Text("the document")
         }

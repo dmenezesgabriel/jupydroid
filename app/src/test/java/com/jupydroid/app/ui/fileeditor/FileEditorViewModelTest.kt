@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.fileeditor
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.SnapshotReadWatch
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.TextEdit
@@ -132,11 +133,12 @@ class FileEditorViewModelTest {
   fun aRenameMadeElsewhereMovesTheOpenFile() = runTest {
     val temp = TemporaryFolder().also { it.create() }
     val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    val files = DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler))
     File(temp.root, "notes.txt").writeText("before")
-    val viewModel = FileEditorViewModel("notes.txt", workspace, this)
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, workspaceFiles = files)
     advanceUntilIdle()
 
-    workspace.rename("notes.txt", "kept.txt")
+    files.rename("notes.txt", "kept.txt")
     advanceUntilIdle()
     viewModel.edit("after")
     advanceUntilIdle()
@@ -152,12 +154,13 @@ class FileEditorViewModelTest {
   fun aRenamedFolderMovesTheFileInsideIt() = runTest {
     val temp = TemporaryFolder().also { it.create() }
     val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    val files = DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler))
     File(temp.root, "reports").mkdirs()
     File(temp.root, "reports/data.csv").writeText("a,b")
-    val viewModel = FileEditorViewModel("reports/data.csv", workspace, this)
+    val viewModel = FileEditorViewModel("reports/data.csv", workspace, this, workspaceFiles = files)
     advanceUntilIdle()
 
-    workspace.rename("reports", "archive")
+    files.rename("reports", "archive")
     advanceUntilIdle()
 
     assertEquals("archive/data.csv", viewModel.uiState.value.path)
@@ -175,12 +178,13 @@ class FileEditorViewModelTest {
   fun aFileDeletedUnderTheEditorIsNotWrittenBack() = runTest {
     val temp = TemporaryFolder().also { it.create() }
     val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    val files = DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler))
     File(temp.root, "notes.txt").writeText("before")
-    val viewModel = FileEditorViewModel("notes.txt", workspace, this)
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, workspaceFiles = files)
     advanceUntilIdle()
     viewModel.edit("an edit that is still owed")
 
-    workspace.delete("notes.txt")
+    files.delete("notes.txt")
     advanceUntilIdle()
     viewModel.onCleared()
     advanceUntilIdle()
@@ -200,11 +204,12 @@ class FileEditorViewModelTest {
   fun typingAfterTheFileIsDeletedDoesNotBringItBack() = runTest {
     val temp = TemporaryFolder().also { it.create() }
     val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    val files = DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler))
     File(temp.root, "notes.txt").writeText("before")
-    val viewModel = FileEditorViewModel("notes.txt", workspace, this)
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, workspaceFiles = files)
     advanceUntilIdle()
 
-    workspace.delete("notes.txt")
+    files.delete("notes.txt")
     advanceUntilIdle()
     viewModel.edit("typed into a file that is gone")
     advanceUntilIdle()
@@ -224,13 +229,14 @@ class FileEditorViewModelTest {
   fun aFileOverwrittenUnderTheEditorIsNotWrittenBack() = runTest {
     val temp = TemporaryFolder().also { it.create() }
     val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    val files = DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler))
     File(temp.root, "notes.txt").writeText("what the editor loaded")
     File(temp.root, "other.txt").writeText("the one that survives")
-    val viewModel = FileEditorViewModel("notes.txt", workspace, this)
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, workspaceFiles = files)
     advanceUntilIdle()
     viewModel.edit("typed into the file being replaced")
 
-    workspace.overwrite("other.txt", "notes.txt")
+    files.overwrite("other.txt", "notes.txt")
     advanceUntilIdle()
     viewModel.onCleared()
     advanceUntilIdle()
@@ -347,12 +353,13 @@ class FileEditorViewModelTest {
   fun aRenamedFileIsReachedByWhereItLivesNow() = runTest {
     val temp = TemporaryFolder().also { it.create() }
     val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    val files = DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler))
     File(temp.root, "notes.txt").writeText("cat")
     val open = OpenDocuments()
-    val viewModel = FileEditorViewModel("notes.txt", workspace, this, open)
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, open, workspaceFiles = files)
     advanceUntilIdle()
 
-    workspace.rename("notes.txt", "kept.txt")
+    files.rename("notes.txt", "kept.txt")
     advanceUntilIdle()
 
     assertNull(open.at("notes.txt"))
@@ -368,12 +375,13 @@ class FileEditorViewModelTest {
   fun aRenameInvalidatesAComposedReadOfThePath() = runTest {
     val temp = TemporaryFolder().also { it.create() }
     val workspace = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
+    val files = DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler))
     File(temp.root, "notes.txt").writeText("cat")
-    val viewModel = FileEditorViewModel("notes.txt", workspace, this, OpenDocuments())
+    val viewModel = FileEditorViewModel("notes.txt", workspace, this, OpenDocuments(), workspaceFiles = files)
     advanceUntilIdle()
     val watch = SnapshotReadWatch { viewModel.path }
 
-    workspace.rename("notes.txt", "kept.txt")
+    files.rename("notes.txt", "kept.txt")
     advanceUntilIdle()
 
     assertTrue("a composed read of the path is never told it moved", watch.sawChange())

@@ -67,7 +67,7 @@ the only thing that knows where the detail pane is at each width. The strip's mo
 the stack itself promotes the tapped entry, so a click activates without moving a tab — `activateById`
 changes `currentWidget` and nothing else. The tab owns `title.label`, which is the document's live
 basename, so no panel draws a name row. A document tab's long press is `docmanager:rename`: the
-shared `RenameFileDialog`, then `workspaceRepository.rename`, which the document adopts through its
+shared `RenameFileDialog`, then `workspaceFiles.rename`, which the document adopts through its
 own `WorkspaceChange.Renamed` listener. A dirty tab's close is JupyterLab's Save/Discard/Cancel gate,
 and closing the current tab reveals the sibling the bar would pick.
 

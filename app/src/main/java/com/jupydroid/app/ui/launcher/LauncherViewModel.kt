@@ -9,7 +9,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.TerminalGateway
-import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +45,7 @@ sealed interface LaunchedDocument {
  */
 class LauncherViewModel(
   private val notebookRepository: NotebookRepository,
-  private val workspaceRepository: WorkspaceRepository,
+  private val workspaceFiles: WorkspaceFiles,
   private val terminalGateway: TerminalGateway,
   private val kernelGateway: KernelGateway,
   /** Asked for [space]'s default kernel, the one a new notebook records, as `ExplorerViewModel.create` does. */
@@ -110,7 +110,7 @@ class LauncherViewModel(
   }
 
   private suspend fun createdFile(cwd: String, extension: String): LaunchedDocument =
-    LaunchedDocument.CreatedFile(workspaceRepository.createFile(cwd, extension))
+    LaunchedDocument.CreatedFile(workspaceFiles.createFile(cwd, extension))
 
   /**
    * The standalone console - the reference's `console:create` mints the widget at

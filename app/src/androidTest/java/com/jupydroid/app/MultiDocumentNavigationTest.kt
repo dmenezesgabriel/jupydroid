@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
@@ -145,6 +146,7 @@ class MultiDocumentNavigationTest {
               EnteredSpacePorts(
                 notebookRepository = repository,
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
                 kernelGateway = gateway,
               )
             },

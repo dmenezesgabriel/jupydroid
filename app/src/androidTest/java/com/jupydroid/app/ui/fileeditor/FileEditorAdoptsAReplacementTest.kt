@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.domain.model.TextEdit
@@ -47,6 +48,7 @@ class FileEditorAdoptsAReplacementTest {
         FileEditorScreen(
           path = "notes.py",
           workspaceRepository = DiskWorkspaceRepository(temp.root),
+          workspaceFiles = DiskWorkspaceFiles(temp.root),
           applicationScope = scope,
           editorSettingsRepository = FakeEditorSettingsRepository(),
           onBack = {},

@@ -39,7 +39,7 @@ class FileEditorWrites(
    * `viewModelScope`**, where an uncaught exception takes the process down.
    *
    * A shared workspace can lose the directory under an open file - a cell can `shutil.rmtree` it -
-   * and `WorkspaceRepository.changes` announces only what *this app* moved, so nothing warns us. The
+   * and `WorkspaceFiles.changes` announces only what *this app* moved, so nothing warns us. The
    * reference reports it the same way and leaves the document owing a write:
    * `Context.save()`'s failure path is `showErrorMessage`, not a rethrow.
    *

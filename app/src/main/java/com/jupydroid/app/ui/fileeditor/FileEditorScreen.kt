@@ -26,12 +26,14 @@ import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.rangeIn
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceWatcher
 import com.jupydroid.app.theme.Spacing
@@ -82,6 +84,8 @@ fun FileEditorScreen(
   applicationScope: CoroutineScope,
   /** Hears the file written by anything else. Defaulted for a test that drives this screen alone. */
   workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
+  /** Announces a rename or delete made in the browser beside this file. Defaulted as [workspaceWatcher] is. */
+  workspaceFiles: WorkspaceFiles = FakeWorkspaceFiles(),
   /**
    * `fileeditor:toggle-autoclosing-brackets-universal` - the same setting the notebook's cells
    * read, and the toggle for it lives on the notebook's View menu since this screen has no top
@@ -134,6 +138,7 @@ fun FileEditorScreen(
         editorSettingsRepository,
         opening,
         workspaceWatcher,
+        workspaceFiles,
       )
     },
 ) {

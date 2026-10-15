@@ -47,7 +47,7 @@ data class EditorUiState(
    * is not reaching the disk" goes on being true until it stops. So it is drawn beside the notebook
    * and cleared by the next save that works, and nothing has to remember having shown it.
    *
-   * Reachable, not defensive: `WorkspaceRepository.changes` announces what this app moved, never
+   * Reachable, not defensive: `WorkspaceFiles.changes` announces what this app moved, never
    * what the kernel did, so a cell that removes the notebook's folder leaves this editor writing to
    * a path that is not there.
    */

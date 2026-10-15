@@ -179,7 +179,7 @@ class AppContainer(
    * ends a deleted file's session has to as well.
    */
   private fun stopSessionsOfDeletedFiles(ports: EnteredSpacePorts) {
-    DeletedDocumentSessions(ports.workspaceRepository.changes, ports.kernelSessions).watchIn(applicationScope)
+    DeletedDocumentSessions(ports.workspaceFiles.changes, ports.kernelSessions).watchIn(applicationScope)
   }
 
   /**

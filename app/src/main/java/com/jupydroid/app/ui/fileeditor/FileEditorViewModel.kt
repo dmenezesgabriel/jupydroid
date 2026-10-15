@@ -9,12 +9,14 @@ import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.withEditsApplied
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceWatcher
 import com.jupydroid.app.syntax.SyntaxHighlighter
@@ -102,6 +104,8 @@ class FileEditorViewModel(
   opening: Int = 0,
   /** Hears the file written by anything else, so a clean editor shows it; defaulted as [openDocuments] is. */
   private val workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
+  /** Announces a rename or delete made beside this editor, so it follows; defaulted as [workspaceWatcher] is. */
+  private val workspaceFiles: WorkspaceFiles = FakeWorkspaceFiles(),
 ) : ViewModel(),
   OpenDocument {
   /**
@@ -157,7 +161,7 @@ class FileEditorViewModel(
     }
     // `Context._onFileChanged`: the open document follows its file rather than waiting to be told
     // by whichever screen moved it. Without this the next write re-creates the old path.
-    DocumentFileFollow(workspaceRepository.changes, workspaceWatcher, { livePath }, ::adopt, ::stopWriting) {
+    DocumentFileFollow(workspaceFiles.changes, workspaceWatcher, { livePath }, ::adopt, ::stopWriting) {
       conflict.followDisk(it)
     }.followIn(viewModelScope)
   }

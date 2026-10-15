@@ -24,11 +24,11 @@ class NotebookSessionRenameTest {
   fun aRenamedNotebooksSessionIsListedUnderItsNewPathAndName() = runTest {
     val registry = KernelSessionRegistry()
     val kernelSessions = FakeKernelSessions(registry)
-    val workspace = AnnouncingWorkspaceRepository()
+    val workspace = AnnouncingWorkspaceFiles()
     val viewModel = loadedEditor(
       gateway = FakeKernelGateway(registry),
       kernelSessions = kernelSessions,
-      workspace = workspace,
+      files = workspace,
       notebookId = "a.ipynb",
     )
     viewModel.kernel.runCell(codeCell)
@@ -49,11 +49,11 @@ class NotebookSessionRenameTest {
   fun aFolderRenamedAboveTheNotebookMovesItsSession() = runTest {
     val registry = KernelSessionRegistry()
     val kernelSessions = FakeKernelSessions(registry)
-    val workspace = AnnouncingWorkspaceRepository()
+    val workspace = AnnouncingWorkspaceFiles()
     val viewModel = loadedEditor(
       gateway = FakeKernelGateway(registry),
       kernelSessions = kernelSessions,
-      workspace = workspace,
+      files = workspace,
       notebookId = "f/a.ipynb",
     )
     viewModel.kernel.runCell(codeCell)
@@ -72,11 +72,11 @@ class NotebookSessionRenameTest {
   @Test
   fun aRefusedSessionMoveStillLetsTheNotebookTakeItsNewName() = runTest {
     val registry = KernelSessionRegistry()
-    val workspace = AnnouncingWorkspaceRepository()
+    val workspace = AnnouncingWorkspaceFiles()
     val viewModel = loadedEditor(
       gateway = FakeKernelGateway(registry),
       kernelSessions = RefusingToMoveKernelSessions(FakeKernelSessions(registry)),
-      workspace = workspace,
+      files = workspace,
       notebookId = "a.ipynb",
     )
     viewModel.kernel.runCell(codeCell)

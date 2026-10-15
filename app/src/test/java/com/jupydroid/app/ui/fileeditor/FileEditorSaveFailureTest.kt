@@ -15,7 +15,7 @@ import java.io.FileNotFoundException
 /**
  * **A save that cannot be made is reported, not fatal.**
  *
- * The workspace is shared with the kernel, and `WorkspaceRepository.changes` announces only what
+ * The workspace is shared with the kernel, and `WorkspaceFiles.changes` announces only what
  * *this app* moved or removed - it is not a filesystem watcher. So a cell that runs
  * `shutil.rmtree('reports')` takes the file out from under an open editor and nothing is announced:
  * the path stands, the debounce fires, and `writeText` raises `ENOENT` inside `viewModelScope`,

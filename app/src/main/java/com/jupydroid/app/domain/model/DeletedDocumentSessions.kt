@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * tab, and a notebook deleted with its tab closed has nothing else left to end it.
  *
  * ```
- * DeletedDocumentSessions(workspaceRepository.changes, kernelSessions).watchIn(applicationScope)
+ * DeletedDocumentSessions(workspaceFiles.changes, kernelSessions).watchIn(applicationScope)
  * ```
  */
 class DeletedDocumentSessions(private val changes: Flow<WorkspaceChange>, private val kernelSessions: KernelSessions) {

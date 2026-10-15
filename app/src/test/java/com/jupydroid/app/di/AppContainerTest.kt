@@ -13,7 +13,7 @@ import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
-import com.jupydroid.app.ui.editor.AnnouncingWorkspaceRepository
+import com.jupydroid.app.ui.editor.AnnouncingWorkspaceFiles
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.advanceTimeBy
@@ -73,11 +73,11 @@ class AppContainerTest {
    */
   @Test
   fun deletingAFileInASpaceEndsThatSpacesSessionAtItsPath() = runTest {
-    val workspaces = mutableMapOf<String, AnnouncingWorkspaceRepository>()
+    val workspaces = mutableMapOf<String, AnnouncingWorkspaceFiles>()
     val container = AppContainer(
       enteredSpacePorts = { spaceId, _ ->
-        val workspace = AnnouncingWorkspaceRepository().also { workspaces[spaceId] = it }
-        EnteredSpacePorts(FakeNotebookRepository(), workspaceRepository = workspace)
+        val workspace = AnnouncingWorkspaceFiles().also { workspaces[spaceId] = it }
+        EnteredSpacePorts(FakeNotebookRepository(), workspaceFiles = workspace)
       },
       applicationScope = backgroundScope,
     )

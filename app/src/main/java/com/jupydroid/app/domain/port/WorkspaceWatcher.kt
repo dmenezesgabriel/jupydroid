@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
  * Hears the workspace's files being written, by anything - the kernel, the terminal, a second
  * client, and this app too.
  *
- * Beside [WorkspaceRepository.changes] rather than on it, because that is "what this app moved":
+ * Beside [WorkspaceFiles.changes] rather than on it, because that is "what this app moved":
  * the repository announces its own acts, and this reports the disk's. vscode@3f3380c keeps the same
  * split - `IFileService.onDidRunOperation` for its own acts, `onDidFilesChange` for the watcher's
  * (`src/vs/platform/files/common/files.ts`).

@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.explorer
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.domain.model.BASE_SPACE
@@ -490,7 +491,13 @@ class ExplorerViewModelTest {
       DiskNotebookRepository(temp.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
     workspace: WorkspaceRepository = disk(),
     space: Space = BASE_SPACE,
-  ) = ExplorerViewModel(workspace, notebooks, FakeKernelSpecs(), space)
+  ) = ExplorerViewModel(
+    workspace,
+    DiskWorkspaceFiles(temp.root, UnconfinedTestDispatcher(testScheduler)),
+    notebooks,
+    FakeKernelSpecs(),
+    space,
+  )
 
   private fun TestScope.disk() = DiskWorkspaceRepository(temp.root, UnconfinedTestDispatcher(testScheduler))
 

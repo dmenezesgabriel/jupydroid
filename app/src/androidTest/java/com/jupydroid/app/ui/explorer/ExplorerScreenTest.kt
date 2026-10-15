@@ -20,6 +20,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelSpecs
@@ -474,6 +475,7 @@ class ExplorerScreenTest {
       JupyterDroidTheme {
         ExplorerScreen(
           workspaceRepository = DiskWorkspaceRepository(temp.root),
+          workspaceFiles = DiskWorkspaceFiles(temp.root),
           // Explore, don't create: this test keeps its view-model noise out and a FakeWorkspace
           // would eat `WorkspaceEntry` rows. The repository is unused by the screen save to
           // construct the ViewModel, so the DiskNotebookRepository(temp.root) is inert here.

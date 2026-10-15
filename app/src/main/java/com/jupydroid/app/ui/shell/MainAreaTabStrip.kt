@@ -45,6 +45,7 @@ import com.jupydroid.app.documentIn
 import com.jupydroid.app.documentOpening
 import com.jupydroid.app.domain.port.DocumentCheckpoints
 import com.jupydroid.app.domain.port.FileNameTakenException
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.launcherIsClosable
 import com.jupydroid.app.liveDocumentPath
@@ -94,6 +95,8 @@ fun TabbedDocumentPane(
    */
   liveTabTitles: Map<NavKey, String>,
   workspaceRepository: WorkspaceRepository,
+  /** What the tab's Rename… and Delete… act through; [workspaceRepository] is what Save As writes. */
+  workspaceFiles: WorkspaceFiles,
   /**
    * Whether a browser is drawn beside the document, which decides one thing: whether the strip
    * leads with the Up affordance. Below two panes the document *is* the window and leaving it
@@ -136,7 +139,7 @@ fun TabbedDocumentPane(
   val revertToCheckpoint = rememberTabRevertToCheckpoint(documentCheckpoints)
   // The strip closes the deleted tab itself, on top or beneath, as `deleteWidgets` disposes every
   // widget on the file: a screen beneath the top is not composed to hear its file go.
-  val delete = rememberTabDelete(workspaceRepository) { key, document ->
+  val delete = rememberTabDelete(workspaceFiles) { key, document ->
     document.discardChanges()
     backStack.closeMainAreaTab(key, tabs)
   }
@@ -175,7 +178,7 @@ fun TabbedDocumentPane(
         // `context.rename` - the contents layer, so the document adopts through its own
         // `WorkspaceChange.Renamed` listener whichever kind it is, on screen or not.
         scope.launch {
-          runCatching { workspaceRepository.rename(pending.path, name) }
+          runCatching { workspaceFiles.rename(pending.path, name) }
             .onSuccess { moved -> openDocumentPaths[pending.key] = moved }
             .onFailure {
               if (it is FileNameTakenException) {
@@ -196,7 +199,7 @@ fun TabbedDocumentPane(
       onOverwrite = {
         overwriting = null
         scope.launch {
-          runCatching { workspaceRepository.overwrite(taken.path, taken.name) }
+          runCatching { workspaceFiles.overwrite(taken.path, taken.name) }
             .onSuccess { openDocumentPaths[taken.key] = it }
             .onFailure { refusal = it.message ?: "could not overwrite '${taken.name}' with '${taken.path}'" }
         }

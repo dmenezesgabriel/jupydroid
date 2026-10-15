@@ -44,3 +44,10 @@ What a future reader will want to "fix": adding `renameNotebook` back because a 
 the editor renames. The caller never names the act on the document's port — the browser's row and
 the tab's rename both ask the workspace layer, precisely because the document must hear it and
 only `changes` carries that. A duplicate op is not an alias; it is a second, quieter channel.
+
+## Amendment — 2026-10-15
+
+Amended by [ADR-0101](0101-the-trees-acts-are-a-port-of-their-own.md). The home this record names
+for rename, overwrite and delete, and for the `changes` stream they announce on, is now
+`WorkspaceFiles` instead of `WorkspaceRepository`. The rule is unchanged: every act on a file as a
+member of the tree, and the announcement of it, live together on one port.

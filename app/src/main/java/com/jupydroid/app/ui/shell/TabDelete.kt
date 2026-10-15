@@ -11,7 +11,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.OpenDocument
-import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.ui.DeleteFileDialog
 import kotlinx.coroutines.launch
 
@@ -30,19 +30,19 @@ private sealed interface DeleteAsk {
  * reference leaves it to the console.
  *
  * The ask is `DeleteFileDialog`'s "permanently delete", not docmanager's plainer "delete": the
- * delete is permanent (`WorkspaceRepository.delete`), and the explorer asks it in those words.
+ * delete is permanent (`WorkspaceFiles.delete`), and the explorer asks it in those words.
  *
  * Mounted once by the pane, like `rememberTabSaveAs`, so the dialogs outlive the menu that started
  * them. Answers with the starter.
  *
  * ```
- * val delete = rememberTabDelete(workspaceRepository) { key, document -> … }
+ * val delete = rememberTabDelete(workspaceFiles) { key, document -> … }
  * delete(key, document)
  * ```
  */
 @Composable
 internal fun rememberTabDelete(
-  workspaceRepository: WorkspaceRepository,
+  workspaceFiles: WorkspaceFiles,
   onDeleted: (key: NavKey, document: OpenDocument) -> Unit,
 ): (NavKey, OpenDocument) -> Unit {
   var ask by remember { mutableStateOf<DeleteAsk?>(null) }
@@ -53,7 +53,7 @@ internal fun rememberTabDelete(
       onDelete = {
         ask = null
         scope.launch {
-          runCatching { workspaceRepository.delete(open.document.path) }
+          runCatching { workspaceFiles.delete(open.document.path) }
             .onSuccess { onDeleted(open.key, open.document) }
             .onFailure { ask = DeleteAsk.Refused(it.message ?: "could not delete '${open.document.path}'") }
         }

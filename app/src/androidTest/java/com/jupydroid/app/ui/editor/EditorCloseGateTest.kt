@@ -25,6 +25,7 @@ import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
@@ -199,6 +200,7 @@ class EditorCloseGateTest {
         tabs,
         liveTitles,
         FakeWorkspaceRepository(),
+        FakeWorkspaceFiles(),
         twoPane = false,
         closeTab,
         onOpenDocument = {},

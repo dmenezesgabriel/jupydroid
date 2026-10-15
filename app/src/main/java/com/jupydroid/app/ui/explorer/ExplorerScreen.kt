@@ -51,6 +51,7 @@ import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.RecentDocumentsRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
@@ -72,7 +73,7 @@ import kotlin.time.Duration.Companion.seconds
  * narrow sidebar: indentation would spend the width the names need.
  *
  * ```
- * ExplorerScreen(workspaceRepository, onOpenFile = { backStack.openNotebook(it.path) })
+ * ExplorerScreen(workspaceRepository, workspaceFiles, onOpenFile = { backStack.openNotebook(it.path) })
  * ```
 
  * @param onBack how to leave, or null when there is nowhere to leave to. Recents pushes the
@@ -82,6 +83,7 @@ import kotlin.time.Duration.Companion.seconds
 @Composable
 fun ExplorerScreen(
   workspaceRepository: WorkspaceRepository,
+  workspaceFiles: WorkspaceFiles,
   notebookRepository: NotebookRepository,
   /** The entered Space's kernelspec catalogue, asked for the default a new notebook records. */
   kernelSpecs: KernelSpecs,
@@ -131,7 +133,7 @@ fun ExplorerScreen(
   onBack: (() -> Unit)? = null,
   modifier: Modifier = Modifier,
   viewModel: ExplorerViewModel =
-    viewModel { ExplorerViewModel(workspaceRepository, notebookRepository, kernelSpecs, space) },
+    viewModel { ExplorerViewModel(workspaceRepository, workspaceFiles, notebookRepository, kernelSpecs, space) },
   /**
    * The Recents section's own state holder - a record of what was opened, which is `docmanager`'s
    * in the reference and never `filebrowser`'s. Two here because they are two things, not because

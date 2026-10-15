@@ -12,6 +12,7 @@ import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.BASE_SPACE
@@ -29,6 +30,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceWatcher
 import com.jupydroid.app.domain.port.formattingOptions
@@ -136,6 +138,8 @@ class EditorViewModel(
   opening: Int = 0,
   /** Hears the file written by anything else, so a clean notebook shows it; defaulted as [kernelSpecs] is. */
   workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
+  /** Announces a rename or delete made beside this notebook, so it follows; defaulted as [kernelSpecs] is. */
+  private val workspaceFiles: WorkspaceFiles = FakeWorkspaceFiles(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -282,7 +286,7 @@ class EditorViewModel(
     // The rename that did not come from this screen - from the browser beside it, or from a folder
     // above it. `Context._onFileChanged` -> `_updatePath`, and without it the next debounced save
     // writes the old path back into existence.
-    DocumentFileFollow(workspaceRepository.changes, workspaceWatcher, { liveNotebookId }, ::adopt, ::stopWriting) {
+    DocumentFileFollow(workspaceFiles.changes, workspaceWatcher, { liveNotebookId }, ::adopt, ::stopWriting) {
       conflict.followDisk(it)
     }.followIn(viewModelScope)
   }
@@ -449,7 +453,7 @@ class EditorViewModel(
    * Two things used to be true before the save rather than after it, and both were wrong when it
    * failed: `dirty` was cleared, so a notebook that owed a write claimed not to, and the exception
    * went straight into `viewModelScope`, where it is fatal. A cell that removes the notebook's
-   * folder is enough to cause it, and nothing announces that - `WorkspaceRepository.changes`
+   * folder is enough to cause it, and nothing announces that - `WorkspaceFiles.changes`
    * carries what this app moved, not what the kernel did.
    *
    * `EditorUiState.dirty` says it is *"cleared by the save, not by the edit"*, which is only true

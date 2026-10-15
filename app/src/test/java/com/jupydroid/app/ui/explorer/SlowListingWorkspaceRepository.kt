@@ -2,11 +2,9 @@ package com.jupydroid.app.ui.explorer
 
 import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.StampedText
-import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 
 /**
  * A workspace whose listing of one directory arrives late, so two listings can be made to land
@@ -30,8 +28,6 @@ internal class SlowListingWorkspaceRepository(
   private val slowPath: String,
   private val waitMillis: Long = 1_000,
 ) : WorkspaceRepository {
-  override val changes: Flow<WorkspaceChange> get() = workspace.changes
-
   override suspend fun list(path: String): List<WorkspaceEntry> {
     if (path == slowPath) delay(waitMillis)
     return workspace.list(path)
@@ -45,15 +41,4 @@ internal class SlowListingWorkspaceRepository(
   override suspend fun readBytes(path: String): ByteArray = workspace.readBytes(path)
 
   override suspend fun writeBytes(path: String, bytes: ByteArray) = workspace.writeBytes(path, bytes)
-
-  override suspend fun createFile(directory: String, extension: String): String =
-    workspace.createFile(directory, extension)
-
-  override suspend fun createFolder(directory: String): String = workspace.createFolder(directory)
-
-  override suspend fun rename(path: String, name: String): String = workspace.rename(path, name)
-
-  override suspend fun overwrite(path: String, name: String): String = workspace.overwrite(path, name)
-
-  override suspend fun delete(path: String) = workspace.delete(path)
 }

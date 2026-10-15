@@ -17,6 +17,7 @@ import com.jupydroid.app.FileEditor
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.mainAreaTabs
@@ -51,6 +52,7 @@ class MainAreaTabSaveTest {
           tabs = backStack.mainAreaTabs(),
           liveTabTitles = emptyMap(),
           workspaceRepository = FakeWorkspaceRepository(),
+          workspaceFiles = FakeWorkspaceFiles(),
           onCloseTab = {},
           onOpenDocument = {},
           documentCheckpoints = FakeDocumentCheckpoints(),

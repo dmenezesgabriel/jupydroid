@@ -2,16 +2,16 @@ package com.jupydroid.app.ui.launcher
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.disk.DiskNotebookRepository
-import com.jupydroid.app.data.disk.DiskWorkspaceRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeTerminalGateway
-import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
-import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.ui.editor.RecordingKernelGateway
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.TestScope
@@ -43,8 +43,8 @@ class LauncherViewModelTest {
   private fun TestScope.viewModel(
     notebookRepository: NotebookRepository =
       DiskNotebookRepository(workspace.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
-    workspaceRepository: WorkspaceRepository =
-      DiskWorkspaceRepository(workspace.root, UnconfinedTestDispatcher(testScheduler)),
+    workspaceFiles: WorkspaceFiles =
+      DiskWorkspaceFiles(workspace.root, UnconfinedTestDispatcher(testScheduler)),
     terminalGateway: FakeTerminalGateway = FakeTerminalGateway(),
     kernelGateway: RecordingKernelGateway = RecordingKernelGateway(),
     space: Space = BASE_SPACE,
@@ -56,7 +56,7 @@ class LauncherViewModelTest {
     },
   ): LauncherViewModel = LauncherViewModel(
     notebookRepository,
-    workspaceRepository,
+    workspaceFiles,
     terminalGateway,
     kernelGateway,
     FakeKernelSpecs(),
@@ -234,8 +234,8 @@ class LauncherViewModelTest {
       DiskNotebookRepository(workspace.root, ioDispatcher = UnconfinedTestDispatcher(testScheduler)),
       gate,
     )
-    val countingFiles = CountingWorkspaceRepository()
-    val viewModel = viewModel(notebookRepository = blocked, workspaceRepository = countingFiles)
+    val countingFiles = CountingWorkspaceFiles()
+    val viewModel = viewModel(notebookRepository = blocked, workspaceFiles = countingFiles)
     val launched = mutableListOf<LaunchedDocument>()
 
     viewModel.launch(card(LauncherCommand.NEW_NOTEBOOK), "") { launched += it }
@@ -255,7 +255,7 @@ class LauncherViewModelTest {
   /** A failed create surfaces - the reference's `showErrorMessage` - rather than vanishing. */
   @Test
   fun aFailedLaunchSurfacesTheError() = runTest {
-    val viewModel = viewModel(workspaceRepository = FakeWorkspaceRepository())
+    val viewModel = viewModel(workspaceFiles = FakeWorkspaceFiles())
 
     viewModel.launch(card(LauncherCommand.NEW_TEXT_FILE), "") {}
     advanceUntilIdle()
@@ -266,7 +266,7 @@ class LauncherViewModelTest {
 
   @Test
   fun dismissingAnErrorClearsIt() = runTest {
-    val viewModel = viewModel(workspaceRepository = FakeWorkspaceRepository())
+    val viewModel = viewModel(workspaceFiles = FakeWorkspaceFiles())
 
     viewModel.launch(card(LauncherCommand.NEW_TEXT_FILE), "") {}
     advanceUntilIdle()
@@ -287,7 +287,7 @@ private class GatedNotebookRepository(private val delegate: NotebookRepository, 
 }
 
 /** Counts creates so "the second tap never asked" is asserted, not assumed. */
-private class CountingWorkspaceRepository : WorkspaceRepository by FakeWorkspaceRepository() {
+private class CountingWorkspaceFiles : WorkspaceFiles by FakeWorkspaceFiles() {
   var createFileCalls = 0
     private set
 

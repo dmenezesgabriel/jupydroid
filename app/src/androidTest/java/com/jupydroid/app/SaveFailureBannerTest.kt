@@ -7,6 +7,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
@@ -34,7 +35,7 @@ import java.io.FileNotFoundException
  * work off the screen - a worse outcome than the crash this replaced. Hence
  * `EditorUiState.saveFailure` and a banner over the cells.
  *
- * The cause is reachable rather than hypothetical: `WorkspaceRepository.changes` announces what
+ * The cause is reachable rather than hypothetical: `WorkspaceFiles.changes` announces what
  * this app moved, never what the kernel did, so a cell that removes the notebook's folder leaves
  * this editor writing to a path that is not there.
  */
@@ -79,6 +80,7 @@ class SaveFailureBannerTest {
               EnteredSpacePorts(
                 notebookRepository = VanishedNotebookRepository(readable),
                 workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
               )
             },
           ),

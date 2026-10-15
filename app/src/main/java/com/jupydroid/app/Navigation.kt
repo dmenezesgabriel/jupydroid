@@ -112,6 +112,7 @@ fun MainNavigation(
       orderedTabs,
       liveTabTitles,
       spacePorts.workspaceRepository,
+      spacePorts.workspaceFiles,
       // The one width fact the strip reads: below two panes it leads with the Up affordance,
       // because the document is the whole window there and leaving it goes back.
       twoPane = twoPane,
@@ -369,6 +370,7 @@ fun MainNavigation(
               path = file.path,
               workspaceRepository = spacePorts.workspaceRepository,
               workspaceWatcher = spacePorts.workspaceWatcher,
+              workspaceFiles = spacePorts.workspaceFiles,
               applicationScope = appContainer.applicationScope,
               editorSettingsRepository = appContainer.editorSettings,
               // Its own entry, never the last: a file deleted from its tab is closed by the strip
@@ -391,6 +393,7 @@ fun MainNavigation(
               notebookRepository = spacePorts.notebookRepository,
               workspaceRepository = spacePorts.workspaceRepository,
               workspaceWatcher = spacePorts.workspaceWatcher,
+              workspaceFiles = spacePorts.workspaceFiles,
               kernelGateway = spacePorts.kernelGateway,
               kernelDebugger = spacePorts.kernelDebugger,
               kernelSessions = spacePorts.kernelSessions,
@@ -452,7 +455,7 @@ fun MainNavigation(
               viewModel = viewModel {
                 LauncherViewModel(
                   spacePorts.notebookRepository,
-                  spacePorts.workspaceRepository,
+                  spacePorts.workspaceFiles,
                   spacePorts.terminalGateway,
                   spacePorts.kernelGateway,
                   spacePorts.kernelSpecs,

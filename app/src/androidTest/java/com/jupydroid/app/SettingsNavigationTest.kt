@@ -8,6 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
 import com.jupydroid.app.data.disk.DiskRecentDocumentsRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
@@ -55,6 +56,7 @@ class SettingsNavigationTest {
               EnteredSpacePorts(
                 notebookRepository = DiskNotebookRepository(temp.root),
                 workspaceRepository = DiskWorkspaceRepository(temp.root),
+                workspaceFiles = DiskWorkspaceFiles(temp.root),
                 recentDocuments = DiskRecentDocumentsRepository(
                   DiskRecentDocumentsFile(state.root),
                   BASE_SPACE.id,

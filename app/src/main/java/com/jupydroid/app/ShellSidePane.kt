@@ -163,6 +163,7 @@ fun ShellSidePane(
         SidePanel.FILES ->
           ExplorerScreen(
             workspaceRepository = spacePorts.workspaceRepository,
+            workspaceFiles = spacePorts.workspaceFiles,
             notebookRepository = spacePorts.notebookRepository,
             kernelSpecs = spacePorts.kernelSpecs,
             space = spacePorts.space,

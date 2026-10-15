@@ -96,7 +96,8 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | Port | Purpose | Real implementation |
 |---|---|---|
 | `NotebookRepository` | read/write one notebook | `DiskNotebookRepository` over nbformat JSON |
-| `WorkspaceRepository` | list/read/write/rename/delete in the shared tree, and a change stream | `DiskWorkspaceRepository` |
+| `WorkspaceRepository` | list/read/write in the shared tree | `DiskWorkspaceRepository` |
+| `WorkspaceFiles` | create/rename/overwrite/delete in the shared tree, and the change stream those acts announce on (ADR-0101) | `DiskWorkspaceFiles` |
 | `WorkspaceSearcher` | find a query across the whole tree, and replace it there | `DiskWorkspaceSearcher` |
 | `RecentDocumentsRepository` | what was opened, persisted outside the workspace | `DiskRecentDocumentsRepository` |
 | `SpaceRepository` | the Spaces on this device — list/create/rename/delete, as directories under `files/spaces/` | `DiskSpaceRepository`, scanning the tree on every call |

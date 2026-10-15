@@ -16,6 +16,7 @@ import com.jupydroid.app.data.disk.DiskSpaceEnvironments
 import com.jupydroid.app.data.disk.DiskSpaceRepository
 import com.jupydroid.app.data.disk.DiskTerminalSettingsRepository
 import com.jupydroid.app.data.disk.DiskThemeSettingsRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.InotifyWorkspaceWatcher
@@ -154,6 +155,7 @@ class JupydroidApplication : Application() {
     return EnteredSpacePorts(
       notebookRepository = DiskNotebookRepository(workspace),
       workspaceRepository = DiskWorkspaceRepository(workspace),
+      workspaceFiles = DiskWorkspaceFiles(workspace),
       workspaceSearcher = DiskWorkspaceSearcher(workspace),
       workspaceWatcher = InotifyWorkspaceWatcher(workspace),
       documentCheckpoints = DiskDocumentCheckpoints(workspace),

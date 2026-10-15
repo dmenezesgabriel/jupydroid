@@ -9,6 +9,7 @@ import com.jupydroid.app.domain.model.untitledNotebookIn
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.crumbsFor
@@ -33,11 +34,13 @@ import kotlinx.coroutines.launch
  * directory would re-ask a question it already answers.
  *
  * ```
- * ExplorerViewModel(workspaceRepository, notebookRepository, kernelSpecs, space).open(entry)
+ * ExplorerViewModel(workspaceRepository, workspaceFiles, notebookRepository, kernelSpecs, space).open(entry)
  * ```
  */
 class ExplorerViewModel(
   private val workspaceRepository: WorkspaceRepository,
+  /** What the browser's New, Rename and Delete act through - the listing itself is [workspaceRepository]'s. */
+  private val workspaceFiles: WorkspaceFiles,
   /**
    * For the one type the workspace cannot make on its own: a notebook is nbformat, not an empty
    * file with an `.ipynb` name. `new_untitled` gives `type: "notebook"` its own branch and the
@@ -160,8 +163,8 @@ class ExplorerViewModel(
   fun create(item: NewItem) = relistAfter {
     val directory = _uiState.value.path
     when (item) {
-      NewItem.PYTHON_FILE -> workspaceRepository.createFile(directory, "py")
-      NewItem.FOLDER -> workspaceRepository.createFolder(directory)
+      NewItem.PYTHON_FILE -> workspaceFiles.createFile(directory, "py")
+      NewItem.FOLDER -> workspaceFiles.createFolder(directory)
       NewItem.NOTEBOOK -> notebookRepository.createNotebook(
         untitledNotebookIn(directory),
         kernelSpecs.specs(space).defaultSpec,
@@ -196,7 +199,7 @@ class ExplorerViewModel(
    * that joining, so a name is only ever a name here.
    */
   fun rename(entry: WorkspaceEntry, name: String) = move(entry.path, name) {
-    workspaceRepository.rename(entry.path, name)
+    workspaceFiles.rename(entry.path, name)
   }
 
   /**
@@ -212,7 +215,7 @@ class ExplorerViewModel(
     // Cleared either way: the question has been answered, and leaving it up would ask it again.
     _uiState.update { it.copy(nameTaken = null) }
     if (accepted && renaming != null) {
-      move(renaming, taken) { workspaceRepository.overwrite(renaming, taken) }
+      move(renaming, taken) { workspaceFiles.overwrite(renaming, taken) }
     }
   }
 
@@ -224,7 +227,7 @@ class ExplorerViewModel(
    * error, because the server sharing this workspace refuses that too.
    */
   fun delete(entry: WorkspaceEntry) = relistAfter {
-    workspaceRepository.delete(entry.path)
+    workspaceFiles.delete(entry.path)
     // Nothing to bring into view: what it named is gone.
     ""
   }

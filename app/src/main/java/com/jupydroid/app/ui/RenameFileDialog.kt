@@ -48,7 +48,7 @@ const val RENAME_FIELD_TAG = "rename-field"
  * if (renameOpen) {
  *   RenameFileDialog(
  *     currentTitle = path.substringAfterLast('/'),
- *     onConfirm = { renameOpen = false; scope.launch { workspaceRepository.rename(path, it) } },
+ *     onConfirm = { renameOpen = false; scope.launch { workspaceFiles.rename(path, it) } },
  *     onDismiss = { renameOpen = false },
  *   )
  * }

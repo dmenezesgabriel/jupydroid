@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
@@ -201,6 +202,7 @@ class TwoPaneLayoutTest {
                 EnteredSpacePorts(
                   notebookRepository = repository,
                   workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
                 )
               },
               // The list pane is the explorer, and it lists the *workspace* - a fake

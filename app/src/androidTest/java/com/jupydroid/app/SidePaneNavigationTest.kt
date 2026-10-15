@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
@@ -346,6 +347,7 @@ class SidePaneNavigationTest {
                 EnteredSpacePorts(
                   notebookRepository = repository,
                   workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
                   workspaceSearcher = FakeWorkspaceSearcher(mapOf(SEARCHABLE_FILE to SEARCHED_LINE)),
                 )
               },

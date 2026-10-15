@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
+import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
@@ -53,6 +54,7 @@ class OpenDocumentsRecreationTest {
         EnteredSpacePorts(
           notebookRepository = DiskNotebookRepository(temp.root),
           workspaceRepository = DiskWorkspaceRepository(temp.root),
+          workspaceFiles = DiskWorkspaceFiles(temp.root),
         )
       },
     )

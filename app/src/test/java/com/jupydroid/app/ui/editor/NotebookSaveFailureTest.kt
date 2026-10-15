@@ -12,7 +12,7 @@ import org.junit.Test
  * The notebook's half of [com.jupydroid.app.ui.fileeditor.FileEditorSaveFailureTest] - a save that
  * cannot be made is reported, not fatal.
  *
- * Same reachable cause: `WorkspaceRepository.changes` announces what this app moved, not what the
+ * Same reachable cause: `WorkspaceFiles.changes` announces what this app moved, not what the
  * kernel did, so a cell that removes the notebook's folder leaves an editor writing to a path that
  * is not there. `saveNotebook` raised straight into `viewModelScope`.
  */

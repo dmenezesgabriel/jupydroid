@@ -20,6 +20,7 @@ class DiskCheckpointFollowTest {
   @get:Rule val temp = TemporaryFolder()
 
   private val workspace by lazy { DiskWorkspaceRepository(temp.root) }
+  private val files by lazy { DiskWorkspaceFiles(temp.root) }
   private val checkpoints by lazy { DiskDocumentCheckpoints(temp.root) }
 
   private fun checkpointFile(name: String) = File(temp.root, ".ipynb_checkpoints/$name")
@@ -29,7 +30,7 @@ class DiskCheckpointFollowTest {
     workspace.writeText("notes.py", "saved")
     checkpoints.create("notes.py")
 
-    workspace.rename("notes.py", "renamed.py")
+    files.rename("notes.py", "renamed.py")
 
     assertEquals(1, checkpoints.list("renamed.py").size)
     assertEquals("saved", checkpointFile("renamed-checkpoint.py").readText())
@@ -40,7 +41,7 @@ class DiskCheckpointFollowTest {
   fun aRenameOfAFileWithNoCheckpointMovesOnlyTheFile() = runTest {
     workspace.writeText("notes.py", "saved")
 
-    workspace.rename("notes.py", "renamed.py")
+    files.rename("notes.py", "renamed.py")
 
     assertEquals("saved", workspace.readText("renamed.py"))
     assertTrue(checkpoints.list("renamed.py").isEmpty())
@@ -54,7 +55,7 @@ class DiskCheckpointFollowTest {
     checkpoints.create("other.py")
     checkpoints.create("taken.py")
 
-    workspace.overwrite("other.py", "taken.py")
+    files.overwrite("other.py", "taken.py")
 
     assertEquals("ours", checkpointFile("taken-checkpoint.py").readText())
     assertFalse(checkpointFile("other-checkpoint.py").exists())
@@ -65,7 +66,7 @@ class DiskCheckpointFollowTest {
     workspace.writeText("notes.py", "saved")
     checkpoints.create("notes.py")
 
-    workspace.delete("notes.py")
+    files.delete("notes.py")
 
     assertFalse(checkpointFile("notes-checkpoint.py").exists())
   }
@@ -76,7 +77,7 @@ class DiskCheckpointFollowTest {
     File(temp.root, "old/.ipynb_checkpoints").mkdirs()
     File(temp.root, "old/.ipynb_checkpoints/gone-checkpoint.py").writeText("left behind")
 
-    workspace.delete("old")
+    files.delete("old")
 
     assertFalse(File(temp.root, "old").exists())
   }
@@ -86,7 +87,7 @@ class DiskCheckpointFollowTest {
     File(temp.root, "old/.ipynb_checkpoints").mkdirs()
     File(temp.root, "old/kept.py").writeText("kept")
 
-    val refused = runCatching { workspace.delete("old") }
+    val refused = runCatching { files.delete("old") }
 
     assertTrue(refused.exceptionOrNull() is IllegalArgumentException)
     assertTrue(File(temp.root, "old/kept.py").isFile)
@@ -101,7 +102,7 @@ class DiskCheckpointFollowTest {
     val link = File(temp.root, "old/.ipynb_checkpoints").toPath()
     Files.createSymbolicLink(link, File(temp.root, "elsewhere").toPath())
 
-    workspace.delete("old")
+    files.delete("old")
 
     assertFalse(File(temp.root, "old").exists())
     assertEquals("keep me", File(temp.root, "elsewhere/precious.py").readText())

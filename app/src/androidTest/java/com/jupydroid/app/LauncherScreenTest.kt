@@ -11,7 +11,7 @@ import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
-import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LauncherCommand
@@ -33,7 +33,7 @@ class LauncherScreenTest {
 
   private fun viewModel() = LauncherViewModel(
     FakeNotebookRepository(),
-    FakeWorkspaceRepository(),
+    FakeWorkspaceFiles(),
     FakeTerminalGateway(),
     FakeKernelGateway(),
     FakeKernelSpecs(),

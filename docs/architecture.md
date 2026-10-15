@@ -689,7 +689,7 @@ the window to a debounce. Afterwards, `bindModel` re-matches a bound model on ev
 `onDidChangeContent` (`fileMatch.ts:135-175`, 250 ms) and `onFilesChanged` removes deleted
 resources (`searchView.ts:2354-2370`); ours answers staleness only at the tap
 (`MatchedLine.rangeIn`, `hitFor`) and at the replace (`editsAgainst` refuses). The seams to close
-it already exist — `OpenDocuments` for the live content, `WorkspaceRepository.changes` for the
+it already exist — `OpenDocuments` for the live content, `WorkspaceFiles.changes` for the
 file events.
 
 ### GAP-042 — Selecting a match never shows what a replace would do
@@ -870,7 +870,7 @@ then `docmanager:open`, so the file lands already open
 (`jupyterlab/packages/fileeditor-extension/src/commands.ts:1383-1400`). Ours' New menu is exactly
 three — notebook, `.py`, folder
 (`app/src/main/java/com/jupydroid/app/ui/explorer/ExplorerBar.kt`) — while
-`WorkspaceRepository.createFile` already takes any extension and `DocumentOpeners` sends anything
+`WorkspaceFiles.createFile` already takes any extension and `DocumentOpeners` sends anything
 that is not `.ipynb` to the plain file editor
 (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`): a `.md` the editor would happily open
 cannot be made. The repair is a menu row, not a new op — the editor is already the fallback.
