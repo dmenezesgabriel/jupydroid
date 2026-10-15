@@ -875,17 +875,16 @@ that is not `.ipynb` to the plain file editor
 (`app/src/main/java/com/jupydroid/app/DocumentOpeners.kt`): a `.md` the editor would happily open
 cannot be made. The repair is a menu row, not a new op — the editor is already the fallback.
 
-### GAP-059 — The open document's own surface answers only rename
+### GAP-174 — The tab's menu closes none of its siblings
 
-`docmanager:delete`, `docmanager:duplicate` and the tab context menu they sit on
-(`data-type="document-title"`, `jupyterlab/packages/docmanager-extension/src/index.tsx`) act on
-the *open document* — the tab asks, and the answer deletes its file or copies it beside itself.
-Ours' tab long-press opens the rename dialog and nothing else: deliberate for one item, "a touch
-context menu would be one item deep"
-(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`), but the reasoning was
-written for rename alone, and the file acts have no home on the document they act on — the
-explorer row's own menu is the only way to delete or would-be-duplicate a file. The repair is
-the menu that comment declined the moment it would be two items deep.
+`application:close-other-tabs` ("Close All Other Tabs") and `application:close-right-tabs`
+("Close Tabs to Right") sit on JupyterLab's main-area tab context menu, ranks 4 and 5, beside
+`application:close` (jupyterlab@7f0e690 `packages/application-extension/schema/commands.json`
+`context`, `packages/application-extension/src/index.tsx`). Ours' tab long-press menu acts only on
+the document it names - Rename…, Save As…, Revert to Checkpoint…, Duplicate, Delete…
+(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTab.kt`) - and the only bulk close is the
+Running panel's Close All. The repair is two rows on that menu, each closing through
+`MainAreaCloseGate` as Close All does, so a tab with unsaved work still asks.
 
 ### GAP-060 — A document cannot be viewed twice
 
@@ -894,8 +893,8 @@ two scroll positions over one file
 (`jupyterlab/packages/docmanager-extension/src/index.tsx:1397`); VS Code's `openToSide` answers
 the same ask with a second editor group. Ours opens reveal-don't-reopen over one entry per path
 (`app/src/main/java/com/jupydroid/app/NotebookBackStack.kt`), so a second view is not merely
-unoffered — the stack's own rule refuses it. The repair is a clone act on the surface GAP-059
-names plus a per-key tab that tolerates two keys for one path.
+unoffered — the stack's own rule refuses it. The repair is a clone act on the tab's menu
+([ADR-0102](adr/0102-a-document-is-deleted-or-duplicated-from-its-tab.md)) plus a per-key tab that tolerates two keys for one path.
 
 ### GAP-066 — Nothing remembers a closed document
 

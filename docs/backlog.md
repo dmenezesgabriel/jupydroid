@@ -191,7 +191,9 @@ keeping the path its notebook was renamed away from, is closed by `KernelSession
 notebook's kernel session left running, is closed by `DeletedDocumentSessions`
 (`app/src/main/java/com/jupydroid/app/domain/model/DeletedDocumentSessions.kt`). `GAP-069`, a
 rename refused from a tab closing in silence, is closed by the strip's "Rename Error" dialog
-(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`).
+(`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`). `GAP-059`, the open document's
+own tab offering only rename, is closed by
+[ADR-0102](adr/0102-a-document-is-deleted-or-duplicated-from-its-tab.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
@@ -201,7 +203,7 @@ rename refused from a tab closing in silence, is closed by the strip's "Rename E
 | `JD-035` | **A notebook's kernel session follows its rename:** after a notebook with a running kernel is renamed, from its tab, the explorer or a folder above it, the Running panel's row carries the new name and tapping it reveals the renamed tab | shipped | — | `GAP-068` |
 | `JD-036` | **Deleting a notebook stops its kernel session:** after a notebook with a running kernel is deleted from the explorer, or replaced by a rename over it, the Running panel no longer lists its kernel, whether its tab was open or closed | shipped | — | `GAP-058` |
 | `JD-037` | **A rename refused from the tab says why:** when the disk refuses a rename or an overwrite asked from a document's tab, a dialog says why instead of closing in silence | shipped | — | `GAP-069` |
-| `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | in-progress ← next | [JD-043](prd/JD-043-delete-or-duplicate-from-the-tab.md) | `GAP-059` |
+| `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
 
 ### Known gaps
 

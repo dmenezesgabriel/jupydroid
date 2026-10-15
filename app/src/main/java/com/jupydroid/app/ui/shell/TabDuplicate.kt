@@ -17,8 +17,9 @@ import kotlinx.coroutines.launch
  * The Duplicate a tab's menu starts: copies the document's file beside itself under the server's
  * `-Copy<n>` name and opens nothing - `docmanager:duplicate`, whose `DocumentManager.duplicate` is
  * `contents.copy(path, dirname)` (jupyterlab@7f0e690 `packages/docmanager-extension/src/index.tsx`
- * `CommandIDs.duplicate`, `packages/docmanager/src/manager.ts`). What is copied is the file as saved
- * (`WorkspaceFiles.copy`). A refusal says why, where the reference leaves it to the console.
+ * `CommandIDs.duplicate`, `packages/docmanager/src/manager.ts`; ADR-0102). What is copied is the
+ * file as saved (`WorkspaceFiles.copy`). A refusal says why, where the reference leaves it to the
+ * console.
  *
  * Mounted once by the pane, like `rememberTabDelete`, so the refusal outlives the menu that started
  * it. Answers with the starter.

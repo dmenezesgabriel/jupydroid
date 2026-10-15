@@ -104,5 +104,6 @@ What a future reader will be tempted to "fix":
 
 Not covered, on purpose:
 
-- **Delete, duplicate and clone on the tab's menu** (`GAP-059`, `GAP-060`).
+- **Clone on the tab's menu** (`GAP-060`). Delete and duplicate are the tab's own acts
+  ([ADR-0102](0102-a-document-is-deleted-or-duplicated-from-its-tab.md)).
 - **`Accel Shift S`.** No editor reads a hardware key, and there is no keymap (`GAP-134`).

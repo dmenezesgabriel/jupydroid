@@ -26,8 +26,8 @@ private sealed interface DeleteAsk {
  * The Delete a tab's menu starts: asks in the browser's words, deletes the file, and hands the tab
  * to [onDeleted] to close - `docmanager:delete`, whose `deleteFile` disposes every widget on the
  * file without the unsaved-work ask (jupyterlab@7f0e690 `packages/docmanager-extension/src/index.tsx`
- * `CommandIDs.del`, `packages/docmanager/src/manager.ts` `deleteFile`). A refusal says why, where the
- * reference leaves it to the console.
+ * `CommandIDs.del`, `packages/docmanager/src/manager.ts` `deleteFile`; ADR-0102). A refusal says
+ * why, where the reference leaves it to the console.
  *
  * The ask is `DeleteFileDialog`'s "permanently delete", not docmanager's plainer "delete": the
  * delete is permanent (`WorkspaceFiles.delete`), and the explorer asks it in those words.
