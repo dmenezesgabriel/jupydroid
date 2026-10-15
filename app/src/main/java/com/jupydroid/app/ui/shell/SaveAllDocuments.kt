@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.combine
  * modally wherever the user is (`packages/docregistry/src/context.ts`, `_raiseConflict`). Here only
  * the top tab composes, so a refused document's File Changed question or error line has nowhere to
  * draw beneath it: the refused tab is handed to [reveal], brought to the top to ask, and the tabs
- * after it keep their dots until Save All is pressed again.
+ * after it keep their dots until Save All is pressed again (ADR-0098).
  *
  * A clean document is passed over - VS Code's `DirtyWorkingCopiesContext` rule
  * (vscode@3f3380c `contrib/files/browser/fileCommands.ts`) - since rewriting it moves its mtime for

@@ -90,7 +90,8 @@ What a future reader will be tempted to "fix":
 Not covered, on purpose:
 
 - **Saving a tab beneath the top, and save-all.** Only the top tab composes, so a refused save
-  beneath it would have no screen to ask on. `GAP-061` keeps what is left.
+  beneath it would have no screen to ask on. Save All brings that tab to the top first
+  ([ADR-0098](0098-every-open-document-is-saved-from-open-tabs.md)).
 - **A checkpoint after the save.** There are none (`GAP-062`).
 - **`Accel S`.** No editor reads a hardware key, and there is no keymap to bind one in (`GAP-134`).
 - **`renameUntitledFileOnSave`.** A document is named when it is created, so a first save has

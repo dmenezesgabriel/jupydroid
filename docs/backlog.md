@@ -152,8 +152,9 @@ over a file that is not text, the first half of `GAP-097`, closed by
 [ADR-0091](adr/0091-a-file-that-is-not-utf-8-is-refused-by-the-text-read.md), and what is open
 forgotten when the activity is relaunched, `GAP-143`, closed by
 [ADR-0092](adr/0092-open-documents-survive-the-activitys-relaunch-in-its-retained-scope.md), and
-the save the user asks for, the first half of `GAP-061`, closed by
-[ADR-0093](adr/0093-a-document-is-saved-on-demand-from-the-tab-strip.md), and the re-read the user
+the save the user asks for, of the top document and of every open one, `GAP-061`, closed by
+[ADR-0093](adr/0093-a-document-is-saved-on-demand-from-the-tab-strip.md) and
+[ADR-0098](adr/0098-every-open-document-is-saved-from-open-tabs.md), and the re-read the user
 asks for and the one a write to the file makes by itself, `GAP-064`, closed by
 [ADR-0096](adr/0096-an-open-document-is-reloaded-from-disk-on-demand-from-the-tab-strip.md) and
 [ADR-0097](adr/0097-an-open-document-with-no-unsaved-work-follows-its-file.md).
@@ -168,7 +169,7 @@ asks for and the one a write to the file makes by itself, `GAP-064`, closed by
 | `JD-031` | **A document is saved when the user asks:** a notebook or a file with unsaved work is written by one tap on the tab strip's save icon, without closing it, so with autosave off an edit no longer waits for its tab to close | shipped | — | `GAP-061` (first step) |
 | `JD-038` | **An open document reloads from disk:** a notebook or a file rewritten by a cell, a shell command or a second client is read back into its tab by one tap on the strip's reload icon, asking first when the tab has unsaved work | shipped | — | `GAP-064` (first step) |
 | `JD-039` | **An open document follows its file:** a notebook or a file with no unsaved work shows what a cell, a shell command or a second client wrote to it without a tap, and one with unsaved work keeps it | shipped | — | `GAP-064` |
-| `JD-040` | **Every open document is saved at once:** one tap on Save All in the Running panel's Open Tabs writes every tab with unsaved work, beneath the top or not, and a save the disk refuses brings its tab to the top to ask | in-progress ← next | [PRD](prd/JD-040-save-all-open-documents.md) | `GAP-061` |
+| `JD-040` | **Every open document is saved at once:** one tap on Save All in the Running panel's Open Tabs writes every tab with unsaved work, beneath the top or not, and a save the disk refuses brings its tab to the top to ask | shipped | — | `GAP-061` |
 
 ### M6 — Presentation
 

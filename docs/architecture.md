@@ -897,17 +897,6 @@ the same ask with a second editor group. Ours opens reveal-don't-reopen over one
 unoffered — the stack's own rule refuses it. The repair is a clone act on the surface GAP-059
 names plus a per-key tab that tolerates two keys for one path.
 
-### GAP-061 — Only the document on top can be saved on demand
-
-`docmanager:save-all` sweeps every writable context
-(`jupyterlab/packages/docmanager-extension/src/index.tsx:1237-1268`), and VS Code's `saveAll`
-does the same over every dirty editor (`fileCommands.ts:497-540`). Ours saves one document, the
-one on top, from the tab strip's save icon
-([ADR-0093](adr/0093-a-document-is-saved-on-demand-from-the-tab-strip.md)); a dirty tab beneath
-it is written by its own autosave, or when it closes. Only the top tab composes, so a save refused
-beneath it (ADR-0090's question) has no screen to be asked on. The repair is a save-all that
-brings each refused document to the top before it asks.
-
 ### GAP-062 — There are no checkpoints
 
 `context.save()` ends in `createCheckpoint()`
