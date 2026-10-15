@@ -134,6 +134,12 @@ fun TabbedDocumentPane(
     onOpenDocument(copy)
   }
   val revertToCheckpoint = rememberTabRevertToCheckpoint(documentCheckpoints)
+  // The strip closes the deleted tab itself, on top or beneath, as `deleteWidgets` disposes every
+  // widget on the file: a screen beneath the top is not composed to hear its file go.
+  val delete = rememberTabDelete(workspaceRepository) { key, document ->
+    document.discardChanges()
+    backStack.closeMainAreaTab(key, tabs)
+  }
 
   Column(modifier = Modifier.fillMaxSize()) {
     MainAreaTabStrip(
@@ -150,6 +156,7 @@ fun TabbedDocumentPane(
       },
       onSaveTabAs = { key -> key.documentIn(openDocuments)?.let { saveAs(key, it) } },
       onRevertTab = { key -> key.documentIn(openDocuments)?.let(revertToCheckpoint) },
+      onDeleteTab = { key -> key.documentIn(openDocuments)?.let { delete(key, it) } },
       onSaved = { document -> scope.launch { documentCheckpoints.checkpointSaved(document.path) } },
     )
     Box(modifier = Modifier.weight(1f)) { content() }
@@ -236,6 +243,7 @@ private fun MainAreaTabStrip(
   onRenameTab: (NavKey) -> Unit,
   onSaveTabAs: (NavKey) -> Unit,
   onRevertTab: (NavKey) -> Unit,
+  onDeleteTab: (NavKey) -> Unit,
   onSaved: (OpenDocument) -> Unit,
 ) {
   val chrome = chromePalette
@@ -295,6 +303,7 @@ private fun MainAreaTabStrip(
             onRename = { onRenameTab(tab) },
             onSaveAs = { onSaveTabAs(tab) },
             onRevert = { onRevertTab(tab) },
+            onDelete = { onDeleteTab(tab) },
           )
         }
       }

@@ -371,7 +371,10 @@ fun MainNavigation(
               workspaceWatcher = spacePorts.workspaceWatcher,
               applicationScope = appContainer.applicationScope,
               editorSettingsRepository = appContainer.editorSettings,
-              onBack = { backStack.removeLastOrNull() },
+              // Its own entry, never the last: a file deleted from its tab is closed by the strip
+              // first, and the screen's own close on hearing it go must then find nothing to remove
+              // rather than the tab beneath (`DeletedTabTest`).
+              onBack = { backStack.remove(file) },
               onGoToFolder = goToFolder,
               onFileMoved = { moved -> openDocumentPaths[file] = moved },
               reveal = revealRequest,
@@ -408,7 +411,8 @@ fun MainNavigation(
               onShowDebugger = { sidePanel = SidePanel.DEBUGGER }.takeIf { twoPane },
               onGoToFolder = goToFolder,
               openDocument = openDocument,
-              onBack = { backStack.removeLastOrNull() },
+              // Its own entry, as the file editor's is: the strip may have closed it already.
+              onBack = { backStack.remove(editor) },
               // The one width fact this screen still reads, and it decides one thing now: whether
               // the debugger's bottom bar carries a variables toggle (a side panel already shows
               // it at two panes). How the document is left is the strip's own act.

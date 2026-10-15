@@ -63,7 +63,8 @@ import com.jupydroid.app.ui.DirtyMarker
  * activates. On a document tab it holds `docmanager:rename`, the `document-title`-bound command,
  * Save As, which VS Code keeps on the same menu (vscode@3f3380c
  * `src/vs/workbench/contrib/files/browser/fileActions.contribution.ts`, `SAVE_FILE_AS_COMMAND_ID`),
- * and `docmanager:restore-checkpoint`, which the reference keeps in the File menu beside them.
+ * `docmanager:restore-checkpoint`, which the reference keeps in the File menu beside them, and
+ * `docmanager:delete`, which it binds to the tab with rename.
  */
 @Composable
 internal fun MainAreaTab(
@@ -79,6 +80,7 @@ internal fun MainAreaTab(
   onRename: () -> Unit,
   onSaveAs: () -> Unit,
   onRevert: () -> Unit,
+  onDelete: () -> Unit,
 ) {
   val chrome = chromePalette
   var menuOpen by remember { mutableStateOf(false) }
@@ -169,6 +171,14 @@ internal fun MainAreaTab(
         onClick = {
           menuOpen = false
           onRevert()
+        },
+      )
+      DropdownMenuItem(
+        text = { Text("Delete…") },
+        enabled = document != null,
+        onClick = {
+          menuOpen = false
+          onDelete()
         },
       )
     }
