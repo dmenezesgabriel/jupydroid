@@ -33,6 +33,11 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
   WorkspaceRepository {
   private val root = WorkspaceRoot(rootDir)
 
+  // A file's checkpoint goes where the file goes, as `ContentsManager.rename` and `delete` carry it
+  // (`usr/lib/python3.12/site-packages/jupyter_server/services/contents/manager.py`): a renamed file
+  // would otherwise have nothing to revert to, and a deleted one would leave its copy behind.
+  private val checkpoints = CheckpointFiles(root)
+
   // No replay and no buffer, so `emit` suspends until every open document has taken the change -
   // which is what puts "stop writing" *before* whatever closes the screen - and returns at once
   // when nothing is open, which is exactly when there is nobody it could matter to.
@@ -104,6 +109,7 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     // Before the move, because `rename(2)` would replace the target without a word.
     if (root.isPresent(to)) throw FileNameTakenException(moved)
     check(from.renameTo(to)) { "could not rename '$path' to '$moved' in the workspace" }
+    checkpoints.move(path, moved)
     _changes.emit(WorkspaceChange.Renamed(from = path, to = moved))
     moved
   }
@@ -130,6 +136,7 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
       error("could not replace '$moved' in the workspace; a folder with anything in it cannot be replaced")
     }
     check(aside.renameTo(target)) { "could not move '$path' into place as '$moved'" }
+    checkpoints.moveOnto(path, moved)
     // The target's delete lands as a delete, in the disk's own order and before the `Renamed` -
     // a document that just adopted `moved` must not take the announcement for its new file going,
     // and a document open on `moved` that heard nothing would write over the winner.
@@ -143,9 +150,13 @@ class DiskWorkspaceRepository(rootDir: File, private val ioDispatcher: Coroutine
     require(root.isPresent(target)) { "nothing at '$path' in the workspace to delete" }
     // `isDirectory` follows a link, so the link check comes first: unlinking one is not a
     // recursive delete and must not be refused for what its target happens to hold.
-    val emptyEnough = root.isLink(target) || !target.isDirectory || target.list().isNullOrEmpty()
+    // A folder holding only `.ipynb_checkpoints` is empty, as `is_non_empty_dir` counts it
+    // (`filemanager.py` in the same package): what is left there belongs to files already gone.
+    val emptyEnough = root.isLink(target) || !target.isDirectory || checkpoints.isOnlyCheckpoints(target)
     require(emptyEnough) { "'$path' is a folder with something in it; empty it before deleting it" }
+    if (!root.isLink(target) && target.isDirectory) checkpoints.removeCheckpointFolderIn(target)
     check(target.delete()) { "could not delete '$path' from the workspace" }
+    checkpoints.remove(path)
     _changes.emit(WorkspaceChange.Deleted(path))
   }
 }

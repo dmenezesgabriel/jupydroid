@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.data.disk.CheckpointFiles.Companion.CHECKPOINT_ID
 import com.jupydroid.app.domain.model.Checkpoint
 import com.jupydroid.app.domain.port.DocumentCheckpoints
 import kotlinx.coroutines.CoroutineDispatcher
@@ -25,12 +26,13 @@ import java.time.Instant
 class DiskDocumentCheckpoints(rootDir: File, private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO) :
   DocumentCheckpoints {
   private val root = WorkspaceRoot(rootDir)
+  private val checkpointFiles = CheckpointFiles(root)
 
   /** `create_checkpoint`: the file copied aside, its mtime with it as `copystat` carries it. */
   override suspend fun create(path: String): Checkpoint = withContext(ioDispatcher) {
     val file = root.fileAt(path)
     require(file.isFile) { "no file at '$path' in the workspace to checkpoint" }
-    val copy = checkpointFileOf(path)
+    val copy = checkpointFiles.fileOf(path)
     copy.parentFile?.mkdirs()
     val bytes = file.readBytes()
     copy.writeAtomically { it.write(bytes) }
@@ -40,7 +42,7 @@ class DiskDocumentCheckpoints(rootDir: File, private val ioDispatcher: Coroutine
 
   /** `list_checkpoints`: the one checkpoint, or none. */
   override suspend fun list(path: String): List<Checkpoint> = withContext(ioDispatcher) {
-    val copy = checkpointFileOf(path)
+    val copy = checkpointFiles.fileOf(path)
     if (copy.isFile) listOf(copy.asCheckpoint()) else emptyList()
   }
 
@@ -51,28 +53,13 @@ class DiskDocumentCheckpoints(rootDir: File, private val ioDispatcher: Coroutine
    */
   override suspend fun restore(path: String, id: String): Unit = withContext(ioDispatcher) {
     require(id == CHECKPOINT_ID) { "no checkpoint '$id' for '$path'; a file has only '$CHECKPOINT_ID'" }
-    val copy = checkpointFileOf(path)
+    val copy = checkpointFiles.fileOf(path)
     require(copy.isFile) { "no checkpoint for '$path' in the workspace to restore" }
     val bytes = copy.readBytes()
     root.fileAt(path).writeAtomically { it.write(bytes) }
   }
 
-  /** `checkpoint_path`: beside the file, the stem and extension split as `os.path.splitext` splits them. */
-  private fun checkpointFileOf(path: String): File {
-    val file = root.fileAt(path)
-    val (stem, extension) = splitExtension(file.name)
-    return File(File(file.parentFile, CHECKPOINT_DIR), "$stem-$CHECKPOINT_ID$extension")
-  }
-
   private fun File.asCheckpoint() = Checkpoint(CHECKPOINT_ID, Instant.ofEpochMilli(lastModified()))
-
-  private companion object {
-    /** `FileCheckpoints.checkpoint_dir`'s default. */
-    const val CHECKPOINT_DIR = ".ipynb_checkpoints"
-
-    /** The only id `FileCheckpoints` ever makes. */
-    const val CHECKPOINT_ID = "checkpoint"
-  }
 }
 
 /**
