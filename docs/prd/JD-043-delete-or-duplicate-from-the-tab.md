@@ -117,7 +117,7 @@ None open: each axis above is settled by the reference it names.
 
 ## Tasks
 
-- [ ] T1 — Delete… on the tab's menu: asks, deletes, closes the tab (background too), and says why a refusal failed
+- [x] T1 — Delete… on the tab's menu: asks, deletes, closes the tab (background too), and says why a refusal failed
 - [ ] T2 — `WorkspaceRepository.copy` with the server's `-Copy<n>` naming (Disk, Fake, contract test), and Duplicate on the tab's menu
 - [ ] T3 — the demo on a fresh install; ADR, ledger rows, ship
 
