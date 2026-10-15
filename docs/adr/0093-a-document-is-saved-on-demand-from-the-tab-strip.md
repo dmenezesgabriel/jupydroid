@@ -96,4 +96,5 @@ Not covered, on purpose:
 - **`Accel S`.** No editor reads a hardware key, and there is no keymap to bind one in (`GAP-134`).
 - **`renameUntitledFileOnSave`.** A document is named when it is created, so a first save has
   nothing untitled to rename.
-- **Save-as**, `GAP-063`.
+- **Save-as.** The tab's long-press menu writes a copy
+  ([ADR-0099](0099-a-document-is-saved-under-a-new-name-from-its-tab.md)).

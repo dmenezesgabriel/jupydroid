@@ -909,17 +909,6 @@ operation names it and nothing ever creates one. The repair starts with the chec
 the repository an editor writes through; the picker the command offers is a dialog over
 `listCheckpoints`.
 
-### GAP-063 — A document cannot be saved under a new name
-
-`docmanager:save-as` asks a path, refuses a taken one through `_maybeOverWrite`, writes, then
-closes the old context and opens the new one off `fileChanged`
-(`jupyterlab/packages/docregistry/src/context.ts:295-333`,
-`jupyterlab/packages/docmanager-extension/src/index.tsx:1270-1318`); VS Code's `files.saveAs` is
-the same act. Ours' `rename` moves a file rather than copying it — the same-shape answer to a
-different ask — and no write-a-copy exists; GAP-050 already notes there is no `copy` op for one
-to ride. The repair is a path prompt writing the document's bytes through the repository the
-editor already writes, then opening the result.
-
 ### GAP-066 — Nothing remembers a closed document
 
 `RecentsManager` keeps two lists, `opened` and `closed`

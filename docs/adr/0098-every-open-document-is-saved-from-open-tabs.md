@@ -94,4 +94,6 @@ What a future reader will be tempted to "fix":
 Not covered, on purpose:
 
 - **A key binding.** No editor reads a hardware key, and there is no keymap (`GAP-134`).
-- **Save-as**, `GAP-063`, and **checkpoints**, `GAP-062`.
+- **Save-as**, which is the tab's own act
+  ([ADR-0099](0099-a-document-is-saved-under-a-new-name-from-its-tab.md)), and **checkpoints**,
+  `GAP-062`.

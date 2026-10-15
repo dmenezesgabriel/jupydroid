@@ -33,7 +33,8 @@ private sealed interface SaveAsAsk {
  * The Save As a tab's menu starts: asks the path, asks before a taken one is replaced, says why a
  * refused write failed, and hands a written copy to [onWritten] - which closes the tab and opens
  * the copy, as the reference's command does on the save's `fileChanged`
- * (jupyterlab@7f0e690 `packages/docmanager-extension/src/index.tsx`, `CommandIDs.saveAs`).
+ * (jupyterlab@7f0e690 `packages/docmanager-extension/src/index.tsx`, `CommandIDs.saveAs`;
+ * ADR-0099).
  *
  * Mounted once by the pane, like `rememberMainAreaCloseGate`, so the dialogs outlive the menu that
  * started them. Answers with the starter.

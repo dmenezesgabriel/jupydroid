@@ -157,7 +157,9 @@ the save the user asks for, of the top document and of every open one, `GAP-061`
 [ADR-0098](adr/0098-every-open-document-is-saved-from-open-tabs.md), and the re-read the user
 asks for and the one a write to the file makes by itself, `GAP-064`, closed by
 [ADR-0096](adr/0096-an-open-document-is-reloaded-from-disk-on-demand-from-the-tab-strip.md) and
-[ADR-0097](adr/0097-an-open-document-with-no-unsaved-work-follows-its-file.md).
+[ADR-0097](adr/0097-an-open-document-with-no-unsaved-work-follows-its-file.md), and the save under a
+new name, `GAP-063`, closed by
+[ADR-0099](adr/0099-a-document-is-saved-under-a-new-name-from-its-tab.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
@@ -170,7 +172,7 @@ asks for and the one a write to the file makes by itself, `GAP-064`, closed by
 | `JD-038` | **An open document reloads from disk:** a notebook or a file rewritten by a cell, a shell command or a second client is read back into its tab by one tap on the strip's reload icon, asking first when the tab has unsaved work | shipped | — | `GAP-064` (first step) |
 | `JD-039` | **An open document follows its file:** a notebook or a file with no unsaved work shows what a cell, a shell command or a second client wrote to it without a tap, and one with unsaved work keeps it | shipped | — | `GAP-064` |
 | `JD-040` | **Every open document is saved at once:** one tap on Save All in the Running panel's Open Tabs writes every tab with unsaved work, beneath the top or not, and a save the disk refuses brings its tab to the top to ask | shipped | — | `GAP-061` |
-| `JD-041` | **A document is saved under a new name:** a long press on a notebook's or a file's tab offers Save As…, which writes what is on screen to a typed path, asking before it replaces a taken one, and opens the copy while the original keeps what was last saved | in-progress ← next | [JD-041](prd/JD-041-save-document-as.md) | `GAP-063` |
+| `JD-041` | **A document is saved under a new name:** a long press on a notebook's or a file's tab offers Save As…, which writes what is on screen to a typed path, asking before it replaces a taken one, and opens the copy while the original keeps what was last saved | shipped | — | `GAP-063` |
 
 ### M6 — Presentation
 
