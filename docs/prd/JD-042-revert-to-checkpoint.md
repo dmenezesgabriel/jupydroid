@@ -128,7 +128,7 @@ None: the item and the adapter were settled with the user when it was picked up.
 
 ## Tasks
 
-- [ ] T1 — the checkpoint ops, made at first open, the strip's Save and Save As, and the tab's
+- [x] T1 — the checkpoint ops, made at first open, the strip's Save and Save As, and the tab's
   Revert to Checkpoint…; flow on SM-X216B: a saved then edited file and notebook revert to the save,
   clean, the checkpoint at its layout path, and a file without one says No Checkpoints
 - [ ] T2 — a checkpoint follows its file: rename and overwrite move it, delete removes it, a folder

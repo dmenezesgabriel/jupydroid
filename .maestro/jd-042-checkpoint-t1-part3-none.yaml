@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/jd-042-checkpoint-t1-driver.sh with `blocked/plain.py`
+# and a *file* at `blocked/.ipynb_checkpoints`, so no checkpoint can be made beside it.
+#
+# Opening still opens it - a checkpoint that cannot be made is dropped, as the reference drops a
+# read-only folder's 403 - and Revert to Checkpoint says there is none, the command's own
+# "No checkpoints" (jupyterlab@7f0e690 `packages/docmanager-extension/src/index.tsx`).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "blocked"
+- extendedWaitUntil:
+    visible: "plain.py"
+    timeout: 10000
+- tapOn: "plain.py"
+- extendedWaitUntil:
+    visible: "notes = \"seeded\"\\s*"
+    timeout: 10000
+- longPressOn: "Tab: plain.py"
+- extendedWaitUntil:
+    visible: "Revert to Checkpoint…"
+    timeout: 5000
+- tapOn: "Revert to Checkpoint…"
+- extendedWaitUntil:
+    visible: "No checkpoints"
+    timeout: 5000
+- assertVisible: "No checkpoints are available for this File."
+- takeScreenshot: 01-no-checkpoints
+- tapOn: "OK"
+- extendedWaitUntil:
+    notVisible: "No checkpoints"
+    timeout: 5000
+- assertVisible: "Tab: plain.py"

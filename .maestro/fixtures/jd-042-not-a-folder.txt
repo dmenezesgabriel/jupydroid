@@ -1,0 +1,1 @@
+A file where the checkpoint folder would go, so no checkpoint can be made beside it.
