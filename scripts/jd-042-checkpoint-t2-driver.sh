@@ -18,7 +18,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/jd-030-rotation-reads.sh
 . "$ROOT/scripts/jd-030-rotation-reads.sh"
 
-EVIDENCE="$ROOT/evidence/jd-042-checkpoint/t2"
+EVIDENCE="${EVIDENCE:-$ROOT/evidence/jd-042-checkpoint/t2}"
 
 trap restore_rotation EXIT
 

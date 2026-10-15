@@ -1,0 +1,68 @@
+appId: com.jupydroid.app
+---
+# Continues the T1 driver after a kill. Driven by scripts/jd-042-checkpoint-demo-driver.sh.
+#
+# `launchApp` stops the process first, and the open tabs live in the process's `AppContainer`
+# (ADR-0092), so nothing is held in memory: the checkpoint `notes.py` reverts to here is the one on
+# disk. Opening finds it and makes no new one, as `_maybeCheckpoint(false)` does when
+# `listCheckpoints` is not empty (jupyterlab@7f0e690 `packages/docregistry/src/context.ts`).
+#
+# Then the reverted `target.ipynb` runs: its cell assigns and prints nothing, so a print is
+# appended that only a kernel which ran the reverted `target_as_seeded = 10` can answer 70 to.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: ".*typed_a.*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_c"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: true
+- takeScreenshot: 01-after-a-kill-edited-again
+- longPressOn: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: "Revert to Checkpoint…"
+    timeout: 5000
+- tapOn: "Revert to Checkpoint…"
+- extendedWaitUntil:
+    visible: "Revert File to checkpoint"
+    timeout: 5000
+- assertVisible: "The checkpoint was last updated at: .*"
+- takeScreenshot: 02-the-checkpoint-outlived-the-process
+- tapOn: "Revert"
+- extendedWaitUntil:
+    notVisible: ".*typed_c.*"
+    timeout: 10000
+- assertVisible: ".*typed_a.*"
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: false
+- takeScreenshot: 03-reverted-to-the-save-clean
+
+# ---- the reverted notebook runs ----
+- tapOn: "target.ipynb"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 10"
+    timeout: 30000
+- assertNotVisible: "Unsaved changes"
+- tapOn: "target_as_seeded = 10"
+- inputText: "; print(target_as_seeded * 7)"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "70[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- takeScreenshot: 04-the-reverted-notebook-runs

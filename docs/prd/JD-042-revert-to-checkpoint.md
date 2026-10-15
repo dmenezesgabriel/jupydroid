@@ -133,7 +133,7 @@ None: the item and the adapter were settled with the user when it was picked up.
   clean, the checkpoint at its layout path, and a file without one says No Checkpoints
 - [x] T2 — a checkpoint follows its file: rename and overwrite move it, delete removes it, a folder
   holding only `.ipynb_checkpoints` deletes as empty; flow on SM-X216B
-- [ ] T3 — the demo on a fresh install, then ship: an ADR narrowing ADR-0050, delete this PRD,
+- [x] T3 — the demo on a fresh install, then ship: an ADR narrowing ADR-0050, delete this PRD,
   GAP-062 closes
 
 ## Out of scope
