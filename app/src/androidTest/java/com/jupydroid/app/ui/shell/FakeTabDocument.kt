@@ -23,6 +23,12 @@ internal class FakeTabDocument(openedUnder: String, isDirty: Boolean = false) : 
   var reloads = 0
     private set
 
+  /** Every path a Save As wrote this document to. */
+  val copies = mutableListOf<String>()
+
+  /** Set before the tap: the copy's write then fails, as a missing folder makes it fail. */
+  var copyRefusal: Throwable? = null
+
   override val path: String get() = livePath
   override val dirty: StateFlow<Boolean> = dirtyFlow
 
@@ -41,6 +47,11 @@ internal class FakeTabDocument(openedUnder: String, isDirty: Boolean = false) : 
   override fun discardChanges() {
     discards++
     dirtyFlow.value = false
+  }
+
+  override suspend fun writeCopyTo(path: String) {
+    copyRefusal?.let { throw it }
+    copies += path
   }
 
   override fun reloadFromDisk() {

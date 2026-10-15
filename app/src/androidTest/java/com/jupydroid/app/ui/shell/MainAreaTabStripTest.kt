@@ -115,7 +115,9 @@ class MainAreaTabStripTest {
         }
         // The gate `MainNavigation` mounts for it - the strip's closes run through it.
         val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
-        TabbedDocumentPane(backStack, open, paths, tabs, liveTitles, workspace, twoPane = twoPane, closeTab) {
+        TabbedDocumentPane(
+          backStack, open, paths, tabs, liveTitles, workspace, twoPane = twoPane, closeTab, onOpenDocument = {},
+        ) {
           Text("the document")
         }
       }
@@ -280,28 +282,41 @@ class MainAreaTabStripTest {
   }
 
   /**
-   * `docmanager:rename` is bound to the tab's own node (`[data-type="document-title"]`,
-   * `docmanager-extension/schema/plugin.json:75`), and a long press is a touch screen's
-   * right-click - so it opens the same RenameFileDialog the row and the browser share.
+   * A long press is a touch screen's right-click, so it opens the tab's context menu: Rename, the
+   * `document-title`-bound `docmanager:rename` (`docmanager-extension/schema/plugin.json:75`), and
+   * Save As, which VS Code's tab menu carries beside it.
    */
   @Test
-  fun aLongPressOnADocumentTabOpensTheRenameDialog() {
+  fun aLongPressOnADocumentTabOffersRenameAndSaveAs() {
+    open.opened(FakeTabDocument("dir/a.ipynb"))
     strip(Editor("dir/a.ipynb"), FileEditor("b.py"))
 
     tab("a.ipynb").performTouchInput { longClick() }
+
+    compose.onNodeWithText("Rename…").assertIsDisplayed()
+    compose.onNodeWithText("Save As…").assertIsDisplayed()
+  }
+
+  /** Rename on the menu opens the same RenameFileDialog the row and the browser share. */
+  @Test
+  fun renameOnTheTabMenuOpensTheRenameDialog() {
+    strip(Editor("dir/a.ipynb"), FileEditor("b.py"))
+
+    tab("a.ipynb").performTouchInput { longClick() }
+    compose.onNodeWithText("Rename…").performClick()
 
     compose.onNodeWithText("Rename file").assertIsDisplayed()
     compose.onNodeWithTag(RENAME_FIELD_TAG).assertIsDisplayed()
   }
 
-  /** A tab without a path has nothing to rename - the press stays inert there. */
+  /** A tab without a path has nothing to rename or save - the press stays inert there. */
   @Test
-  fun aLongPressOnATerminalTabOpensNoDialog() {
+  fun aLongPressOnATerminalTabOpensNoMenu() {
     strip(Terminal("1"), Editor("a.ipynb"))
 
     tab("Terminal 1").performTouchInput { longClick() }
 
-    compose.onAllNodesWithText("Rename file").assertCountEquals(0)
+    compose.onAllNodesWithText("Rename…").assertCountEquals(0)
   }
 
   /** The ask goes to the workspace - `context.rename` is a contents call in the reference too. */
@@ -369,6 +384,7 @@ class MainAreaTabStripTest {
 
   private fun renameTab(title: String, to: String) {
     tab(title).performTouchInput { longClick() }
+    compose.onNodeWithText("Rename…").performClick()
     compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
     compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput(to)
     compose.onNodeWithText("Rename").performClick()

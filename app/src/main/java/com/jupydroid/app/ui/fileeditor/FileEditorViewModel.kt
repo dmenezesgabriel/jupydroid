@@ -11,7 +11,6 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.EditorSettings
-import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.withEditsApplied
@@ -22,7 +21,6 @@ import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.syntax.syntaxForFile
 import com.jupydroid.app.ui.editor.DocumentAutosave
 import com.jupydroid.app.ui.editor.DocumentFileFollow
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,8 +29,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * What the editor is showing of one file.
@@ -133,18 +129,15 @@ class FileEditorViewModel(
   private val settings = editorSettings.observeSettings()
     .stateIn(viewModelScope, SharingStarted.Eagerly, EditorSettings())
 
-  private val save = DocumentAutosave(viewModelScope, settings, { _uiState.value.dirty && _uiState.value.loaded }) {
-    persist()
-  }
-
   /** Set when the file this editor is on is deleted; see [stopWriting]. */
   private var fileIsGone = false
 
-  /** The file as it was last read or written here: what the next save expects to find. */
-  private var stamp: FileStamp? = null
+  /** The stamp, the lock and the write; see [FileEditorWrites]. */
+  private val writes = FileEditorWrites(_uiState, workspaceRepository, { livePath }, { fileIsGone })
 
-  /** One writer at a time, so a revert never lands in the middle of a save - `EditorViewModel`'s own. */
-  private val writeMutex = Mutex()
+  private val save = DocumentAutosave(viewModelScope, settings, { _uiState.value.dirty && _uiState.value.loaded }) {
+    writes.persist()
+  }
 
   init {
     // **Open before it has loaded, on purpose.** A replace arriving mid-read must not be handed the
@@ -157,7 +150,7 @@ class FileEditorViewModel(
       // that fails is an ordinary event to report, not a corrupt state to crash on.
       runCatching { workspaceRepository.readStampedText(livePath) }
         .onSuccess { read ->
-          stamp = read.stamp
+          writes.stamp = read.stamp
           _uiState.update { it.copy(text = read.text, syntax = syntaxForFile(it.name), loaded = true, error = null) }
         }
         .onFailure { failure -> _uiState.update { it.copy(error = failure.message, loaded = false) } }
@@ -235,6 +228,11 @@ class FileEditorViewModel(
     return !_uiState.value.dirty
   }
 
+  /** The text on screen, written unconditionally; the stamp is this file's, so the copy's is not kept. */
+  override suspend fun writeCopyTo(path: String) {
+    workspaceRepository.writeText(path, _uiState.value.text)
+  }
+
   /**
    * The close dialog's Discard: owed work is dropped - `SaveHandler.dispose()` clears its timer
    * and writes nothing, so the close that follows must not flush it back.
@@ -252,50 +250,17 @@ class FileEditorViewModel(
     scope = viewModelScope,
     repository = workspaceRepository,
     filePath = { livePath },
-    writes = writeMutex,
-    saveOver = { persist(overwriting = true) },
+    writes = writes.lock,
+    saveOver = { writes.persist(overwriting = true) },
     dropOwedWrite = { save.cancelPending() },
-    adopt = { stamp = it },
-    held = { stamp },
+    adopt = { writes.stamp = it },
+    held = { writes.stamp },
   )
 
   public override fun onCleared() {
     openDocuments.closed(this)
     val hadUnsavedWork = save.cancelPending()
-    if (!save.discarded && (hadUnsavedWork || _uiState.value.dirty)) applicationScope.launch { persist() }
+    if (!save.discarded && (hadUnsavedWork || _uiState.value.dirty)) applicationScope.launch { writes.persist() }
     super.onCleared()
-  }
-
-  /**
-   * Writes the file back, and **reports a write it could not make instead of raising into
-   * `viewModelScope`**, where an uncaught exception takes the process down.
-   *
-   * The same argument this file already makes for the read, one direction over: a shared workspace
-   * can lose the directory under an open file - a cell can `shutil.rmtree` it - and
-   * `WorkspaceRepository.changes` announces only what *this app* moved, so nothing warns us. The
-   * reference reports it the same way and leaves the document owing a write:
-   * `Context.save()`'s failure path is `showErrorMessage`, not a rethrow.
-   *
-   * Cleared by a save that works, so a failure that has passed does not sit on screen for ever.
-   *
-   * The write carries [stamp], so a file somebody else wrote since is left alone and the refusal
-   * becomes [FileEditorUiState.saveConflict] - a question, where every other failure is a report.
-   * [overwriting] is that question answered "Overwrite": the one save made whatever is on disk.
-   */
-  private suspend fun persist(overwriting: Boolean = false) {
-    if (fileIsGone || !_uiState.value.loaded) return
-    writeMutex.withLock {
-      runCatching { workspaceRepository.writeText(livePath, _uiState.value.text, stamp.takeUnless { overwriting }) }
-        .fold(
-          onSuccess = { written ->
-            stamp = written
-            _uiState.update { it.copy(error = null, dirty = false) }
-          },
-          onFailure = { failure ->
-            if (failure is CancellationException) throw failure
-            _uiState.update { it.reportingSave(failure) }
-          },
-        )
-    }
   }
 }

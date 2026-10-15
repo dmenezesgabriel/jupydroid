@@ -133,6 +133,8 @@ class MainAreaCloseGateTest {
       discarded = true
     }
 
+    override suspend fun writeCopyTo(path: String) = Unit
+
     override fun reloadFromDisk() = Unit
 
     override fun sourceOf(cell: Int?): String? = null

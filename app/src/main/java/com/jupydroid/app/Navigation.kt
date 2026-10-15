@@ -103,6 +103,7 @@ fun MainNavigation(
   }
   // One strip for the six detail entries, so an entry states its screen and nothing else - the
   // strip's model is the stack and these four holders, identical for all six.
+  val openDocument = rememberDocumentOpener(backStack, appContainer, openDocuments)
   val tabbedPane: @Composable (@Composable () -> Unit) -> Unit = { content ->
     TabbedDocumentPane(
       backStack,
@@ -115,6 +116,7 @@ fun MainNavigation(
       // because the document is the whole window there and leaving it goes back.
       twoPane = twoPane,
       onCloseTab = closeTab,
+      onOpenDocument = openDocument,
       content,
     )
   }
@@ -137,7 +139,6 @@ fun MainNavigation(
    */
   val launcherIsFill = remember { mutableStateOf(false) }
 
-  val openDocument = rememberDocumentOpener(backStack, appContainer, openDocuments)
   val newTerminal = rememberNewTerminal(backStack, spacePorts.terminalGateway)
 
   val openLauncher: () -> Unit = {

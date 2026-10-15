@@ -2,8 +2,11 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.DocumentOpening
 import com.jupydroid.app.OpenDocument
+import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.TextEdit
+import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.model.withEditsApplied
+import com.jupydroid.app.domain.port.NotebookRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,6 +44,10 @@ class NotebookDocument(
   private val reread: () -> Unit,
   /** Where the editor's tab opened it - unlike [path], it stays put through a rename. */
   override val openedAs: DocumentOpening,
+  /** Where [writeCopyTo] writes - the repository this notebook's own saves go through. */
+  private val repository: NotebookRepository,
+  /** The notebook as last read or written, null until it has loaded: what a copy's metadata comes from. */
+  private val saved: () -> Notebook?,
 ) : OpenDocument {
   override val path: String get() = notebookId()
 
@@ -60,6 +67,14 @@ class NotebookDocument(
   override suspend fun saveAndConfirm(): Boolean {
     save.flush()
     return !uiState.value.dirty
+  }
+
+  /** The cells on screen with their outputs, under the copy's own path and name. */
+  override suspend fun writeCopyTo(path: String) {
+    val base = checkNotNull(saved()) { "'${this.path}' has not loaded yet, so there is nothing to save as '$path'" }
+    repository.saveNotebook(
+      base.copy(id = path, title = notebookLeafOf(path), cells = uiState.value.withResultsOnCells()),
+    )
   }
 
   /**

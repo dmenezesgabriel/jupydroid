@@ -104,4 +104,20 @@ class NotebookFileNameTest {
     assertNull(pathAfterRename("foobar/x", from = "foo", to = "bar"))
     assertNull(pathAfterRename("other.ipynb", from = "draft.ipynb", to = "final.ipynb"))
   }
+
+  /** A Save As takes a path, so a copy can go into another folder: every segment is a name. */
+  @Test
+  fun aPathIsValidWhenEverySegmentIsAName() {
+    assertTrue(isValidWorkspacePath("notes-copy.py"))
+    assertTrue(isValidWorkspacePath("reports/2026/notes.py"))
+  }
+
+  /** An empty segment, a climb out of the root or a hidden name is refused, as each would be as a name. */
+  @Test
+  fun aPathWithASegmentThatIsNotANameIsRefused() {
+    assertFalse(isValidWorkspacePath("reports//notes.py"))
+    assertFalse(isValidWorkspacePath("../notes.py"))
+    assertFalse(isValidWorkspacePath("reports/.hidden"))
+    assertFalse(isValidWorkspacePath("/notes.py"))
+  }
 }

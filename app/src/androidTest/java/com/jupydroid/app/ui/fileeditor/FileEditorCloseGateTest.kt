@@ -193,7 +193,9 @@ class FileEditorCloseGateTest {
           order.addAll(tabs)
         }
         val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
-        TabbedDocumentPane(backStack, open, paths, tabs, liveTitles, repository, twoPane = false, closeTab) {
+        TabbedDocumentPane(
+          backStack, open, paths, tabs, liveTitles, repository, twoPane = false, closeTab, onOpenDocument = {},
+        ) {
           FileEditorScreen(
             path = "notes.py",
             workspaceRepository = repository,

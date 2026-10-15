@@ -13,6 +13,7 @@ class MovedOpenDocument(override val openedAs: DocumentOpening) : OpenDocument {
   override suspend fun saveAndConfirm(): Boolean = true
   override fun saveNow(onSaved: () -> Unit) = onSaved()
   override fun discardChanges() = Unit
+  override suspend fun writeCopyTo(path: String) = Unit
   override fun reloadFromDisk() = Unit
   override fun sourceOf(cell: Int?): String? = null
   override fun applyEdits(cell: Int?, edits: List<TextEdit>) = Unit

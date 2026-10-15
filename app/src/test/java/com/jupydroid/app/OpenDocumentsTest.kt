@@ -28,6 +28,7 @@ class OpenDocumentsTest {
     override suspend fun saveAndConfirm(): Boolean = true
     override fun saveNow(onSaved: () -> Unit) = onSaved()
     override fun discardChanges() = Unit
+    override suspend fun writeCopyTo(path: String) = Unit
 
     override fun reloadFromDisk() = Unit
 

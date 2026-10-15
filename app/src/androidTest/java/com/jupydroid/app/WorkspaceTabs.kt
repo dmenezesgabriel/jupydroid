@@ -54,7 +54,7 @@ fun ComposeTestRule.waitForTab(title: String, timeoutMillis: Long = TAB_TIMEOUT_
 
 /**
  * Renames the document behind the tab titled [from] to [to], through the tab's long press - the
- * touch screen's right-click, which opens `docmanager:rename`'s dialog.
+ * touch screen's right-click, whose menu's Rename opens `docmanager:rename`'s dialog.
  *
  * ```
  * compose.renameTab(from = "a.ipynb", to = "b.ipynb")
@@ -62,6 +62,7 @@ fun ComposeTestRule.waitForTab(title: String, timeoutMillis: Long = TAB_TIMEOUT_
  */
 fun ComposeTestRule.renameTab(from: String, to: String) {
   onNodeWithContentDescription("Tab: $from").performTouchInput { longClick() }
+  onNodeWithText("Rename…").performClick()
   onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
   onNodeWithTag(RENAME_FIELD_TAG).performTextInput(to)
   onNodeWithText("Rename").performClick()

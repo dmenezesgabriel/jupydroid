@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +64,7 @@ import com.jupydroid.app.Settings
 import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.activateMainAreaTab
+import com.jupydroid.app.closeMainAreaTab
 import com.jupydroid.app.documentIn
 import com.jupydroid.app.documentOpening
 import com.jupydroid.app.domain.port.FileNameTakenException
@@ -132,6 +135,8 @@ fun TabbedDocumentPane(
    * dirty ask where both can reach it.
    */
   onCloseTab: (NavKey) -> Unit,
+  /** `docmanager:open` on a path - where a Save As's copy opens, recorded in Recents as any open is. */
+  onOpenDocument: (String) -> Unit,
   content: @Composable () -> Unit,
 ) {
   // The tab a rename is being asked over - held here rather than inside a tab so the dialog
@@ -143,6 +148,13 @@ fun TabbedDocumentPane(
   // Why the disk refused a rename or an overwrite, until the user has read it.
   var refusal by remember { mutableStateOf<String?>(null) }
   val scope = rememberCoroutineScope()
+  // The copy holds the edits now, so the old tab drops them unwritten and closes without the dirty
+  // ask - its file keeps what was last saved, as `closeFile` leaves it in the reference.
+  val saveAs = rememberTabSaveAs(workspaceRepository) { key, document, copy ->
+    document.discardChanges()
+    backStack.closeMainAreaTab(key, tabs)
+    onOpenDocument(copy)
+  }
 
   Column(modifier = Modifier.fillMaxSize()) {
     MainAreaTabStrip(
@@ -157,6 +169,7 @@ fun TabbedDocumentPane(
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
         path?.let { renaming = PendingTabRename(key, it) }
       },
+      onSaveTabAs = { key -> key.documentIn(openDocuments)?.let { saveAs(key, it) } },
     )
     Box(modifier = Modifier.weight(1f)) { content() }
   }
@@ -240,6 +253,7 @@ private fun MainAreaTabStrip(
   twoPane: Boolean,
   onCloseTab: (NavKey) -> Unit,
   onRenameTab: (NavKey) -> Unit,
+  onSaveTabAs: (NavKey) -> Unit,
 ) {
   val chrome = chromePalette
   BoxWithConstraints(
@@ -296,6 +310,7 @@ private fun MainAreaTabStrip(
             onActivate = { backStack.activateMainAreaTab(tab) },
             onClose = { onCloseTab(tab) },
             onRename = { onRenameTab(tab) },
+            onSaveAs = { onSaveTabAs(tab) },
           )
         }
       }
@@ -348,9 +363,10 @@ private fun upDestinationLabel(
  * The dot stays the close *button* - the reference hides the swap behind `:hover`, and a touch
  * screen has none, so here the dot itself is what a dirty tab's close is tapped on.
  *
- * A long press is the tab's context menu - on a document tab that is `docmanager:rename`, the one
- * `document-title`-bound command. The press is the only gesture left once click activates, and
- * `RenameFileDialog` is the dialog it opens there too.
+ * A long press is the tab's context menu - the press is the only gesture left once click
+ * activates. On a document tab it holds `docmanager:rename`, the `document-title`-bound command,
+ * and Save As, which VS Code keeps on the same menu (vscode@3f3380c
+ * `src/vs/workbench/contrib/files/browser/fileActions.contribution.ts`, `SAVE_FILE_AS_COMMAND_ID`).
  */
 @Composable
 private fun MainAreaTab(
@@ -364,8 +380,10 @@ private fun MainAreaTab(
   onActivate: () -> Unit,
   onClose: () -> Unit,
   onRename: () -> Unit,
+  onSaveAs: () -> Unit,
 ) {
   val chrome = chromePalette
+  var menuOpen by remember { mutableStateOf(false) }
   val dirty by document?.dirty?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
   Column(modifier = Modifier.width(width)) {
     // `jp-mod-current::before` / `tab.activeBorderTop` - the brand line the current tab wears.
@@ -388,11 +406,8 @@ private fun MainAreaTab(
         }
         .combinedClickable(
           onClick = onActivate,
-          // No menu body to put the command on: a touch context menu would be one item deep, so
-          // the press opens the dialog itself - as the title row's tap did before the strip took
-          // the name over.
-          onLongClick = if (renameable) onRename else null,
-          onLongClickLabel = if (renameable) "Rename" else null,
+          onLongClick = if (renameable) ({ menuOpen = true }) else null,
+          onLongClickLabel = if (renameable) "Document actions" else null,
         )
         .padding(start = Spacing.sm, end = Spacing.xs),
     ) {
@@ -432,6 +447,24 @@ private fun MainAreaTab(
           }
         }
       }
+    }
+    DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+      DropdownMenuItem(
+        text = { Text("Rename…") },
+        onClick = {
+          menuOpen = false
+          onRename()
+        },
+      )
+      // Greyed for a tab whose document has not registered: nothing is held on screen to copy.
+      DropdownMenuItem(
+        text = { Text("Save As…") },
+        enabled = document != null,
+        onClick = {
+          menuOpen = false
+          onSaveAs()
+        },
+      )
     }
   }
 }

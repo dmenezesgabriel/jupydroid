@@ -64,6 +64,8 @@ fun RenameFileDialog(
   refusalMessage: String = INVALID_NAME_MESSAGE,
   initialSelection: (String) -> TextRange = { TextRange(0, titleStemEnd(it)) },
   confirmLabel: String = "Rename",
+  /** What the field holds - a name, or a whole path where the caller takes one. */
+  fieldLabel: String = "Name",
 ) {
   // Selected, not merely filled: typing should replace the name and leave `.py` alone.
   var title by remember(currentTitle) {
@@ -90,7 +92,7 @@ fun RenameFileDialog(
           .semantics { testTagsAsResourceId = true }
           .testTag(RENAME_FIELD_TAG),
         singleLine = true,
-        label = { Text("Name") },
+        label = { Text(fieldLabel) },
       )
       // Without this the dialog opens with no caret and the first keystroke goes nowhere - the
       // defect audit A1c cost a device run to find. JupyterLab asks for the same thing

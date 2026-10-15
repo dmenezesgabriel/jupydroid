@@ -241,6 +241,8 @@ class EditorViewModel(
       notebookId = { liveNotebookId },
       reread = { conflict.revert() },
       openedAs = DocumentOpening(notebookId, opening),
+      repository = notebookRepository,
+      saved = { notebook },
     )
 
   /**

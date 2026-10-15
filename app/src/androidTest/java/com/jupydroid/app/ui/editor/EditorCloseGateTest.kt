@@ -200,6 +200,7 @@ class EditorCloseGateTest {
         FakeWorkspaceRepository(),
         twoPane = false,
         closeTab,
+        onOpenDocument = {},
       ) {
         EditorScreen(
           notebookId = NOTEBOOK_ID,

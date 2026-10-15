@@ -53,6 +53,7 @@ class MainAreaTabReloadTest {
           liveTabTitles = emptyMap(),
           workspaceRepository = FakeWorkspaceRepository(),
           onCloseTab = {},
+          onOpenDocument = {},
         ) { Text("the document") }
       }
     }

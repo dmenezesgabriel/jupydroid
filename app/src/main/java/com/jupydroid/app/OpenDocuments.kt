@@ -67,6 +67,18 @@ interface OpenDocument {
    */
   suspend fun saveAndConfirm(): Boolean
 
+  /**
+   * `docmanager:save-as`'s write - `_finishSaveAs` saving the model to the new path
+   * (jupyterlab@7f0e690 `packages/docregistry/src/context.ts`): what is on screen, unsaved edits
+   * included, goes to [path] whatever is there, so asking before a taken one is the caller's. This
+   * document keeps its own path, stamp and dirty flag; it still owes its file the edit.
+   *
+   * ```
+   * document.writeCopyTo("reports/notes-copy.py")
+   * ```
+   */
+  suspend fun writeCopyTo(path: String)
+
   /** The close dialog's Discard - `SaveHandler.dispose()`: owed work dropped, nothing writes again. */
   fun discardChanges()
 

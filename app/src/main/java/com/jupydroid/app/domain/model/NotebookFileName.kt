@@ -23,6 +23,18 @@ fun isValidFileName(name: String): Boolean {
 }
 
 /**
+ * A path relative to the workspace root whose every segment passes [isValidFileName] - what a
+ * Save As is typed as, since jupyterlab@7f0e690's `SaveWidget` edits the whole path so a copy can
+ * go into another folder (`packages/docregistry/src/context.ts`, `Private.getSavePath`). The name
+ * rule refusing a leading `.` is what refuses `..` here too.
+ *
+ * ```
+ * isValidWorkspacePath("reports/notes-copy.py")   // true
+ * ```
+ */
+fun isValidWorkspacePath(path: String): Boolean = path.split('/').all(::isValidFileName)
+
+/**
  * The folder a notebook id names, joined back onto a new name.
  *
  * An id is a *path* and a rename supplies a *name*, so the two are joined rather than swapped.
