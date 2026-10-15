@@ -178,3 +178,22 @@ fun incrementedFileName(fileName: String, insert: String = "", isTaken: (String)
   val (stem, suffix) = stemAndSuffixOf(fileName)
   return incrementedName(stem, insert) { isTaken("$it$suffix") } + suffix
 }
+
+/** What jupyter_server's `copy` counts a copy's name with: `insert="-Copy"`, so `other-Copy1.py`. */
+const val COPY_INSERT = "-Copy"
+
+/**
+ * [fileName] with every earlier copy's `-Copy<n>` taken out, the name a copy of it counts from.
+ *
+ * jupyter_server's `copy` runs `copy_pat.sub(".", from_name)` before `increment_filename`
+ * (`services/contents/manager.py`), so a copy of `other-Copy1.py` is the next free `other-CopyN.py`
+ * rather than `other-Copy1-Copy1.py`. The pattern needs the dot, so `Makefile-Copy1` keeps its name.
+ *
+ * ```
+ * nameBeforeCopies("other-Copy1.py")   // "other.py"
+ * ```
+ */
+fun nameBeforeCopies(fileName: String): String = COPY_PATTERN.replace(fileName, ".")
+
+/** `copy_pat = re.compile(r"\-Copy\d*\.")`, transcribed: `\-` is a plain `-` in Python's `re` too. */
+private val COPY_PATTERN = Regex("-Copy\\d*\\.")

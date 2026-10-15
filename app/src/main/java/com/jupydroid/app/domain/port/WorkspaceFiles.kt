@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.WorkspaceChange
+import com.jupydroid.app.domain.model.nameBeforeCopies
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -114,4 +115,27 @@ interface WorkspaceFiles {
    * ```
    */
   suspend fun delete(path: String)
+
+  /**
+   * Copies the file at [path] beside itself and answers with the copy's path.
+   *
+   * `Contents.copy(path, dirname)`, which is all `DocumentManager.duplicate` sends
+   * (jupyterlab@7f0e690 `packages/docmanager/src/manager.ts`). The *server* names the copy:
+   * any earlier `-Copy<n>` taken out, then counted with `insert="-Copy"` past what the folder
+   * holds, so `other.py` and `other-Copy1.py` both give the next free `other-CopyN.py` (`copy`,
+   * `services/contents/manager.py`; [nameBeforeCopies]).
+   *
+   * What is copied is the file as saved - the server's `get` + `save` - so an open document's
+   * unsaved edit stays behind, and the copy has no checkpoint of its own. Nothing is announced on
+   * [changes]: nothing can be open on a path that did not exist, and a listing picks the copy up
+   * when it next reads the folder.
+   *
+   * A folder is refused, as the server's `400 Can't copy directories` refuses it; so is a path
+   * that names nothing or leaves the root.
+   *
+   * ```
+   * repository.copy("reports/other.py")   // "reports/other-Copy1.py"
+   * ```
+   */
+  suspend fun copy(path: String): String
 }

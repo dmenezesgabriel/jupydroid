@@ -107,4 +107,16 @@ class DiskCheckpointFollowTest {
     assertFalse(File(temp.root, "old").exists())
     assertEquals("keep me", File(temp.root, "elsewhere/precious.py").readText())
   }
+
+  /** `copy` is `get` + `save`, which writes no checkpoint: the copy starts with none, the source keeps its own. */
+  @Test
+  fun aCopyHasNoCheckpointOfItsOwn() = runTest {
+    workspace.writeText("notes.py", "saved")
+    checkpoints.create("notes.py")
+
+    val copied = files.copy("notes.py")
+
+    assertTrue(checkpoints.list(copied).isEmpty())
+    assertEquals(1, checkpoints.list("notes.py").size)
+  }
 }

@@ -120,4 +120,23 @@ class NotebookFileNameTest {
     assertFalse(isValidWorkspacePath("reports/.hidden"))
     assertFalse(isValidWorkspacePath("/notes.py"))
   }
+
+  /**
+   * A copy is named from its source with any earlier `-Copy<n>` taken out first, as
+   * jupyter_server's `copy` runs `copy_pat.sub(".", from_name)` before it counts
+   * (`services/contents/manager.py`, `copy_pat = re.compile(r"\-Copy\d*\.")`).
+   */
+  @Test
+  fun aCopysSuffixIsTakenOutBeforeTheNextOneIsCounted() {
+    assertEquals("other.py", nameBeforeCopies("other-Copy1.py"))
+    assertEquals("other.py", nameBeforeCopies("other-Copy.py"))
+    assertEquals("other.py", nameBeforeCopies("other.py"))
+  }
+
+  /** The pattern needs the dot after it, and `re.sub` replaces every match, not the first. */
+  @Test
+  fun onlyACopySuffixBeforeADotIsTakenOutAndEveryOneIs() {
+    assertEquals("Makefile-Copy1", nameBeforeCopies("Makefile-Copy1"))
+    assertEquals("a.b.ipynb", nameBeforeCopies("a-Copy1.b-Copy2.ipynb"))
+  }
 }

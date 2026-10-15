@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.emptyFlow
  * A workspace whose files never move, for callers with no directory to offer.
  *
  * The partner of [FakeWorkspaceRepository], whose listing is fixed: there is nothing here to
- * create, rename or delete, so every act is refused and nothing is ever announced. A test that
+ * create, copy, rename or delete, so every act is refused and nothing is ever announced. A test that
  * needs an act to land overrides it on a named subclass by delegation.
  *
  * ```
@@ -33,4 +33,7 @@ class FakeWorkspaceFiles : WorkspaceFiles {
 
   override suspend fun delete(path: String) =
     throw UnsupportedOperationException("FakeWorkspaceFiles holds a fixed listing; it deletes nothing")
+
+  override suspend fun copy(path: String): String =
+    throw UnsupportedOperationException("FakeWorkspaceFiles holds a fixed listing; it creates nothing")
 }

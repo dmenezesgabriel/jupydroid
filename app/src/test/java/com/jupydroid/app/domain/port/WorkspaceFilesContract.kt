@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -327,5 +328,109 @@ abstract class WorkspaceFilesContract {
       ),
       heard.await(),
     )
+  }
+
+  /**
+   * A copy lands beside its source under the server's name, and the source stays.
+   *
+   * `DocumentManager.duplicate` is `contents.copy(path, dirname)`, and the server names the copy
+   * with `increment_filename(name, to_path, insert="-Copy")`: the bare name is taken, so the first
+   * copy is `-Copy1` (`services/contents/manager.py`, `copy`).
+   */
+  @Test
+  fun aCopyLandsBesideItsSourceUnderTheServersName() = runTest {
+    given("other.py")
+    val files = files()
+    val repository = repository()
+    repository.writeText("other.py", "print('other')")
+
+    val copied = files.copy("other.py")
+
+    assertEquals("other-Copy1.py", copied)
+    assertEquals("print('other')", repository.readText("other-Copy1.py"))
+    assertEquals(setOf("other.py", "other-Copy1.py"), repository.list("").map { it.name }.toSet())
+  }
+
+  @Test
+  fun aSecondCopyIsCounted() = runTest {
+    given("other.py")
+    val files = files()
+    files.copy("other.py")
+
+    assertEquals("other-Copy2.py", files.copy("other.py"))
+  }
+
+  /** `copy_pat.sub(".", from_name)` comes first, so a copy of a copy counts on the original's name. */
+  @Test
+  fun copyingACopyCountsFromTheOriginalName() = runTest {
+    given("other.py", "other-Copy1.py", "other-Copy2.py")
+
+    assertEquals("other-Copy3.py", files().copy("other-Copy1.py"))
+  }
+
+  /** `increment_filename` reads a notebook's suffix from the right and any other from the left. */
+  @Test
+  fun aCopyKeepsTheServersSuffix() = runTest {
+    given("data.backup.ipynb", "archive.tar.gz")
+    val files = files()
+
+    assertEquals("data.backup-Copy1.ipynb", files.copy("data.backup.ipynb"))
+    assertEquals("archive-Copy1.tar.gz", files.copy("archive.tar.gz"))
+  }
+
+  @Test
+  fun aCopyInsideAFolderStaysInThatFolder() = runTest {
+    given("reports/a.py")
+
+    assertEquals("reports/a-Copy1.py", files().copy("reports/a.py"))
+  }
+
+  /** The server's `copy` is `get` + `save` in the file's own format, so a binary file is not decoded. */
+  @Test
+  fun aCopyCarriesBytesUnchanged() = runTest {
+    given("report.zip")
+    val files = files()
+    val repository = repository()
+    repository.writeBytes("report.zip", ZIP_HEADER)
+
+    val copied = files.copy("report.zip")
+
+    assertArrayEquals(ZIP_HEADER, repository.readBytes(copied))
+  }
+
+  /** `400 Can't copy directories`, from the server that serves this same tree. */
+  @Test
+  fun copyingAFolderIsRefused() = runTest {
+    given("reports/")
+    val files = files()
+    val repository = repository()
+
+    val refused = runCatching { files.copy("reports") }
+
+    assertTrue("expected a refusal, got $refused", refused.isFailure)
+    assertEquals(listOf("reports"), repository.list("").map { it.name })
+  }
+
+  @Test
+  fun copyingSomethingThatIsNotThereIsRefused() = runTest {
+    given("notes.txt")
+
+    val missing = runCatching { files().copy("nope.txt") }
+
+    assertTrue("expected a refusal, got $missing", missing.isFailure)
+  }
+
+  @Test
+  fun copyingOutsideTheRootIsRefused() = runTest {
+    given("notes.txt")
+
+    val escaped = runCatching { files().copy("../../secrets") }
+
+    assertTrue("expected a refusal, got $escaped", escaped.isFailure)
+  }
+
+  private companion object {
+    /** `PK\x03\x04` and a NUL - four bytes no text encoding round-trips unchanged. */
+    val ZIP_HEADER = byteArrayOf(0x50, 0x4B, 0x03, 0x04, 0x00)
   }
 }

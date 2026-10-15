@@ -64,7 +64,7 @@ import com.jupydroid.app.ui.DirtyMarker
  * Save As, which VS Code keeps on the same menu (vscode@3f3380c
  * `src/vs/workbench/contrib/files/browser/fileActions.contribution.ts`, `SAVE_FILE_AS_COMMAND_ID`),
  * `docmanager:restore-checkpoint`, which the reference keeps in the File menu beside them, and
- * `docmanager:delete`, which it binds to the tab with rename.
+ * `docmanager:duplicate` and `docmanager:delete`, which it binds to the tab with rename.
  */
 @Composable
 internal fun MainAreaTab(
@@ -80,6 +80,7 @@ internal fun MainAreaTab(
   onRename: () -> Unit,
   onSaveAs: () -> Unit,
   onRevert: () -> Unit,
+  onDuplicate: () -> Unit,
   onDelete: () -> Unit,
 ) {
   val chrome = chromePalette
@@ -171,6 +172,14 @@ internal fun MainAreaTab(
         onClick = {
           menuOpen = false
           onRevert()
+        },
+      )
+      DropdownMenuItem(
+        text = { Text("Duplicate") },
+        enabled = document != null,
+        onClick = {
+          menuOpen = false
+          onDuplicate()
         },
       )
       DropdownMenuItem(

@@ -95,7 +95,7 @@ fun TabbedDocumentPane(
    */
   liveTabTitles: Map<NavKey, String>,
   workspaceRepository: WorkspaceRepository,
-  /** What the tab's Rename… and Delete… act through; [workspaceRepository] is what Save As writes. */
+  /** What the tab's Rename…, Duplicate and Delete… act through; [workspaceRepository] is what Save As writes. */
   workspaceFiles: WorkspaceFiles,
   /**
    * Whether a browser is drawn beside the document, which decides one thing: whether the strip
@@ -139,6 +139,7 @@ fun TabbedDocumentPane(
   val revertToCheckpoint = rememberTabRevertToCheckpoint(documentCheckpoints)
   // The strip closes the deleted tab itself, on top or beneath, as `deleteWidgets` disposes every
   // widget on the file: a screen beneath the top is not composed to hear its file go.
+  val duplicate = rememberTabDuplicate(workspaceFiles)
   val delete = rememberTabDelete(workspaceFiles) { key, document ->
     document.discardChanges()
     backStack.closeMainAreaTab(key, tabs)
@@ -159,6 +160,7 @@ fun TabbedDocumentPane(
       },
       onSaveTabAs = { key -> key.documentIn(openDocuments)?.let { saveAs(key, it) } },
       onRevertTab = { key -> key.documentIn(openDocuments)?.let(revertToCheckpoint) },
+      onDuplicateTab = { key -> key.documentIn(openDocuments)?.let(duplicate) },
       onDeleteTab = { key -> key.documentIn(openDocuments)?.let { delete(key, it) } },
       onSaved = { document -> scope.launch { documentCheckpoints.checkpointSaved(document.path) } },
     )
@@ -246,6 +248,7 @@ private fun MainAreaTabStrip(
   onRenameTab: (NavKey) -> Unit,
   onSaveTabAs: (NavKey) -> Unit,
   onRevertTab: (NavKey) -> Unit,
+  onDuplicateTab: (NavKey) -> Unit,
   onDeleteTab: (NavKey) -> Unit,
   onSaved: (OpenDocument) -> Unit,
 ) {
@@ -306,6 +309,7 @@ private fun MainAreaTabStrip(
             onRename = { onRenameTab(tab) },
             onSaveAs = { onSaveTabAs(tab) },
             onRevert = { onRevertTab(tab) },
+            onDuplicate = { onDuplicateTab(tab) },
             onDelete = { onDeleteTab(tab) },
           )
         }

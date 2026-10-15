@@ -1,8 +1,10 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.COPY_INSERT
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.idBeside
 import com.jupydroid.app.domain.model.isValidFileName
+import com.jupydroid.app.domain.model.nameBeforeCopies
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceFiles
 import kotlinx.coroutines.CoroutineDispatcher
@@ -114,6 +116,15 @@ class DiskWorkspaceFiles(rootDir: File, private val ioDispatcher: CoroutineDispa
     check(target.delete()) { "could not delete '$path' from the workspace" }
     checkpoints.remove(path)
     _changes.emit(WorkspaceChange.Deleted(path))
+  }
+
+  override suspend fun copy(path: String): String = withContext(ioDispatcher) {
+    val source = root.fileAt(path)
+    require(source.isFile) { "no file at '$path' in the workspace to copy; a folder cannot be copied" }
+    val folder = path.substringBeforeLast('/', missingDelimiterValue = "")
+    val copied = root.pathIn(folder, root.freeNameIn(folder, nameBeforeCopies(source.name), insert = COPY_INSERT))
+    root.fileAt(copied).writeAtomically { out -> source.inputStream().use { it.copyTo(out) } }
+    copied
   }
 }
 

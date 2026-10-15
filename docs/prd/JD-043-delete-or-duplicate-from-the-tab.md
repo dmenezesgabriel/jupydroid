@@ -88,7 +88,7 @@ case for following JupyterLab here.
 | Delete op | `WorkspaceRepository.delete`, `DiskWorkspaceRepository` | jupyterlab `deleteFile` | complete below the UI |
 | Session stop | `domain/model/DeletedDocumentSessions.kt` | `stopIfNeeded` | complete |
 | Ask | `ui/DeleteFileDialog.kt` | `CommandIDs.del` | complete, reused |
-| Copy op | — | rootfs `copy` | absent: no `copy` on the port |
+| Copy op | `WorkspaceFiles.copy` | rootfs `copy` | complete (T2) |
 | Copy naming | `domain/model/NotebookFileName.kt` `incrementedFileName`, `data/disk/WorkspaceRoot.kt` `freeNameIn` | rootfs `increment_filename` | present; `copy_pat` stripping absent |
 
 ## Deviations
@@ -106,9 +106,9 @@ None open: each axis above is settled by the reference it names.
 | Layer | Files |
 |---|---|
 | `domain/model` | `NotebookFileName.kt` (the `-Copy` name, T2) |
-| `domain/port` | `WorkspaceRepository.copy` (T2) |
-| `data/disk` | `DiskWorkspaceRepository.copy` (T2) |
-| `data/fake` | `FakeWorkspaceRepository.copy` (T2) |
+| `domain/port` | `WorkspaceFiles.copy` (T2), split off `WorkspaceRepository` first (ADR-0101) |
+| `data/disk` | `DiskWorkspaceFiles.copy` (T2) |
+| `data/fake` | `FakeWorkspaceFiles.copy` (T2) |
 | `ui/shell` | `MainAreaTab.kt`, `MainAreaTabStrip.kt`, `TabDelete.kt` (T1), `TabDuplicate.kt` (T2) |
 | `di/AppContainer` | nothing |
 | unit tests | the port contract for `copy`, the name rule (T2) |
@@ -118,7 +118,7 @@ None open: each axis above is settled by the reference it names.
 ## Tasks
 
 - [x] T1 — Delete… on the tab's menu: asks, deletes, closes the tab (background too), and says why a refusal failed
-- [ ] T2 — `WorkspaceRepository.copy` with the server's `-Copy<n>` naming (Disk, Fake, contract test), and Duplicate on the tab's menu
+- [x] T2 — `WorkspaceFiles.copy` with the server's `-Copy<n>` naming (Disk, Fake, contract test), and Duplicate on the tab's menu
 - [ ] T3 — the demo on a fresh install; ADR, ledger rows, ship
 
 ## Out of scope
