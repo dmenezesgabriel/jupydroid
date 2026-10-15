@@ -101,7 +101,7 @@ None left: placement and refusal were settled with the user when the item was pi
 
 | Layer | Files |
 |---|---|
-| port seam | `OpenDocuments.kt` - `OpenDocument.save(): Boolean` |
+| port seam | `OpenDocuments.kt` - `OpenDocument.saveAndConfirm(): Boolean` |
 | ViewModels | `ui/fileeditor/FileEditorViewModel.kt`, `ui/editor/NotebookDocument.kt` |
 | sweep | `ui/shell/SaveAllDocuments.kt` |
 | `ui/shell` | `RunningSidePanel.kt`, `ShellSidePane.kt`, `Navigation.kt` |
@@ -111,7 +111,7 @@ None left: placement and refusal were settled with the user when the item was pi
 
 ## Tasks
 
-- [ ] T1 — `OpenDocument.save()`, the sweep, Save All on Open Tabs; flow on SM-X216B: two dirty tabs
+- [x] T1 — `OpenDocument.saveAndConfirm()`, the sweep, Save All on Open Tabs; flow on SM-X216B: two dirty tabs
   saved, then a refused one brought to the top asking File Changed with the next keeping its dot
 - [ ] T2 — the demo on a fresh install, then ship: ADR-0098, delete this PRD, GAP-061 closes
 

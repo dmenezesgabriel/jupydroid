@@ -1,0 +1,76 @@
+appId: com.jupydroid.app
+---
+# Continues part 1 in the same process, notes.py on top and the Running panel open.
+#
+# A save the disk refuses beneath the top has no screen to ask on, so Save All brings that tab up
+# and stops. Both documents are edited again, then a cell in writer.ipynb rewrites notes.py on
+# disk. Save All reaches notes.py first in the strip's order: it comes to the top asking File
+# Changed, and target.ipynb, after it, keeps its edit until Save All is pressed again. The value
+# the cell writes is computed, so only a kernel can put `wrote_42` on screen.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Save All: Open Tabs"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_b"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: true
+- tapOn: "Tab: target.ipynb"
+- tapOn: "target_as_seeded = 10"
+- inputText: "0"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Unsaved changes"
+- tapOn: "Tab: writer.ipynb"
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "wrote_42[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- takeScreenshot: 04-a-cell-rewrote-notes-beneath-the-top
+
+# ---- the refused save comes to the top and asks; the sweep stops there ----
+- tapOn: "Save All: Open Tabs"
+- extendedWaitUntil:
+    visible: "File Changed"
+    timeout: 10000
+- assertVisible: ".*\"notes.py\" has changed on disk.*"
+# The dialog's window hides the strip from the hierarchy; the save icon after Overwrite names the top.
+- takeScreenshot: 05-the-refused-file-comes-up-asking
+- tapOn: "Overwrite"
+- extendedWaitUntil:
+    notVisible: "File Changed"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: false
+- tapOn: "Tab: target.ipynb"
+- extendedWaitUntil:
+    visible: "Unsaved changes"
+    timeout: 10000
+- takeScreenshot: 06-the-notebook-after-it-kept-its-edit
+
+# ---- pressed again, Save All writes what the sweep left ----
+- tapOn: "Save All: Open Tabs"
+- extendedWaitUntil:
+    notVisible: "Unsaved changes"
+    timeout: 10000
+- takeScreenshot: 07-pressed-again-every-document-is-written
+# The last tab in the strip's order: the notebook that ran shows no unsaved work either.
+- tapOn: "Tab: writer.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: writer.ipynb"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: writer.ipynb"
+    enabled: false
+- takeScreenshot: 08-the-notebook-that-ran-is-clean-too
