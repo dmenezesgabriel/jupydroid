@@ -199,10 +199,21 @@ print('jupyter_events imports without rfc3987-syntax; uri checker intact')"
 # binary runs, and the server lists the extension enabled and loadable - the wheel's own
 # `etc/jupyter/jupyter_server_config.d/jupyterlab_git.json` is what enables it. The list colours
 # `enabled` and `OK` with ANSI escapes even into a pipe, hence the `.*` before each word.
+#
+# nbdime's own server extension is switched off, while nbdime stays installed. jupyterlab-git uses
+# nbdime only as a library (`from nbdime import diff_notebooks, merge_notebooks`,
+# jupyterlab-git@b62a87b7 packages/core/jupyterlab_git_core/git.py), and nothing calls nbdime's
+# handlers: the app has no WebView for its pages. Loaded anyway through the wheel's own
+# `jupyter_server_config.d/nbdime.json`, its imports cost 587 ms of every server start on the
+# tablet (`python3 -X importtime`). `disable --sys-prefix` rewrites that same file to `nbdime: false`,
+# so the image carries one switch for it and not two that disagree. The positive `disabled` check
+# also fails if nbdime were missing, which a negative one would not.
 RUN git --version \
+ && jupyter server extension disable --sys-prefix nbdime \
  && jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
  && grep -Eq 'jupyterlab_git .*enabled' /tmp/extensions.txt \
  && grep -Eq 'jupyterlab_git [0-9.]+ .*OK' /tmp/extensions.txt \
+ && grep -Eq 'nbdime .*disabled' /tmp/extensions.txt \
  && rm /tmp/extensions.txt
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
