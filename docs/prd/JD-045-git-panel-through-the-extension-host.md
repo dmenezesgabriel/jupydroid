@@ -96,7 +96,8 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
   jupyterlab-git's cost is accepted, because it is the feature. nbdime's is not: nbdime enables that
   extension for itself (`jupyter_server_config.d/nbdime.json`), and nothing calls it. jupyterlab-git
   diffs through its own `/git/diffnotebook` handler using nbdime as a library, and this app has no
-  WebView for nbdime's pages. T4 stops the image from enabling it.
+  WebView for nbdime's pages. Done in T4: the image disables it, nbdime stays as the library, and the
+  warm boot median went from 3.75 s to 3.10 s.
 - The `pluginmanager:*` and `extensionmanager:*` parity-ledger rows, which cite ADR-0071, are verdicted
   again in T5, against the registry T2 built (`AppContainer.sidePanelContributions`).
 
@@ -123,7 +124,7 @@ panel, and the two extensible ones (JupyterLab, VS Code) have the panel contribu
   gate names the new modules; the server half's import cost measured inside the Space and decided
 - [x] T3 — the panel lists every changed file with its status, red parser test first over the
   recorded `status.json`
-- [ ] T4 — the image stops enabling nbdime's server extension, which nothing calls; a red image check
+- [x] T4 — the image stops enabling nbdime's server extension, which nothing calls; a red image check
   first, then the rootfs version bump, and warm boot measured before and after
 - [ ] T5 — the demo on a fresh install; ledger rows, ADR, ship
 
