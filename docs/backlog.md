@@ -221,6 +221,7 @@ module boundary with the smallest of the three.
 | `JD-045` | **The Git panel shows the workspace's branch and changes:** a Source Control panel, contributed by the Git extension module, lists the current branch and every changed file with its status, from jupyterlab-git's server in the running Space | shipped | — | — |
 | `JD-046` | **A Chat panel answers from an ACP agent installed in the Space:** jupyter-ai's chat, contributed by its own extension module, sends a question to opencode through jupyter-ai's ACP persona and shows its answer | in-progress ← next | [JD-046](prd/JD-046-ai-chat-through-acp-agents.md) | — |
 | `JD-047` | **A Colab runtime runs a notebook:** colab-vscode's sign-in and runtime, contributed by its own extension module, as a kernel the notebook can choose | open | — | — |
+| `JD-048` | **An agent in the Chat edits the open notebook:** jupyter-ai's MCP server (`jupyter-server-mcp` with `jupyter-ai-tools`) runs in the Space, and the app answers the notebook commands its tools send, so an agent's `insert_cell` lands in the notebook on screen | open | — | — |
 
 ### Known gaps
 
