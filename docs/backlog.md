@@ -218,8 +218,8 @@ module boundary with the smallest of the three.
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `JD-045` | **The Git panel shows the workspace's branch and changes:** a Source Control panel, contributed by the Git extension module, lists the current branch and every changed file with its status, from jupyterlab-git's server in the running Space | in-progress ← next | [JD-045](prd/JD-045-git-panel-through-the-extension-host.md) | — |
-| `JD-046` | **An AI chat panel:** jupyter-ai's chat, contributed by its own extension module, answering from a provider the user configures | open | — | — |
+| `JD-045` | **The Git panel shows the workspace's branch and changes:** a Source Control panel, contributed by the Git extension module, lists the current branch and every changed file with its status, from jupyterlab-git's server in the running Space | shipped | — | — |
+| `JD-046` | **An AI chat panel:** jupyter-ai's chat, contributed by its own extension module, answering from a provider the user configures | open ← next | — | — |
 | `JD-047` | **A Colab runtime runs a notebook:** colab-vscode's sign-in and runtime, contributed by its own extension module, as a kernel the notebook can choose | open | — | — |
 
 ### Known gaps

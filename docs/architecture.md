@@ -1804,6 +1804,18 @@ it. A table cell already carries a `CellAlignment`
 (`app/src/main/java/com/jupydroid/app/richtext/RichBlock.kt`). The repair gives a paragraph and a
 heading one too.
 
+### GAP-175 — No surface lists the built-in extensions or switches one off
+
+JupyterLab's plugin manager lists every loaded plugin and its extension manager toggles each
+extension on and off (jupyterlab@7f0e690 `packages/pluginmanager-extension/src/index.ts`,
+`packages/extensionmanager-extension/src/index.ts`). Here the extensions built into the APK and
+their panels are a list in the composition root, `AppContainer.sidePanelContributions`
+(`app/src/main/java/com/jupydroid/app/di/AppContainer.kt`), and nothing on screen shows it. An
+extension cannot be turned off without a new build. Installing one from a package index stays out,
+because no code arrives at runtime ([ADR-0104](adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)).
+The repair is a list of the built-in extensions with an enable switch on each, and a disabled
+extension's panels left off the rail.
+
 ---
 
 ## 12. Glossary

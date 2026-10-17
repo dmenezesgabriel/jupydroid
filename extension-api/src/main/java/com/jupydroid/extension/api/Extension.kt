@@ -25,7 +25,7 @@ interface Extension {
  * A panel for the shell's side area, which the host draws on its rail and, when picked, in the area.
  *
  * **A `@Composable`, not a model `:app` draws**: a model would have to grow a case for each thing an
- * extension shows, and every one of those cases would be code in `:app`.
+ * extension shows, and every one of those cases would be code in `:app` (ADR-0105).
  *
  * @param id unique across every extension, and stable: it is what the shell saves to restore the
  *   open panel after the activity is recreated.

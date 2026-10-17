@@ -21,7 +21,7 @@ sealed interface ShownPanel : Serializable {
 
 /**
  * [SidePanel.showingAtOnePane] for whatever is shown: a contributed panel has no item on the
- * one-pane bar, which already carries Material's five, so it narrows to Files as the outline does.
+ * one-pane bar, which already carries Material's five, so it narrows to Files as the outline does (ADR-0105).
  */
 internal fun ShownPanel?.showingAtOnePane(): SidePanel = (this as? ShownPanel.Shell)?.panel.showingAtOnePane()
 
@@ -29,7 +29,7 @@ internal fun ShownPanel?.showingAtOnePane(): SidePanel = (this as? ShownPanel.Sh
  * The rail's items top to bottom: the shell's own panels in their order, with every contributed
  * panel after Search - VS Code's place for Source Control (`order: 2`, after Search's 1,
  * vscode@3f3380c `src/vs/workbench/contrib/scm/browser/scm.contribution.ts`), in the order the
- * extensions gave them.
+ * extensions gave them (ADR-0105).
  *
  * ```
  * railOrder(listOf("git.sourceControl")) // Files, Sessions, Search, Source Control, Outline, Debugger

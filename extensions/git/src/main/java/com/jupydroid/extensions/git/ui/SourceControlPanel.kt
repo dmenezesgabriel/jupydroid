@@ -30,7 +30,7 @@ import com.jupydroid.extensions.git.domain.stages
  * **Read when the panel opens**, keyed on [path]: leaving the panel drops it from the composition,
  * so opening it again reads again. jupyterlab-git polls on an interval instead (`refreshInterval`,
  * jupyterlab-git@b62a87b7 `src/model.ts`); a read per opening is what a panel nobody watches costs
- * nothing for.
+ * nothing for (ADR-0105).
  *
  * ```
  * val demo = RepositoryStatus.Repository("master")
