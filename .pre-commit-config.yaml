@@ -98,18 +98,19 @@ repos:
           scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck
           :extension-api:ktlintMainSourceSetCheck
           :extensions:git:ktlintMainSourceSetCheck :extensions:git:ktlintTestSourceSetCheck
+          :extensions:ai:ktlintMainSourceSetCheck :extensions:ai:ktlintTestSourceSetCheck
         language: system
         pass_filenames: false
         always_run: true
       - id: detekt
         name: detekt static analysis
-        entry: scripts/gradlew-jbr detekt :extension-api:detekt :extensions:git:detekt
+        entry: scripts/gradlew-jbr detekt :extension-api:detekt :extensions:git:detekt :extensions:ai:detekt
         language: system
         pass_filenames: false
         always_run: true
       - id: android-lint
         name: android lint
-        entry: scripts/gradlew-jbr :app:lintDebug :extension-api:lintDebug :extensions:git:lintDebug
+        entry: scripts/gradlew-jbr :app:lintDebug :extension-api:lintDebug :extensions:git:lintDebug :extensions:ai:lintDebug
         language: system
         pass_filenames: false
         always_run: true
@@ -119,7 +120,7 @@ repos:
       # test file that cannot compile still passed the gate until it was named (ADR-0016).
       - id: unit-tests
         name: unit tests, and androidTest compiles
-        entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :extensions:git:testDebugUnitTest
+        entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :extensions:git:testDebugUnitTest :extensions:ai:testDebugUnitTest
         language: system
         pass_filenames: false
         always_run: true

@@ -37,6 +37,7 @@ import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
+import com.jupydroid.extensions.ai.AiExtension
 import com.jupydroid.extensions.git.GitExtension
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -122,7 +123,7 @@ class AppContainer(
    * extension rather than a fake by default, because an extension already falls back on its own
    * fakes where the Space has no server (`SidePanelHost.server`).
    */
-  extensions: List<Extension> = listOf(GitExtension()),
+  extensions: List<Extension> = listOf(GitExtension(), AiExtension()),
   /**
    * For work that must finish after the screen that asked for it is gone - closing a notebook
    * flushes its last edit and closes its socket from here, because `viewModelScope` is already

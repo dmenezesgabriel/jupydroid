@@ -1,0 +1,128 @@
+package com.jupydroid.extensions.ai.data.http
+
+import com.jupydroid.extension.api.ServerAddress
+import com.jupydroid.extensions.ai.domain.AgentChat
+import com.jupydroid.extensions.ai.domain.AgentChatContract
+import com.jupydroid.extensions.ai.domain.ChatMessage
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import mockwebserver3.Dispatcher
+import mockwebserver3.MockResponse
+import mockwebserver3.RecordedRequest
+import mockwebserver3.junit4.MockWebServerRule
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import java.util.concurrent.TimeUnit
+
+/** The contract, against a loopback socket scripted to answer the way jupyterlab-chat's does. */
+class OkHttpAgentChatTest : AgentChatContract() {
+  @get:Rule val serverRule = MockWebServerRule()
+
+  override fun chat(history: List<ChatMessage>, replies: Map<String, String>): AgentChat {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(history, replies)
+    return chatUnderTest()
+  }
+
+  /** The workspace root's `untitled.chat`, the token in the header as on every other request. */
+  @Test
+  fun transcript_opensTheRootsUntitledChatWithTheToken() = runBlocking {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer()
+
+    withTimeout(TIMEOUT_MILLIS) { chatUnderTest().transcript().first() }
+
+    val request = serverRule.server.takeRequest(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)!!
+    assertEquals("/api/chat/ws/untitled.chat", request.target)
+    assertEquals("token secret-token", request.headers["Authorization"])
+  }
+
+  /** A persona sends its answer once and then updates it by id as the agent's chunks arrive. */
+  @Test
+  fun transcript_showsAStreamedAnswerAsOneMessage() = runBlocking {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(streamed = listOf("Open", "OpenCode"))
+
+    val whole = withTimeout(TIMEOUT_MILLIS) {
+      chatUnderTest().transcript().first { it.messages.singleOrNull()?.body == "OpenCode" }
+    }
+
+    assertEquals(false, whole.messages.single().fromMe)
+  }
+
+  private fun chatUnderTest(): AgentChat = OkHttpAgentChat(
+    server = { ServerAddress(baseUrl = serverRule.server.url("/").toString(), token = "secret-token") },
+  )
+
+  private companion object {
+    const val TIMEOUT_MILLIS = 5_000L
+  }
+}
+
+/**
+ * Upgrades `/api/chat/ws/<path>` and speaks as `WSChatHandler` does (jupyterlab_chat 0.25.2
+ * `websocket_handler.py`): `connection` first, with the history; each `send` echoed back as a
+ * `message` from the sender; then, if it named the opencode persona, the persona's reply. A
+ * question naming no persona goes unanswered, as the router leaves it (`persona_manager.py`).
+ */
+private class ChatLikeTheTabletsServer(
+  private val history: List<ChatMessage> = emptyList(),
+  private val replies: Map<String, String> = emptyMap(),
+  private val streamed: List<String> = emptyList(),
+) : Dispatcher() {
+  override fun dispatch(request: RecordedRequest): MockResponse =
+    MockResponse.Builder().webSocketUpgrade(Speaker()).build()
+
+  private inner class Speaker : WebSocketListener() {
+    override fun onOpen(webSocket: WebSocket, response: Response) {
+      val messages = buildJsonArray { history.forEach { add(wire(it.id, it.body, if (it.fromMe) ME else PERSONA)) } }
+      webSocket.send(
+        frame(
+          "connection",
+          "user" to buildJsonObject { put("username", JsonPrimitive(ME)) },
+          "messages" to messages,
+        ),
+      )
+      streamed.forEach { webSocket.send(frame("message", "message" to wire("streamed", it, PERSONA))) }
+    }
+
+    /** Answers the panel's close as Tornado does, or the server would wait on the socket forever. */
+    override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+      webSocket.close(code, null)
+    }
+
+    override fun onMessage(webSocket: WebSocket, text: String) {
+      val send = Json.parseToJsonElement(text).jsonObject
+      val body = send.getValue("body").jsonPrimitive.content
+      webSocket.send(frame("message", "message" to wire(send.getValue("id").jsonPrimitive.content, body, ME)))
+      val persona = send["metadata"]?.jsonObject?.get("to_persona")?.jsonPrimitive?.content
+      val reply = replies[body]?.takeIf { persona == OPENCODE_PERSONA_ID } ?: return
+      webSocket.send(frame("message", "message" to wire("reply-to-$body", reply, PERSONA)))
+    }
+  }
+
+  private fun wire(id: String, body: String, sender: String) = buildJsonObject {
+    put("id", JsonPrimitive(id))
+    put("body", JsonPrimitive(body))
+    put("sender", JsonPrimitive(sender))
+    put("time", JsonPrimitive(0.0))
+  }
+
+  private fun frame(action: String, vararg fields: Pair<String, JsonElement>): String =
+    JsonObject(mapOf("type" to JsonPrimitive("server"), "action" to JsonPrimitive(action)) + fields).toString()
+
+  private companion object {
+    const val ME = "0f7fbf88210940d7bc0811bf662d373e"
+    const val PERSONA = OPENCODE_PERSONA_ID
+  }
+}

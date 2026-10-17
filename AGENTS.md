@@ -231,9 +231,11 @@ JAVA_HOME=<jdk> ./gradlew \
   ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck \
   :extension-api:ktlintMainSourceSetCheck \
   :extensions:git:ktlintMainSourceSetCheck :extensions:git:ktlintTestSourceSetCheck \
-  detekt :extension-api:detekt :extensions:git:detekt \
-  lintDebug :extension-api:lintDebug :extensions:git:lintDebug \
-  testDebugUnitTest :extensions:git:testDebugUnitTest compileDebugAndroidTestKotlin assembleDebug
+  :extensions:ai:ktlintMainSourceSetCheck :extensions:ai:ktlintTestSourceSetCheck \
+  detekt :extension-api:detekt :extensions:git:detekt :extensions:ai:detekt \
+  lintDebug :extension-api:lintDebug :extensions:git:lintDebug :extensions:ai:lintDebug \
+  testDebugUnitTest :extensions:git:testDebugUnitTest :extensions:ai:testDebugUnitTest \
+  compileDebugAndroidTestKotlin assembleDebug
 ```
 
 **The source sets are named on purpose.** `ktlintCheck` alone is an aggregate over whatever tasks
