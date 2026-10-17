@@ -14,8 +14,8 @@ Protocol, reached through jupyterlab-chat's WebSocket in the Space's `jupyter_se
 On the arm64 tablet (`SM-X216B`). The agent runs in a Space, and only arm64 ships one.
 
 1. Fresh install, launch, run and enter `base`.
-2. In the Terminal, install opencode where the server's `PATH` finds it (the exact command is the one
-   T1 measured), then `opencode auth login` with the user's own key. The key never appears in evidence.
+2. In the Terminal, install opencode into `/usr/local/bin`, which is on the server's `PATH` (the npm
+   tarball `opencode-linux-arm64-musl`, as T1's probe did), then `opencode auth login` with the user's own key. The key never appears in evidence.
 3. Stop and run `base` again, so the server imports the persona with `opencode` on its `PATH`.
 4. Tap **Chat** on the rail and ask a question that uses no tool. opencode's answer appears beneath it,
    growing as it streams.
@@ -118,12 +118,11 @@ there (see Deviations).
 
 ## Open decisions
 
-- **Whether opencode runs in a Space at all.** `opencode-linux-arm64-musl` is a Bun single-file
-  executable. SM-X216B's kernel has a 39-bit address space (the stack maps at `0x7fea…`), and Bun's
-  JavaScriptCore reserves large regions. Bun on Android has also died on a seccomp-refused `statx`.
-  T1 measures it before anything is built on it.
-- Where the install has to put the binary so `jupyter_server`'s `PATH` finds it, and whether the
-  persona needs a server restart after the install (its check runs at import). T1 measures both.
+- ~~Whether opencode runs in a Space at all.~~ Settled by T1: on SM-X216B's 39-bit kernel,
+  `opencode` 1.19.3 installed to `/usr/local/bin` from the Space's own terminal answers `--version`
+  and an ACP `initialize`, and logcat shows no seccomp refusal.
+- Whether the persona needs a server restart after the install, since its check runs at import.
+  T3 measures it.
 - Persona ids for `to_persona`, read from the server on the device in T3.
 - Claude, Devin, pi and Antigravity are later items. jupyter_ai_acp_client 0.3.3 has a persona for
   Claude only, and Antigravity has been reported to abort on 39-bit arm64 kernels
@@ -145,7 +144,7 @@ there (see Deviations).
 
 ## Tasks
 
-- [ ] T1 — opencode runs in the `base` Space on the tablet: `opencode --version`, and `opencode acp`
+- [x] T1 — opencode runs in the `base` Space on the tablet: `opencode --version`, and `opencode acp`
   answers an ACP `initialize` over stdio; the install path that lands it on `PATH` is recorded
 - [ ] T2 — the image ships the ACP chain and the server answers the `connection` frame on
   `/api/chat/ws/<name>.chat` on the tablet; image size and warm boot measured before and after
