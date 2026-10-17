@@ -123,9 +123,14 @@ there (see Deviations).
   and an ACP `initialize`, and logcat shows no seccomp refusal.
 - Whether the persona needs a server restart after the install. T2's server log shows the persona
   manager checking each persona's requirement when a chat opens, not at server start. So a new chat
-  should load opencode without a restart, and T3 confirms it on the device.
-- Persona ids for `to_persona`, read from the server on the device in T3. On a server with no agent
-  installed, T2 saw only the entry-point names (`opencode-acp` and seven others).
+  should load opencode without a restart, and T3a confirms it on the device.
+- ~~Persona ids for `to_persona`.~~ `BasePersona.id` is `jupyter-ai-personas::<top-level
+  module>::<class>` (jupyter_ai_persona_manager 0.2.2 `base_persona.py`), so opencode's is
+  `jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona`. A message that names no persona
+  goes to none: the default is Jupyternaut, which the image does not ship (`persona_manager.py`).
+- Which chat the panel opens: `untitled.chat` at the workspace root. jupyterlab-chat looks for chats
+  in `defaultDirectory`, `""` by default (`schemas/jupyterlab-chat-extension/factory.json`), and names
+  a new one with `contents.newUntitled({ext: ".chat"})`, which is `untitled.chat` for the first.
 - Warm server boot grew by about 1.7 s with the chain (median 2.92 s → 4.66 s on SM-X216B), 1.29 s
   of it importing `jupyter_ai_acp_client`. Whether to cut it, and how, is decided on a profile of
   that import (`python3 -X importtime` on the device), not before.
@@ -153,8 +158,10 @@ there (see Deviations).
   answers an ACP `initialize` over stdio; the install path that lands it on `PATH` is recorded
 - [x] T2 — the image ships the ACP chain and the server answers the `connection` frame on
   `/api/chat/ws/<name>.chat` on the tablet; image size and warm boot measured before and after
-- [ ] T3 — `:extensions:ai` and its Chat panel: a question goes to the opencode persona and its answer
-  streams back; every gate names the new module
+- [ ] T3a — `:extensions:ai` and its Chat panel: a question goes to the opencode persona, and with
+  opencode installed but signed in to nothing, the persona's reply appears beneath it; every gate
+  names the new module
+- [ ] T3b — signed in, opencode's answer streams back into one message as it grows
 - [ ] T4 — the demo on a fresh install, the not-configured answer; ADR, ledger rows, ship
 
 ## Out of scope
