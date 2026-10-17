@@ -216,6 +216,21 @@ RUN git --version \
  && grep -Eq 'nbdime .*disabled' /tmp/extensions.txt \
  && rm /tmp/extensions.txt
 
+# The AI extension's server half is jupyter-ai's ACP chain: jupyterlab-chat serves a chat over a
+# JSON WebSocket at `/api/chat/ws/<path>` whenever no RTC provider is installed, and none is here;
+# jupyter-ai's router hands each new message to the persona its metadata names; the persona manager
+# loads the personas; and the ACP client's personas spawn an agent CLI the user installs in the
+# Space (jupyterlab_chat 0.25.2 `__init__.py`, jupyter_ai_acp_client 0.3.3 `acp_personas/`). Each
+# wheel enables itself through its own `etc/jupyter/jupyter_server_config.d/<module>.json`, so the
+# gate is that all four are listed enabled and loadable, after the strip as above.
+RUN jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
+ && for module in jupyterlab_chat jupyter_ai_router jupyter_ai_persona_manager jupyter_ai_acp_client; do \
+      grep -Eq "$module .*enabled" /tmp/extensions.txt \
+   && grep -Eq "$module [0-9.]+ .*OK" /tmp/extensions.txt \
+   || { echo "server extension $module is not enabled and OK" >&2; exit 1; }; \
+    done \
+ && rm /tmp/extensions.txt
+
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.
 RUN mkdir -p /home/jupydroid /tmp/spaces

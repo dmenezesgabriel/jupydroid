@@ -53,7 +53,7 @@ versions: `jupyterlab_chat` 0.25.2, `jupyter_ai_router` 0.1.1, `jupyter_ai_perso
 
 | Concern | Files |
 |---|---|
-| Wire protocol | `ws_messages.py`: client frames `{type:"client", action:"send"\|"edit", id, body, metadata, …}`; server frames `connection` (client id, chat id, user, full history, users), `message` (new or updated, keyed by `id`), `users`, `metadata`, `writing` |
+| Wire protocol | `ws_messages.py`: client frames `{type:"client", action:"send"\|"edit", id, body, metadata, …}`; server frames `{type:"server", action}`, the action one of `connection` (client id, chat id, user, full history, users), `message` (new or updated, keyed by `id`), `users`, `metadata`, `writing` |
 | Endpoint | `__init__.py`: `GET /api/chat/ws/(.+)`, registered only when no RTC provider is enabled (`rtc_lib.py` `get_rtc_provider`) |
 | Handler | `websocket_handler.py` (`WSChatHandler`): the path must stay inside the server root or the socket closes `1008`; the sender is the server's authenticated user |
 | Persisted state | `websocket_model.py`: the `.chat` file is JSON `{messages, users, attachments, metadata}`; a missing file loads empty and is written on the first save |
@@ -121,9 +121,14 @@ there (see Deviations).
 - ~~Whether opencode runs in a Space at all.~~ Settled by T1: on SM-X216B's 39-bit kernel,
   `opencode` 1.19.3 installed to `/usr/local/bin` from the Space's own terminal answers `--version`
   and an ACP `initialize`, and logcat shows no seccomp refusal.
-- Whether the persona needs a server restart after the install, since its check runs at import.
-  T3 measures it.
-- Persona ids for `to_persona`, read from the server on the device in T3.
+- Whether the persona needs a server restart after the install. T2's server log shows the persona
+  manager checking each persona's requirement when a chat opens, not at server start. So a new chat
+  should load opencode without a restart, and T3 confirms it on the device.
+- Persona ids for `to_persona`, read from the server on the device in T3. On a server with no agent
+  installed, T2 saw only the entry-point names (`opencode-acp` and seven others).
+- Warm server boot grew by about 1.7 s with the chain (median 2.92 s → 4.66 s on SM-X216B), 1.29 s
+  of it importing `jupyter_ai_acp_client`. Whether to cut it, and how, is decided on a profile of
+  that import (`python3 -X importtime` on the device), not before.
 - Claude, Devin, pi and Antigravity are later items. jupyter_ai_acp_client 0.3.3 has a persona for
   Claude only, and Antigravity has been reported to abort on 39-bit arm64 kernels
   (https://discuss.ai.google.dev/t/bug-agy-crashes-on-arm64/145425).
@@ -146,7 +151,7 @@ there (see Deviations).
 
 - [x] T1 — opencode runs in the `base` Space on the tablet: `opencode --version`, and `opencode acp`
   answers an ACP `initialize` over stdio; the install path that lands it on `PATH` is recorded
-- [ ] T2 — the image ships the ACP chain and the server answers the `connection` frame on
+- [x] T2 — the image ships the ACP chain and the server answers the `connection` frame on
   `/api/chat/ws/<name>.chat` on the tablet; image size and warm boot measured before and after
 - [ ] T3 — `:extensions:ai` and its Chat panel: a question goes to the opencode persona and its answer
   streams back; every gate names the new module
@@ -155,5 +160,6 @@ there (see Deviations).
 ## Out of scope
 
 - Tool approval, and every agent other than opencode: items of their own once this ships.
+- jupyter-ai's MCP server and its notebook tools: JD-048, after JD-047.
 - Jupyternaut and litellm: the user chose ACP agents.
 - Attachments, mentions, several chats, and editing a sent message.

@@ -18,37 +18,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
+# shellcheck source=scripts/space-server.sh
+. "$ROOT/scripts/space-server.sh"
 
 EVIDENCE="$ROOT/evidence/jd-045-git-server-extension"
-RUN_DIR="files/spaces/base/run"
 REPO="demo"
 
 mapfile -t DEVICE_ADB < <(device_adb)
-
-# The port and token the running server wrote into its own connection file; both are per launch.
-# Same read as `p2j-2-export-formats-driver.sh`.
-server_info() {
-  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $RUN_DIR/jpserver-*.json'" 2>/dev/null | tr -d '\r'
-}
-
-FORWARDED_PORT=""
-TOKEN=""
-open_forward() {
-  local info port
-  info="$(server_info)"
-  [ -n "$info" ] || { echo "no jpserver-*.json under $RUN_DIR - the server never started" >&2; return 1; }
-  port="$(printf '%s' "$info" | python3 -c 'import json,sys; print(json.load(sys.stdin)["port"])')"
-  TOKEN="$(printf '%s' "$info" | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')"
-  FORWARDED_PORT="$("${DEVICE_ADB[@]}" forward tcp:0 "tcp:$port" | tr -d '\r')"
-  echo "server on device port $port, forwarded to 127.0.0.1:$FORWARDED_PORT"
-}
-
-close_forward() {
-  [ -n "$FORWARDED_PORT" ] || return 0
-  "${DEVICE_ADB[@]}" forward --remove "tcp:$FORWARDED_PORT" >/dev/null 2>&1 || true
-  FORWARDED_PORT=""
-}
-trap close_forward EXIT
 
 # One request, recorded in requests.md whatever it answers. The body lands in $EVIDENCE/<name>.json
 # and the status is printed, so the caller decides which answers matter.
@@ -109,7 +85,7 @@ expect "$(ask status POST "/git/$REPO/status")" 200 "status"
 # The workspace root is not a repository: the answer the panel has to tell apart from an empty one.
 echo "status outside a repository: $(ask status-outside POST /git/status)"
 
-"${DEVICE_ADB[@]}" shell "run-as $APP cat $RUN_DIR/jupyter_server.log" >"$EVIDENCE/jupyter_server.log" 2>/dev/null || true
+pull_server_log "$EVIDENCE/jupyter_server.log"
 
 # The gate: a branch, a.txt modified in the worktree, c.txt untracked.
 python3 - "$EVIDENCE/status.json" <<'EOF'
