@@ -2,6 +2,8 @@
 # Whether an ACP agent runs in a Space: opencode's linux-arm64-musl build is fetched, installed and
 # started inside base, under proot, from base's own terminal.
 #
+#   nice -n 10 timeout 1500 scripts/jd-046-opencode-in-a-space-driver.sh [evidence subdirectory, t1 by default]
+#
 # **A measurement first and a gate second.** The probe's every answer is kept verbatim in
 # `probe.txt`. The gate is what jupyter_ai_acp_client's opencode persona needs: `opencode --version`
 # exits 0, and `opencode acp` answers `initialize` with a JSON-RPC result.
@@ -17,7 +19,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/jd-046-ai-chat/t1"
+EVIDENCE="$ROOT/evidence/jd-046-ai-chat/${1:-t1}"
 
 mapfile -t DEVICE_ADB < <(device_adb)
 
