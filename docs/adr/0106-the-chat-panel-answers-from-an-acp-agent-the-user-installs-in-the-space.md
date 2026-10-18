@@ -77,6 +77,27 @@ jupyter-ai's ACP chain and nothing else of jupyter-ai.**
 - The panel follows the newest message's last line while the reader is at the end. That is
   jupyter-chat's rule (jupyter-chat@9e02bb70 `packages/jupyter-chat/src/components/messages/messages.tsx`).
   The panel draws no message that has an empty body.
+- **An open chat keeps its server up.** `ServerApp.shutdown_no_activity` stops the server once no
+  kernel exists, no ExtensionApp's `current_activity()` is true, and no tracked API request has come
+  for the Space's idle setting (jupyter_server 2.20.0 `serverapp.py`). A chat socket's frames are
+  not an API request. jupyterlab_chat 0.25.2 is a module extension, not an ExtensionApp, so
+  nothing asks it. A person who left the panel open past the idle setting saw the server exit and
+  the socket drop with an `EOFException`. While the socket is open, `OkHttpAgentChat` therefore
+  sends an authenticated `GET api/me` every 30 s. That is `IdentityHandler`, which is tracked where
+  `api/status` is not (`base/handlers.py` `update_api_activity`), and what JupyterLab@7f0e690
+  polls (`packages/services/src/user/manager.ts`). 30 s is half the shortest idle setting, 1 minute.
+  An ExtensionApp of our own in the image, the server's own hook, was turned down: it is new
+  Python in the rootfs for what one request does.
+- **A dropped chat opens again**, by jupyter-chat@2c224bc's rule
+  (`packages/jupyterlab-chat/src/websocket-handler.ts`). A socket closed before its `connection`
+  frame is a failure. An established one that drops abnormally reopens after 1 s, with no limit on
+  attempts, and any other close stays closed. jupyter-chat reopens in silence. The panel instead
+  says "Reconnecting" with the reason, and keeps the chat drawn with Send off. On SM-X216B a stopped
+  server's chat was back on a new server 4.9 s after the drop.
+- **The input is jupyter-chat's**
+  (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/input/chat-input.tsx`): one bordered,
+  rounded box, the field above a divider, Send as an icon button at the end of the row beneath it.
+  Send's face is 40 dp where jupyter-chat's is 24 px, to keep Material's 48 dp touch target.
 
 ## Consequences
 
@@ -92,3 +113,7 @@ jupyter-ai's ACP chain and nothing else of jupyter-ai.**
   import. That brings back 0.66 s on every warm start.
 - Do not compare a sender to the socket's own user id to decide "mine". That identity is new on
   every connection.
+- Do not drop the heartbeat while jupyterlab_chat is not an ExtensionApp. Without it an open chat
+  is idle to the server, and the server stops under it.
+- The panel draws the persona's message body as the server stored it. An agent that sends its
+  reasoning as answer text has it drawn, as jupyter-chat would.
