@@ -236,7 +236,7 @@ the IDE as an MCP *server* (`plugins/mcp-server`).
 - [x] T4d — after a relaunch, the question asked before it is still drawn as the user's: every
   socket is a new anonymous user, so "mine" is any sender the chat's users mark as no bot
 - [x] T4e — the demo on a fresh install, opencode signed in by a person; ADR, ledger rows, ship
-- [ ] T5a — a failed socket says what failed: the throwable's class when its message is null, in
+- [x] T5a — a failed socket says what failed: the throwable's class when its message is null, in
   the panel and in a structured log line
 - [ ] T5b — an open Chat keeps the Space's server from stopping itself; how is settled in this PRD
   from jupyter_server's own hooks before any code
