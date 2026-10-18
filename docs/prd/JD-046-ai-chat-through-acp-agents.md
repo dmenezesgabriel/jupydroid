@@ -188,6 +188,24 @@ Why an open chat does not keep the server up (jupyter_server 2.20.0, shipped roo
 It may not be the only cause. T5a makes every failure say what it was before T5b and T5c remove
 the causes.
 
+**How an open Chat keeps the server up (T5b, settled):** a heartbeat from the app, the way
+JupyterLab stays alive. While the chat's socket is open, `OkHttpAgentChat` sends an authenticated
+`GET api/me` every 30 s, and it stops once the transcript is no longer collected.
+
+- jupyter_server's own hook for this is an ExtensionApp's `current_activity()`, which
+  `TerminalsExtensionApp` uses to return its open terminals (jupyter_server_terminals 0.5.4
+  `app.py`). jupyterlab_chat 0.25.2 is a module extension, not an ExtensionApp, so
+  `ExtensionManager.any_activity` never asks it. The alternative was an ExtensionApp of our own in
+  the image, and it was turned down: it means new Python in the rootfs and a rebuild.
+- `api/me` is `IdentityHandler`, which counts as activity. `APIStatusHandler` and
+  `PathResolverHandler` set `_track_activity = False` (jupyter_server 2.20.0
+  `services/api/handlers.py`, `base/handlers.py` `update_api_activity`).
+- JupyterLab@7f0e690 polls `api/kernels` and `api/terminals` every 10 s and `api/me` every 61 s,
+  each with `standby: 'when-hidden'` (`packages/services/src/kernel/manager.ts`,
+  `terminal/manager.ts`, `user/manager.ts`).
+- 30 s is half the shortest idle setting, 1 minute (`IDLE_SHUTDOWN_MINUTES_RANGE`). The server
+  checks once every 60 s, so whatever the check's phase, the last activity it sees is never older than 30 s.
+
 ## The input, against jupyter-chat (T6)
 
 jupyter-chat@2c224bcc `packages/jupyter-chat/src/components/input/chat-input.tsx`: one box with a
