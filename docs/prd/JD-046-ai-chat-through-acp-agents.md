@@ -162,8 +162,11 @@ there (see Deviations).
 - [x] T3b — signed in, opencode's answer streams back into one message as it grows
 - [x] T4a — the Chat panel keeps the newest message's end in view while the reader is at the bottom,
   and draws no message with an empty body
-- [ ] T4b — an on-device `python3 -X importtime` profile of the `jupyter_ai_acp_client` import; the
-  demo on a fresh install; ADR, ledger rows, ship
+- [ ] T4b — an on-device `python3 -X importtime` profile of the `jupyter_ai_acp_client` import as the
+  server makes it, self time summed by top-level package; the verdict on cutting it settled in Open
+  decisions
+- [ ] T4c — the cut the profile justifies, if it justifies one
+- [ ] T4d — the demo on a fresh install, opencode signed in by a person; ADR, ledger rows, ship
 
 ## Out of scope
 
