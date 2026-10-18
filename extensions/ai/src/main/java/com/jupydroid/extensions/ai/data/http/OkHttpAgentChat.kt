@@ -22,7 +22,8 @@ import java.util.UUID
  * jupyterlab-chat's socket in the entered Space's `jupyter_server`, asking jupyter-ai's opencode persona.
  *
  * **The JSON socket, not Yjs**: jupyterlab-chat registers `/api/chat/ws/<path>` only when no RTC
- * provider is enabled, and the image enables none (jupyterlab_chat 0.25.2 `__init__.py`, `rtc_lib.py`).
+ * provider is enabled, and the image enables none (jupyterlab_chat 0.25.2 `__init__.py`, `rtc_lib.py`;
+ * ADR-0106).
  *
  * ```
  * OkHttpAgentChat(host.server!!).transcript().collect { shown = it }

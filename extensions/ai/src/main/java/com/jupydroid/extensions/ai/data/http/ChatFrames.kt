@@ -30,7 +30,7 @@ internal sealed interface ServerFrame {
    *   device has one person, and jupyter_server names them afresh on every socket: a token with no
    *   login cookie gets `generate_anonymous_user`, a new `uuid4` (jupyter_server 2.20.0
    *   `auth/identity.py`, `IdentityProvider.get_user_token`). So the question asked before a relaunch
-   *   is an earlier user's, and only `bot` tells it from a persona's answer.
+   *   is an earlier user's, and only `bot` tells it from a persona's answer (ADR-0106).
    */
   data class Connection(val humans: Set<String>, val messages: List<WireMessage>) : ServerFrame
 

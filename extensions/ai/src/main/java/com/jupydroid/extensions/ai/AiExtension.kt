@@ -13,7 +13,7 @@ import com.jupydroid.extensions.ai.ui.ChatPanel
 
 /**
  * jupyter-ai's chat frontend: one Chat panel on the side rail, answered by an agent installed in the
- * Space (ADR-0104).
+ * Space (ADR-0104, ADR-0106).
  *
  * This class is the module's composition root, the one place it builds an adapter - `:app`'s
  * `di/AppContainer` cannot, since it does not see this module's insides.
