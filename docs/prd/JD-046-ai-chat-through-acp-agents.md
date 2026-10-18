@@ -128,9 +128,13 @@ there (see Deviations).
 - Which chat the panel opens: `untitled.chat` at the workspace root. jupyterlab-chat looks for chats
   in `defaultDirectory`, `""` by default (`schemas/jupyterlab-chat-extension/factory.json`), and names
   a new one with `contents.newUntitled({ext: ".chat"})`, which is `untitled.chat` for the first.
-- Warm server boot grew by about 1.7 s with the chain (median 2.92 s → 4.66 s on SM-X216B), 1.29 s
-  of it importing `jupyter_ai_acp_client`. Whether to cut it, and how, is decided on a profile of
-  that import (`python3 -X importtime` on the device), not before.
+- ~~Whether to cut the import.~~ Settled by T4b: warm server boot grew by about 1.7 s with the chain
+  (median 2.92 s → 4.66 s on SM-X216B), and the on-device profile puts 98 to 99% of
+  `jupyter_ai_acp_client`'s import (median 1.22 s) behind one line: `routes.py` imports
+  `BaseAcpPersona` at module scope for an `isinstance` test in its POST handler, which loads `acp` and
+  pydantic on every server start. The personas that need `acp` load when a chat opens, so `acp`'s
+  subtree (median 0.85 s) can wait for one. 0.4.0a0 has the same line. **Cut it**; how (a patch in
+  the image, a change upstream, or both) is T4c's to decide.
 - Claude, Devin, pi and Antigravity are later items. jupyter_ai_acp_client 0.3.3 has a persona for
   Claude only, and Antigravity has been reported to abort on 39-bit arm64 kernels
   (https://discuss.ai.google.dev/t/bug-agy-crashes-on-arm64/145425).
@@ -162,7 +166,7 @@ there (see Deviations).
 - [x] T3b — signed in, opencode's answer streams back into one message as it grows
 - [x] T4a — the Chat panel keeps the newest message's end in view while the reader is at the bottom,
   and draws no message with an empty body
-- [ ] T4b — an on-device `python3 -X importtime` profile of the `jupyter_ai_acp_client` import as the
+- [x] T4b — an on-device `python3 -X importtime` profile of the `jupyter_ai_acp_client` import as the
   server makes it, self time summed by top-level package; the verdict on cutting it settled in Open
   decisions
 - [ ] T4c — the cut the profile justifies, if it justifies one
