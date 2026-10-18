@@ -1,0 +1,25 @@
+appId: com.android.settings
+---
+# The system's own uninstall, from Settings → Apps → JupyterDroid, which the driver opens with
+# `am start -a android.settings.APPLICATION_DETAILS_SETTINGS`. `android:hasFragileUserData` is what
+# puts the Keep app data checkbox in the package installer's dialog; without it the dialog has only
+# Cancel and OK.
+#
+# TABLET ONLY (SM-X216B): it is One UI's dialog that is measured.
+- extendedWaitUntil:
+    visible:
+      id: "com.android.settings:id/button3"
+    timeout: 10000
+- tapOn:
+    id: "com.android.settings:id/button3"
+- extendedWaitUntil:
+    visible: "Keep .* of app data\\."
+    timeout: 10000
+- takeScreenshot: 04-keep-data-offered
+- tapOn:
+    id: "com.android.packageinstaller:id/keepData"
+- assertVisible:
+    id: "com.android.packageinstaller:id/keepData"
+    checked: true
+- takeScreenshot: 05-keep-data-ticked
+- tapOn: "OK"

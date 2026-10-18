@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# What the user made, on screen before the uninstall: the three seeded documents in base's explorer,
+# and a theme that is not the default. Driven by scripts/jd-058-keep-app-data-driver.sh, after
+# jd-046-opencode-in-a-space.yaml has installed opencode into base.
+#
+# TABLET ONLY (SM-X216B): base is entered, and only arm64 ships its rootfs.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "survives.ipynb"
+    timeout: 10000
+- assertVisible: "notes.md"
+- assertVisible: "talk.chat"
+- takeScreenshot: 02-documents-before
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+- tapOn: "Light"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-light-theme-picked

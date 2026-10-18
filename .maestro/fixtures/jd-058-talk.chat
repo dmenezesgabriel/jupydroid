@@ -1,0 +1,23 @@
+{
+  "messages": [
+    {
+      "id": "0b6f2c1e-58a4-4c1b-9d55-0e2b7c9a1f03",
+      "body": "Written before the uninstall.",
+      "time": 1792321067.0,
+      "sender": "368423f20f3a43978bd3cb1a09fcd4f1",
+      "type": "msg",
+      "raw_time": false
+    }
+  ],
+  "users": {
+    "368423f20f3a43978bd3cb1a09fcd4f1": {
+      "username": "368423f20f3a43978bd3cb1a09fcd4f1",
+      "name": "Anonymous Adrastea",
+      "display_name": "Anonymous Adrastea",
+      "initials": "AA",
+      "avatar_url": null,
+      "color": null,
+      "bot": false
+    }
+  }
+}

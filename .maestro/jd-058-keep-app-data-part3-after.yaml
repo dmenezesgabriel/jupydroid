@@ -1,0 +1,48 @@
+appId: com.jupydroid.app
+---
+# After the uninstall that kept the data and an `adb install` of the same APK: base's documents are
+# listed and open with their content, the theme is the one picked before, and base's terminal finds
+# opencode. The terminal canvas is not readable by an assertion (cross-cutting.md §8.6), so the
+# command writes its answer into the workspace for the driver to read back.
+#
+# TABLET ONLY (SM-X216B): base is entered, and only arm64 ships its rootfs.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "survives.ipynb"
+    timeout: 10000
+- assertVisible: "notes.md"
+- assertVisible: "talk.chat"
+- takeScreenshot: 06-documents-after
+# The tablet is wide enough that a document opens beside the explorer, so each one is tapped from
+# the same list.
+- tapOn: "survives.ipynb"
+- extendedWaitUntil:
+    visible: "print('kept through an uninstall')"
+    timeout: 10000
+- takeScreenshot: 07-notebook-after
+- tapOn: "notes.md"
+- extendedWaitUntil:
+    visible: ".*Written before the uninstall\\..*"
+    timeout: 10000
+- takeScreenshot: 08-notes-after
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+- tapOn:
+    id: "terminal-input"
+- inputText: "opencode --version > jd058-opencode-version.txt 2>&1; echo version-rc=$? >> jd058-opencode-version.txt"
+- pressKey: Enter
+- hideKeyboard
+- takeScreenshot: 09-opencode-asked

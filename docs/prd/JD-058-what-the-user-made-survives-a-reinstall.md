@@ -1,6 +1,6 @@
 # JD-058 — What the user made survives a reinstall
 
-Milestone: `M5` · State: open · Depends on: — · Closes: GAP-176
+Milestone: `M5` · State: in-progress · Depends on: — · Closes: GAP-176
 
 ## Outcome
 
@@ -94,7 +94,8 @@ Ours is **present but unreachable**: backup is switched on, but nothing reaches 
 
 Each one is settled by a measurement in the task that needs it:
 
-- Does One UI on SM-X216B show the keep-data prompt for `hasFragileUserData`? (T1)
+- One UI on SM-X216B shows the keep-data prompt, from Settings and from the launcher's
+  `ACTION_DELETE` alike, and keeping it keeps all of `filesDir` (679 MB, rootfs and opencode included). (T1)
 - What does base's home measure (`du`) after the agent's filter, against 25 MB? (T3)
 - Does `BaseSpaceInstaller` re-extract over a restored `home/` without touching it, given that the
   restore brings back no `.jupydroid/rootfs-version`? (T4)
@@ -115,7 +116,7 @@ Each one is settled by a measurement in the task that needs it:
 
 ## Tasks
 
-- [ ] T1: `hasFragileUserData="true"`. Measure on SM-X216B that the system uninstall offers Keep app
+- [x] T1: `hasFragileUserData="true"`. Measure on SM-X216B that the system uninstall offers Keep app
   data, and that a reinstall finds the workspace and opencode's binary. Evidence: screenshots of the
   dialog and of the explorer afterwards.
 - [ ] T2: `SpaceHomeBackupScope`, red test first. It returns each Space's home minus `pyvenv.cfg`
