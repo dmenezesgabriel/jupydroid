@@ -138,6 +138,9 @@ These are the SHAs the local clones are pinned at:
 | `jupyterlab-git` | `b62a87b719cd151a2c60eaaa6a70a6755784c4ef` | `git clone --depth 1 https://github.com/jupyterlab/jupyterlab-git` |
 | `jupyter-ai` | `5b23f55d15ba245347013ffe0a238f26b1f4f1e8` | `git clone --depth 1 https://github.com/jupyterlab/jupyter-ai` (a metapackage; its packages are submodules) |
 | `colab-vscode` | `96e23580c6a6b77bef88beb855cae2d00d42d50e` | `git clone --depth 1 https://github.com/googlecolab/colab-vscode` |
+| `jupyter-chat` | `2c224bccb40f45438f85b28c3654da02b5c1461f` | `git clone --depth 1 https://github.com/jupyterlab/jupyter-chat` (jupyterlab-chat's frontend and server) |
+| `jupyter-chat-components` | `992c6fb9ae7c396a71397f9056a123b8e8f439b0` | `git clone --depth 1 https://github.com/jupyter-ai-contrib/jupyter-chat-components` (the tool-call rows) |
+| `jupyter-ai-acp-client` | `77016f63530f5279ad4c9bae8a8aa5a6a27a5c37` | `git clone --depth 1 https://github.com/jupyter-ai-contrib/jupyter-ai-acp-client` (newer than the 0.3.3 the image ships) |
 
 Clone into `reference/research_repos/`. `reference/xeus-android/` is two prose documents
 (`FEASIBILITY.md`, `STUDY_CASES.md`), not source.
