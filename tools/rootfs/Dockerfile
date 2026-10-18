@@ -95,6 +95,12 @@ RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: \
       -r /tmp/requirements.lock \
  && rm /tmp/requirements.lock
 
+# Before the strip, so compileall caches the edited source. See acp_lazy_import_patch.py for why the
+# ACP client's permission route is edited, and acp_lazy_import_probe.py below for the gate on it.
+COPY acp_lazy_import_patch.py /tmp/acp_lazy_import_patch.py
+RUN python3 /tmp/acp_lazy_import_patch.py \
+ && rm -f /tmp/acp_lazy_import_patch.py
+
 # The kernel entry point ships as a real, reviewable module rather than being
 # generated at runtime from strings. Placed on the default sys.path so the
 # kernelspec can name it with -m and nothing has to set PYTHONPATH.
@@ -230,6 +236,11 @@ RUN jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
    || { echo "server extension $module is not enabled and OK" >&2; exit 1; }; \
     done \
  && rm /tmp/extensions.txt
+
+# The ACP client's import stays off every server start's clock. See acp_lazy_import_probe.py.
+COPY acp_lazy_import_probe.py /tmp/acp_lazy_import_probe.py
+RUN python3 /tmp/acp_lazy_import_probe.py \
+ && rm -f /tmp/acp_lazy_import_probe.py
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.

@@ -16,7 +16,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/jd-046-ai-chat/t4b"
+EVIDENCE="$ROOT/evidence/jd-046-ai-chat/${1:-t4b}"
 
 mapfile -t DEVICE_ADB < <(device_adb)
 
