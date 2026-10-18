@@ -6,7 +6,10 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatContract
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
@@ -28,7 +31,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /** The contract, against a loopback socket scripted to answer the way jupyterlab-chat's does. */
 class OkHttpAgentChatTest : AgentChatContract() {
@@ -96,18 +102,77 @@ class OkHttpAgentChatTest : AgentChatContract() {
     )
   }
 
+  /**
+   * jupyter_server stops itself once no kernel exists and no API request has come for the idle
+   * setting, and a chat socket's frames are not one (jupyter_server 2.20.0 `serverapp.py`
+   * `shutdown_no_activity`): an open chat once lost its server that way.
+   */
+  @Test
+  fun transcript_touchesApiMeWithTheTokenWhileTheChatIsOpen() = runBlocking {
+    val server = ChatLikeTheTabletsServer()
+    serverRule.server.dispatcher = server
+
+    val open = launch { chatUnderTest(heartbeat = HEARTBEAT).transcript().collect {} }
+    awaitTouches(server, count = 2)
+    open.cancelAndJoin()
+
+    assertEquals(listOf("token secret-token", "token secret-token"), server.touches.take(2))
+  }
+
+  /** A closed panel is what lets the server stop itself when idle, as the person set it to. */
+  @Test
+  fun transcript_stopsTouchingApiMeOnceTheChatIsClosed() = runBlocking {
+    val server = ChatLikeTheTabletsServer()
+    serverRule.server.dispatcher = server
+
+    val open = launch { chatUnderTest(heartbeat = HEARTBEAT).transcript().collect {} }
+    awaitTouches(server, count = 1)
+    open.cancelAndJoin()
+    delay(HEARTBEAT) // a touch already sent may still land
+    val touchesWhenClosed = server.touches.size
+    delay(HEARTBEAT * QUIET_INTERVALS)
+
+    assertEquals(touchesWhenClosed, server.touches.size)
+  }
+
+  /** A refused touch is logged, and the chat it keeps alive stays open to ask. */
+  @Test
+  fun transcript_logsARefusedTouchAndStaysOpen() = runBlocking {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(meStatus = SERVICE_UNAVAILABLE)
+    val log = RecordingChatSocketLog()
+    val chat = chatUnderTest(log, heartbeat = HEARTBEAT)
+
+    val open = launch { chat.transcript().collect {} }
+    withTimeout(TIMEOUT_MILLIS) { while ("chat.heartbeat.failed" !in log.stages) delay(HEARTBEAT) }
+    chat.ask("still open?")
+    open.cancelAndJoin()
+
+    assertEquals(mapOf("http" to "503", "chat" to "untitled.chat"), log.fieldsOf("chat.heartbeat.failed"))
+  }
+
+  private suspend fun awaitTouches(server: ChatLikeTheTabletsServer, count: Int) = withTimeout(TIMEOUT_MILLIS) {
+    while (server.touches.size < count) delay(HEARTBEAT)
+  }
+
   private suspend fun endingOf(chat: AgentChat): AgentChatException = withTimeout(TIMEOUT_MILLIS) {
     runCatching { chat.transcript().collect {} }.exceptionOrNull() as AgentChatException
   }
 
-  private fun chatUnderTest(log: RecordingChatSocketLog = RecordingChatSocketLog()): AgentChat = OkHttpAgentChat(
+  private fun chatUnderTest(
+    log: RecordingChatSocketLog = RecordingChatSocketLog(),
+    heartbeat: Duration = OkHttpAgentChat.HEARTBEAT_INTERVAL,
+  ): AgentChat = OkHttpAgentChat(
     server = { ServerAddress(baseUrl = serverRule.server.url("/").toString(), token = "secret-token") },
     log = log,
+    heartbeatInterval = heartbeat,
   )
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
     const val POLICY_VIOLATION = 1008
+    const val SERVICE_UNAVAILABLE = 503
+    const val QUIET_INTERVALS = 5
+    val HEARTBEAT = 50.milliseconds
   }
 }
 
@@ -119,15 +184,23 @@ class OkHttpAgentChatTest : AgentChatContract() {
  * question naming no persona goes unanswered, as the router leaves it (`persona_manager.py`).
  *
  * @param ending what the server does to the socket once it has spoken, for a test of how it ends.
+ * @param meStatus what `GET /api/me` answers; every one is kept in [touches].
  */
 private class ChatLikeTheTabletsServer(
   private val history: List<ChatMessage> = emptyList(),
   private val replies: Map<String, String> = emptyMap(),
   private val streamed: List<String> = emptyList(),
   private val ending: (WebSocket) -> Unit = {},
+  private val meStatus: Int = 200,
 ) : Dispatcher() {
-  override fun dispatch(request: RecordedRequest): MockResponse =
-    MockResponse.Builder().webSocketUpgrade(Speaker()).build()
+  /** The `Authorization` header of every `GET /api/me`, in the order they came. */
+  val touches: MutableList<String> = CopyOnWriteArrayList()
+
+  override fun dispatch(request: RecordedRequest): MockResponse {
+    if (request.target != "/api/me") return MockResponse.Builder().webSocketUpgrade(Speaker()).build()
+    touches += request.headers["Authorization"].orEmpty()
+    return MockResponse.Builder().code(meStatus).body("{}").build()
+  }
 
   private inner class Speaker : WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) {

@@ -36,6 +36,19 @@ internal fun chatLogLine(stage: String, fields: Map<String, String>): String = J
   },
 ).toString()
 
+/**
+ * What failed, as [ChatSocketLog.reached]'s fields: the throwable's class, then its message and the
+ * response's code when there are any. The class comes first because OkHttp's `EOFException` for a
+ * socket the server dropped has a null message.
+ */
+internal fun chatFailureFields(chatPath: String, error: Throwable? = null, http: Int? = null): Map<String, String> =
+  buildMap {
+    error?.let { put("error", it::class.simpleName.orEmpty()) }
+    error?.message?.let { put("message", it) }
+    http?.let { put("http", it.toString()) }
+    put("chat", chatPath)
+  }
+
 /** Logcat, under one tag so the chat can be followed with a single filter. */
 object LogcatChatSocketLog : ChatSocketLog {
   override fun reached(stage: String, fields: Map<String, String>) {
