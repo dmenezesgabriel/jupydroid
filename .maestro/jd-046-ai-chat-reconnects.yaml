@@ -1,0 +1,43 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base. Driven by scripts/jd-046-ai-chat-reconnects-driver.sh, which stops
+# base's server once the first question's echo is in the chat, the way an exiting server once
+# dropped the panel's socket for good.
+#
+# The panel says it is reconnecting, keeps the chat drawn, and opens it again on a server it starts
+# afresh: a question sent after that is echoed back by the new server's socket.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Before the drop: reply with one word, ok."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "Before the drop: reply with one word, ok."
+    timeout: 30000
+- takeScreenshot: 01-asked-before-the-drop
+# The driver's POST /api/shutdown lands now; the reopen waits 1 s and then for a server to start.
+- extendedWaitUntil:
+    visible: "Reconnecting: .*"
+    timeout: 120000
+- takeScreenshot: 02-reconnecting
+- extendedWaitUntil:
+    notVisible: "Reconnecting: .*"
+    timeout: 120000
+- assertVisible: "Before the drop: reply with one word, ok."
+- takeScreenshot: 03-read-back
+- tapOn: "Ask the agent"
+- inputText: "After the drop: reply with one word, ok."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "After the drop: reply with one word, ok."
+    timeout: 30000
+- takeScreenshot: 04-asked-after-the-drop
+- assertNotVisible: "the chat's socket .*"

@@ -206,6 +206,13 @@ JupyterLab stays alive. While the chat's socket is open, `OkHttpAgentChat` sends
 - 30 s is half the shortest idle setting, 1 minute (`IDLE_SHUTDOWN_MINUTES_RANGE`). The server
   checks once every 60 s, so whatever the check's phase, the last activity it sees is never older than 30 s.
 
+**How a dropped chat opens again (T5c, shipped):** by jupyter-chat@2c224bc's rule
+(`packages/jupyterlab-chat/src/websocket-handler.ts`): a socket closed before its `connection`
+frame is a failure; an established socket that drops abnormally (`1006`) reopens after 1 s, with no
+limit on attempts; any other close code stays closed. `AgentChat.readings()` applies that rule, with
+OkHttp's `onFailure` as the drop. jupyter-chat reopens silently. The panel says "Reconnecting" and
+keeps the chat drawn with Send off, so the person can see why it is not answering.
+
 ## The input, against jupyter-chat (T6)
 
 jupyter-chat@2c224bcc `packages/jupyter-chat/src/components/input/chat-input.tsx`: one box with a
@@ -258,7 +265,7 @@ the IDE as an MCP *server* (`plugins/mcp-server`).
   the panel and in a structured log line
 - [x] T5b — an open Chat keeps the Space's server from stopping itself; how is settled in this PRD
   from jupyter_server's own hooks before any code
-- [ ] T5c — a dropped socket opens again: the panel shows it reconnecting and reads the chat back,
+- [x] T5c — a dropped socket opens again: the panel shows it reconnecting and reads the chat back,
   with no relaunch
 - [ ] T6 — the input as jupyter-chat draws it, measured before and after on SM-X216B
 - [ ] T7 — the demo again with a person, steps 1–6
