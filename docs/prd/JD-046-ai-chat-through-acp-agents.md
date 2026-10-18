@@ -160,7 +160,7 @@ there (see Deviations).
   names the new module (signed out, opencode answers from a model of its own rather than "not
   configured")
 - [x] T3b — signed in, opencode's answer streams back into one message as it grows
-- [ ] T4a — the Chat panel keeps the newest message's end in view while the reader is at the bottom,
+- [x] T4a — the Chat panel keeps the newest message's end in view while the reader is at the bottom,
   and draws no message with an empty body
 - [ ] T4b — an on-device `python3 -X importtime` profile of the `jupyter_ai_acp_client` import; the
   demo on a fresh install; ADR, ledger rows, ship

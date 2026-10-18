@@ -2,11 +2,12 @@
 # The Chat panel, contributed by the AI extension, asks jupyter-ai's opencode persona and shows
 # opencode's answer as one message while the agent streams it.
 #
-#   nice -n 10 timeout 1800 scripts/jd-046-ai-chat-driver.sh
+#   nice -n 10 timeout 1800 scripts/jd-046-ai-chat-driver.sh [evidence subdirectory, t3 by default]
 #
 # Exits non-zero if the flow fails, if opencode is not installed in base, or if `untitled.chat`
 # afterwards does not hold the question, addressed to the persona, and one answer from it that
-# counts to 40.
+# counts to 40, or if the panel still shows the question once the answer is whole: an answer 40 lines
+# tall pushes it above the list when the panel follows the answer to its last line.
 #
 # TABLET ONLY (SM-X216B): the chat is answered in a running Space's server, which only arm64 ships.
 # Needs the tablet online, opencode installed in base (scripts/jd-046-opencode-in-a-space-driver.sh)
@@ -25,7 +26,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/space-server.sh
 . "$ROOT/scripts/space-server.sh"
 
-EVIDENCE="$ROOT/evidence/jd-046-ai-chat/t3"
+EVIDENCE="$ROOT/evidence/jd-046-ai-chat/${1:-t3}"
 
 mapfile -t DEVICE_ADB < <(device_adb)
 
@@ -43,6 +44,18 @@ reset_notebooks
 rotate_to 1
 
 run_flow "$ROOT/.maestro/jd-046-ai-chat.yaml" "$EVIDENCE"
+
+# What is on screen once the answer is whole, read from the hierarchy, as the frames alone cannot
+# say whether 40 is in view or only in the text. A lazy list drops the rows it scrolled past, so a
+# question with no node is a question above the list's top.
+"${DEVICE_ADB[@]}" shell uiautomator dump /sdcard/jd-046-hierarchy.xml >/dev/null
+"${DEVICE_ADB[@]}" shell cat /sdcard/jd-046-hierarchy.xml >"$EVIDENCE/hierarchy.xml"
+"${DEVICE_ADB[@]}" shell rm -f /sdcard/jd-046-hierarchy.xml
+{ grep -oE 'text="(Count from 1 to 40|1&#10;2)[^"]*"[^>]*bounds="[^"]*"' "$EVIDENCE/hierarchy.xml" || true; } |
+  sed -E 's/text="([^&"]{0,24})[^"]*".*bounds="([^"]*)"/\1\t\2/' >"$EVIDENCE/bounds.txt"
+cat "$EVIDENCE/bounds.txt"
+grep -q "^1" "$EVIDENCE/bounds.txt" || fail "the answer has no node on screen"
+! grep -q "^Count" "$EVIDENCE/bounds.txt" || fail "the question is still on screen: the panel did not follow the answer"
 
 # The server writes the chat on its own schedule, so the file is waited for, not read at once.
 wait_for_workspace_text untitled.chat "40" 60
