@@ -81,6 +81,14 @@ class BaseSpaceInstallerTest {
     assertTrue(File(installed.baseDir, "usr/pip.conf").isFile)
   }
 
+  /** opencode's first start writes a config of its own, so the persona's must already be there. */
+  @Test
+  fun install_writesBasesOwnOpencodeConfig() = runTest {
+    val installed = installer(version = 1).installIfNeeded()
+
+    assertTrue(File(installed.baseDir, "home/jupydroid/.config/opencode/opencode.json").isFile)
+  }
+
   /**
    * An install from before proot relinked the image's own files into `nativeLibraryDir`. The
    * re-extract a version bump triggers replaces every one of them the archive carries - the
@@ -152,6 +160,7 @@ class BaseSpaceInstallerTest {
       tar.putFile("usr/bin/python3.12", "ELF")
       tar.putSymlink("usr/bin/python3", "python3.12")
       tar.putSymlink("usr/bin/python", "python3")
+      tar.putFile("usr/lib/python3.12/site-packages/jupyter_ai_acp_client/acp_personas/opencode.json", "{}")
     }
     return bytes.toByteArray()
   }

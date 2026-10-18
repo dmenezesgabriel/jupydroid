@@ -45,7 +45,10 @@ class BaseSpaceInstaller(
     val written = if (alreadyInstalled) 0 else extractor.extract(archive, baseDir)
     sweepStaleScriptLinks()
     SpaceKernelSpec.install(baseDir, ioDispatcher)
-    withContext(ioDispatcher) { SpacePipConfig.ensure(baseDir) }
+    withContext(ioDispatcher) {
+      SpacePipConfig.ensure(baseDir)
+      SpaceOpencodeConfig.ensure(baseDir)
+    }
     if (!alreadyInstalled) stampVersion()
     return InstalledSpace(baseDir, bundledVersion, !alreadyInstalled, written)
   }
