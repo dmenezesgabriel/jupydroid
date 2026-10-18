@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# Puts base's idle setting back to its default of 5 minutes, so the flows after this one start where
+# they always have. The fresh launch stops base, which is what offers its Settings.
+- launchApp
+- extendedWaitUntil:
+    visible: "Settings Base \\(base\\)"
+    timeout: 10000
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- tapOn:
+    id: "space-idle-shutdown-field"
+- eraseText: 10
+- inputText: "5"
+- hideKeyboard
+- takeScreenshot: 04-base-idles-after-five-minutes-again
+- tapOn: "Save"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000

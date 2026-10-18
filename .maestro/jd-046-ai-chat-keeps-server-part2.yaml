@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# The same app, minutes after part 1 opened Chat, with no launch in between: the chat is still open,
+# and no socket ending replaced it.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 10000
+# Taken before the assertion, so a run where the server stopped keeps a picture of what it showed.
+- takeScreenshot: 03-chat-still-open
+- assertNotVisible: "the chat's socket .*"

@@ -256,7 +256,7 @@ the IDE as an MCP *server* (`plugins/mcp-server`).
 - [x] T4e — the demo on a fresh install, opencode signed in by a person; ADR, ledger rows, ship
 - [x] T5a — a failed socket says what failed: the throwable's class when its message is null, in
   the panel and in a structured log line
-- [ ] T5b — an open Chat keeps the Space's server from stopping itself; how is settled in this PRD
+- [x] T5b — an open Chat keeps the Space's server from stopping itself; how is settled in this PRD
   from jupyter_server's own hooks before any code
 - [ ] T5c — a dropped socket opens again: the panel shows it reconnecting and reads the chat back,
   with no relaunch
