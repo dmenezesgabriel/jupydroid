@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -22,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -30,6 +33,7 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /**
@@ -79,8 +83,39 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
 
 @Composable
 private fun Messages(transcript: ChatTranscript, modifier: Modifier) {
-  LazyColumn(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-    items(transcript.messages, key = ChatMessage::id) { message -> MessageRow(message) }
+  val shown = transcript.messagesWithText
+  val list = rememberLazyListState()
+  FollowTheNewest(list, shown)
+  LazyColumn(
+    state = list,
+    modifier = modifier.fillMaxWidth().testTag("chat-messages"),
+    verticalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    items(shown, key = ChatMessage::id) { message -> MessageRow(message) }
+  }
+}
+
+/**
+ * Keeps the newest message's last line in view as it arrives and as an agent streams more of it,
+ * until the reader scrolls away from the end, and again once they scroll back. That is jupyter-chat's
+ * rule: it opens at the end and follows only while the reader is there
+ * (jupyter-chat@9e02bb70 `packages/jupyter-chat/src/components/messages/messages.tsx`).
+ */
+@Composable
+private fun FollowTheNewest(list: LazyListState, shown: List<ChatMessage>) {
+  var following by remember(list) { mutableStateOf(true) }
+  LaunchedEffect(list) {
+    // Judged whenever the list moves, by the reader or by the scroll below. An answer growing beneath
+    // the end does not move it, so it does not end the following. The first position is the one
+    // before any layout, which says nothing about the reader.
+    snapshotFlow { list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset }
+      .drop(1)
+      .collect { following = !list.canScrollForward }
+  }
+  val newest = shown.lastOrNull()
+  LaunchedEffect(newest?.id, newest?.body?.length) {
+    // An offset past the item's end is clamped to the list's end, which is the item's last line.
+    if (following && newest != null) list.scrollToItem(shown.lastIndex, Int.MAX_VALUE)
   }
 }
 

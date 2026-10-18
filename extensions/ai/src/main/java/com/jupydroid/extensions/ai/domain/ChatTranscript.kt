@@ -18,6 +18,16 @@ data class ChatMessage(val id: String, val body: String, val fromMe: Boolean)
  */
 data class ChatTranscript(val messages: List<ChatMessage> = emptyList()) {
   /**
+   * [messages] without those that have no text: jupyter-ai's ACP client creates every message of an
+   * agent's with an empty body, and one that holds the agent's tool calls keeps it, the calls being
+   * in its metadata (`usr/lib/python3.12/site-packages/jupyter_ai_acp_client/tool_call_manager.py` in
+   * the shipped rootfs). jupyter-chat draws one under its sender's name
+   * (jupyter-chat@9e02bb70 `packages/jupyter-chat/src/components/messages/messages.tsx`); a row here
+   * has no name above it and draws no tool call, so an empty one would be a blank bubble.
+   */
+  val messagesWithText: List<ChatMessage> get() = messages.filter { it.body.isNotEmpty() }
+
+  /**
    * [message] in place of the one with its id, or beneath the others if it is new: jupyterlab-chat
    * sends a new message and an update to one in the same frame (jupyterlab_chat 0.25.2 `ws_messages.py`,
    * `ServerMessageMessage`).

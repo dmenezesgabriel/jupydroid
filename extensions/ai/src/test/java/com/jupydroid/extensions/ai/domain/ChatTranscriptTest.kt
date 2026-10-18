@@ -23,4 +23,14 @@ class ChatTranscriptTest {
 
     assertEquals(listOf(question, whole), transcript.messages)
   }
+
+  /** jupyter-ai's ACP client creates each of an agent's messages empty, and fills a text one by its chunks. */
+  @Test
+  fun aMessageWithNoTextYetIsLeftOutUntilItsFirstText() {
+    val opened = ChatMessage(id = "r", body = "", fromMe = false)
+    val transcript = ChatTranscript(listOf(question, opened))
+
+    assertEquals(listOf(question), transcript.messagesWithText)
+    assertEquals(listOf(question, opened.copy(body = "1")), transcript.with(opened.copy(body = "1")).messagesWithText)
+  }
 }
