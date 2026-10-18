@@ -20,12 +20,19 @@ internal const val OPENCODE_PERSONA_ID = "jupyter-ai-personas::jupyter_ai_acp_cl
 /** A message as the socket carries it; `sender` is a username, a persona's being its id. */
 @Serializable
 internal data class WireMessage(val id: String, val body: String = "", val sender: String) {
-  fun toChatMessage(me: String): ChatMessage = ChatMessage(id = id, body = body, fromMe = sender == me)
+  fun toChatMessage(humans: Set<String>): ChatMessage = ChatMessage(id = id, body = body, fromMe = sender in humans)
 }
 
 /** What the panel draws from a server frame; `users`, `metadata` and `writing` draw nothing yet. */
 internal sealed interface ServerFrame {
-  data class Connection(val username: String, val messages: List<WireMessage>) : ServerFrame
+  /**
+   * @param humans every username the chat knows that is no bot, this socket's own among them. A
+   *   device has one person, and jupyter_server names them afresh on every socket: a token with no
+   *   login cookie gets `generate_anonymous_user`, a new `uuid4` (jupyter_server 2.20.0
+   *   `auth/identity.py`, `IdentityProvider.get_user_token`). So the question asked before a relaunch
+   *   is an earlier user's, and only `bot` tells it from a persona's answer.
+   */
+  data class Connection(val humans: Set<String>, val messages: List<WireMessage>) : ServerFrame
 
   data class Message(val message: WireMessage) : ServerFrame
 
@@ -50,7 +57,7 @@ internal object ChatFrames {
     val frame = runCatching { lenient.decodeFromString<IncomingFrame>(text) }.getOrNull()
     val user = frame?.user?.username
     return when {
-      frame?.action == "connection" && user != null -> ServerFrame.Connection(user, frame.messages)
+      frame?.action == "connection" && user != null -> ServerFrame.Connection(frame.humans() + user, frame.messages)
       frame?.action == "message" && frame.message != null -> ServerFrame.Message(frame.message)
       frame != null && frame.action !in TRANSCRIPT_ACTIONS -> ServerFrame.Other
       else -> throw AgentChatException(
@@ -77,7 +84,10 @@ private data class IncomingFrame(
   val user: FrameUser? = null,
   val messages: List<WireMessage> = emptyList(),
   val message: WireMessage? = null,
-)
+  val users: Map<String, FrameUser> = emptyMap(),
+) {
+  fun humans(): Set<String> = users.values.filterNot { it.bot }.mapTo(mutableSetOf()) { it.username }
+}
 
 @Serializable
-private data class FrameUser(val username: String)
+private data class FrameUser(val username: String, val bot: Boolean = false)

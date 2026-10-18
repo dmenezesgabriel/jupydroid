@@ -68,7 +68,7 @@ class OkHttpAgentChat(
 
   /** OkHttp calls one listener's methods one at a time, from the socket's reader thread. */
   private inner class TranscriptListener(private val out: ProducerScope<ChatTranscript>) : WebSocketListener() {
-    private var me = ""
+    private var humans = emptySet<String>()
     private var shown = ChatTranscript()
 
     override fun onMessage(webSocket: WebSocket, text: String) {
@@ -78,7 +78,7 @@ class OkHttpAgentChat(
       }
       when (frame) {
         is ServerFrame.Connection -> opened(webSocket, frame)
-        is ServerFrame.Message -> shown = shown.with(frame.message.toChatMessage(me))
+        is ServerFrame.Message -> shown = shown.with(frame.message.toChatMessage(humans))
         ServerFrame.Other -> return
       }
       out.trySend(shown)
@@ -94,8 +94,8 @@ class OkHttpAgentChat(
     }
 
     private fun opened(webSocket: WebSocket, connection: ServerFrame.Connection) {
-      me = connection.username
-      shown = ChatTranscript(connection.messages.map { it.toChatMessage(me) })
+      humans = connection.humans
+      shown = ChatTranscript(connection.messages.map { it.toChatMessage(humans) })
       open = webSocket
     }
   }

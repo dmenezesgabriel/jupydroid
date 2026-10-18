@@ -71,7 +71,8 @@ class OkHttpAgentChatTest : AgentChatContract() {
 
 /**
  * Upgrades `/api/chat/ws/<path>` and speaks as `WSChatHandler` does (jupyterlab_chat 0.25.2
- * `websocket_handler.py`): `connection` first, with the history; each `send` echoed back as a
+ * `websocket_handler.py`): `connection` first, with the history and every user it names, the user's
+ * own messages in it sent by an earlier socket's anonymous user; each `send` echoed back as a
  * `message` from the sender; then, if it named the opencode persona, the persona's reply. A
  * question naming no persona goes unanswered, as the router leaves it (`persona_manager.py`).
  */
@@ -85,14 +86,11 @@ private class ChatLikeTheTabletsServer(
 
   private inner class Speaker : WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) {
-      val messages = buildJsonArray { history.forEach { add(wire(it.id, it.body, if (it.fromMe) ME else PERSONA)) } }
-      webSocket.send(
-        frame(
-          "connection",
-          "user" to buildJsonObject { put("username", JsonPrimitive(ME)) },
-          "messages" to messages,
-        ),
-      )
+      val messages = buildJsonArray {
+        history.forEach { add(wire(it.id, it.body, if (it.fromMe) EARLIER_ME else PERSONA)) }
+      }
+      val users = buildJsonObject { listOf(EARLIER_ME, ME, PERSONA).forEach { put(it, user(it)) } }
+      webSocket.send(frame("connection", "user" to user(ME), "messages" to messages, "users" to users))
       streamed.forEach { webSocket.send(frame("message", "message" to wire("streamed", it, PERSONA))) }
     }
 
@@ -118,11 +116,19 @@ private class ChatLikeTheTabletsServer(
     put("time", JsonPrimitive(0.0))
   }
 
+  private fun user(username: String) = buildJsonObject {
+    put("username", JsonPrimitive(username))
+    put("bot", JsonPrimitive(username == PERSONA))
+  }
+
   private fun frame(action: String, vararg fields: Pair<String, JsonElement>): String =
     JsonObject(mapOf("type" to JsonPrimitive("server"), "action" to JsonPrimitive(action)) + fields).toString()
 
   private companion object {
     const val ME = "0f7fbf88210940d7bc0811bf662d373e"
+
+    /** jupyter_server makes a new anonymous user for every token-authenticated socket. */
+    const val EARLIER_ME = "7e0614b6251348fe8361f4254fed2f73"
     const val PERSONA = OPENCODE_PERSONA_ID
   }
 }

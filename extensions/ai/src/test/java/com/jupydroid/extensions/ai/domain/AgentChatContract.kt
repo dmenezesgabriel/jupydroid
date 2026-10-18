@@ -25,11 +25,18 @@ abstract class AgentChatContract {
     replies: Map<String, String> = emptyMap(),
   ): AgentChat
 
+  /** What was asked before the chat was opened again is still the user's, and the answer the agent's. */
   @Test
   fun openingAChatShowsWhatItAlreadyHolds() = withOpenChat(
-    chat(history = listOf(ChatMessage(id = "a", body = "earlier", fromMe = true))),
+    chat(
+      history = listOf(
+        ChatMessage(id = "a", body = "earlier", fromMe = true),
+        ChatMessage(id = "b", body = "answered", fromMe = false),
+      ),
+    ),
   ) { _, transcripts ->
-    assertEquals(listOf("earlier"), transcripts.receive().messages.map { it.body })
+    val shown = transcripts.receive().messages.map { it.body to it.fromMe }
+    assertEquals(listOf("earlier" to true, "answered" to false), shown)
   }
 
   @Test

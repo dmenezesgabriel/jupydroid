@@ -15,7 +15,21 @@ class ChatFramesTest {
   fun theConnectionFrameNamesWhoIAmAndWhatTheChatHolds() {
     val frame = ChatFrames.parse(resource("connection-on-a-new-chat.json"))
 
-    assertEquals(ServerFrame.Connection(username = "0f7fbf88210940d7bc0811bf662d373e", messages = emptyList()), frame)
+    assertEquals(
+      ServerFrame.Connection(humans = setOf("0f7fbf88210940d7bc0811bf662d373e"), messages = emptyList()),
+      frame,
+    )
+  }
+
+  /**
+   * After a relaunch the socket is a new anonymous user, and the question in the history is an
+   * earlier one's; both are people, while the persona and jupyter-ai's system user are bots.
+   */
+  @Test
+  fun theConnectionFrameNamesEveryPersonTheChatHasSeen() {
+    val frame = ChatFrames.parse(resource("connection-after-a-relaunch.json")) as ServerFrame.Connection
+
+    assertEquals(setOf("7e0614b6251348fe8361f4254fed2f73", "b80d82e1618d4c79b80c1923f0c241a9"), frame.humans)
   }
 
   /** Shaped as `ServerMessageMessage` serializes a persona's `Message` (jupyterlab_chat 0.25.2 `ws_messages.py`). */
