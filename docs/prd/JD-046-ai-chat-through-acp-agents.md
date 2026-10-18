@@ -133,8 +133,9 @@ there (see Deviations).
   `jupyter_ai_acp_client`'s import (median 1.22 s) behind one line: `routes.py` imports
   `BaseAcpPersona` at module scope for an `isinstance` test in its POST handler, which loads `acp` and
   pydantic on every server start. The personas that need `acp` load when a chat opens, so `acp`'s
-  subtree (median 0.85 s) can wait for one. 0.4.0a0 has the same line. **Cut it**; how (a patch in
-  the image, a change upstream, or both) is T4c's to decide.
+  subtree (median 0.85 s) can wait for one. 0.4.0a0 has the same line. **Cut** by T4c, as a patch
+  in the image (`tools/rootfs/acp_lazy_import_patch.py`) that fails the build once upstream changes
+  the file. The upstream change is the user's to open. Warm boot went from 4.66 s to 4.00 s.
 - Claude, Devin, pi and Antigravity are later items. jupyter_ai_acp_client 0.3.3 has a persona for
   Claude only, and Antigravity has been reported to abort on 39-bit arm64 kernels
   (https://discuss.ai.google.dev/t/bug-agy-crashes-on-arm64/145425).
@@ -169,7 +170,7 @@ there (see Deviations).
 - [x] T4b — an on-device `python3 -X importtime` profile of the `jupyter_ai_acp_client` import as the
   server makes it, self time summed by top-level package; the verdict on cutting it settled in Open
   decisions
-- [ ] T4c — the cut the profile justifies, if it justifies one
+- [x] T4c — the cut the profile justifies, if it justifies one
 - [ ] T4d — the demo on a fresh install, opencode signed in by a person; ADR, ledger rows, ship
 
 ## Out of scope
