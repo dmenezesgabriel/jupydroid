@@ -119,7 +119,7 @@ Each one is settled by a measurement in the task that needs it:
 - [x] T1: `hasFragileUserData="true"`. Measure on SM-X216B that the system uninstall offers Keep app
   data, and that a reinstall finds the workspace and opencode's binary. Evidence: screenshots of the
   dialog and of the explorer afterwards.
-- [ ] T2: `SpaceHomeBackupScope`, red test first. It returns each Space's home minus `pyvenv.cfg`
+- [x] T2: `SpaceHomeBackupScope`, red test first. It returns each Space's home minus `pyvenv.cfg`
   directories and `.cache`, each Space's `config.json`, and the app's own state files. Never the
   rootfs, `pkgs`, `run`, `tmp`, the rootfs stamp or a symlink.
 - [ ] T3: `SpaceHomeBackupAgent` wired through the manifest and `data_extraction_rules.xml`. Measure

@@ -13,7 +13,17 @@ import java.io.File
  * DiskSpaceRepository(spacesDir(context))
  * ```
  */
-fun spacesDir(context: Context): File = File(context.filesDir, "spaces")
+fun spacesDir(context: Context): File = spacesDirIn(context.filesDir)
+
+/**
+ * [spacesDir] for a caller that holds `filesDir` but not the app's [Context]: a `BackupAgent` is
+ * its own `Context`, built by the platform, and walks the same tree.
+ *
+ * ```
+ * spacesDirIn(agent.filesDir)
+ * ```
+ */
+fun spacesDirIn(filesDir: File): File = File(filesDir, "spaces")
 
 /**
  * The directory of the Space named [spaceId]: its id *is* the directory's name, which is how
