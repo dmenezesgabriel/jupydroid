@@ -1,8 +1,10 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extension.api.ServerAddress
+import com.jupydroid.extensions.ai.data.logcat.RecordingChatSocketLog
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatContract
+import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -23,6 +25,7 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import java.util.concurrent.TimeUnit
@@ -60,12 +63,51 @@ class OkHttpAgentChatTest : AgentChatContract() {
     assertEquals(false, whole.messages.single().fromMe)
   }
 
-  private fun chatUnderTest(): AgentChat = OkHttpAgentChat(
+  /**
+   * A server that exits drops the socket with no close frame, and OkHttp's `EOFException` for that
+   * has a null message: the panel once read "the chat's socket failed: null".
+   */
+  @Test
+  fun transcript_namesWhatFailedWhenTheServerDropsTheSocket() = runBlocking {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(ending = WebSocket::cancel)
+    val log = RecordingChatSocketLog()
+
+    val failure = endingOf(chatUnderTest(log))
+
+    assertEquals("the chat's socket failed: EOFException", failure.message)
+    assertEquals(
+      mapOf("error" to "EOFException", "chat" to "untitled.chat"),
+      log.fieldsOf("chat.socket.failed"),
+    )
+  }
+
+  /** `WSChatHandler` closes `1008` for a path outside the server root (`websocket_handler.py`). */
+  @Test
+  fun transcript_logsTheCodeAndReasonWhenTheServerClosesTheSocket() = runBlocking {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(ending = { it.close(POLICY_VIOLATION, "outside root") })
+    val log = RecordingChatSocketLog()
+
+    val failure = endingOf(chatUnderTest(log))
+
+    assertFalse(failure.message.orEmpty().contains("null"))
+    assertEquals(
+      mapOf("code" to "1008", "reason" to "outside root", "chat" to "untitled.chat"),
+      log.fieldsOf("chat.socket.closed"),
+    )
+  }
+
+  private suspend fun endingOf(chat: AgentChat): AgentChatException = withTimeout(TIMEOUT_MILLIS) {
+    runCatching { chat.transcript().collect {} }.exceptionOrNull() as AgentChatException
+  }
+
+  private fun chatUnderTest(log: RecordingChatSocketLog = RecordingChatSocketLog()): AgentChat = OkHttpAgentChat(
     server = { ServerAddress(baseUrl = serverRule.server.url("/").toString(), token = "secret-token") },
+    log = log,
   )
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+    const val POLICY_VIOLATION = 1008
   }
 }
 
@@ -75,11 +117,14 @@ class OkHttpAgentChatTest : AgentChatContract() {
  * own messages in it sent by an earlier socket's anonymous user; each `send` echoed back as a
  * `message` from the sender; then, if it named the opencode persona, the persona's reply. A
  * question naming no persona goes unanswered, as the router leaves it (`persona_manager.py`).
+ *
+ * @param ending what the server does to the socket once it has spoken, for a test of how it ends.
  */
 private class ChatLikeTheTabletsServer(
   private val history: List<ChatMessage> = emptyList(),
   private val replies: Map<String, String> = emptyMap(),
   private val streamed: List<String> = emptyList(),
+  private val ending: (WebSocket) -> Unit = {},
 ) : Dispatcher() {
   override fun dispatch(request: RecordedRequest): MockResponse =
     MockResponse.Builder().webSocketUpgrade(Speaker()).build()
@@ -92,6 +137,7 @@ private class ChatLikeTheTabletsServer(
       val users = buildJsonObject { listOf(EARLIER_ME, ME, PERSONA).forEach { put(it, user(it)) } }
       webSocket.send(frame("connection", "user" to user(ME), "messages" to messages, "users" to users))
       streamed.forEach { webSocket.send(frame("message", "message" to wire("streamed", it, PERSONA))) }
+      ending(webSocket)
     }
 
     /** Answers the panel's close as Tornado does, or the server would wait on the socket forever. */

@@ -8,6 +8,7 @@ import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SpaceServerEndpoint
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.data.http.OkHttpAgentChat
+import com.jupydroid.extensions.ai.data.logcat.LogcatChatSocketLog
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.ui.ChatPanel
 
@@ -27,7 +28,7 @@ import com.jupydroid.extensions.ai.ui.ChatPanel
  */
 class AiExtension(
   private val chatFor: (SpaceServerEndpoint?) -> AgentChat = { server ->
-    server?.let(::OkHttpAgentChat) ?: FakeAgentChat()
+    server?.let { OkHttpAgentChat(it, log = LogcatChatSocketLog) } ?: FakeAgentChat()
   },
 ) : Extension {
   override val sidePanels: List<SidePanelContribution> = listOf(

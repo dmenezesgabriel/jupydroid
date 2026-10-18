@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extension.api.SpaceServerEndpoint
+import com.jupydroid.extensions.ai.data.logcat.ChatSocketLog
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatTranscript
@@ -38,6 +39,7 @@ class OkHttpAgentChat(
   private val client: OkHttpClient = OkHttpClient(),
   private val chatPath: String = "untitled.chat",
   private val persona: String = OPENCODE_PERSONA_ID,
+  private val log: ChatSocketLog = ChatSocketLog.Silent,
 ) : AgentChat {
   /** The socket whose `connection` frame has arrived; null while no chat is open. */
   @Volatile private var open: WebSocket? = null
@@ -85,12 +87,24 @@ class OkHttpAgentChat(
       out.trySend(shown)
     }
 
+    /**
+     * A server that exits drops the socket with no close frame, and OkHttp's `EOFException` for that
+     * has a null message, so the class is what names it.
+     */
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-      out.close(AgentChatException("the chat's socket failed: ${response?.code ?: t.message}"))
+      val fields = buildMap {
+        put("error", t::class.simpleName.orEmpty())
+        t.message?.let { put("message", it) }
+        response?.let { put("http", it.code.toString()) }
+        put("chat", chatPath)
+      }
+      log.reached("chat.socket.failed", fields)
+      out.close(AgentChatException("the chat's socket failed: ${failureText(fields)}"))
     }
 
     /** The server closing first is a refusal: `1008` for a path outside the root (`websocket_handler.py`). */
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+      log.reached("chat.socket.closed", mapOf("code" to code.toString(), "reason" to reason, "chat" to chatPath))
       out.close(AgentChatException("the chat's socket was closed: $code $reason"))
     }
 
@@ -103,5 +117,14 @@ class OkHttpAgentChat(
 
   private companion object {
     const val NORMAL_CLOSURE = 1000
+
+    /**
+     * `EOFException`, or `ProtocolException: Expected HTTP 101 (http 403)`: the class, then its message
+     * and the response's code when there are any, the way the kernel's socket reports an ending
+     * (`app/src/main/java/com/jupydroid/app/data/space/JupyterSocket.kt`).
+     */
+    fun failureText(fields: Map<String, String>): String = fields.getValue("error") +
+      fields["message"]?.let { ": $it" }.orEmpty() +
+      fields["http"]?.let { " (http $it)" }.orEmpty()
   }
 }
