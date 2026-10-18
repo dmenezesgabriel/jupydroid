@@ -267,7 +267,7 @@ the IDE as an MCP *server* (`plugins/mcp-server`).
   from jupyter_server's own hooks before any code
 - [x] T5c — a dropped socket opens again: the panel shows it reconnecting and reads the chat back,
   with no relaunch
-- [ ] T6 — the input as jupyter-chat draws it, measured before and after on SM-X216B
+- [x] T6 — the input as jupyter-chat draws it, measured before and after on SM-X216B
 - [ ] T7 — the demo again with a person, steps 1–6
 
 ## Out of scope

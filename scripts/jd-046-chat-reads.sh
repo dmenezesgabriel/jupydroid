@@ -37,6 +37,50 @@ require_panel_followed_count() { # require_panel_followed_count <evidence dir>
     { echo "the question is still on screen: the panel did not follow the answer" >&2; return 1; }
 }
 
+# Where Send sits against the field, read from the hierarchy in px and in dp: the field is the
+# panel's one EditText, and Send the Button whose bounds hold a node named "Send": a text button's
+# label and an icon button's icon are both dumped beside the Button, not inside it.
+# "beside" is Send's left edge past the field's right, "beneath" Send's top past the field's bottom,
+# and "inset" the field's right edge past Send's. Written to `input-geometry.txt`.
+print_input_geometry() { # print_input_geometry <evidence dir>
+  dump_chat_hierarchy "$1"
+  python3 - "$1" "$("${DEVICE_ADB[@]}" shell wm density | tr -d '\r')" <<'PY' | tee "$1/input-geometry.txt"
+import re, sys, xml.etree.ElementTree as ET
+
+evidence, density = sys.argv[1], sys.argv[2]
+# `wm density` prints the physical density, then any override, which is the one in force.
+scale = int(re.findall(r"density:\s*(\d+)", density)[-1]) / 160
+
+def box(node):
+    return tuple(int(v) for v in re.findall(r"\d+", node.get("bounds")))
+
+def holds(outer, inner):
+    return outer[0] <= inner[0] and outer[1] <= inner[1] and inner[2] <= outer[2] and inner[3] <= outer[3]
+
+def only(kind, named):
+    nodes = [box(n) for n in tree if n.get("class") == f"android.widget.{kind}" and named(n)]
+    assert len(nodes) == 1, f"expected one {kind} in {evidence}/hierarchy.xml, found {len(nodes)}"
+    return nodes[0]
+
+tree = list(ET.parse(f"{evidence}/hierarchy.xml").iter("node"))
+labels = [box(n) for n in tree if "Send" in (n.get("text"), n.get("content-desc"))]
+
+def is_send(node):
+    return any(holds(box(node), label) for label in labels)
+
+def dp(px):
+    return f"{px} px = {px / scale:.1f} dp"
+
+field, send = only("EditText", lambda node: True), only("Button", is_send)
+print(f"density  {scale * 160:.0f} dpi")
+print(f"field    {field}  {dp(field[2] - field[0])} wide, {dp(field[3] - field[1])} tall")
+print(f"send     {send}  {dp(send[2] - send[0])} wide, {dp(send[3] - send[1])} tall")
+print(f"beside   {dp(send[0] - field[2])}")
+print(f"beneath  {dp(send[1] - field[3])}")
+print(f"inset    {dp(field[2] - send[2])}")
+PY
+}
+
 # The server writes the chat on its own schedule, so the file is waited for, not read at once. One
 # line per chunk the persona appended (`agent_message_chunk: <n> chars`) goes to `chunks.txt`; the
 # log itself stays local, as it holds the server's token.
