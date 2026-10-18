@@ -4,9 +4,13 @@ import com.jupydroid.extension.api.ServerAddress
 import com.jupydroid.extensions.ai.data.logcat.RecordingChatSocketLog
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatContract
+import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import com.jupydroid.extensions.ai.domain.ChatReading
+import com.jupydroid.extensions.ai.domain.readings
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,6 +33,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.util.concurrent.CopyOnWriteArrayList
@@ -81,6 +86,7 @@ class OkHttpAgentChatTest : AgentChatContract() {
     val failure = endingOf(chatUnderTest(log))
 
     assertEquals("the chat's socket failed: EOFException", failure.message)
+    assertTrue("a drop is what the chat opens again for", failure is AgentChatDroppedException)
     assertEquals(
       mapOf("error" to "EOFException", "chat" to "untitled.chat"),
       log.fieldsOf("chat.socket.failed"),
@@ -96,10 +102,39 @@ class OkHttpAgentChatTest : AgentChatContract() {
     val failure = endingOf(chatUnderTest(log))
 
     assertFalse(failure.message.orEmpty().contains("null"))
+    assertFalse("a close frame is the server's answer", failure is AgentChatDroppedException)
     assertEquals(
       mapOf("code" to "1008", "reason" to "outside root", "chat" to "untitled.chat"),
       log.fieldsOf("chat.socket.closed"),
     )
+  }
+
+  /**
+   * The server that dropped the chat is asked for again and answers with the chat as its file holds
+   * it, and the reopened chat is the one asked.
+   */
+  @Test
+  fun readings_reopensADroppedChatAndAsksTheNewSocket() = runBlocking {
+    val earlier = ChatMessage(id = "a", body = "earlier", fromMe = true)
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(history = listOf(earlier), dropOn = DROP)
+    val chat = chatUnderTest()
+    val readings = Channel<ChatReading>(Channel.UNLIMITED)
+
+    val open = launch { chat.readings(reopenAfter = 10.milliseconds).collect { readings.send(it) } }
+    val reopened = withTimeout(TIMEOUT_MILLIS) {
+      readings.receiveUntil { it is ChatReading.Open }
+      chat.ask(DROP)
+      readings.receiveUntil { it is ChatReading.Reconnecting }
+      readings.receiveUntil { it is ChatReading.Open } as ChatReading.Open
+    }
+    chat.ask("again?")
+    val asked = withTimeout(TIMEOUT_MILLIS) {
+      readings.receiveUntil { (it as? ChatReading.Open)?.transcript?.messages?.size == 2 } as ChatReading.Open
+    }
+    open.cancelAndJoin()
+
+    assertEquals(listOf("earlier"), reopened.transcript.messages.map { it.body })
+    assertEquals(listOf("earlier", "again?"), asked.transcript.messages.map { it.body })
   }
 
   /**
@@ -154,6 +189,10 @@ class OkHttpAgentChatTest : AgentChatContract() {
     while (server.touches.size < count) delay(HEARTBEAT)
   }
 
+  private suspend fun Channel<ChatReading>.receiveUntil(test: (ChatReading) -> Boolean): ChatReading {
+    while (true) receive().takeIf(test)?.let { return it }
+  }
+
   private suspend fun endingOf(chat: AgentChat): AgentChatException = withTimeout(TIMEOUT_MILLIS) {
     runCatching { chat.transcript().collect {} }.exceptionOrNull() as AgentChatException
   }
@@ -171,6 +210,7 @@ class OkHttpAgentChatTest : AgentChatContract() {
     const val TIMEOUT_MILLIS = 5_000L
     const val POLICY_VIOLATION = 1008
     const val SERVICE_UNAVAILABLE = 503
+    const val DROP = "drop the socket"
     const val QUIET_INTERVALS = 5
     val HEARTBEAT = 50.milliseconds
   }
@@ -184,6 +224,8 @@ class OkHttpAgentChatTest : AgentChatContract() {
  * question naming no persona goes unanswered, as the router leaves it (`persona_manager.py`).
  *
  * @param ending what the server does to the socket once it has spoken, for a test of how it ends.
+ * @param dropOn a question the server drops the socket for instead of echoing it, as an exiting server
+ *   would; asked only once the chat is open, so the drop never races the `connection` frame.
  * @param meStatus what `GET /api/me` answers; every one is kept in [touches].
  */
 private class ChatLikeTheTabletsServer(
@@ -191,6 +233,7 @@ private class ChatLikeTheTabletsServer(
   private val replies: Map<String, String> = emptyMap(),
   private val streamed: List<String> = emptyList(),
   private val ending: (WebSocket) -> Unit = {},
+  private val dropOn: String? = null,
   private val meStatus: Int = 200,
 ) : Dispatcher() {
   /** The `Authorization` header of every `GET /api/me`, in the order they came. */
@@ -221,6 +264,7 @@ private class ChatLikeTheTabletsServer(
     override fun onMessage(webSocket: WebSocket, text: String) {
       val send = Json.parseToJsonElement(text).jsonObject
       val body = send.getValue("body").jsonPrimitive.content
+      if (body == dropOn) return webSocket.cancel()
       webSocket.send(frame("message", "message" to wire(send.getValue("id").jsonPrimitive.content, body, ME)))
       val persona = send["metadata"]?.jsonObject?.get("to_persona")?.jsonPrimitive?.content
       val reply = replies[body]?.takeIf { persona == OPENCODE_PERSONA_ID } ?: return

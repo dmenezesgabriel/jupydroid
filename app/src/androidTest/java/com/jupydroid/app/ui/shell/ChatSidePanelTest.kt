@@ -3,8 +3,10 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -18,6 +20,7 @@ import com.jupydroid.extensions.ai.AiExtension
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import com.jupydroid.extensions.ai.domain.ChatTranscript
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -100,6 +103,24 @@ class ChatSidePanelTest {
     assertEquals(0f, scrollRange().value())
   }
 
+  /** A chat whose server stopped says so while it opens again, and is read back from the new one. */
+  @Test
+  fun aDroppedChatSaysItIsReconnectingThenReadsTheChatBack() {
+    val asked = ChatTranscript(listOf(ChatMessage(id = "q", body = "before the drop", fromMe = true)))
+    val chat = DroppingAgentChat(before = asked, after = asked.with(ChatMessage("a", "read back", fromMe = false)))
+    show(chat)
+    compose.onNodeWithTag("chat-input").performTextInput("again")
+
+    compose.onNodeWithText("Reconnecting: ${DroppingAgentChat.DROPPED}").assertIsDisplayed()
+    compose.onNodeWithText("before the drop").assertIsDisplayed()
+    compose.onNodeWithTag("chat-send").assertIsNotEnabled()
+
+    chat.reopen()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText("read back").fetchSemanticsNodes().isNotEmpty() }
+    compose.onNodeWithTag("chat-send").assertIsEnabled()
+  }
+
   /** How far the messages are scrolled, and how far they can be - what a screen reader reads. */
   private fun scrollRange(): ScrollAxisRange = compose.onNodeWithTag("chat-messages").fetchSemanticsNode()
     .config[SemanticsProperties.VerticalScrollAxisRange]
@@ -116,5 +137,7 @@ class ChatSidePanelTest {
   private companion object {
     /** Taller than any screen the tests run on, one number per line. */
     val LONG_ANSWER = (1..200).joinToString("\n")
+
+    const val TIMEOUT_MILLIS = 5_000L
   }
 }

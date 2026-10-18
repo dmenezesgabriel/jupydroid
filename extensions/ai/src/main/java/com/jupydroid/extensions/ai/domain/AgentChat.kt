@@ -31,5 +31,11 @@ interface AgentChat {
 }
 
 /** The chat failed, or was asked [question] while it was not open. */
-class AgentChatException(reason: String, question: String? = null) :
+open class AgentChatException(reason: String, question: String? = null) :
   Exception(question?.let { "asking '$it' failed: $reason" } ?: reason)
+
+/**
+ * The chat's socket ended without a close frame, as it does when the server behind it exits: the one
+ * ending worth opening the chat again for ([readings]).
+ */
+class AgentChatDroppedException(reason: String) : AgentChatException(reason)

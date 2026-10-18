@@ -32,7 +32,9 @@ import androidx.compose.ui.unit.dp
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import com.jupydroid.extensions.ai.domain.ChatReading
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import com.jupydroid.extensions.ai.domain.readings
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
@@ -43,6 +45,7 @@ import kotlinx.coroutines.launch
  * **Open while the panel is shown**: leaving the panel drops it from the composition, which stops
  * collecting [AgentChat.transcript] and closes the socket; opening it again reads the chat back from
  * its file. jupyterlab-chat keeps a chat open while any client is, and frees it after (`chat_manager.py`).
+ * A chat that drops while shown opens again on its own ([readings]), its last messages still drawn.
  *
  * ```
  * ChatPanel(chat = FakeAgentChat(replies = mapOf("hello?" to "hi")))
@@ -51,13 +54,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
   var reading by remember(chat) { mutableStateOf<ChatReading>(ChatReading.Opening) }
-  LaunchedEffect(chat) {
-    try {
-      chat.transcript().collect { reading = ChatReading.Open(it) }
-    } catch (failure: AgentChatException) {
-      reading = ChatReading.Failed(failure.message.orEmpty())
-    }
-  }
+  LaunchedEffect(chat) { chat.readings().collect { reading = it } }
   val scope = rememberCoroutineScope()
   Column(modifier = modifier.fillMaxSize()) {
     when (val shown = reading) {
@@ -68,6 +65,14 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
         modifier = Modifier.weight(1f),
       )
       is ChatReading.Open -> Messages(shown.transcript, Modifier.weight(1f))
+      is ChatReading.Reconnecting -> {
+        Messages(shown.transcript, Modifier.weight(1f))
+        Text(
+          "Reconnecting: ${shown.reason}",
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          modifier = Modifier.testTag("chat-reconnecting"),
+        )
+      }
     }
     QuestionField(enabled = reading is ChatReading.Open) { question ->
       scope.launch {
@@ -151,13 +156,4 @@ private fun QuestionField(enabled: Boolean, onAsk: (String) -> Unit) {
       modifier = Modifier.testTag("chat-send"),
     ) { Text("Send") }
   }
-}
-
-/** Where the chat stands. */
-private sealed interface ChatReading {
-  data object Opening : ChatReading
-
-  data class Open(val transcript: ChatTranscript) : ChatReading
-
-  data class Failed(val message: String) : ChatReading
 }

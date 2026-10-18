@@ -4,6 +4,7 @@ import com.jupydroid.extension.api.SpaceServerEndpoint
 import com.jupydroid.extensions.ai.data.logcat.ChatSocketLog
 import com.jupydroid.extensions.ai.data.logcat.chatFailureFields
 import com.jupydroid.extensions.ai.domain.AgentChat
+import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import kotlinx.coroutines.channels.ProducerScope
@@ -102,12 +103,13 @@ class OkHttpAgentChat(
 
     /**
      * A server that exits drops the socket with no close frame, and OkHttp's `EOFException` for that
-     * has a null message, so the class is what names it.
+     * has a null message, so the class is what names it. Ending with no close frame is a drop, which
+     * the chat opens again for (`readings`).
      */
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
       val fields = chatFailureFields(chatPath, error = t, http = response?.code)
       log.reached("chat.socket.failed", fields)
-      out.close(AgentChatException("the chat's socket failed: ${failureText(fields)}"))
+      out.close(AgentChatDroppedException("the chat's socket failed: ${failureText(fields)}"))
     }
 
     /** The server closing first is a refusal: `1008` for a path outside the root (`websocket_handler.py`). */
