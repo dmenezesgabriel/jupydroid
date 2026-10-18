@@ -16,13 +16,10 @@ On the arm64 tablet (`SM-X216B`). The agent runs in a Space, and only arm64 ship
 1. Fresh install, launch, run and enter `base`.
 2. In the Terminal, install opencode into `/usr/local/bin`, which is on the server's `PATH` (the npm
    tarball `opencode-linux-arm64-musl`, as T1's probe did), then `opencode auth login` with the user's own key. The key never appears in evidence.
-3. Stop and run `base` again, so the server imports the persona with `opencode` on its `PATH`.
-4. Tap **Chat** on the rail and ask a question that uses no tool. opencode's answer appears beneath it,
-   growing as it streams.
-5. Kill and relaunch, run and enter `base`, open Chat: the question and the answer are still there,
+3. Tap **Chat** on the rail and ask a question that uses no tool. opencode's answer appears beneath it,
+   growing as it streams, and the panel follows it to its last line.
+4. Kill and relaunch, run and enter `base`, open Chat: the question and the answer are still there,
    read back from the `.chat` file.
-6. With opencode signed out, ask again: the panel shows the persona's own "OpenCode isn't configured
-   yet" answer rather than nothing.
 
 ## Who else implements this
 
@@ -163,7 +160,10 @@ there (see Deviations).
   names the new module (signed out, opencode answers from a model of its own rather than "not
   configured")
 - [x] T3b — signed in, opencode's answer streams back into one message as it grows
-- [ ] T4 — the demo on a fresh install; ADR, ledger rows, ship
+- [ ] T4a — the Chat panel keeps the newest message's end in view while the reader is at the bottom,
+  and draws no message with an empty body
+- [ ] T4b — an on-device `python3 -X importtime` profile of the `jupyter_ai_acp_client` import; the
+  demo on a fresh install; ADR, ledger rows, ship
 
 ## Out of scope
 
