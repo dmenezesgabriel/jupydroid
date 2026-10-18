@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# The same app, minutes after jd-046-ai-chat-keeps-server-part1.yaml opened Chat on a base that
+# idles out after 1 minute, with no launch in between. Run by scripts/jd-046-ai-chat-demo-driver.sh
+# with opencode signed in, so the chat must not only still be open but still answer.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 10000
+# Taken before the assertion, so a run where the server stopped keeps a picture of what it showed.
+- takeScreenshot: 01-still-open-after-the-idle
+- assertNotVisible: "the chat's socket .*"
+- tapOn: "Ask the agent"
+- inputText: "Count from 1 to 5, one number per line, and nothing else."
+- hideKeyboard
+- tapOn: "Send"
+# The whole text of one message, so neither the question nor the earlier count to 40 matches it.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 300000
+- takeScreenshot: 02-answered-after-the-idle

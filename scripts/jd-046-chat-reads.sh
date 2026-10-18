@@ -134,3 +134,16 @@ print("\n".join(lines))
 assert colour(asked) != colour(answered), "after the relaunch the question is drawn as the answer is: not the user's"
 PY
 }
+
+# Whether an open Chat kept base's server up past its idle setting, from the server's own log in
+# the evidence directory: the pre-started kernel was culled, the panel's heartbeat touched `api/me`
+# more than once, and the server never shut itself down (jupyter_server 2.20.0 `serverapp.py`
+# `shutdown_no_activity`). The lines read go to `server-log-lines.txt`.
+require_server_kept_up() { # require_server_kept_up <evidence dir>
+  local log="$1/jupyter_server.log"
+  grep -h "Culling\|shutting down\|GET /api/me" "$log" | tee "$1/server-log-lines.txt" || true
+  grep -q "Culling" "$log" || { echo "the server log holds no kernel cull" >&2; return 1; }
+  [ "$(grep -c "200 GET /api/me" "$log")" -ge 2 ] ||
+    { echo "the server log holds fewer than two 200 GET /api/me" >&2; return 1; }
+  ! grep -q "shutting down" "$log" || { echo "the server shut itself down under an open chat" >&2; return 1; }
+}

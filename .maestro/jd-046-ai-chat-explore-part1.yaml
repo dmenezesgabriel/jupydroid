@@ -1,0 +1,54 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode signed in. The first of the two flows
+# scripts/jd-046-ai-chat-explore-driver.sh runs: what a person does past the demo's script.
+#
+# The question's answer is not known in advance, so the waits name what only the answer holds:
+# "Python", then "comprehension" after it. "Python" alone matched the Launcher's "Python 3" card
+# beside the panel, and the question holds "comprehension" but not "Python". Four paragraphs are
+# taller than the panel. The reader scrolls up while the answer may still be growing, and
+# the two frames 8 s apart say whether the panel left them where they were.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Which language writes a list comprehension like [x*x for x in range(3)]? Answer in four paragraphs."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ".*Python.*comprehension.*"
+    timeout: 300000
+- takeScreenshot: 01-the-answer-starts
+# Swiped inside the panel, at a fifth of the width: the middle of the screen is the editor pane.
+- swipe:
+    start: 20%, 30%
+    end: 20%, 75%
+    duration: 600
+- takeScreenshot: 02-scrolled-up
+# A wait with nothing to wait for: the frame after it is what the panel did while the reader was
+# away from the end.
+- extendedWaitUntil:
+    visible: "nothing on screen reads this"
+    timeout: 8000
+    optional: true
+- takeScreenshot: 03-eight-seconds-later
+- repeat:
+    times: 4
+    commands:
+      - swipe:
+          start: 20%, 75%
+          end: 20%, 25%
+          duration: 400
+- takeScreenshot: 04-back-at-the-end
+- tapOn: "Files"
+- takeScreenshot: 05-files
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: ".*Python.*comprehension.*"
+    timeout: 10000
+- takeScreenshot: 06-chat-again

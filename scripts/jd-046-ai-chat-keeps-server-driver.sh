@@ -23,6 +23,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/jd-030-rotation-reads.sh"
 # shellcheck source=scripts/space-server.sh
 . "$ROOT/scripts/space-server.sh"
+# shellcheck source=scripts/jd-046-chat-reads.sh
+. "$ROOT/scripts/jd-046-chat-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-046-ai-chat/t5b/${1:-after}"
 # The cull at 1 to 2 minutes after the start, then one more 60 s check past a 60 s timeout.
@@ -49,9 +51,5 @@ run_part 1 || status=$?
 pull_server_log "$EVIDENCE/jupyter_server.log"
 run_part 3 || fail "the idle setting was not put back"
 
-log="$EVIDENCE/jupyter_server.log"
-grep -h "Culling\|shutting down\|GET /api/me" "$log" | tee "$EVIDENCE/server-log-lines.txt" || true
-grep -q "Culling" "$log" || fail "the server log holds no kernel cull"
-[ "$(grep -c "200 GET /api/me" "$log")" -ge 2 ] || fail "the server log holds fewer than two 200 GET /api/me"
-! grep -q "shutting down" "$log" || fail "the server shut itself down under an open chat"
+require_server_kept_up "$EVIDENCE" || exit 1
 [ "$status" -eq 0 ] || fail "a flow failed ($status)"
