@@ -123,7 +123,7 @@ there (see Deviations).
   and an ACP `initialize`, and logcat shows no seccomp refusal.
 - Whether the persona needs a server restart after the install. T2's server log shows the persona
   manager checking each persona's requirement when a chat opens, not at server start. So a new chat
-  should load opencode without a restart, and T3a confirms it on the device.
+  should load opencode without a restart, and T3a confirmed it on the device.
 - ~~Persona ids for `to_persona`.~~ `BasePersona.id` is `jupyter-ai-personas::<top-level
   module>::<class>` (jupyter_ai_persona_manager 0.2.2 `base_persona.py`), so opencode's is
   `jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona`. A message that names no persona
@@ -158,11 +158,12 @@ there (see Deviations).
   answers an ACP `initialize` over stdio; the install path that lands it on `PATH` is recorded
 - [x] T2 — the image ships the ACP chain and the server answers the `connection` frame on
   `/api/chat/ws/<name>.chat` on the tablet; image size and warm boot measured before and after
-- [ ] T3a — `:extensions:ai` and its Chat panel: a question goes to the opencode persona, and with
+- [x] T3a — `:extensions:ai` and its Chat panel: a question goes to the opencode persona, and with
   opencode installed but signed in to nothing, the persona's reply appears beneath it; every gate
-  names the new module
-- [ ] T3b — signed in, opencode's answer streams back into one message as it grows
-- [ ] T4 — the demo on a fresh install, the not-configured answer; ADR, ledger rows, ship
+  names the new module (signed out, opencode answers from a model of its own rather than "not
+  configured")
+- [x] T3b — signed in, opencode's answer streams back into one message as it grows
+- [ ] T4 — the demo on a fresh install; ADR, ledger rows, ship
 
 ## Out of scope
 
