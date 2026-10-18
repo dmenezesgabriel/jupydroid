@@ -176,6 +176,7 @@ revert to, `GAP-062`, closed by
 | `JD-040` | **Every open document is saved at once:** one tap on Save All in the Running panel's Open Tabs writes every tab with unsaved work, beneath the top or not, and a save the disk refuses brings its tab to the top to ask | shipped | — | `GAP-061` |
 | `JD-041` | **A document is saved under a new name:** a long press on a notebook's or a file's tab offers Save As…, which writes what is on screen to a typed path, asking before it replaces a taken one, and opens the copy while the original keeps what was last saved | shipped | — | `GAP-063` |
 | `JD-042` | **A document reverts to its checkpoint:** a long press on a notebook's or a file's tab offers Revert to Checkpoint…, which puts back what it held when first opened or last saved by the user, asking first, with the checkpoint kept where jupyter_server keeps its own | shipped | — | `GAP-062` |
+| `JD-058` | **What the user made survives a reinstall:** after the app is uninstalled and installed again, the workspace's notebooks, files and chats, and the sign-ins made in a Space's terminal, are still there when the Space is entered | open | — | `GAP-176` |
 
 ### M6 — Presentation
 
@@ -207,6 +208,7 @@ closing none of its siblings, is closed by
 | `JD-037` | **A rename refused from the tab says why:** when the disk refuses a rename or an overwrite asked from a document's tab, a dialog says why instead of closing in silence | shipped | — | `GAP-069` |
 | `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
 | `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
+| `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | open | — | `GAP-081`, `GAP-082` |
 
 ### M7 — Extensions
 
@@ -220,7 +222,7 @@ module boundary with the smallest of the three.
 |---|---|---|---|---|
 | `JD-045` | **The Git panel shows the workspace's branch and changes:** a Source Control panel, contributed by the Git extension module, lists the current branch and every changed file with its status, from jupyterlab-git's server in the running Space | shipped | — | — |
 | `JD-046` | **A Chat panel answers from an ACP agent installed in the Space:** jupyter-ai's chat, contributed by its own extension module, sends a question to opencode through jupyter-ai's ACP persona and shows its answer | partial ← next | [JD-046](prd/JD-046-ai-chat-through-acp-agents.md) | — |
-| `JD-051` | **Every extension panel can be reached at one pane:** on a phone, Source Control, Chat and any later contributed panel open from the bottom bar's area, in a pattern chosen from Material's guidance and measured on device | open | — | — |
+| `JD-051` | **Every extension panel can be reached at one pane:** on a phone, or a tablet held upright, Source Control, Chat and any later contributed panel open from the bottom bar's area, in a pattern chosen from Material's guidance and measured on device | open | — | — |
 | `JD-052` | **One symbol row wherever text is typed:** the row of characters a touch keyboard lacks sits above the keyboard at the window's full width, for a cell, the file editor, the console, the terminal and the Chat input alike | open | — | — |
 | `JD-053` | **The Chat holds several chats:** the panel lists the workspace's `.chat` files, starts a new one under a name, switches between them and deletes one, as jupyter-ai's chat panel does | open | — | — |
 | `JD-049` | **The Chat shows an agent's tool calls, asks before one runs, and stops a reply:** each call is a row with its status, a call awaiting approval offers the agent's own options through jupyter-ai's ACP permission route, and Stop cancels the reply in progress | open | — | — |

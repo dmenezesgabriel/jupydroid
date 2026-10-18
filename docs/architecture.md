@@ -1816,6 +1816,21 @@ because no code arrives at runtime ([ADR-0104](adr/0104-extensions-are-compile-t
 The repair is a list of the built-in extensions with an enable switch on each, and a disabled
 extension's panels left off the rail.
 
+### GAP-176 — Nothing the user made in the app survives an uninstall
+
+Every Space lives in the app's private storage, `files/spaces/<id>/`, and so does everything made
+inside one: the workspace a notebook, a file or a `.chat` is saved to
+(`files/spaces/base/home/jupydroid`), and what a program the user installed keeps in its home,
+such as opencode's sign-in under `~/.local/share/opencode`. Android deletes an app's private
+storage when it is uninstalled. On SM-X216B on 2026-10-18, an `adb uninstall` and a fresh install
+left base re-extracted from the APK, with an empty workspace and opencode gone. Auto Backup is on
+(`android:allowBackup="true"`), but its rules are still the template's empty ones
+(`app/src/main/res/xml/backup_rules.xml`, `data_extraction_rules.xml`), and nothing measured that a
+restore brings any of it back. A person who reinstalls loses their notebooks and every sign-in. The
+repair has to decide what lives outside private storage, for example a workspace in a folder the
+user picks through SAF, which survives an uninstall. A rootfs needs exec and symlinks, which
+shared storage does not give, so the Space itself is re-extracted either way.
+
 ---
 
 ## 12. Glossary
