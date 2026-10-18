@@ -171,7 +171,7 @@ there (see Deviations).
   server makes it, self time summed by top-level package; the verdict on cutting it settled in Open
   decisions
 - [x] T4c — the cut the profile justifies, if it justifies one
-- [ ] T4d — after a relaunch, the question asked before it is still drawn as the user's: every
+- [x] T4d — after a relaunch, the question asked before it is still drawn as the user's: every
   socket is a new anonymous user, so "mine" is any sender the chat's users mark as no bot
 - [ ] T4e — the demo on a fresh install, opencode signed in by a person; ADR, ledger rows, ship
 
