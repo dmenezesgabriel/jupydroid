@@ -1,7 +1,10 @@
 package com.jupydroid.extensions.ai.ui
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,11 +14,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,9 +35,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
@@ -136,24 +148,77 @@ private fun MessageRow(message: ChatMessage) {
   }
 }
 
-/** The question being written; Send clears it and hands it to [onAsk]. */
+/**
+ * The question being written; Send clears it and hands it to [onAsk]. One bordered box, the field
+ * above and Send in a row beneath it, as jupyter-chat draws its input
+ * (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/input/chat-input.tsx`).
+ */
 @Composable
 private fun QuestionField(enabled: Boolean, onAsk: (String) -> Unit) {
   var question by rememberSaveable { mutableStateOf("") }
-  Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-    OutlinedTextField(
-      value = question,
-      onValueChange = { question = it },
-      placeholder = { Text("Ask the agent") },
-      modifier = Modifier.weight(1f).testTag("chat-input"),
-    )
-    Button(
-      onClick = {
+  val shape = RoundedCornerShape(8.dp)
+  Column(
+    modifier = Modifier
+      .fillMaxWidth()
+      .border(1.dp, MaterialTheme.colorScheme.outline, shape)
+      .clip(shape)
+      .testTag("chat-input-box"),
+  ) {
+    QuestionText(question, onChange = { question = it })
+    HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+    // 8 dp, and the button's 48 dp touch target adds 4 dp around its 40 dp face: the face sits
+    // 12 dp in, as jupyter-chat's toolbar pads its 24 px button.
+    Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
+      SendButton(enabled = enabled && question.isNotBlank()) {
         onAsk(question)
         question = ""
-      },
-      enabled = enabled && question.isNotBlank(),
-      modifier = Modifier.testTag("chat-send"),
-    ) { Text("Send") }
+      }
+    }
   }
+}
+
+/** The field itself: no underline and no fill, since the box around it is the border. */
+@Composable
+private fun QuestionText(question: String, onChange: (String) -> Unit) {
+  val interactions = remember { MutableInteractionSource() }
+  BasicTextField(
+    value = question,
+    onValueChange = onChange,
+    textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
+    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+    maxLines = 10,
+    interactionSource = interactions,
+    modifier = Modifier.fillMaxWidth().testTag("chat-input"),
+  ) { field ->
+    TextFieldDefaults.DecorationBox(
+      value = question,
+      innerTextField = field,
+      enabled = true,
+      singleLine = false,
+      visualTransformation = VisualTransformation.None,
+      interactionSource = interactions,
+      placeholder = { Text("Ask the agent") },
+      contentPadding = PaddingValues(12.dp),
+      container = {},
+    )
+  }
+}
+
+/**
+ * jupyter-chat's send is an up arrow on the brand fill with a 2 px radius (`send-button.tsx`,
+ * `theme-provider.ts`). The fill here is `primaryContainer`, the app's button fill, as `primary` is
+ * its link colour (`app/src/main/java/com/jupydroid/app/theme/Theme.kt`).
+ */
+@Composable
+private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
+  FilledIconButton(
+    onClick = onClick,
+    enabled = enabled,
+    shape = RoundedCornerShape(2.dp),
+    colors = IconButtonDefaults.filledIconButtonColors(
+      containerColor = MaterialTheme.colorScheme.primaryContainer,
+      contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ),
+    modifier = Modifier.testTag("chat-send"),
+  ) { Icon(Icons.Filled.ArrowUpward, contentDescription = "Send") }
 }

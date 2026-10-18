@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
@@ -22,6 +23,7 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -68,6 +70,29 @@ class ChatSidePanelTest {
     show()
 
     compose.onNodeWithTag("chat-send").assertIsNotEnabled()
+  }
+
+  /**
+   * One bordered box holds the field and, in a row beneath it, Send, the way jupyter-chat draws its
+   * input (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/input/chat-input.tsx`).
+   */
+  @Test
+  fun sendSitsInsideTheInputsBoxBeneathTheField() {
+    show()
+
+    val box = bounds("chat-input-box")
+    val send = bounds("chat-send")
+    assertTrue("Send $send is not inside the input's box $box", box.intersect(send) == send)
+    assertTrue("Send $send is not beneath the field ${bounds("chat-input")}", send.top >= bounds("chat-input").bottom)
+  }
+
+  @Test
+  fun sendIsPaddedAlikeFromTheBoxsRightAndBottom() {
+    show()
+
+    val box = bounds("chat-input-box")
+    val send = bounds("chat-send")
+    assertEquals(box.right - send.right, box.bottom - send.bottom, 1f)
   }
 
   @Test
@@ -120,6 +145,9 @@ class ChatSidePanelTest {
     compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodesWithText("read back").fetchSemanticsNodes().isNotEmpty() }
     compose.onNodeWithTag("chat-send").assertIsEnabled()
   }
+
+  /** Where the node tagged [tag] is drawn, in the root's pixels. */
+  private fun bounds(tag: String): Rect = compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
 
   /** How far the messages are scrolled, and how far they can be - what a screen reader reads. */
   private fun scrollRange(): ScrollAxisRange = compose.onNodeWithTag("chat-messages").fetchSemanticsNode()
