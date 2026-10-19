@@ -113,6 +113,8 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
   .updatePosition` does a row per move. It needs a twelfth `TerminalPaneViewModel` function, past
   detekt's `TooManyFunctions` limit, and scrollback is reachable without it: a scroll drag keeps
   the selection, and the handle is dragged after it.
+- OSC 8 spans are not underlined. The task is about opening them, and a printed address is not
+  underlined either.
 - No setting to switch tap-to-open off. The confirmation dialog is the guard Termux's default-off
   setting stands in for.
 
@@ -147,8 +149,11 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
   `emulator.paste`. OSC 52 puts its payload on the clipboard.
 - [x] T4: Tapping a printed http(s) URL asks "Open Link?" and opens it. A tap anywhere else still
   focuses the keyboard.
-- [ ] T5: OSC 8 is parsed and its spans are stored, and a tap on one opens it the same way. The demo
-  runs on SM-X216B.
+- [ ] T5a: OSC 8 is parsed and the URI is stored on every cell written while it is open, carried by
+  inserts, deletes and a reflow. A tap on one asks "Open Link?" and opens it, http and https only, and
+  over a printed address the OSC 8 one wins.
+- [ ] T5b: The demo runs on SM-X216B, and it answers whether `opencode auth login` prints plain text
+  or OSC 8.
 
 ## Out of scope
 
