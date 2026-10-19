@@ -125,6 +125,10 @@ fun TerminalPaneScreen(
   var cellPx by remember { mutableStateOf(IntSize(1, 1)) }
   val selection by viewModel.selector.selection.collectAsStateWithLifecycle()
   val copyToClipboard = rememberTerminalClipboardCopy()
+  val pasteFromClipboard = rememberTerminalClipboardPaste(viewModel.emulator::paste)
+  // OSC 52 copies only while this is composed, as `onCopyTextToClipboard` copies only while the
+  // activity is visible (termux-app `3df69d1d`); one that lands meanwhile waits in the channel.
+  LaunchedEffect(viewModel) { viewModel.clipboardCopies.collect(copyToClipboard) }
   val haptics = LocalHapticFeedback.current
   // Where the gesture `Box` sits in the root, which is where the floating toolbar is placed.
   var gestureBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
@@ -144,6 +148,7 @@ fun TerminalPaneScreen(
         fontSizeSp = state.fontSizeSp,
         onIncreaseFontSize = { viewModel.changeFontSize(TerminalFontSize.STEP) },
         onDecreaseFontSize = { viewModel.changeFontSize(-TerminalFontSize.STEP) },
+        onPaste = pasteFromClipboard,
       )
     },
     // `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
@@ -220,7 +225,14 @@ fun TerminalPaneScreen(
           val local = span.boundsIn(cellPx, viewModel.emulator.screen.columns, state.topRow)
           gestureBox?.rootRectOf(local.translate(canvasInsetPx, 0f))
         }
-        TerminalSelectionToolbar(toolbarBounds, onCopy = { viewModel.selector.copyInto(copyToClipboard) })
+        TerminalSelectionToolbar(
+          toolbarBounds,
+          onCopy = { viewModel.selector.copyInto(copyToClipboard) },
+          onPaste = {
+            viewModel.selector.clear()
+            pasteFromClipboard()
+          },
+        )
         TerminalInputField(
           onTypedText = viewModel::typeCharacters,
           onEncodedKey = viewModel::type,
@@ -250,7 +262,7 @@ fun TerminalPaneScreen(
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TerminalBar(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecreaseFontSize: () -> Unit) {
+fun TerminalBar(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecreaseFontSize: () -> Unit, onPaste: () -> Unit) {
   TopAppBar(
     // The tab above names it, and the OSC title goes there too - `onTitleChange` sets
     // `this.title.label`, which is the tab's (`packages/terminal/src/widget.ts:486-488`). No
@@ -261,6 +273,7 @@ fun TerminalBar(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecreaseFontS
         fontSizeSp = fontSizeSp,
         onIncreaseFontSize = onIncreaseFontSize,
         onDecreaseFontSize = onDecreaseFontSize,
+        onPaste = onPaste,
       )
     },
   )

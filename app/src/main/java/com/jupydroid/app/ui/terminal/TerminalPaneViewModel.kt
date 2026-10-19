@@ -18,9 +18,12 @@ import com.jupydroid.app.terminal.TerminalReplies
 import com.jupydroid.app.terminal.clampedTopRow
 import com.jupydroid.app.terminal.takeScrollCount
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -83,6 +86,16 @@ class TerminalPaneViewModel(
     }
   }
 
+  // A channel, not a state: the same text copied twice is two copies, and one waits here while no
+  // screen collects it.
+  private val clipboardChannel = Channel<String>(Channel.BUFFERED)
+
+  /**
+   * What a program put on the clipboard with OSC 52, for the screen to copy - the ViewModel deals
+   * in strings and never touches the clipboard, which is a Compose local.
+   */
+  val clipboardCopies: Flow<String> = clipboardChannel.receiveAsFlow()
+
   private val replies = object : TerminalReplies {
     override fun reply(text: String) = sendToShell(text)
   }
@@ -92,7 +105,9 @@ class TerminalPaneViewModel(
       _uiState.update { it.copy(title = newTitle) }
     }
     override fun onColorsChanged() = bumpRedraw()
-    override fun onClipboardCopy(text: String) = Unit
+    override fun onClipboardCopy(text: String) {
+      clipboardChannel.trySend(text)
+    }
   }
 
   /** The VT100 state this screen draws - `terminal/`'s, fed bytes by this class and not owned. */

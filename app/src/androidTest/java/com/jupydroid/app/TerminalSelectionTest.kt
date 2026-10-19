@@ -1,5 +1,6 @@
 package com.jupydroid.app
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.CompositionLocalProvider
@@ -90,6 +91,33 @@ class TerminalSelectionTest {
     assertEquals(TextToolbarStatus.Hidden, toolbar.status)
   }
 
+  /** `ACTION_PASTE` in `TextSelectionCursorController` (termux-app `3df69d1d`): the selection ends, then the clipboard is pasted. */
+  @Test
+  fun theToolbarsPasteEndsTheSelectionAndSendsTheClipboardToTheShell() {
+    val clipboard = RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java))
+    runBlocking { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("test", "pasted"))) }
+    showTheTerminal(clipboard, text = "ls word")
+    pressCell(column = 4) { longClick(it) }
+
+    compose.runOnUiThread { requireNotNull(toolbar.onPaste).invoke() }
+
+    compose.waitUntil { firstRow().endsWith("pasted") }
+    compose.waitForIdle()
+    assertEquals(null, viewModel.selector.selection.value)
+    assertEquals(TextToolbarStatus.Hidden, toolbar.status)
+  }
+
+  @Test
+  fun anOsc52PayloadThePaneReceivesLandsOnTheClipboard() {
+    val clipboard = RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java))
+    showTheTerminal(clipboard, text = "")
+
+    // `FakeTerminalGateway` prints back what it is sent, so this is a program writing OSC 52.
+    compose.runOnUiThread { viewModel.type("\u001B]52;c;SGVsbG8=\u0007") }
+
+    compose.waitUntil { clipboard.text() == "Hello" }
+  }
+
   /** `TextSelectionHandleView` (termux-app `3df69d1d`): a handle on each end, and dragging one moves that end. */
   @Test
   fun draggingTheStartHandleLeftWidensWhatCopyTakes() {
@@ -148,6 +176,9 @@ class TerminalSelectionTest {
     compose.waitForIdle()
   }
 
+  private fun firstRow(): String =
+    viewModel.emulator.screen.grid.rowAt(0).let { String(it.text, 0, it.spaceUsed) }.trimEnd()
+
   private fun cellCentreInRoot(column: Int): Offset {
     val measured = requireNotNull(cell)
     val field = compose.onNodeWithTag(TERMINAL_INPUT_TAG).getBoundsInRoot()
@@ -174,6 +205,7 @@ private class RecordingClipboard(override val nativeClipboard: NativeClipboard) 
 private class RecordingTextToolbar : TextToolbar {
   var shownOver: Rect? = null
   var onCopy: (() -> Unit)? = null
+  var onPaste: (() -> Unit)? = null
   override var status: TextToolbarStatus = TextToolbarStatus.Hidden
 
   override fun showMenu(
@@ -185,6 +217,7 @@ private class RecordingTextToolbar : TextToolbar {
   ) {
     shownOver = rect
     onCopy = onCopyRequested
+    onPaste = onPasteRequested
     status = TextToolbarStatus.Shown
   }
 

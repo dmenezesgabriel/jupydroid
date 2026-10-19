@@ -17,8 +17,8 @@ import com.jupydroid.app.domain.model.TerminalFontSize
 
 /**
  * The terminal's overflow: `terminal:increase-font`/`terminal:decrease-font`
- * (`packages/terminal-extension/src/index.ts:64-66`), the only two commands the reference offers
- * for this surface, filed under its own Settings menu (`:342-349`) and the command palette. This
+ * (`packages/terminal-extension/src/index.ts:64-66`), filed under the reference's own Settings
+ * menu (`:342-349`) and the command palette, and `terminal:paste`. This
  * app has no Settings screen, so - [com.jupydroid.app.ui.editor.NotebookActionsMenu]'s own
  * precedent for exactly this situation - they sit on the terminal's own bar.
  *
@@ -31,7 +31,12 @@ import com.jupydroid.app.domain.model.TerminalFontSize
  * `isEnabled` (`:771`, `:791`), read through a menu row instead of a command palette entry.
  */
 @Composable
-fun TerminalActionsMenu(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecreaseFontSize: () -> Unit) {
+fun TerminalActionsMenu(
+  fontSizeSp: Int,
+  onIncreaseFontSize: () -> Unit,
+  onDecreaseFontSize: () -> Unit,
+  onPaste: () -> Unit,
+) {
   var open by remember { mutableStateOf(false) }
   Box {
     IconButton(onClick = { open = true }) {
@@ -54,6 +59,15 @@ fun TerminalActionsMenu(fontSizeSp: Int, onIncreaseFontSize: () -> Unit, onDecre
           onDecreaseFontSize()
         },
       )
+      // `terminal:paste` (`:717`) has no selection to need, so it is a row here as well as on the
+      // floating toolbar - the one way to paste while nothing is selected.
+      DropdownMenuItem(
+        text = { Text(PASTE_INTO_TERMINAL) },
+        onClick = {
+          open = false
+          onPaste()
+        },
+      )
     }
   }
 }
@@ -63,3 +77,6 @@ internal const val INCREASE_TERMINAL_FONT_SIZE = "Increase Terminal Font Size"
 
 /** `terminal:decrease-font`'s own label (`:787`). */
 internal const val DECREASE_TERMINAL_FONT_SIZE = "Decrease Terminal Font Size"
+
+/** `terminal:paste`'s own label (`:738`). */
+internal const val PASTE_INTO_TERMINAL = "Paste"

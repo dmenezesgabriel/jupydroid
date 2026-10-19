@@ -13,6 +13,7 @@ import com.jupydroid.app.domain.model.TerminalFontSize
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.terminal.DECREASE_TERMINAL_FONT_SIZE
 import com.jupydroid.app.ui.terminal.INCREASE_TERMINAL_FONT_SIZE
+import com.jupydroid.app.ui.terminal.PASTE_INTO_TERMINAL
 import com.jupydroid.app.ui.terminal.TerminalBar
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -82,8 +83,20 @@ class TerminalActionsMenuTest {
     compose.onNodeWithText(DECREASE_TERMINAL_FONT_SIZE).assertIsNotEnabled()
   }
 
+  /** `terminal:paste` (`terminal-extension/src/index.ts:717`), reachable with nothing selected. */
+  @Test
+  fun thePasteRowAsksToPaste() {
+    showBar()
+
+    compose.onNodeWithContentDescription("Terminal actions").performClick()
+    compose.onNodeWithText(PASTE_INTO_TERMINAL).performClick()
+
+    assertEquals(1, pastes)
+  }
+
   private var increases = 0
   private var decreases = 0
+  private var pastes = 0
 
   /**
    * The bar is the shell's own actions and nothing else - a terminal is not a file, but it is a
@@ -104,6 +117,7 @@ class TerminalActionsMenuTest {
           fontSizeSp = fontSizeSp,
           onIncreaseFontSize = { increases++ },
           onDecreaseFontSize = { decreases++ },
+          onPaste = { pastes++ },
         )
       }
     }
