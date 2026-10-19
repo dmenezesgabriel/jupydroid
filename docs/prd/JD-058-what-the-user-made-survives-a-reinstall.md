@@ -106,7 +106,8 @@ Each one is settled by a measurement in the task that needs it:
   extracts the image around the restored home in **15.6 s**, once, and its cell answers `42`.)
 - Restored files are dated 1970-01-21, and the explorer shows it. (T3b: seen. T3c: traced. The tar
   reader hands `onRestoreFile` the header's mtime in seconds, and the platform's default passes it to
-  `File.setLastModified`, which takes milliseconds.)
+  `File.setLastModified`, which takes milliseconds. Fixed in the agent: `notes.md` restored at
+  06:34:52, the second it was backed up at.)
 
 ## Surface
 
@@ -134,7 +135,7 @@ Each one is settled by a measurement in the task that needs it:
   home) is extracted from the bundled image around its home when it runs, red test first. A Space
   that has a rootfs is still never re-extracted (ADR-0073). Evidence: T3's driver, with part 3 now
   running the second Space.
-- [ ] T3c: a restored file keeps the date it was backed up with, red test first. The agent's
+- [x] T3c: a restored file keeps the date it was backed up with, red test first. The agent's
   `onRestoreFile` converts the tar header's seconds to the milliseconds `setLastModified` takes.
   Evidence: T3's driver, with a `stat` of the restored files.
 - [ ] T4: the demo (steps 1–6) on SM-X216B with its flow and driver, plus T1's step 7 again. Write
