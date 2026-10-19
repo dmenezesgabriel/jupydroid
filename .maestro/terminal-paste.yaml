@@ -1,0 +1,92 @@
+appId: com.jupydroid.app
+---
+# Paste sends the clipboard to the shell, from the ⋮ menu and from the floating toolbar, and a
+# program's OSC 52 puts its payload on the clipboard that Paste then reads.
+#
+# The word is printed as in `terminal-selection-handles.yaml`, at the grid's centre column on every
+# row but the last, so the press on the input field's centre lands on it, and only a shell that
+# computed `$((6*7))` prints it. The OSC 52 payload is `osc42clip`, which the shell also computes,
+# so it is on the clipboard only if a real shell printed it.
+#
+# **What this flow cannot assert, and what does.** The terminal's text is drawn, so the line Paste
+# typed and the shell's answer are read off the screenshots; `TerminalSelectionTest` is the
+# instrumented proof that Paste reaches the shell and that OSC 52 reaches the clipboard.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-5))s sel$((6*7))word tail\\n\" head; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Paste from the ⋮ menu, with nothing selected.
+- inputText: "echo menu "
+- tapOn: "Terminal actions"
+- tapOn: "Paste"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-the-menus-paste-typed-the-copied-word
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-the-shell-answered-the-pasted-line
+# Paste from the floating toolbar, over a selection, which it ends.
+- inputText: "echo toolbar "
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Paste"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 03-the-floating-toolbar-offers-paste
+- tapOn:
+    text: "Paste"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible:
+    id: "terminal-selection-start"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 04-the-toolbars-paste-ended-the-selection-and-the-shell-answered
+# OSC 52: a program copies, and Paste reads what it copied.
+- inputText: "clear; printf '\\033]52;c;%s\\a' $(printf osc%sclip $((6*7)) | base64)"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 05-osc52-printed-nothing-visible
+- inputText: "echo osc52 "
+- tapOn: "Terminal actions"
+- tapOn: "Paste"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 06-paste-read-what-osc52-copied

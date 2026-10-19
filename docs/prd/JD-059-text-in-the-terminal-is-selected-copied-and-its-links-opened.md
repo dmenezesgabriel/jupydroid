@@ -142,7 +142,7 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
   offers Copy over it, Copy puts the text on the clipboard and ends the selection, a tap ends it too,
   and output does not move the view away from it while it exists.
 - [x] T2: Two handles drag the selection's ends, clamped to the screen and the scrollback.
-- [ ] T3: Paste, from the floating toolbar and from the actions menu, sends the clipboard through
+- [x] T3: Paste, from the floating toolbar and from the actions menu, sends the clipboard through
   `emulator.paste`. OSC 52 puts its payload on the clipboard.
 - [ ] T4: Tapping a printed http(s) URL asks "Open Link?" and opens it. A tap anywhere else still
   focuses the keyboard.
