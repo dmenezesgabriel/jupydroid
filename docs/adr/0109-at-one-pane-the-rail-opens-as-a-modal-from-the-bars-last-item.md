@@ -9,8 +9,24 @@ Beside two panes, Settings is the gear at the foot of `SidePanelRail`, below eve
 That is where VS Code puts Manage (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`,
 `GLOBAL_ACTIVITY_ID`). At one pane there is no rail. Settings is the Files bar's gear, so from Search or
 Sessions and Tabs it is reached only by going back to Files first. On SM-X216B in portrait
-(`w800dp-h1280dp`), the window's hierarchy has one node named `Settings` on Files and **none** on
+(`w800dp-h1280dp`), the window's hierarchy had one node named `Settings` on Files and **none** on
 Search or Sessions and Tabs.
+
+Five of the seven references have a way to open Settings. Every one of them with a UI puts it in chrome
+that stays on screen whichever view is open:
+
+| Reference | Where Settings is |
+|---|---|
+| `vscode@3f3380c6` | **Manage**, the gear in the global activity at the foot of the activity bar (`src/vs/workbench/common/activity.ts`, `GLOBAL_ACTIVITY_ID = 'workbench.actions.manage'`) |
+| `jupyterlab@7f0e6906` | a **Settings** menu in the menu bar (`packages/mainmenu-extension/schema/plugin.json`), and `Accel ,` |
+| `intellij-community@406a27a8` | `ShowSettings` in the File menu (`platform/platform-resources/src/idea/PlatformActions.xml`), and `control alt S` |
+| `termux-app@3df69d1d` | a gear at the top of the navigation drawer (`app/src/main/res/layout/activity_termux.xml`, `settings_button`) |
+| `winlator@fb66541b` | a navigation-drawer destination (`app/app/src/main/res/menu/main_menu.xml`, `menu_item_settings`) |
+| `vscode-jupyter@f01d80ca`, the shipped rootfs | none of their own: the first inherits VS Code's Manage, and the second is not a UI |
+
+This app has a rail and no menu bar, so beside two panes VS Code's placement maps one to one. Phones
+are where the references disagree with Material: both phone references use a drawer, which this app
+does not have.
 
 The bottom bar is full. Measured on the same tablet, it draws **five** 64dp-tall items, each **128dp**
 wide, across x 80–720dp of 800: Files, Sessions and Tabs, Search, New Launcher and New terminal.
@@ -51,6 +67,10 @@ which rejected a sixth bar item for the same ceiling).
 
 ## Decision
 
+**Beside two panes, Settings is the gear at the foot of `SidePanelRail`**, below every panel's icon and
+the `+`, as VS Code's Manage is. Picking it opens Settings in the main area, and the gear is never the
+selected item, so the panel on the side stays as it was.
+
 **At one pane, the bar's fifth item is "More", which opens a `ModalWideNavigationRail` holding what the
 bar does not.** That means New terminal now, every extension panel when the extension work reaches
 one pane, and Settings at its foot, where the two-pane rail has it. Closing it, by Back or by the
@@ -80,6 +100,8 @@ navigation, so that conflict was not exercised there.
 - The extension work reuses this: a contributed panel at one pane is a row in the modal rail, and the
   fallback to Files in `showingAtOnePane` narrows to panels nobody can reach.
 - The bar's five items are the permanent ceiling. Anything new at one pane goes in the modal rail.
+- Not done: a search over the settings, or JupyterLab's JSON settings editor
+  (`settingeditor:open-json`).
 
 The thing a future reader will be tempted to "fix" is New terminal's extra tap, by putting it back on
 the bar as a sixth item. The table above is where a sixth item leads once the extension panels arrive.

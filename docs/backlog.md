@@ -201,6 +201,8 @@ closing none of its siblings, is closed by
 [ADR-0103](adr/0103-a-tabs-menu-closes-its-siblings.md). `GAP-081` and `GAP-082`, a terminal with no
 clipboard of its own and no link it could open, are closed by
 [ADR-0108](adr/0108-terminal-text-is-selected-on-a-long-press-and-its-links-open-after-asking.md).
+`GAP-178`, Settings reached only from the Files view, is closed by
+[ADR-0109](adr/0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
@@ -213,7 +215,7 @@ clipboard of its own and no link it could open, are closed by
 | `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
 | `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
 | `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | shipped | — | `GAP-081`, `GAP-082` |
-| `JD-061` | **Settings is reached from every view:** the gear sits at the foot of the side panel's rail, below every panel's icon, as VS Code's Manage does; at one pane it sits at the foot of the modal rail that the bottom bar's fifth item, "More", opens ([ADR-0109](adr/0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)) | in-progress ← next | — | `GAP-178` |
+| `JD-061` | **Settings is reached from every view:** the gear sits at the foot of the side panel's rail, below every panel's icon, as VS Code's Manage does; at one pane it sits at the foot of the modal rail that the bottom bar's fifth item, "More", opens ([ADR-0109](adr/0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)) | shipped | — | `GAP-178` |
 
 ### M7 — Extensions
 
@@ -227,7 +229,7 @@ module boundary with the smallest of the three.
 |---|---|---|---|---|
 | `JD-045` | **The Git panel shows the workspace's branch and changes:** a Source Control panel, contributed by the Git extension module, lists the current branch and every changed file with its status, from jupyterlab-git's server in the running Space | shipped | — | — |
 | `JD-046` | **A Chat panel answers from an ACP agent installed in the Space:** jupyter-ai's chat, contributed by its own extension module, sends a question to opencode through jupyter-ai's ACP persona and shows its answer | shipped | — | — |
-| `JD-051` | **Every extension panel can be reached at one pane:** on a phone, or a tablet held upright, Source Control, Chat and any later contributed panel open as rows of the modal rail the bottom bar's "More" opens ([ADR-0109](adr/0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)) | open | `JD-061` | — |
+| `JD-051` | **Every extension panel can be reached at one pane:** on a phone, or a tablet held upright, Source Control, Chat and any later contributed panel open as rows of the modal rail the bottom bar's "More" opens ([ADR-0109](adr/0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)) | open ← next | `JD-061` | — |
 | `JD-052` | **One symbol row wherever text is typed:** the row of characters a touch keyboard lacks sits above the keyboard at the window's full width, for a cell, the file editor, the console, the terminal and the Chat input alike | open | — | — |
 | `JD-053` | **The Chat holds several chats:** the panel lists the workspace's `.chat` files, starts a new one under a name, switches between them and deletes one, as jupyter-ai's chat panel does | open | — | — |
 | `JD-049` | **The Chat shows an agent's tool calls, asks before one runs, and stops a reply:** each call is a row with its status, a call awaiting approval offers the agent's own options through jupyter-ai's ACP permission route, and Stop cancels the reply in progress | open | — | — |

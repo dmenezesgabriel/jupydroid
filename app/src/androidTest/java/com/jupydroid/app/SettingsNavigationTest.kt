@@ -71,8 +71,8 @@ class SettingsNavigationTest {
   }
 
   /**
-   * GAP-178's own case: beside two panes, Settings opens with Search on the side, from the rail's
-   * foot - and the rail's gear is the only one, since the Files bar no longer draws its own there.
+   * Beside two panes, Settings opens with Search on the side, from the rail's foot (ADR-0109) - and
+   * the rail's gear is the only one, since the Files bar no longer draws its own there.
    */
   @Test
   fun atTwoPanesSettingsOpensFromTheRailWithSearchShowing() {

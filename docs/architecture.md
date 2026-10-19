@@ -1817,21 +1817,6 @@ Remove, Send Immediately and Remove All Queued. The repair needs the panel to kn
 progress (the bot writer jupyter-chat already broadcasts), then to hold a question sent meanwhile as
 a visible pending row, and to send it when the reply ends.
 
-### GAP-178 — Settings is reached only from the Files view
-
-The app-wide Settings screen opens from one place, the explorer's own bar
-(`app/src/main/java/com/jupydroid/app/ui/explorer/ExplorerScreen.kt`'s `onOpenSettings`, which its
-KDoc calls Settings' "provisional home"). With Search, Running, Debugger, Source Control or the Chat
-on the side panel, or another destination picked from the one-pane bottom bar, Settings is not on
-screen, and the only way to it is back through Files. VS Code keeps **Manage** (the gear) in the
-global activity at the foot of the activity bar, below every view's icon, so it is there whatever
-view is open (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`,
-`GLOBAL_ACTIVITY_ID = 'workbench.actions.manage'` in `src/vs/workbench/common/activity.ts`). At two
-panes the repair is the same place at the foot of `SidePanelRail`. At one pane no reference has a
-phone layout, so where Settings goes (the bottom bar's area, a bottom sheet with the destinations
-it does not hold, or an overflow) is a choice to research from Material's guidance and measure on
-device, the way `JD-051` chooses the pattern for extension panels.
-
 ### GAP-179 — A program in a Space loses its network while the app is behind another
 
 A program a terminal runs, such as `opencode auth login`, is a child of the app's process, under
