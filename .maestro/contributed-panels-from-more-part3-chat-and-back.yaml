@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Goes on from part 2, with the rail open over Source Control: its Chat row fills the pane with the
+# AI extension's panel, and Back from a contributed panel selects Files, as it does from Search.
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- assertNotVisible: "You are not currently in a Git repository\\."
+- takeScreenshot: 05-chat-fills-the-pane
+- back
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 5000
+- assertNotVisible: "Ask the agent"
+- takeScreenshot: 06-back-selects-files
