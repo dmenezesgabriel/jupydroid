@@ -17,8 +17,10 @@ one, so both halves are measured on the one device):
 2. Pick Search on the rail, tap the gear: Settings opens in the main area, Search stays on the side.
    Close Settings: Search is still showing.
 3. The same from Sessions and Tabs, and from Chat.
-4. Rotate to portrait (one pane). From Files, Search and Sessions and Tabs, Settings opens from the place
-   T2 decides.
+4. Rotate to portrait (one pane). The bar's fifth item is "More"; the Files bar has no gear. From Files,
+   Search and Sessions and Tabs, "More" opens the modal rail with New terminal in it and Settings at its
+   foot; Settings opens, and closing it leaves the panel where it was. "New terminal" in the modal rail
+   opens a terminal.
 5. Kill and relaunch: the gear is where it was, at both widths.
 
 Evidence under `evidence/<flow-name>/`; not `shipped` until this has run on the tablet.
@@ -66,7 +68,7 @@ Material's five-item ceiling.
 |---|---|---|---|
 | Two panes | VS Code → rail foot; JupyterLab/IntelliJ → menu bar | We have a rail and no menu bar | The rail's foot, as VS Code: one place, on screen with every panel |
 | The Files bar's gear at two panes | keep both / drop it | Two "Settings" nodes on one screen, and two homes | Drop it at two panes; one home |
-| One pane | Termux/Winlator → drawer; Material → 3–5 bar items | Open decision, below | T2 |
+| One pane | Termux/Winlator → drawer; Material → 3–5 bar items, and the drawer deprecated for the expanded rail | A sixth item reaches 45dp at 360dp once extension panels follow | A modal expanded rail from the bar's fifth item, "More", which New terminal gives up ([ADR-0109](../adr/0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)) |
 
 ## Gap analysis — what we already have vs the references
 
@@ -80,23 +82,20 @@ one view only.
 
 ## Deviations
 
-None at two panes. At one pane no reference has our bottom bar; T2 records what replaces the drawer.
+None at two panes. At one pane the phone references' drawer becomes Material's modal expanded rail, and
+New terminal leaves the bar for it (ADR-0109).
 
 ## Open decisions
 
-**Where Settings goes at one pane.** `SidePanelBar` already carries five items (`onePaneDestinations`'
-three panels, New Launcher, New terminal — `SidePanel.kt`), Material's ceiling for a navigation bar
-(`developer.android.com/develop/ui/compose/components/navigation-bar`). Candidates: a sixth bar item;
-a modal navigation drawer, as both phone references; the gear on each panel's own title bar; an overflow
-item on the bar. `JD-061`'s answer is the home `JD-051` reuses for extension panels at one pane, so it is
-decided with that in view, measured on the tablet in portrait, and becomes an ADR.
+None. Where Settings goes at one pane is ADR-0109, measured on SM-X216B in portrait
+(`evidence/settings-at-one-pane/`).
 
 ## Surface
 
 | Layer | Files |
 |---|---|
 | `domain/model`, `domain/port`, `data/*` | none — Settings and `openSettings` exist |
-| `ui/shell` | `SidePanelRail.kt`, `SidePanelBar.kt` (T3) |
+| `ui/shell` | `SidePanelRail.kt`, `SidePanelBar.kt`, the modal rail (T3) |
 | `ui/explorer` | `ExplorerBar.kt`, `ExplorerScreen.kt` |
 | shell wiring | `Navigation.kt`, `ShellSidePane.kt`, `Settings.kt` (KDoc) |
 | instrumented tests | `SidePanelRailTest.kt`, `SettingsNavigationTest.kt`, `SidePanelBarTest.kt` (T3) |
@@ -106,9 +105,12 @@ decided with that in view, measured on the tablet in portrait, and becomes an AD
 
 - [x] T1 — Two panes: the gear sits at the foot of `SidePanelRail`, below every panel and the `+`; it
   opens Settings and is never selected; the Files bar drops its gear at two panes.
-- [ ] T2 — One pane: research Material's guidance and measure the candidates on the tablet in portrait;
-  decide, as an ADR. Split T3 here if the chosen pattern is more than one unit.
-- [ ] T3 — One pane: build the chosen pattern.
+- [x] T2 — One pane: research Material's guidance and measure the candidates on the tablet in portrait;
+  decide, as an ADR (ADR-0109).
+- [ ] T3 — One pane: the bar's fifth item becomes "More", opening a `ModalWideNavigationRail` with New
+  terminal in it and Settings at its foot; the Files bar drops its gear at both widths. Update
+  `SidePanelBarTest`, `TerminalNavigationTest` and every one-pane flow that taps the bar's "New
+  terminal" (the portrait drivers: `grep -ln "rotate_to 0" scripts/*.sh`, and the phone flows).
 - [ ] T4 — The demo on `SM-X216B` in both orientations; ship.
 
 ## Out of scope

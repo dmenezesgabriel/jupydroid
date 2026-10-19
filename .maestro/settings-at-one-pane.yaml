@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# At one pane the bottom bar's five items and each panel's own bar, from Files, Search and Sessions and
+# Tabs - what the candidates for Settings' place at one pane are measured against (`SidePanelBar`,
+# ADR-0055). Settings is reachable only from the Files bar's gear here, and this records that.
+# Nothing here runs a cell; the driver pins the tablet to portrait, which is one pane.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "New Launcher"
+- assertVisible: "Settings"
+- takeScreenshot: 01-files-at-one-pane
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 5000
+- assertNotVisible: "Settings"
+- takeScreenshot: 02-search-at-one-pane
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 5000
+- assertNotVisible: "Settings"
+- takeScreenshot: 03-sessions-at-one-pane
