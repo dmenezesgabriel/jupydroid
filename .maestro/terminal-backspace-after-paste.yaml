@@ -1,0 +1,60 @@
+appId: com.jupydroid.app
+---
+# Backspace erases text Paste sent to the shell, which never passed through the input field, and
+# the field still types after it. Run by scripts/terminal-backspace-after-paste-driver.sh.
+#
+# The clipboard is filled by OSC 52 with `pasted42`, which the shell computes from `$((6*7))`, so
+# the pasted word is on the line only if a real shell printed the sequence.
+#
+# `pressKey: Backspace` is a `KEYCODE_DEL` key event, which is what Gboard sends when the field it
+# types into is empty - the driver's README records that tap on the tablet's own keyboard.
+#
+# TABLET ONLY (SM-X216B): on the x86_64 emulator the terminal is FakeTerminalGateway's echo.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; printf '\\033]52;c;%s\\a' $(printf pasted%s $((6*7)) | base64)"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "echo "
+- tapOn: "Terminal actions"
+- tapOn: "Paste"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-paste-typed-the-copied-word
+# `echo pasted42` is 13 characters, and the field holds only the 5 of `echo `.
+- repeat:
+    times: 13
+    commands:
+      - pressKey: Backspace
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-backspace-erased-the-whole-line
+- inputText: "echo typed$((6*7))"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-the-field-still-types-and-the-shell-answers
