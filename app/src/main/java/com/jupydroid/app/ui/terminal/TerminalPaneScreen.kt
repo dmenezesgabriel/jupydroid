@@ -134,6 +134,8 @@ fun TerminalPaneScreen(
   }
   // The printed address a tap asked to open, until the dialog naming it is answered.
   var tappedLink by remember { mutableStateOf<String?>(null) }
+  // A handle under a finger, while which the floating toolbar is hidden, as `TextView`'s is.
+  var handleHeld by remember { mutableStateOf(false) }
   val uriHandler = LocalUriHandler.current
 
   Scaffold(
@@ -228,7 +230,7 @@ fun TerminalPaneScreen(
             selection = selection,
           )
         }
-        val toolbarBounds = selection?.let { span ->
+        val toolbarBounds = selection?.takeUnless { handleHeld }?.let { span ->
           val local = span.boundsIn(cellPx, viewModel.emulator.screen.columns, state.topRow)
           gestureBox?.rootRectOf(local.translate(canvasInsetPx, 0f))
         }
@@ -265,6 +267,7 @@ fun TerminalPaneScreen(
           topRow = state.topRow,
           origin = Offset(canvasInsetPx, 0f),
           onMoveEnd = viewModel.selector::moveEnd,
+          onHeld = { handleHeld = it },
         )
       }
     }

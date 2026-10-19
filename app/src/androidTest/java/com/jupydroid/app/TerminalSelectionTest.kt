@@ -32,8 +32,10 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_END_TAG
 import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_START_TAG
+import com.jupydroid.app.ui.terminal.TerminalCellPosition
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneViewModel
+import com.jupydroid.app.ui.terminal.TerminalSelectionEnd
 import com.jupydroid.app.ui.terminal.terminalCellMetrics
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -136,6 +138,52 @@ class TerminalSelectionTest {
     assertEquals("ls word", clipboard.text())
   }
 
+  /**
+   * `TextSelectionCursorController.render` (termux-app `3df69d1d`) invalidates the one `ActionMode`
+   * the selection started with. A `hide` in between finishes it, and the platform fades a new one in.
+   */
+  @Test
+  fun theToolbarFollowsAMovedSelectionWithoutBeingHidden() {
+    showTheTerminal(
+      RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java)),
+      text = "ls word",
+    )
+    compose.pressTerminalCell(cell, column = 4) { longClick(it) }
+    val before = requireNotNull(toolbar.shownOver) { "no toolbar was shown" }
+    val hidesBefore = toolbar.hides
+
+    compose.runOnUiThread {
+      viewModel.selector.moveEnd(TerminalSelectionEnd.START, TerminalCellPosition(column = 0, row = 0))
+    }
+    compose.waitForIdle()
+
+    assertEquals(hidesBefore, toolbar.hides)
+    assertTrue("the toolbar stayed over $before", requireNotNull(toolbar.shownOver).left < before.left)
+  }
+
+  /** `TerminalView.updateFloatingToolbarVisibility` (termux-app `3df69d1d`): hidden while a handle moves. */
+  @Test
+  fun aHeldHandleHidesTheToolbarAndReleasingItShowsItAgain() {
+    showTheTerminal(
+      RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java)),
+      text = "ls word",
+    )
+    compose.pressTerminalCell(cell, column = 4) { longClick(it) }
+    val measured = requireNotNull(cell)
+    val handle = compose.onNodeWithTag(TERMINAL_SELECTION_END_TAG)
+
+    handle.performTouchInput {
+      down(center)
+      moveBy(Offset(measured.width * 2f, 0f))
+    }
+    compose.waitForIdle()
+    assertEquals(TextToolbarStatus.Hidden, toolbar.status)
+
+    handle.performTouchInput { up() }
+    compose.waitForIdle()
+    assertEquals(TextToolbarStatus.Shown, toolbar.status)
+  }
+
   @Test
   fun theHandlesGoAwayWithTheSelection() {
     showTheTerminal(
@@ -191,11 +239,12 @@ private class RecordingClipboard(override val nativeClipboard: NativeClipboard) 
   fun text(): String? = entry?.clipData?.getItemAt(0)?.text?.toString()
 }
 
-/** The floating toolbar, recorded: where it was shown and the Copy it was handed. */
+/** The floating toolbar, recorded: where it was shown, the Copy it was handed, and how often it was hidden. */
 private class RecordingTextToolbar : TextToolbar {
   var shownOver: Rect? = null
   var onCopy: (() -> Unit)? = null
   var onPaste: (() -> Unit)? = null
+  var hides = 0
   override var status: TextToolbarStatus = TextToolbarStatus.Hidden
 
   override fun showMenu(
@@ -212,6 +261,7 @@ private class RecordingTextToolbar : TextToolbar {
   }
 
   override fun hide() {
+    hides++
     status = TextToolbarStatus.Hidden
   }
 }

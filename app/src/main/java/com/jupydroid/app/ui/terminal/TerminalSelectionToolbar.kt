@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.terminal
 import android.content.ClipData
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -17,7 +18,13 @@ import kotlinx.coroutines.launch
  * The platform's floating text toolbar over the selection, offering Copy and Paste - the `ActionMode`
  * `TextSelectionCursorController` starts (termux-app `3df69d1d`), reached through Compose's
  * [LocalTextToolbar], which on Android is that same floating `ActionMode`. [bounds] is in root
- * coordinates, where the toolbar is placed; `null` means nothing is selected, and hides it.
+ * coordinates, where the toolbar is placed; `null` hides it.
+ *
+ * **One `ActionMode` for as long as it is shown.** Compose's `AndroidTextToolbar.showMenu` starts one
+ * only when none is running and otherwise `invalidate`s it, which moves it; `hide` finishes it. So
+ * new bounds are only shown, never hidden first: a hide between two bounds made the platform fade a
+ * new toolbar in at every step of a handle's drag. The reference's `render` invalidates its one
+ * `ActionMode` the same way.
  *
  * ```
  * TerminalSelectionToolbar(rootBounds, onCopy = { selector.copyInto(copyToClipboard) }, onPaste = pasteFromClipboard)
@@ -28,14 +35,14 @@ fun TerminalSelectionToolbar(bounds: Rect?, onCopy: () -> Unit, onPaste: () -> U
   val toolbar = LocalTextToolbar.current
   val currentOnCopy by rememberUpdatedState(onCopy)
   val currentOnPaste by rememberUpdatedState(onPaste)
-  DisposableEffect(toolbar, bounds) {
+  LaunchedEffect(toolbar, bounds) {
     if (bounds == null) {
       toolbar.hide()
     } else {
       toolbar.showMenu(bounds, onCopyRequested = { currentOnCopy() }, onPasteRequested = { currentOnPaste() })
     }
-    onDispose { toolbar.hide() }
   }
+  DisposableEffect(toolbar) { onDispose { toolbar.hide() } }
 }
 
 /**

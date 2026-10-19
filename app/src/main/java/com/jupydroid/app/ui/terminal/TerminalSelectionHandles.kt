@@ -38,8 +38,11 @@ const val TERMINAL_SELECTION_END_TAG = "terminal-selection-end"
  * the top and stops at the first one hit, so a press on a handle never reaches the scroll drag and
  * long press read on the layer below, nor the input field inside it.
  *
+ * [onHeld] is told when a handle starts moving under a finger and when that finger lets go, which
+ * is when `TerminalView.updateFloatingToolbarVisibility` hides and shows the toolbar.
+ *
  * ```
- * TerminalSelectionHandles(selection, cellPx, grid, state.topRow, origin, onMoveEnd = selector::moveEnd)
+ * TerminalSelectionHandles(selection, cellPx, grid, state.topRow, origin, selector::moveEnd, onHeld = { held = it })
  * ```
  */
 @Composable
@@ -50,11 +53,12 @@ fun TerminalSelectionHandles(
   topRow: Int,
   origin: Offset,
   onMoveEnd: (TerminalSelectionEnd, TerminalCellPosition) -> Unit,
+  onHeld: (Boolean) -> Unit,
 ) {
   for (end in TerminalSelectionEnd.entries) {
     val row = if (end == TerminalSelectionEnd.START) selection.startRow else selection.endRow
     if (row !in topRow until topRow + grid.height) continue
-    SelectionHandle(end, end.anchorIn(selection, cell, topRow), origin) { anchor ->
+    SelectionHandle(end, end.anchorIn(selection, cell, topRow), origin, onHeld) { anchor ->
       onMoveEnd(end, end.cellUnder(anchor, cell, grid, topRow))
     }
   }
@@ -66,13 +70,21 @@ fun TerminalSelectionHandles(
  * [LocalTextSelectionColors]' handle colour, so it is the handle every other field in the app
  * shows. [onDragTo] receives where the anchor would be now: where it was when the drag began, plus
  * how far the finger has travelled - not the current anchor plus that, since the anchor follows
- * the end the drag has already moved.
+ * the end the drag has already moved. [onHeld] is `true` from the first move and `false` once the
+ * finger is up - or the gesture is cancelled, as when the handle's row scrolls out of view.
  */
 @Composable
-private fun SelectionHandle(end: TerminalSelectionEnd, anchor: Offset, origin: Offset, onDragTo: (Offset) -> Unit) {
+private fun SelectionHandle(
+  end: TerminalSelectionEnd,
+  anchor: Offset,
+  origin: Offset,
+  onHeld: (Boolean) -> Unit,
+  onDragTo: (Offset) -> Unit,
+) {
   val sizePx = with(LocalDensity.current) { HANDLE_SIZE.toPx() }
   val color = LocalTextSelectionColors.current.handleColor
   val currentAnchor by rememberUpdatedState(anchor)
+  val currentOnHeld by rememberUpdatedState(onHeld)
   val currentOnDragTo by rememberUpdatedState(onDragTo)
   val left = origin.x + if (end == TerminalSelectionEnd.START) anchor.x - sizePx else anchor.x
   val tag = if (end == TerminalSelectionEnd.START) TERMINAL_SELECTION_START_TAG else TERMINAL_SELECTION_END_TAG
@@ -89,10 +101,15 @@ private fun SelectionHandle(end: TerminalSelectionEnd, anchor: Offset, origin: O
         awaitEachGesture {
           val down = awaitFirstDown()
           var dragged = currentAnchor
-          drag(down.id) { change ->
-            dragged += change.positionChange()
-            change.consume()
-            currentOnDragTo(dragged)
+          try {
+            drag(down.id) { change ->
+              dragged += change.positionChange()
+              change.consume()
+              currentOnHeld(true)
+              currentOnDragTo(dragged)
+            }
+          } finally {
+            currentOnHeld(false)
           }
         }
       },
