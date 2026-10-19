@@ -1,0 +1,55 @@
+appId: com.jupydroid.app
+---
+# After a handle's drag the floating toolbar is back, once, over the wider selection. Run by
+# scripts/terminal-toolbar-over-a-drag-driver.sh.
+#
+# A screenshot is taken once the screen settles, so it cannot see a toolbar rebuilt at every step of
+# the drag; the driver's README keeps the frame-by-frame reading of a slow drag that can.
+#
+# The word is printed as in `terminal-selection-handles.yaml`, at the grid's centre column on every
+# row but the last, so the press on the input field's centre lands on it.
+#
+# TABLET ONLY (SM-X216B): on the x86_64 emulator the terminal is FakeTerminalGateway's echo.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-5))s sel$((6*7))word tail\\n\" head; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 01-the-toolbar-over-the-word
+- swipe:
+    from:
+      id: "terminal-selection-end"
+    direction: RIGHT
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 02-after-the-drag-the-toolbar-is-back-over-the-wider-selection
