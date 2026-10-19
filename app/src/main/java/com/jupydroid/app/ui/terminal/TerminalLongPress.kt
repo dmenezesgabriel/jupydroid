@@ -15,18 +15,23 @@ import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
  *
  * **On [PointerEventPass.Initial], like `detectTerminalScrollDrag`**, and for the same reason: the
  * invisible input field over the canvas takes every pointer event on the Main pass before an
- * ancestor sees it. Nothing is consumed until the press has become a long press, so a tap still
+ * ancestor sees it. Nothing is consumed until the press has become a long press, so a tap [onTap] leaves still
  * focuses the field and a drag still scrolls; after it, the rest of the gesture is consumed so
  * lifting the finger is not also a tap.
  *
- * [onTap] is a press lifted before the timeout without travelling, which is how `TerminalView`
- * ends a selection: a tap outside it while selecting.
+ * [onTap] is a press lifted before the timeout without travelling, at the point it went down: how
+ * `TerminalView` ends a selection, and how a printed link is followed. It answers whether it took
+ * the tap; a taken tap's lift is consumed, so the field under it does not take it as its own tap,
+ * and raises no keyboard under what the tap opened.
  */
-internal suspend fun PointerInputScope.detectTerminalLongPress(onLongPress: (Offset) -> Unit, onTap: () -> Unit) {
+internal suspend fun PointerInputScope.detectTerminalLongPress(
+  onLongPress: (Offset) -> Unit,
+  onTap: (Offset) -> Boolean,
+) {
   awaitEachGesture {
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     val endedEarly = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) { awaitTapOrTravel(down) }
-    if (endedEarly == PressEnd.TAP) onTap()
+    if (endedEarly is PressEnd.Tap && onTap(down.position)) endedEarly.lift.consume()
     if (endedEarly != null) return@awaitEachGesture
     onLongPress(down.position)
     do {
@@ -36,16 +41,20 @@ internal suspend fun PointerInputScope.detectTerminalLongPress(onLongPress: (Off
   }
 }
 
-/** How a press ended before it became a long press. */
-private enum class PressEnd { TAP, TRAVEL }
+/** How a press ended before it became a long press: lifted where it went down, or moved away. */
+private sealed interface PressEnd {
+  class Tap(val lift: PointerInputChange) : PressEnd
+
+  data object Travel : PressEnd
+}
 
 private suspend fun AwaitPointerEventScope.awaitTapOrTravel(down: PointerInputChange): PressEnd {
   while (true) {
     val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
     val end = when {
-      change == null -> PressEnd.TRAVEL
-      change.changedToUpIgnoreConsumed() -> PressEnd.TAP
-      (change.position - down.position).getDistance() > viewConfiguration.touchSlop -> PressEnd.TRAVEL
+      change == null -> PressEnd.Travel
+      change.changedToUpIgnoreConsumed() -> PressEnd.Tap(change)
+      (change.position - down.position).getDistance() > viewConfiguration.touchSlop -> PressEnd.Travel
       else -> null
     }
     if (end != null) return end

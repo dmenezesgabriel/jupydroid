@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
-import androidx.compose.ui.test.TouchInjectionScope
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
@@ -64,7 +63,7 @@ class TerminalSelectionTest {
     val clipboard = RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java))
     showTheTerminal(clipboard, text = "ls word")
 
-    pressCell(column = 4) { longClick(it) }
+    compose.pressTerminalCell(cell, column = 4) { longClick(it) }
 
     val shown = requireNotNull(toolbar.shownOver) { "no toolbar was shown" }
     assertTrue("the toolbar's rect $shown is not over column 4", shown.contains(cellCentreInRoot(column = 4)))
@@ -81,10 +80,10 @@ class TerminalSelectionTest {
       RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java)),
       text = "ls word",
     )
-    pressCell(column = 4) { longClick(it) }
+    compose.pressTerminalCell(cell, column = 4) { longClick(it) }
     assertEquals(TextToolbarStatus.Shown, toolbar.status)
 
-    pressCell(column = 0) { click(it) }
+    compose.pressTerminalCell(cell, column = 0) { click(it) }
     compose.waitForIdle()
 
     assertEquals(null, viewModel.selector.selection.value)
@@ -97,7 +96,7 @@ class TerminalSelectionTest {
     val clipboard = RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java))
     runBlocking { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("test", "pasted"))) }
     showTheTerminal(clipboard, text = "ls word")
-    pressCell(column = 4) { longClick(it) }
+    compose.pressTerminalCell(cell, column = 4) { longClick(it) }
 
     compose.runOnUiThread { requireNotNull(toolbar.onPaste).invoke() }
 
@@ -123,7 +122,7 @@ class TerminalSelectionTest {
   fun draggingTheStartHandleLeftWidensWhatCopyTakes() {
     val clipboard = RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java))
     showTheTerminal(clipboard, text = "ls word")
-    pressCell(column = 4) { longClick(it) }
+    compose.pressTerminalCell(cell, column = 4) { longClick(it) }
     compose.onNodeWithTag(TERMINAL_SELECTION_END_TAG).assertIsDisplayed()
 
     val measured = requireNotNull(cell)
@@ -143,10 +142,10 @@ class TerminalSelectionTest {
       RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java)),
       text = "ls word",
     )
-    pressCell(column = 4) { longClick(it) }
+    compose.pressTerminalCell(cell, column = 4) { longClick(it) }
     compose.onNodeWithTag(TERMINAL_SELECTION_START_TAG).assertIsDisplayed()
 
-    pressCell(column = 0) { click(it) }
+    compose.pressTerminalCell(cell, column = 0) { click(it) }
 
     compose.onNodeWithTag(TERMINAL_SELECTION_START_TAG).assertDoesNotExist()
     compose.onNodeWithTag(TERMINAL_SELECTION_END_TAG).assertDoesNotExist()
@@ -165,15 +164,6 @@ class TerminalSelectionTest {
       val bytes = text.toByteArray()
       viewModel.emulator.append(bytes, bytes.size)
     }
-  }
-
-  private fun pressCell(column: Int, press: TouchInjectionScope.(Offset) -> Unit) {
-    val measured = requireNotNull(cell) { "terminalCellMetrics was never composed" }
-    val inset = with(compose.density) { Spacing.md.toPx() }
-    compose.onNodeWithTag(TERMINAL_INPUT_TAG).performTouchInput {
-      press(Offset(inset + measured.width * (column + 0.5f), measured.height * 0.5f))
-    }
-    compose.waitForIdle()
   }
 
   private fun firstRow(): String =
