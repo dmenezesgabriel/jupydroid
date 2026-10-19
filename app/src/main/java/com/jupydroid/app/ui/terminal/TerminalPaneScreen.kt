@@ -180,51 +180,64 @@ fun TerminalPaneScreen(
     // gesture detector in this codebase defaults to - before a sibling's or an ancestor's own
     // Main-pass handler would ever run. `PointerEventPass.Initial` runs ancestor-to-descendant,
     // ahead of the field's pass, so consuming a drag here is what actually pre-empts it.
-    Box(
-      modifier = Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)
-        .pointerInput(cellPx) { detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellPx.height) } }
-        .onGloballyPositioned { gestureBox = it }
-        .pointerInput(cellPx, state.topRow) {
-          detectTerminalLongPress(
-            onLongPress = { point ->
-              // `TerminalView.onLongPress` (termux-app `3df69d1d`) confirms the press the same way.
-              haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-              val screen = viewModel.emulator.screen
-              val grid = IntSize(screen.columns, screen.rows)
-              val cell = terminalCellAt(point - Offset(canvasInsetPx, 0f), cellPx, grid, state.topRow)
-              viewModel.selector.selectWordAt(cell.column, cell.row)
-            },
-            onTap = viewModel.selector::clear,
-          )
-        },
-    ) {
-      // Keyed on the redraw counter: `emulator.screen.grid` is mutated in place by
-      // `TerminalPaneViewModel`, which Compose cannot observe on its own - `redraw` is the `State`
-      // that stands in for it, exactly as `EditorUiState.sourceRevisions` stands in for a text
-      // field Compose does not own either.
-      key(state.redraw) {
-        TerminalCanvas(
-          emulator = viewModel.emulator,
-          onGridSizeChanged = { grid, cell ->
-            viewModel.resize(grid, cell.width, cell.height)
-            cellPx = cell
+    Box(Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)) {
+      Box(
+        modifier = Modifier.fillMaxSize()
+          .pointerInput(cellPx) { detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellPx.height) } }
+          .onGloballyPositioned { gestureBox = it }
+          .pointerInput(cellPx, state.topRow) {
+            detectTerminalLongPress(
+              onLongPress = { point ->
+                // `TerminalView.onLongPress` (termux-app `3df69d1d`) confirms the press the same way.
+                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                val screen = viewModel.emulator.screen
+                val grid = IntSize(screen.columns, screen.rows)
+                val cell = terminalCellAt(point - Offset(canvasInsetPx, 0f), cellPx, grid, state.topRow)
+                viewModel.selector.selectWordAt(cell.column, cell.row)
+              },
+              onTap = viewModel.selector::clear,
+            )
           },
-          modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
-          textStyle = textStyle,
-          topRow = state.topRow,
-          selection = selection,
+      ) {
+        // Keyed on the redraw counter: `emulator.screen.grid` is mutated in place by
+        // `TerminalPaneViewModel`, which Compose cannot observe on its own - `redraw` is the `State`
+        // that stands in for it, exactly as `EditorUiState.sourceRevisions` stands in for a text
+        // field Compose does not own either.
+        key(state.redraw) {
+          TerminalCanvas(
+            emulator = viewModel.emulator,
+            onGridSizeChanged = { grid, cell ->
+              viewModel.resize(grid, cell.width, cell.height)
+              cellPx = cell
+            },
+            modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
+            textStyle = textStyle,
+            topRow = state.topRow,
+            selection = selection,
+          )
+        }
+        val toolbarBounds = selection?.let { span ->
+          val local = span.boundsIn(cellPx, viewModel.emulator.screen.columns, state.topRow)
+          gestureBox?.rootRectOf(local.translate(canvasInsetPx, 0f))
+        }
+        TerminalSelectionToolbar(toolbarBounds, onCopy = { viewModel.selector.copyInto(copyToClipboard) })
+        TerminalInputField(
+          onTypedText = viewModel::typeCharacters,
+          onEncodedKey = viewModel::type,
+          applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
         )
       }
-      val toolbarBounds = selection?.let { span ->
-        val local = span.boundsIn(cellPx, viewModel.emulator.screen.columns, state.topRow)
-        gestureBox?.rootRectOf(local.translate(canvasInsetPx, 0f))
+      selection?.let { span ->
+        val screen = viewModel.emulator.screen
+        TerminalSelectionHandles(
+          selection = span,
+          cell = cellPx,
+          grid = IntSize(screen.columns, screen.rows),
+          topRow = state.topRow,
+          origin = Offset(canvasInsetPx, 0f),
+          onMoveEnd = viewModel.selector::moveEnd,
+        )
       }
-      TerminalSelectionToolbar(toolbarBounds, onCopy = { viewModel.selector.copyInto(copyToClipboard) })
-      TerminalInputField(
-        onTypedText = viewModel::typeCharacters,
-        onEncodedKey = viewModel::type,
-        applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
-      )
     }
   }
 }

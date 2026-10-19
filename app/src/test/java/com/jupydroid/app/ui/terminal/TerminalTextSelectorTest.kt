@@ -109,6 +109,80 @@ class TerminalTextSelectorTest {
     assertNull(selector.selection.value)
   }
 
+  /**
+   * `TextSelectionCursorController.updatePosition` (termux-app `3df69d1d`): the dragged end lands
+   * where it is dropped.
+   */
+  @Test
+  fun draggingTheEndMovesItAcrossColumnsAndRows() {
+    write(row = 1, text = "ls -la x")
+    selector.selectWordAt(column = 4, row = 1)
+
+    selector.moveEnd(TerminalSelectionEnd.END, TerminalCellPosition(column = 2, row = 2))
+
+    assertEquals(
+      TerminalTextSelection(startColumn = 3, startRow = 1, endColumn = 2, endRow = 2),
+      selector.selection.value,
+    )
+  }
+
+  @Test
+  fun draggingTheStartMovesItLeft() {
+    write(row = 1, text = "ls -la x")
+    selector.selectWordAt(column = 4, row = 1)
+
+    selector.moveEnd(TerminalSelectionEnd.START, TerminalCellPosition(column = 0, row = 1))
+
+    assertEquals("ls -la", selector.selectedText())
+  }
+
+  /** The reference pins a dragged end to the other one rather than swapping them. */
+  @Test
+  fun theStartDraggedPastTheEndStopsOnIt() {
+    write(row = 1, text = "ls -la x")
+    selector.selectWordAt(column = 4, row = 1)
+
+    selector.moveEnd(TerminalSelectionEnd.START, TerminalCellPosition(column = 7, row = 1))
+
+    assertEquals(
+      TerminalTextSelection(startColumn = 5, startRow = 1, endColumn = 5, endRow = 1),
+      selector.selection.value,
+    )
+  }
+
+  @Test
+  fun theEndDraggedAboveTheStartStopsOnItsRowAndColumn() {
+    write(row = 1, text = "ls -la x")
+    selector.selectWordAt(column = 4, row = 1)
+
+    selector.moveEnd(TerminalSelectionEnd.END, TerminalCellPosition(column = 0, row = 0))
+
+    assertEquals(
+      TerminalTextSelection(startColumn = 3, startRow = 1, endColumn = 3, endRow = 1),
+      selector.selection.value,
+    )
+  }
+
+  @Test
+  fun theStartDraggedBelowTheEndKeepsItsColumnOnTheEndsRow() {
+    write(row = 1, text = "ls -la x")
+    selector.selectWordAt(column = 4, row = 1)
+
+    selector.moveEnd(TerminalSelectionEnd.START, TerminalCellPosition(column = 1, row = 2))
+
+    assertEquals(
+      TerminalTextSelection(startColumn = 1, startRow = 1, endColumn = 5, endRow = 1),
+      selector.selection.value,
+    )
+  }
+
+  @Test
+  fun draggingWithNothingSelectedSelectsNothing() {
+    selector.moveEnd(TerminalSelectionEnd.END, TerminalCellPosition(column = 2, row = 0))
+
+    assertNull(selector.selection.value)
+  }
+
   private fun write(row: Int, text: String) =
     text.forEachIndexed { column, char -> grid.setChar(column, row, char.code, CellStyle.NORMAL) }
 

@@ -27,6 +27,22 @@ data class TerminalTextSelection(val startColumn: Int, val startRow: Int, val en
 
   fun textIn(grid: TerminalGrid): String = grid.selectedText(startColumn, startRow, endColumn, endRow)
 
+  /**
+   * The span with [end] moved to [cell], pinned to the other end rather than swapped past it -
+   * `TextSelectionCursorController.updatePosition` (termux-app `3df69d1d`): a row past the other
+   * end's is that row, and on one row a column past the other end's is that column.
+   */
+  fun withEndAt(end: TerminalSelectionEnd, cell: TerminalCellPosition): TerminalTextSelection = when (end) {
+    TerminalSelectionEnd.START -> {
+      val row = minOf(cell.row, endRow)
+      copy(startColumn = if (row == endRow) minOf(cell.column, endColumn) else cell.column, startRow = row)
+    }
+    TerminalSelectionEnd.END -> {
+      val row = maxOf(cell.row, startRow)
+      copy(endColumn = if (row == startRow) maxOf(cell.column, startColumn) else cell.column, endRow = row)
+    }
+  }
+
   /** The same span, [rows] higher, for text that output has moved up. */
   fun movedUp(rows: Int): TerminalTextSelection = copy(startRow = startRow - rows, endRow = endRow - rows)
 
@@ -71,6 +87,11 @@ class TerminalTextSelector(private val grid: () -> TerminalGrid) {
   fun selectWordAt(column: Int, row: Int) {
     val word = grid().wordColumnsAt(column, row)
     _selection.value = TerminalTextSelection(word.first, row, word.last, row)
+  }
+
+  /** A handle dragged [end] to [cell]; nothing happens with nothing selected. */
+  fun moveEnd(end: TerminalSelectionEnd, cell: TerminalCellPosition) {
+    _selection.value = _selection.value?.withEndAt(end, cell)
   }
 
   fun clear() {

@@ -16,18 +16,22 @@ import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.test.TouchInjectionScope
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.unit.IntSize
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
+import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_END_TAG
+import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_START_TAG
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneViewModel
 import com.jupydroid.app.ui.terminal.terminalCellMetrics
@@ -84,6 +88,40 @@ class TerminalSelectionTest {
 
     assertEquals(null, viewModel.selector.selection.value)
     assertEquals(TextToolbarStatus.Hidden, toolbar.status)
+  }
+
+  /** `TextSelectionHandleView` (termux-app `3df69d1d`): a handle on each end, and dragging one moves that end. */
+  @Test
+  fun draggingTheStartHandleLeftWidensWhatCopyTakes() {
+    val clipboard = RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java))
+    showTheTerminal(clipboard, text = "ls word")
+    pressCell(column = 4) { longClick(it) }
+    compose.onNodeWithTag(TERMINAL_SELECTION_END_TAG).assertIsDisplayed()
+
+    val measured = requireNotNull(cell)
+    compose.onNodeWithTag(TERMINAL_SELECTION_START_TAG).performTouchInput {
+      swipe(center, center - Offset(measured.width * 3f, 0f), durationMillis = 400)
+    }
+    compose.waitForIdle()
+    compose.runOnUiThread { requireNotNull(toolbar.onCopy).invoke() }
+    compose.waitForIdle()
+
+    assertEquals("ls word", clipboard.text())
+  }
+
+  @Test
+  fun theHandlesGoAwayWithTheSelection() {
+    showTheTerminal(
+      RecordingClipboard(compose.activity.getSystemService(ClipboardManager::class.java)),
+      text = "ls word",
+    )
+    pressCell(column = 4) { longClick(it) }
+    compose.onNodeWithTag(TERMINAL_SELECTION_START_TAG).assertIsDisplayed()
+
+    pressCell(column = 0) { click(it) }
+
+    compose.onNodeWithTag(TERMINAL_SELECTION_START_TAG).assertDoesNotExist()
+    compose.onNodeWithTag(TERMINAL_SELECTION_END_TAG).assertDoesNotExist()
   }
 
   private fun showTheTerminal(clipboard: Clipboard, text: String) {
