@@ -198,7 +198,9 @@ rename refused from a tab closing in silence, is closed by the strip's "Rename E
 own tab offering only rename, is closed by
 [ADR-0102](adr/0102-a-document-is-deleted-or-duplicated-from-its-tab.md). `GAP-174`, a tab's menu
 closing none of its siblings, is closed by
-[ADR-0103](adr/0103-a-tabs-menu-closes-its-siblings.md).
+[ADR-0103](adr/0103-a-tabs-menu-closes-its-siblings.md). `GAP-081` and `GAP-082`, a terminal with no
+clipboard of its own and no link it could open, are closed by
+[ADR-0108](adr/0108-terminal-text-is-selected-on-a-long-press-and-its-links-open-after-asking.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
@@ -210,8 +212,8 @@ closing none of its siblings, is closed by
 | `JD-037` | **A rename refused from the tab says why:** when the disk refuses a rename or an overwrite asked from a document's tab, a dialog says why instead of closing in silence | shipped | — | `GAP-069` |
 | `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
 | `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
-| `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | in-progress ← next | — | `GAP-081`, `GAP-082` |
-| `JD-061` | **Settings is reached from every view:** the gear sits at the foot of the side panel's rail, below every panel's icon, as VS Code's Manage does; at one pane it sits where the bottom bar's area puts destinations it does not hold, in a pattern researched from Material's guidance and measured on device | open | — | `GAP-178` |
+| `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | shipped | — | `GAP-081`, `GAP-082` |
+| `JD-061` | **Settings is reached from every view:** the gear sits at the foot of the side panel's rail, below every panel's icon, as VS Code's Manage does; at one pane it sits where the bottom bar's area puts destinations it does not hold, in a pattern researched from Material's guidance and measured on device | open ← next | — | `GAP-178` |
 
 ### M7 — Extensions
 

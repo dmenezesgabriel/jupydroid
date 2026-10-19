@@ -1039,29 +1039,6 @@ Sessions row carries "New Console for Kernel" or "New Notebook for Kernel"
 affordance feeding the session's `kernelId` into session start — which `attachConsole` is not:
 it binds to the notebook's *own* session, not an arbitrary running kernel.
 
-### GAP-081 — A terminal has no clipboard of its own
-
-`terminal:copy` copies `getSelection()` and `terminal:paste` hands the system clipboard to
-`widget.paste` (`jupyterlab/packages/terminal-extension/src/index.ts:623-746`), with
-`pasteWithCtrlV` as the keybind reach. Ours holds the machinery and none of the reach:
-`TerminalGrid.selectedText`/`GridSelection` turn a *span* into text, but nothing anywhere creates
-a selection to pass one — no drag-select, no anchors, no `hasSelection` — and
-`TerminalEmulator.paste`/`PasteCommand` (sanitizing, bracketed under DECSET 2004) is callable by
-nobody (`app/src/main/java/com/jupydroid/app/terminal/`,
-`app/src/main/java/com/jupydroid/app/ui/terminal/`). The repair is two acts, not one wire: a
-selection gesture plus a Copy reach (Termux's `textselection/` handles are the reference's own
-mobile shape — AUD-007 `T4`'s read), and a Paste row/keybind landing text on `TerminalGateway.send`.
-
-### GAP-082 — The terminal never holds a link
-
-`terminal:copy-link` reads `content.contextMenuLink` — the OSC-8 link under the pointer, tracked
-by xterm.js's `addon-web-links` (`jupyterlab/packages/terminal-extension/src/index.ts:693-716`).
-Ours parses no OSC 8 at all: `EscapeDispatch`'s OSC handler covers colours, title and clipboard
-(`app/src/main/java/com/jupydroid/app/terminal/`), so a `https://…` a program prints is drawn as
-text and there is nothing under a pointer for a menu to name. The repair starts in the emulator —
-store the link span the way JediTerm's `model/hyperlinks/` does — before any surface can offer
-copy/open for it.
-
 ### GAP-083 — A folder cannot open a terminal at itself
 
 `terminal:open-folder-in-terminal` is a directory's context-menu item delegating to
@@ -1854,6 +1831,26 @@ panes the repair is the same place at the foot of `SidePanelRail`. At one pane n
 phone layout, so where Settings goes (the bottom bar's area, a bottom sheet with the destinations
 it does not hold, or an overflow) is a choice to research from Material's guidance and measure on
 device, the way `JD-051` chooses the pattern for extension panels.
+
+### GAP-179 — A program in a Space loses its network while the app is behind another
+
+A program a terminal runs, such as `opencode auth login`, is a child of the app's process, under
+proot (`app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt`), so it has the app's uid
+and whatever network the app has. On SM-X216B on 2026-10-19, Open on the link the login printed
+brought Chrome to the front. About 7 s later the platform logged `InetDiagMessage: Destroyed live tcp
+sockets for uids={<app uid>}`, and a second after that `FreecessHandler: freeze com.jupydroid.app`.
+That is Samsung's freezer for a cached background app. opencode's poll for the device code then
+failed with "Failed to authorize: Unable to connect", the same on two runs. Earlier, `opencode
+console login` failed the same way when approved from a browser that covered the app ("Could not
+reach POST https://opencode.ai/console/auth/device/token", opencode 1.19.3), and succeeded from a
+pop-up window that left the app on screen. A sign-in that waits while the user is in the browser, as
+every device flow does, cannot finish on this tablet. This is the measured cost of
+[ADR-0075](adr/0075-several-spaces-run-at-once-each-with-its-own-server.md)'s "no foreground
+service". Termux keeps its sessions in one, with a notification
+(termux-app@3df69d1d `app/src/main/java/com/termux/app/TermuxService.java`, `startForeground`), which
+keeps its process out of the cached state a freezer acts on. The repair starts by measuring whether a
+foreground service, held while a terminal or a kernel is running, keeps a Space's sockets alive
+behind the browser on this tablet, and revisiting ADR-0075 on what that measures.
 
 ---
 
