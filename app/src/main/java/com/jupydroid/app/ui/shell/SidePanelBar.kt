@@ -3,12 +3,14 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ShortNavigationBar
 import androidx.compose.material3.ShortNavigationBarArrangement
 import androidx.compose.material3.ShortNavigationBarItem
+import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -18,6 +20,7 @@ import androidx.window.core.layout.WindowSizeClass
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.onePaneDestinations
 import com.jupydroid.app.theme.chromePalette
+import kotlinx.coroutines.launch
 
 /**
  * The activity bar where the shell draws **one pane**: `SidePanelRail`'s bar, moved to the bottom.
@@ -30,11 +33,10 @@ import com.jupydroid.app.theme.chromePalette
  * and its `'desktop' | 'mobile'` form factor (`packages/application/src/frontend.ts:28,44,120`) is
  * never assigned - which is the split
  *
- * **Four destinations now** - the two panels of [onePaneDestinations] plus two *action* items -
- * which is still inside Material's own band of *"three to five destinations of equal
- * importance"*. Both actions launch rather than mark a panel: the Launcher opens a document, and
- * the Terminal is where the FilesBar icon's provisional reach moved once the launcher existed -
- * a document, not a panel, so nothing stays selected for either one.
+ * **Five items, and five is the ceiling**: the panels of [onePaneDestinations], the Launcher, and
+ * More - Material's own band is *"three to five destinations of equal importance"*. More opens
+ * [MoreRail], which holds what the bar does not, New terminal now and Settings at its foot
+ * (ADR-0109). Neither the Launcher nor More marks a panel, so nothing stays selected for either.
  *
  * ```
  * if (!twoPane) SidePanelBar(selected = showingPanel, onChoose = { sidePanel = it }, …)
@@ -49,8 +51,9 @@ import com.jupydroid.app.theme.chromePalette
  *   labelled *New Launcher* - drawn as a destination rather than a button because at one pane this
  *   bar is where top-level reach belongs.
  * @param onNewTerminal opens a shell - the reference's `terminal:create-new`, which it reaches
- *   from a launcher card. At one pane the launcher is behind the `+`, so the bar carries the
- *   second reach the decision named; at two the card is already on screen and the bar is not.
+ *   from a launcher card. At one pane the launcher is behind the `+`, so [MoreRail] carries the
+ *   second reach; at two the card is already on screen and the bar is not.
+ * @param onOpenSettings opens the app-wide Settings screen, from [MoreRail]'s foot.
  */
 @Composable
 fun SidePanelBar(
@@ -58,8 +61,11 @@ fun SidePanelBar(
   onChoose: (SidePanel) -> Unit,
   onOpenLauncher: () -> Unit,
   onNewTerminal: () -> Unit,
+  onOpenSettings: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val moreRail = rememberWideNavigationRailState()
+  val scope = rememberCoroutineScope()
   // **The bar measures itself**, rather than being told a width or asking the window. At one pane
   // the pane *is* the window, so its own constraints are the width the rule is about - and unlike
   // `currentWindowAdaptiveInfo()`, which reads the activity's window, a constraint is something a
@@ -97,27 +103,27 @@ fun SidePanelBar(
         label = null,
         modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER },
       )
-      // `terminal:create-new` - the other action destination. Last because it is the bar's own
-      // addition rather than a reach point either reference draws; the `+` keeps the tab strip's
-      // add-button place beside the panels.
+      // More takes the fifth slot New terminal gave up (ADR-0109): every destination past five
+      // goes in the rail it opens, so the bar never grows a sixth item.
       ShortNavigationBarItem(
         selected = false,
-        onClick = onNewTerminal,
-        icon = { Icon(Icons.Filled.Terminal, contentDescription = null) },
+        onClick = { scope.launch { moreRail.expand() } },
+        icon = { Icon(Icons.Filled.Menu, contentDescription = null) },
         label = null,
-        modifier = Modifier.semantics { contentDescription = NEW_TERMINAL },
+        modifier = Modifier.semantics { contentDescription = MORE },
       )
     }
   }
+  MoreRail(moreRail, onNewTerminal = onNewTerminal, onOpenSettings = onOpenSettings)
 }
 
 /** The `+` item's name - `launcher-extension`'s own "New Launcher" tooltip. */
 const val NEW_LAUNCHER = "New Launcher"
 
 /**
- * The terminal item's name - the string the FilesBar's provisional icon already carried, kept so
- * the one node answering for `terminal:create-new` keeps the same accessible name the flows and
- * `TerminalNavigationTest` have always tapped.
+ * The terminal row's name in [MoreRail] - the string the bar's item and the FilesBar's provisional
+ * icon carried before it, kept so `tapOn: "New terminal"` still finds the one node answering for
+ * `terminal:create-new` once the rail is open.
  */
 const val NEW_TERMINAL = "New terminal"
 

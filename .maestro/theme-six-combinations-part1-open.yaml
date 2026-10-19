@@ -37,7 +37,7 @@ appId: com.jupydroid.app
 - hideKeyboard
 - waitForAnimationToEnd:
     timeout: 5000
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Tab: Settings"
     timeout: 5000

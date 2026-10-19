@@ -19,7 +19,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - scrollUntilVisible:
     element:
       text: "Autosave interval"
@@ -44,7 +44,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - scrollUntilVisible:
     element:
       text: "Autosave interval"

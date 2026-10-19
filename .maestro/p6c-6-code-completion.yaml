@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-kernel-answering
 
 - back
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Code completion"
     timeout: 5000
@@ -82,7 +82,7 @@ appId: com.jupydroid.app
 # is still focused from typing, and how many back-presses that consumes before actually leaving
 # the notebook is not obvious or stable - measured, not assumed, on the first runs of this flow.
 - tapOn: "Back to files|Close tab: Code Completion.ipynb"
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Code completion"
     timeout: 5000
@@ -118,7 +118,7 @@ appId: com.jupydroid.app
 # `remembersCompletionEnabledTurnedOff`, now asked of the real app. Left off across the relaunch
 # so the driver's own file-based check (`completionEnabled":false`) has something unambiguous.
 - tapOn: "Back to files|Close tab: Code Completion.ipynb"
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Code completion"
     timeout: 5000
@@ -128,7 +128,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Code completion"
     timeout: 5000

@@ -30,12 +30,12 @@ appId: com.jupydroid.app
 
 # --- 2. a terminal: `apk add jq` succeeds, and `jq` answers ---------------------------------------
 - runFlow: open-base-space.yaml
-# The launcher card, then the FilesBar's icon when the launcher's already seen - p8b's two
-# branches, unchanged. On this cold start base's rootfs is still extracting while the workspace
+# The launcher card beside two panes, the modal rail behind the bar's More at one (ADR-0109) -
+# p8b's two branches. On this cold start base's rootfs is still extracting while the workspace
 # first draws, so every wait carries the slack for it.
 - runFlow:
     when:
-      notVisible: "New terminal"
+      notVisible: "More"
     commands:
       - tapOn: "New Launcher"
       - extendedWaitUntil:
@@ -46,8 +46,9 @@ appId: com.jupydroid.app
           id: "launcher-card-NEW_TERMINAL"
 - runFlow:
     when:
-      visible: "New terminal"
+      visible: "More"
     commands:
+      - tapOn: "More"
       - tapOn: "New terminal"
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
@@ -138,7 +139,7 @@ appId: com.jupydroid.app
 - runFlow: open-base-space.yaml
 - runFlow:
     when:
-      notVisible: "New terminal"
+      notVisible: "More"
     commands:
       - tapOn: "New Launcher"
       - extendedWaitUntil:
@@ -149,8 +150,9 @@ appId: com.jupydroid.app
           id: "launcher-card-NEW_TERMINAL"
 - runFlow:
     when:
-      visible: "New terminal"
+      visible: "More"
     commands:
+      - tapOn: "More"
       - tapOn: "New terminal"
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"

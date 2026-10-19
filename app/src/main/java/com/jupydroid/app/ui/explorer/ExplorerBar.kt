@@ -3,7 +3,6 @@ package com.jupydroid.app.ui.explorer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -16,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jupydroid.app.ui.shell.OPEN_SETTINGS
 import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
 
 /**
@@ -27,7 +25,7 @@ import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onOpenSettings: (() -> Unit)?) {
+internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit) {
   TopAppBar(
     title = { Text("Files") },
     colors = sideBarTopAppBarColors(),
@@ -40,11 +38,6 @@ internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onOpen
     },
     actions = {
       NewMenu(onCreate = onCreate)
-      onOpenSettings?.let {
-        IconButton(onClick = it) {
-          Icon(Icons.Filled.Settings, contentDescription = OPEN_SETTINGS)
-        }
-      }
     },
   )
 }

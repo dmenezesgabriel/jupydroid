@@ -18,7 +18,7 @@ appId: com.jupydroid.app
 - runFlow: open-base-space.yaml
 - assertVisible: "Files"
 
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000
@@ -72,7 +72,7 @@ appId: com.jupydroid.app
 
 # Light side: the notebook letter is the deepened orange there (the verbatim brand measured
 # 2.71:1 on the light card), and the card reads on its own fill + border, not a shadow.
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000
@@ -116,7 +116,7 @@ appId: com.jupydroid.app
           timeout: 5000
 
 # Leave the theme as the device had it - the driver resets the workspace, not the theme.
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000

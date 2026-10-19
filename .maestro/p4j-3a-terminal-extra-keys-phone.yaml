@@ -10,7 +10,7 @@ appId: com.jupydroid.app
 - launchApp
 - runFlow: open-base-space.yaml
 - assertVisible: "Files"
-- tapOn: "New terminal"
+- runFlow: open-new-terminal.yaml
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
     timeout: 120000

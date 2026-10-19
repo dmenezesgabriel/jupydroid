@@ -9,7 +9,7 @@ appId: com.jupydroid.app
 - runFlow: open-base-space.yaml
 - assertVisible: "Recent"
 - takeScreenshot: 01-relaunched-the-notebook-recent
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000

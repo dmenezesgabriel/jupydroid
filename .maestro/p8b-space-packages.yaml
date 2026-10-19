@@ -17,7 +17,7 @@ appId: com.jupydroid.app
 # user hits this in: "let me install the thing my notebook needs."
 - runFlow:
     when:
-      notVisible: "New terminal"
+      notVisible: "More"
     commands:
       - tapOn: "New Launcher"
       - extendedWaitUntil:
@@ -28,8 +28,9 @@ appId: com.jupydroid.app
           id: "launcher-card-NEW_TERMINAL"
 - runFlow:
     when:
-      visible: "New terminal"
+      visible: "More"
     commands:
+      - tapOn: "More"
       - tapOn: "New terminal"
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"

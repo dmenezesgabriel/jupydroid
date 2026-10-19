@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -28,8 +29,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /**
- * The terminal is reachable, and what is typed comes back on screen, by both reaches: the bottom
- * bar's own item at one pane, the auto-filled launcher's Terminal card at two. `AppContainer`'s
+ * The terminal is reachable, and what is typed comes back on screen, by both reaches: the modal
+ * rail behind the bottom bar's More at one pane (ADR-0109), the auto-filled launcher's Terminal card at two. `AppContainer`'s
  * default `FakeTerminalGateway` echoes back whatever it is sent, standing in for a real shell here
  * exactly as it does in [com.jupydroid.app.ui.terminal.TerminalPaneViewModelTest].
  */
@@ -45,7 +46,8 @@ class TerminalNavigationTest {
   fun tappingNewTerminalOpensAShellAndTypingComesBackOnScreen() {
     startApp()
 
-    compose.onNodeWithContentDescription("New terminal").performClick()
+    compose.onNodeWithContentDescription("More").performClick()
+    compose.onNodeWithText("New terminal").performClick()
     waitForTag(TERMINAL_INPUT_TAG)
 
     // Enter, too - not just typing - so the field clears (`TerminalInputField`'s own rule: it
@@ -73,6 +75,7 @@ class TerminalNavigationTest {
     startApp(twoPane = true)
 
     compose.onNodeWithContentDescription("New terminal").assertDoesNotExist()
+    compose.onNodeWithContentDescription("More").assertDoesNotExist()
     waitForTag("launcher-screen")
     compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_TERMINAL.name}").performClick()
 

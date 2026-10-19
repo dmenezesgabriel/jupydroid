@@ -16,7 +16,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-cell-at-default-size
 
 - back
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Code font size"
     timeout: 5000
@@ -52,7 +52,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Code font size"
     timeout: 5000

@@ -12,21 +12,7 @@ appId: com.jupydroid.app
 - assertVisible: "Files"
 - takeScreenshot: 01-the-workspace
 
-# The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
-# launcher's Terminal card at two. The card half is checked first - a `when:` is evaluated where it
-# sits, and after the bar's own tap the bar itself is gone, so "not visible" would then describe the
-# terminal screen too.
-- runFlow:
-    when:
-      notVisible: "New terminal"
-    commands:
-      - tapOn:
-          id: "launcher-card-NEW_TERMINAL"
-- runFlow:
-    when:
-      visible: "New terminal"
-    commands:
-      - tapOn: "New terminal"
+- runFlow: open-new-terminal.yaml
 # Generous: on the tablet this can still own installing the Space and starting jupyter_server on
 # the very first run - `p4i-terminal-tablet.yaml`'s own timeout.
 - extendedWaitUntil:

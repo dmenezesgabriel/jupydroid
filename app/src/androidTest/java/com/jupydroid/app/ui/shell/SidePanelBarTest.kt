@@ -13,10 +13,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.JupyterDroidTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,35 +40,83 @@ class SidePanelBarTest {
 
   private val chosen = mutableListOf<SidePanel>()
   private val terminals = mutableListOf<String>()
+  private var settingsOpened = 0
 
-  /** `onePaneDestinations` plus the Launcher and Terminal actions - and the outline is **not** one. */
+  /** `onePaneDestinations` plus the Launcher and More - and the outline is **not** one. */
   @Test
-  fun theBarOffersFilesRunningSearchLauncherAndTerminalAndNoOutline() {
+  fun theBarOffersFilesRunningSearchLauncherAndMoreAndNoOutline() {
     show(SidePanel.FILES)
 
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
     compose.onNodeWithContentDescription(SESSIONS_AND_TABS).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
     compose.onNodeWithContentDescription(NEW_LAUNCHER).assertIsDisplayed()
-    compose.onNodeWithContentDescription(NEW_TERMINAL).assertIsDisplayed()
+    compose.onNodeWithContentDescription(MORE).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertDoesNotExist()
   }
 
   /**
-   * The terminal item is where the FilesBar icon's reach moved - it *launches*, like the launcher's
-   * own item: a fresh `Terminal` key, never a panel pick, so `onChoose` hears nothing.
+   * New terminal gave the bar's fifth slot up to More and moved into the modal rail behind it, with
+   * Settings at the rail's foot (ADR-0109): neither is on screen until More is tapped.
    */
   @Test
-  fun theTerminalItemAsksForAShellRatherThanAPanel() {
+  fun moreOpensARailWithNewTerminalAndSettingsAtItsFoot() {
+    show(SidePanel.FILES)
+    compose.onNodeWithText(NEW_TERMINAL).assertDoesNotExist()
+    compose.onNodeWithText(OPEN_SETTINGS).assertDoesNotExist()
+
+    compose.onNodeWithContentDescription(MORE).performClick()
+
+    val terminal = compose.onNodeWithText(NEW_TERMINAL).assertIsDisplayed().getUnclippedBoundsInRoot()
+    val settings = compose.onNodeWithText(OPEN_SETTINGS).assertIsDisplayed().getUnclippedBoundsInRoot()
+    assertTrue("Settings ($settings) sits below New terminal ($terminal)", settings.top >= terminal.bottom)
+    compose.onNodeWithContentDescription(MORE).assertIsNotSelected()
+  }
+
+  /**
+   * The rail's terminal *launches*, like the launcher's own item: a fresh `Terminal` key, never a
+   * panel pick, so `onChoose` hears nothing - and the rail closes behind it.
+   */
+  @Test
+  fun theRailsTerminalAsksForAShellAndClosesTheRail() {
     show(SidePanel.FILES)
 
-    compose.onNodeWithContentDescription(NEW_TERMINAL).performClick()
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(NEW_TERMINAL).performClick()
 
     compose.runOnIdle {
       assertEquals(listOf("terminal"), terminals)
       assertEquals(emptyList<SidePanel>(), chosen)
     }
-    compose.onNodeWithContentDescription(NEW_TERMINAL).assertIsNotSelected()
+    compose.onNodeWithText(NEW_TERMINAL).assertDoesNotExist()
+  }
+
+  @Test
+  fun theRailsSettingsOpensSettingsAndClosesTheRail() {
+    show(SidePanel.SEARCH)
+
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(OPEN_SETTINGS).performClick()
+
+    compose.runOnIdle { assertEquals(1, settingsOpened) }
+    compose.onNodeWithText(OPEN_SETTINGS).assertDoesNotExist()
+  }
+
+  /** Back closes the rail and leaves the panel where it was, asking for nothing. */
+  @Test
+  fun backClosesTheRailWithoutActing() {
+    show(SidePanel.SEARCH)
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(NEW_TERMINAL).assertIsDisplayed()
+
+    Espresso.pressBack()
+
+    compose.onNodeWithText(NEW_TERMINAL).assertDoesNotExist()
+    compose.onNodeWithContentDescription(SEARCH).assertIsSelected()
+    compose.runOnIdle {
+      assertEquals(emptyList<String>(), terminals)
+      assertEquals(0, settingsOpened)
+    }
   }
 
   /**
@@ -167,8 +217,8 @@ class SidePanelBarTest {
       TOLERANCE_FRACTION,
     )
     val files = compose.onNodeWithContentDescription(FILES).getUnclippedBoundsInRoot()
-    val terminal = compose.onNodeWithContentDescription(NEW_TERMINAL).getUnclippedBoundsInRoot()
-    val groupCentre = (files.left.value + terminal.right.value) / 2
+    val more = compose.onNodeWithContentDescription(MORE).getUnclippedBoundsInRoot()
+    val groupCentre = (files.left.value + more.right.value) / 2
 
     assertEquals("and the group is centred", TABLET_PORTRAIT.width.value / 2, groupCentre, 2f)
   }
@@ -181,6 +231,7 @@ class SidePanelBarTest {
           onChoose = { chosen += it },
           onOpenLauncher = {},
           onNewTerminal = { terminals += "terminal" },
+          onOpenSettings = { settingsOpened++ },
         )
       }
     }
@@ -216,6 +267,7 @@ class SidePanelBarTest {
             onChoose = { chosen += it },
             onOpenLauncher = {},
             onNewTerminal = { terminals += "terminal" },
+            onOpenSettings = { settingsOpened++ },
           )
         }
       }

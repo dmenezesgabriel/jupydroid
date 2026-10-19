@@ -105,8 +105,8 @@ appId: com.jupydroid.app
 
 # ---- a terminal outlives its own tab ----
 - tapOn: "Workspace"
-# `terminal:create-new` is the bar's own action at one pane.
-- tapOn: "New terminal"
+# `terminal:create-new` is behind the bar's More at one pane (ADR-0109).
+- runFlow: open-new-terminal.yaml
 - extendedWaitUntil:
     visible: "Tab: Terminal 1"
     timeout: 30000

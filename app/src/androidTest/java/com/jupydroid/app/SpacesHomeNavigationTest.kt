@@ -184,7 +184,8 @@ class SpacesHomeNavigationTest {
     compose.enterSpace(THESIS_NAME, THESIS_ID)
     waitForText(THESIS_FILE)
 
-    compose.onNodeWithContentDescription("New terminal").performClick()
+    compose.onNodeWithContentDescription("More").performClick()
+    compose.onNodeWithText("New terminal").performClick()
     compose.waitUntil(TIMEOUT_MILLIS) { terminalsIn(THESIS_ID).isNotEmpty() }
 
     assertEquals(listOf("1"), terminalsIn(THESIS_ID))

@@ -10,7 +10,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000

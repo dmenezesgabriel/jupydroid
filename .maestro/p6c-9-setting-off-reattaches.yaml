@@ -18,7 +18,7 @@ appId: com.jupydroid.app
     when:
       visible: "Open Base \\(base\\)"
     file: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - scrollUntilVisible:
     element:
       text: "Shut down kernel on close"

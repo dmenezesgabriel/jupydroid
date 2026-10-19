@@ -14,22 +14,7 @@ appId: com.jupydroid.app
 - launchApp
 - runFlow: open-base-space.yaml
 - assertVisible: "Files"
-# The reach point, by width since P6d-6: the bottom bar's own item at one pane, the auto-filled
-# launcher's Terminal card at two - several drivers below force portrait (`rotate_to 0`) for their
-# pixel oracles, which is one-pane, so the card arm is not a formality. The `notVisible` half is
-# checked first - after the bar's own tap the bar is gone, and a `when:` is evaluated where it
-# sits (`p4i-terminal-screen.yaml`'s own ordering).
-- runFlow:
-    when:
-      notVisible: "New terminal"
-    commands:
-      - tapOn:
-          id: "launcher-card-NEW_TERMINAL"
-- runFlow:
-    when:
-      visible: "New terminal"
-    commands:
-      - tapOn: "New terminal"
+- runFlow: open-new-terminal.yaml
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
     timeout: 120000

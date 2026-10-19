@@ -12,7 +12,7 @@ appId: com.jupydroid.app
     visible: ".*this one is at the root.*"
     timeout: 30000
 - takeScreenshot: 01-the-notebook-open
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000

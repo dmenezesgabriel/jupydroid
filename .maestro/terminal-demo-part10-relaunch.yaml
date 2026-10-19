@@ -7,17 +7,7 @@ appId: com.jupydroid.app
 # The word is printed as in part 1.
 - launchApp
 - runFlow: open-base-space.yaml
-- runFlow:
-    when:
-      notVisible: "New terminal"
-    commands:
-      - tapOn:
-          id: "launcher-card-NEW_TERMINAL"
-- runFlow:
-    when:
-      visible: "New terminal"
-    commands:
-      - tapOn: "New terminal"
+- runFlow: open-new-terminal.yaml
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
     timeout: 120000

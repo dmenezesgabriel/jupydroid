@@ -27,7 +27,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-cell-wraps-by-default
 
 - back
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Wrap code lines"
     timeout: 5000
@@ -60,7 +60,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 05-scrolled-toward-the-marker
 
 - back
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Wrap code lines"
     timeout: 5000
@@ -81,7 +81,7 @@ appId: com.jupydroid.app
 # `remembersCodeWrapEnabledTurnedOff`, now asked of the real app. Left off across the relaunch so
 # the driver's own file-based check (`codeWrapEnabled":false`) has something unambiguous to read.
 - back
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Wrap code lines"
     timeout: 5000
@@ -91,7 +91,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Wrap code lines"
     timeout: 5000

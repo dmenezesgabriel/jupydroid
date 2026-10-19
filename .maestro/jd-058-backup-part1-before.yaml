@@ -26,7 +26,7 @@ appId: com.jupydroid.app
 - assertVisible: "notes.md"
 - assertVisible: "talk.chat"
 - takeScreenshot: 02-documents-before
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000

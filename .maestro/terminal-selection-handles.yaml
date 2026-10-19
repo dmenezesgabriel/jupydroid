@@ -15,17 +15,7 @@ appId: com.jupydroid.app
 # screen's edge in one direction, since the drawn text gives Maestro no point of its own to aim at.
 - launchApp
 - runFlow: open-base-space.yaml
-- runFlow:
-    when:
-      notVisible: "New terminal"
-    commands:
-      - tapOn:
-          id: "launcher-card-NEW_TERMINAL"
-- runFlow:
-    when:
-      visible: "New terminal"
-    commands:
-      - tapOn: "New terminal"
+- runFlow: open-new-terminal.yaml
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
     timeout: 120000

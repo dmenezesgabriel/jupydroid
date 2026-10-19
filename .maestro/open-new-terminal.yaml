@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# Opens a terminal by the reach the window's width gives it, from a panel with the launcher beside it
+# (ADR-0109): at two panes the auto-filled launcher's Terminal card, at one the modal rail behind
+# the bottom bar's More.
+#
+# **Not a flow.** No driver runs this; every flow that opens a terminal calls it with `runFlow`, so
+# the reach is written once. "More" is what tells the widths apart: only the one-pane bar draws it.
+# The card half is checked first because a `when:` is evaluated where it sits, and after the rail's
+# tap the bar is gone, so "not visible" would then describe the terminal screen too.
+- runFlow:
+    when:
+      notVisible: "More"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+      - tapOn: "New terminal"

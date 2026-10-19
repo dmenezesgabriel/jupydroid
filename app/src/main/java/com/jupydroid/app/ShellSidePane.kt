@@ -51,11 +51,12 @@ import com.jupydroid.extension.api.SidePanelHost
  * @param onRevealMatch where a tapped search result puts the match, on its way to the editor that
  *   has to land on it. Separate from [openDocument] because the two are one act in the caller and
  *   two different pieces of its state.
- * @param onNewTerminal opens a shell - the bottom bar's own item, already bound to the browsed
- *   directory by `Navigation.kt`'s `rememberNewTerminal`. At two panes this callback is unread:
- *   the bar is not drawn and the launcher's Terminal card is the reach.
+ * @param onNewTerminal opens a shell - a row of the modal rail behind the bottom bar's More,
+ *   already bound to the browsed directory by `Navigation.kt`'s `rememberNewTerminal`. At two
+ *   panes this callback is unread: the bar is not drawn and the launcher's Terminal card is the reach.
  * @param onOpenSettings opens the app-wide Settings screen - see `NotebookBackStack.kt`'s
- *   `openSettings`. The Files bar draws it only at one pane; beside two, `SidePanelRail` does.
+ *   `openSettings`. Read only at one pane, from the foot of the modal rail behind More; beside two,
+ *   `SidePanelRail` draws it (ADR-0109).
  * @param onOpenLauncher opens the Launcher - the bottom bar's third destination, which is a
  *   document rather than a [SidePanel], so it is a callback here and not a `chosen`.
  * @param onBrowsedDirectory where the explorer reports the directory it is showing - the
@@ -184,7 +185,6 @@ fun ShellSidePane(
             // `Nested.ipynb.ipynb` opened nothing.
             onOpenFile = { file -> openDocument(file.path) },
             onOpenRecent = openDocument,
-            onOpenSettings = onOpenSettings.takeUnless { twoPane },
             openDocumentPath = openDocumentPath,
             browseRequest = browseRequest,
             onBrowseRequestHandled = onBrowseRequestHandled,
@@ -210,6 +210,7 @@ fun ShellSidePane(
         onChoose = onChoosePanel,
         onOpenLauncher = onOpenLauncher,
         onNewTerminal = onNewTerminal,
+        onOpenSettings = onOpenSettings,
       )
     }
   }

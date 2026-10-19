@@ -13,7 +13,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000
@@ -74,7 +74,7 @@ appId: com.jupydroid.app
     timeout: 30000
 - takeScreenshot: 02-the-console-draws-the-same-colours-in-dark
 # The same transcript in the app's Light theme, which swaps the ANSI ramp with the rest of the palette.
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000

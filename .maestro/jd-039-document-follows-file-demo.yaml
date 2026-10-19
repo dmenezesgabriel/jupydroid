@@ -34,7 +34,7 @@ appId: com.jupydroid.app
       notVisible: "Settings"
     commands:
       - tapOn: "Files"
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - scrollUntilVisible:
     element:
       text: "Autosave interval"

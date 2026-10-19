@@ -20,7 +20,7 @@ appId: com.jupydroid.app
     timeout: 10000
 - assertVisible: "Recent"
 - takeScreenshot: 02-documents-and-recent-before
-- tapOn: "Settings"
+- runFlow: open-settings.yaml
 - extendedWaitUntil:
     visible: "Back to files|Close tab: Settings"
     timeout: 5000

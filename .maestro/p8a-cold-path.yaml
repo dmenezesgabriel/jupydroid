@@ -34,11 +34,11 @@ appId: com.jupydroid.app
     timeout: 180000
 - takeScreenshot: 01-first-cell-answered
 
-# The terminal half, by the width's own reach (p6d-6's rule): the bar's "New terminal" at one
-# pane, the rail's launcher and its Terminal card at two.
+# The terminal half, by the width's own reach (p6d-6's rule): the modal rail behind the bar's More
+# at one pane (ADR-0109), the rail's launcher and its Terminal card at two.
 - runFlow:
     when:
-      notVisible: "New terminal"
+      notVisible: "More"
     commands:
       - tapOn: "New Launcher"
       - extendedWaitUntil:
@@ -49,8 +49,9 @@ appId: com.jupydroid.app
           id: "launcher-card-NEW_TERMINAL"
 - runFlow:
     when:
-      visible: "New terminal"
+      visible: "More"
     commands:
+      - tapOn: "More"
       - tapOn: "New terminal"
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"

@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# Opens Settings from wherever its gear is at this width (ADR-0109): the foot of the rail beside two
+# panes, the foot of the modal rail behind the bottom bar's More at one.
+#
+# **Not a flow.** No driver runs this; every flow that opens Settings calls it with `runFlow`, so the
+# reach is written once. "More" is drawn only by the one-pane bar, so its absence means the rail.
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+- tapOn: "Settings"

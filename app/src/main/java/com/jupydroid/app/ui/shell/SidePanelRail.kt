@@ -105,7 +105,7 @@ fun SidePanelRail(
 }
 
 /**
- * The gear's name, on the rail and on the Files bar alike - one string, so a screen reader and a
- * Maestro flow address Settings the same way at either width.
+ * Settings' name, on the rail's gear and on the modal rail's row alike - one string, so a screen
+ * reader and a Maestro flow address Settings the same way at either width.
  */
 const val OPEN_SETTINGS = "Settings"

@@ -10,17 +10,7 @@ appId: com.jupydroid.app
 # TABLET ONLY (SM-X216B): on the x86_64 emulator the terminal is FakeTerminalGateway's echo.
 - launchApp
 - runFlow: open-base-space.yaml
-- runFlow:
-    when:
-      notVisible: "New terminal"
-    commands:
-      - tapOn:
-          id: "launcher-card-NEW_TERMINAL"
-- runFlow:
-    when:
-      visible: "New terminal"
-    commands:
-      - tapOn: "New terminal"
+- runFlow: open-new-terminal.yaml
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
     timeout: 120000

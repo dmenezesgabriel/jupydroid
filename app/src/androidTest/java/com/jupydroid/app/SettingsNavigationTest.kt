@@ -6,7 +6,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskRecentDocumentsFile
@@ -26,7 +28,8 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 
 /**
- * Settings is reachable from the explorer's own bar, and Back returns there.
+ * Settings is reachable from every panel - the rail's foot beside two panes, the foot of the modal
+ * rail behind the bottom bar's More at one (ADR-0109) - and Back returns to the panel.
  * `TerminalNavigationTest`'s reach-then-Back shape is the precedent this mirrors.
  */
 @RunWith(AndroidJUnit4::class)
@@ -38,15 +41,33 @@ class SettingsNavigationTest {
   @get:Rule val state = TemporaryFolder()
 
   @Test
-  fun tappingSettingsOpensItAndBackReturnsToFiles() {
+  fun atOnePaneSettingsOpensFromMoreAndBackReturnsToFiles() {
     startApp()
+    // The Files bar has no gear of its own: one screen, one Settings, and it is behind More.
+    compose.onAllNodesWithContentDescription("Settings").assertCountEquals(0)
 
-    compose.onNodeWithContentDescription("Settings").performClick()
+    compose.onNodeWithContentDescription("More").performClick()
+    compose.onNodeWithText("Settings").performClick()
     waitForTag(SETTINGS_SCREEN_TAG)
 
     compose.onNodeWithContentDescription("Back to files").performClick()
     waitForTag(SETTINGS_SCREEN_TAG, present = false)
-    compose.onNodeWithContentDescription("Settings").assertExists()
+    compose.onNodeWithContentDescription("Files").assertIsSelected()
+  }
+
+  /** The case the Files bar's gear could not reach: Settings with Search showing, and back to it. */
+  @Test
+  fun atOnePaneSettingsOpensFromMoreWithSearchShowing() {
+    startApp()
+    compose.onNodeWithContentDescription("Search").performClick()
+
+    compose.onNodeWithContentDescription("More").performClick()
+    compose.onNodeWithText("Settings").performClick()
+    waitForTag(SETTINGS_SCREEN_TAG)
+
+    Espresso.pressBack()
+    waitForTag(SETTINGS_SCREEN_TAG, present = false)
+    compose.onNodeWithContentDescription("Search").assertIsSelected()
   }
 
   /**

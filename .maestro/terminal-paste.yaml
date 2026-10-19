@@ -13,17 +13,7 @@ appId: com.jupydroid.app
 # instrumented proof that Paste reaches the shell and that OSC 52 reaches the clipboard.
 - launchApp
 - runFlow: open-base-space.yaml
-- runFlow:
-    when:
-      notVisible: "New terminal"
-    commands:
-      - tapOn:
-          id: "launcher-card-NEW_TERMINAL"
-- runFlow:
-    when:
-      visible: "New terminal"
-    commands:
-      - tapOn: "New terminal"
+- runFlow: open-new-terminal.yaml
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
     timeout: 120000

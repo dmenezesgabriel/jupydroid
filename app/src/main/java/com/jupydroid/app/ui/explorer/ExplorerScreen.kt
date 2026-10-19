@@ -99,11 +99,6 @@ fun ExplorerScreen(
   onOpenFile: (WorkspaceEntry) -> Unit,
   onOpenRecent: (String) -> Unit = {},
   /**
-   * Opens the app-wide Settings screen from this bar's gear, or null for no gear: beside two panes
-   * the gear is `SidePanelRail`'s, at the rail's foot, and one screen has one Settings.
-   */
-  onOpenSettings: (() -> Unit)? = null,
-  /**
    * The document open in the pane beside this one, so its row can say so - or null when the
    * browser has the window to itself.
    *
@@ -208,7 +203,6 @@ fun ExplorerScreen(
       FilesBar(
         onBack = onBack,
         onCreate = viewModel::create,
-        onOpenSettings = onOpenSettings,
       )
     },
   ) { padding ->
