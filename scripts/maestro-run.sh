@@ -343,6 +343,24 @@ require_installed_app() {
   return 1
 }
 
+# Uninstalls the app and installs the APK `./gradlew :app:assembleDebug` last built, with restore off
+# so no earlier backup comes back, into [out]/fresh-install.txt. An item's demo starts here: it runs
+# the build under test with none of an earlier run's state.
+fresh_install() {
+  local out="$1" apk="$ROOT_DIR/../app/build/outputs/apk/debug/app-debug.apk" adb
+  mapfile -t adb < <(device_adb)
+  [ -f "$apk" ] || { echo "no APK at $apk: build it with ./gradlew :app:assembleDebug" >&2; exit 1; }
+  mkdir -p "$out"
+  {
+    echo "\$ adb uninstall $APP"
+    "${adb[@]}" uninstall "$APP" || true
+    "${adb[@]}" shell bmgr autorestore false
+    echo "\$ adb install app-debug.apk"
+    "${adb[@]}" install "$apk"
+    "${adb[@]}" shell bmgr autorestore true
+  } 2>&1 | tr -d '\r' >"$out/fresh-install.txt"
+}
+
 # Runs a flow on the device this driver seeded, and nowhere else.
 #
 # `adb` honours `ANDROID_SERIAL`; **maestro does not**. With two devices attached it picks one of

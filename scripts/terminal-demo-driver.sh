@@ -29,23 +29,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 OUT="$ROOT/evidence/terminal-demo"
 FLOWS="$ROOT/.maestro/terminal-demo"
-APK="$ROOT/app/build/outputs/apk/debug/app-debug.apk"
 RAW="opencode-login.raw"
 mapfile -t DEVICE < <(device_adb)
-
-# Uninstalls the app and installs the APK, with restore off so no earlier backup comes back.
-fresh_install() {
-  [ -f "$APK" ] || { echo "no APK at $APK: build it with ./gradlew :app:assembleDebug" >&2; exit 1; }
-  mkdir -p "$OUT"
-  {
-    echo "\$ adb uninstall $APP"
-    "${DEVICE[@]}" uninstall "$APP" || true
-    "${DEVICE[@]}" shell bmgr autorestore false
-    echo "\$ adb install app-debug.apk"
-    "${DEVICE[@]}" install "$APK"
-    "${DEVICE[@]}" shell bmgr autorestore true
-  } 2>&1 | tr -d '\r' >"$OUT/fresh-install.txt"
-}
 
 # How many OSC 8 sequences opencode wrote, and the line it printed the address on, from the bytes the
 # seeded wrapper kept. Only those two leave the device: the bytes also hold the device code.
@@ -77,7 +62,7 @@ install_opencode() {
     { echo "opencode did not install: $OUT/opencode-install/probe.txt" >&2; exit 1; }
 }
 
-fresh_install
+fresh_install "$OUT"
 install_opencode
 run_flow "$FLOWS-part1-select.yaml" "$OUT/part1-select" || exit 1
 run_flow "$FLOWS-part2-copy-paste.yaml" "$OUT/part2-copy-paste" || exit 1

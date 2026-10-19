@@ -1,0 +1,71 @@
+appId: com.jupydroid.app
+---
+# Beside two panes the gear at the rail's foot opens Settings with Search, Sessions and Tabs, and Chat
+# on the side, and closing it leaves that panel where it was (`SidePanelRail`, ADR-0109). Ends on Chat
+# with Settings closed, so the driver reads the rail with the one gear on it.
+# Nothing here runs a cell; the driver pins the tablet to landscape, which is two panes.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+- assertNotVisible: "More"
+- takeScreenshot: 01-files-the-gear-at-the-rails-foot
+
+# --- 1. from Search --------------------------------------------------------------------------------
+- tapOn:
+    text: "^Search$"
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 5000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Theme"
+- assertVisible: "Search the workspace"
+- takeScreenshot: 02-settings-beside-search
+- tapOn: "Close tab: Settings"
+- extendedWaitUntil:
+    notVisible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Search the workspace"
+- takeScreenshot: 03-closed-search-still-showing
+
+# --- 2. from Sessions and Tabs ---------------------------------------------------------------------
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 5000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Theme"
+- assertVisible: "Kernel Sessions"
+- takeScreenshot: 04-settings-beside-sessions
+- tapOn: "Close tab: Settings"
+- extendedWaitUntil:
+    notVisible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Kernel Sessions"
+- takeScreenshot: 05-closed-sessions-still-showing
+
+# --- 3. from Chat ----------------------------------------------------------------------------------
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 10000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Theme"
+- assertVisible: "Ask the agent"
+- takeScreenshot: 06-settings-beside-chat
+- tapOn: "Close tab: Settings"
+- extendedWaitUntil:
+    notVisible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Ask the agent"
+- takeScreenshot: 07-closed-chat-still-showing

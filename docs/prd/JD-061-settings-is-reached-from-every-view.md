@@ -111,7 +111,7 @@ None. Where Settings goes at one pane is ADR-0109, measured on SM-X216B in portr
   terminal in it and Settings at its foot; the Files bar drops its gear at both widths. Update
   `SidePanelBarTest`, `TerminalNavigationTest` and every one-pane flow that taps the bar's "New
   terminal" (the portrait drivers: `grep -ln "rotate_to 0" scripts/*.sh`, and the phone flows).
-- [ ] T4 — The demo on `SM-X216B` in both orientations; ship.
+- [x] T4 — The demo on `SM-X216B` in both orientations; ship.
 
 ## Out of scope
 

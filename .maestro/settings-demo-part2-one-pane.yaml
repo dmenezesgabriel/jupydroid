@@ -1,0 +1,88 @@
+appId: com.jupydroid.app
+---
+# Goes on from part 1 after the driver turns the tablet to portrait, in the same process: the bar's
+# fifth item is More and no gear is drawn. From Files, Search and Sessions and Tabs, More opens the
+# modal rail and Settings at its foot opens Settings; Back leaves the panel where it was. Last, the
+# rail's New terminal opens a shell (ADR-0109). Each panel is told apart by its own content: Maestro
+# reads every Compose bar item as unselected.
+#
+# The Launcher tab part 1 left open is what one pane shows first, as a document with "Back to files";
+# the bar is drawn under the list, so the flow goes back to it.
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+- takeScreenshot: 08-rotated-the-open-launcher
+- tapOn: "Back to files"
+- extendedWaitUntil:
+    visible: "More"
+    timeout: 10000
+# Chat has no one-pane home yet, so the panel narrows to Files (`showingAtOnePane`).
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 5000
+- assertNotVisible: "Settings"
+- takeScreenshot: 09-rotated-files-bar-has-more-and-no-gear
+
+# --- 1. from Files ---------------------------------------------------------------------------------
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 5000
+- assertVisible: "New terminal"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 10-the-more-rail-open
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 11-settings-from-files
+- back
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 5000
+
+# --- 2. from Search --------------------------------------------------------------------------------
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 5000
+- assertNotVisible: "Settings"
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 12-settings-from-search
+- back
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 5000
+- takeScreenshot: 13-closed-search-still-showing
+
+# --- 3. from Sessions and Tabs ---------------------------------------------------------------------
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 5000
+- assertNotVisible: "Settings"
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 14-settings-from-sessions
+- back
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 5000
+- takeScreenshot: 15-closed-sessions-still-showing
+
+# --- 4. New terminal, from the rail ----------------------------------------------------------------
+- tapOn: "More"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 60000
+- takeScreenshot: 16-new-terminal-from-the-rail

@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# After a kill and a relaunch, the gear is where it was at this width (ADR-0109): at the rail's foot
+# beside two panes, at the modal rail's foot behind More at one. Ends with the gear on screen, so the
+# driver reads where it sits; the driver runs this once in each orientation.
+# Nothing here runs a cell.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# At one pane an open tab is shown first, as a document; the bar and its More are drawn under the list.
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+      - waitForAnimationToEnd:
+          timeout: 5000
+- assertVisible: "Settings"
+- takeScreenshot: 01-relaunched-the-gear-where-it-was

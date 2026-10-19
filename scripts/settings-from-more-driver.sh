@@ -16,7 +16,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 # shellcheck source=scripts/jd-030-rotation-reads.sh
-. "$ROOT/scripts/jd-030-rotation-reads.sh"   # rotate_to, restore_rotation, "adb"
+. "$ROOT/scripts/jd-030-rotation-reads.sh"   # rotate_to, restore_rotation, dump_named_bounds
 
 OUT="$ROOT/evidence/settings-from-more"
 
@@ -24,21 +24,9 @@ trap restore_rotation EXIT
 rotate_to 0
 run_flow "$ROOT/.maestro/settings-from-more-part1-rail-open.yaml" "$OUT/rail-open" || exit 1
 
-"${adb[@]}" shell uiautomator dump /sdcard/settings-from-more.xml >/dev/null
-"${adb[@]}" exec-out cat /sdcard/settings-from-more.xml >"$OUT/rail-open/window.xml"
-"${adb[@]}" shell rm -f /sdcard/settings-from-more.xml
-
 # Every node with a name, top to bottom, in dp - the rail's two rows and the bar's five items among
 # them - and how many answer to "Settings".
-python3 -I -c '
-import re, sys
-xml = open(sys.argv[1]).read()
-named = re.findall(r"(?:text|content-desc)=\"([^\"]+)\"[^>]*bounds=\"\[(\d+),(\d+)\]\[(\d+),(\d+)\]\"", xml)
-for name, *px in sorted(set(named), key=lambda n: (int(n[2]), int(n[1]))):
-    l, t, r, b = (round(int(v) / 1.5) for v in px)
-    print(f"  {name[:40]:40} x {l}-{r} ({r - l}dp)  y {t}-{b} ({b - t}dp)")
-print("  nodes named Settings:", len(re.findall(r"=\"Settings\"", xml)))' \
-  "$OUT/rail-open/window.xml" | tee "$OUT/rail-open/bounds.txt"
+dump_named_bounds "$OUT/rail-open"
 
 run_flow "$ROOT/.maestro/settings-from-more-part2-from-every-panel.yaml" "$OUT/from-every-panel" || exit 1
 
