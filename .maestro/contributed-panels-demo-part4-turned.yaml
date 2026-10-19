@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Goes on from part 3 after the driver turns the tablet to landscape in the same process: two panes,
+# no More, and Chat still the panel on the side. Which rail item is marked the driver reads from the
+# window, since Maestro reads every Compose rail item as unselected.
+#
+# The panel is told by its title, not by "Ask the agent": the turn focuses the input of a side panel
+# that showed at one pane, Search's as well as Chat's, and the keyboard it raises covers Chat's input.
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 10000
+- assertNotVisible: "More"
+- assertNotVisible: "Workspace"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 08-turned-chat-on-the-rail

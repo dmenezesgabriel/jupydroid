@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# After a kill and a relaunch in portrait, More still lists Source Control and Chat, and each still
+# opens its panel (ADR-0109, `MoreRail`).
+# Nothing here runs a cell.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# At one pane an open tab is shown first, as a document; the bar and its More are drawn under the list.
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+- extendedWaitUntil:
+    visible: "More"
+    timeout: 10000
+- takeScreenshot: 09-relaunched
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 5000
+- assertVisible: "Source Control"
+- assertVisible: "Chat"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 10-relaunched-rail-lists-both
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "You are not currently in a Git repository\\."
+    timeout: 30000
+- takeScreenshot: 11-relaunched-source-control
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- assertNotVisible: "You are not currently in a Git repository\\."
+- takeScreenshot: 12-relaunched-chat

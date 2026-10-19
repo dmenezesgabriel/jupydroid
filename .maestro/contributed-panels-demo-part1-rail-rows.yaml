@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# From a fresh install, at one pane: no contributed panel is on the bottom bar, and More's modal rail
+# lists New terminal, then Source Control and Chat, then Settings at its foot (ADR-0109, `MoreRail`).
+# Ends with the rail open, so the driver reads where its rows sit and that none is selected.
+# Nothing here runs a cell; the driver pins the tablet to portrait, which is one pane.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+- assertVisible: "More"
+- assertNotVisible: "Source Control"
+- assertNotVisible: "Chat"
+- takeScreenshot: 01-files-before-more
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 5000
+- assertVisible: "New terminal"
+- assertVisible: "Source Control"
+- assertVisible: "Chat"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-rail-lists-the-contributed-panels

@@ -108,7 +108,7 @@ A Compose test that reads names with the rail open has to scope its lookup to th
   shows it and closes the rail; its row is selected and no bar item is; it no longer narrows to Files,
   and Back from it selects Files. The open decision, measured: no change.
 - [x] T2 — The Maestro flow on `SM-X216B` in portrait, with evidence.
-- [ ] T3 — The demo; ADR-0105's one-pane line marked superseded in part by ADR-0109; delete this PRD;
+- [x] T3 — The demo; ADR-0105's one-pane line marked superseded in part by ADR-0109; delete this PRD;
   ship.
 
 ## Out of scope
