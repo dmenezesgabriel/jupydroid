@@ -4,7 +4,8 @@ Milestone: `M6` · State: in-progress · Depends on: — · Closes: GAP-081, GAP
 
 ## Outcome
 
-In a terminal, a long press selects a word and Copy puts it on the clipboard. Paste sends the clipboard
+In a terminal, a long press selects a word and the platform's floating text toolbar offers Copy,
+which puts it on the clipboard. Paste sends the clipboard
 to the shell. Tapping an http(s) link a program printed opens it in the browser after a confirmation.
 
 ## Demo
@@ -13,12 +14,12 @@ On SM-X216B, because step 5 signs opencode in through a real shell, and on x86_6
 `FakeTerminalGateway`'s echo.
 
 1. Fresh install, launch, enter base, open a terminal.
-2. `echo jupydroid-select`. Long-press `jupydroid-select`: the word is highlighted, and the bar shows
-   Copy, Paste and a close button.
-3. Tap Copy: the highlight goes away. Type `echo `, then Paste from the bar's ⋮ menu: the line reads
-   `echo jupydroid-select`. Press Enter and the shell answers it.
-4. Long-press a word, then let `sleep 1; echo tick` print. The view stays where it was until the
-   selection is closed.
+2. `echo jupydroid-select`. Long-press `jupydroid-select`: the word is highlighted, and the floating
+   toolbar over it offers Copy and Paste.
+3. Tap Copy: the highlight goes away. Type `echo `, then Paste from the floating toolbar or the ⋮ menu:
+   the line reads `echo jupydroid-select`. Press Enter and the shell answers it.
+4. Long-press a word, then let `sleep 1; echo tick` print. The view stays on the word until the
+   selection ends, by Copy or by a tap.
 5. `opencode auth login`, then pick a provider that prints a URL. Tap the URL and an **Open Link?**
    dialog names it. Choose Open and the browser opens that URL.
 6. Kill and relaunch the app. Nothing is persisted, so there is nothing to check after relaunch except
@@ -82,7 +83,7 @@ front. Termux's surface is a platform `ActionMode`; the desktop references use a
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
 | Selection gesture | termux → long press selects the word; jediterm, xterm → mouse drag | A drag is already the scrollback gesture (`detectTerminalScrollDrag`), and a touch screen has no button to tell the two apart | **Long press, Termux's word expansion.** The only touch reference does this |
-| Copy/Paste surface | termux → `ActionMode`; jupyterlab → context menu | `ActionMode` is a View API that Compose tests cannot address by text; a menu needs something to open it | **A bar in the terminal's top bar while a selection exists** (Copy, Paste, close), and **Paste** as a row of `TerminalActionsMenu` so it is reachable with no selection, as `terminal:paste` is |
+| Copy/Paste surface | termux → the platform's floating `ActionMode`; jupyterlab → context menu | A button in the app's bar is easy to find in a test, and is not how text is selected anywhere else on Android | **The platform's floating text toolbar**, reached through Compose's `LocalTextToolbar`, which on Android is that same `ActionMode`: Copy over the selection, and Paste on it from T3. A tap ends the selection, as in `TerminalView`. **Paste** is also a row of `TerminalActionsMenu`, so it is reachable with no selection, as `terminal:paste` is. A bar button was built first and replaced on review (2026-10-19) |
 | Clipboard boundary | a `domain/port` gateway; Compose's `LocalClipboard` | A port gives a `Fake…` and an `AppContainer` entry for a service Compose already injects through a `CompositionLocal`, which tests can override with a named fake | **`LocalClipboard`**, read in `ui/terminal/`. The ViewModel deals in strings (`selectedText`, `paste`) and never touches the clipboard |
 | Tapping a link | termux → off by default; jupyterlab → open after a dialog; vscode → modifier+click | Termux's default leaves the item's own demo unreachable; a touch screen has no modifier | **JupyterLab's**: http/https only, an "Open Link?" dialog naming the URL, then `Intent.ACTION_VIEW` |
 | Which links | printed URLs (termux, web-links, jediterm filters); OSC 8 (jupyterlab, vscode, jediterm) | A printed URL needs a pattern; OSC 8 needs an emulator arm and per-cell storage | **Both.** The printed URL is what most programs emit; OSC 8 is GAP-082's emulator half |
@@ -107,14 +108,15 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
 
 ## Deviations
 
-- No "More" entry and no Share: the bar offers Copy and Paste, which are the commands JupyterLab has.
+- No "More" entry and no Share: the toolbar offers Copy and Paste, which are the commands JupyterLab has.
 - No setting to switch tap-to-open off. The confirmation dialog is the guard Termux's default-off
   setting stands in for.
 
 ## Open decisions
 
-- Does a long press over the invisible `BasicTextField` reach an Initial-pass detector before the
-  field's own text selection does? (T1, measured on device)
+- ~~Does a long press over the invisible `BasicTextField` reach an Initial-pass detector before the
+  field's own text selection does?~~ Yes, measured on SM-X216B in T1: the press selects the word, and
+  the field shows no toolbar of its own.
 - Does `opencode auth login` print its URL as plain text or as OSC 8? (T5, on SM-X216B)
 - The URL pattern runs on ART's ICU regex, not the JVM's, so it gets an instrumented test (T4).
 
@@ -124,7 +126,7 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
 |---|---|
 | `domain/model` | — (no port: the clipboard is Compose's, opening a link is an `Intent`) |
 | `terminal/` | word bounds on `TerminalGrid`; OSC 8 arm and link spans (T5) |
-| `ui/terminal` | `TerminalTextSelection` (the span, and what it reads), the long-press gesture in `TerminalPaneScreen.kt`, the highlight in `TerminalCanvas.kt`, the selection bar in `TerminalBar`, Paste in `TerminalActionsMenu.kt`, the link dialog |
+| `ui/terminal` | `TerminalTextSelection` (the span, and what it reads), the long-press gesture (`TerminalLongPress.kt`), the highlight in `TerminalCanvas.kt`, the floating toolbar (`TerminalSelectionToolbar.kt`), Paste in `TerminalActionsMenu.kt`, the link dialog |
 | `di/AppContainer` | — |
 | unit tests | `TerminalGridTest`, `TerminalTextSelectionTest`, `TerminalPaneViewModelTest` |
 | instrumented tests | `TerminalSelectionTest`, the URL pattern on ART |
@@ -132,11 +134,11 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
 
 ## Tasks
 
-- [ ] T1: A long press selects the word under it. The span is highlighted, the bar shows Copy and a
-  close button, Copy puts the text on the clipboard and ends the selection, and output does not move
-  the view while a selection exists.
+- [x] T1: A long press selects the word under it. The span is highlighted, the floating toolbar
+  offers Copy over it, Copy puts the text on the clipboard and ends the selection, a tap ends it too,
+  and output does not move the view away from it while it exists.
 - [ ] T2: Two handles drag the selection's ends, clamped to the screen and the scrollback.
-- [ ] T3: Paste, from the selection bar and from the actions menu, sends the clipboard through
+- [ ] T3: Paste, from the floating toolbar and from the actions menu, sends the clipboard through
   `emulator.paste`. OSC 52 puts its payload on the clipboard.
 - [ ] T4: Tapping a printed http(s) URL asks "Open Link?" and opens it. A tap anywhere else still
   focuses the keyboard.

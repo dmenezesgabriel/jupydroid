@@ -1,0 +1,57 @@
+appId: com.jupydroid.app
+---
+# Part 1 of 2: a long press on a word a real shell printed selects it, and the platform's floating
+# text toolbar offers Copy over it.
+# Part 2, after the driver has waited out `sleep 25`, shows the output that arrived meanwhile
+# moved the view up with the word, Copy ending the selection, and a tap ending a new one.
+#
+# The word is `sel42word`, which only a shell that computed `$((6*7))` can print: the pty echoes
+# the typed command, and `clear` wipes that echo before the answer lands
+# (`architecture/cross-cutting.md` §8.6, "A pty echoes").
+#
+# **Where to press is put there by the shell.** The terminal's text is drawn, and the per-row
+# `Text` nodes do not reach this device's accessibility dump at all (measured: only
+# `terminal-input` is in it), so no selector can find the word. The press goes to the input
+# field's centre, which covers the grid, and the shell prints the word at the grid's centre column
+# from `stty size` on every row but the last, so the press lands on it whatever the row count. A
+# first run printed it on three rows and the press took the blank row above them.
+#
+# **What this flow cannot assert, and what does.** The highlight, the view holding while `seq`
+# prints, and the selected word are all drawn, so the screenshots are their evidence;
+# `TerminalSelectionTest` is the instrumented proof that Copy writes the word to the clipboard.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+# `sleep 25` outlasts the press and the first screenshot, so `seq` scrolls only once the word is
+# selected.
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-4))ssel$((6*7))word\\n\" ''; done; sleep 25; seq 80"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+# Scoped to the platform's floating toolbar, `aud-002-4-text-clipboard.yaml`'s id for its items.
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 01-the-word-is-selected

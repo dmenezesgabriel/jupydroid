@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# Part 2 of 2: `seq 80` printed while `sel42word` was selected. The view followed the word up
+# instead of snapping to the live screen, so the word is still on screen and still selected, with
+# the floating toolbar over it. Its Copy ends the selection; a new long press and a tap show that a
+# tap ends one too. The highlight and where the view sits are drawn, so the screenshots are their
+# evidence (part 1's header).
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 02-output-moved-the-view-up-with-the-word
+- tapOn:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 03-copied-and-the-selection-ended
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 04-selected-again
+- tapOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 05-a-tap-ended-it
