@@ -104,7 +104,7 @@ decided with that in view, measured on the tablet in portrait, and becomes an AD
 
 ## Tasks
 
-- [ ] T1 — Two panes: the gear sits at the foot of `SidePanelRail`, below every panel and the `+`; it
+- [x] T1 — Two panes: the gear sits at the foot of `SidePanelRail`, below every panel and the `+`; it
   opens Settings and is never selected; the Files bar drops its gear at two panes.
 - [ ] T2 — One pane: research Material's guidance and measure the candidates on the tablet in portrait;
   decide, as an ADR. Split T3 here if the chosen pattern is more than one unit.

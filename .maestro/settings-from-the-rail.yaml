@@ -1,0 +1,47 @@
+appId: com.jupydroid.app
+---
+# Beside two panes, Settings opens from the gear at the activity rail's foot with a panel other than
+# Files showing - Search, then Sessions and Tabs - and closing it leaves that panel where it was
+# (`SidePanelRail`, `SettingsNavigationTest.atTwoPanesSettingsOpensFromTheRailWithSearchShowing`).
+# Nothing here runs a cell; the driver pins the tablet to landscape, which is two panes.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+- takeScreenshot: 01-the-gear-at-the-rails-foot
+
+# --- 1. from Search --------------------------------------------------------------------------------
+- tapOn:
+    text: "^Search$"
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 5000
+- assertNotVisible: "Workspace"
+- takeScreenshot: 02-search-showing
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Theme"
+- assertVisible: "Search the workspace"
+- takeScreenshot: 03-settings-beside-search
+- tapOn: "Close tab: Settings"
+- extendedWaitUntil:
+    notVisible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Search the workspace"
+- takeScreenshot: 04-closed-search-still-showing
+
+# --- 2. from Sessions and Tabs ---------------------------------------------------------------------
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 5000
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Close tab: Settings"
+    timeout: 5000
+- assertVisible: "Theme"
+- assertVisible: "Kernel Sessions"
+- takeScreenshot: 05-settings-beside-sessions

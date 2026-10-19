@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
-# P6c-1: the app-wide Settings screen is reachable from the explorer's own bar, and Back returns
-# to it. Nothing below runs a cell, so the emulator - and its FakeKernelGateway - is enough; this
+# P6c-1: the app-wide Settings screen is reachable from its gear - the Files bar's at one pane, the
+# activity rail's foot beside two (`SidePanelRail`) - and Back returns to it. Nothing below runs a cell, so the emulator - and its FakeKernelGateway - is enough; this
 # flow is sharded across both devices.
 - launchApp
 - waitForAnimationToEnd:
