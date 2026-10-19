@@ -65,7 +65,7 @@ class ShellSidePaneTest {
       JupyterDroidTheme(darkTheme = true) {
         ShellSidePane(
           showingPanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS),
-          onePanePanel = SidePanel.TABLE_OF_CONTENTS,
+          onePanePanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS),
           twoPane = twoPane,
           onChoosePanel = {},
           appContainer = AppContainer(),

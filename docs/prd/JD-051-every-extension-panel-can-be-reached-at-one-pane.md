@@ -83,10 +83,13 @@ The active panel is not swapped into the bar, as VS Code's is; the bar's five ar
 
 ## Open decisions
 
-**One string on screen twice.** With Source Control showing and More open, the panel's title bar says
-"Source Control" under the scrim and the row says it too ([ADR-0055](../adr/0055-the-bottom-bar-is-drawn-wherever-the-shell-draws-one-pane.md)).
-`ModalWideNavigationRail` may draw in its own window, which would hide the title from Compose's and
-Maestro's lookups, or not. T1 measures it on the tablet; a fix or an exception becomes an ADR in T3.
+**One string on screen twice — measured in T1, and it is not.** With Source Control showing and More
+open over it, Compose's lookup, which walks every root, finds two nodes named "Source Control": the
+panel's title in the main window and the row in the rail's dialog. On `SM-X216B` in portrait the title
+sits at x 24–246 px, under the rail's 330 px (220dp), so it cannot be seen, and `uiautomator dump`
+reports one node, the row at `[102,220][259,254]`. What a flow and the eye address stays unique
+([ADR-0055](../adr/0055-the-bottom-bar-is-drawn-wherever-the-shell-draws-one-pane.md)), so nothing changes.
+A Compose test that reads names with the rail open has to scope its lookup to the rail.
 
 ## Surface
 
@@ -101,12 +104,12 @@ Maestro's lookups, or not. T1 measures it on the tablet; a fix or an exception b
 
 ## Tasks
 
-- [ ] T1 — One pane: More lists every contributed panel between New terminal and Settings; picking one
+- [x] T1 — One pane: More lists every contributed panel between New terminal and Settings; picking one
   shows it and closes the rail; its row is selected and no bar item is; it no longer narrows to Files,
-  and Back from it selects Files. Measure the open decision.
+  and Back from it selects Files. The open decision, measured: no change.
 - [ ] T2 — The Maestro flow on `SM-X216B` in portrait, with evidence.
-- [ ] T3 — The demo; ADR-0105's one-pane line marked superseded in part by ADR-0109, plus any ADR the
-  open decision needs; delete this PRD; ship.
+- [ ] T3 — The demo; ADR-0105's one-pane line marked superseded in part by ADR-0109; delete this PRD;
+  ship.
 
 ## Out of scope
 

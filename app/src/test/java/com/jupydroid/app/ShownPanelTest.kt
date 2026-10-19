@@ -23,12 +23,18 @@ class ShownPanelTest {
     assertEquals(files, sourceControl.chosen(files))
   }
 
-  /** The one-pane bar has no item for a contributed panel, so it falls back as the outline does. */
+  /** More's modal rail reaches a contributed panel at one pane, so it stays shown there (ADR-0109). */
   @Test
-  fun aOnePaneWindowShowsFilesInPlaceOfAContributedPanel() {
-    assertEquals(SidePanel.FILES, sourceControl.showingAtOnePane())
-    assertEquals(SidePanel.SEARCH, ShownPanel.Shell(SidePanel.SEARCH).showingAtOnePane())
-    assertEquals(SidePanel.FILES, (null as ShownPanel?).showingAtOnePane())
+  fun aOnePaneWindowKeepsAContributedPanel() {
+    assertEquals(sourceControl, sourceControl.showingAtOnePane())
+  }
+
+  /** The shell's own panels keep `SidePanel.showingAtOnePane`'s rule, and a collapsed area shows Files. */
+  @Test
+  fun aOnePaneWindowNarrowsTheShellsPanelsAsBefore() {
+    assertEquals(ShownPanel.Shell(SidePanel.SEARCH), ShownPanel.Shell(SidePanel.SEARCH).showingAtOnePane())
+    assertEquals(files, ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS).showingAtOnePane())
+    assertEquals(files, (null as ShownPanel?).showingAtOnePane())
   }
 
   /**

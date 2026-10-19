@@ -20,10 +20,15 @@ sealed interface ShownPanel : Serializable {
 }
 
 /**
- * [SidePanel.showingAtOnePane] for whatever is shown: a contributed panel has no item on the
- * one-pane bar, which already carries Material's five, so it narrows to Files as the outline does (ADR-0105).
+ * [SidePanel.showingAtOnePane] for whatever is shown: a contributed panel stays, since it is a row of
+ * the modal rail the bar's More opens (ADR-0109), and the shell's own panels narrow by their rule.
+ *
+ * ```
+ * ShownPanel.Contributed("git.sourceControl").showingAtOnePane() // stays Source Control
+ * ```
  */
-internal fun ShownPanel?.showingAtOnePane(): SidePanel = (this as? ShownPanel.Shell)?.panel.showingAtOnePane()
+internal fun ShownPanel?.showingAtOnePane(): ShownPanel =
+  this as? ShownPanel.Contributed ?: ShownPanel.Shell((this as? ShownPanel.Shell)?.panel.showingAtOnePane())
 
 /**
  * The rail's items top to bottom: the shell's own panels in their order, with every contributed

@@ -40,8 +40,9 @@ import com.jupydroid.extension.api.SidePanelHost
  *
  * @param showingPanel the panel to draw, `null` being the collapsed side area - which only a
  *   two-pane window has, since collapsing the one thing on screen is not a state.
- * @param onePanePanel the panel the bottom bar marks. Read only where [twoPane] is false, since
- *   beside two panes the rail is the activity bar and this pane is only half the shell.
+ * @param onePanePanel the panel the bottom bar marks, or More's rail for a contributed one. Read
+ *   only where [twoPane] is false, since beside two panes the rail is the activity bar and this
+ *   pane is only half the shell.
  * @param twoPane whether a document area sits beside this pane. **A parameter, never measured
  *   here**: `currentWindowAdaptiveInfo()` reads the *activity's* window, which a
  *   `DeviceConfigurationOverride` around a composable does not change, so a branch chosen inside
@@ -72,9 +73,9 @@ import com.jupydroid.extension.api.SidePanelHost
 @Composable
 fun ShellSidePane(
   showingPanel: ShownPanel?,
-  onePanePanel: SidePanel,
+  onePanePanel: ShownPanel,
   twoPane: Boolean,
-  onChoosePanel: (SidePanel) -> Unit,
+  onChoosePanel: (ShownPanel) -> Unit,
   appContainer: AppContainer,
   spacePorts: EnteredSpacePorts,
   outline: OpenDocumentOutline,
@@ -211,6 +212,7 @@ fun ShellSidePane(
         onOpenLauncher = onOpenLauncher,
         onNewTerminal = onNewTerminal,
         onOpenSettings = onOpenSettings,
+        contributions = appContainer.sidePanelContributions,
       )
     }
   }

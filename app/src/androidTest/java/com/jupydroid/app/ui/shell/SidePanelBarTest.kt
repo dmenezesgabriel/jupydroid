@@ -1,5 +1,8 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.ui.test.DeviceConfigurationOverride
 import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsDisplayed
@@ -15,8 +18,10 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.extension.api.SidePanelContribution
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -38,7 +43,7 @@ import org.junit.runner.RunWith
 class SidePanelBarTest {
   @get:Rule val compose = createComposeRule()
 
-  private val chosen = mutableListOf<SidePanel>()
+  private val chosen = mutableListOf<ShownPanel>()
   private val terminals = mutableListOf<String>()
   private var settingsOpened = 0
 
@@ -86,7 +91,7 @@ class SidePanelBarTest {
 
     compose.runOnIdle {
       assertEquals(listOf("terminal"), terminals)
-      assertEquals(emptyList<SidePanel>(), chosen)
+      assertEquals(emptyList<ShownPanel>(), chosen)
     }
     compose.onNodeWithText(NEW_TERMINAL).assertDoesNotExist()
   }
@@ -100,6 +105,50 @@ class SidePanelBarTest {
 
     compose.runOnIdle { assertEquals(1, settingsOpened) }
     compose.onNodeWithText(OPEN_SETTINGS).assertDoesNotExist()
+  }
+
+  /**
+   * Every contributed panel is a row of the rail, after New terminal and before Settings, in the
+   * order the extensions gave them: the bar holds five and no more (ADR-0109).
+   */
+  @Test
+  fun moreListsEveryContributedPanelBetweenNewTerminalAndSettings() {
+    show(SidePanel.FILES)
+    compose.onNodeWithText(SOURCE_CONTROL).assertDoesNotExist()
+
+    compose.onNodeWithContentDescription(MORE).performClick()
+
+    val rows = listOf(NEW_TERMINAL, SOURCE_CONTROL, CHAT, OPEN_SETTINGS)
+      .map { compose.onNodeWithText(it).assertIsDisplayed().getUnclippedBoundsInRoot() }
+    rows.zipWithNext().forEach { (above, below) -> assertTrue("$below sits below $above", below.top >= above.bottom) }
+  }
+
+  /** A contributed row is a panel pick, unlike New terminal and Settings, and it closes the rail. */
+  @Test
+  fun aContributedRowShowsItsPanelAndClosesTheRail() {
+    show(SidePanel.SEARCH)
+
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(SOURCE_CONTROL).performClick()
+
+    compose.runOnIdle { assertEquals(listOf<ShownPanel>(ShownPanel.Contributed(SOURCE_CONTROL_ID)), chosen) }
+    compose.onNodeWithText(SOURCE_CONTROL).assertDoesNotExist()
+  }
+
+  /**
+   * The showing contributed panel is marked on its row, as VS Code radio-checks the active container
+   * in its overflow menu (`vscode@3f3380c6 src/vs/workbench/browser/parts/compositeBarActions.ts`),
+   * and none of the bar's items is, since none of them is showing.
+   */
+  @Test
+  fun theShowingContributedPanelsRowIsSelectedAndNoBarItemIs() {
+    show(ShownPanel.Contributed(SOURCE_CONTROL_ID))
+
+    listOf(FILES, SESSIONS_AND_TABS, SEARCH, MORE)
+      .forEach { compose.onNodeWithContentDescription(it).assertIsNotSelected() }
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(SOURCE_CONTROL).assertIsSelected()
+    compose.onNodeWithText(CHAT).assertIsNotSelected()
   }
 
   /** Back closes the rail and leaves the panel where it was, asking for nothing. */
@@ -150,7 +199,7 @@ class SidePanelBarTest {
 
     compose.onNodeWithContentDescription(SEARCH).performClick()
 
-    compose.runOnIdle { assertEquals(listOf(SidePanel.SEARCH), chosen) }
+    compose.runOnIdle { assertEquals(listOf(ShownPanel.Shell(SidePanel.SEARCH)), chosen) }
   }
 
   /**
@@ -165,7 +214,7 @@ class SidePanelBarTest {
 
     compose.onNodeWithContentDescription(FILES).performClick()
 
-    compose.runOnIdle { assertEquals(listOf(SidePanel.FILES), chosen) }
+    compose.runOnIdle { assertEquals(listOf(ShownPanel.Shell(SidePanel.FILES)), chosen) }
     compose.onNodeWithContentDescription(FILES).assertIsSelected()
   }
 
@@ -223,7 +272,9 @@ class SidePanelBarTest {
     assertEquals("and the group is centred", TABLET_PORTRAIT.width.value / 2, groupCentre, 2f)
   }
 
-  private fun show(selected: SidePanel) {
+  private fun show(selected: SidePanel) = show(ShownPanel.Shell(selected))
+
+  private fun show(selected: ShownPanel) {
     compose.setContent {
       JupyterDroidTheme {
         SidePanelBar(
@@ -232,6 +283,7 @@ class SidePanelBarTest {
           onOpenLauncher = {},
           onNewTerminal = { terminals += "terminal" },
           onOpenSettings = { settingsOpened++ },
+          contributions = CONTRIBUTIONS,
         )
       }
     }
@@ -263,11 +315,12 @@ class SidePanelBarTest {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
         JupyterDroidTheme {
           SidePanelBar(
-            selected = SidePanel.FILES,
+            selected = ShownPanel.Shell(SidePanel.FILES),
             onChoose = { chosen += it },
             onOpenLauncher = {},
             onNewTerminal = { terminals += "terminal" },
             onOpenSettings = { settingsOpened++ },
+            contributions = CONTRIBUTIONS,
           )
         }
       }
@@ -291,5 +344,14 @@ class SidePanelBarTest {
     const val SESSIONS_AND_TABS = "Sessions and Tabs"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
+    const val SOURCE_CONTROL = "Source Control"
+    const val SOURCE_CONTROL_ID = "git.sourceControl"
+    const val CHAT = "Chat"
+
+    /** Two, as the app's Git and AI extensions contribute, so the rows' order is observable. */
+    val CONTRIBUTIONS = listOf(
+      SidePanelContribution(SOURCE_CONTROL_ID, SOURCE_CONTROL, Icons.Filled.AccountTree) {},
+      SidePanelContribution("ai.chat", CHAT, Icons.AutoMirrored.Filled.Chat) {},
+    )
   }
 }

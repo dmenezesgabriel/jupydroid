@@ -17,9 +17,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.window.core.layout.WindowSizeClass
-import com.jupydroid.app.SidePanel
+import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.onePaneDestinations
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.extension.api.SidePanelContribution
 import kotlinx.coroutines.launch
 
 /**
@@ -35,16 +36,17 @@ import kotlinx.coroutines.launch
  *
  * **Five items, and five is the ceiling**: the panels of [onePaneDestinations], the Launcher, and
  * More - Material's own band is *"three to five destinations of equal importance"*. More opens
- * [MoreRail], which holds what the bar does not, New terminal now and Settings at its foot
- * (ADR-0109). Neither the Launcher nor More marks a panel, so nothing stays selected for either.
+ * [MoreRail], which holds what the bar does not: New terminal, every contributed panel, and
+ * Settings at its foot (ADR-0109). Neither the Launcher nor More marks a panel, so nothing stays
+ * selected for either - and while a contributed panel shows, no bar item is selected at all.
  *
  * ```
  * if (!twoPane) SidePanelBar(selected = showingPanel, onChoose = { sidePanel = it }, …)
  * ```
  *
  * @param selected the panel filling the pane. Never null, unlike the rail's: a collapsed area over
- *   an empty window is not a state, so this bar has no deselected form - `SidePanel.showingAtOnePane`
- *   is what guarantees the caller has one to pass.
+ *   an empty window is not a state - `ShownPanel.showingAtOnePane` is what guarantees the caller
+ *   has one to pass. A contributed one is marked on its [MoreRail] row instead of on the bar.
  * @param onChoose reports the pick. **Not `SidePanel.chosen`'s toggle**: re-picking the showing
  *   panel here would collapse the only thing on screen, so the caller assigns rather than folds.
  * @param onOpenLauncher the tab-strip `+` - `launcher-extension`'s `addButtonEnabled` button,
@@ -54,14 +56,16 @@ import kotlinx.coroutines.launch
  *   from a launcher card. At one pane the launcher is behind the `+`, so [MoreRail] carries the
  *   second reach; at two the card is already on screen and the bar is not.
  * @param onOpenSettings opens the app-wide Settings screen, from [MoreRail]'s foot.
+ * @param contributions the panels extensions add (ADR-0104), which [MoreRail] lists.
  */
 @Composable
 fun SidePanelBar(
-  selected: SidePanel,
-  onChoose: (SidePanel) -> Unit,
+  selected: ShownPanel,
+  onChoose: (ShownPanel) -> Unit,
   onOpenLauncher: () -> Unit,
   onNewTerminal: () -> Unit,
   onOpenSettings: () -> Unit,
+  contributions: List<SidePanelContribution>,
   modifier: Modifier = Modifier,
 ) {
   val moreRail = rememberWideNavigationRailState()
@@ -80,8 +84,8 @@ fun SidePanelBar(
     ) {
       onePaneDestinations.forEach { panel ->
         ShortNavigationBarItem(
-          selected = panel == selected,
-          onClick = { onChoose(panel) },
+          selected = ShownPanel.Shell(panel) == selected,
+          onClick = { onChoose(ShownPanel.Shell(panel)) },
           icon = { Icon(panel.icon, contentDescription = null) },
           // **No label, which is the rail's rule and the reference's own.** VS Code's activity bar
           // is icon-only in all three of its positions, and this app already had the rule for the
@@ -114,7 +118,7 @@ fun SidePanelBar(
       )
     }
   }
-  MoreRail(moreRail, onNewTerminal = onNewTerminal, onOpenSettings = onOpenSettings)
+  MoreRail(moreRail, contributions, selected, onChoose, onNewTerminal = onNewTerminal, onOpenSettings = onOpenSettings)
 }
 
 /** The `+` item's name - `launcher-extension`'s own "New Launcher" tooltip. */

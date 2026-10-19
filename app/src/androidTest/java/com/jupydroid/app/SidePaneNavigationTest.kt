@@ -1,5 +1,8 @@
 package com.jupydroid.app
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.material3.Text
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.DeviceConfigurationOverride
@@ -29,7 +32,10 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.shell.MORE
 import com.jupydroid.app.ui.shell.SEARCH_WORKSPACE_BOX
+import com.jupydroid.extension.api.Extension
+import com.jupydroid.extension.api.SidePanelContribution
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -327,6 +333,41 @@ class SidePaneNavigationTest {
     compose.onNodeWithText(WORKSPACE).assertIsDisplayed()
   }
 
+  /**
+   * **A contributed panel is reached at one pane**, from its row in the rail behind More
+   * (ADR-0109), where it used to narrow to Files with no way to it. Back leaves it for the browser,
+   * as Back leaves Search.
+   */
+  @Test
+  fun moreReachesAContributedPanelAndBackReturnsToTheBrowser() {
+    startApp(twoPane = false)
+    waitForText(WORKSPACE)
+
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(CONTRIBUTED).performClick()
+
+    waitForText(CONTRIBUTED_BODY)
+    assertGone(WORKSPACE)
+    Espresso.pressBack()
+    waitForText(WORKSPACE)
+    assertGone(CONTRIBUTED_BODY)
+  }
+
+  /** A window that narrows onto a contributed panel keeps it, as one narrowing onto Search does. */
+  @Test
+  fun aWindowThatNarrowsOntoAContributedPanelKeepsIt() {
+    val twoPane = mutableStateOf(true)
+    startApp(twoPane)
+    waitForText(WORKSPACE)
+    compose.onNodeWithContentDescription(CONTRIBUTED).performClick()
+    waitForText(CONTRIBUTED_BODY)
+
+    twoPane.value = false
+
+    waitForText(CONTRIBUTED_BODY)
+    assertGone(WORKSPACE)
+  }
+
   private fun startApp(twoPane: Boolean) = startApp(mutableStateOf(twoPane))
 
   /**
@@ -343,6 +384,7 @@ class SidePaneNavigationTest {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+              extensions = listOf(FakePanelExtension()),
               enteredSpacePorts = { _, _ ->
                 EnteredSpacePorts(
                   notebookRepository = repository,
@@ -417,5 +459,16 @@ class SidePaneNavigationTest {
     const val SEARCHED_LINE = "print(cat)"
     const val SEARCHED_TERM = "cat"
     const val TIMEOUT_MILLIS = 5_000L
+
+    /** [FakePanelExtension]'s panel: its name on the rail and More's row, and what its body draws. */
+    const val CONTRIBUTED = "Contributed"
+    const val CONTRIBUTED_BODY = "contributed body"
+  }
+
+  /** One contributed panel that reads nothing, so the shell's wiring is all a case observes. */
+  private class FakePanelExtension : Extension {
+    override val sidePanels = listOf(
+      SidePanelContribution("fake.contributed", CONTRIBUTED, Icons.Filled.AccountTree) { Text(CONTRIBUTED_BODY) },
+    )
   }
 }

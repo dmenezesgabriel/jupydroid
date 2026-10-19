@@ -184,13 +184,14 @@ fun MainNavigation(
   // The two are held apart because the bar needs the **non-null** answer to mark its selection,
   // where `showingPanel` still has a collapsed state to carry for the two-pane case.
   val onePanePanel = sidePanel.showingAtOnePane()
-  val showingPanel = if (twoPane) sidePanel else ShownPanel.Shell(onePanePanel)
+  val showingPanel = if (twoPane) sidePanel else onePanePanel
   // **A collapsed side area is a one-pane layout**, which is what `collapseLeft` does there:
   // the panel goes and the document area takes the width, while the activity bar stays
   // (`packages/application/src/shell.ts:2383-2394`). So the collapse is spelled here rather
   // than inside the pane, and the notebook actually gains the 360dp.
   val directive = if (twoPane && showingPanel != null) measured else measured.forcedToOnePane()
-  val backSelectsFiles = !twoPane && onePanePanel != SidePanel.FILES && backStack.lastOrNull() is Explorer
+  val backSelectsFiles =
+    !twoPane && onePanePanel != ShownPanel.Shell(SidePanel.FILES) && backStack.lastOrNull() is Explorer
 
   // The VIEW intent - opened in the Space entered, or in base from the home; see the effect's own KDoc.
   ImportedNotebookEffect(sharedNotebook, appContainer, backStack, openDocument, onImportConsumed)
@@ -321,7 +322,7 @@ fun MainNavigation(
             // own border needed a third reading of it. Two parameters that have to agree
             // is a defect waiting to be written; the pane decides from the fact itself.
             twoPane = twoPane,
-            onChoosePanel = { sidePanel = ShownPanel.Shell(it) },
+            onChoosePanel = { sidePanel = it },
             appContainer = appContainer,
             spacePorts = spacePorts,
             outline = outline,

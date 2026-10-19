@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.shell
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
@@ -13,12 +14,15 @@ import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.extension.api.SidePanelContribution
 import kotlinx.coroutines.launch
 
 /**
- * The rail at one pane, shown modally from the bottom bar's More: what the bar has no room for,
- * with Settings at its foot where `SidePanelRail` has it beside two panes (ADR-0109).
+ * The rail at one pane, shown modally from the bottom bar's More: what the bar has no room for -
+ * New terminal, then every contributed panel - with Settings at its foot where `SidePanelRail` has
+ * it beside two panes (ADR-0109).
  *
  * **It does not repeat the bar's panels.** A row named Files over a bar item named Files puts one
  * string on screen twice (ADR-0055), so each destination at one pane is on exactly one surface.
@@ -27,15 +31,27 @@ import kotlinx.coroutines.launch
  *
  * ```
  * val railState = rememberWideNavigationRailState()
- * MoreRail(railState, onNewTerminal = { … }, onOpenSettings = { … })
+ * MoreRail(railState, contributions, selected = shown, onChoose = { … }, onNewTerminal = { … }) { … }
  * ```
  *
  * @param state expanded while the rail is open; More expands it, and every row collapses it.
+ * @param contributions the panels extensions add (ADR-0104), one row each in the order given.
+ * @param selected the panel filling the pane; a contributed panel's row is marked while it shows, as
+ *   VS Code radio-checks the active container in its overflow menu
+ *   (`vscode@3f3380c6 src/vs/workbench/browser/parts/compositeBarActions.ts`).
+ * @param onChoose reports a contributed row's pick, as the bar's own items report theirs.
  * @param onNewTerminal `terminal:create-new`, which gave the bar's fifth slot up to More.
  * @param onOpenSettings opens the app-wide Settings screen.
  */
 @Composable
-fun MoreRail(state: WideNavigationRailState, onNewTerminal: () -> Unit, onOpenSettings: () -> Unit) {
+fun MoreRail(
+  state: WideNavigationRailState,
+  contributions: List<SidePanelContribution>,
+  selected: ShownPanel,
+  onChoose: (ShownPanel) -> Unit,
+  onNewTerminal: () -> Unit,
+  onOpenSettings: () -> Unit,
+) {
   val scope = rememberCoroutineScope()
   val actThenClose = { act: () -> Unit ->
     act()
@@ -50,23 +66,30 @@ fun MoreRail(state: WideNavigationRailState, onNewTerminal: () -> Unit, onOpenSe
     // modally.
     colors = WideNavigationRailDefaults.colors(modalContainerColor = chromePalette.activityBarBackground),
     // The wide rail's content is no `ColumnScope`, so the two-pane rail's weighted spacer has no
-    // equivalent here: spreading the two rows puts Settings at the foot.
+    // equivalent here: spreading the rows apart puts Settings at the foot, and the two groups
+    // above it keep theirs together in a `Column`.
     arrangement = Arrangement.SpaceBetween,
   ) {
-    MoreRailRow(NEW_TERMINAL, Icons.Filled.Terminal) { actThenClose(onNewTerminal) }
+    Column {
+      MoreRailRow(NEW_TERMINAL, Icons.Filled.Terminal) { actThenClose(onNewTerminal) }
+      contributions.forEach { panel ->
+        val shown = ShownPanel.Contributed(panel.id)
+        MoreRailRow(panel.label, panel.icon, selected = shown == selected) { actThenClose { onChoose(shown) } }
+      }
+    }
     MoreRailRow(OPEN_SETTINGS, Icons.Filled.Settings) { actThenClose(onOpenSettings) }
   }
 }
 
 /**
- * One row of [MoreRail]: labelled, because an expanded rail is Material's labelled form and nothing
- * else is on screen to share the string with. Never selected: both rows open something in the main
- * area, which owns its own selection.
+ * One row of [MoreRail]: labelled, because an expanded rail is Material's labelled form. New terminal
+ * and Settings are never selected: they open something in the main area, which owns its own
+ * selection. A contributed panel's row is, while that panel fills the pane.
  */
 @Composable
-private fun MoreRailRow(label: String, icon: ImageVector, onClick: () -> Unit) {
+private fun MoreRailRow(label: String, icon: ImageVector, selected: Boolean = false, onClick: () -> Unit) {
   WideNavigationRailItem(
-    selected = false,
+    selected = selected,
     onClick = onClick,
     icon = { Icon(icon, contentDescription = null) },
     label = { Text(label) },
