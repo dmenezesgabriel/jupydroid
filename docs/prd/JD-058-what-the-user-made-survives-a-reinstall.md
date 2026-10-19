@@ -102,8 +102,11 @@ Each one is settled by a measurement in the task that needs it:
 - Does `BaseSpaceInstaller` re-extract over a restored `home/` without touching it, given that the
   restore brings back no `.jupydroid/rootfs-version`? (T4)
 - A Space other than base: does a restored `config.json` plus its home bring it back, or does its rootfs
-  need re-creating first? (T3: it is listed with its documents, but Run fails with `proot error:
-  '/usr/bin/python3' not found`, because a user's Space is never re-extracted (ADR-0073). Covered by T3b)
+  need re-creating first? (T3: Run failed with `proot error: '/usr/bin/python3' not found`. T3b: Run
+  extracts the image around the restored home in **15.6 s**, once, and its cell answers `42`.)
+- Restored files are dated 1970-01-21 (seconds read as milliseconds would land there), and the
+  explorer shows it. The agent does not override `onRestoreFile`, so the platform's default restore
+  path sets it. Not yet traced or fixed. (T3b)
 
 ## Surface
 
@@ -127,7 +130,7 @@ Each one is settled by a measurement in the task that needs it:
   rootfs, `pkgs`, `run`, `tmp`, the rootfs stamp or a symlink.
 - [x] T3: `SpaceHomeBackupAgent` wired through the manifest. Measure `bmgr backupnow` on SM-X216B and
   the size of the backup.
-- [ ] T3b: a Space other than base whose rootfs is absent (a restore brings back only its config and
+- [x] T3b: a Space other than base whose rootfs is absent (a restore brings back only its config and
   home) is extracted from the bundled image around its home when it runs, red test first. A Space
   that has a rootfs is still never re-extracted (ADR-0073). Evidence: T3's driver, with part 3 now
   running the second Space.
