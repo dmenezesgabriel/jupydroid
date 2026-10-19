@@ -12,6 +12,10 @@
 
 fail() { echo "$1" >&2; exit 1; }
 
+# A home's `.cache`, which `SpaceHomeBackupScope` leaves out because one run rebuilds it, so the
+# listing is what the agent hands the platform. No fixture seeds a venv, the scope's other exclusion.
+UNCARRIED="-path \"spaces/*/home/*/.cache\" -prune -o"
+
 # Every regular file under each Space's home and config, the app's state files, and each Space's top
 # level, which shows whether a rootfs is there. Sizes in KiB, so the listing also says what the
 # backup weighs; then the date each file carries, which the explorer shows and a restore sets.
@@ -21,12 +25,12 @@ record_backup_state() { # record_backup_state <out file>
     "${DEVICE_ADB[@]}" shell run-as "$APP" sh -c "'cd files/spaces && ls -d */* | sort'"
     echo "\$ find home files, configs and app state"
     "${DEVICE_ADB[@]}" shell run-as "$APP" sh -c \
-      "'cd files && find spaces/*/home spaces/*/config.json *.json -type f 2>/dev/null | sort'"
+      "'cd files && find spaces/*/home spaces/*/config.json *.json $UNCARRIED -type f -print 2>/dev/null | sort'"
     echo "\$ du -sk files files/spaces/*/home"
     "${DEVICE_ADB[@]}" shell run-as "$APP" sh -c "'du -sk files files/spaces/*/home'"
     echo "\$ stat home files and configs"
     "${DEVICE_ADB[@]}" shell run-as "$APP" sh -c \
-      "'cd files && find spaces/*/home spaces/*/config.json -type f -exec stat -c \"%y %n\" {} + | sort -k4'"
+      "'cd files && find spaces/*/home spaces/*/config.json $UNCARRIED -type f -exec stat -c \"%y %n\" {} + | sort -k4'"
   } | tr -d '\r' >"$1"
 }
 

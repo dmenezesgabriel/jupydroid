@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Signs opencode in to its console from base's terminal, which jd-046-opencode-in-a-space.yaml left
+# open: `opencode console login` prints a device code, a person approves it in a browser, and the
+# seeded script records whether an account is signed in, before and after, into the workspace for
+# scripts/jd-058-reinstall-demo-driver.sh to read back. The terminal canvas is not readable by an
+# assertion (cross-cutting.md §8.6).
+#
+# TABLET ONLY (SM-X216B): base's terminal runs under proot, and only arm64 ships it.
+- tapOn:
+    id: "terminal-input"
+- inputText: "sh jd058-console-accounts.sh signed-out; opencode console login; sh jd058-console-accounts.sh signed-in"
+- pressKey: Enter
+- hideKeyboard
+- takeScreenshot: 02-console-login-started
