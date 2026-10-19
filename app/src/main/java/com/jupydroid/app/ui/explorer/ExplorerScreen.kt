@@ -99,11 +99,10 @@ fun ExplorerScreen(
   onOpenFile: (WorkspaceEntry) -> Unit,
   onOpenRecent: (String) -> Unit = {},
   /**
-   * Opens the app-wide Settings screen. This bar is the one chrome shown with no document open, so
-   * it is Settings' provisional home;
-   * `NotebookBackStack.kt`'s `openSettings` doc comment records why the rail is not it.
+   * Opens the app-wide Settings screen from this bar's gear, or null for no gear: beside two panes
+   * the gear is `SidePanelRail`'s, at the rail's foot, and one screen has one Settings.
    */
-  onOpenSettings: () -> Unit = {},
+  onOpenSettings: (() -> Unit)? = null,
   /**
    * The document open in the pane beside this one, so its row can say so - or null when the
    * browser has the window to itself.

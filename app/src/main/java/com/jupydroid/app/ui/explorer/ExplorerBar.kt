@@ -16,6 +16,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.app.ui.shell.OPEN_SETTINGS
 import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
 
 /**
@@ -26,7 +27,7 @@ import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onOpenSettings: () -> Unit) {
+internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onOpenSettings: (() -> Unit)?) {
   TopAppBar(
     title = { Text("Files") },
     colors = sideBarTopAppBarColors(),
@@ -39,8 +40,10 @@ internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit, onOpen
     },
     actions = {
       NewMenu(onCreate = onCreate)
-      IconButton(onClick = onOpenSettings) {
-        Icon(Icons.Filled.Settings, contentDescription = "Settings")
+      onOpenSettings?.let {
+        IconButton(onClick = it) {
+          Icon(Icons.Filled.Settings, contentDescription = OPEN_SETTINGS)
+        }
       }
     },
   )

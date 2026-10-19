@@ -6,16 +6,20 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelContribution
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -33,6 +37,8 @@ class SidePanelRailTest {
   @get:Rule val compose = createComposeRule()
 
   private val chosen = mutableListOf<ShownPanel>()
+
+  private var settingsOpened = 0
 
   /** Five items - one per [SidePanel], which is what the rail iterates. */
   @Test
@@ -133,6 +139,36 @@ class SidePanelRailTest {
     compose.onNodeWithContentDescription(SEARCH).assertIsNotSelected()
   }
 
+  /**
+   * Settings is VS Code's Manage: the global activity at the bar's foot, below every view and the
+   * `+` (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`). Within two of its
+   * own heights of the bottom rather than flush, so the system bar's inset is not what is measured.
+   */
+  @Test
+  fun settingsSitsAtTheRailsFootBelowEveryOtherItem() {
+    show(SidePanel.FILES)
+
+    val gear = compose.onNodeWithContentDescription(SETTINGS).getUnclippedBoundsInRoot()
+    val launcher = compose.onNodeWithContentDescription(NEW_LAUNCHER).getUnclippedBoundsInRoot()
+    val rail = compose.onRoot().getUnclippedBoundsInRoot()
+
+    assertTrue("gear $gear starts below the + $launcher", gear.top > launcher.bottom)
+    assertTrue("gear $gear sits at the foot of $rail", rail.bottom - gear.bottom < gear.height * 2)
+  }
+
+  /** Settings is a document, like the `+`'s Launcher: opening it marks no panel. */
+  @Test
+  fun settingsOpensSettingsAndIsNeverSelected() {
+    show(SidePanel.FILES)
+
+    compose.onNodeWithContentDescription(SETTINGS).assertIsNotSelected().performClick()
+
+    compose.runOnIdle {
+      assertEquals(1, settingsOpened)
+      assertEquals(emptyList<ShownPanel>(), chosen)
+    }
+  }
+
   private fun show(selected: SidePanel?) = show(selected?.let { ShownPanel.Shell(it) })
 
   private fun show(selected: ShownPanel?) {
@@ -142,6 +178,7 @@ class SidePanelRailTest {
           selected = selected,
           onChoose = { chosen += it },
           onOpenLauncher = {},
+          onOpenSettings = { settingsOpened++ },
           contributions = listOf(SidePanelContribution(SOURCE_CONTROL_ID, SOURCE_CONTROL, Icons.Filled.AccountTree) {}),
         )
       }
@@ -155,6 +192,7 @@ class SidePanelRailTest {
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
     const val DEBUGGER = "Debugger"
+    const val SETTINGS = "Settings"
     const val SOURCE_CONTROL = "Source Control"
     const val SOURCE_CONTROL_ID = "test.sourceControl"
   }

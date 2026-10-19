@@ -255,6 +255,7 @@ fun MainNavigation(
         onChoose = { sidePanel = sidePanel.chosen(it) },
         contributions = appContainer.sidePanelContributions,
         onOpenLauncher = openLauncher,
+        onOpenSettings = { backStack.openSettings() },
         modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
       )
     }

@@ -1,6 +1,9 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
@@ -46,7 +49,23 @@ class SettingsNavigationTest {
     compose.onNodeWithContentDescription("Settings").assertExists()
   }
 
-  private fun startApp() {
+  /**
+   * GAP-178's own case: beside two panes, Settings opens with Search on the side, from the rail's
+   * foot - and the rail's gear is the only one, since the Files bar no longer draws its own there.
+   */
+  @Test
+  fun atTwoPanesSettingsOpensFromTheRailWithSearchShowing() {
+    startApp(twoPane = true)
+    compose.onAllNodesWithContentDescription("Settings").assertCountEquals(1)
+
+    compose.onNodeWithContentDescription("Search").performClick()
+    compose.onNodeWithContentDescription("Settings").performClick()
+
+    waitForTag(SETTINGS_SCREEN_TAG)
+    compose.onNodeWithContentDescription("Search").assertIsSelected()
+  }
+
+  private fun startApp(twoPane: Boolean = false) {
     compose.setContent {
       JupyterDroidTheme {
         MainNavigation(
@@ -67,9 +86,9 @@ class SettingsNavigationTest {
           ),
           sharedNotebook = null,
           onImportConsumed = {},
-          // Single pane: the explorer and Settings share the window otherwise, and "opened" would
-          // already be true before the tap.
-          twoPane = false,
+          // Single pane by default: the explorer and Settings share the window otherwise, and
+          // "opened" would already be true before the tap.
+          twoPane = twoPane,
         )
       }
     }

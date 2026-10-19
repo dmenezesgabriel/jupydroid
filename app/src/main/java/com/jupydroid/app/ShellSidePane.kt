@@ -55,7 +55,7 @@ import com.jupydroid.extension.api.SidePanelHost
  *   directory by `Navigation.kt`'s `rememberNewTerminal`. At two panes this callback is unread:
  *   the bar is not drawn and the launcher's Terminal card is the reach.
  * @param onOpenSettings opens the app-wide Settings screen - see `NotebookBackStack.kt`'s
- *   `openSettings`.
+ *   `openSettings`. The Files bar draws it only at one pane; beside two, `SidePanelRail` does.
  * @param onOpenLauncher opens the Launcher - the bottom bar's third destination, which is a
  *   document rather than a [SidePanel], so it is a callback here and not a `chosen`.
  * @param onBrowsedDirectory where the explorer reports the directory it is showing - the
@@ -184,7 +184,7 @@ fun ShellSidePane(
             // `Nested.ipynb.ipynb` opened nothing.
             onOpenFile = { file -> openDocument(file.path) },
             onOpenRecent = openDocument,
-            onOpenSettings = onOpenSettings,
+            onOpenSettings = onOpenSettings.takeUnless { twoPane },
             openDocumentPath = openDocumentPath,
             browseRequest = browseRequest,
             onBrowseRequestHandled = onBrowseRequestHandled,

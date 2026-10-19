@@ -1,7 +1,9 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
@@ -37,6 +39,8 @@ import com.jupydroid.extension.api.SidePanelContribution
  * @param onOpenLauncher the tab strip's `+` - `launcher-extension`'s `addButtonEnabled` button,
  *   labelled *New Launcher*. A rail item and not a panel pick because the Launcher is a document:
  *   it has no selected state to hold.
+ * @param onOpenSettings opens the app-wide Settings screen, from the rail's foot - see the item's
+ *   own comment for why there.
  * @param contributions the panels extensions add (ADR-0104), each drawn with its own label and icon.
  */
 @Composable
@@ -44,6 +48,7 @@ fun SidePanelRail(
   selected: ShownPanel?,
   onChoose: (ShownPanel) -> Unit,
   onOpenLauncher: () -> Unit,
+  onOpenSettings: () -> Unit,
   contributions: List<SidePanelContribution>,
   modifier: Modifier = Modifier,
 ) {
@@ -83,5 +88,24 @@ fun SidePanelRail(
       label = null,
       modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER },
     )
+    // **VS Code's Manage**: the gear is the global activity, drawn after the view containers at the
+    // activity bar's foot (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`,
+    // `GLOBAL_ACTIVITY_ID` in `src/vs/workbench/common/activity.ts`), so it is on screen whatever
+    // panel is - which the Files bar's gear, its home before this, was not. Always unselected for
+    // the `+`'s reason: Settings opens in the main area, and selection there is the strip's.
+    Spacer(Modifier.weight(1f))
+    NavigationRailItem(
+      selected = false,
+      onClick = onOpenSettings,
+      icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
+      label = null,
+      modifier = Modifier.semantics { contentDescription = OPEN_SETTINGS },
+    )
   }
 }
+
+/**
+ * The gear's name, on the rail and on the Files bar alike - one string, so a screen reader and a
+ * Maestro flow address Settings the same way at either width.
+ */
+const val OPEN_SETTINGS = "Settings"
