@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# A shell prints `osc8docs` under an OSC 8 link to a web address, and the keyboard is put away so the
+# driver can tell whether a tap raises it. Run by scripts/terminal-osc8-link-driver.sh, which reads
+# `mInputShown` after each part.
+#
+# `osc8docs` is not an address, so only the OSC 8 link can make a tap on it open one. It is printed
+# at the grid's centre column on every row but the last, so a tap on the input field's centre lands
+# on it. The link's address ends in `sel$((6*7))`, so `sel42` reaches the dialog only if a real shell
+# computed it: the command line itself, which the pty echoes, says `sel%s`.
+#
+# TABLET ONLY (SM-X216B): on the x86_64 emulator the terminal is FakeTerminalGateway's echo.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-5))s \\033]8;;https://example.org/sel%s\\aosc8docs\\033]8;;\\a\\n\" head $((6*7)); done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-the-shell-printed-the-linked-word

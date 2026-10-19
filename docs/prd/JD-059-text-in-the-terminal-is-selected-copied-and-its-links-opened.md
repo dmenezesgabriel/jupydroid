@@ -132,10 +132,10 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
 | Layer | Files |
 |---|---|
 | `domain/model` | — (no new port: the clipboard is Compose's, and a link goes to the existing `ExternalLinkOpener` through `LocalUriHandler`) |
-| `terminal/` | word bounds on `TerminalGrid`; OSC 8 arm and link spans (T5) |
-| `ui/terminal` | `TerminalTextSelection` (the span, and what it reads), the long-press gesture (`TerminalLongPress.kt`), the handles (`TerminalSelectionEnd.kt`, `TerminalSelectionHandles.kt`), the highlight in `TerminalCanvas.kt`, the floating toolbar (`TerminalSelectionToolbar.kt`), Paste in `TerminalActionsMenu.kt`, the address under a tap (`TerminalWebLink.kt`) and its dialog (`TerminalOpenLinkDialog.kt`); the scroll drag moved to `TerminalScrollDrag.kt` to keep `TerminalPaneScreen.kt` under 500 lines |
+| `terminal/` | word bounds on `TerminalGrid`; the OSC 8 arm (`HyperlinkCommand.kt`), and each cell's link (`RowLinks.kt`, read by `hyperlinkAt`), carried by `TerminalRow.copyInterval` and `GridReflow` |
+| `ui/terminal` | `TerminalTextSelection` (the span, and what it reads), the long-press gesture (`TerminalLongPress.kt`), the handles (`TerminalSelectionEnd.kt`, `TerminalSelectionHandles.kt`), the highlight in `TerminalCanvas.kt`, the floating toolbar (`TerminalSelectionToolbar.kt`), Paste in `TerminalActionsMenu.kt`, the address under a tap, an OSC 8 one first (`TerminalWebLink.kt`, `linkToOpenAt`) and its dialog (`TerminalOpenLinkDialog.kt`); the scroll drag moved to `TerminalScrollDrag.kt` to keep `TerminalPaneScreen.kt` under 500 lines |
 | `di/AppContainer` | — |
-| unit tests | `TerminalGridTest`, `TerminalTextSelectorTest`, `TerminalSelectionEndTest`, `TerminalPaneViewModelTest`, `TerminalWebLinkTest` |
+| unit tests | `TerminalGridTest`, `TerminalTextSelectorTest`, `TerminalSelectionEndTest`, `TerminalPaneViewModelTest`, `TerminalWebLinkTest`, `OperatingSystemHyperlinkTest` |
 | instrumented tests | `TerminalSelectionTest`, `TerminalLinkTapTest` |
 | `.maestro/` flow + `scripts/` driver | one flow per task; the demo on SM-X216B |
 
@@ -149,7 +149,7 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
   `emulator.paste`. OSC 52 puts its payload on the clipboard.
 - [x] T4: Tapping a printed http(s) URL asks "Open Link?" and opens it. A tap anywhere else still
   focuses the keyboard.
-- [ ] T5a: OSC 8 is parsed and the URI is stored on every cell written while it is open, carried by
+- [x] T5a: OSC 8 is parsed and the URI is stored on every cell written while it is open, carried by
   inserts, deletes and a reflow. A tap on one asks "Open Link?" and opens it, http and https only, and
   over a printed address the OSC 8 one wins.
 - [ ] T5b: The demo runs on SM-X216B, and it answers whether `opencode auth login` prints plain text

@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# A tap on the linked word asks "Open Link?" and names the link's address, which is not on screen,
+# and Cancel leaves it unopened. The driver then requires the keyboard still down. Run by
+# scripts/terminal-osc8-link-driver.sh after part 1.
+#
+# **What this flow cannot assert, and what does.** That the tap was on the drawn word is read off
+# 01; which cells carry the link is `OperatingSystemHyperlinkTest`.
+- tapOn:
+    id: "terminal-input"
+- assertVisible: "Open Link\\?"
+- assertVisible: "Do you want to navigate to https://example\\.org/sel42\\? This link could potentially be dangerous\\."
+- takeScreenshot: 02-open-link-names-the-linked-address
+- tapOn: "Cancel"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Open Link\\?"
+- takeScreenshot: 03-cancel-left-the-terminal-as-it-was
