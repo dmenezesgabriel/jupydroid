@@ -1,0 +1,72 @@
+appId: com.jupydroid.app
+---
+# Goes on from part 1, with the modal rail open over Files: Back closes it and leaves Files; then
+# from Files, Search and Sessions and Tabs in turn, More opens Settings from the rail's foot and Back
+# leaves the panel where it was; last, the rail's New terminal opens a shell (ADR-0109). Each panel
+# is told apart by its own content: Maestro reads every Compose bar item as unselected, so which one
+# is selected is `SettingsNavigationTest`'s to assert.
+- back
+- extendedWaitUntil:
+    notVisible: "New terminal"
+    timeout: 5000
+- assertVisible: "Workspace"
+- takeScreenshot: 03-back-closed-the-rail-files-still-showing
+
+# --- 1. from Files ---------------------------------------------------------------------------------
+- tapOn: "More"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 04-settings-from-files
+- back
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 5000
+
+# --- 2. from Search --------------------------------------------------------------------------------
+- tapOn: "Search"
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 5000
+- assertNotVisible: "Settings"
+- tapOn: "More"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 05-settings-from-search
+- back
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 5000
+- takeScreenshot: 06-closed-search-still-showing
+
+# --- 3. from Sessions and Tabs ---------------------------------------------------------------------
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 5000
+- assertNotVisible: "Settings"
+- tapOn: "More"
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 07-settings-from-sessions
+- back
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 5000
+- takeScreenshot: 08-closed-sessions-still-showing
+
+# --- 4. New terminal, from the rail ----------------------------------------------------------------
+- tapOn: "More"
+- tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 60000
+- takeScreenshot: 09-new-terminal-from-the-rail
