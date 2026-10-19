@@ -1,0 +1,83 @@
+appId: com.jupydroid.app
+---
+# A long press selects `sel42word`, a handle hangs under each end of it, and dragging them moves
+# the ends: the end handle right past `tail`, the start handle left to the row's first column,
+# and the end handle down into the rows below. Copy then ends the selection, handles and all.
+#
+# The word is printed as in `terminal-long-press-copies.yaml`, at the grid's centre column on every
+# row but the last so the press on the input field's centre lands on it, and only a shell that
+# computed `$((6*7))` prints it. `head` and `tail` stand either side of it on every row, so a drag
+# that moved an end shows as a highlight reaching over them.
+#
+# **What this flow cannot assert, and what does.** Where the highlight ends is drawn, so the
+# screenshots are its evidence; `TerminalSelectionTest` is the instrumented proof that a dragged
+# handle changes what Copy takes. Each swipe goes from a handle, found by its resource id, to the
+# screen's edge in one direction, since the drawn text gives Maestro no point of its own to aim at.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-5))s sel$((6*7))word tail\\n\" head; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "terminal-selection-start"
+- assertVisible:
+    id: "terminal-selection-end"
+- takeScreenshot: 01-two-handles-under-the-word
+- swipe:
+    from:
+      id: "terminal-selection-end"
+    direction: RIGHT
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-the-end-dragged-right-past-tail
+- swipe:
+    from:
+      id: "terminal-selection-start"
+    direction: LEFT
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-the-start-dragged-to-the-rows-first-column
+- swipe:
+    from:
+      id: "terminal-selection-end"
+    direction: DOWN
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 04-the-end-dragged-into-the-rows-below
+- tapOn:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible:
+    id: "terminal-selection-start"
+- assertNotVisible:
+    id: "terminal-selection-end"
+- takeScreenshot: 05-copied-and-the-handles-are-gone
