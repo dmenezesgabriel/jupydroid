@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Back from the browser, a tap beside the address - on the blank columns before the right-aligned
+# `head` - asks nothing, and the driver then requires the keyboard up: that tap is still the input
+# field's. Run by scripts/terminal-link-tap-driver.sh after part 3 and its back press.
+- assertVisible:
+    id: "terminal-input"
+- assertNotVisible: "Open Link\\?"
+- takeScreenshot: 04-back-from-the-browser-on-the-terminal
+- tapOn:
+    id: "terminal-input"
+    point: "3%,50%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Open Link\\?"
+- takeScreenshot: 05-a-tap-beside-the-address-raised-the-keyboard

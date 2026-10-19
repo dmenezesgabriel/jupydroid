@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# A tap on the printed address asks "Open Link?" and names it, and Cancel leaves it unopened. The
+# driver then requires the keyboard still down: the tap that opened the dialog was not also the
+# input field's tap. Run by scripts/terminal-link-tap-driver.sh after part 1.
+#
+# **What this flow cannot assert, and what does.** That the tap was on the drawn address is read
+# off 01; that only the address opens the dialog is `TerminalLinkTapTest`.
+- tapOn:
+    id: "terminal-input"
+- assertVisible: "Open Link\\?"
+- assertVisible: "Do you want to navigate to https://example\\.org/sel42\\? This link could potentially be dangerous\\."
+- takeScreenshot: 02-open-link-names-the-printed-address
+- tapOn: "Cancel"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Open Link\\?"
+- takeScreenshot: 03-cancel-left-the-terminal-as-it-was

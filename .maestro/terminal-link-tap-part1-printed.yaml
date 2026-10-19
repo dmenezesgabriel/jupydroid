@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# A shell prints a web address, and the keyboard is put away so the driver can tell whether a tap
+# raises it. Run by scripts/terminal-link-tap-driver.sh, which reads `mInputShown` after each part.
+#
+# The address is printed as `sel$((6*7))`, at the grid's centre column on every row but the last,
+# so a tap on the input field's centre lands on it, and only a shell that computed it prints
+# `sel42`: the command line itself, which the pty echoes, says `sel$((6*7))`.
+#
+# TABLET ONLY (SM-X216B): on the x86_64 emulator the terminal is FakeTerminalGateway's echo.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-5))s https://example.org/sel$((6*7))\\n\" head; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-the-shell-printed-the-address
