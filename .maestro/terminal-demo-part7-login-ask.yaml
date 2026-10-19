@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# A tap on `https://github.com/login/device`, which opencode printed after "Go to:", asks
+# "Open Link?" and names it, and Cancel leaves it unopened. Run by scripts/terminal-demo-driver.sh
+# once opencode's bytes hold the address.
+#
+# **Where to tap is measured, not found.** The address is drawn, and no selector reaches it. With the
+# keyboard up the grid is 80 columns by 9 rows on SM-X216B, and clack's last lines put the address
+# on the middle row, in columns 10 to 40: 32 % of the field's width is column 25, and 50 % of its
+# height is that row. A tap anywhere else opens nothing, so the dialog's text is what proves it hit.
+#
+# **What this flow cannot assert, and what does.** Whether the address is printed text or an OSC 8
+# link: the driver counts `ESC ] 8 ;` in the bytes terminal-demo-opencode-login.py kept.
+- assertVisible:
+    id: "terminal-input"
+- takeScreenshot: 10-opencode-printed-the-device-address
+- tapOn:
+    id: "terminal-input"
+    point: "32%,50%"
+- assertVisible: "Open Link\\?"
+- assertVisible: "Do you want to navigate to https://github\\.com/login/device\\? This link could potentially be dangerous\\."
+- takeScreenshot: 11-open-link-names-the-device-address
+- tapOn: "Cancel"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Open Link\\?"
+- takeScreenshot: 12-cancel-left-the-login-waiting

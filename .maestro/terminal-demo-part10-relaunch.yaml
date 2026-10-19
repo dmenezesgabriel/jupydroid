@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# After the driver's `am force-stop`, a relaunch opens a terminal again, and a long press on a word
+# the shell printed selects it under the floating toolbar: nothing about a selection is persisted,
+# and nothing has to be. Run by scripts/terminal-demo-driver.sh after part 9.
+#
+# The word is printed as in part 1.
+- launchApp
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "New terminal"
+    commands:
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "New terminal"
+    commands:
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; a tap on the field settles it (§8.6).
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-8))s%s-select\\n\" '' jupydroid; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 15-after-a-relaunch-a-long-press-selects-again

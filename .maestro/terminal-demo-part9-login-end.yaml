@@ -1,0 +1,28 @@
+appId: com.jupydroid.app
+---
+# Back from the browser on the login, which Ctrl-C then ends if it is still waiting, so nobody enters
+# the device code and nothing signs in; the shell's prompt returns. Run by
+# scripts/terminal-demo-driver.sh after part 8 and its back press.
+#
+# On SM-X216B the login has already failed by then: seconds after the browser comes to the front the
+# platform destroys the app's TCP sockets and freezes it, and opencode's poll for the code answers
+# "Unable to connect". 13 shows that error; the Ctrl-C then reaches the shell's own prompt.
+#
+# The first tap is at 3 % of the field's width, on the first columns, where clack draws only its
+# rails and bullets, so it raises the keyboard and opens nothing; the extra keys' Ctrl then makes the
+# typed `c` a Ctrl-C (`p4j-3a-terminal-extra-keys.yaml`).
+- assertVisible:
+    id: "terminal-input"
+- assertNotVisible: "Open Link\\?"
+- takeScreenshot: 13-back-from-the-browser-on-the-login
+- tapOn:
+    id: "terminal-input"
+    point: "3%,50%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Open Link\\?"
+- tapOn: "Ctrl"
+- inputText: "c"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 14-the-login-is-over-and-the-shell-is-at-its-prompt

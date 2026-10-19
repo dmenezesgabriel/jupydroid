@@ -1,0 +1,11 @@
+appId: com.jupydroid.app
+---
+# The same tap, then Open. No screenshot after it: what is on screen then is the browser, which the
+# driver reads as the resumed activity. Run by scripts/terminal-demo-driver.sh after part 7.
+- tapOn:
+    id: "terminal-input"
+    point: "32%,50%"
+- assertVisible: "Open Link\\?"
+- tapOn: "Open"
+- waitForAnimationToEnd:
+    timeout: 5000

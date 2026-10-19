@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# The demo's terminal, which jd-046-opencode-in-a-space.yaml opened after a fresh install and left
+# at the prompt once opencode was installed: a long press on `jupydroid-select` selects it, and the
+# platform's floating text toolbar over it offers Copy and Paste. Run by
+# scripts/terminal-demo-driver.sh.
+#
+# The word is printed at the grid's centre column on every row but the last, from `stty size`, so
+# the press on the input field's centre lands on it: the per-row text is drawn and reaches no
+# accessibility dump (`terminal-long-press-copies.yaml`). The command line says `%s-select`, and
+# `clear` wipes its echo, so the whole word is on screen only if the shell printed it.
+#
+# **What this flow cannot assert, and what does.** The highlight and the selected span are drawn,
+# so 01 is their evidence; `TerminalSelectionTest` is the instrumented proof of what Copy copies.
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-8))s%s-select\\n\" '' jupydroid; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- assertVisible:
+    text: "Paste"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 01-the-word-is-selected-under-copy-and-paste

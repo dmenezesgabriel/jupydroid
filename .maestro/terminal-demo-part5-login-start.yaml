@@ -1,0 +1,8 @@
+appId: com.jupydroid.app
+---
+# `opencode auth login` starts, through the seeded terminal-demo-opencode-login.py, which keeps the
+# bytes it writes for the driver: whether its sign-in URL is OSC 8 or plain text is not on screen.
+# The driver waits for "Select provider" in those bytes before part 6 picks one. Run by
+# scripts/terminal-demo-driver.sh after part 4.
+- inputText: "clear; python3 terminal-demo-opencode-login.py"
+- pressKey: Enter

@@ -123,7 +123,9 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
 - ~~Does a long press over the invisible `BasicTextField` reach an Initial-pass detector before the
   field's own text selection does?~~ Yes, measured on SM-X216B in T1: the press selects the word, and
   the field shows no toolbar of its own.
-- Does `opencode auth login` print its URL as plain text or as OSC 8? (T5, on SM-X216B)
+- ~~Does `opencode auth login` print its URL as plain text or as OSC 8?~~ Plain text: its bytes on
+  SM-X216B hold no `ESC ] 8 ;`, and GitHub Copilot's `Go to: https://github.com/login/device` reaches
+  the printed-address path (T5b, `osc8-count.txt`).
 - ~~The URL pattern runs on ART's ICU regex, not the JVM's, so it gets an instrumented test (T4).~~
   It is `plainTextWebLinks`, the one cell outputs use; `TerminalLinkTapTest` taps it on SM-X216B.
 
@@ -152,7 +154,7 @@ Ours is **present but unreachable** for copy and paste, and **absent** for selec
 - [x] T5a: OSC 8 is parsed and the URI is stored on every cell written while it is open, carried by
   inserts, deletes and a reflow. A tap on one asks "Open Link?" and opens it, http and https only, and
   over a printed address the OSC 8 one wins.
-- [ ] T5b: The demo runs on SM-X216B, and it answers whether `opencode auth login` prints plain text
+- [x] T5b: The demo runs on SM-X216B, and it answers whether `opencode auth login` prints plain text
   or OSC 8.
 
 ## Out of scope

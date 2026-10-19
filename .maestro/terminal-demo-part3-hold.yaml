@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# Part 1 of 2 of the hold: a long press selects `jupydroid-select` while `sleep 25` runs. The driver
+# then waits out the sleep, and part 4 shows that `tick` printed meanwhile did not move the view.
+# Run by scripts/terminal-demo-driver.sh after part 2.
+#
+# The word is printed as in part 1. A first run slept 8 s, and `tick` was on screen before 05: typing
+# the line and the press take that long. The command line says `t%sk` and passes `ic`, so `tick` is on
+# screen only once the shell printed it.
+#
+# **What this flow cannot assert, and what does.** Where the view sits is drawn, so 05 against 06
+# and 07 is its evidence; `TerminalPaneViewModelScrollbackTest
+# .outputWhileAWordIsSelectedKeepsTheWordInView` holds the rule.
+- inputText: "clear; set -- $(stty size); for r in $(seq $(($1-1))); do printf \"%$(($2/2-8))s%s-select\\n\" '' jupydroid; done; sleep 25; printf 't%sk\\n' ic"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 05-the-word-is-selected-before-tick

@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# Part 2 of 2 of the hold: `tick` has printed, and the word is still selected where it was, under the
+# floating toolbar. A tap ends the selection, and the view goes to the live screen, where `tick` is.
+# Run by scripts/terminal-demo-driver.sh after part 3 and the sleep it waits out.
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 06-tick-printed-and-the-view-stayed-on-the-word
+- tapOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 07-a-tap-ended-it-and-the-view-shows-tick

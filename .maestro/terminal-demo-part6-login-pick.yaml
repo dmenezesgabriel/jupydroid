@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# The provider picker filters to GitHub Copilot as it is typed, Enter picks it, and Enter again picks
+# GitHub.com in its "Select GitHub deployment type" prompt, the first option
+# (anomalyco/opencode@e3c4eb24 packages/opencode/src/plugin/github-copilot/copilot.ts). The driver
+# then waits for the device-code address in opencode's bytes. Run by scripts/terminal-demo-driver.sh
+# after part 5.
+- inputText: "copilot"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 08-the-picker-filtered-to-copilot
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 09-copilot-asks-for-the-deployment-type
+- pressKey: Enter
