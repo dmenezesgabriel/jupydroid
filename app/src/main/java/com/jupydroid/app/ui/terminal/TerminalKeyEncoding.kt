@@ -6,6 +6,7 @@ import androidx.compose.ui.input.key.Key
 
 private const val ESC = "\u001B"
 private const val LOWEST_CONTROL_BYTE = 1
+private const val DELETE = "\u007F"
 
 /**
  * What a hardware key reaching the terminal means on the wire - arrows and Ctrl+letter, plus
@@ -34,6 +35,23 @@ internal fun terminalKeystroke(key: Key, ctrlPressed: Boolean, keyCode: Int, app
     ?: pageKeySequence(key)
     ?: literalKeySequence(key)
     ?: controlByteSequence(ctrlPressed, keyCode)
+
+/**
+ * Backspace over an empty input field is the shell's DEL (`\u007F`), the byte Termux's
+ * `KeyHandler` sends for `KEYCODE_DEL` (termux-app `3df69d1d`, after xterm and gnome-terminal).
+ *
+ * The field only ever holds what was typed since the last Enter, so text that reached the shell
+ * another way - Paste, a line recalled with an arrow - is not in it, and the field's own edit has
+ * nothing to delete. Termux has no such buffer: its `deleteSurroundingText` sends a `KEYCODE_DEL`
+ * for every character the IME asks to delete. While the field does hold text, its edit and the
+ * text diff send the DEL, so this stands back and the two never send one keystroke twice.
+ *
+ * ```
+ * emptyFieldBackspace(Key.Backspace, fieldText = "")   // "\u007F"
+ * ```
+ */
+internal fun emptyFieldBackspace(key: Key, fieldText: CharSequence): String? =
+  if (key == Key.Backspace && fieldText.isEmpty()) DELETE else null
 
 private fun controlByteSequence(ctrlPressed: Boolean, keyCode: Int): String? =
   if (ctrlPressed) controlByte(keyCode)?.toString() else null

@@ -405,7 +405,8 @@ private fun TerminalInputField(
       .onPreviewKeyEvent { event ->
         if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
         val bytes =
-          terminalKeystroke(event.key, event.isCtrlPressed, event.nativeKeyEvent.keyCode, applicationCursorKeys())
+          emptyFieldBackspace(event.key, state.text)
+            ?: terminalKeystroke(event.key, event.isCtrlPressed, event.nativeKeyEvent.keyCode, applicationCursorKeys())
             ?: return@onPreviewKeyEvent false
         onEncodedKey(bytes)
         true

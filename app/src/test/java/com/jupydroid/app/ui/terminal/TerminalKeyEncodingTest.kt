@@ -178,4 +178,24 @@ class TerminalKeyEncodingTest {
     assertEquals("1", bytes)
     assertEquals(TerminalModifierLatch(), next.ctrl)
   }
+
+  /**
+   * Text Paste sent, or a line the shell recalled, never passed through the input field, so a
+   * backspace over it finds the field empty. The key itself is then the shell's DEL.
+   */
+  @Test
+  fun backspaceOverAnEmptyFieldIsTheDelByte() {
+    assertEquals("\u007F", emptyFieldBackspace(Key.Backspace, fieldText = ""))
+  }
+
+  /** While the field holds typed text, its own edit and the text diff send the DEL instead. */
+  @Test
+  fun backspaceOverTypedTextIsLeftToTheField() {
+    assertNull(emptyFieldBackspace(Key.Backspace, fieldText = "echo "))
+  }
+
+  @Test
+  fun anotherKeyOverAnEmptyFieldIsNotEncoded() {
+    assertNull(emptyFieldBackspace(Key.Enter, fieldText = ""))
+  }
 }
