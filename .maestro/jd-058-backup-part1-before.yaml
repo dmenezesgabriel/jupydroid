@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# Before the backup: a second Space next to base, base's three seeded documents, and a theme that is
+# not the system's, so each one coming back after the restore is something the restore did.
+#
+# TABLET ONLY (SM-X216B): base is entered, and only arm64 ships its rootfs.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+# A Space is an extract of the bundled image, which takes a while on the tablet.
+- extendedWaitUntil:
+    visible: "Open Thesis \\(space-1\\)"
+    timeout: 300000
+- takeScreenshot: 01-spaces-before
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "survives.ipynb"
+    timeout: 10000
+- assertVisible: "notes.md"
+- assertVisible: "talk.chat"
+- takeScreenshot: 02-documents-before
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+- tapOn: "Light"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-light-theme-picked

@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# After `adb uninstall` (data gone) and `adb install`, which restored the backup before this first
+# launch: the Spaces home lists the second Space, and base's documents are listed and open with
+# their content, in the theme picked before.
+#
+# TABLET ONLY (SM-X216B): base is entered, and only arm64 ships its rootfs.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Open Thesis \\(space-1\\)"
+- takeScreenshot: 04-spaces-after
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "survives.ipynb"
+    timeout: 10000
+- assertVisible: "notes.md"
+- assertVisible: "talk.chat"
+- takeScreenshot: 05-documents-after
+- tapOn: "survives.ipynb"
+- extendedWaitUntil:
+    visible: "print('kept through an uninstall')"
+    timeout: 10000
+- takeScreenshot: 06-notebook-after

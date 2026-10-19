@@ -96,11 +96,14 @@ Each one is settled by a measurement in the task that needs it:
 
 - One UI on SM-X216B shows the keep-data prompt, from Settings and from the launcher's
   `ACTION_DELETE` alike, and keeping it keeps all of `filesDir` (679 MB, rootfs and opencode included). (T1)
-- What does base's home measure (`du`) after the agent's filter, against 25 MB? (T3)
+- What does base's home measure (`du`) after the agent's filter, against 25 MB? (T3: **30,778 B in 12
+  files** for base's three documents plus a second Space's, out of a 950 MB `filesDir`. `bmgr backupnow`
+  reports Success.)
 - Does `BaseSpaceInstaller` re-extract over a restored `home/` without touching it, given that the
   restore brings back no `.jupydroid/rootfs-version`? (T4)
 - A Space other than base: does a restored `config.json` plus its home bring it back, or does its rootfs
-  need re-creating first? (T3: measure, then either cover it or name it in Out of scope)
+  need re-creating first? (T3: it is listed with its documents, but Run fails with `proot error:
+  '/usr/bin/python3' not found`, because a user's Space is never re-extracted (ADR-0073). Covered by T3b)
 
 ## Surface
 
@@ -109,7 +112,7 @@ Each one is settled by a measurement in the task that needs it:
 | `domain/model` | — (no port: the platform calls the agent, and nothing in the app asks it anything) |
 | `data/backup` | `SpaceHomeBackupScope.kt` (pure: given a `filesDir`, the files to back up), `SpaceHomeBackupAgent.kt` (`FullBackupAgent`, feeds the scope to `fullBackupFile`) |
 | `di/AppContainer` | — (the platform constructs a `BackupAgent` by its class name) |
-| manifest / res | `android:backupAgent`, `android:fullBackupOnly`, `android:hasFragileUserData`; `data_extraction_rules.xml` |
+| manifest / res | `android:backupAgent`, `android:fullBackupOnly`, `android:hasFragileUserData`. No rules file: the agent's `onFullBackup` never reads one, and on restore an `<include>` would drop files. The template `data_extraction_rules.xml` and `backup_rules.xml` are deleted. The agent refuses a cloud transport without client-side encryption, as `disableIfNoEncryptionCapabilities` would |
 | unit tests | `SpaceHomeBackupScopeTest` (plain JVM over a temp `filesDir`) |
 | instrumented tests | — (nothing visible to press) |
 | `.maestro/` flow + `scripts/` driver | a reinstall flow: create, `bmgr backupnow`, uninstall, install, check, run a cell |
@@ -122,8 +125,12 @@ Each one is settled by a measurement in the task that needs it:
 - [x] T2: `SpaceHomeBackupScope`, red test first. It returns each Space's home minus `pyvenv.cfg`
   directories and `.cache`, each Space's `config.json`, and the app's own state files. Never the
   rootfs, `pkgs`, `run`, `tmp`, the rootfs stamp or a symlink.
-- [ ] T3: `SpaceHomeBackupAgent` wired through the manifest and `data_extraction_rules.xml`. Measure
-  `bmgr backupnow` on SM-X216B and the size of the backup.
+- [x] T3: `SpaceHomeBackupAgent` wired through the manifest. Measure `bmgr backupnow` on SM-X216B and
+  the size of the backup.
+- [ ] T3b: a Space other than base whose rootfs is absent (a restore brings back only its config and
+  home) is extracted from the bundled image around its home when it runs, red test first. A Space
+  that has a rootfs is still never re-extracted (ADR-0073). Evidence: T3's driver, with part 3 now
+  running the second Space.
 - [ ] T4: the demo (steps 1–6) on SM-X216B with its flow and driver, plus T1's step 7 again. Write
   ADR-0107, then delete this PRD.
 

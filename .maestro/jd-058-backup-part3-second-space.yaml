@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# After the restore, the second Space has its config and its home but no rootfs: a backup never
+# carries one, and a user's Space is never re-extracted (ADR-0073). So Run fails, and says why. This
+# records what a restore leaves a Space other than base in; it is not the behaviour to keep.
+#
+# TABLET ONLY (SM-X216B): the Space's server is started under proot, and only arm64 ships one.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: ".*'/usr/bin/python3' not found.*"
+    timeout: 60000
+- assertVisible: "Run Thesis \\(space-1\\)"
+- takeScreenshot: 07-second-space-has-no-rootfs
