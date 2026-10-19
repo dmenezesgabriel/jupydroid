@@ -161,7 +161,9 @@ asks for and the one a write to the file makes by itself, `GAP-064`, closed by
 new name, `GAP-063`, closed by
 [ADR-0099](adr/0099-a-document-is-saved-under-a-new-name-from-its-tab.md), and the checkpoint to
 revert to, `GAP-062`, closed by
-[ADR-0100](adr/0100-a-document-reverts-to-its-checkpoint-kept-beside-it.md).
+[ADR-0100](adr/0100-a-document-reverts-to-its-checkpoint-kept-beside-it.md), and what the user made
+through an uninstall, `GAP-176`, closed by
+[ADR-0107](adr/0107-what-the-user-made-survives-a-reinstall-through-a-filtered-auto-backup.md).
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
@@ -176,7 +178,7 @@ revert to, `GAP-062`, closed by
 | `JD-040` | **Every open document is saved at once:** one tap on Save All in the Running panel's Open Tabs writes every tab with unsaved work, beneath the top or not, and a save the disk refuses brings its tab to the top to ask | shipped | — | `GAP-061` |
 | `JD-041` | **A document is saved under a new name:** a long press on a notebook's or a file's tab offers Save As…, which writes what is on screen to a typed path, asking before it replaces a taken one, and opens the copy while the original keeps what was last saved | shipped | — | `GAP-063` |
 | `JD-042` | **A document reverts to its checkpoint:** a long press on a notebook's or a file's tab offers Revert to Checkpoint…, which puts back what it held when first opened or last saved by the user, asking first, with the checkpoint kept where jupyter_server keeps its own | shipped | — | `GAP-062` |
-| `JD-058` | **What the user made survives a reinstall:** after the app is uninstalled and installed again, the workspace's notebooks, files and chats, and the sign-ins made in a Space's terminal, are still there when the Space is entered | in-progress ← next | [JD-058](prd/JD-058-what-the-user-made-survives-a-reinstall.md) | `GAP-176` |
+| `JD-058` | **What the user made survives a reinstall:** after the app is uninstalled and installed again, the workspace's notebooks, files and chats, and the sign-ins made in a Space's terminal, are still there when the Space is entered | shipped | — | `GAP-176` |
 
 ### M6 — Presentation
 
@@ -208,7 +210,7 @@ closing none of its siblings, is closed by
 | `JD-037` | **A rename refused from the tab says why:** when the disk refuses a rename or an overwrite asked from a document's tab, a dialog says why instead of closing in silence | shipped | — | `GAP-069` |
 | `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
 | `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
-| `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | open | — | `GAP-081`, `GAP-082` |
+| `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | open ← next | — | `GAP-081`, `GAP-082` |
 | `JD-061` | **Settings is reached from every view:** the gear sits at the foot of the side panel's rail, below every panel's icon, as VS Code's Manage does; at one pane it sits where the bottom bar's area puts destinations it does not hold, in a pattern researched from Material's guidance and measured on device | open | — | `GAP-178` |
 
 ### M7 — Extensions

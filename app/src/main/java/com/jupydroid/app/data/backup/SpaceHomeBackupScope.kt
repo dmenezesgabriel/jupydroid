@@ -18,7 +18,8 @@ import java.nio.file.LinkOption
  *
  * That is each Space's home (its documents, and the sign-ins a program wrote under it), each
  * Space's `config.json`, and the app's own settings and recents. Never the rootfs, `pkgs`, `run`,
- * `tmp` or the rootfs stamp - the walk only enters the home, so they are out by construction.
+ * `tmp` or the rootfs stamp - the walk only enters the home, so they are out by construction
+ * (ADR-0107).
  *
  * The filter is what makes a backup happen at all: Auto Backup's quota is 25 MB per app, and over
  * it "doesn't back up data to the cloud" - documents included
