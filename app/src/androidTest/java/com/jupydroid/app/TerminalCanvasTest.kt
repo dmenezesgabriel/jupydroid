@@ -29,6 +29,7 @@ import com.jupydroid.app.terminal.TerminalReplies
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.editor.codeTextStyle
 import com.jupydroid.app.ui.terminal.TerminalCanvas
+import com.jupydroid.app.ui.terminal.TerminalTextSelection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -71,6 +72,39 @@ class TerminalCanvasTest {
     val pixel = image.toPixelMap()[cellWidth / 2, cellHeight / 2]
 
     assertEquals(Color(TerminalPalette.REFERENCE.at(GREEN_INDEX)), pixel)
+  }
+
+  /**
+   * `TerminalRenderer.render` (termux-app `3df69d1d`) draws a selected run reversed, so a selected
+   * blank cell is the foreground colour and the blank beside it stays the background.
+   */
+  @Test
+  fun aSelectedCellIsDrawnReversed() {
+    val emulator = silentEmulator(TerminalPalette.REFERENCE)
+    var cell: IntSize? = null
+
+    val image = capture {
+      TerminalCanvas(
+        emulator,
+        onGridSizeChanged = { _, measured -> cell = measured },
+        modifier = Modifier.fillMaxSize(),
+        selection = TerminalTextSelection(startColumn = 0, startRow = 0, endColumn = 0, endRow = 0),
+      )
+    }
+    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val pixels = image.toPixelMap()
+
+    assertEquals(
+      Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_FOREGROUND)),
+      pixels[
+        cellWidth / 2, cellHeight /
+          2,
+      ],
+    )
+    assertEquals(
+      Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_BACKGROUND)),
+      pixels[cellWidth + cellWidth / 2, cellHeight / 2],
+    )
   }
 
   /**

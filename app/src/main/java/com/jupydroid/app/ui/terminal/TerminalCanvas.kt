@@ -99,6 +99,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  *   side effect Termux's own `TerminalRenderer.render` gets for free from iterating
  *   `[topRow, topRow + rows)` - made an explicit condition here since this file's loop bounds
  *   are a parameter now rather than always `0`.
+ * @param selection what a long press selected, drawn reversed, or `null` for nothing.
  */
 @Composable
 fun TerminalCanvas(
@@ -107,9 +108,10 @@ fun TerminalCanvas(
   modifier: Modifier = Modifier,
   textStyle: TextStyle = codeTextStyle(),
   topRow: Int = 0,
+  selection: TerminalTextSelection? = null,
 ) {
   val cell = terminalCellMetrics(textStyle)
-  val renderer = GlyphRenderer(cell, textStyle, rememberTextMeasurer(), emulator.screen.colors)
+  val renderer = GlyphRenderer(cell, textStyle, rememberTextMeasurer(), emulator.screen.colors, selection)
   val screen = emulator.screen
 
   BoxWithConstraints(modifier = modifier.imePadding()) {
@@ -131,12 +133,13 @@ fun TerminalCanvas(
   }
 }
 
-/** What every run needs to draw itself - one parameter instead of four, kept under detekt's cap. */
+/** What every run needs to draw itself - one parameter instead of five, kept under detekt's cap. */
 private class GlyphRenderer(
   val cell: IntSize,
   val style: TextStyle,
   val measurer: TextMeasurer,
   val colors: TerminalColors,
+  val selection: TerminalTextSelection?,
 )
 
 /**
@@ -151,12 +154,23 @@ private fun DrawScope.drawRow(grid: TerminalGrid, rowIndex: Int, topRow: Int, co
   val drawRowIndex = rowIndex - topRow
   var column = 0
   while (column < columns) {
-    val runStyle = grid.styleAt(rowIndex, column)
+    val runStyle = shownStyleAt(grid, rowIndex, column, renderer.selection)
     var end = column + 1
-    while (end < columns && grid.styleAt(rowIndex, end) == runStyle) end++
+    while (end < columns && shownStyleAt(grid, rowIndex, end, renderer.selection) == runStyle) end++
     drawRun(row, drawRowIndex, column, end, runStyle, renderer)
     column = end
   }
+}
+
+/**
+ * The cell's style as drawn: `TerminalRenderer.render` (termux-app `3df69d1d`) draws a selected run
+ * with reverse video, which is the cell's own [CellStyle.INVERSE] bit flipped. Folding it into the
+ * style also splits a run where the selection starts or ends.
+ */
+private fun shownStyleAt(grid: TerminalGrid, row: Int, column: Int, selection: TerminalTextSelection?): CellStyle {
+  val style = grid.styleAt(row, column)
+  if (selection?.covers(column, row) != true) return style
+  return CellStyle.encode(style.foreColor, style.backColor, style.effect xor CellStyle.INVERSE)
 }
 
 /**

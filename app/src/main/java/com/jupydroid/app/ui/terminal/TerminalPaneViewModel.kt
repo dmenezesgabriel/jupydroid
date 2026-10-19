@@ -16,6 +16,7 @@ import com.jupydroid.app.terminal.TerminalNotices
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.terminal.TerminalReplies
 import com.jupydroid.app.terminal.clampedTopRow
+import com.jupydroid.app.terminal.takeScrollCount
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,6 +104,9 @@ class TerminalPaneViewModel(
     palette = palette,
   )
 
+  /** The text a long press selected, which Copy reads and output moves along with what it covers. */
+  val selector = TerminalTextSelector { emulator.screen.grid }
+
   /** Whether [attach] has already run once - a second call is a re-attach, not the first connection. */
   private var hasAttachedBefore = false
 
@@ -139,12 +143,12 @@ class TerminalPaneViewModel(
         is TerminalEvent.Output -> {
           val bytes = event.text.toByteArray(Charsets.UTF_8)
           emulator.append(bytes, bytes.size)
-          // Termux's own `TerminalView.onScreenUpdated` default path: no text-selection anchor,
-          // no auto-scroll-lock toggle exist in this app to carve an exception out for, so any
-          // new output while scrolled back snaps straight back to the live screen
-          // - a named simplification of the reference, not a silent
-          // omission.
-          _uiState.update { it.copy(topRow = 0) }
+          // `TerminalView.onScreenUpdated` (termux-app `3df69d1d`): output returns the view to the
+          // live screen, unless a selection holds it on the text it was made over. No scroll-lock
+          // toggle exists here, so the reference's `isAutoScrollDisabled` arm has nothing to read.
+          // `update` runs this once: every writer of `_uiState` is on the main thread, so the
+          // compare-and-set it retries on never loses.
+          _uiState.update { it.copy(topRow = selector.topRowAfterOutput(it.topRow, emulator.screen.takeScrollCount())) }
           bumpRedraw()
         }
         is TerminalEvent.Ended -> _uiState.update { it.copy(endedReason = event.reason) }

@@ -1,11 +1,13 @@
 package com.jupydroid.app.terminal
 
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
  * Both methods of `terminal-emulator/src/test/java/com/termux/terminal/HistoryTest.java`
  * (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]): what a row-only resize does to the
- * scrollback, and that DECSTBM's own history filing is undisturbed by having one at all.
+ * scrollback, and that DECSTBM's own history filing is undisturbed by having one at all. Plus the
+ * count of rows scrolled, which upstream reads only from its view.
  */
 class HistoryTest {
   private fun terminal(columns: Int, rows: Int) = EmulatorFixture(columns, rows)
@@ -40,6 +42,19 @@ class HistoryTest {
     fixture.enterString("\nCDEFGH").assertLinesAre("111", "CDE", "FGH", "444")
     fixture.enterString("IJK").assertLinesAre("111", "FGH", "IJK", "444").assertHistoryStartsWith("CDE")
     fixture.enterString("LMN").assertLinesAre("111", "IJK", "LMN", "444").assertHistoryStartsWith("FGH", "CDE")
+  }
+
+  /**
+   * `mScrollCounter`: every row the content moves up is counted until it is taken, which is how a
+   * selection follows the text it was made over.
+   */
+  @Test
+  fun everyRowTheContentMovesUpIsCountedUntilTaken() {
+    val fixture = terminal(3, 3).enterString("111222333444555")
+    assertEquals(2, fixture.emulator.screen.takeScrollCount())
+    assertEquals(0, fixture.emulator.screen.takeScrollCount())
+    fixture.enterString("666")
+    assertEquals(1, fixture.emulator.screen.takeScrollCount())
   }
 
   private companion object {

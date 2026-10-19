@@ -20,7 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -28,8 +28,10 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
@@ -40,11 +42,16 @@ import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -111,10 +118,18 @@ fun TerminalPaneScreen(
   // resolved once here rather than inside `TerminalCanvas`, which no
   // longer reads the setting itself.
   val textStyle = codeTextStyle(fontSize = state.fontSizeSp.sp)
-  // the last cell height [TerminalCanvas] reported, so a drag's own
-  // pixel delta can be turned into rows without waiting for a fresh `onGridSizeChanged` call -
-  // `terminalCellMetrics`'s own measurement never changes mid-gesture, only mid-recomposition.
-  var cellHeightPx by remember { mutableIntStateOf(1) }
+  // the last cell size [TerminalCanvas] reported, so a drag's own
+  // pixel delta can be turned into rows, and a press into a cell, without waiting for a fresh
+  // `onGridSizeChanged` call - `terminalCellMetrics`'s own measurement never changes mid-gesture,
+  // only mid-recomposition.
+  var cellPx by remember { mutableStateOf(IntSize(1, 1)) }
+  val selection by viewModel.selector.selection.collectAsStateWithLifecycle()
+  val copyToClipboard = rememberTerminalClipboardCopy()
+  val haptics = LocalHapticFeedback.current
+  // Where the gesture `Box` sits in the root, which is where the floating toolbar is placed.
+  var gestureBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
+  // The canvas sits `Spacing.md` in from the `Box` the gestures are read on.
+  val canvasInsetPx = with(LocalDensity.current) { Spacing.md.toPx() }
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
@@ -157,7 +172,7 @@ fun TerminalPaneScreen(
     // window inset `ShellSidePane.kt`'s `panelInsets` already names for the navigation bar, found
     // here for the ime by a device measurement rather than a re-reading of the source.
     //
-    // `pointerInput(cellHeightPx) { detectTerminalScrollDrag(...) }` sits on this `Box` - the
+    // `pointerInput(cellPx) { detectTerminalScrollDrag(...) }` sits on this `Box` - the
     // ancestor of both `TerminalCanvas` and `TerminalInputField` - rather than `Modifier.scrollable`
     // on either sibling, 3's own device-measured finding: a `Modifier.scrollable`
     // on `TerminalCanvas` never once saw a real drag, because `TerminalInputField`'s own
@@ -167,7 +182,21 @@ fun TerminalPaneScreen(
     // ahead of the field's pass, so consuming a drag here is what actually pre-empts it.
     Box(
       modifier = Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)
-        .pointerInput(cellHeightPx) { detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellHeightPx) } },
+        .pointerInput(cellPx) { detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellPx.height) } }
+        .onGloballyPositioned { gestureBox = it }
+        .pointerInput(cellPx, state.topRow) {
+          detectTerminalLongPress(
+            onLongPress = { point ->
+              // `TerminalView.onLongPress` (termux-app `3df69d1d`) confirms the press the same way.
+              haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+              val screen = viewModel.emulator.screen
+              val grid = IntSize(screen.columns, screen.rows)
+              val cell = terminalCellAt(point - Offset(canvasInsetPx, 0f), cellPx, grid, state.topRow)
+              viewModel.selector.selectWordAt(cell.column, cell.row)
+            },
+            onTap = viewModel.selector::clear,
+          )
+        },
     ) {
       // Keyed on the redraw counter: `emulator.screen.grid` is mutated in place by
       // `TerminalPaneViewModel`, which Compose cannot observe on its own - `redraw` is the `State`
@@ -178,13 +207,19 @@ fun TerminalPaneScreen(
           emulator = viewModel.emulator,
           onGridSizeChanged = { grid, cell ->
             viewModel.resize(grid, cell.width, cell.height)
-            cellHeightPx = cell.height
+            cellPx = cell
           },
           modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
           textStyle = textStyle,
           topRow = state.topRow,
+          selection = selection,
         )
       }
+      val toolbarBounds = selection?.let { span ->
+        val local = span.boundsIn(cellPx, viewModel.emulator.screen.columns, state.topRow)
+        gestureBox?.rootRectOf(local.translate(canvasInsetPx, 0f))
+      }
+      TerminalSelectionToolbar(toolbarBounds, onCopy = { viewModel.selector.copyInto(copyToClipboard) })
       TerminalInputField(
         onTypedText = viewModel::typeCharacters,
         onEncodedKey = viewModel::type,

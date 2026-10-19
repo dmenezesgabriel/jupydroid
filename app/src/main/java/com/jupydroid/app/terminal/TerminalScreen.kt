@@ -63,6 +63,13 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
   var lastEmittedCodePoint: Int = NOTHING_EMITTED
     internal set
 
+  /**
+   * Rows the content has moved up since [takeScrollCount] last read it - the reference's
+   * `mScrollCounter`, which its view takes after every update so a text selection moves up with
+   * the text it was made over (`TerminalView.onScreenUpdated`, termux-app `3df69d1d`).
+   */
+  internal var scrollCounter: Int = 0
+
   /** Draw [codePoint] at the cursor, wrapping, inserting and advancing as the modes require. */
   fun writeCodePoint(codePoint: Int) = placement.write(codePoint)
 
@@ -153,6 +160,7 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
    * leaving the top is not a whole line of history.
    */
   fun scrollUpOneLine() {
+    scrollCounter++
     if (cursor.leftMargin == 0 && cursor.rightMargin == columns) {
       grid.scrollDownOneLine(cursor.topMargin, cursor.bottomMargin, currentStyle)
       return
@@ -217,3 +225,15 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
     const val NOTHING_EMITTED = -1
   }
 }
+
+/**
+ * [TerminalScreen.scrollCounter], set back to `0` - `getScrollCounter` then `clearScrollCounter`
+ * in the reference, read together because nothing reads one without the other. An extension
+ * because [TerminalScreen] is at detekt's `TooManyFunctions` cap.
+ *
+ * ```
+ * emulator.append(bytes, bytes.size)
+ * val rowShift = emulator.screen.takeScrollCount()
+ * ```
+ */
+fun TerminalScreen.takeScrollCount(): Int = scrollCounter.also { scrollCounter = 0 }

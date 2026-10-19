@@ -109,6 +109,28 @@ class TerminalPaneViewModelScrollbackTest {
   }
 
   /**
+   * `TerminalView.onScreenUpdated`'s carve-out (termux-app `3df69d1d`): while a selection exists,
+   * output that scrolls the screen moves the view up with the text instead of to the live screen,
+   * so the selected word stays where the user is looking.
+   */
+  @Test
+  fun outputWhileAWordIsSelectedKeepsTheWordInView() = runTest {
+    val gateway = RecordingGateway()
+    val viewModel = TerminalPaneViewModel(TerminalSession("1"), gateway, rows = 3, columns = 5)
+    attachOn(viewModel)
+    advanceUntilIdle()
+    gateway.push(TerminalEvent.Output("abc\r\n"))
+    advanceUntilIdle()
+    viewModel.selector.selectWordAt(column = 0, row = 0)
+
+    gateway.push(TerminalEvent.Output("1\r\n2\r\n"))
+    advanceUntilIdle()
+
+    assertEquals(-1, viewModel.uiState.value.topRow)
+    assertEquals("abc", viewModel.selector.selectedText())
+  }
+
+  /**
    * the alternate screen (`vi`, `less`, `htop`) carries no scrollback
    * at all, so a drag there is Termux's own `doScroll`'s special case - redirected to Up/Down
    * arrow keystrokes instead of a `topRow` move. `ScreenBuffers.isAlternateLive` is already public
