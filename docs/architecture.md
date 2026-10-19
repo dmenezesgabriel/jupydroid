@@ -1831,6 +1831,45 @@ repair has to decide what lives outside private storage, for example a workspace
 user picks through SAF, which survives an uninstall. A rootfs needs exec and symlinks, which
 shared storage does not give, so the Space itself is re-extracted either way.
 
+### GAP-177 — A question sent while the agent answers cuts the answer short
+
+The Chat's Send is enabled whenever the chat is open, and each tap calls `AgentChat.ask` at once
+(`extensions/ai/src/main/java/com/jupydroid/extensions/ai/ui/ChatPanel.kt`). Nothing tracks whether
+a reply is still arriving, so the panel neither queues nor says what a second question will do. The
+server does serialise: jupyter_ai_acp_client 0.3.3 (the version `tools/rootfs/requirements.lock`
+ships, and unchanged at `jupyter-ai-acp-client@77016f63`) holds a per-session `asyncio.Lock` in
+`default_acp_client.py`'s `prompt_and_reply`. But before it waits on that lock it sets
+`_cancel_requested` and calls `_cancel_pending_work`. That drops the rest of the reply in flight
+from the chat (`session_update` skips every event except tool-call ones while the flag is up), marks
+the reply's unfinished tool calls failed and rejects its pending permission requests. It sends no
+`session/cancel`, so the second question waits for the agent to finish a turn the chat no longer
+shows. This is read from the source and not yet measured on device. jupyter-chat at `2c224bc` does
+no better: its Send is disabled only by an empty input
+(`packages/jupyter-chat/src/components/input/buttons/send-button.tsx`), and its Stop, enabled while
+a bot writer is present, is a `TODO` (`stop-button.tsx`). VS Code is the reference that queues
+(`vscode@3f3380c6 src/vs/workbench/contrib/chat/browser/actions/chatQueueActions.ts`). While a request
+is in progress, Send becomes **Add to Queue** (sent after the current request completes) or **Steer
+with Message** (signals the current request to yield). `chat.requestQueuing.defaultAction` picks
+which one Enter does, and defaults to `steer`. Queued messages are drawn as pending rows with Edit,
+Remove, Send Immediately and Remove All Queued. The repair needs the panel to know a reply is in
+progress (the bot writer jupyter-chat already broadcasts), then to hold a question sent meanwhile as
+a visible pending row, and to send it when the reply ends.
+
+### GAP-178 — Settings is reached only from the Files view
+
+The app-wide Settings screen opens from one place, the explorer's own bar
+(`app/src/main/java/com/jupydroid/app/ui/explorer/ExplorerScreen.kt`'s `onOpenSettings`, which its
+KDoc calls Settings' "provisional home"). With Search, Running, Debugger, Source Control or the Chat
+on the side panel, or another destination picked from the one-pane bottom bar, Settings is not on
+screen, and the only way to it is back through Files. VS Code keeps **Manage** (the gear) in the
+global activity at the foot of the activity bar, below every view's icon, so it is there whatever
+view is open (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`,
+`GLOBAL_ACTIVITY_ID = 'workbench.actions.manage'` in `src/vs/workbench/common/activity.ts`). At two
+panes the repair is the same place at the foot of `SidePanelRail`. At one pane no reference has a
+phone layout, so where Settings goes (the bottom bar's area, a bottom sheet with the destinations
+it does not hold, or an overflow) is a choice to research from Material's guidance and measure on
+device, the way `JD-051` chooses the pattern for extension panels.
+
 ---
 
 ## 12. Glossary

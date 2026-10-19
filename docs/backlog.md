@@ -209,6 +209,7 @@ closing none of its siblings, is closed by
 | `JD-043` | **A document is deleted or duplicated from its tab:** a long press on a notebook's or a file's tab offers Duplicate, which copies it beside itself under the server's `-Copy` name, and Delete…, which asks, removes it and closes its tab, on top or beneath | shipped | — | `GAP-059` |
 | `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
 | `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | open | — | `GAP-081`, `GAP-082` |
+| `JD-061` | **Settings is reached from every view:** the gear sits at the foot of the side panel's rail, below every panel's icon, as VS Code's Manage does; at one pane it sits where the bottom bar's area puts destinations it does not hold, in a pattern researched from Material's guidance and measured on device | open | — | `GAP-178` |
 
 ### M7 — Extensions
 
@@ -226,6 +227,7 @@ module boundary with the smallest of the three.
 | `JD-052` | **One symbol row wherever text is typed:** the row of characters a touch keyboard lacks sits above the keyboard at the window's full width, for a cell, the file editor, the console, the terminal and the Chat input alike | open | — | — |
 | `JD-053` | **The Chat holds several chats:** the panel lists the workspace's `.chat` files, starts a new one under a name, switches between them and deletes one, as jupyter-ai's chat panel does | open | — | — |
 | `JD-049` | **The Chat shows an agent's tool calls, asks before one runs, and stops a reply:** each call is a row with its status, a call awaiting approval offers the agent's own options through jupyter-ai's ACP permission route, and Stop cancels the reply in progress | open | — | — |
+| `JD-060` | **A question asked while the agent answers waits its turn:** while a reply arrives, Send queues the question as a pending row that can be edited or removed, and it is sent when the reply ends, instead of cutting the reply short, as VS Code's Add to Queue does | open | — | `GAP-177` |
 | `JD-054` | **An agent's answer reads as markdown:** headings, lists and code blocks drawn as the notebook draws markdown, with a code block's copy and insert-into-cell actions | open | — | — |
 | `JD-055` | **An agent uses the MCP servers the user configures:** `.jupyter/mcp_settings.json` in the workspace is opened and edited from the Chat, and the agent's next session gets its servers | open | — | — |
 | `JD-056` | **The Chat picks the agent's model and mode, and offers its slash commands:** from the persona's own state, as jupyter-ai's pickers read it | open | — | — |
