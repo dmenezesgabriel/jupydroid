@@ -36,6 +36,9 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
    */
   internal val styles = RowStyles(columns)
 
+  /** This row's `OSC 8` links, internal for [styles]' reason; read through [TerminalGrid.hyperlinkAt]. */
+  internal val links = RowLinks(columns)
+
   init {
     clear(style)
   }
@@ -56,18 +59,21 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
   fun clear(style: CellStyle) {
     packed.blank()
     styles.fill(style)
+    links.clear()
     hasNonOneWidthOrSurrogateChars = false
   }
 
   /**
    * Write [codePoint] into [column], repairing whatever it displaces: the far half of a wide
-   * character on either side, and the columns a change of width shifts.
+   * character on either side, and the columns a change of width shifts. [link] is the `OSC 8` URI
+   * the cell is written under, `null` for none.
    */
-  fun setChar(column: Int, codePoint: Int, style: CellStyle) {
+  fun setChar(column: Int, codePoint: Int, style: CellStyle, link: String? = null) {
     require(column in 0 until columns) {
       "column out of range: column=$column, codePoint=$codePoint, expected 0 until $columns"
     }
     styles.set(column, style)
+    links.set(column, link)
     val width = CharacterWidth.of(codePoint)
     if (writeOnFastPath(column, codePoint, width)) return
     writeCodePoint(repairWideNeighbours(column, width, style), codePoint, width)
@@ -95,7 +101,7 @@ class TerminalRow(private val columns: Int, style: CellStyle) {
         column += lastAdvance
         lastAdvance = width
       }
-      setChar(column + destinationX - sourceX1, codePoint, source.styles.at(column))
+      setChar(column + destinationX - sourceX1, codePoint, source.styles.at(column), source.links.at(column))
     }
   }
 

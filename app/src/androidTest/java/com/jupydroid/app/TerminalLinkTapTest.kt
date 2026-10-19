@@ -26,7 +26,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * A tap on a web address the terminal printed asks "Open Link?" before anything leaves the app, as
+ * A tap on a web address the terminal printed, or on a word under an `OSC 8` link to one, asks
+ * "Open Link?" before anything leaves the app, as
  * JupyterLab's `activateLink` does (jupyterlab@7f0e6906 packages/terminal/src/widget.ts), and a tap
  * anywhere else asks nothing. Asked of the real screen, because the address pattern runs on ART's
  * ICU engine and the tap competes with the input field for the same press. The opener is
@@ -97,6 +98,18 @@ class TerminalLinkTapTest {
 
     assertEquals(null, viewModel.selector.selection.value)
     compose.onNodeWithText("Open Link?").assertDoesNotExist()
+  }
+
+  /** An `OSC 8` link opens its own address, which is nowhere on screen, after the same question. */
+  @Test
+  fun aTapOnAWordUnderAnOsc8LinkOpensItsAddress() {
+    showTheTerminal(text = "go \u001B]8;;https://jupyter.org/y\u0007docs\u001B]8;;\u0007")
+    compose.pressTerminalCell(cell, column = 4) { click(it) }
+
+    compose.onNodeWithText("Do you want to navigate to https://jupyter.org/y?", substring = true).assertIsDisplayed()
+    compose.onNodeWithText("Open").performClick()
+
+    assertEquals(listOf("https://jupyter.org/y"), opener.opened)
   }
 
   private fun showTheTerminal(text: String) {

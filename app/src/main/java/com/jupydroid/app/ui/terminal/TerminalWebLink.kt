@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.terminal
 
 import com.jupydroid.app.richtext.plainTextWebLinks
 import com.jupydroid.app.terminal.TerminalGrid
+import com.jupydroid.app.terminal.hyperlinkAt
 
 /**
  * Where the web address printed over ([column], [row]) goes, or `null` when the cell is in none -
@@ -26,6 +27,24 @@ fun TerminalGrid.webLinkAt(column: Int, row: Int): String? {
   val tapped = selectedText(0, first, column, row).length - 1
   return line.plainTextWebLinks().firstOrNull { tapped >= it.start && tapped < it.end }?.destination
 }
+
+/**
+ * What a tap on ([column], [row]) opens, after asking: the cell's own `OSC 8` link when it is a web
+ * one, otherwise the address printed over it ([webLinkAt]), otherwise `null`.
+ *
+ * An `OSC 8` URI is whatever the program wrote, so only `http` and `https` are followed, which is
+ * JupyterLab's `ALLOWED_LINK_SCHEMES` (jupyterlab@7f0e6906 packages/terminal/src/widget.ts). A link
+ * of another scheme is not offered, and the text under it is read as printed text instead.
+ *
+ * ```
+ * grid.linkToOpenAt(column = 0, row = 0)   // "https://a.b" over "docs" written under OSC 8
+ * ```
+ */
+fun TerminalGrid.linkToOpenAt(column: Int, row: Int): String? =
+  hyperlinkAt(column, row)?.takeIf { it.substringBefore(':').lowercase() in WEB_SCHEMES }
+    ?: webLinkAt(column, row)
+
+private val WEB_SCHEMES = setOf("http", "https")
 
 private fun TerminalGrid.firstRowOfLine(row: Int): Int {
   var first = row

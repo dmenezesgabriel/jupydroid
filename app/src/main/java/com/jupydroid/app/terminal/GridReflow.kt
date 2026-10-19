@@ -25,6 +25,7 @@ internal class GridReflow(private val oldRing: RowRing, private val grid: Termin
   private var newCursorColumn = -1
   private var cursorPlaced = false
   private var styleAtColumn = CellStyle(0L)
+  private var linkAtColumn: String? = null
 
   /**
    * Replay every old row and report where ([cursorRow], [cursorColumn]) landed - `(0, 0)` if the
@@ -80,10 +81,14 @@ internal class GridReflow(private val oldRing: RowRing, private val grid: Termin
     var charIndex = 0
     var oldColumn = 0
     styleAtColumn = CellStyle(0L)
+    linkAtColumn = null
     while (charIndex < end) {
       val codePoint = codePointAt(line.text, charIndex)
       val width = CharacterWidth.of(codePoint)
-      if (width > 0) styleAtColumn = line.styles.at(oldColumn)
+      if (width > 0) {
+        styleAtColumn = line.styles.at(oldColumn)
+        linkAtColumn = line.links.at(oldColumn)
+      }
       placeCodePoint(codePoint, width, style)
       charIndex += charCountAt(line.text, charIndex)
       if (width <= 0) continue
@@ -99,7 +104,7 @@ internal class GridReflow(private val oldRing: RowRing, private val grid: Termin
       advanceOutputRow(style)
     }
     val combiningOffset = if (width <= 0 && outputColumn > 0) 1 else 0
-    grid.setChar(outputColumn - combiningOffset, outputRow, codePoint, styleAtColumn)
+    grid.setChar(outputColumn - combiningOffset, outputRow, codePoint, styleAtColumn, linkAtColumn)
   }
 
   /**

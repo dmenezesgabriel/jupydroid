@@ -207,7 +207,7 @@ fun TerminalPaneScreen(
                 val selecting = viewModel.selector.selection.value != null
                 viewModel.selector.clear()
                 val cell = cellAt(point)
-                tappedLink = if (selecting) null else viewModel.emulator.screen.grid.webLinkAt(cell.column, cell.row)
+                tappedLink = if (selecting) null else viewModel.emulator.screen.grid.linkToOpenAt(cell.column, cell.row)
                 tappedLink != null
               },
             )

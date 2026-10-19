@@ -73,12 +73,13 @@ class TerminalGrid(columns: Int, totalRows: Int, screenRows: Int) {
    */
   fun rowAt(externalRow: Int): TerminalRow = ring.rowAt(externalRow)
 
-  fun setChar(column: Int, row: Int, codePoint: Int, style: CellStyle) {
+  /** [link] is the `OSC 8` URI the cell is written under - see [TerminalRow.setChar]. */
+  fun setChar(column: Int, row: Int, codePoint: Int, style: CellStyle, link: String? = null) {
     require(row in 0 until screenRows && column in 0 until columns) {
       "cell out of range: row=$row, column=$column, expected row 0 until $screenRows, " +
         "column 0 until $columns"
     }
-    ring.rowAt(row).setChar(column, codePoint, style)
+    ring.rowAt(row).setChar(column, codePoint, style, link)
   }
 
   fun styleAt(externalRow: Int, column: Int): CellStyle = ring.rowAt(externalRow).styles.at(column)

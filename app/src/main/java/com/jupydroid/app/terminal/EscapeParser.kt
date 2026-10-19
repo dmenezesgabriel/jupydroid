@@ -107,7 +107,7 @@ class EscapeParser(
   private val deviceControl: DeviceControlString,
 ) {
   private val parameters = EscapeParameters()
-  private val strings = OperatingSystemCommand(title, colorCommands, clipboardCommand)
+  private val strings = OperatingSystemCommand(title, colorCommands, clipboardCommand, HyperlinkCommand(screen))
   private val escapes = EscapeDispatch(screen, strings, deviceControl)
   private val cursors = CursorAddressing(screen)
   private val edits = ScreenEditing(screen)

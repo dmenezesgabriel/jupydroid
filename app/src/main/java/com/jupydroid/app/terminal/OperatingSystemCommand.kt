@@ -7,8 +7,8 @@ package com.jupydroid.app.terminal
  * Transcribed from `TerminalEmulator.doOsc`, `doOscEsc`, `collectOSCArgs` and the header parse of
  * `doOscSetTextParameters` (termux-app `3df69d1d`, Apache 2.0 - see [TerminalGrid]). **The window
  * title is the only number acted on here**; the colours are [ColorCommands]', the clipboard is
- * [ClipboardCommand]'s, and a number none of them claims is dropped - the same frame the CSI final
- * bytes have.
+ * [ClipboardCommand]'s, a hyperlink is [HyperlinkCommand]'s, and a number none of them claims is
+ * dropped - the same frame the CSI final bytes have.
  *
  * **Two terminators, and neither is a byte the emulator can dispatch blindly.** A `BEL` ends the
  * string here and rings the bell everywhere else, and an `ESC` is the first half of `ESC \` here
@@ -27,6 +27,7 @@ class OperatingSystemCommand(
   private val title: WindowTitle,
   private val colorCommands: ColorCommands,
   private val clipboardCommand: ClipboardCommand,
+  private val hyperlinkCommand: HyperlinkCommand,
 ) {
   private val argument = StringBuilder()
 
@@ -87,14 +88,15 @@ class OperatingSystemCommand(
   }
 
   /**
-   * The title's numbers, then the colours', then the clipboard's; a number none of them claims is
-   * logged upstream and lost.
+   * The title's numbers, then the colours', then the clipboard's and the hyperlink's; a number none
+   * of them claims is logged upstream and lost.
    */
   private fun apply(value: Int, textParameter: String, terminator: String) {
     when {
       value in SET_TITLE_CODES -> title.set(textParameter)
       colorCommands.apply(value, textParameter, terminator) -> Unit
       value == CLIPBOARD -> clipboardCommand.apply(textParameter)
+      value == HYPERLINK -> hyperlinkCommand.apply(textParameter)
       else -> Unit
     }
   }
@@ -133,5 +135,8 @@ class OperatingSystemCommand(
 
     /** `OSC 52`, Manipulate Selection Data. */
     const val CLIPBOARD = 52
+
+    /** `OSC 8`, a hyperlink, which upstream does not handle. */
+    const val HYPERLINK = 8
   }
 }

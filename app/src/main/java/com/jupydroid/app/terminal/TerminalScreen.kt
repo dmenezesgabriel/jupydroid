@@ -55,6 +55,9 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
   /** What a written cell is painted with. [GraphicRendition] - `ESC [ Pm m` - is what changes it. */
   var currentStyle: CellStyle = CellStyle.NORMAL
 
+  /** The URI a written cell is linked to, or `null`. [HyperlinkCommand] - `OSC 8` - is what changes it. */
+  var currentLink: String? = null
+
   /**
    * What REP (`CSI Pn b`) repeats: the code point [writeCodePoint] was last given, **before** the
    * graphic set substituted for it, so a repeat under a different set draws what that set says.
@@ -196,6 +199,7 @@ class TerminalScreen(var columns: Int, var rows: Int, totalRows: Int, val colors
     modes.reset()
     insertMode = false
     currentStyle = CellStyle.NORMAL
+    currentLink = null
     buffers.forgetSavedCursors()
     colors.reset()
   }

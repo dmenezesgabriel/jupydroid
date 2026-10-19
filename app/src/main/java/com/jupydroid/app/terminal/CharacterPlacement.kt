@@ -26,7 +26,7 @@ class CharacterPlacement(private val screen: TerminalScreen) {
     val width = CharacterWidth.of(drawn)
     if (!wrapBeforeWriting(width)) return
     makeRoomForInsert(width)
-    screen.grid.setChar(columnToWrite(width), cursor.row, drawn, screen.currentStyle)
+    screen.grid.setChar(columnToWrite(width), cursor.row, drawn, screen.currentStyle, screen.currentLink)
     if (screen.autoWrap && width > 0) cursor.aboutToAutoWrap = cursor.column == cursor.rightMargin - width
     cursor.column = minOf(cursor.column + width, cursor.rightMargin - 1)
   }
