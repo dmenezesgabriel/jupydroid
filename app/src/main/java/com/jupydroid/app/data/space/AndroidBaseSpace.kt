@@ -70,9 +70,10 @@ fun spaceServerLauncher(
  * fakes than by controls that always fail.
  *
  * **One per process, and base's entry shared by every client of base**, because
- * `JupyterServerLauncher.start` begins with `stop()` - see [SpaceServer]. Only base installs on
- * first use: any other Space had the image copied into it when it was created
- * (`DiskSpaceRepository`). [watchScope] is where each server's exit is waited on, so it must
+ * `JupyterServerLauncher.start` begins with `stop()` - see [SpaceServer]. base installs on first
+ * use; any other Space had the image copied into it when it was created (`DiskSpaceRepository`),
+ * and gets it again only if it has none, as a restore leaves it
+ * ([SpaceImageInstaller.extractIfAbsent]). [watchScope] is where each server's exit is waited on, so it must
  * outlive every screen. Each start reads the Space's settings from [spaceRepository] - the same
  * record the home's Settings writes - so what was saved is what the next start honours - and its
  * default kernel from [kernelSpecsOnDisk], the catalogue a stopped Space's picker reads.
@@ -87,7 +88,7 @@ fun spaceServers(
   return JupyterSpaceServers { id, reportRunning ->
     SpaceServer(
       space = spaceWithId(id),
-      installSpace = if (id == BASE_SPACE.id) ({ baseSpaceInstaller(context).installIfNeeded() }) else ({}),
+      installSpace = installOnStartOf(context, id),
       launcher = spaceServerLauncher(
         context,
         settingsFor = { space -> spaceRepository.storedSettingsOf(space) },
