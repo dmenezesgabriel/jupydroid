@@ -1,0 +1,62 @@
+appId: com.jupydroid.app
+---
+# The console's prompt publishes the symbol row to the window (`SymbolRowWhileTyping`).
+#
+# Seeded by scripts/window-key-row-driver.sh. The entry is typed as "print", the row's "(" (which
+# closes its pair and leaves the caret inside), then "6 * 7": without the row's bracket the entry
+# prints nothing. 42 is computed by the kernel, so FakeKernelGateway, which echoes the source,
+# cannot pass this. The prompt is tapped again at the end, so the driver reads the row's bounds
+# with the keyboard up.
+#
+# TABLET ONLY (SM-X216B): the flow runs an entry on the kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Symbol Row.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Symbol Row.ipynb"
+- extendedWaitUntil:
+    visible: ".*def area.*"
+    timeout: 30000
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- assertNotVisible:
+    id: "symbol_row"
+- tapOn:
+    id: "console-input-field"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "symbol_row"
+- inputText: "print"
+- tapOn:
+    text: "\\("
+    childOf:
+      id: "symbol_row"
+- inputText: "6 * 7"
+- takeScreenshot: 01-console-row
+- tapOn: "Run"
+# The soft keyboard covers the transcript's newest entry, so it goes before the wait looks for it.
+- hideKeyboard
+# Generous: the first entry starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 02-the-entry-ran
+- tapOn:
+    id: "console-input-field"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "symbol_row"
+- takeScreenshot: 03-console-row-again

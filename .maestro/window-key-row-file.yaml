@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# A .py file's symbol row is the window's, as a cell's is (`SymbolRowWhileTyping`).
+#
+# Seeded by scripts/window-key-row-driver.sh, which runs this beside two panes and at one, reads
+# the row's bounds against the window's after each run, and reads the file back to check that the
+# row's ":" and Tab reached it. The file holds only "def area": a tap below its one line puts the
+# caret at the end.
+#
+# Both keys are matched inside `id: "symbol_row"`: Gboard's own Tab key carries the same text
+# (`SYMBOL_ROW_TAG`'s KDoc in `SymbolRow.kt`), and in portrait a bare ":" tapped Gboard's "v", whose
+# hint is ":", so the file read "def areav".
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "window_key_row.py"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "window_key_row.py"
+- extendedWaitUntil:
+    visible: ".*def area.*"
+    timeout: 30000
+- assertNotVisible:
+    id: "symbol_row"
+- tapOn: ".*def area.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "symbol_row"
+- takeScreenshot: 01-file-row
+- tapOn:
+    text: ":"
+    childOf:
+      id: "symbol_row"
+- tapOn:
+    text: "Tab"
+    childOf:
+      id: "symbol_row"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-typed-into-the-file
