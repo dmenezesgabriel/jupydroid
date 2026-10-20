@@ -1,6 +1,6 @@
 # ADR-0105 — An extension contributes a side panel, and the host frames it
 
-Status: accepted
+Status: accepted; its one-pane line is superseded by [ADR-0109](0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)
 Date: 2026-10-17
 
 ## Context
@@ -70,7 +70,8 @@ the server extensions a panel calls.**
 - `SourceControlPanel` reads the status in a `LaunchedEffect` keyed on the path. Leaving the panel
   drops it from the composition, so opening it again reads again
   (`extensions/git/src/main/java/com/jupydroid/extensions/git/ui/SourceControlPanel.kt`).
-- At one pane a contributed panel narrows to Files (`ShownPanel.showingAtOnePane`).
+- At one pane a contributed panel narrows to Files (`ShownPanel.showingAtOnePane`). Superseded:
+  at one pane it is a row of the modal rail the bottom bar's More opens, and stays shown ([ADR-0109](0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)).
 - `git` comes from `apk add git` in the base image, so it works offline and the image build gates it.
   `jupyter server extension disable --sys-prefix nbdime` rewrites the wheel's own `nbdime.json`
   to `"nbdime": false` (`tools/rootfs/Dockerfile`). After that change the warm server boot median went
@@ -84,7 +85,8 @@ the server extensions a panel calls.**
 - A panel left open does not notice a change made in the terminal. Reopening it is the refresh. A
   watcher or a poll comes back once a panel can act on what it shows, for example by staging a file.
 - At one pane, Source Control can only be reached once the window is wide enough for the rail. A
-  sixth bottom-bar item would break Material's ceiling.
+  sixth bottom-bar item would break Material's ceiling. Superseded: More's modal rail reaches it
+  ([ADR-0109](0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)).
 - A future extension that needs nbdime's own web handlers turns them back on, and pays the 587 ms
   measured here. Do not "fix" the disabled `nbdime.json` without that need.
 - The panel is read-only. Staging, commits, branches and diffs each come in later, built on the

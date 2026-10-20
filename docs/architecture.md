@@ -1837,6 +1837,17 @@ keeps its process out of the cached state a freezer acts on. The repair starts b
 foreground service, held while a terminal or a kernel is running, keeps a Space's sockets alive
 behind the browser on this tablet, and revisiting ADR-0075 on what that measures.
 
+### GAP-180 — Turning to two panes focuses the side panel's text field and raises the keyboard
+
+On SM-X216B, with Search or Chat filling the pane in portrait and nothing focused, a turn to landscape
+ends with that panel's `EditText` focused and `dumpsys input_method` reading `mInputShown=true`. Search's
+field is at the panel's top, so the keyboard only covers the main area. Chat's input is at the panel's
+foot, under the keyboard, with "Ask the agent" still at y 636–663 dp in the window's hierarchy. A panel
+chosen beside two panes, with the Launcher tab showing at one, comes back unfocused. So the focus
+comes from the one-pane composition being rebuilt as the two-pane one, not from the rail or More. No
+reference was compared yet. The repair starts by finding which node asks for focus as the side pane
+recomposes.
+
 ---
 
 ## 12. Glossary

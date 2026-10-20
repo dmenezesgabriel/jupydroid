@@ -89,6 +89,25 @@ point either reference draws (`SidePanelBar`'s KDoc). It is also on the Launcher
 so it keeps a second reach. It keeps its name, so `tapOn: "New terminal"` still finds it once the rail
 is open.
 
+**Every contributed panel is a row, between New terminal and Settings**, in the order `railOrder`
+gives them. Picking one closes the rail and fills the pane with that panel, and `showingAtOnePane`
+keeps it shown; only the table of contents, the debugger and a collapsed area still narrow to Files.
+Back from it selects Files, as from Search. While it shows, its row is the selected one and none of
+the bar's five items is. That is how VS Code marks the active container in its overflow menu: the
+"Additional Views" action radio-checks it
+(`vscode@3f3380c6 src/vs/workbench/browser/parts/compositeBarActions.ts`,
+`CompositeOverflowActivityActionViewItem.getActions`). VS Code also swaps the active container back
+into its bar, popping the one before it (`compositeBar.ts`, "We always try show the active
+composite"). Ours does not, because the bar's five are fixed. Of the other references, JupyterLab,
+`vscode-jupyter` and IntelliJ have no one-pane form, and Termux and Winlator put every destination
+in a drawer, which the table above rejects.
+
+With a contributed panel showing and More open over it, its name is on screen twice to Compose, whose
+lookup walks every root: the panel's title in the main window and the row in the rail's dialog. On
+SM-X216B in portrait the title sits at x 24–246 px, under the rail's 330 px, and `uiautomator dump`
+reports one node, the row. What a flow and the eye address stays unique (ADR-0055). A Compose test
+that reads names with the rail open scopes its lookup to the rail.
+
 **The rail opens from a tap only.** `ModalWideNavigationRail` has no edge-swipe to open it, so it does
 not compete with the system Back edge on a phone with gesture navigation. SM-X216B uses three-button
 navigation, so that conflict was not exercised there.
@@ -97,8 +116,8 @@ navigation, so that conflict was not exercised there.
 
 - One-pane flows that tap the bar's "New terminal" tap "More" first. Beside two panes,
   "New terminal" is the Launcher's card and is unchanged.
-- The extension work reuses this: a contributed panel at one pane is a row in the modal rail, and the
-  fallback to Files in `showingAtOnePane` narrows to panels nobody can reach.
+- A contributed panel at one pane is a row in the modal rail, and the fallback to Files in
+  `showingAtOnePane` narrows to panels nobody can reach. A later extension's panel needs no change here.
 - The bar's five items are the permanent ceiling. Anything new at one pane goes in the modal rail.
 - Not done: a search over the settings, or JupyterLab's JSON settings editor
   (`settingeditor:open-json`).

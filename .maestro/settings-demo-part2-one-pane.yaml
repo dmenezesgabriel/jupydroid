@@ -16,7 +16,12 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "More"
     timeout: 10000
-# Chat has no one-pane home yet, so the panel narrows to Files (`showingAtOnePane`).
+# Chat stays showing at one pane (`showingAtOnePane`, ADR-0109), so Files on the bar goes back to the
+# browser.
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 5000
+- tapOn: "Files"
 - extendedWaitUntil:
     visible: "Workspace"
     timeout: 5000
