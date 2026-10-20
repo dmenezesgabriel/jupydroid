@@ -1,0 +1,20 @@
+appId: com.jupydroid.app
+---
+# Goes on from window-key-row-demo-cell-type.yaml: runs the cell the row typed into.
+#
+# The cell reads `def area:    `, which Python refuses, so the kernel answers with a SyntaxError.
+# That word is in no cell's source, so FakeKernelGateway, which echoes the source, cannot pass
+# this: the run proves the row's `:` reached a real kernel. `.*SyntaxError.*` and not
+# `SyntaxError`, because a traceback is one node (`p1d-part3-a-fresh-kernel-forgot.yaml`).
+#
+# TABLET ONLY (SM-X216B): the cell runs on the kernel.
+- tapOn: "Run cell"
+# The soft keyboard covers the output, so it goes before the wait looks for it.
+- hideKeyboard
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: ".*SyntaxError.*"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 03-the-cell-ran

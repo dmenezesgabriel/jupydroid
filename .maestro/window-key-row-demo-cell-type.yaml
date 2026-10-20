@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# With a notebook's `def area` cell on screen, takes the caret and types `:` and Tab from the
+# window's symbol row (`WindowKeyRowSlot`). Stops with the keyboard up, so
+# scripts/window-key-row-driver.sh reads the row's bounds against the window's and the saved
+# notebook before window-key-row-demo-cell-run.yaml runs the cell.
+#
+# Both keys are matched inside `id: "symbol_row"`: Gboard's own Tab key carries the same text
+# (`SYMBOL_ROW_TAG`'s KDoc in `SymbolRow.kt`), and in portrait a bare ":" tapped Gboard's "v".
+# Run by the driver on its own after the turn, and called by the demo's other parts with `runFlow`.
+- tapOn: ".*def area.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "symbol_row"
+- takeScreenshot: 01-the-row-over-the-keyboard
+- tapOn:
+    text: ":"
+    childOf:
+      id: "symbol_row"
+- tapOn:
+    text: "Tab"
+    childOf:
+      id: "symbol_row"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-typed-from-the-row

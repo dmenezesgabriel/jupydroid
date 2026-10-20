@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# After a kill and a relaunch, upright: a cell's symbol row is still the window's. A third notebook
+# no run has touched, so the SyntaxError the next run waits for is that run's. Driven by
+# scripts/window-key-row-driver.sh `demo`, which records the new pid.
+- launchApp:
+    stopApp: true
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow:
+    file: window-key-row-demo-open.yaml
+    env:
+      NOTEBOOK: "Symbol Row Relaunched.ipynb"
+- runFlow: window-key-row-demo-cell-type.yaml

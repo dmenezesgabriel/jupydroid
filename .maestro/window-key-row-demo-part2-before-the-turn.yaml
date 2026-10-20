@@ -1,0 +1,14 @@
+appId: com.jupydroid.app
+---
+# Opens a notebook no run has touched, held landscape, so that after the turn the driver's
+# window-key-row-demo-cell-type.yaml types into a cell with no output yet: a SyntaxError on screen
+# after that run can only be that run's. Driven by scripts/window-key-row-driver.sh `demo`.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow:
+    file: window-key-row-demo-open.yaml
+    env:
+      NOTEBOOK: "Symbol Row Upright.ipynb"
+- takeScreenshot: 01-before-the-turn

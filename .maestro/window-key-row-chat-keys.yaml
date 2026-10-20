@@ -16,4 +16,10 @@ appId: com.jupydroid.app
     text: "Tab"
     childOf:
       id: "chat_key_row"
+# Nor the kernel-history pair, drawn as "Hist ↑" and described as "Previous kernel history entry"
+# (`SymbolRow.kt`): a question has no history. Both names are matched, as Maestro reads either.
+- assertNotVisible:
+    text: "Hist.*|.*kernel history entry"
+    childOf:
+      id: "chat_key_row"
 - takeScreenshot: 03-typed-from-the-row

@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# The key-row demo's first part: from a fresh launch, a cell's symbol row, held landscape.
+# Driven by scripts/window-key-row-driver.sh `demo`, which seeds the notebook.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow:
+    file: window-key-row-demo-open.yaml
+    env:
+      NOTEBOOK: "Symbol Row.ipynb"
+- runFlow: window-key-row-demo-cell-type.yaml

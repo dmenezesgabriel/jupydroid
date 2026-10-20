@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# Opens ${NOTEBOOK} from the workspace's file list and waits for its one cell, `def area`.
+#
+# **Not a flow.** The window-key-row-demo parts call it with `runFlow` and an `env`, so the step
+# from the list into a notebook is written once. At one pane an open tab is shown first, as a
+# document, and the list sits behind "Back to files".
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+- scrollUntilVisible:
+    element:
+      text: "${NOTEBOOK}"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "${NOTEBOOK}"
+- extendedWaitUntil:
+    visible: ".*def area.*"
+    timeout: 30000
