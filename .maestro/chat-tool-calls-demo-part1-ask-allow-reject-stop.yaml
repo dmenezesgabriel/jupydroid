@@ -1,0 +1,91 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-tool-calls-demo-driver.sh runs, landscape, two panes, in
+# base with opencode installed and signed in by a person, on a workspace holding only probe.txt.
+#
+# One chat, four questions. opencode's read tool runs unasked, and its bash tool asks first (the
+# persona's config: only `edit` and `bash` ask), so the panel shows a ✓ row for the read; offers the
+# agent's own options for the first command, Allow once runs it; Reject leaves a ✗ on the second;
+# and Stop beside Send cuts a count to 1000 short. The waits are the row, approval and stop flows'.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- assertNotVisible: "Stop"
+
+- tapOn: "Ask the agent"
+- inputText: "Use your read tool on probe.txt, then answer with only the word in it."
+- hideKeyboard
+- tapOn: "Send"
+# probe.txt holds one word the question does not, so only the answer can match it. The first
+# message spawns `opencode acp` under proot and the model answers over the network.
+- extendedWaitUntil:
+    visible: "(?i)\\W*kumquat\\W*"
+    timeout: 300000
+# The title is the server's, with no leading slash, so the question's "probe.txt" does not match it.
+- assertVisible: "home/jupydroid/probe.txt"
+- assertVisible: "✓"
+- takeScreenshot: 01-the-read-call-is-a-row-between-question-and-answer
+
+# `permission-42` is text only the command's output holds, where the question's own
+# `permission-$((6*7))` would match a word written into it.
+- tapOn: "Ask the agent"
+- inputText: "Run echo permission-$((6*7)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- assertVisible: "Always allow"
+- assertVisible: "Reject"
+- takeScreenshot: 02-the-call-asks-with-the-agents-options
+- tapOn: "Allow once"
+- extendedWaitUntil:
+    visible: "(?i)\\W*permission-42\\W*"
+    timeout: 300000
+- assertVisible: "- Allow once"
+- assertNotVisible: ".*Allow\\?"
+- takeScreenshot: 03-allowed-once-it-ran-and-answered
+
+- tapOn: "Ask the agent"
+- inputText: "Run echo second-$((6*7)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn: "Reject"
+- extendedWaitUntil:
+    visible: "- Reject"
+    timeout: 60000
+- assertVisible: "✗"
+- assertNotVisible: ".*Allow\\?"
+- assertNotVisible: "(?i)\\W*second-42\\W*"
+- takeScreenshot: 04-rejected-it-is-a-cross
+
+- tapOn: "Ask the agent"
+# 1000, not 300: the model wrote all 300 in 15.6 s, and while an answer streams Maestro takes 9-15 s
+# to match its text and as long again to tap, so a tap on Stop after 300 lands once Stop has gone.
+- inputText: "Count from 1 to 1000, one number a line, with nothing else."
+- hideKeyboard
+- tapOn: "Send"
+# The answer is one text, matched whole, so it matches once its lines run from 1 to 20. Unanchored,
+# `20` matched the status bar's clock at 20:20, and Stop was tapped before any answer had arrived.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s[\\s\\S]*\\b20\\b[\\s\\S]*"
+    timeout: 300000
+- assertVisible: "Stop"
+- takeScreenshot: 05-stop-beside-send-while-the-answer-arrives
+- tapOn: "Stop"
+- extendedWaitUntil:
+    notVisible: "Stop"
+    timeout: 30000
+- takeScreenshot: 06-stopped-the-answer-ends-short-and-stop-is-gone

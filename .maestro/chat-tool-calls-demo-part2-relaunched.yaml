@@ -1,0 +1,53 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-tool-calls-demo-driver.sh runs, after part 1 left
+# `untitled` with three calls and a stopped count.
+#
+# launchApp stops the process, so the panel opens on the list, and `untitled` is read back from its
+# file. The calls are in its messages' metadata, so each row comes back with its last status. The
+# panel opens on the stopped count, and is scrolled up from it past each row in turn.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s[\\s\\S]*"
+    timeout: 30000
+- assertNotVisible: "[\\s\\S]*\\b1000\\b[\\s\\S]*"
+- assertNotVisible: "Stop"
+- takeScreenshot: 07-relaunched-the-count-still-stopped
+# Swiped inside the panel, at a fifth of the width: `scrollUntilVisible` swipes the middle of the
+# screen, which in landscape is the editor pane beside it. Slow swipes, so no fling carries a row
+# past between two looks; the stopped count is some hundreds of lines tall.
+- repeat:
+    times: 40
+    while:
+      notVisible: "- Reject"
+    commands:
+      - swipe:
+          start: 20%, 30%
+          end: 20%, 75%
+          duration: 600
+      - waitForAnimationToEnd:
+          timeout: 2000
+- assertVisible: "✗"
+- takeScreenshot: 08-the-rejected-row-still-a-cross
+- repeat:
+    times: 5
+    while:
+      notVisible: "home/jupydroid/probe.txt"
+    commands:
+      - swipe:
+          start: 20%, 30%
+          end: 20%, 75%
+          duration: 600
+      - waitForAnimationToEnd:
+          timeout: 2000
+- assertVisible: "- Allow once"
+- assertVisible: "✓"
+- takeScreenshot: 09-the-read-and-allowed-rows-still-checks
