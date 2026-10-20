@@ -117,3 +117,10 @@ jupyter-ai's ACP chain and nothing else of jupyter-ai.**
   is idle to the server, and the server stops under it.
 - The panel draws the persona's message body as the server stored it. An agent that sends its
   reasoning as answer text has it drawn, as jupyter-chat would.
+
+## Amendment — 2026-10-20
+
+Amended by [ADR-0111](0111-a-chat-is-a-chat-file-at-the-workspace-root-managed-through-the-contents-api.md).
+The "Which chat" row chose one chat, `untitled.chat`. The panel now lists every `.chat` file at the
+workspace root and creates, renames and deletes them through jupyter_server's Contents API. The
+persona a message addresses is unchanged.
