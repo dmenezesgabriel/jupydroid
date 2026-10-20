@@ -52,16 +52,6 @@ sleep "$SETTLE_SECONDS"
 read_chat "$EVIDENCE/untitled-later.chat"
 pull_server_log "$EVIDENCE/jupyter_server.log"
 
-python3 - "$EVIDENCE/untitled.chat" "$EVIDENCE/untitled-later.chat" <<'PY'
-import json, re, sys
-def answer(path):
-    messages = json.load(open(path))["messages"]
-    return [m for m in messages if m["sender"].startswith("jupyter-ai-personas::")][-1]["body"]
-first, later = answer(sys.argv[1]), answer(sys.argv[2])
-numbers = [int(n) for n in re.findall(r"\d+", first)]
-print(f"untitled.chat: the answer holds {len(numbers)} numbers, the last {numbers[-1] if numbers else None}")
-assert first == later, f"the answer grew after Stop: {len(first)} then {len(later)} characters"
-assert numbers and max(numbers) < 1000, f"the answer reached {max(numbers, default=None)}"
-PY
+python3 "$ROOT/scripts/chat_tool_call_reads.py" stopped-short "$EVIDENCE/untitled.chat" "$EVIDENCE/untitled-later.chat"
 # A tap that misses Stop leaves the reply to end by itself and no cancel in the log.
 grep "200 POST /api/ai/personas/cancel" "$EVIDENCE/jupyter_server.log" || fail "the server took no cancel"

@@ -41,11 +41,4 @@ run_flow "$ROOT/.maestro/chat-tool-calls-row.yaml" "$EVIDENCE"
 
 wait_for_workspace_text untitled.chat "kumquat" 60
 "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/untitled.chat\"" | tr -d '\r' >"$EVIDENCE/untitled.chat"
-python3 - "$EVIDENCE/untitled.chat" <<'PY'
-import json, sys
-messages = json.load(open(sys.argv[1]))["messages"]
-calls = [c for m in messages for c in m.get("metadata", {}).get("tool_calls", [])]
-done = [c for c in calls if c.get("status") == "completed"]
-assert done, f"no completed tool call in the chat, so the row shows nothing the agent did: {calls}"
-print("untitled.chat: " + ", ".join(f"{c.get('kind')} '{c['title']}' {c['status']}" for c in calls))
-PY
+python3 "$ROOT/scripts/chat_tool_call_reads.py" completed-call "$EVIDENCE/untitled.chat"

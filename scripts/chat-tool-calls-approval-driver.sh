@@ -52,22 +52,7 @@ pull_server_log "$EVIDENCE/jupyter_server.log"
 "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/untitled.chat\"" | tr -d '\r' >"$EVIDENCE/untitled.chat"
 [ "$status" -eq 0 ] || fail "a flow failed ($status)"
 
-python3 - "$EVIDENCE/untitled.chat" <<'PY'
-import json, sys
-messages = json.load(open(sys.argv[1]))["messages"]
-calls = [c for m in messages for c in m.get("metadata", {}).get("tool_calls", [])]
-def chosen(call):
-    return next((o for o in call.get("permission_options", []) if o["option_id"] == call.get("selected_option_id")), None)
-def printed(call):
-    return json.dumps(call.get("raw_output", ""))
-for c in calls:
-    options = [(o["option_id"], o["name"], o["kind"]) for o in c.get("permission_options", [])]
-    print(f"untitled.chat: '{c['title']}' {c.get('status')} {c.get('permission_status')} chose {c.get('selected_option_id')} of {options}")
-allowed = [c for c in calls if (chosen(c) or {}).get("kind", "").startswith("allow")]
-rejected = [c for c in calls if "reject" in (chosen(c) or {}).get("kind", "")]
-assert any(c.get("status") == "completed" and "permission-42" in printed(c) for c in allowed), \
-    f"no allowed call printed permission-42: {allowed}"
-assert rejected and all("second-42" not in printed(c) for c in rejected), f"no rejected call, or it ran: {rejected}"
-PY
+python3 "$ROOT/scripts/chat_tool_call_reads.py" allowed-and-rejected "$EVIDENCE/untitled.chat" \
+  permission-42 second-42
 echo "jupyter_server.log: $(grep -c 'request_permission: CALLED' "$EVIDENCE/jupyter_server.log" || true) permission requests," \
   "$(grep -c 'Connection closed' "$EVIDENCE/jupyter_server.log" || true) 'Connection closed'"
