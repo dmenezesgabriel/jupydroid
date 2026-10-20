@@ -35,6 +35,7 @@ import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.ai.AiExtension
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
+import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
@@ -55,9 +56,8 @@ import org.junit.runner.RunWith
 class ChatSidePanelTest {
   @get:Rule val compose = createComposeRule()
 
-  private val chat = AiExtension(
-    chatFor = { FakeAgentChat(replies = mapOf("What is a Space?" to "A Linux userland the app runs.")) },
-  ).sidePanels.single()
+  private val chat =
+    openOnUntitled(FakeAgentChat(replies = mapOf("What is a Space?" to "A Linux userland the app runs.")))
 
   @Test
   fun theHostTitlesThePanelChat() {
@@ -215,12 +215,13 @@ class ChatSidePanelTest {
     .config[SemanticsProperties.VerticalScrollAxisRange]
 
   private fun show(answering: AgentChat? = null) {
-    val panel = answering?.let { fake -> AiExtension(chatFor = { fake }).sidePanels.single() } ?: chat
+    val panel = answering?.let(::openOnUntitled) ?: chat
     compose.setContent {
       JupyterDroidTheme {
         ContributedSidePanel(contribution = panel, host = SidePanelHost(browsedDirectory = "", server = null))
       }
     }
+    openUntitled()
   }
 
   /** The panel at a side pane's width beside a wider one, under the window's key row as the app draws it. */
@@ -238,6 +239,18 @@ class ChatSidePanelTest {
         }
       }
     }
+    openUntitled()
+  }
+
+  /** A workspace whose one chat is `untitled.chat`, answered by [answering]. */
+  private fun openOnUntitled(answering: AgentChat) = AiExtension(
+    chatFor = { _, _ -> answering },
+    chatFilesFor = { FakeChatFiles(listOf("untitled.chat")) },
+  ).sidePanels.single()
+
+  /** The panel opens on its list of chats; every test here is about the chat once it is open. */
+  private fun openUntitled() {
+    compose.onNodeWithText("untitled").performClick()
   }
 
   /** A key on Chat's row, and not one with the same text elsewhere. */

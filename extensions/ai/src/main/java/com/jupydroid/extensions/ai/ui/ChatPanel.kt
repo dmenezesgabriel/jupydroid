@@ -54,7 +54,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 
 /**
- * The Chat panel's body: the chat's messages, oldest first, over a field to ask the agent in. The
+ * An open chat: its messages, oldest first, over a field to ask the agent in. The
  * host draws the title bar, the surface and the inset around it.
  *
  * **Open while the panel is shown**: leaving the panel drops it from the composition, which stops
