@@ -8,20 +8,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +38,7 @@ import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
 import com.jupydroid.extensions.ai.domain.byName
+import kotlinx.coroutines.launch
 
 /** Where reading the workspace's chats stands. */
 private sealed interface ChatListing {
@@ -46,7 +52,7 @@ private sealed interface ChatListing {
 /**
  * What the panel shows with no chat open: every chat by name, after jupyter-chat's own words
  * (jupyter-chat@2c224bc `packages/jupyter-chat/src/widgets/placeholder.tsx`), or its "No chat opened"
- * when there is none.
+ * when there is none, under jupyter-chat's New chat, which makes an untitled chat and opens it.
  *
  * jupyter-chat draws each name as a bare link-styled button (`style/placeholder.css`); here each is a
  * row, as VS Code draws its sessions (vscode@3f3380c
@@ -66,14 +72,38 @@ internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Mo
       ChatListing.Failed(failure.message.orEmpty())
     }
   }
+  val scope = rememberCoroutineScope()
+  val onNew: () -> Unit = {
+    scope.launch {
+      try {
+        onOpen(files.create())
+      } catch (failure: ChatFilesException) {
+        listing = ChatListing.Failed(failure.message.orEmpty())
+      }
+    }
+  }
   Column(modifier = modifier.fillMaxSize().testTag("chat-list")) {
     when (val shown = listing) {
       ChatListing.Pending -> Unit
       is ChatListing.Failed -> Text(shown.message, color = MaterialTheme.colorScheme.error)
-      is ChatListing.Listed if shown.chats.isEmpty() ->
+      is ChatListing.Listed if shown.chats.isEmpty() -> {
         Text("No chat opened", style = MaterialTheme.typography.titleMedium)
-      is ChatListing.Listed -> ChatRows(shown.chats, onOpen)
+        NewChatButton(onNew)
+      }
+      is ChatListing.Listed -> {
+        NewChatButton(onNew)
+        ChatRows(shown.chats, onOpen)
+      }
     }
+  }
+}
+
+/** jupyter-chat's New chat, its `addIcon` before the label (jupyter-chat@2c224bc `placeholder.tsx`). */
+@Composable
+private fun NewChatButton(onClick: () -> Unit) {
+  OutlinedButton(onClick = onClick, modifier = Modifier.padding(vertical = 8.dp)) {
+    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+    Text("New chat", modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
   }
 }
 

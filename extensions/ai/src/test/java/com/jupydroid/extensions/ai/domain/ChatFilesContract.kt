@@ -2,6 +2,8 @@ package com.jupydroid.extensions.ai.domain
 
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** What every [ChatFiles] must do, whoever implements it. */
@@ -19,5 +21,25 @@ abstract class ChatFilesContract {
   @Test
   fun aRootWithNoChatListsNone() = runBlocking {
     assertEquals(emptyList<ChatFile>(), chatFiles().list())
+  }
+
+  @Test
+  fun aNewChatIsAChatFileAtTheRootThatTheListThenHolds() = runBlocking {
+    val files = chatFiles(listOf("notes.chat"))
+
+    val created = files.create()
+
+    assertTrue(created.path, created.path.endsWith(ChatFile.CHAT_EXTENSION) && '/' !in created.path)
+    assertEquals(setOf("notes.chat", created.path), files.list().map(ChatFile::path).toSet())
+  }
+
+  @Test
+  fun twoNewChatsAreTwoFilesNeitherOfThemOneTheRootHeld() = runBlocking {
+    val files = chatFiles(listOf("untitled.chat"))
+
+    val created = listOf(files.create().path, files.create().path)
+
+    assertEquals(2, created.toSet().size)
+    assertFalse(created.toString(), "untitled.chat" in created)
   }
 }

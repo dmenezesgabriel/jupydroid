@@ -113,6 +113,52 @@ class ChatListSidePanelTest {
     compose.onNodeWithText("in notes.chat").assertIsDisplayed()
   }
 
+  /**
+   * jupyter-chat's placeholder offers New chat under "No chat opened" (`placeholder.tsx`). What a
+   * finger can press is measured, not what is drawn: Material draws a button 40 dp tall and widens
+   * its touch bounds to 48 dp.
+   */
+  @Test
+  fun anEmptyWorkspaceOffersNewChatAtLeastATouchTargetTall() {
+    show(panel())
+
+    compose.onNodeWithText("No chat opened").assertIsDisplayed()
+    val pressable = compose.onNodeWithText("New chat").assertIsDisplayed().fetchSemanticsNode().touchBoundsInRoot
+    with(compose.density) { assertTrue("${pressable.height.toDp()}", pressable.height.toDp() >= 48.dp) }
+  }
+
+  @Test
+  fun newChatOpensTheChatItCreated() {
+    show(panel())
+
+    compose.onNodeWithText("New chat").performClick()
+
+    compose.onNodeWithText("in untitled.chat").assertIsDisplayed()
+    compose.onNodeWithText("untitled").assertIsDisplayed()
+  }
+
+  @Test
+  fun backFromANewChatListsItBesideTheOthers() {
+    show(panel("notes.chat"))
+    compose.onNodeWithText("New chat").performClick()
+
+    compose.onNodeWithContentDescription("All chats").performClick()
+
+    compose.onNodeWithText("untitled").assertIsDisplayed()
+    compose.onNodeWithText("notes").assertIsDisplayed()
+  }
+
+  @Test
+  fun aSecondNewChatIsAnotherUntitledChat() {
+    show(panel())
+    compose.onNodeWithText("New chat").performClick()
+    compose.onNodeWithContentDescription("All chats").performClick()
+
+    compose.onNodeWithText("New chat").performClick()
+
+    compose.onNodeWithText("in untitled1.chat").assertIsDisplayed()
+  }
+
   private fun show(panel: SidePanelContribution, shown: () -> Boolean = { true }) {
     compose.setContent {
       JupyterDroidTheme {

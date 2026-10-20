@@ -9,6 +9,7 @@ package com.jupydroid.extensions.ai.domain
  *
  * ```
  * chatFiles.list().byName().map { it.name } // ["notes", "untitled"]
+ * chatFiles.create().path // "untitled1.chat"
  * ```
  */
 interface ChatFiles {
@@ -18,6 +19,15 @@ interface ChatFiles {
    * @throws ChatFilesException when the workspace cannot be read.
    */
   suspend fun list(): List<ChatFile>
+
+  /**
+   * A new, empty chat at the workspace's root, under the first untitled name not taken, as
+   * jupyter-chat's New chat makes one (jupyter-chat@2c224bc
+   * `packages/jupyterlab-chat-extension/src/index.ts`, `createChat`).
+   *
+   * @throws ChatFilesException when the file cannot be made.
+   */
+  suspend fun create(): ChatFile
 }
 
 /**
@@ -40,5 +50,5 @@ data class ChatFile(val path: String) {
  */
 fun List<ChatFile>.byName(): List<ChatFile> = sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER, ChatFile::name))
 
-/** The workspace's chats could not be read, for [reason]. */
-class ChatFilesException(reason: String) : Exception("listing the workspace's chats failed: $reason")
+/** What was asked of the workspace's chats, its [action], failed for [reason]. */
+class ChatFilesException(action: String, reason: String) : Exception("$action failed: $reason")
