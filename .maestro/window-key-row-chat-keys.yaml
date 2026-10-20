@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# Goes on from window-key-row-chat.yaml, with the question holding the caret: the row's `@` and
+# backtick go into the question. Each is matched inside `id: "chat_key_row"`, because Gboard draws
+# an `@` of its own as a long-press hint.
+- tapOn:
+    text: "@"
+    childOf:
+      id: "chat_key_row"
+- tapOn:
+    text: "`"
+    childOf:
+      id: "chat_key_row"
+- assertVisible: "@`"
+- assertNotVisible:
+    text: "Tab"
+    childOf:
+      id: "chat_key_row"
+- takeScreenshot: 03-typed-from-the-row

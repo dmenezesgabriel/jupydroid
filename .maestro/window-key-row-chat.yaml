@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Chat's question publishes its own key row to the window, as a cell publishes its symbol row
+# (`ChatKeyRow`, `KeyRowPublished`). Opens Chat from the rail at two panes and from More at one,
+# takes the caret, and stops with the keyboard up: scripts/window-key-row-driver.sh then reads the
+# row's bounds against the window's, and which characters the keyboard's first page carries,
+# before window-key-row-chat-keys.yaml types from the row.
+#
+# TABLET ONLY (SM-X216B): portrait and landscape give one pane and two on one device.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+      - extendedWaitUntil:
+          visible: "Settings"
+          timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- assertNotVisible:
+    id: "chat_key_row"
+- takeScreenshot: 01-no-row-without-the-caret
+- tapOn: "Ask the agent"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "chat_key_row"
+- takeScreenshot: 02-the-row-over-the-keyboard

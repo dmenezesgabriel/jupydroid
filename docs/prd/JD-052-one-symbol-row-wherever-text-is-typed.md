@@ -84,14 +84,16 @@ The window-level slot and its inset rule outlive the item: an ADR when it ships.
 
 ## Open decisions
 
-- Chat's key set: the Python symbols minus Tab and the history pair, or a prose set. Settled in T4
-  against what a question to an agent actually contains, measured.
+- None. Chat's key set was settled in T4 as `@`, `/`, the backtick, `:`, `_`, `(`, `)`, `=` and `← →`: the characters
+  jupyter-chat and the agent give meaning to (a mention, a slash command, code, an emoji) and that a
+  question naming code needs, less the ones Gboard's first page types in one tap on SM-X216B. That
+  page was measured either way up, and it drops `.`. `ChatKeyRow.kt`'s `CHAT_KEYS` keeps the reasoning.
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| `ui/shell` | `WindowKeyRow.kt` (new): the slot, its host and the publishing composable |
+| `ui/shell` | `WindowKeyRowHosted.kt`: the host. The slot and the publishing composable moved to `:extension-api`'s `WindowKeyRowSlot.kt` in T4 |
 | `ui/editor` | `EditorBottomBars.kt` publishes `SymbolRow` |
 | `ui/fileeditor`, `ui/console`, `ui/terminal` | publish their rows (T2, T3) |
 | `:extension-api` | the publishing surface for an extension (T4) |
@@ -105,7 +107,7 @@ The window-level slot and its inset rule outlive the item: an ADR when it ships.
 - [x] T1 — The window-level slot, with a cell's symbol row moved into it: at two panes it spans the window
 - [x] T2 — The file editor and the console's prompt publish the symbol row
 - [x] T3 — The terminal publishes its extra-keys row; the latches still arm and lock
-- [ ] T4 — `:extension-api` carries the publishing surface, and the Chat's question publishes a row
+- [x] T4 — `:extension-api` carries the publishing surface, and the Chat's question publishes a row
 - [ ] T5 — The demo, from a fresh install on SM-X216B
 
 ## Out of scope

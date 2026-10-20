@@ -7,8 +7,10 @@
 #   ANDROID_SERIAL=<tablet> MAESTRO_DEVICE=<tablet> nice -n 10 timeout 1800 scripts/window-key-row-driver.sh [target] [out-dir]
 #
 # [target] is `cell` (window-key-row.yaml, the default), `file-and-console`
-# (window-key-row-file.yaml, then window-key-row-console.yaml) or `terminal`
-# (window-key-row-terminal.yaml, whose Ctrl interrupts are proved by the files the shell writes).
+# (window-key-row-file.yaml, then window-key-row-console.yaml), `terminal`
+# (window-key-row-terminal.yaml, whose Ctrl interrupts are proved by the files the shell writes) or
+# `chat` (window-key-row-chat.yaml, then window-key-row-chat-keys.yaml, with which characters the
+# keyboard's first page carries read in between, since `ChatKeyRow` carries only what it lacks).
 #
 # TABLET ONLY (SM-X216B): portrait and landscape give one pane and two on one device, and the
 # console flow runs on the kernel, and the terminal flow on a real shell. Installs the APK that `./gradlew :app:assembleDebug` last built,
@@ -31,7 +33,8 @@ case "$TARGET" in
   cell) OUT="${2:-$ROOT/evidence/window-key-row}" ;;
   file-and-console) OUT="${2:-$ROOT/evidence/window-key-row-file-and-console}" ;;
   terminal) OUT="${2:-$ROOT/evidence/window-key-row-terminal}" ;;
-  *) echo "unknown target '$TARGET': expected cell, file-and-console or terminal" >&2; exit 2 ;;
+  chat) OUT="${2:-$ROOT/evidence/window-key-row-chat}" ;;
+  *) echo "unknown target '$TARGET': expected cell, file-and-console, terminal or chat" >&2; exit 2 ;;
 esac
 
 # The row's left and right edge, and the window's width, in dp (SM-X216B is 240 dpi).
@@ -68,6 +71,31 @@ terminal_interrupts() {
     require_workspace_absent wkr-survived-locked.txt
 }
 
+# What one tap on the keyboard's first page types, and what only a long-press there does, read from
+# the IME's own window: `uiautomator dump` sees the app's window alone, maestro's hierarchy every one.
+keyboard_first_page() { # keyboard_first_page <out-dir>
+  "$MAESTRO" --device "$MAESTRO_DEVICE" hierarchy >"$1/hierarchy.json" 2>/dev/null
+  python3 -I -c '
+import json, sys
+tap, hint = [], []
+def walk(node):
+    attributes = node.get("attributes", {})
+    resource = attributes.get("resource-id", "")
+    if "inputmethod" in resource:
+        if attributes.get("text"):
+            hint.append(attributes["text"])
+        elif "obfuscated" in resource and attributes.get("accessibilityText"):
+            tap.append(attributes["accessibilityText"])
+    for child in node.get("children", []):
+        walk(child)
+walk(json.load(open(sys.argv[1])))
+if not tap:
+    sys.exit("no keyboard keys in " + sys.argv[1])
+print("one tap:", " ".join(dict.fromkeys(tap)))
+print("long-press:", " ".join(dict.fromkeys(hint)))' "$1/hierarchy.json"
+  rm -f "$1/hierarchy.json"
+}
+
 run_at() { # run_at <0=portrait|1=landscape> <out-dir>
   rotate_to "$1"
   reset_notebooks
@@ -75,6 +103,13 @@ run_at() { # run_at <0=portrait|1=landscape> <out-dir>
     run_flow "$ROOT/.maestro/window-key-row-terminal.yaml" "$2" || exit 1
     row_widths "$2" terminal_extra_keys | tee "$2/widths.txt"
     terminal_interrupts | tee "$2/interrupts.txt"
+    return
+  fi
+  if [ "$TARGET" = chat ]; then
+    run_flow "$ROOT/.maestro/window-key-row-chat.yaml" "$2" || exit 1
+    row_widths "$2" chat_key_row | tee "$2/widths.txt"
+    keyboard_first_page "$2" | tee "$2/keyboard.txt"
+    run_flow "$ROOT/.maestro/window-key-row-chat-keys.yaml" "$2/keys" || exit 1
     return
   fi
   seed_notebook "$ROOT/.maestro/fixtures/u5d-symbol-row.ipynb" "Symbol Row"
