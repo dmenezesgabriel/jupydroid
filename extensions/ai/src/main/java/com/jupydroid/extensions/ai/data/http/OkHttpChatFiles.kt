@@ -6,13 +6,11 @@ import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -26,10 +24,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * `newUntitled` at the root (`createChat`); and to rename one, jupyterlab's `contents.rename`, a
  * `PATCH` on the chat's path with its new one in the body (`renameChat`); and to delete one, jupyterlab's
  * `contents.delete`, a `DELETE` on its path, which jupyter_server answers 204
- * (`jupyter_server/services/contents/handlers.py`, `ContentsHandler.delete`, in the shipped rootfs).
- *
- * The token header is enough for a `POST`, a `PATCH` or a `DELETE`: jupyter_server skips its XSRF check for
- * a request the token authenticated (`jupyter_server/base/handlers.py`, `check_xsrf_cookie`, in the shipped rootfs).
+ * (`jupyter_server/services/contents/handlers.py`, `ContentsHandler.delete`, in the shipped rootfs),
+ * each sent with the token ([callWithToken]).
  *
  * ```
  * OkHttpChatFiles(host.server!!).list()
@@ -74,11 +70,8 @@ class OkHttpChatFiles(
    * @throws ChatFilesException naming [action] when the answer is not [expected].
    */
   private suspend fun call(action: String, expected: Int, shape: Request.Builder.(HttpUrl) -> Request.Builder): String {
-    val address = server.address()
-    val contents = address.baseUrl.toHttpUrl().newBuilder().addPathSegments("api/contents").build()
-    val request = Request.Builder().shape(contents).header("Authorization", "token ${address.token}").build()
-    val (code, body) = withContext(ioDispatcher) {
-      client.newCall(request).execute().use { it.code to it.body.string() }
+    val (code, body) = client.callWithToken(server, ioDispatcher) { base ->
+      shape(base.newBuilder().addPathSegments("api/contents").build())
     }
     if (code != expected) throw ChatFilesException(action, "http $code, ${body.take(BODY_EXCERPT)}")
     return body
