@@ -63,4 +63,23 @@ abstract class ChatFilesContract {
 
     assertEquals(setOf("untitled.chat", "notes.chat"), files.list().map(ChatFile::path).toSet())
   }
+
+  @Test
+  fun aDeletedChatIsNoLongerListed() = runBlocking {
+    val files = chatFiles(listOf("untitled.chat", "notes.chat"))
+
+    files.delete(ChatFile("notes.chat"))
+
+    assertEquals(listOf(ChatFile("untitled.chat")), files.list())
+  }
+
+  /** jupyter_server answers 404, "file or directory does not exist", as for a chat deleted elsewhere. */
+  @Test
+  fun deletingAChatThatIsGoneFailsAndKeepsTheOthers() = runBlocking {
+    val files = chatFiles(listOf("untitled.chat"))
+
+    assertThrows(ChatFilesException::class.java) { runBlocking { files.delete(ChatFile("notes.chat")) } }
+
+    assertEquals(listOf(ChatFile("untitled.chat")), files.list())
+  }
 }

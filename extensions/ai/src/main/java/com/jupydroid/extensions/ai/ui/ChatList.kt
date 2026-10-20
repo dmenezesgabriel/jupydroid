@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jupydroid.extension.api.DeleteFileDialog
 import com.jupydroid.extension.api.RenameFileDialog
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
@@ -68,17 +69,21 @@ private sealed interface ChatListing {
  * `src/vs/workbench/contrib/chat/browser/agentSessions/agentSessionsViewer.ts`), since a touchscreen
  * has no hover to say that a line of text can be pressed.
  *
- * A long press on a chat offers Rename, in the host's own [RenameFileDialog], as a long press on a
- * row of the explorer does for the same files.
+ * A long press on a chat offers Rename, in the host's own [RenameFileDialog], and Delete, after the
+ * host's own [DeleteFileDialog], as a long press on a row of the explorer does for the same files.
+ * No chat is open while the list is shown, so none holds a socket on the file Delete removes
+ * ([ChatFiles.delete]).
  *
  * **Read when the list is shown**: opening a chat and coming back reads the workspace again, so a
- * chat made or removed elsewhere meanwhile is listed as it now stands. A rename reads it again too.
+ * chat made or removed elsewhere meanwhile is listed as it now stands. A rename or a delete reads it
+ * again too.
  */
 @Composable
 internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Modifier = Modifier) {
   var listing by remember(files) { mutableStateOf<ChatListing>(ChatListing.Pending) }
   var reads by remember(files) { mutableIntStateOf(0) }
   var renaming by remember(files) { mutableStateOf<ChatFile?>(null) }
+  var deleting by remember(files) { mutableStateOf<ChatFile?>(null) }
   LaunchedEffect(files, reads) {
     listing = try {
       ChatListing.Listed(files.list().byName())
@@ -87,11 +92,11 @@ internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Mo
     }
   }
   val scope = rememberCoroutineScope()
-  val onRenamed: (ChatFile, String) -> Unit = { chat, name ->
-    renaming = null
+  // What an act on a chat could not do is said above the list, so every chat is still there to open.
+  val actThenRead: (suspend () -> Unit) -> Unit = { act ->
     scope.launch {
       try {
-        files.rename(chat, name)
+        act()
         reads++
       } catch (failure: ChatFilesException) {
         listing = (listing as? ChatListing.Listed)?.copy(notice = failure.message.orEmpty())
@@ -119,21 +124,39 @@ internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Mo
       is ChatListing.Listed -> {
         NewChatButton(onNew)
         shown.notice?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        ChatRows(shown.chats, onOpen, onRename = { renaming = it })
+        ChatRows(shown.chats, onOpen) { chat ->
+          listOf(ChatRowAction("Rename") { renaming = chat }, ChatRowAction("Delete") { deleting = chat })
+        }
       }
     }
   }
   renaming?.let { chat ->
     RenameFileDialog(
       currentTitle = chat.name,
-      onConfirm = { onRenamed(chat, it) },
+      onConfirm = { name ->
+        renaming = null
+        actThenRead { files.rename(chat, name) }
+      },
       onDismiss = { renaming = null },
       heading = "Rename chat",
       // The whole name, since `.chat` is not shown for the selection to stop short of.
       initialSelection = { TextRange(0, it.length) },
     )
   }
+  deleting?.let { chat ->
+    DeleteFileDialog(
+      chat.name,
+      onDelete = {
+        deleting = null
+        actThenRead { files.delete(chat) }
+      },
+      onDismiss = { deleting = null },
+    )
+  }
 }
+
+/** One of a chat row's actions: an item of its long-press menu, and a custom action of its own. */
+private class ChatRowAction(val label: String, val run: () -> Unit)
 
 /** jupyter-chat's New chat, its `addIcon` before the label (jupyter-chat@2c224bc `placeholder.tsx`). */
 @Composable
@@ -146,7 +169,7 @@ private fun NewChatButton(onClick: () -> Unit) {
 
 /** The chats in one bordered box, a line between each and the next, as the question's box is drawn. */
 @Composable
-private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, onRename: (ChatFile) -> Unit) {
+private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, actionsFor: (ChatFile) -> List<ChatRowAction>) {
   Text(
     "Open an existing chat:",
     style = MaterialTheme.typography.labelLarge,
@@ -164,7 +187,7 @@ private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, onRename
           modifier = Modifier.testTag("chat-row-divider"),
         )
       }
-      ChatRow(chat, onOpen = { onOpen(chat) }, onRename = { onRename(chat) })
+      ChatRow(chat, onOpen = { onOpen(chat) }, actions = actionsFor(chat))
     }
   }
 }
@@ -177,21 +200,19 @@ private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, onRename
  * actions are the row's custom actions, since a screen reader cannot long-press.
  */
 @Composable
-private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, onRename: () -> Unit) {
+private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, actions: List<ChatRowAction>) {
   var menuOpen by remember { mutableStateOf(false) }
-  val actions = remember(onRename) {
-    listOf(
-      CustomAccessibilityAction("Rename") {
-        onRename()
-        true
-      },
-    )
+  val spoken = actions.map { action ->
+    CustomAccessibilityAction(action.label) {
+      action.run()
+      true
+    }
   }
   Row(
     modifier = Modifier
       .fillMaxWidth()
       .heightIn(min = 56.dp)
-      .semantics(mergeDescendants = true) { customActions = actions }
+      .semantics(mergeDescendants = true) { customActions = spoken }
       .combinedClickable(onClick = onOpen, onLongClick = { menuOpen = true })
       .padding(horizontal = 16.dp)
       .testTag("chat-row"),
@@ -206,13 +227,15 @@ private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, onRename: () -> Unit) {
       modifier = Modifier.padding(start = 16.dp),
     )
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-      DropdownMenuItem(
-        text = { Text("Rename") },
-        onClick = {
-          menuOpen = false
-          onRename()
-        },
-      )
+      actions.forEach { action ->
+        DropdownMenuItem(
+          text = { Text(action.label) },
+          onClick = {
+            menuOpen = false
+            action.run()
+          },
+        )
+      }
     }
   }
 }

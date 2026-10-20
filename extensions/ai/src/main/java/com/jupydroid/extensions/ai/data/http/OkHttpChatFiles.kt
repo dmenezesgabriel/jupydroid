@@ -24,10 +24,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * holds, the files whose name ends `.chat` (jupyter-chat@2c224bc
  * `packages/jupyterlab-chat-extension/src/index.ts`, `getChatNames`); and for a new one, jupyterlab's
  * `newUntitled` at the root (`createChat`); and to rename one, jupyterlab's `contents.rename`, a
- * `PATCH` on the chat's path with its new one in the body (`renameChat`).
+ * `PATCH` on the chat's path with its new one in the body (`renameChat`); and to delete one, jupyterlab's
+ * `contents.delete`, a `DELETE` on its path, which jupyter_server answers 204
+ * (`jupyter_server/services/contents/handlers.py`, `ContentsHandler.delete`, in the shipped rootfs).
  *
- * The token header is enough for a `POST` or a `PATCH`: jupyter_server skips its XSRF check for a request the
- * token authenticated (`jupyter_server/base/handlers.py`, `check_xsrf_cookie`, in the shipped rootfs).
+ * The token header is enough for a `POST`, a `PATCH` or a `DELETE`: jupyter_server skips its XSRF check for
+ * a request the token authenticated (`jupyter_server/base/handlers.py`, `check_xsrf_cookie`, in the shipped rootfs).
  *
  * ```
  * OkHttpChatFiles(host.server!!).list()
@@ -60,6 +62,12 @@ class OkHttpChatFiles(
     return ChatFile(lenient.decodeFromString<ListedEntry>(body).path)
   }
 
+  override suspend fun delete(chat: ChatFile) {
+    call("deleting a chat", HTTP_NO_CONTENT) { contents ->
+      url(contents.newBuilder().addPathSegments(chat.path).build()).delete()
+    }
+  }
+
   /**
    * The body the server answers to the request [shape] makes of the root's `api/contents` URL.
    *
@@ -79,6 +87,7 @@ class OkHttpChatFiles(
   private companion object {
     const val HTTP_OK = 200
     const val HTTP_CREATED = 201
+    const val HTTP_NO_CONTENT = 204
 
     /** Enough of an unexpected body to recognise it by, and not a page pasted into a panel. */
     const val BODY_EXCERPT = 200

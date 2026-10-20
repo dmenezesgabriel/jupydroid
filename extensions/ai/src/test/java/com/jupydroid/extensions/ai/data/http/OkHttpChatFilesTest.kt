@@ -126,6 +126,33 @@ class OkHttpChatFilesTest : ChatFilesContract() {
     assertTrue(failure.message!!, failure.message!!.contains("File already exists"))
   }
 
+  /** jupyterlab's `contents.delete`: the chat's path, escaped as a segment, and no body. */
+  @Test
+  fun delete_deletesTheChatsPathWithTheToken() = runBlocking {
+    chatFiles(listOf("my chat.chat")).delete(ChatFile("my chat.chat"))
+
+    val request = serverRule.server.takeRequest()
+    assertEquals("DELETE", request.method)
+    assertEquals("/api/contents/my%20chat.chat", request.target)
+    assertEquals("token secret-token", request.headers["Authorization"])
+  }
+
+  @Test
+  fun delete_failsWithTheServersCodeAndAnswer() {
+    serverRule.server.enqueue(
+      MockResponse.Builder().code(
+        404,
+      ).body("""{"message": "file or directory does not exist: 'notes.chat'"}""").build(),
+    )
+
+    val failure = assertThrows(ChatFilesException::class.java) {
+      runBlocking { filesUnderTest().delete(ChatFile("notes.chat")) }
+    }
+
+    assertTrue(failure.message!!, failure.message!!.contains("http 404"))
+    assertTrue(failure.message!!, failure.message!!.contains("does not exist"))
+  }
+
   private fun filesUnderTest() = OkHttpChatFiles(
     server = { ServerAddress(serverRule.server.url("/").toString(), "secret-token") },
     ioDispatcher = Dispatchers.Unconfined,

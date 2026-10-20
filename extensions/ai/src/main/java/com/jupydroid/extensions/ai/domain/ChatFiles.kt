@@ -11,6 +11,7 @@ package com.jupydroid.extensions.ai.domain
  * chatFiles.list().byName().map { it.name } // ["notes", "untitled"]
  * chatFiles.create().path // "untitled1.chat"
  * chatFiles.rename(ChatFile("untitled1.chat"), "notes").path // "notes.chat"
+ * chatFiles.delete(ChatFile("notes.chat"))
  * ```
  */
 interface ChatFiles {
@@ -38,6 +39,17 @@ interface ChatFiles {
    * @throws ChatFilesException when the file cannot be moved, as when a chat of that name exists.
    */
   suspend fun rename(chat: ChatFile, name: String): ChatFile
+
+  /**
+   * [chat]'s file removed, as VS Code's Delete... removes a chat session (vscode@3f3380c
+   * `src/vs/workbench/contrib/chat/browser/agentSessions/agentSessionsActions.ts`,
+   * `DeleteAgentSessionAction`). Only once no socket is open on it: jupyterlab_chat keeps a live
+   * model per path, and one still held would write the file back on its next save (jupyter-chat@2c224bc
+   * `python/jupyterlab-chat/jupyterlab_chat/chat_manager.py`).
+   *
+   * @throws ChatFilesException when the file cannot be removed, as when it is already gone.
+   */
+  suspend fun delete(chat: ChatFile)
 }
 
 /**

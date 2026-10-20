@@ -5,7 +5,8 @@ import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
 
 /**
- * A workspace whose root holds the chats at [paths], and the ones [create] adds and [rename] moves.
+ * A workspace whose root holds the chats at [paths], and the ones [create] adds, [rename] moves and
+ * [delete] removes.
  *
  * What the panel lists where the Space has no server: with nothing configured, no chat, so the
  * panel claims none nobody made.
@@ -35,5 +36,10 @@ class FakeChatFiles(paths: List<String> = emptyList()) : ChatFiles {
     if (renamed.path in held) throw ChatFilesException("renaming a chat", "${renamed.path} already exists")
     held[held.indexOf(chat.path)] = renamed.path
     return renamed
+  }
+
+  /** Refused when the chat is not there, as jupyter_server's `delete_file` answers 404. */
+  override suspend fun delete(chat: ChatFile) {
+    if (!held.remove(chat.path)) throw ChatFilesException("deleting a chat", "${chat.path} does not exist")
   }
 }

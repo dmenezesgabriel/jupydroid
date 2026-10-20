@@ -9,6 +9,8 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -38,7 +40,7 @@ import org.junit.runner.RunWith
 
 /**
  * The Chat panel's list of the workspace's chats, as the shell draws it: a row to press for each,
- * which opens that chat, a long press that renames it, and a way back to the list.
+ * which opens that chat, a long press that renames or deletes it, and a way back to the list.
  */
 @RunWith(AndroidJUnit4::class)
 class ChatListSidePanelTest {
@@ -232,6 +234,57 @@ class ChatListSidePanelTest {
     compose.runOnIdle { actions.single { it.label == "Rename" }.action() }
 
     compose.onNodeWithText("Rename chat").assertIsDisplayed()
+  }
+
+  /**
+   * Delete... sits beside Rename in the row's actions, as VS Code's sits beside Rename... in a
+   * session's context menu (vscode@3f3380c `agentSessionsActions.ts`, `DeleteAgentSessionAction`).
+   */
+  @Test
+  fun aLongPressOnAChatOffersDelete() {
+    show(panel("untitled.chat"))
+
+    compose.onNodeWithText("untitled").performTouchInput { longClick() }
+
+    compose.onNodeWithText("Delete").assertIsDisplayed()
+  }
+
+  /** Nothing is removed before the answer, and Cancel, what a tap outside also picks, removes nothing. */
+  @Test
+  fun deleteAsksBeforeDeletingAndCancelKeepsTheChat() {
+    show(panel("untitled.chat", "notes.chat"))
+
+    openDelete("notes")
+    compose.onNodeWithText("Are you sure you want to permanently delete: notes?").assertIsDisplayed()
+    compose.onNodeWithText("Cancel").performClick()
+
+    compose.onNodeWithText("notes").assertIsDisplayed()
+  }
+
+  @Test
+  fun aDeletedChatIsNoLongerListed() {
+    show(panel("untitled.chat", "notes.chat"))
+
+    openDelete("notes")
+    compose.onNode(hasText("Delete") and hasClickAction()).performClick()
+
+    compose.onNodeWithText("notes").assertDoesNotExist()
+    compose.onNodeWithText("untitled").assertIsDisplayed()
+  }
+
+  @Test
+  fun aScreenReaderReachesDeleteWithoutALongPress() {
+    show(panel("untitled.chat"))
+
+    val actions = compose.onNodeWithText("untitled").fetchSemanticsNode().config[SemanticsActions.CustomActions]
+    compose.runOnIdle { actions.single { it.label == "Delete" }.action() }
+
+    compose.onNodeWithText("Are you sure you want to permanently delete: untitled?").assertIsDisplayed()
+  }
+
+  private fun openDelete(chat: String) {
+    compose.onNodeWithText(chat).performTouchInput { longClick() }
+    compose.onNodeWithText("Delete").performClick()
   }
 
   private fun openRename(chat: String) {
