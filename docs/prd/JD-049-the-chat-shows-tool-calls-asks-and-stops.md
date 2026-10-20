@@ -20,8 +20,9 @@ On SM-X216B, from a fresh install, with opencode installed and signed in in base
    Tap **Allow once**. The row shows the chosen option and then ✓, and the answer holds
    `permission-probe`.
 3. Ask it to run `echo second-probe`, and tap **Reject**. The row shows ✗, and nothing ran.
-4. Ask for a long answer (count to 300, one number a line). While it arrives a **Stop** button
-   shows beside Send. Tap it. The text stops growing and Stop goes away.
+4. Ask for a long answer (count to 1000, one number a line: 300 ends in about 15 s, before a flow
+   can tap Stop). While it arrives a **Stop** button shows beside Send. Tap it. The text stops
+   growing and Stop goes away.
 5. Kill and relaunch, then open the chat. The rows are still there with their last status, because
    they are in the `.chat` file.
 
@@ -132,7 +133,7 @@ beside Send.
   and options) or resolved (the chosen name). `AgentChat` gets an operation that chooses an option,
   which `OkHttpAgentChat` POSTs to `ai/acp/permissions`. Tablet: Allow once runs `echo`, and Reject
   shows ✗.
-- [ ] T3 — Stop cancels the reply in progress. `writing` frames say an agent is writing, and
+- [x] T3 — Stop cancels the reply in progress. `writing` frames say an agent is writing, and
   `AgentChat` gets an operation that stops it, a POST to `api/ai/personas/cancel?chat_id=<id>`. Stop
   shows beside Send while an agent writes. Tablet: a long answer stops growing.
 - [ ] T4 — The demo from a fresh install. Then an ADR for tool calls, approval and stop, an

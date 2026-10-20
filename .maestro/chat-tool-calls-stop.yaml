@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base. Driven by
+# scripts/chat-tool-calls-stop-driver.sh, which empties the workspace first and afterwards checks
+# in untitled.chat that the answer stopped short and stayed so.
+#
+# The persona says it writes when its reply starts and says it stopped once the reply ends or is
+# stopped (jupyter_ai_acp_client `default_acp_client.py`, `prompt_and_reply` and `stop_streaming`, in
+# the shipped rootfs), so Stop is beside Send exactly while the answer arrives.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- assertNotVisible: "Stop"
+- tapOn: "Ask the agent"
+# 1000, not 300: the model wrote all 300 in 15.6 s, and while an answer streams Maestro takes 9-15 s
+# to match its text and as long again to tap, so a tap on Stop after 300 lands once Stop has gone.
+- inputText: "Count from 1 to 1000, one number a line, with nothing else."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot and the model answers over the network. The
+# answer is one text, matched whole, so it matches once its lines run from 1 to 20. Unanchored, `20`
+# matched the status bar's clock at 20:20, and Stop was tapped before any answer had arrived.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s[\\s\\S]*\\b20\\b[\\s\\S]*"
+    timeout: 300000
+- assertVisible: "Stop"
+- takeScreenshot: 01-stop-beside-send-while-the-answer-arrives
+- tapOn: "Stop"
+- extendedWaitUntil:
+    notVisible: "Stop"
+    timeout: 30000
+- takeScreenshot: 02-stopped-the-answer-ends-short-and-stop-is-gone
