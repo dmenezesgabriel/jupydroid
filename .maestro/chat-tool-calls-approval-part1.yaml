@@ -1,0 +1,55 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base. Driven by
+# scripts/chat-tool-calls-approval-driver.sh, which empties the workspace first.
+#
+# opencode's bash tool asks before it runs (the persona's config: `edit` and `bash` ask), so the
+# call's row offers opencode's own options under "Allow?". The commands print 6*7 through the shell's
+# arithmetic: `permission-42` is text only the command's output holds, where the question's own
+# `permission-$((6*7))` would match a word written into it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Run echo permission-$((6*7)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot and the model answers over the network.
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- assertVisible: "Always allow"
+- assertVisible: "Reject"
+- takeScreenshot: 01-the-call-asks-with-the-agents-options
+- tapOn: "Allow once"
+- extendedWaitUntil:
+    visible: "(?i)\\W*permission-42\\W*"
+    timeout: 300000
+- assertVisible: "- Allow once"
+- assertVisible: "✓"
+- assertNotVisible: ".*Allow\\?"
+- takeScreenshot: 02-allowed-once-it-ran-and-answered
+- tapOn: "Ask the agent"
+- inputText: "Run echo second-$((6*7)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn: "Reject"
+- extendedWaitUntil:
+    visible: "- Reject"
+    timeout: 60000
+- assertVisible: "✗"
+- assertNotVisible: ".*Allow\\?"
+- assertNotVisible: "(?i)\\W*second-42\\W*"
+- takeScreenshot: 03-rejected-it-is-a-cross

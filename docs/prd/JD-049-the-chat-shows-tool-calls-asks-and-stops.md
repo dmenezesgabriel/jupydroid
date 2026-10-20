@@ -106,9 +106,9 @@ beside Send.
 
 ## Open decisions
 
-- Whether the "Connection closed" that JD-046 saw about two minutes after an unanswered permission
-  request (`evidence/jd-046-ai-chat/README.md` §Approval) recurs once the request is answered. T2
-  measures it.
+- None. The "Connection closed" that JD-046 saw about two minutes after an unanswered permission
+  request does not recur once the request is answered: T2's run answered two, and the agent still
+  answered four minutes later with none in the server log (`evidence/chat-tool-calls-approval/`).
 
 ## Surface
 
@@ -128,7 +128,7 @@ beside Send.
   status: running, completed or failed). `ChatFrames` reads `metadata.tool_calls`, and a message is
   shown when it has text or calls. The panel draws a mark and a title for each call. Tablet: the
   read-probe question shows a ✓ row for `probe.txt` between the question and the answer.
-- [ ] T2 — A call awaiting approval offers the agent's options. The permission is pending (session id
+- [x] T2 — A call awaiting approval offers the agent's options. The permission is pending (session id
   and options) or resolved (the chosen name). `AgentChat` gets an operation that chooses an option,
   which `OkHttpAgentChat` POSTs to `ai/acp/permissions`. Tablet: Allow once runs `echo`, and Reject
   shows ✗.

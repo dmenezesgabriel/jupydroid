@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# The same chat, minutes after part 1 answered both permissions, with no launch in between. An
+# unanswered request once saw the agent's connection close about two minutes on; a question answered
+# now says the agent outlived two answered ones.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 10000
+- tapOn: "Ask the agent"
+- inputText: "What is 6 times 7? Reply with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "\\W*42\\W*"
+    timeout: 300000
+- takeScreenshot: 04-the-agent-still-answers-minutes-later
