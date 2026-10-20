@@ -102,7 +102,7 @@ The window-level slot and its inset rule outlive the item: an ADR when it ships.
 
 ## Tasks
 
-- [ ] T1 — The window-level slot, with a cell's symbol row moved into it: at two panes it spans the window
+- [x] T1 — The window-level slot, with a cell's symbol row moved into it: at two panes it spans the window
 - [ ] T2 — The file editor and the console's prompt publish the symbol row
 - [ ] T3 — The terminal publishes its extra-keys row; the latches still arm and lock
 - [ ] T4 — `:extension-api` carries the publishing surface, and the Chat's question publishes a row

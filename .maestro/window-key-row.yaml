@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# The symbol row a cell gets is the window's, not the notebook pane's (`WindowKeyRowSlot`).
+#
+# Seeded by scripts/window-key-row-driver.sh, which runs this once beside two panes and once at
+# one, and reads the row's bounds against the window's after each run: a screenshot shows a row,
+# and only the bounds say whose width it has. The keys still have to type, so `:` and Tab are
+# pressed from it and the driver reads the saved notebook.
+#
+# Matched by `id: "symbol_row"`, not by "Tab": Gboard's own Tab key carries the same text
+# (`SYMBOL_ROW_TAG`'s KDoc in `SymbolRow.kt`).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Symbol Row.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Symbol Row.ipynb"
+- extendedWaitUntil:
+    visible: ".*def area.*"
+    timeout: 30000
+- tapOn: ".*def area.*"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    id: "symbol_row"
+- takeScreenshot: 01-edit-mode-row
+- tapOn: ":"
+- tapOn:
+    text: "Tab"
+    childOf:
+      id: "symbol_row"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-typed-from-the-row
