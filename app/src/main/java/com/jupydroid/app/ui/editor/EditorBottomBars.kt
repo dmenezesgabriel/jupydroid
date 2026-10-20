@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.SteppingCommand
+import com.jupydroid.app.ui.shell.KeyRowPublished
 
 /**
  * Which bar the notebook has along its bottom edge - one of two, or none.
@@ -60,24 +61,28 @@ internal fun EditorBottomBars(
       variablesOpen = variablesOpen,
       onToggleVariables = { variablesOpen = !variablesOpen },
     )
-    EditorBottomBar.SYMBOLS -> SymbolRow(
-      input = cellInput,
-      accessKernelHistory = editorSettings.accessKernelHistory,
-      // The placeholder is read off the *field* rather than the notebook, for
-      // [CellEditorText]'s reason: an edit reaches the model on a 150ms debounce, so the model
-      // can be behind what the user is looking at. `focusedText` is null between a cell
-      // losing focus and the mode leaving EDIT, and a tap in that frame does nothing.
-      onRecallPreviousEntry = {
-        cellInput.focusedText?.let { typed ->
-          viewModel.kernel.history.recallPrevious(typed, cellInput::replaceAll)
-        }
-      },
-      onRecallNextEntry = {
-        cellInput.focusedText?.let { typed ->
-          viewModel.kernel.history.recallNext(typed, cellInput::replaceAll)
-        }
-      },
-    )
+    // Published to the window rather than drawn in this bar, so at two panes it spans the window
+    // and not only the notebook pane - see [KeyRowPublished].
+    EditorBottomBar.SYMBOLS -> KeyRowPublished {
+      SymbolRow(
+        input = cellInput,
+        accessKernelHistory = editorSettings.accessKernelHistory,
+        // The placeholder is read off the *field* rather than the notebook, for
+        // [CellEditorText]'s reason: an edit reaches the model on a 150ms debounce, so the model
+        // can be behind what the user is looking at. `focusedText` is null between a cell
+        // losing focus and the mode leaving EDIT, and a tap in that frame does nothing.
+        onRecallPreviousEntry = {
+          cellInput.focusedText?.let { typed ->
+            viewModel.kernel.history.recallPrevious(typed, cellInput::replaceAll)
+          }
+        },
+        onRecallNextEntry = {
+          cellInput.focusedText?.let { typed ->
+            viewModel.kernel.history.recallNext(typed, cellInput::replaceAll)
+          }
+        },
+      )
+    }
     EditorBottomBar.KERNEL -> NotebookBar(
       busy = state.runningCellId != null,
       onRunAll = { viewModel.kernel.run(RunRange.ALL) },

@@ -24,6 +24,7 @@ import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.import.sharedNotebookFrom
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.editor.RemoteImagesResolved
+import com.jupydroid.app.ui.shell.WindowKeyRowHosted
 
 class MainActivity : ComponentActivity() {
   /**
@@ -42,15 +43,21 @@ class MainActivity : ComponentActivity() {
       val themeSettings by appContainer.themeSettings.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
       JupyterDroidTheme(darkTheme = themeSettings.override.resolvesToDark(isSystemInDarkTheme())) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-          RenderedDocumentsServed {
-            MainNavigation(
-              appContainer = appContainer,
-              sharedNotebook = sharedNotebook,
-              onImportConsumed = { sharedNotebook = null },
-            )
-          }
+          RenderedDocumentsServed { AppWindow() }
         }
       }
+    }
+  }
+
+  /** Every screen, with the key row that the one being typed into publishes beneath them all. */
+  @Composable
+  private fun AppWindow() {
+    WindowKeyRowHosted {
+      MainNavigation(
+        appContainer = appContainer,
+        sharedNotebook = sharedNotebook,
+        onImportConsumed = { sharedNotebook = null },
+      )
     }
   }
 
