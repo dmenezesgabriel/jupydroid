@@ -1,0 +1,91 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider by a
+# person. Driven by scripts/chat-several-delete-driver.sh, which empties the workspace first.
+#
+# A chat the agent has answered is deleted from the list: a long press offers Delete, beside Rename,
+# and the explorer's "permanently delete" confirm asks first. The list then holds only the other
+# chat, and so does the explorer. A New chat after it takes the freed name and opens empty, so the
+# server did not hand back the deleted chat's live model (jupyterlab_chat's `chat_manager.py`).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+
+- tapOn: "Ask the agent"
+- inputText: "Count from 1 to 5, one number per line, and nothing else."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot and the model answers over the network, so
+# the bound is generous. The question holds no digit on its own line, so only the answer matches.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 300000
+- takeScreenshot: 01-untitled-answered
+
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "untitled1"
+    timeout: 30000
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- takeScreenshot: 02-two-chats-listed
+
+- longPressOn: "untitled"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 10000
+- takeScreenshot: 03-a-long-press-offers-delete
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: untitled\\?"
+    timeout: 10000
+- takeScreenshot: 04-the-confirm-names-the-chat
+# The dialog's title is "Delete" too; its button is the one under the question.
+- tapOn:
+    text: "Delete"
+    below: "Are you sure you want to permanently delete: untitled\\?"
+- extendedWaitUntil:
+    notVisible: "Are you sure you want to permanently delete: untitled\\?"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "untitled1"
+    timeout: 30000
+- assertNotVisible: "untitled"
+- takeScreenshot: 05-only-untitled1-listed
+
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "untitled1\\.chat"
+    timeout: 30000
+- assertNotVisible: "untitled\\.chat"
+- takeScreenshot: 06-the-explorer-holds-no-untitled-chat
+
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Long enough for a reused live model to have sent its messages; a fresh one has none.
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "untitled"
+- assertNotVisible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+- takeScreenshot: 07-a-new-untitled-opens-empty

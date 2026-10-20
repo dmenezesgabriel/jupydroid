@@ -119,7 +119,7 @@ Overall, the feature is absent.
 - [x] T2 — New chat creates `untitled*.chat` through `POST api/contents` and opens it; a question
   there is answered.
 - [x] T3 — Rename... through `PATCH api/contents/<path>`, prefilled with the current name.
-- [ ] T4 — Delete... with a confirm. It leaves the chat, then sends `DELETE api/contents/<path>`, then
+- [x] T4 — Delete... with a confirm. It leaves the chat, then sends `DELETE api/contents/<path>`, then
   shows the list.
 - [ ] T5 — The demo from a fresh install. Then ADR-0111 (a chat is a `.chat` file at the workspace
   root, managed through the Contents API; it supersedes ADR-0106's "one chat" row), the backlog, and
