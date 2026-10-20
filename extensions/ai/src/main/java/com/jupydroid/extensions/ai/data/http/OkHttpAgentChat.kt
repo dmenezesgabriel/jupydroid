@@ -51,7 +51,7 @@ import kotlin.time.Duration.Companion.seconds
  * @param chatPath the `.chat` file, relative to the workspace root. `untitled.chat` is what
  *   jupyterlab-chat names the first chat in its `defaultDirectory`, which is the root by default
  *   (`schemas/jupyterlab-chat-extension/factory.json`); the server writes it on the first message.
- * @param ioDispatcher where a blocking request to the server runs, as [choose]'s does.
+ * @param ioDispatcher where a blocking request to the server runs, as [choose]'s and [stop]'s do.
  */
 class OkHttpAgentChat(
   private val server: SpaceServerEndpoint,
@@ -64,8 +64,8 @@ class OkHttpAgentChat(
 ) : AgentChat {
   private val heartbeat = ApiActivityHeartbeat(client, heartbeatInterval, log, chatPath)
 
-  /** The socket whose `connection` frame has arrived; null while no chat is open. */
-  @Volatile private var open: WebSocket? = null
+  /** The chat whose `connection` frame has arrived; null while none is open. */
+  @Volatile private var open: OpenChat? = null
 
   // Each emission is the whole transcript, so a slow collector loses nothing by seeing only the latest.
   override fun transcript(): Flow<ChatTranscript> = callbackFlow {
@@ -84,7 +84,7 @@ class OkHttpAgentChat(
   }.conflate()
 
   override suspend fun ask(question: String) {
-    val socket = open ?: throw AgentChatException("the chat is not open", question)
+    val socket = open?.socket ?: throw AgentChatException("the chat is not open", question)
     val frame = ChatFrames.ask(id = UUID.randomUUID().toString(), question = question, persona = persona)
     if (!socket.send(frame)) throw AgentChatException("the chat's socket is closing", question)
   }
@@ -108,6 +108,21 @@ class OkHttpAgentChat(
     if (code != HTTP_OK) throw ToolCallChoiceException(call, option, "http $code, ${body.take(BODY_EXCERPT)}")
   }
 
+  /**
+   * `POST api/ai/personas/cancel?chat_id=<id>`, the id the `connection` frame carried: `CancelHandler`
+   * finds the chat's personas by it and stops those that are processing, answering 404 while the chat
+   * has no persona manager yet (jupyter_ai_persona_manager `handlers.py`, in the shipped rootfs). It
+   * reads no body.
+   */
+  override suspend fun stop() {
+    val chatId = open?.chatId ?: throw AgentChatException("the chat is not open")
+    val (code, body) = client.callWithToken(server, ioDispatcher) { base ->
+      val cancel = base.newBuilder().addPathSegments("api/ai/personas/cancel").addQueryParameter("chat_id", chatId)
+      url(cancel.build()).post(ByteArray(0).toRequestBody())
+    }
+    if (code != HTTP_OK) throw AgentChatException("stopping the reply failed: http $code, ${body.take(BODY_EXCERPT)}")
+  }
+
   private fun chatUrl(baseUrl: String): HttpUrl = baseUrl.toHttpUrl().newBuilder()
     .addPathSegments("api/chat/ws")
     .addPathSegment(chatPath)
@@ -118,6 +133,9 @@ class OkHttpAgentChat(
     private var humans = emptySet<String>()
     private var shown = ChatTranscript()
 
+    /** The bots writing a reply now, by username. */
+    private val writers = mutableSetOf<String>()
+
     override fun onMessage(webSocket: WebSocket, text: String) {
       val frame = runCatching { ChatFrames.parse(text) }.getOrElse {
         out.close(it)
@@ -126,6 +144,7 @@ class OkHttpAgentChat(
       when (frame) {
         is ServerFrame.Connection -> opened(webSocket, frame)
         is ServerFrame.Message -> shown = shown.with(frame.message.toChatMessage(humans))
+        is ServerFrame.Writing -> writing(frame)
         ServerFrame.Other -> return
       }
       out.trySend(shown)
@@ -151,9 +170,17 @@ class OkHttpAgentChat(
     private fun opened(webSocket: WebSocket, connection: ServerFrame.Connection) {
       humans = connection.humans
       shown = ChatTranscript(connection.messages.map { it.toChatMessage(humans) })
-      open = webSocket
+      open = OpenChat(webSocket, connection.chatId)
+    }
+
+    private fun writing(frame: ServerFrame.Writing) {
+      if (frame.writing) writers += frame.agent else writers -= frame.agent
+      shown = shown.copy(agentWriting = writers.isNotEmpty())
     }
   }
+
+  /** An open chat's socket, and the id the server knows the chat by. */
+  private class OpenChat(val socket: WebSocket, val chatId: String)
 
   companion object {
     val HEARTBEAT_INTERVAL: Duration = 30.seconds

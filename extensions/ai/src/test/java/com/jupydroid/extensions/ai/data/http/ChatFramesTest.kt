@@ -20,7 +20,11 @@ class ChatFramesTest {
     val frame = ChatFrames.parse(resource("connection-on-a-new-chat.json"))
 
     assertEquals(
-      ServerFrame.Connection(humans = setOf("0f7fbf88210940d7bc0811bf662d373e"), messages = emptyList()),
+      ServerFrame.Connection(
+        chatId = "02ef3329e61d445dbfb24985d749ba04",
+        humans = setOf("0f7fbf88210940d7bc0811bf662d373e"),
+        messages = emptyList(),
+      ),
       frame,
     )
   }
@@ -124,6 +128,28 @@ class ChatFramesTest {
   @Test
   fun aCallNobodyAskedAboutHasNoPermission() {
     assertEquals(null, callWith(status = null).permission)
+  }
+
+  /**
+   * Shaped as `to_wire` serializes the frame `set_status` broadcasts when the persona starts a reply
+   * (jupyterlab_chat `ws_messages.py` `ServerWritingMessage`, jupyter_ai_persona_manager
+   * `base_persona.py`, both under `usr/lib/python3.12/site-packages/` in the shipped rootfs).
+   */
+  @Test
+  fun aWritingFrameFromAPersonaSaysItWritesOrHasStopped() {
+    val started = resource("writing-from-the-persona.json")
+    val stopped = started.replace("\"state\": true", "\"state\": false")
+
+    assertEquals(ServerFrame.Writing(agent = OPENCODE_PERSONA_ID, writing = true), ChatFrames.parse(started))
+    assertEquals(ServerFrame.Writing(agent = OPENCODE_PERSONA_ID, writing = false), ChatFrames.parse(stopped))
+  }
+
+  /** jupyter-chat offers Stop only while a bot writes (jupyter-chat@2c224bc `stop-button.tsx`). */
+  @Test
+  fun aWritingFrameFromAPersonIsNothingToDraw() {
+    val person = resource("writing-from-the-persona.json").replace("\"bot\": true", "\"bot\": false")
+
+    assertEquals(ServerFrame.Other, ChatFrames.parse(person))
   }
 
   /** The second frame the tablet's server sent; nothing the panel draws comes from it. */

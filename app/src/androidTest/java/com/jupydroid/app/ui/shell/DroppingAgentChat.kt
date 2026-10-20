@@ -42,6 +42,8 @@ class DroppingAgentChat(private val before: ChatTranscript, private val after: C
 
   override suspend fun choose(call: ToolCall, option: PermissionOption) = Unit
 
+  override suspend fun stop() = Unit
+
   companion object {
     const val DROPPED = "the chat's socket failed: EOFException"
   }

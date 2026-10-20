@@ -46,12 +46,15 @@ import java.util.concurrent.TimeUnit
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+/** The id the scripted server's chat carries, as the tablet's `untitled.chat` did. */
+private const val CHAT_ID = "02ef3329e61d445dbfb24985d749ba04"
+
 /** The contract, against a loopback socket scripted to answer the way jupyterlab-chat's does. */
 class OkHttpAgentChatTest : AgentChatContract() {
   @get:Rule val serverRule = MockWebServerRule()
 
-  override fun chat(history: List<ChatMessage>, replies: Map<String, String>): AgentChat {
-    serverRule.server.dispatcher = ChatLikeTheTabletsServer(history, replies)
+  override fun chat(history: List<ChatMessage>, replies: Map<String, String>, writing: Boolean): AgentChat {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(history, replies, writing = writing)
     return chatUnderTest()
   }
 
@@ -223,6 +226,49 @@ class OkHttpAgentChatTest : AgentChatContract() {
     assertTrue("$failure", failure.message!!.contains("No pending permission request"))
   }
 
+  /**
+   * The chat's id from its `connection` frame, as a query parameter, which is what `CancelHandler`
+   * finds the chat's personas by (jupyter_ai_persona_manager `handlers.py`, in the shipped rootfs).
+   */
+  @Test
+  fun stop_postsTheChatsIdWithTheToken() = runBlocking {
+    val server = ChatLikeTheTabletsServer(writing = true)
+    serverRule.server.dispatcher = server
+    val chat = chatUnderTest()
+
+    whileOpen(chat) { chat.stop() }
+
+    val cancel = server.cancels.single()
+    assertEquals("POST", cancel.method)
+    assertEquals("token secret-token", cancel.headers["Authorization"])
+    assertEquals(CHAT_ID, cancel.url.queryParameter("chat_id"))
+  }
+
+  /** Until its personas are initialized a chat has no persona manager, and `CancelHandler` answers 404. */
+  @Test
+  fun stop_failsWithTheServersAnswerWhenTheChatHasNoPersonasYet() = runBlocking {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(writing = true, personasReady = false)
+    val chat = chatUnderTest()
+
+    val failure = whileOpen(chat) { runCatching { chat.stop() }.exceptionOrNull() }
+
+    assertTrue("$failure", failure is AgentChatException)
+    assertTrue("$failure", failure!!.message!!.contains("http 404"))
+    assertTrue("$failure", failure.message!!.contains("Chat not initialized: $CHAT_ID"))
+  }
+
+  /** Runs [action] once [chat] has opened, while its transcript is still collected. */
+  private suspend fun <T> whileOpen(chat: AgentChat, action: suspend () -> T): T = withTimeout(TIMEOUT_MILLIS) {
+    val opened = Channel<Unit>(Channel.CONFLATED)
+    val collecting = launch { chat.transcript().collect { opened.send(Unit) } }
+    opened.receive()
+    try {
+      action()
+    } finally {
+      collecting.cancelAndJoin()
+    }
+  }
+
   private suspend fun awaitTouches(server: ChatLikeTheTabletsServer, count: Int) = withTimeout(TIMEOUT_MILLIS) {
     while (server.touches.size < count) delay(HEARTBEAT)
   }
@@ -272,6 +318,10 @@ class OkHttpAgentChatTest : AgentChatContract() {
  * @param dropOn a question the server drops the socket for instead of echoing it, as an exiting server
  *   would; asked only once the chat is open, so the drop never races the `connection` frame.
  * @param meStatus what `GET /api/me` answers; every one is kept in [touches].
+ * @param writing whether the persona is writing a reply as the chat opens: a `writing` frame follows
+ *   `connection`, as `set_status` broadcasts one (jupyter_ai_persona_manager `base_persona.py`).
+ * @param personasReady whether the chat has its persona manager, without which `POST
+ *   /api/ai/personas/cancel` answers 404; with it, the cancel stops the persona's writing.
  *
  * A history message's tool calls go out in its `metadata.tool_calls` ([toolCallsOnTheWire]). A
  * `POST /ai/acp/permissions` for a call awaiting the user resolves it with the option and sends the
@@ -285,12 +335,17 @@ private class ChatLikeTheTabletsServer(
   private val ending: (WebSocket) -> Unit = {},
   private val dropOn: String? = null,
   private val meStatus: Int = 200,
+  private val writing: Boolean = false,
+  private val personasReady: Boolean = true,
 ) : Dispatcher() {
   /** The `Authorization` header of every `GET /api/me`, in the order they came. */
   val touches: MutableList<String> = CopyOnWriteArrayList()
 
   /** Every `POST /ai/acp/permissions`, in the order they came. */
   val decisions: MutableList<RecordedRequest> = CopyOnWriteArrayList()
+
+  /** Every `POST /api/ai/personas/cancel`, in the order they came. */
+  val cancels: MutableList<RecordedRequest> = CopyOnWriteArrayList()
 
   private val held = history.toMutableList()
 
@@ -302,7 +357,19 @@ private class ChatLikeTheTabletsServer(
       MockResponse.Builder().code(meStatus).body("{}").build()
     }
     "/ai/acp/permissions" -> decide(request)
-    else -> MockResponse.Builder().webSocketUpgrade(Speaker()).build()
+    else -> if (request.url.encodedPath == "/api/ai/personas/cancel") cancel(request) else upgrade()
+  }
+
+  private fun upgrade(): MockResponse = MockResponse.Builder().webSocketUpgrade(Speaker()).build()
+
+  private fun cancel(request: RecordedRequest): MockResponse {
+    cancels += request
+    val chatId = request.url.queryParameter("chat_id")
+    if (!personasReady || chatId != CHAT_ID) {
+      return MockResponse.Builder().code(NOT_FOUND).body("""{"message": "Chat not initialized: $chatId"}""").build()
+    }
+    open?.send(writingFrame(false))
+    return MockResponse.Builder().body("""{"status": "cancelled", "cancelled": ["$PERSONA"]}""").build()
   }
 
   private fun decide(request: RecordedRequest): MockResponse {
@@ -334,7 +401,9 @@ private class ChatLikeTheTabletsServer(
         held.forEach { add(wire(it, if (it.fromMe) EARLIER_ME else PERSONA)) }
       }
       val users = buildJsonObject { listOf(EARLIER_ME, ME, PERSONA).forEach { put(it, user(it)) } }
-      webSocket.send(frame("connection", "user" to user(ME), "messages" to messages, "users" to users))
+      val id = "id" to JsonPrimitive(CHAT_ID)
+      webSocket.send(frame("connection", id, "user" to user(ME), "messages" to messages, "users" to users))
+      if (writing) webSocket.send(writingFrame(true))
       streamed.forEach { webSocket.send(frame("message", "message" to wire("streamed", it, PERSONA))) }
       ending(webSocket)
     }
@@ -364,6 +433,9 @@ private class ChatLikeTheTabletsServer(
     put("time", JsonPrimitive(0.0))
     if (message.toolCalls.isNotEmpty()) put("metadata", toolCallsOnTheWire(message.toolCalls))
   }
+
+  private fun writingFrame(state: Boolean): String =
+    frame("writing", "user" to user(PERSONA), "state" to JsonPrimitive(state))
 
   private fun user(username: String) = buildJsonObject {
     put("username", JsonPrimitive(username))

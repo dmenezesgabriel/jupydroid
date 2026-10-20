@@ -17,7 +17,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * A chat already holding [history], whose agent answers each question in [replies] with the reply it
- * maps to and every other question with nothing.
+ * maps to and every other question with nothing; when [writing], its agent is writing a reply until
+ * it is stopped.
  *
  * What the panel talks to where the Space has no server, so it still opens and claims no answer
  * nobody gave: with nothing configured, a question goes unanswered.
@@ -26,9 +27,12 @@ import java.util.concurrent.atomic.AtomicInteger
  * FakeAgentChat(replies = mapOf("hello?" to "hi")).ask("hello?") // while transcript() is collected
  * ```
  */
-class FakeAgentChat(history: List<ChatMessage> = emptyList(), private val replies: Map<String, String> = emptyMap()) :
-  AgentChat {
-  private val shown = MutableStateFlow(ChatTranscript(history))
+class FakeAgentChat(
+  history: List<ChatMessage> = emptyList(),
+  private val replies: Map<String, String> = emptyMap(),
+  writing: Boolean = false,
+) : AgentChat {
+  private val shown = MutableStateFlow(ChatTranscript(history, agentWriting = writing))
   private val collectors = AtomicInteger()
 
   override fun transcript(): Flow<ChatTranscript> = shown
@@ -51,6 +55,11 @@ class FakeAgentChat(history: List<ChatMessage> = emptyList(), private val replie
       if (it.awaits(call)) it.copy(permission = ToolCallPermission.Resolved(option)) else it
     }
     shown.update { it.with(holding.copy(toolCalls = resolved)) }
+  }
+
+  override suspend fun stop() {
+    if (collectors.get() == 0) throw AgentChatException("the chat is not open")
+    shown.update { it.copy(agentWriting = false) }
   }
 
   private fun ToolCall.awaits(call: ToolCall): Boolean = id == call.id && permission is ToolCallPermission.Pending

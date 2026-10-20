@@ -42,4 +42,12 @@ class ChatTranscriptTest {
 
     assertEquals(listOf(question, calls), ChatTranscript(listOf(question, calls)).messagesShown)
   }
+
+  /** A message streams in while the agent writes, and its writing is no message's to end. */
+  @Test
+  fun aMessageArrivingKeepsWhetherTheAgentWrites() {
+    val writing = ChatTranscript(listOf(question), agentWriting = true)
+
+    assertEquals(true, writing.with(ChatMessage(id = "r", body = "1", fromMe = false)).agentWriting)
+  }
 }

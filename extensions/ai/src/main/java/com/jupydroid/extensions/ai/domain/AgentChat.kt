@@ -36,6 +36,14 @@ interface AgentChat {
    * @throws ToolCallChoiceException when nothing waits on that call any more, or the server refuses.
    */
   suspend fun choose(call: ToolCall, option: PermissionOption)
+
+  /**
+   * Stops the reply an agent is writing. What it wrote so far stays, and [transcript] then says no
+   * agent writes ([ChatTranscript.agentWriting]); with none writing, nothing happens.
+   *
+   * @throws AgentChatException when no [transcript] is being collected, or the server refuses.
+   */
+  suspend fun stop()
 }
 
 /** The chat failed, or was asked [question] while it was not open. */

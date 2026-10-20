@@ -18,9 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -101,15 +103,22 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
         )
       }
     }
-    QuestionField(enabled = reading is ChatReading.Open) { question ->
+    // A refused question or stop is shown as the chat failing, with what refused it.
+    val attempt: (suspend () -> Unit) -> Unit = { action ->
       scope.launch {
         try {
-          chat.ask(question)
+          action()
         } catch (failure: AgentChatException) {
           reading = ChatReading.Failed(failure.message.orEmpty())
         }
       }
     }
+    QuestionField(
+      enabled = reading is ChatReading.Open,
+      writing = (reading as? ChatReading.Open)?.transcript?.agentWriting == true,
+      onAsk = { question -> attempt { chat.ask(question) } },
+      onStop = { attempt { chat.stop() } },
+    )
   }
 }
 
@@ -176,13 +185,15 @@ private fun MessageRow(message: ChatMessage, onChoose: suspend (ToolCall, Permis
 /**
  * The question being written; Send clears it and hands it to [onAsk]. One bordered box, the field
  * above and Send in a row beneath it, as jupyter-chat draws its input
- * (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/input/chat-input.tsx`).
+ * (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/input/chat-input.tsx`). While an agent
+ * is [writing], Stop sits left of Send, where jupyter-chat's registration, commented out until its
+ * click is done, puts it: 90 to Send's 100 (`packages/jupyter-chat/src/components/input/toolbar-registry.tsx`).
  *
  * While the field has the caret it publishes [ChatKeyRow] to the window, as a cell publishes its
  * symbol row. The question is a [TextFieldValue] rather than a `String` so a key can go in at the caret.
  */
 @Composable
-private fun QuestionField(enabled: Boolean, onAsk: (String) -> Unit) {
+private fun QuestionField(enabled: Boolean, writing: Boolean, onAsk: (String) -> Unit, onStop: () -> Unit) {
   var question by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
   var focused by remember { mutableStateOf(false) }
   if (focused) {
@@ -206,6 +217,7 @@ private fun QuestionField(enabled: Boolean, onAsk: (String) -> Unit) {
     // 8 dp, and the button's 48 dp touch target adds 4 dp around its 40 dp face: the face sits
     // 12 dp in, as jupyter-chat's toolbar pads its 24 px button.
     Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
+      if (writing) StopButton(onStop)
       SendButton(enabled = enabled && question.text.isNotBlank()) {
         onAsk(question.text)
         question = TextFieldValue()
@@ -242,6 +254,17 @@ private fun QuestionText(
       contentPadding = PaddingValues(12.dp),
       container = {},
     )
+  }
+}
+
+/**
+ * jupyter-chat's stop is a plain icon button with MUI's `StopIcon`, titled "Stop generating"
+ * (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/input/buttons/stop-button.tsx`).
+ */
+@Composable
+private fun StopButton(onClick: () -> Unit) {
+  IconButton(onClick = onClick, modifier = Modifier.testTag("chat-stop")) {
+    Icon(Icons.Filled.Stop, contentDescription = "Stop")
   }
 }
 

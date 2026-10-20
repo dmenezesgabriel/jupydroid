@@ -18,11 +18,13 @@ import org.junit.Test
 abstract class AgentChatContract {
   /**
    * A chat already holding [history], whose agent answers each question in [replies] with the reply
-   * it maps to, and every other question with nothing.
+   * it maps to, and every other question with nothing; when [writing], its agent is writing a reply
+   * as the chat opens.
    */
   protected abstract fun chat(
     history: List<ChatMessage> = emptyList(),
     replies: Map<String, String> = emptyMap(),
+    writing: Boolean = false,
   ): AgentChat
 
   /** What was asked before the chat was opened again is still the user's, and the answer the agent's. */
@@ -80,6 +82,23 @@ abstract class AgentChatContract {
       assertTrue("$failure", failure is AgentChatException)
       assertTrue("$failure", failure!!.message!!.contains("'Allow once' for 'echo probe'"))
     }
+  }
+
+  @Test
+  fun stoppingAWritingAgentEndsItsWriting() = withOpenChat(chat(writing = true)) { chat, transcripts ->
+    transcripts.until { it.agentWriting }
+
+    chat.stop()
+
+    transcripts.until { !it.agentWriting }
+  }
+
+  @Test
+  fun stoppingAChatNobodyOpenedThrows() = runBlocking {
+    val failure = runCatching { chat(writing = true).stop() }.exceptionOrNull()
+
+    assertTrue("$failure", failure is AgentChatException)
+    assertTrue("$failure", failure!!.message!!.contains("not open"))
   }
 
   private fun withOpenChat(chat: AgentChat, check: suspend (AgentChat, ReceiveChannel<ChatTranscript>) -> Unit) =

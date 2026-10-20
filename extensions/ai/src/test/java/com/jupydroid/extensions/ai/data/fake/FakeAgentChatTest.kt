@@ -5,6 +5,6 @@ import com.jupydroid.extensions.ai.domain.AgentChatContract
 import com.jupydroid.extensions.ai.domain.ChatMessage
 
 class FakeAgentChatTest : AgentChatContract() {
-  override fun chat(history: List<ChatMessage>, replies: Map<String, String>): AgentChat =
-    FakeAgentChat(history, replies)
+  override fun chat(history: List<ChatMessage>, replies: Map<String, String>, writing: Boolean): AgentChat =
+    FakeAgentChat(history, replies, writing)
 }

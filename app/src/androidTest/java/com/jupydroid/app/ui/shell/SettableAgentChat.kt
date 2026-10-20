@@ -24,4 +24,6 @@ class SettableAgentChat(first: ChatTranscript) : AgentChat {
   override suspend fun ask(question: String) = Unit
 
   override suspend fun choose(call: ToolCall, option: PermissionOption) = Unit
+
+  override suspend fun stop() = Unit
 }

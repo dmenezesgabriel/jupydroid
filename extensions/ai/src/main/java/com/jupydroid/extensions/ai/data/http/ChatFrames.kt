@@ -94,18 +94,27 @@ internal data class WirePermissionOption(@SerialName("option_id") val id: String
   fun toPermissionOption(): PermissionOption = PermissionOption(id = id, name = name, rejects = "reject" in kind)
 }
 
-/** What the panel draws from a server frame; `users`, `metadata` and `writing` draw nothing yet. */
+/** What the panel draws from a server frame; `users` and `metadata` draw nothing yet. */
 internal sealed interface ServerFrame {
   /**
+   * @param chatId the chat's stable id (jupyterlab_chat `websocket_model.py`, `get_id`, in the shipped
+   *   rootfs), which a request about the chat rather than its socket names it by.
    * @param humans every username the chat knows that is no bot, this socket's own among them. A
    *   device has one person, and jupyter_server names them afresh on every socket: a token with no
    *   login cookie gets `generate_anonymous_user`, a new `uuid4` (jupyter_server 2.20.0
    *   `auth/identity.py`, `IdentityProvider.get_user_token`). So the question asked before a relaunch
    *   is an earlier user's, and only `bot` tells it from a persona's answer (ADR-0106).
    */
-  data class Connection(val humans: Set<String>, val messages: List<WireMessage>) : ServerFrame
+  data class Connection(val chatId: String, val humans: Set<String>, val messages: List<WireMessage>) : ServerFrame
 
   data class Message(val message: WireMessage) : ServerFrame
+
+  /**
+   * [agent], a bot, started writing a reply or stopped. A persona says so when its reply starts and
+   * once it ends or is stopped (jupyter_ai_acp_client `default_acp_client.py`, `prompt_and_reply` and
+   * `stop_streaming`, in the shipped rootfs); the frame is never in the `.chat` file.
+   */
+  data class Writing(val agent: String, val writing: Boolean) : ServerFrame
 
   data object Other : ServerFrame
 }
@@ -123,13 +132,19 @@ internal object ChatFrames {
   /** Enough of an unexpected frame to recognise it by. */
   private const val FRAME_EXCERPT = 200
 
-  /** One server frame; `connection` and `message` are the two the transcript is made of. */
+  /**
+   * One server frame; `connection` and `message` are the two the transcript is made of. A person's
+   * `writing` is nothing to draw: jupyter-chat offers Stop only while a bot writes
+   * (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/input/buttons/stop-button.tsx`).
+   */
   fun parse(text: String): ServerFrame {
     val frame = runCatching { lenient.decodeFromString<IncomingFrame>(text) }.getOrNull()
-    val user = frame?.user?.username
+    val user = frame?.user
     return when {
-      frame?.action == "connection" && user != null -> ServerFrame.Connection(frame.humans() + user, frame.messages)
+      frame?.action == "connection" && user != null && frame.id != null ->
+        ServerFrame.Connection(frame.id, frame.humans() + user.username, frame.messages)
       frame?.action == "message" && frame.message != null -> ServerFrame.Message(frame.message)
+      frame?.action == "writing" && user?.bot == true -> ServerFrame.Writing(user.username, frame.state)
       frame != null && frame.action !in TRANSCRIPT_ACTIONS -> ServerFrame.Other
       else -> throw AgentChatException(
         "the chat sent a frame that is not jupyterlab-chat's: ${text.take(FRAME_EXCERPT)}",
@@ -152,7 +167,9 @@ internal object ChatFrames {
 @Serializable
 private data class IncomingFrame(
   val action: String,
+  val id: String? = null,
   val user: FrameUser? = null,
+  val state: Boolean = false,
   val messages: List<WireMessage> = emptyList(),
   val message: WireMessage? = null,
   val users: Map<String, FrameUser> = emptyMap(),

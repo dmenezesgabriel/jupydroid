@@ -51,8 +51,10 @@ enum class ToolCallStatus { Running, Completed, Failed }
  * ```
  * ChatTranscript().with(ChatMessage("q", "hello?", fromMe = true)).messages // [q]
  * ```
+ *
+ * @param agentWriting whether an agent is writing a reply now, which only then can be stopped.
  */
-data class ChatTranscript(val messages: List<ChatMessage> = emptyList()) {
+data class ChatTranscript(val messages: List<ChatMessage> = emptyList(), val agentWriting: Boolean = false) {
   /**
    * [messages] without those that have neither text nor a tool call: jupyter-ai's ACP client creates
    * every message of an agent's with an empty body, and one that holds the agent's tool calls keeps it,
@@ -70,7 +72,7 @@ data class ChatTranscript(val messages: List<ChatMessage> = emptyList()) {
    */
   fun with(message: ChatMessage): ChatTranscript {
     val index = messages.indexOfFirst { it.id == message.id }
-    if (index < 0) return ChatTranscript(messages + message)
-    return ChatTranscript(messages.toMutableList().apply { set(index, message) })
+    if (index < 0) return copy(messages = messages + message)
+    return copy(messages = messages.toMutableList().apply { set(index, message) })
   }
 }

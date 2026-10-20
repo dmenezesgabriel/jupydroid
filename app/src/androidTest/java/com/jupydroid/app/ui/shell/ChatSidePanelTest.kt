@@ -204,6 +204,28 @@ class ChatSidePanelTest {
     compose.onNodeWithText("- Allow once").assertIsDisplayed()
   }
 
+  /** jupyter-chat enables Stop only while a bot writes (jupyter-chat@2c224bc `stop-button.tsx`). */
+  @Test
+  fun stopIsNotOfferedWhileNoAgentWrites() {
+    show()
+
+    compose.onNodeWithTag("chat-stop").assertDoesNotExist()
+  }
+
+  /** Stop sits left of Send, at 90 to Send's 100 in jupyter-chat's registration (`toolbar-registry.tsx`). */
+  @Test
+  fun stopBesideSendStopsTheReplyAndGoesAway() {
+    show(FakeAgentChat(writing = true))
+
+    val stop = bounds("chat-stop")
+    val send = bounds("chat-send")
+    assertTrue("Stop $stop is not left of Send $send", stop.right <= send.left)
+    assertEquals(send.center.y, stop.center.y, 1f)
+    compose.onNodeWithTag("chat-stop").performClick()
+
+    compose.onNodeWithTag("chat-stop").assertDoesNotExist()
+  }
+
   /** A rejected call is a cross, whatever the agent then says of its status (`ToolCallRow`'s `isRejected`). */
   @Test
   fun aRejectedCallIsACrossBesideTheOptionChosen() {
