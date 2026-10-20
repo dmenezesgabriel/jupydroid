@@ -8,7 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.port.SteppingCommand
-import com.jupydroid.app.ui.shell.KeyRowPublished
+import com.jupydroid.extension.api.KeyRowPublished
 
 /**
  * Which bar the notebook has along its bottom edge - one of two, or none.

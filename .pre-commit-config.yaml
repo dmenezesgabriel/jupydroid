@@ -96,7 +96,7 @@ repos:
         name: ktlint format check
         entry: >-
           scripts/gradlew-jbr ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck
-          :extension-api:ktlintMainSourceSetCheck
+          :extension-api:ktlintMainSourceSetCheck :extension-api:ktlintTestSourceSetCheck
           :extensions:git:ktlintMainSourceSetCheck :extensions:git:ktlintTestSourceSetCheck
           :extensions:ai:ktlintMainSourceSetCheck :extensions:ai:ktlintTestSourceSetCheck
         language: system
@@ -120,7 +120,7 @@ repos:
       # test file that cannot compile still passed the gate until it was named (ADR-0016).
       - id: unit-tests
         name: unit tests, and androidTest compiles
-        entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :extensions:git:testDebugUnitTest :extensions:ai:testDebugUnitTest
+        entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :extension-api:testDebugUnitTest :extensions:git:testDebugUnitTest :extensions:ai:testDebugUnitTest
         language: system
         pass_filenames: false
         always_run: true

@@ -19,6 +19,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.extension.api.KeyRowPublished
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

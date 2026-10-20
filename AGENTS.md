@@ -230,12 +230,12 @@ Local verification command (same as the commit gate):
 ```sh
 JAVA_HOME=<jdk> ./gradlew \
   ktlintCheck ktlintMainSourceSetCheck ktlintTestSourceSetCheck ktlintAndroidTestSourceSetCheck \
-  :extension-api:ktlintMainSourceSetCheck \
+  :extension-api:ktlintMainSourceSetCheck :extension-api:ktlintTestSourceSetCheck \
   :extensions:git:ktlintMainSourceSetCheck :extensions:git:ktlintTestSourceSetCheck \
   :extensions:ai:ktlintMainSourceSetCheck :extensions:ai:ktlintTestSourceSetCheck \
   detekt :extension-api:detekt :extensions:git:detekt :extensions:ai:detekt \
   lintDebug :extension-api:lintDebug :extensions:git:lintDebug :extensions:ai:lintDebug \
-  testDebugUnitTest :extensions:git:testDebugUnitTest :extensions:ai:testDebugUnitTest \
+  testDebugUnitTest :extension-api:testDebugUnitTest :extensions:git:testDebugUnitTest :extensions:ai:testDebugUnitTest \
   compileDebugAndroidTestKotlin assembleDebug
 ```
 

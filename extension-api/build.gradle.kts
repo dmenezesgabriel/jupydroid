@@ -41,4 +41,6 @@ ktlint {
 dependencies {
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.ui)
+
+    testImplementation(libs.junit)
 }

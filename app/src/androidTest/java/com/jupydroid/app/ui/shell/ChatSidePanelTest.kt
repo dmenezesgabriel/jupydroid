@@ -1,18 +1,34 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -146,6 +162,51 @@ class ChatSidePanelTest {
     compose.onNodeWithTag("chat-send").assertIsEnabled()
   }
 
+  /** The question's keys are the window's row, as a cell's are, though Chat sits in a side panel. */
+  @Test
+  fun aFocusedQuestionPublishesItsKeysAcrossTheWindow() {
+    showBesideAPane()
+
+    compose.onNodeWithTag("chat-input").performClick()
+
+    assertEquals(compose.onRoot().getBoundsInRoot().width, compose.onNodeWithTag(CHAT_KEY_ROW).getBoundsInRoot().width)
+  }
+
+  @Test
+  fun theRowsKeysTypeIntoTheQuestion() {
+    showBesideAPane()
+    compose.onNodeWithTag("chat-input").performClick()
+
+    rowKey("@").performClick()
+    rowKey("/").performClick()
+
+    compose.onNodeWithTag("chat-input").assert(hasText("@/"))
+  }
+
+  /** A question is prose: Tab would indent nothing, and there is no kernel history to walk. */
+  @Test
+  fun theQuestionsRowCarriesNoTabAndNoHistoryKeys() {
+    showBesideAPane()
+
+    compose.onNodeWithTag("chat-input").performClick()
+
+    rowKey("@").assertIsDisplayed()
+    rowKey("Tab").assertDoesNotExist()
+    rowKey("Hist ↑").assertDoesNotExist()
+  }
+
+  @Test
+  fun theRowLeavesWithTheCaret() {
+    lateinit var focus: FocusManager
+    showBesideAPane { focus = LocalFocusManager.current }
+    compose.onNodeWithTag("chat-input").performClick()
+    compose.onNodeWithTag(CHAT_KEY_ROW).assertIsDisplayed()
+
+    compose.runOnIdle { focus.clearFocus() }
+
+    compose.onNodeWithTag(CHAT_KEY_ROW).assertDoesNotExist()
+  }
+
   /** Where the node tagged [tag] is drawn, in the root's pixels. */
   private fun bounds(tag: String): Rect = compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
 
@@ -162,10 +223,33 @@ class ChatSidePanelTest {
     }
   }
 
+  /** The panel at a side pane's width beside a wider one, under the window's key row as the app draws it. */
+  private fun showBesideAPane(alsoCompose: @Composable () -> Unit = {}) {
+    compose.setContent {
+      alsoCompose()
+      JupyterDroidTheme {
+        WindowKeyRowHosted {
+          Row(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.width(SIDE_PANE)) {
+              ContributedSidePanel(contribution = chat, host = SidePanelHost(browsedDirectory = "", server = null))
+            }
+            Box(modifier = Modifier.weight(1f))
+          }
+        }
+      }
+    }
+  }
+
+  /** A key on Chat's row, and not one with the same text elsewhere. */
+  private fun rowKey(text: String) = compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(CHAT_KEY_ROW)))
+
   private companion object {
     /** Taller than any screen the tests run on, one number per line. */
     val LONG_ANSWER = (1..200).joinToString("\n")
 
     const val TIMEOUT_MILLIS = 5_000L
+
+    const val CHAT_KEY_ROW = "chat_key_row"
+    val SIDE_PANE = 360.dp
   }
 }

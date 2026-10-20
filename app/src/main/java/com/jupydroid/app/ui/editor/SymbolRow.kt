@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import com.jupydroid.app.ui.shell.KeyRowPublished
+import com.jupydroid.extension.api.KeyRowPublished
 
 /**
  * [SymbolRow]'s own handle for an external driver - `CONSOLE_INPUT_FIELD_TAG`'s own precedent.

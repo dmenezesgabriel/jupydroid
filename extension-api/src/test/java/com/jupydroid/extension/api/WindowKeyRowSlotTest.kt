@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui.shell
+package com.jupydroid.extension.api
 
 import androidx.compose.runtime.Composable
 import org.junit.Assert.assertNull

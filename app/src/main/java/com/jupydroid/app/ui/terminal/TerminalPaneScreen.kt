@@ -64,7 +64,7 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
-import com.jupydroid.app.ui.shell.KeyRowPublished
+import com.jupydroid.extension.api.KeyRowPublished
 import kotlinx.coroutines.flow.drop
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */

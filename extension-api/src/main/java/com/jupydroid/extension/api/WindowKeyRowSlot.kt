@@ -1,19 +1,12 @@
-package com.jupydroid.app.ui.shell
+package com.jupydroid.extension.api
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.Modifier
 
 /**
  * The window's one row of keys above the soft keyboard, and which screen's keys it is showing.
@@ -24,6 +17,9 @@ import androidx.compose.ui.Modifier
  * `app/src/main/res/layout/activity_termux.xml`, `terminal_toolbar_view_pager`). The keys are still
  * the screen's to choose, because a cell wants `:` and a terminal wants Ctrl, so the screen
  * being typed into publishes its own row here.
+ *
+ * Here rather than in `:app` because an extension's panel is typed into too, and an extension
+ * builds against this module and never against `:app` (ADR-0104).
  *
  * ```
  * val slot = WindowKeyRowSlot()
@@ -50,36 +46,19 @@ class WindowKeyRowSlot {
   }
 }
 
-/** The slot [KeyRowPublished] publishes into; null where no [WindowKeyRowHosted] is above it. */
-private val LocalWindowKeyRowSlot = staticCompositionLocalOf<WindowKeyRowSlot?> { null }
-
 /**
- * Draws [content] with the published key row beneath it, across the window's width.
+ * The slot [KeyRowPublished] publishes into; null where no host is above it.
  *
- * **The keyboard's inset is paid here, once, for everything [content] draws.** `imePadding`
- * consumes the inset for its descendants, so every screen's own `imePadding` below reads zero
- * rather than lifting a second time. Without it the row would sit above the keyboard while the
- * screens beside it still paid for the keyboard themselves, counting it twice.
- *
- * ```
- * WindowKeyRowHosted { MainNavigation(appContainer, sharedNotebook, onImportConsumed) }
- * ```
+ * Public only so the host can provide it - `app/src/main/java/com/jupydroid/app/ui/shell/WindowKeyRowHosted.kt`,
+ * in another module. An extension publishes through [KeyRowPublished] and never reads this.
  */
-@Composable
-fun WindowKeyRowHosted(slot: WindowKeyRowSlot = remember { WindowKeyRowSlot() }, content: @Composable () -> Unit) {
-  Column(modifier = Modifier.fillMaxSize().imePadding()) {
-    Box(modifier = Modifier.weight(1f)) {
-      CompositionLocalProvider(LocalWindowKeyRowSlot provides slot, content = content)
-    }
-    slot.row?.invoke()
-  }
-}
+val LocalWindowKeyRowSlot = staticCompositionLocalOf<WindowKeyRowSlot?> { null }
 
 /**
  * Puts [row] in the window's key row while this is composed, and takes it away when it leaves.
  *
- * With no [WindowKeyRowHosted] above it, as when a screen is composed alone in a test, [row] is
- * drawn here instead, so the screen keeps its keys.
+ * With no host above it, as when a screen is composed alone in a test, [row] is drawn here
+ * instead, so the screen keeps its keys.
  *
  * ```
  * EditorBottomBar.SYMBOLS -> KeyRowPublished { SymbolRow(input = cellInput) }
