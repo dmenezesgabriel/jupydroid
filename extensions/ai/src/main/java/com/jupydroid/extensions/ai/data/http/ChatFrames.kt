@@ -2,6 +2,9 @@ package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallStatus
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
@@ -19,8 +22,48 @@ internal const val OPENCODE_PERSONA_ID = "jupyter-ai-personas::jupyter_ai_acp_cl
 
 /** A message as the socket carries it; `sender` is a username, a persona's being its id. */
 @Serializable
-internal data class WireMessage(val id: String, val body: String = "", val sender: String) {
-  fun toChatMessage(humans: Set<String>): ChatMessage = ChatMessage(id = id, body = body, fromMe = sender in humans)
+internal data class WireMessage(
+  val id: String,
+  val body: String = "",
+  val sender: String,
+  val metadata: WireMetadata = WireMetadata(),
+) {
+  fun toChatMessage(humans: Set<String>): ChatMessage = ChatMessage(
+    id = id,
+    body = body,
+    fromMe = sender in humans,
+    toolCalls = metadata.toolCalls.map(WireToolCall::toToolCall),
+  )
+}
+
+/**
+ * The part of a message's metadata the panel reads. jupyter-ai's ACP client replaces it with
+ * `{"tool_calls": [...]}` each time one of the message's calls changes (jupyter_ai_acp_client 0.3.3
+ * `tool_call_manager.py`, `flush_tool_call`), each call a `ToolCallState` dumped with
+ * `exclude_none`, so its keys are snake_case and an unset one is absent (`tool_call_renderer.py`).
+ */
+@Serializable
+internal data class WireMetadata(@SerialName("tool_calls") val toolCalls: List<WireToolCall> = emptyList())
+
+@Serializable
+internal data class WireToolCall(
+  @SerialName("tool_call_id") val id: String,
+  val title: String,
+  val status: String? = null,
+) {
+  /**
+   * An absent status is a running call, as jupyter-chat-components reads it
+   * (jupyter-chat-components@992c6fb `src/components/grouped-tool-calls.tsx`, `ToolCallRow`).
+   */
+  fun toToolCall(): ToolCall = ToolCall(
+    id = id,
+    title = title,
+    status = when (status) {
+      "completed" -> ToolCallStatus.Completed
+      "failed" -> ToolCallStatus.Failed
+      else -> ToolCallStatus.Running
+    },
+  )
 }
 
 /** What the panel draws from a server frame; `users`, `metadata` and `writing` draw nothing yet. */

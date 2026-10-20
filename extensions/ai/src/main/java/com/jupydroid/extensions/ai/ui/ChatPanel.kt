@@ -103,7 +103,7 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
 
 @Composable
 private fun Messages(transcript: ChatTranscript, modifier: Modifier) {
-  val shown = transcript.messagesWithText
+  val shown = transcript.messagesShown
   val list = rememberLazyListState()
   FollowTheNewest(list, shown)
   LazyColumn(
@@ -139,9 +139,13 @@ private fun FollowTheNewest(list: LazyListState, shown: List<ChatMessage>) {
   }
 }
 
-/** Your question tinted, so it reads apart from the answer beneath it. */
+/**
+ * Your question tinted, so it reads apart from the answer beneath it. A message of tool calls has no
+ * text of its own and is drawn as its calls' rows, with no bubble.
+ */
 @Composable
 private fun MessageRow(message: ChatMessage) {
+  if (message.toolCalls.isNotEmpty()) return ToolCallRows(message.toolCalls)
   Surface(
     color = if (message.fromMe) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
     shape = MaterialTheme.shapes.medium,

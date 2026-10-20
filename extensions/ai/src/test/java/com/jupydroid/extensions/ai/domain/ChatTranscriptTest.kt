@@ -30,7 +30,16 @@ class ChatTranscriptTest {
     val opened = ChatMessage(id = "r", body = "", fromMe = false)
     val transcript = ChatTranscript(listOf(question, opened))
 
-    assertEquals(listOf(question), transcript.messagesWithText)
-    assertEquals(listOf(question, opened.copy(body = "1")), transcript.with(opened.copy(body = "1")).messagesWithText)
+    assertEquals(listOf(question), transcript.messagesShown)
+    assertEquals(listOf(question, opened.copy(body = "1")), transcript.with(opened.copy(body = "1")).messagesShown)
+  }
+
+  /** jupyter-ai's ACP client leaves a message of tool calls empty, its calls in metadata (`tool_call_manager.py`). */
+  @Test
+  fun aMessageHoldingOnlyToolCallsIsShown() {
+    val read = ToolCall(id = "c", title = "probe.txt", status = ToolCallStatus.Completed)
+    val calls = ChatMessage(id = "t", body = "", fromMe = false, toolCalls = listOf(read))
+
+    assertEquals(listOf(question, calls), ChatTranscript(listOf(question, calls)).messagesShown)
   }
 }

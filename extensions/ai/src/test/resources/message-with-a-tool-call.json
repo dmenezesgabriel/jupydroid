@@ -1,0 +1,45 @@
+{
+  "message": {
+    "body": "",
+    "id": "b4e093dc-870e-4170-80a5-1c1a25d76e08",
+    "time": 1792317703.2460237,
+    "sender": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+    "type": "msg",
+    "mentions": [],
+    "metadata": {
+      "tool_calls": [
+        {
+          "tool_call_id": "765737ab-0c32-4ea7-ab51-a379c2ba7d58",
+          "title": "home/jupydroid/probe.txt",
+          "kind": "read",
+          "status": "completed",
+          "raw_input": {
+            "filePath": "/home/jupydroid/probe.txt"
+          },
+          "raw_output": {
+            "output": "<path>/home/jupydroid/probe.txt</path>\n<type>file</type>\n<content>\n1: kumquat\n\n(End of file - total 1 lines)\n</content>",
+            "metadata": {
+              "preview": "kumquat",
+              "truncated": false,
+              "loaded": [],
+              "display": {
+                "type": "file",
+                "path": "/home/jupydroid/probe.txt",
+                "text": "kumquat",
+                "lineStart": 1,
+                "lineEnd": 1,
+                "totalLines": 1,
+                "truncated": false
+              }
+            }
+          },
+          "locations": [
+            "/home/jupydroid/probe.txt"
+          ]
+        }
+      ]
+    }
+  },
+  "type": "server",
+  "action": "message"
+}

@@ -20,6 +20,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -39,6 +40,8 @@ import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -142,6 +145,25 @@ class ChatSidePanelTest {
 
     compose.waitForIdle()
     assertEquals(0f, scrollRange().value())
+  }
+
+  /**
+   * A message that holds only an agent's tool calls has no text, and is drawn as one row per call, each
+   * with its mark and title, between the question and the answer around it.
+   */
+  @Test
+  fun eachToolCallIsARowWithItsMarkAndTitle() {
+    val read = ToolCall(id = "c1", title = "probe.txt", status = ToolCallStatus.Completed)
+    val run = ToolCall(id = "c2", title = "echo probe", status = ToolCallStatus.Failed)
+    val calls = ChatMessage(id = "t", body = "", fromMe = false, toolCalls = listOf(read, run))
+    show(FakeAgentChat(history = listOf(ChatMessage(id = "q", body = "read it", fromMe = true), calls)))
+
+    compose.onNodeWithText("probe.txt").assertIsDisplayed()
+    compose.onNodeWithText("\u2713").assertIsDisplayed()
+    compose.onNodeWithText("echo probe").assertIsDisplayed()
+    compose.onNodeWithText("\u2717").assertIsDisplayed()
+    val firstRow = compose.onAllNodesWithTag("chat-tool-call")[0].fetchSemanticsNode().boundsInRoot
+    assertTrue(firstRow.top >= compose.onNodeWithText("read it").fetchSemanticsNode().boundsInRoot.bottom)
   }
 
   /** A chat whose server stopped says so while it opens again, and is read back from the new one. */

@@ -1,6 +1,8 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallStatus
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -45,6 +47,37 @@ class ChatFramesTest {
     assertEquals(ServerFrame.Message(expected), frame)
   }
 
+  /**
+   * The empty message opencode's persona sent around its read tool on the tablet, its calls in
+   * `metadata.tool_calls` (jupyter_ai_acp_client 0.3.3 `tool_call_manager.py`, `flush_tool_call`).
+   */
+  @Test
+  fun aMessageFrameCarriesTheToolCallsInItsMetadata() {
+    val frame = ChatFrames.parse(resource("message-with-a-tool-call.json")) as ServerFrame.Message
+
+    val read = ToolCall(
+      id = "765737ab-0c32-4ea7-ab51-a379c2ba7d58",
+      title = "home/jupydroid/probe.txt",
+      status = ToolCallStatus.Completed,
+    )
+    assertEquals(listOf(read), frame.message.toChatMessage(humans = emptySet()).toolCalls)
+  }
+
+  /**
+   * ACP's four statuses (`acp/schema.py`, `ToolCallStatus`), and none at all, which `exclude_none`
+   * leaves off the wire and jupyter-chat-components reads as `in_progress`
+   * (jupyter-chat-components@992c6fb `src/components/grouped-tool-calls.tsx`, `ToolCallRow`).
+   */
+  @Test
+  fun aCallIsRunningUntilItCompletesOrFails() {
+    val statuses = listOf(""""pending"""", """"in_progress"""", """"completed"""", """"failed"""", null)
+
+    val read = statuses.map { status -> callWith(status).status }
+
+    val running = ToolCallStatus.Running
+    assertEquals(listOf(running, running, ToolCallStatus.Completed, ToolCallStatus.Failed, running), read)
+  }
+
   /** The second frame the tablet's server sent; nothing the panel draws comes from it. */
   @Test
   fun everyOtherActionIsNothingToDraw() {
@@ -76,6 +109,14 @@ class ChatFramesTest {
   }
 
   private fun JsonObject.text(key: String): String = getValue(key).jsonPrimitive.content
+
+  private fun callWith(status: String?): ToolCall {
+    val statusField = status?.let { """, "status": $it""" }.orEmpty()
+    val call = """{"tool_call_id": "c", "title": "ls"$statusField}"""
+    val message = """{"id": "m", "body": "", "sender": "p", "metadata": {"tool_calls": [$call]}}"""
+    val frame = ChatFrames.parse("""{"type": "server", "action": "message", "message": $message}""")
+    return (frame as ServerFrame.Message).message.toChatMessage(humans = emptySet()).toolCalls.single()
+  }
 
   private fun resource(name: String): String = javaClass.classLoader!!.getResource(name)!!.readText()
 }
