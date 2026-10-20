@@ -1,0 +1,71 @@
+appId: com.jupydroid.app
+---
+# The terminal publishes its extra-keys row to the window, as a cell's symbol row is
+# (`TerminalPaneScreen`'s `KeyRowPublished`), and its Ctrl still arms and locks there.
+#
+# Run by scripts/window-key-row-driver.sh, which runs this beside two panes and at one, reads the
+# row's bounds against the window's after each run, and proves both interrupts by file:
+# `cross-cutting.md` §8.6 forbids gating on the terminal canvas's text. Each `sleep 30` writes its
+# file only if it ran the full half-minute, and each `echo` after an interrupt reaches the shell at
+# once only if the sleep died, `p4j-3a-terminal-extra-keys.yaml`'s proof.
+#
+# Ctrl is matched inside `id: "terminal_extra_keys"`, as the symbol row's keys are inside theirs:
+# Gboard carries keys of its own with the same text.
+#
+# TABLET ONLY (SM-X216B): a real shell to interrupt; FakeTerminalGateway has no process to signal.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-new-terminal.yaml
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap settles the IME connection before typing, `p4j-3a-terminal-extra-keys.yaml`'s reason.
+- tapOn:
+    id: "terminal-input"
+- assertVisible:
+    id: "terminal_extra_keys"
+- takeScreenshot: 01-terminal-row
+
+# A tap arms Ctrl for the next letter only.
+- inputText: "sleep 30 && echo survived > wkr-survived.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    text: "Ctrl"
+    childOf:
+      id: "terminal_extra_keys"
+- assertVisible: "Ctrl, active"
+- takeScreenshot: 02-ctrl-armed
+- inputText: "c"
+- inputText: "echo interrupted > wkr-armed.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# A long-press locks it: still locked after the letter it modified, until a tap releases it.
+- inputText: "sleep 30 && echo survived > wkr-survived-locked.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    text: "Ctrl"
+    childOf:
+      id: "terminal_extra_keys"
+- inputText: "c"
+- assertVisible: "Ctrl, locked"
+- takeScreenshot: 03-ctrl-locked-after-a-letter
+- tapOn:
+    text: "Ctrl, locked"
+    childOf:
+      id: "terminal_extra_keys"
+- assertNotVisible: "Ctrl, locked"
+- inputText: "echo interrupted > wkr-locked.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 04-released
