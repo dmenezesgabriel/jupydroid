@@ -290,6 +290,10 @@ internal fun jupyterServerArgs(
   // (`usr/lib/python3.12/site-packages/jupyter_client/multikernelmanager.py` `default_kernel_name`;
   // `jupyter_server/services/kernelspecs/handlers.py`) - so the kernel a new notebook records.
   "--MappingKernelManager.default_kernel_name=$defaultKernel",
+  // A file deleted through the Contents API is gone, as one the explorer deletes is. Left on, the
+  // default, `send2trash` (in the rootfs) moves it into a hidden `~/.local/share/Trash` nothing empties
+  // (`usr/lib/python3.12/site-packages/jupyter_server/services/contents/filemanager.py`, `delete_file`).
+  "--FileContentsManager.delete_to_trash=False",
   "--no-browser",
   // DEBUG until the app is feature-complete, because the server's own account is the half of
   // every kernel investigation we could not see. The execution stall cost six sightings partly
