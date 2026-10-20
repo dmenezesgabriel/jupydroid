@@ -28,6 +28,14 @@ interface AgentChat {
    * @throws AgentChatException when no [transcript] is being collected.
    */
   suspend fun ask(question: String)
+
+  /**
+   * Answers [call], which waits on the user, with [option], one of those it offers. The call, resolved,
+   * arrives in [transcript].
+   *
+   * @throws ToolCallChoiceException when nothing waits on that call any more, or the server refuses.
+   */
+  suspend fun choose(call: ToolCall, option: PermissionOption)
 }
 
 /** The chat failed, or was asked [question] while it was not open. */

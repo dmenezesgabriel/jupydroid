@@ -1,0 +1,33 @@
+{
+  "message": {
+    "body": "",
+    "id": "5f0c2d7e-1b8a-4c39-9e64-0a7d2b3c4e51",
+    "time": 1792400000.0,
+    "sender": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+    "type": "msg",
+    "mentions": [],
+    "metadata": {
+      "tool_calls": [
+        {
+          "tool_call_id": "call_8d1f4e2a9b7c",
+          "title": "echo permission-probe",
+          "kind": "execute",
+          "status": "pending",
+          "raw_input": {
+            "command": "echo permission-probe",
+            "description": "Prints permission-probe"
+          },
+          "permission_options": [
+            {"option_id": "once", "name": "Allow once", "kind": "allow_once"},
+            {"option_id": "always", "name": "Always allow", "kind": "allow_always"},
+            {"option_id": "reject", "name": "Reject", "kind": "reject_once"}
+          ],
+          "permission_status": "pending",
+          "session_id": "ses_3a9f0c1e7bffe2"
+        }
+      ]
+    }
+  },
+  "type": "server",
+  "action": "message"
+}

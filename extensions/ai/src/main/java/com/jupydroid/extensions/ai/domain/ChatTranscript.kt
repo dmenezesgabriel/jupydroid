@@ -21,8 +21,26 @@ data class ChatMessage(
  * ```
  * ToolCall(id = "c1", title = "probe.txt", status = ToolCallStatus.Running)
  * ```
+ *
+ * @param permission whether it waits, or waited, on the user; null when the agent ran it unasked.
  */
-data class ToolCall(val id: String, val title: String, val status: ToolCallStatus)
+data class ToolCall(
+  val id: String,
+  val title: String,
+  val status: ToolCallStatus,
+  val permission: ToolCallPermission? = null,
+) {
+  /**
+   * [status], except that a call the user rejected is [ToolCallStatus.Failed] whatever the agent then
+   * reports, as jupyter-chat-components marks it (jupyter-chat-components@992c6fb
+   * `src/components/grouped-tool-calls.tsx`, `ToolCallRow`'s `isRejected`).
+   */
+  val shownStatus: ToolCallStatus
+    get() {
+      val rejected = (permission as? ToolCallPermission.Resolved)?.chosen?.rejects == true
+      return if (rejected) ToolCallStatus.Failed else status
+    }
+}
 
 /** Where a [ToolCall] stands: ACP's `pending` and `in_progress` are both still [Running]. */
 enum class ToolCallStatus { Running, Completed, Failed }

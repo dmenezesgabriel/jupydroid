@@ -2,7 +2,9 @@ package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallPermission
 import com.jupydroid.extensions.ai.domain.ToolCallStatus
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -45,11 +47,20 @@ internal data class WireMessage(
 @Serializable
 internal data class WireMetadata(@SerialName("tool_calls") val toolCalls: List<WireToolCall> = emptyList())
 
+/**
+ * One call. `request_permission` adds the agent's options, `pending` and the session to a call it
+ * asks about, and once answered sets `resolved` and the option chosen, if any
+ * (jupyter_ai_acp_client 0.3.3 `default_acp_client.py`).
+ */
 @Serializable
 internal data class WireToolCall(
   @SerialName("tool_call_id") val id: String,
   val title: String,
   val status: String? = null,
+  @SerialName("permission_status") val permissionStatus: String? = null,
+  @SerialName("permission_options") val permissionOptions: List<WirePermissionOption> = emptyList(),
+  @SerialName("selected_option_id") val selectedOptionId: String? = null,
+  @SerialName("session_id") val sessionId: String? = null,
 ) {
   /**
    * An absent status is a running call, as jupyter-chat-components reads it
@@ -63,7 +74,24 @@ internal data class WireToolCall(
       "failed" -> ToolCallStatus.Failed
       else -> ToolCallStatus.Running
     },
+    permission = permission(),
   )
+
+  private fun permission(): ToolCallPermission? {
+    val options = permissionOptions.map(WirePermissionOption::toPermissionOption)
+    return when (permissionStatus) {
+      "pending" -> sessionId?.let { ToolCallPermission.Pending(it, options) }
+      "resolved" -> ToolCallPermission.Resolved(options.find { it.id == selectedOptionId })
+      else -> null
+    }
+  }
+}
+
+/** ACP's `PermissionOption` dumped by field name (`acp/schema.py`); `kind` is one of ACP's four. */
+@Serializable
+internal data class WirePermissionOption(@SerialName("option_id") val id: String, val name: String, val kind: String) {
+  /** jupyter-chat-components counts a kind as a rejection when it contains `reject` (`grouped-tool-calls.tsx`). */
+  fun toPermissionOption(): PermissionOption = PermissionOption(id = id, name = name, rejects = "reject" in kind)
 }
 
 /** What the panel draws from a server frame; `users`, `metadata` and `writing` draw nothing yet. */

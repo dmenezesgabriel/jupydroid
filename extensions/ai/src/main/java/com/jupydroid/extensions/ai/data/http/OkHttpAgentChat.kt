@@ -7,16 +7,25 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import com.jupydroid.extensions.ai.domain.PermissionOption
+import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallChoiceException
+import com.jupydroid.extensions.ai.domain.ToolCallPermission
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
@@ -42,6 +51,7 @@ import kotlin.time.Duration.Companion.seconds
  * @param chatPath the `.chat` file, relative to the workspace root. `untitled.chat` is what
  *   jupyterlab-chat names the first chat in its `defaultDirectory`, which is the root by default
  *   (`schemas/jupyterlab-chat-extension/factory.json`); the server writes it on the first message.
+ * @param ioDispatcher where a blocking request to the server runs, as [choose]'s does.
  */
 class OkHttpAgentChat(
   private val server: SpaceServerEndpoint,
@@ -50,6 +60,7 @@ class OkHttpAgentChat(
   private val persona: String = OPENCODE_PERSONA_ID,
   private val log: ChatSocketLog = ChatSocketLog.Silent,
   private val heartbeatInterval: Duration = HEARTBEAT_INTERVAL,
+  private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AgentChat {
   private val heartbeat = ApiActivityHeartbeat(client, heartbeatInterval, log, chatPath)
 
@@ -76,6 +87,25 @@ class OkHttpAgentChat(
     val socket = open ?: throw AgentChatException("the chat is not open", question)
     val frame = ChatFrames.ask(id = UUID.randomUUID().toString(), question = question, persona = persona)
     if (!socket.send(frame)) throw AgentChatException("the chat's socket is closing", question)
+  }
+
+  /**
+   * `POST ai/acp/permissions` with the call's session, its id and the option's, as jupyter-ai's frontend
+   * sends them (jupyter-ai-acp-client@77016f6 `src/request.ts`, `submitPermissionDecision`).
+   * `PermissionHandler` answers 404 once nothing waits on the call (jupyter_ai_acp_client 0.3.3 `routes.py`).
+   */
+  override suspend fun choose(call: ToolCall, option: PermissionOption) {
+    val pending = call.permission as? ToolCallPermission.Pending
+      ?: throw ToolCallChoiceException(call, option, "nothing waits on it")
+    val decision = buildJsonObject {
+      put("session_id", pending.sessionId)
+      put("tool_call_id", call.id)
+      put("option_id", option.id)
+    }.toString()
+    val (code, body) = client.callWithToken(server, ioDispatcher) { base ->
+      url(base.newBuilder().addPathSegments("ai/acp/permissions").build()).post(decision.toRequestBody(JSON_MEDIA_TYPE))
+    }
+    if (code != HTTP_OK) throw ToolCallChoiceException(call, option, "http $code, ${body.take(BODY_EXCERPT)}")
   }
 
   private fun chatUrl(baseUrl: String): HttpUrl = baseUrl.toHttpUrl().newBuilder()
@@ -129,6 +159,10 @@ class OkHttpAgentChat(
     val HEARTBEAT_INTERVAL: Duration = 30.seconds
 
     private const val NORMAL_CLOSURE = 1000
+    private const val HTTP_OK = 200
+
+    /** Enough of an unexpected answer to recognise it by. */
+    private const val BODY_EXCERPT = 200
 
     /**
      * `EOFException`, or `ProtocolException: Expected HTTP 101 (http 403)`: the class, then its message

@@ -49,6 +49,8 @@ import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatReading
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import com.jupydroid.extensions.ai.domain.PermissionOption
+import com.jupydroid.extensions.ai.domain.ToolCall
 import com.jupydroid.extensions.ai.domain.readings
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
@@ -71,6 +73,16 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
   var reading by remember(chat) { mutableStateOf<ChatReading>(ChatReading.Opening) }
   LaunchedEffect(chat) { chat.readings().collect { reading = it } }
   val scope = rememberCoroutineScope()
+  // A refused choice is shown as a refused question is, and its row offers the options again.
+  val choose: suspend (ToolCall, PermissionOption) -> Boolean = { call, option ->
+    try {
+      chat.choose(call, option)
+      true
+    } catch (failure: AgentChatException) {
+      reading = ChatReading.Failed(failure.message.orEmpty())
+      false
+    }
+  }
   Column(modifier = modifier.fillMaxSize()) {
     when (val shown = reading) {
       ChatReading.Opening -> Spacer(Modifier.weight(1f))
@@ -79,9 +91,9 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.error,
         modifier = Modifier.weight(1f),
       )
-      is ChatReading.Open -> Messages(shown.transcript, Modifier.weight(1f))
+      is ChatReading.Open -> Messages(shown.transcript, choose, Modifier.weight(1f))
       is ChatReading.Reconnecting -> {
-        Messages(shown.transcript, Modifier.weight(1f))
+        Messages(shown.transcript, choose, Modifier.weight(1f))
         Text(
           "Reconnecting: ${shown.reason}",
           color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -102,7 +114,11 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Messages(transcript: ChatTranscript, modifier: Modifier) {
+private fun Messages(
+  transcript: ChatTranscript,
+  onChoose: suspend (ToolCall, PermissionOption) -> Boolean,
+  modifier: Modifier,
+) {
   val shown = transcript.messagesShown
   val list = rememberLazyListState()
   FollowTheNewest(list, shown)
@@ -111,7 +127,7 @@ private fun Messages(transcript: ChatTranscript, modifier: Modifier) {
     modifier = modifier.fillMaxWidth().testTag("chat-messages"),
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    items(shown, key = ChatMessage::id) { message -> MessageRow(message) }
+    items(shown, key = ChatMessage::id) { message -> MessageRow(message, onChoose) }
   }
 }
 
@@ -144,8 +160,8 @@ private fun FollowTheNewest(list: LazyListState, shown: List<ChatMessage>) {
  * text of its own and is drawn as its calls' rows, with no bubble.
  */
 @Composable
-private fun MessageRow(message: ChatMessage) {
-  if (message.toolCalls.isNotEmpty()) return ToolCallRows(message.toolCalls)
+private fun MessageRow(message: ChatMessage, onChoose: suspend (ToolCall, PermissionOption) -> Boolean) {
+  if (message.toolCalls.isNotEmpty()) return ToolCallRows(message.toolCalls, onChoose)
   Surface(
     color = if (message.fromMe) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
     shape = MaterialTheme.shapes.medium,

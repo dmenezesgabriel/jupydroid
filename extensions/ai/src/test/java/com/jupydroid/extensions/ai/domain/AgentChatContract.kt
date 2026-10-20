@@ -57,6 +57,31 @@ abstract class AgentChatContract {
     assertTrue("$failure", failure!!.message!!.contains("'hello?'"))
   }
 
+  @Test
+  fun choosingAnOptionResolvesTheCallWithIt() = withOpenChat(chat(history = listOf(AWAITING))) { chat, transcripts ->
+    val call = transcripts.receive().messages.single().toolCalls.single()
+
+    chat.choose(call, ALLOW_ONCE)
+
+    val resolved = transcripts.until { it.messages.single().toolCalls.single().permission != call.permission }
+    assertEquals(ToolCallPermission.Resolved(ALLOW_ONCE), resolved.messages.single().toolCalls.single().permission)
+  }
+
+  /** The server answers 404 when no permission is pending (jupyter_ai_acp_client 0.3.3 `routes.py`). */
+  @Test
+  fun choosingForACallNothingAwaitsThrowsAndNamesTheCall() {
+    val answered = AWAITING.toolCalls.single().copy(permission = ToolCallPermission.Resolved(ALLOW_ONCE))
+    val history = listOf(AWAITING.copy(toolCalls = listOf(answered)))
+    withOpenChat(chat(history = history)) { chat, transcripts ->
+      val call = transcripts.receive().messages.single().toolCalls.single()
+
+      val failure = runCatching { chat.choose(call, ALLOW_ONCE) }.exceptionOrNull()
+
+      assertTrue("$failure", failure is AgentChatException)
+      assertTrue("$failure", failure!!.message!!.contains("'Allow once' for 'echo probe'"))
+    }
+  }
+
   private fun withOpenChat(chat: AgentChat, check: suspend (AgentChat, ReceiveChannel<ChatTranscript>) -> Unit) =
     runBlocking {
       withTimeout(TIMEOUT_MILLIS) {
@@ -76,5 +101,23 @@ abstract class AgentChatContract {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+
+    val ALLOW_ONCE = PermissionOption(id = "once", name = "Allow once", rejects = false)
+    val REJECT = PermissionOption(id = "reject", name = "Reject", rejects = true)
+
+    /** An agent's message holding one call that waits for the user, as opencode's `bash` does. */
+    val AWAITING = ChatMessage(
+      id = "t",
+      body = "",
+      fromMe = false,
+      toolCalls = listOf(
+        ToolCall(
+          id = "c1",
+          title = "echo probe",
+          status = ToolCallStatus.Running,
+          permission = ToolCallPermission.Pending(sessionId = "s1", options = listOf(ALLOW_ONCE, REJECT)),
+        ),
+      ),
+    )
   }
 }

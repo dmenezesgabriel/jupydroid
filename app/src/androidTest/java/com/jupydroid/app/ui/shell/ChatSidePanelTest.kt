@@ -40,7 +40,9 @@ import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallPermission
 import com.jupydroid.extensions.ai.domain.ToolCallStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -166,6 +168,33 @@ class ChatSidePanelTest {
     assertTrue(firstRow.top >= compose.onNodeWithText("read it").fetchSemanticsNode().boundsInRoot.bottom)
   }
 
+  /**
+   * A call awaiting the user offers the agent's own options under "Allow?", and pressing one answers
+   * it: the row then names the option chosen, as jupyter-chat-components@992c6fb draws it
+   * (`src/components/grouped-tool-calls.tsx`, `PermissionButtons`, `PermissionLabel`).
+   */
+  @Test
+  fun aCallAwaitingApprovalOffersTheAgentsOptionsAndTakesOne() {
+    show(FakeAgentChat(history = listOf(callsMessage(awaiting()))))
+
+    compose.onNodeWithText("Allow?", substring = true).assertIsDisplayed()
+    listOf("Always allow", "Reject").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+    compose.onNodeWithText("Allow once").performClick()
+
+    compose.onNodeWithText("Allow?", substring = true).assertDoesNotExist()
+    compose.onNodeWithText("- Allow once").assertIsDisplayed()
+  }
+
+  /** A rejected call is a cross, whatever the agent then says of its status (`ToolCallRow`'s `isRejected`). */
+  @Test
+  fun aRejectedCallIsACrossBesideTheOptionChosen() {
+    val rejected = awaiting().copy(status = ToolCallStatus.Completed, permission = ToolCallPermission.Resolved(REJECT))
+    show(FakeAgentChat(history = listOf(callsMessage(rejected))))
+
+    compose.onNodeWithText("\u2717").assertIsDisplayed()
+    compose.onNodeWithText("- Reject").assertIsDisplayed()
+  }
+
   /** A chat whose server stopped says so while it opens again, and is read back from the new one. */
   @Test
   fun aDroppedChatSaysItIsReconnectingThenReadsTheChatBack() {
@@ -236,6 +265,15 @@ class ChatSidePanelTest {
   private fun scrollRange(): ScrollAxisRange = compose.onNodeWithTag("chat-messages").fetchSemanticsNode()
     .config[SemanticsProperties.VerticalScrollAxisRange]
 
+  private fun awaiting() = ToolCall(
+    id = "c1",
+    title = "echo probe",
+    status = ToolCallStatus.Running,
+    permission = ToolCallPermission.Pending(sessionId = "s1", options = listOf(ALLOW_ONCE, ALWAYS_ALLOW, REJECT)),
+  )
+
+  private fun callsMessage(call: ToolCall) = ChatMessage(id = "t", body = "", fromMe = false, toolCalls = listOf(call))
+
   private fun show(answering: AgentChat? = null) {
     val panel = answering?.let(::openOnUntitled) ?: chat
     compose.setContent {
@@ -286,5 +324,10 @@ class ChatSidePanelTest {
 
     const val CHAT_KEY_ROW = "chat_key_row"
     val SIDE_PANE = 360.dp
+
+    /** opencode's three, as its `bash` request was logged on the tablet. */
+    val ALLOW_ONCE = PermissionOption(id = "once", name = "Allow once", rejects = false)
+    val ALWAYS_ALLOW = PermissionOption(id = "always", name = "Always allow", rejects = false)
+    val REJECT = PermissionOption(id = "reject", name = "Reject", rejects = true)
   }
 }

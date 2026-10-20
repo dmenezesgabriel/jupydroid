@@ -5,8 +5,13 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+
+/** The type of every body sent to the server: each route here reads `get_json_body`. */
+internal val JSON_MEDIA_TYPE: MediaType = "application/json".toMediaType()
 
 /** What the server answered: its status code and its body, read whole. */
 internal data class SpaceServerAnswer(val code: Int, val body: String)

@@ -1,7 +1,9 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallPermission
 import com.jupydroid.extensions.ai.domain.ToolCallStatus
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -78,6 +80,52 @@ class ChatFramesTest {
     assertEquals(listOf(running, running, ToolCallStatus.Completed, ToolCallStatus.Failed, running), read)
   }
 
+  /**
+   * A call the agent asks about: `request_permission` sets the options, `pending` and the session on
+   * the call and flushes it (jupyter_ai_acp_client 0.3.3 `default_acp_client.py`), each option an ACP
+   * `PermissionOption` dumped by field name (`acp/schema.py`), with the three names opencode's request
+   * was logged with.
+   */
+  @Test
+  fun aCallAwaitingApprovalCarriesItsSessionAndTheAgentsOptions() {
+    val frame = ChatFrames.parse(resource("message-awaiting-permission.json")) as ServerFrame.Message
+
+    val call = frame.message.toChatMessage(humans = emptySet()).toolCalls.single()
+
+    val options = listOf(
+      PermissionOption(id = "once", name = "Allow once", rejects = false),
+      PermissionOption(id = "always", name = "Always allow", rejects = false),
+      PermissionOption(id = "reject", name = "Reject", rejects = true),
+    )
+    assertEquals(ToolCallPermission.Pending(sessionId = "ses_3a9f0c1e7bffe2", options = options), call.permission)
+  }
+
+  /** Once answered the call is `resolved` with `selected_option_id`, and its options stay on it. */
+  @Test
+  fun aResolvedCallCarriesTheOptionChosen() {
+    val call = callWith(
+      status = null,
+      permission = """, "permission_status": "resolved", "selected_option_id": "no", "session_id": "s",""" +
+        """ "permission_options": [{"option_id": "no", "name": "Reject", "kind": "reject_always"}]""",
+    )
+
+    val chosen = PermissionOption(id = "no", name = "Reject", rejects = true)
+    assertEquals(ToolCallPermission.Resolved(chosen), call.permission)
+  }
+
+  /** The cancelled outcome resolves the call with no option selected (`default_acp_client.py`). */
+  @Test
+  fun aCallResolvedWithNoOptionWasCancelled() {
+    val call = callWith(status = null, permission = """, "permission_status": "resolved", "session_id": "s"""")
+
+    assertEquals(ToolCallPermission.Resolved(chosen = null), call.permission)
+  }
+
+  @Test
+  fun aCallNobodyAskedAboutHasNoPermission() {
+    assertEquals(null, callWith(status = null).permission)
+  }
+
   /** The second frame the tablet's server sent; nothing the panel draws comes from it. */
   @Test
   fun everyOtherActionIsNothingToDraw() {
@@ -110,9 +158,9 @@ class ChatFramesTest {
 
   private fun JsonObject.text(key: String): String = getValue(key).jsonPrimitive.content
 
-  private fun callWith(status: String?): ToolCall {
+  private fun callWith(status: String?, permission: String = ""): ToolCall {
     val statusField = status?.let { """, "status": $it""" }.orEmpty()
-    val call = """{"tool_call_id": "c", "title": "ls"$statusField}"""
+    val call = """{"tool_call_id": "c", "title": "ls"$statusField$permission}"""
     val message = """{"id": "m", "body": "", "sender": "p", "metadata": {"tool_calls": [$call]}}"""
     val frame = ChatFrames.parse("""{"type": "server", "action": "message", "message": $message}""")
     return (frame as ServerFrame.Message).message.toChatMessage(humans = emptySet()).toolCalls.single()

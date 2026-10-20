@@ -11,7 +11,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -45,7 +44,7 @@ class OkHttpChatFiles(
 
   override suspend fun create(): ChatFile {
     val body = call("creating a chat", HTTP_CREATED) { contents ->
-      url(contents).post(UNTITLED_CHAT.toRequestBody(JSON_TYPE))
+      url(contents).post(UNTITLED_CHAT.toRequestBody(JSON_MEDIA_TYPE))
     }
     return ChatFile(lenient.decodeFromString<ListedEntry>(body).path)
   }
@@ -53,7 +52,7 @@ class OkHttpChatFiles(
   override suspend fun rename(chat: ChatFile, name: String): ChatFile {
     val moved = buildJsonObject { put("path", ChatFile.named(name).path) }.toString()
     val body = call("renaming a chat", HTTP_OK) { contents ->
-      url(contents.newBuilder().addPathSegments(chat.path).build()).patch(moved.toRequestBody(JSON_TYPE))
+      url(contents.newBuilder().addPathSegments(chat.path).build()).patch(moved.toRequestBody(JSON_MEDIA_TYPE))
     }
     return ChatFile(lenient.decodeFromString<ListedEntry>(body).path)
   }
@@ -87,8 +86,6 @@ class OkHttpChatFiles(
 
     /** The options jupyter-chat's `createChat` gives `newUntitled`, which jupyterlab posts as the body. */
     const val UNTITLED_CHAT = """{"type": "file", "ext": "${ChatFile.CHAT_EXTENSION}"}"""
-
-    val JSON_TYPE = "application/json".toMediaType()
 
     val lenient = Json { ignoreUnknownKeys = true }
   }

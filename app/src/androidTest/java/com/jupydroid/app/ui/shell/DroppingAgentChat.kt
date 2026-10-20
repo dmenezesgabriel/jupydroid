@@ -3,6 +3,8 @@ package com.jupydroid.app.ui.shell
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import com.jupydroid.extensions.ai.domain.PermissionOption
+import com.jupydroid.extensions.ai.domain.ToolCall
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
@@ -37,6 +39,8 @@ class DroppingAgentChat(private val before: ChatTranscript, private val after: C
   }
 
   override suspend fun ask(question: String) = Unit
+
+  override suspend fun choose(call: ToolCall, option: PermissionOption) = Unit
 
   companion object {
     const val DROPPED = "the chat's socket failed: EOFException"

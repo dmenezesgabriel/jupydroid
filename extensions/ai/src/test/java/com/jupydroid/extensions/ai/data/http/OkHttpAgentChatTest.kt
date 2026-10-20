@@ -8,6 +8,11 @@ import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatReading
+import com.jupydroid.extensions.ai.domain.PermissionOption
+import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.ToolCallChoiceException
+import com.jupydroid.extensions.ai.domain.ToolCallPermission
+import com.jupydroid.extensions.ai.domain.ToolCallStatus
 import com.jupydroid.extensions.ai.domain.readings
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
@@ -185,6 +190,39 @@ class OkHttpAgentChatTest : AgentChatContract() {
     assertEquals(mapOf("http" to "503", "chat" to "untitled.chat"), log.fieldsOf("chat.heartbeat.failed"))
   }
 
+  /**
+   * jupyter-ai-acp-client@77016f6's frontend posts the decision as `submitPermissionDecision` does
+   * (`src/request.ts`), the fields `PermissionHandler` reads (jupyter_ai_acp_client 0.3.3 `routes.py`).
+   */
+  @Test
+  fun choose_postsTheSessionTheCallAndTheOptionWithTheToken() = runBlocking {
+    val server =
+      ChatLikeTheTabletsServer(history = listOf(ChatMessage("t", "", fromMe = false, toolCalls = listOf(PENDING))))
+    serverRule.server.dispatcher = server
+
+    chatUnderTest().choose(PENDING, ALLOW)
+
+    val decision = server.decisions.single()
+    assertEquals("token secret-token", decision.headers["Authorization"])
+    val fields = Json.parseToJsonElement(decision.body!!.utf8()).jsonObject.mapValues { it.value.jsonPrimitive.content }
+    assertEquals(mapOf("session_id" to "s1", "tool_call_id" to "c1", "option_id" to "once"), fields)
+  }
+
+  /**
+   * The panel can still show a call waiting that the server no longer holds, when a stopped reply
+   * cancelled it (`default_acp_client.py`, `stop_streaming`): the 404 is the answer, quoted.
+   */
+  @Test
+  fun choose_failsWithTheServersAnswerWhenItHoldsNoSuchCall() {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer()
+
+    val failure = runCatching { runBlocking { chatUnderTest().choose(PENDING, ALLOW) } }.exceptionOrNull()
+
+    assertTrue("$failure", failure is ToolCallChoiceException)
+    assertTrue("$failure", failure!!.message!!.contains("http 404"))
+    assertTrue("$failure", failure.message!!.contains("No pending permission request"))
+  }
+
   private suspend fun awaitTouches(server: ChatLikeTheTabletsServer, count: Int) = withTimeout(TIMEOUT_MILLIS) {
     while (server.touches.size < count) delay(HEARTBEAT)
   }
@@ -213,6 +251,13 @@ class OkHttpAgentChatTest : AgentChatContract() {
     const val DROP = "drop the socket"
     const val QUIET_INTERVALS = 5
     val HEARTBEAT = 50.milliseconds
+    val ALLOW = PermissionOption(id = "once", name = "Allow once", rejects = false)
+    val PENDING = ToolCall(
+      id = "c1",
+      title = "echo probe",
+      status = ToolCallStatus.Running,
+      permission = ToolCallPermission.Pending(sessionId = "s1", options = listOf(ALLOW)),
+    )
   }
 }
 
@@ -227,6 +272,11 @@ class OkHttpAgentChatTest : AgentChatContract() {
  * @param dropOn a question the server drops the socket for instead of echoing it, as an exiting server
  *   would; asked only once the chat is open, so the drop never races the `connection` frame.
  * @param meStatus what `GET /api/me` answers; every one is kept in [touches].
+ *
+ * A history message's tool calls go out in its `metadata.tool_calls` ([toolCallsOnTheWire]). A
+ * `POST /ai/acp/permissions` for a call awaiting the user resolves it with the option and sends the
+ * message again, as `request_permission` flushes it; for any other it answers 404, as `PermissionHandler`
+ * does (jupyter_ai_acp_client 0.3.3 `default_acp_client.py`, `routes.py`).
  */
 private class ChatLikeTheTabletsServer(
   private val history: List<ChatMessage> = emptyList(),
@@ -239,16 +289,49 @@ private class ChatLikeTheTabletsServer(
   /** The `Authorization` header of every `GET /api/me`, in the order they came. */
   val touches: MutableList<String> = CopyOnWriteArrayList()
 
-  override fun dispatch(request: RecordedRequest): MockResponse {
-    if (request.target != "/api/me") return MockResponse.Builder().webSocketUpgrade(Speaker()).build()
-    touches += request.headers["Authorization"].orEmpty()
-    return MockResponse.Builder().code(meStatus).body("{}").build()
+  /** Every `POST /ai/acp/permissions`, in the order they came. */
+  val decisions: MutableList<RecordedRequest> = CopyOnWriteArrayList()
+
+  private val held = history.toMutableList()
+
+  @Volatile private var open: WebSocket? = null
+
+  override fun dispatch(request: RecordedRequest): MockResponse = when (request.target) {
+    "/api/me" -> {
+      touches += request.headers["Authorization"].orEmpty()
+      MockResponse.Builder().code(meStatus).body("{}").build()
+    }
+    "/ai/acp/permissions" -> decide(request)
+    else -> MockResponse.Builder().webSocketUpgrade(Speaker()).build()
+  }
+
+  private fun decide(request: RecordedRequest): MockResponse {
+    decisions += request
+    val fields = Json.parseToJsonElement(request.body!!.utf8()).jsonObject.mapValues { it.value.jsonPrimitive.content }
+    val index = held.indexOfFirst { message -> message.toolCalls.any { it.awaits(fields) } }
+    if (index < 0) return MockResponse.Builder().code(NOT_FOUND).body(NOTHING_PENDING).build()
+    val resolved = held[index].copy(toolCalls = held[index].toolCalls.map { it.resolvedBy(fields) })
+    held[index] = resolved
+    open?.send(frame("message", "message" to wire(resolved, PERSONA)))
+    return MockResponse.Builder().body("""{"status": "ok"}""").build()
+  }
+
+  private fun ToolCall.awaits(fields: Map<String, String>): Boolean {
+    val pending = permission as? ToolCallPermission.Pending ?: return false
+    return id == fields["tool_call_id"] && pending.sessionId == fields["session_id"]
+  }
+
+  private fun ToolCall.resolvedBy(fields: Map<String, String>): ToolCall {
+    if (!awaits(fields)) return this
+    val options = (permission as ToolCallPermission.Pending).options
+    return copy(permission = ToolCallPermission.Resolved(options.single { it.id == fields["option_id"] }))
   }
 
   private inner class Speaker : WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) {
+      open = webSocket
       val messages = buildJsonArray {
-        history.forEach { add(wire(it.id, it.body, if (it.fromMe) EARLIER_ME else PERSONA)) }
+        held.forEach { add(wire(it, if (it.fromMe) EARLIER_ME else PERSONA)) }
       }
       val users = buildJsonObject { listOf(EARLIER_ME, ME, PERSONA).forEach { put(it, user(it)) } }
       webSocket.send(frame("connection", "user" to user(ME), "messages" to messages, "users" to users))
@@ -272,11 +355,14 @@ private class ChatLikeTheTabletsServer(
     }
   }
 
-  private fun wire(id: String, body: String, sender: String) = buildJsonObject {
-    put("id", JsonPrimitive(id))
-    put("body", JsonPrimitive(body))
+  private fun wire(id: String, body: String, sender: String) = wire(ChatMessage(id, body, fromMe = false), sender)
+
+  private fun wire(message: ChatMessage, sender: String) = buildJsonObject {
+    put("id", JsonPrimitive(message.id))
+    put("body", JsonPrimitive(message.body))
     put("sender", JsonPrimitive(sender))
     put("time", JsonPrimitive(0.0))
+    if (message.toolCalls.isNotEmpty()) put("metadata", toolCallsOnTheWire(message.toolCalls))
   }
 
   private fun user(username: String) = buildJsonObject {
@@ -293,5 +379,10 @@ private class ChatLikeTheTabletsServer(
     /** jupyter_server makes a new anonymous user for every token-authenticated socket. */
     const val EARLIER_ME = "7e0614b6251348fe8361f4254fed2f73"
     const val PERSONA = OPENCODE_PERSONA_ID
+    const val NOT_FOUND = 404
+
+    /** Tornado's error body for `PermissionHandler`'s 404. */
+    const val NOTHING_PENDING =
+      """{"message": "No pending permission request found for this session", "reason": null}"""
   }
 }
