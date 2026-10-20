@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import com.jupydroid.app.ui.shell.KeyRowPublished
 
 /**
  * [SymbolRow]'s own handle for an external driver - `CONSOLE_INPUT_FIELD_TAG`'s own precedent.
@@ -97,6 +98,23 @@ internal fun SymbolRow(
       SymbolKey(label = "→", onClick = { input.moveCaret(1) })
     }
   }
+}
+
+/**
+ * Publishes [SymbolRow] to the window while a field holds [input]'s caret, unless the user turned
+ * the row off.
+ *
+ * For a screen with one field, the file editor and the console's prompt. The notebook decides
+ * through `editorBottomBar` instead, because its row follows the notebook's edit mode and carries
+ * the kernel-history pair.
+ *
+ * ```
+ * SymbolRowWhileTyping(input = fileInput, shown = editorSettings.symbolRowShown)
+ * ```
+ */
+@Composable
+internal fun SymbolRowWhileTyping(input: FocusedCellInput, shown: Boolean) {
+  if (shown && input.isAttached) KeyRowPublished { SymbolRow(input = input) }
 }
 
 /**

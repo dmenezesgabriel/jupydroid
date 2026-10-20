@@ -4,16 +4,20 @@ import android.content.Context
 import android.graphics.Bitmap
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
@@ -23,6 +27,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.editor.RECALL_NEXT_ENTRY
 import com.jupydroid.app.ui.editor.RECALL_PREVIOUS_ENTRY
+import com.jupydroid.app.ui.editor.SYMBOL_ROW_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -160,6 +165,57 @@ class ConsoleInputRowTest {
     }
 
     compose.onNodeWithContentDescription("Run").assertIsEnabled()
+  }
+
+  /**
+   * The prompt's symbol row, drawn inside the row here because nothing above it hosts one
+   * (`WindowKeyRowTest.withoutAHostTheRowIsDrawnWhereItWasPublished`).
+   */
+  @Test
+  fun theSymbolRowIsAbsentUntilThePromptHasTheCaret() {
+    compose.setContent {
+      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+    }
+
+    compose.onNodeWithTag(SYMBOL_ROW_TAG).assertDoesNotExist()
+  }
+
+  @Test
+  fun aKeyFromTheSymbolRowTypesIntoThePrompt() {
+    val state = TextFieldState()
+    compose.setContent {
+      JupyterDroidTheme { ConsoleInputRow(state = state, running = false, onSubmit = {}) }
+    }
+
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performClick()
+    compose.onNodeWithText(":").performScrollTo().performClick()
+
+    compose.runOnIdle { assertEquals(":", state.text.toString()) }
+  }
+
+  /** The prompt keeps its own history pair beside the field, so the row carries none. */
+  @Test
+  fun theSymbolRowCarriesNoSecondHistoryPair() {
+    compose.setContent {
+      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+    }
+
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performClick()
+
+    compose.onAllNodesWithContentDescription(RECALL_PREVIOUS_ENTRY).assertCountEquals(1)
+  }
+
+  @Test
+  fun theSettingOffKeepsTheSymbolRowAway() {
+    compose.setContent {
+      JupyterDroidTheme {
+        ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}, symbolRowShown = false)
+      }
+    }
+
+    compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performClick()
+
+    compose.onNodeWithTag(SYMBOL_ROW_TAG).assertDoesNotExist()
   }
 
   /** Real on-device evidence: a PNG of the row, pulled off the device - see `ConsoleTranscriptViewTest`. */

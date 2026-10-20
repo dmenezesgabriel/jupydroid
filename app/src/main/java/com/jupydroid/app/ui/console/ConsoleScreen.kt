@@ -114,6 +114,7 @@ private fun ConsoleScaffold(
           onRecallNextEntry = viewModel::recallNextEntry,
           autoClosingBrackets = editorSettings.autoClosingBrackets,
           indentUnit = editorSettings.indentUnit,
+          symbolRowShown = editorSettings.symbolRowShown,
           // `TerminalExtraKeysRow`'s own rule: the bar docked below the content owns the
           // keyboard's inset, so `Scaffold`'s own `padding` already reflects it and the content
           // area does not pay for it twice.

@@ -44,7 +44,9 @@ import com.jupydroid.app.ui.ROOT_LABEL
 import com.jupydroid.app.ui.SaveBeforeCloseGate
 import com.jupydroid.app.ui.ancestorCrumbsFor
 import com.jupydroid.app.ui.editor.CodeCellField
+import com.jupydroid.app.ui.editor.FocusedCellInput
 import com.jupydroid.app.ui.editor.PythonTypingRules
+import com.jupydroid.app.ui.editor.SymbolRowWhileTyping
 import com.jupydroid.app.ui.editor.adoptRewrittenSource
 import kotlinx.coroutines.CoroutineScope
 
@@ -145,6 +147,11 @@ fun FileEditorScreen(
   val state by viewModel.uiState.collectAsStateWithLifecycle()
   val editorSettings by editorSettingsRepository.observeSettings()
     .collectAsStateWithLifecycle(EditorSettings())
+  // What the symbol row types into. Its pair is set straight each composition, as the notebook's
+  // is (`EditorScreen.kt`): the row builds its rules from them at tap time.
+  val fileInput = remember { FocusedCellInput() }
+  fileInput.autoClosingBrackets = autoClosesBrackets(state.name, editorSettings.autoClosingBrackets)
+  fileInput.indentUnit = editorSettings.indentUnit
 
   // `saveBeforeClose` (`docmanager/src/dialogs.ts:155`): a dirty document asks before it leaves,
   // whichever way out was taken - the gate's own system-Back handler, or the tab strip's gated
@@ -199,6 +206,9 @@ fun FileEditorScreen(
         }
       }
     },
+    // Published to the window, which draws it beneath every pane; the slot is the bottom bar so a
+    // screen composed with no host draws the row where a bar goes (`KeyRowPublished`).
+    bottomBar = { SymbolRowWhileTyping(fileInput, editorSettings.symbolRowShown) },
   ) { padding ->
     Column(modifier = Modifier.padding(padding).imePadding()) {
       state.error?.let { FileEditorError(it) }
@@ -246,6 +256,7 @@ fun FileEditorScreen(
             typingRulesFor(state.name, editorSettings.autoClosingBrackets, editorSettings.indentUnit)
           },
           wrapEnabled = editorSettings.codeWrapEnabled,
+          input = fileInput,
           onLayoutMeasured = { layout = it },
           modifier = Modifier.fillMaxSize().verticalScroll(scroll),
         )
@@ -268,11 +279,25 @@ private fun typingRulesFor(
   fileName: String,
   autoClosingBrackets: Boolean,
   indentUnit: IndentUnit,
-): InputTransformation = if (fileName.substringAfterLast('.', "").lowercase() in BRACKETED) {
+): InputTransformation = if (isBracketed(fileName)) {
   PythonTypingRules(autoClosingBrackets, indentUnit)
 } else {
   InputTransformation { }
 }
+
+/**
+ * Whether a bracket opened in [fileName] gets its partner - what [typingRulesFor] decides, read
+ * back for the symbol row, whose `(` would otherwise close a pair in prose where the keyboard's
+ * does not (`FileEditorSymbolRowTest.aBracketFromTheRowStaysAloneInProse`).
+ *
+ * ```
+ * autoClosesBrackets("notes.md", autoClosingBrackets = true) // false
+ * ```
+ */
+internal fun autoClosesBrackets(fileName: String, autoClosingBrackets: Boolean): Boolean =
+  autoClosingBrackets && isBracketed(fileName)
+
+private fun isBracketed(fileName: String): Boolean = fileName.substringAfterLast('.', "").lowercase() in BRACKETED
 
 private val BRACKETED = setOf("py", "json", "ipynb")
 

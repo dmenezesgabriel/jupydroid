@@ -124,7 +124,7 @@ data class EditorSettings(
   val completionEnabled: Boolean = true,
   /**
    * Whether [com.jupydroid.app.ui.editor.SymbolRow] shows at all while a
-   * cell is being typed into.
+   * cell, a file or the console's prompt is being typed into.
    *
    * There is no reference command to depart from here: `SymbolRow` is itself a phone-only
    * adaptation with no JupyterLab/IntelliJ counterpart (its own doc comment - "This is what

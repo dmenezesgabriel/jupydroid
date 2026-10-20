@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.console
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -24,8 +25,10 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
+import com.jupydroid.app.ui.editor.FocusedCellInput
 import com.jupydroid.app.ui.editor.RECALL_NEXT_ENTRY
 import com.jupydroid.app.ui.editor.RECALL_PREVIOUS_ENTRY
+import com.jupydroid.app.ui.editor.SymbolRowWhileTyping
 import com.jupydroid.app.ui.editor.cellEditorBox
 import com.jupydroid.app.ui.editor.cellRunIcon
 
@@ -62,7 +65,8 @@ const val CONSOLE_INPUT_FIELD_TAG = "console-input-field"
  * `Alt ArrowUp`/`ArrowDown` pair is opt-in (`accessKernelHistory`). There is no reliable "caret at
  * the top of the field" gesture on a soft keyboard either, so two buttons stand in for the edge
  * request the same way the Run button already stands in for Shift+Enter - not a port of the
- * notebook's own opt-in row.
+ * notebook's own opt-in row. For the same reason the symbol row this publishes while the prompt has
+ * the caret carries no second pair.
  *
  * ```kotlin
  * ConsoleInputRow(
@@ -86,37 +90,47 @@ fun ConsoleInputRow(
   /** `fileeditor:toggle-…-universal` covers the Console - the notebook's own pair, passed down. */
   autoClosingBrackets: Boolean = true,
   indentUnit: IndentUnit = IndentUnit.SPACES_4,
+  /** `EditorSettings.symbolRowShown`, the same preference the notebook's cells read. */
+  symbolRowShown: Boolean = true,
   modifier: Modifier = Modifier,
 ) {
-  Row(modifier = modifier.padding(vertical = Spacing.xs), verticalAlignment = Alignment.Bottom) {
-    IconButton(onClick = onRecallPreviousEntry) {
-      Icon(Icons.Filled.KeyboardArrowUp, contentDescription = RECALL_PREVIOUS_ENTRY)
+  // What the symbol row types into; its pair is set straight, as `EditorScreen.kt` sets the notebook's.
+  val input = remember { FocusedCellInput() }
+  input.autoClosingBrackets = autoClosingBrackets
+  input.indentUnit = indentUnit
+  Column(modifier = modifier) {
+    Row(modifier = Modifier.padding(vertical = Spacing.xs), verticalAlignment = Alignment.Bottom) {
+      IconButton(onClick = onRecallPreviousEntry) {
+        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = RECALL_PREVIOUS_ENTRY)
+      }
+      IconButton(onClick = onRecallNextEntry) {
+        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = RECALL_NEXT_ENTRY)
+      }
+      // The weighted node `Row` actually reads parent data from - see this function's own doc
+      // comment for why `CodeCellField`'s modifier could not carry `weight` itself.
+      var focused by remember { mutableStateOf(false) }
+      Box(modifier = Modifier.weight(1f)) {
+        CodeCellField(
+          state = state,
+          onSourceEdited = onSourceEdited,
+          // `RenameFileDialog`'s own reason: an empty field with no placeholder has nothing a
+          // Maestro flow can tap by visible text, unlike a notebook cell that always has `[ ]:` or
+          // a source line to land on.
+          modifier = Modifier.fillMaxWidth()
+            .cellEditorBox(editing = focused)
+            .onFocusChanged { focused = it.isFocused }
+            .semantics { testTagsAsResourceId = true }
+            .testTag(CONSOLE_INPUT_FIELD_TAG),
+          lineNumbersShown = false,
+          autoClosingBrackets = autoClosingBrackets,
+          indentUnit = indentUnit,
+          input = input,
+        )
+      }
+      IconButton(onClick = onSubmit, enabled = !running) {
+        Icon(cellRunIcon, contentDescription = "Run")
+      }
     }
-    IconButton(onClick = onRecallNextEntry) {
-      Icon(Icons.Filled.KeyboardArrowDown, contentDescription = RECALL_NEXT_ENTRY)
-    }
-    // The weighted node `Row` actually reads parent data from - see this function's own doc
-    // comment for why `CodeCellField`'s modifier could not carry `weight` itself.
-    var focused by remember { mutableStateOf(false) }
-    Box(modifier = Modifier.weight(1f)) {
-      CodeCellField(
-        state = state,
-        onSourceEdited = onSourceEdited,
-        // `RenameFileDialog`'s own reason: an empty field with no placeholder has nothing a
-        // Maestro flow can tap by visible text, unlike a notebook cell that always has `[ ]:` or
-        // a source line to land on.
-        modifier = Modifier.fillMaxWidth()
-          .cellEditorBox(editing = focused)
-          .onFocusChanged { focused = it.isFocused }
-          .semantics { testTagsAsResourceId = true }
-          .testTag(CONSOLE_INPUT_FIELD_TAG),
-        lineNumbersShown = false,
-        autoClosingBrackets = autoClosingBrackets,
-        indentUnit = indentUnit,
-      )
-    }
-    IconButton(onClick = onSubmit, enabled = !running) {
-      Icon(cellRunIcon, contentDescription = "Run")
-    }
+    SymbolRowWhileTyping(input, symbolRowShown)
   }
 }
