@@ -64,6 +64,7 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
+import com.jupydroid.app.ui.shell.KeyRowPublished
 import kotlinx.coroutines.flow.drop
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
@@ -154,17 +155,19 @@ fun TerminalPaneScreen(
         onPaste = pasteFromClipboard,
       )
     },
-    // `EditorBottomBars`/`SymbolRow`'s own slot, so this row carries its
-    // own `imePadding`/`navigationBarsPadding` and Scaffold reserves it in `padding` below exactly
-    // as it already does for the editor's bottom bar.
+    // Published to the window, which draws it beneath every pane, so at two panes it spans the
+    // window and not only this pane. The slot is the bottom bar so a screen composed with no host
+    // draws the row where a bar goes, with its own `imePadding` (`KeyRowPublished`).
     bottomBar = {
-      TerminalExtraKeysRow(
-        latches = state.latches,
-        applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
-        onTapModifier = viewModel::tapModifier,
-        onLongPressModifier = viewModel::longPressModifier,
-        onKey = viewModel::type,
-      )
+      KeyRowPublished {
+        TerminalExtraKeysRow(
+          latches = state.latches,
+          applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
+          onTapModifier = viewModel::tapModifier,
+          onLongPressModifier = viewModel::longPressModifier,
+          onKey = viewModel::type,
+        )
+      }
     },
   ) { padding ->
     // A `Box`, not a `Column` with the field docked below it - 1. The two
@@ -172,8 +175,9 @@ fun TerminalPaneScreen(
     // `TerminalInputField` sits over the whole of it so a tap anywhere in the terminal is a tap on
     // the one thing that receives input, the way Termux's `TerminalView` is both at once.
     //
-    // `consumeWindowInsets(WindowInsets.ime)` - `TerminalExtraKeysRow` is the bottom bar and
-    // already carries its own `imePadding` (`EditorScreen.kt`'s own rule: the bar owns the
+    // `consumeWindowInsets(WindowInsets.ime)` - where no `WindowKeyRowHosted` is above this
+    // screen (which otherwise consumes the inset itself), `TerminalExtraKeysRow` is the bottom bar
+    // and carries its own `imePadding` (`EditorScreen.kt`'s own rule: the bar owns the
     // keyboard's inset, the content beside it does not), so `padding` above already reflects the
     // bar's ime-grown height. Without this, `TerminalCanvas`'s own `imePadding` read the same,
     // still-unconsumed inset again and shrank an already-correct area a second time - the doubled

@@ -19,9 +19,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.ui.editor.symbolKeyStyle
+
+/**
+ * [TerminalExtraKeysRow]'s handle for an external driver, `SYMBOL_ROW_TAG`'s reason: Gboard carries
+ * its own key with the accessible text "Tab", so a flow cannot find this row's keys by text alone.
+ */
+internal const val TERMINAL_EXTRA_KEYS_TAG = "terminal_extra_keys"
 
 /**
  * The row a touchscreen terminal needs that a soft keyboard cannot produce on its own -
@@ -40,7 +48,9 @@ import com.jupydroid.app.ui.editor.symbolKeyStyle
  * own job.
  *
  * Visible whenever [TerminalPaneScreen] is - unlike `SymbolRow`, gated on `CellMode.EDIT`, a
- * terminal has no separate view/edit mode to gate on.
+ * terminal has no separate view/edit mode to gate on. [TerminalPaneScreen] publishes it to the
+ * window's key row, so at two panes it spans the window as Termux's bar spans the activity
+ * (termux-app@3df69d1 `app/src/main/res/layout/activity_termux.xml`).
  *
  * ```
  * TerminalExtraKeysRow(
@@ -61,7 +71,10 @@ internal fun TerminalExtraKeysRow(
   onKey: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
-  Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxWidth()) {
+  Surface(
+    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    modifier = modifier.fillMaxWidth().semantics { testTagsAsResourceId = true }.testTag(TERMINAL_EXTRA_KEYS_TAG),
+  ) {
     Row(
       modifier = Modifier
         .fillMaxWidth()
