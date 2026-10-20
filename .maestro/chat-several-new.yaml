@@ -1,0 +1,52 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider by a
+# person. Driven by scripts/chat-several-new-driver.sh, which empties the workspace first.
+#
+# New chat makes `untitled.chat` through the Contents API and opens it, as jupyter-chat's
+# placeholder does (`placeholder.tsx`, `createChat`). A question asked there is answered, so the
+# server's persona joined a chat the app created. Back on the list it is listed, and a second
+# New chat is `untitled1`, open and empty.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- assertVisible: "New chat"
+- takeScreenshot: 01-an-empty-workspace-offers-new-chat
+
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- assertVisible: "untitled"
+- takeScreenshot: 02-untitled-open
+
+- tapOn: "Ask the agent"
+- inputText: "Count from 1 to 5, one number per line, and nothing else."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot and the model answers over the network, so
+# the bound is generous. The question holds no digit on its own line, so only the answer matches.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 300000
+- takeScreenshot: 03-the-question-answered
+
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- assertVisible: "untitled"
+- takeScreenshot: 04-untitled-listed
+
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "untitled1"
+    timeout: 30000
+- assertVisible: "Ask the agent"
+- assertNotVisible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+- takeScreenshot: 05-untitled1-open-and-empty

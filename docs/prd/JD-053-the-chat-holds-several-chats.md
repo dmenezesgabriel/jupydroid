@@ -117,7 +117,7 @@ Overall, the feature is absent.
 - [x] T1 — The panel lists the workspace's chats and opens the one tapped. Covers `ChatFiles.list`,
   the adapter, the fake, the list, and the saved open path. On the tablet, two seeded `.chat` files
   each open with their own messages.
-- [ ] T2 — New chat creates `untitled*.chat` through `POST api/contents` and opens it; a question
+- [x] T2 — New chat creates `untitled*.chat` through `POST api/contents` and opens it; a question
   there is answered.
 - [ ] T3 — Rename... through `PATCH api/contents/<path>`, prefilled with the current name.
 - [ ] T4 — Delete... with a confirm. It leaves the chat, then sends `DELETE api/contents/<path>`, then
