@@ -10,7 +10,7 @@ import androidx.compose.runtime.Composable
  *
  * `dialogService.confirm` with `replaceAll.confirmation.title`, the counted message and
  * `replaceAll.confirm.button` (`searchView.ts:830-836`). The same `AlertDialog` shape as
- * `ui/DeleteFileDialog.kt`, which is this app's one idiom for "ask before doing something that
+ * `DeleteFileDialog` (`:extension-api`), which is this app's one idiom for "ask before doing something that
  * cannot be shrugged off".
  *
  * **The reference's strings verbatim, where the button that opens this was named apart.** A modal

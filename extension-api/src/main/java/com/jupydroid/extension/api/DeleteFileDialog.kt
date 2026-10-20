@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui
+package com.jupydroid.extension.api
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -11,7 +11,9 @@ import androidx.compose.runtime.Composable
  *
  * Word for word the reference's (`packages/filebrowser/src/listing.ts:451-500`), including
  * **permanently**: `DirListing.delete` picks that wording when `delete_to_trash` is off, and an
- * app's private files on Android have no trash to go to. Winlator asks too
+ * app's private files on Android have no trash to go to. Nor does a file the Space's server
+ * deletes: it starts with `delete_to_trash` off
+ * (`app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt`). Winlator asks too
  * (`ContainerFileManagerFragment:353`, `ContentDialog.confirm`), so both references agree that
  * this is a question and not a menu item.
  *

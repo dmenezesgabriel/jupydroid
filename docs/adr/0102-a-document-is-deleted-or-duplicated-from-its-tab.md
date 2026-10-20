@@ -55,7 +55,7 @@ Rename…, Save As… and Revert to Checkpoint…, in JupyterLab's order
 (`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTab.kt`).
 
 - **Delete asks in the file browser's words.** The prompt is "Are you sure you want to permanently
-  delete: %1?" (`app/src/main/java/com/jupydroid/app/ui/DeleteFileDialog.kt`), not docmanager's
+  delete: %1?" (`extension-api/src/main/java/com/jupydroid/extension/api/DeleteFileDialog.kt`), not docmanager's
   plainer "delete". The delete is permanent, and the explorer already asks it in those words.
 - **Unsaved work goes with the file, unasked.** The delete ask is the only question, as in
   `onDelete`. The tab's edits are discarded so that the close does not ask again.
