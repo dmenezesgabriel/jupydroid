@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# The last of the four flows scripts/chat-several-demo-driver.sh runs, back in landscape.
+#
+# launchApp stops the process, so the panel opens on the list, as jupyter-chat's restored side panel
+# does, and `untitled` is read back from its file with the answer it was given before the kill.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- assertVisible: "untitled"
+- assertNotVisible: "notes"
+- takeScreenshot: 12-relaunched-on-the-list
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 30000
+- takeScreenshot: 13-untitled-read-back

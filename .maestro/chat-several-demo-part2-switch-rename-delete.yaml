@@ -1,0 +1,82 @@
+appId: com.jupydroid.app
+---
+# The second of the four flows scripts/chat-several-demo-driver.sh runs, going on from part 1 in the
+# same process, with `untitled1` open.
+#
+# Back on the list, `untitled` opens with its answer. `untitled1` is renamed to `notes`, then
+# deleted after the confirm, and the explorer holds no `notes.chat`. The flow ends with `untitled`
+# open, for the driver to turn the tablet.
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 30000
+- takeScreenshot: 04-untitled-holds-its-answer
+
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- longPressOn: "untitled1"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 10000
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename chat"
+    timeout: 10000
+# The whole name is selected, so what is typed replaces it.
+- inputText: "notes"
+- tapOn: "Rename"
+# The field holds "notes" too, so the list is read only once the dialog has gone.
+- extendedWaitUntil:
+    notVisible: "Rename chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "notes"
+    timeout: 30000
+- assertNotVisible: "untitled1"
+- assertVisible: "untitled"
+- takeScreenshot: 05-notes-listed-and-untitled1-gone
+
+- longPressOn: "notes"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 10000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: notes\\?"
+    timeout: 10000
+- takeScreenshot: 06-the-confirm-names-notes
+# The dialog's title is "Delete" too; its button is the one under the question.
+- tapOn:
+    text: "Delete"
+    below: "Are you sure you want to permanently delete: notes\\?"
+- extendedWaitUntil:
+    notVisible: "Are you sure you want to permanently delete: notes\\?"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "untitled"
+    timeout: 30000
+- assertNotVisible: "notes"
+- takeScreenshot: 07-only-untitled-listed
+
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "untitled\\.chat"
+    timeout: 30000
+- assertNotVisible: "notes\\.chat"
+- takeScreenshot: 08-the-explorer-holds-no-notes-chat
+
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 30000
+- takeScreenshot: 09-untitled-open-before-the-turn

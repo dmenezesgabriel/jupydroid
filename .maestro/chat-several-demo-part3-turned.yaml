@@ -1,0 +1,20 @@
+appId: com.jupydroid.app
+---
+# The third of the four flows scripts/chat-several-demo-driver.sh runs, after the driver turns the
+# tablet to portrait in the same process: the activity is relaunched, at one pane.
+#
+# One pane draws the main area's top entry, which in landscape was the Launcher beside the Chat, and
+# Back from it shows the panel (`Navigation.kt`, `onePanePanel`). There `untitled` is still the open
+# chat, with its answer (`OpenChatSelection`, held by the extension and not the composition).
+# The Launcher is told by a card of its own; its tab's name is "Tab: Launcher".
+- extendedWaitUntil:
+    visible: "Markdown File"
+    timeout: 30000
+- takeScreenshot: 10-turned-the-launcher-fills-one-pane
+- back
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 30000
+- assertVisible: "untitled"
+- assertNotVisible: "Open an existing chat:"
+- takeScreenshot: 11-back-untitled-still-open
