@@ -17,4 +17,11 @@ class ChatFileTest {
 
     assertEquals(listOf("A", "b", "C"), listed.map(ChatFile::name))
   }
+
+  /** jupyter-chat's `resolveChatRenamePath` puts `.chat` on a name typed without it, and not twice. */
+  @Test
+  fun aChatNamedIsTheFileOfThatNameAtTheRoot() {
+    assertEquals(ChatFile("notes.chat"), ChatFile.named("notes"))
+    assertEquals(ChatFile("notes.chat"), ChatFile.named("notes.chat"))
+  }
 }

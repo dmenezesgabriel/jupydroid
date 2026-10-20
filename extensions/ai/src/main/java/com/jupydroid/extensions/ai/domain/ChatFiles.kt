@@ -10,6 +10,7 @@ package com.jupydroid.extensions.ai.domain
  * ```
  * chatFiles.list().byName().map { it.name } // ["notes", "untitled"]
  * chatFiles.create().path // "untitled1.chat"
+ * chatFiles.rename(ChatFile("untitled1.chat"), "notes").path // "notes.chat"
  * ```
  */
 interface ChatFiles {
@@ -28,6 +29,15 @@ interface ChatFiles {
    * @throws ChatFilesException when the file cannot be made.
    */
   suspend fun create(): ChatFile
+
+  /**
+   * [chat] moved to the file [name] gives it at the root ([ChatFile.named]), as jupyter-chat's
+   * Rename chat moves one (jupyter-chat@2c224bc `packages/jupyterlab-chat-extension/src/index.ts`,
+   * `renameChat`).
+   *
+   * @throws ChatFilesException when the file cannot be moved, as when a chat of that name exists.
+   */
+  suspend fun rename(chat: ChatFile, name: String): ChatFile
 }
 
 /**
@@ -41,6 +51,13 @@ data class ChatFile(val path: String) {
 
   companion object {
     const val CHAT_EXTENSION = ".chat"
+
+    /**
+     * The chat at the root that a typed [name] names: `.chat` added unless it is there already, as
+     * jupyter-chat's `resolveChatRenamePath` does (jupyter-chat@2c224bc
+     * `packages/jupyterlab-chat/src/utils.ts`).
+     */
+    fun named(name: String): ChatFile = ChatFile(if (name.endsWith(CHAT_EXTENSION)) name else "$name$CHAT_EXTENSION")
   }
 }
 

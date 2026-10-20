@@ -2,9 +2,10 @@ package com.jupydroid.extensions.ai.data.fake
 
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
+import com.jupydroid.extensions.ai.domain.ChatFilesException
 
 /**
- * A workspace whose root holds the chats at [paths], and the ones [create] adds.
+ * A workspace whose root holds the chats at [paths], and the ones [create] adds and [rename] moves.
  *
  * What the panel lists where the Space has no server: with nothing configured, no chat, so the
  * panel claims none nobody made.
@@ -26,5 +27,13 @@ class FakeChatFiles(paths: List<String> = emptyList()) : ChatFiles {
       .first { it !in held }
     held += free
     return ChatFile(free)
+  }
+
+  /** Refused when the name is taken, as jupyter_server's `rename_file` answers 409 rather than overwrite. */
+  override suspend fun rename(chat: ChatFile, name: String): ChatFile {
+    val renamed = ChatFile.named(name)
+    if (renamed.path in held) throw ChatFilesException("renaming a chat", "${renamed.path} already exists")
+    held[held.indexOf(chat.path)] = renamed.path
+    return renamed
   }
 }

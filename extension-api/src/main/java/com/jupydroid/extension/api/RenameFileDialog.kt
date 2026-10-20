@@ -22,7 +22,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 const val RENAME_FIELD_TAG = "rename-field"
 
 /**
- * Renames a file, from Recents, from the document itself, or from the browser's row menu.
+ * Renames a file, from Recents, from the document itself, from the browser's row menu, or a chat
+ * from the Chat panel's list.
  *
  * One dialog for all three, because two would drift: JupyterLab keeps a single
  * `DocumentManagerDialogs.rename` and reaches it from the File menu and from the document title

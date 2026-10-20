@@ -3,6 +3,7 @@ package com.jupydroid.extensions.ai.domain
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -41,5 +42,25 @@ abstract class ChatFilesContract {
 
     assertEquals(2, created.toSet().size)
     assertFalse(created.toString(), "untitled.chat" in created)
+  }
+
+  @Test
+  fun aRenamedChatIsListedUnderItsNewNameAndNotItsOld() = runBlocking {
+    val files = chatFiles(listOf("untitled.chat", "untitled1.chat"))
+
+    val renamed = files.rename(ChatFile("untitled1.chat"), "notes")
+
+    assertEquals(ChatFile("notes.chat"), renamed)
+    assertEquals(setOf("untitled.chat", "notes.chat"), files.list().map(ChatFile::path).toSet())
+  }
+
+  /** jupyter_server answers 409, "File already exists", rather than write over the other chat. */
+  @Test
+  fun renamingOntoAChatThatExistsFailsAndKeepsBoth() = runBlocking {
+    val files = chatFiles(listOf("untitled.chat", "notes.chat"))
+
+    assertThrows(ChatFilesException::class.java) { runBlocking { files.rename(ChatFile("untitled.chat"), "notes") } }
+
+    assertEquals(setOf("untitled.chat", "notes.chat"), files.list().map(ChatFile::path).toSet())
   }
 }

@@ -9,6 +9,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
@@ -21,9 +23,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * jupyterlab-chat's own panel finds and makes them: `GET api/contents` on the root, and of what it
  * holds, the files whose name ends `.chat` (jupyter-chat@2c224bc
  * `packages/jupyterlab-chat-extension/src/index.ts`, `getChatNames`); and for a new one, jupyterlab's
- * `newUntitled` at the root (`createChat`).
+ * `newUntitled` at the root (`createChat`); and to rename one, jupyterlab's `contents.rename`, a
+ * `PATCH` on the chat's path with its new one in the body (`renameChat`).
  *
- * The token header is enough for a `POST`: jupyter_server skips its XSRF check for a request the
+ * The token header is enough for a `POST` or a `PATCH`: jupyter_server skips its XSRF check for a request the
  * token authenticated (`jupyter_server/base/handlers.py`, `check_xsrf_cookie`, in the shipped rootfs).
  *
  * ```
@@ -45,6 +48,14 @@ class OkHttpChatFiles(
   override suspend fun create(): ChatFile {
     val body = call("creating a chat", HTTP_CREATED) { contents ->
       url(contents).post(UNTITLED_CHAT.toRequestBody(JSON_TYPE))
+    }
+    return ChatFile(lenient.decodeFromString<ListedEntry>(body).path)
+  }
+
+  override suspend fun rename(chat: ChatFile, name: String): ChatFile {
+    val moved = buildJsonObject { put("path", ChatFile.named(name).path) }.toString()
+    val body = call("renaming a chat", HTTP_OK) { contents ->
+      url(contents.newBuilder().addPathSegments(chat.path).build()).patch(moved.toRequestBody(JSON_TYPE))
     }
     return ChatFile(lenient.decodeFromString<ListedEntry>(body).path)
   }
@@ -85,7 +96,10 @@ class OkHttpChatFiles(
 @Serializable
 private data class RootListing(val content: List<ListedEntry> = emptyList())
 
-/** One entry of a directory's model, or the model `POST` answers; `type` is `file`, `notebook` or `directory`. */
+/**
+ * One entry of a directory's model, or the model `POST` and `PATCH` answer; `type` is `file`, `notebook` or
+ * `directory`.
+ */
 @Serializable
 private data class ListedEntry(val path: String, val type: String) {
   val isChat: Boolean get() = type == "file" && path.endsWith(ChatFile.CHAT_EXTENSION)

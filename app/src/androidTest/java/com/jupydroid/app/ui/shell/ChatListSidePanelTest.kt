@@ -3,16 +3,27 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.ai.AiExtension
@@ -27,7 +38,7 @@ import org.junit.runner.RunWith
 
 /**
  * The Chat panel's list of the workspace's chats, as the shell draws it: a row to press for each,
- * which opens that chat, and a way back to the list.
+ * which opens that chat, a long press that renames it, and a way back to the list.
  */
 @RunWith(AndroidJUnit4::class)
 class ChatListSidePanelTest {
@@ -157,6 +168,82 @@ class ChatListSidePanelTest {
     compose.onNodeWithText("New chat").performClick()
 
     compose.onNodeWithText("in untitled1.chat").assertIsDisplayed()
+  }
+
+  /**
+   * A long press opens a row's own actions, as it does on a row of the explorer, which lists these
+   * same files; VS Code keeps Rename... in a session's context menu (vscode@3f3380c
+   * `agentSessionsActions.ts`).
+   */
+  @Test
+  fun aLongPressOnAChatOffersRename() {
+    show(panel("untitled.chat", "untitled1.chat"))
+
+    compose.onNodeWithText("untitled1").performTouchInput { longClick() }
+
+    compose.onNodeWithText("Rename").assertIsDisplayed()
+  }
+
+  /**
+   * jupyter-chat's dialog holds the name without `.chat` (`renameChat`), and all of it is selected,
+   * so typing replaces it: no extension is shown for the selection to stop short of.
+   */
+  @Test
+  fun renameAsksInADialogHoldingTheWholeNameSelected() {
+    show(panel("my.notes.chat"))
+
+    openRename("my.notes")
+
+    compose.onNodeWithText("Rename chat").assertIsDisplayed()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).assert(
+      SemanticsMatcher.expectValue(SemanticsProperties.TextSelectionRange, TextRange(0, "my.notes".length)),
+    )
+  }
+
+  @Test
+  fun aRenamedChatIsListedUnderItsNewNameAndNotItsOld() {
+    show(panel("untitled.chat", "untitled1.chat"))
+
+    rename("untitled1", to = "notes")
+
+    compose.onNodeWithText("notes").assertIsDisplayed()
+    compose.onNodeWithText("untitled1").assertDoesNotExist()
+    compose.onNodeWithText("untitled").assertIsDisplayed()
+  }
+
+  /** The list is not traded for the error: every chat is still there to open, under the reason. */
+  @Test
+  fun renamingOntoATakenNameKeepsTheListAndSaysWhy() {
+    show(panel("untitled.chat", "notes.chat"))
+
+    rename("untitled", to = "notes")
+
+    compose.onNodeWithText("notes.chat already exists", substring = true).assertIsDisplayed()
+    compose.onNodeWithText("untitled").assertIsDisplayed()
+    compose.onNodeWithText("notes").assertIsDisplayed()
+  }
+
+  /** A long press is out of a screen reader's reach; the row's own actions say Rename instead. */
+  @Test
+  fun aScreenReaderReachesRenameWithoutALongPress() {
+    show(panel("untitled.chat"))
+
+    val actions = compose.onNodeWithText("untitled").fetchSemanticsNode().config[SemanticsActions.CustomActions]
+    compose.runOnIdle { actions.single { it.label == "Rename" }.action() }
+
+    compose.onNodeWithText("Rename chat").assertIsDisplayed()
+  }
+
+  private fun openRename(chat: String) {
+    compose.onNodeWithText(chat).performTouchInput { longClick() }
+    compose.onNodeWithText("Rename").performClick()
+  }
+
+  private fun rename(chat: String, to: String) {
+    openRename(chat)
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
+    compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput(to)
+    compose.onNodeWithText("Rename").performClick()
   }
 
   private fun show(panel: SidePanelContribution, shown: () -> Boolean = { true }) {
