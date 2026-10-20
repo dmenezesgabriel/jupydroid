@@ -149,7 +149,9 @@ private fun FollowTheNewest(list: LazyListState, shown: List<ChatMessage>) {
       .collect { following = !list.canScrollForward }
   }
   val newest = shown.lastOrNull()
-  LaunchedEffect(newest?.id, newest?.body?.length) {
+  // Keyed by the whole message, not its id and length: a message of tool calls keeps both while a
+  // call comes to ask and its row grows by the options.
+  LaunchedEffect(newest) {
     // An offset past the item's end is clamped to the list's end, which is the item's last line.
     if (following && newest != null) list.scrollToItem(shown.lastIndex, Int.MAX_VALUE)
   }

@@ -135,6 +135,25 @@ class ChatSidePanelTest {
     assertEquals(scrollRange().maxValue(), scrollRange().value())
   }
 
+  /**
+   * A call's message keeps its id and its empty body while its calls change, so a call that comes to
+   * ask grows its row with nothing else to follow it by: on the tablet its options once sat below the
+   * field, out of reach.
+   */
+  @Test
+  fun aCallThatComesToAskIsFollowedToItsOptions() {
+    val old = ChatMessage(id = "old", body = LONG_ANSWER, fromMe = false)
+    val running = awaiting().copy(permission = null)
+    val chat = SettableAgentChat(ChatTranscript(listOf(old, callsMessage(running))))
+    show(chat)
+    compose.waitForIdle()
+
+    chat.shown.value = ChatTranscript(listOf(old, callsMessage(awaiting())))
+
+    compose.waitForIdle()
+    assertEquals(scrollRange().maxValue(), scrollRange().value())
+  }
+
   /** jupyter-chat stops following once the reader scrolls away from the end (`messages.tsx`). */
   @Test
   fun aReaderScrolledUpIsLeftWhereTheyAre() {
