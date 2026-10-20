@@ -6,7 +6,8 @@ appId: com.jupydroid.app
 # The question has opencode use its read tool, which the persona's config lets run unasked (only
 # `edit` and `bash` ask). jupyter-ai's ACP client puts a tool call in a message of its own whose
 # body stays empty (`usr/lib/python3.12/site-packages/jupyter_ai_acp_client/tool_call_manager.py` in
-# the shipped rootfs), and the panel draws no row for it.
+# the shipped rootfs). This flow waits only for the answer; the call's row is
+# chat-tool-calls-row.yaml's.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

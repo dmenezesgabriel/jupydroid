@@ -124,7 +124,7 @@ beside Send.
 
 ## Tasks
 
-- [ ] T1 — Each tool call is a row with its status. `ChatMessage` gains its tool calls (id, title,
+- [x] T1 — Each tool call is a row with its status. `ChatMessage` gains its tool calls (id, title,
   status: running, completed or failed). `ChatFrames` reads `metadata.tool_calls`, and a message is
   shown when it has text or calls. The panel draws a mark and a title for each call. Tablet: the
   read-probe question shows a ✓ row for `probe.txt` between the question and the answer.

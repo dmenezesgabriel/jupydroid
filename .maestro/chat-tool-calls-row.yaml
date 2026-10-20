@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider by a
+# person. Driven by scripts/chat-tool-calls-row-driver.sh, which empties the workspace and seeds
+# probe.txt.
+#
+# The question has opencode use its read tool, which the persona's config lets run unasked (only
+# `edit` and `bash` ask). jupyter-ai's ACP client puts the call in a message of its own whose body
+# stays empty and whose metadata holds the call (`tool_call_manager.py` in the shipped rootfs). The
+# panel draws that message as the call's row: a check and the title the server gave it,
+# `home/jupydroid/probe.txt`, between the question and the answer.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Use your read tool on probe.txt, then answer with only the word in it."
+- hideKeyboard
+- tapOn: "Send"
+# probe.txt holds one word the question does not, so only the answer can match it. The first
+# message spawns `opencode acp` under proot and the model answers over the network.
+- extendedWaitUntil:
+    visible: "(?i)\\W*kumquat\\W*"
+    timeout: 300000
+# The title is the server's, with no leading slash, so the question's "probe.txt" does not match it.
+- assertVisible: "home/jupydroid/probe.txt"
+- assertVisible: "✓"
+- takeScreenshot: 01-the-read-call-is-a-row-between-question-and-answer
