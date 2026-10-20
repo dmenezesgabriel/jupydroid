@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base. Driven by scripts/chat-several-list-driver.sh, which seeds
+# `untitled.chat`, `notes.chat` and `readme.md` at the workspace root.
+#
+# The Chat panel opens on the workspace's chats, listed by name without `.chat` and without the file
+# that is not a chat, as jupyter-chat's side panel lists them (`placeholder.tsx`). Each opens with the
+# one message its own file holds, which the server reads from that file, so the text on screen says
+# which chat's socket opened. Picking Files and coming back finds the same chat still open.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- assertVisible: "notes"
+- assertVisible: "untitled"
+- assertNotVisible: "readme.*"
+- takeScreenshot: 01-the-workspaces-chats-listed
+
+- tapOn: "notes"
+- extendedWaitUntil:
+    visible: "Kept in notes.chat"
+    timeout: 30000
+- takeScreenshot: 02-notes-open
+
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "Kept in untitled.chat"
+    timeout: 30000
+- assertNotVisible: "Kept in notes.chat"
+- takeScreenshot: 03-untitled-open
+
+# ---- another panel and back: the chat that was open is still the one open ----
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "readme.md"
+    timeout: 10000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Kept in untitled.chat"
+    timeout: 30000
+- takeScreenshot: 04-untitled-still-open-after-files

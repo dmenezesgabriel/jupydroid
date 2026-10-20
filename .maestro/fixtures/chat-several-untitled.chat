@@ -1,0 +1,23 @@
+{
+  "messages": [
+    {
+      "id": "982d01ab-00a6-5322-a6cb-b387b67ecaa2",
+      "body": "Kept in untitled.chat",
+      "time": 1792321067.0,
+      "sender": "368423f20f3a43978bd3cb1a09fcd4f1",
+      "type": "msg",
+      "raw_time": false
+    }
+  ],
+  "users": {
+    "368423f20f3a43978bd3cb1a09fcd4f1": {
+      "username": "368423f20f3a43978bd3cb1a09fcd4f1",
+      "name": "Anonymous Adrastea",
+      "display_name": "Anonymous Adrastea",
+      "initials": "AA",
+      "avatar_url": null,
+      "color": null,
+      "bot": false
+    }
+  }
+}

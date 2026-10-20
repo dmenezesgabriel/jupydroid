@@ -1,6 +1,6 @@
 # JD-053 — The Chat holds several chats
 
-Milestone: `M7` · State: open · Depends on: JD-046 · Closes: —
+Milestone: `M7` · State: in-progress · Depends on: JD-046 · Closes: —
 
 ## Outcome
 
@@ -114,7 +114,7 @@ Overall, the feature is absent.
 
 ## Tasks
 
-- [ ] T1 — The panel lists the workspace's chats and opens the one tapped. Covers `ChatFiles.list`,
+- [x] T1 — The panel lists the workspace's chats and opens the one tapped. Covers `ChatFiles.list`,
   the adapter, the fake, the list, and the saved open path. On the tablet, two seeded `.chat` files
   each open with their own messages.
 - [ ] T2 — New chat creates `untitled*.chat` through `POST api/contents` and opens it; a question
