@@ -53,7 +53,7 @@ import com.jupydroid.app.mainAreaTabTitle
 import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
-import com.jupydroid.app.ui.RenameFileDialog
+import com.jupydroid.extension.api.RenameFileDialog
 import kotlinx.coroutines.launch
 
 /**

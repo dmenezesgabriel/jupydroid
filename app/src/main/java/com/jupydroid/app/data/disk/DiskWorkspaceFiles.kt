@@ -3,10 +3,10 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.COPY_INSERT
 import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.model.idBeside
-import com.jupydroid.app.domain.model.isValidFileName
 import com.jupydroid.app.domain.model.nameBeforeCopies
 import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceFiles
+import com.jupydroid.extension.api.isValidFileName
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

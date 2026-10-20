@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui
+package com.jupydroid.extension.api
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
@@ -18,7 +18,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
-import com.jupydroid.app.domain.model.isValidFileName
 
 const val RENAME_FIELD_TAG = "rename-field"
 
@@ -35,8 +34,12 @@ const val RENAME_FIELD_TAG = "rename-field"
  * A name that is not a file's passes its own [isValidName], [refusalMessage] and
  * [initialSelection]: a Space's name is a label in its `config.json`, so only a blank one is
  * refused and there is no extension to keep out of the selection
- * ([com.jupydroid.app.ui.spaces.SpacesHomeScreen]). The focus fix and the unchanged-is-dismiss rule
- * stay one copy.
+ * (`app/src/main/java/com/jupydroid/app/ui/spaces/SpacesHomeScreen.kt`). The focus fix and the
+ * unchanged-is-dismiss rule stay one copy.
+ *
+ * In the contract, so an extension asks for a name through this same dialog rather than one of its
+ * own (ADR-0104): jupyter-chat renames a chat through apputils' `InputDialog.getText`, the host's
+ * (jupyter-chat@2c224bc `packages/jupyterlab-chat-extension/src/index.ts`, `renameChat`).
  *
  * [onConfirm] is called **only when the title actually changed**. That is JupyterLab's rule -
  * `if (!newPath || newPath === fileName) return null`, silently, with no error - and it matters

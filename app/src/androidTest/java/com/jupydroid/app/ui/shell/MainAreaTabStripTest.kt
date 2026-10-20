@@ -40,7 +40,7 @@ import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.RENAME_FIELD_TAG
+import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

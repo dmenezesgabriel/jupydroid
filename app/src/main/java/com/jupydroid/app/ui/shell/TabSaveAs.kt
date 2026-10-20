@@ -16,8 +16,8 @@ import com.jupydroid.app.domain.model.isValidWorkspacePath
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.ui.OverwriteFileDialog
-import com.jupydroid.app.ui.RenameFileDialog
-import com.jupydroid.app.ui.titleStemEnd
+import com.jupydroid.extension.api.RenameFileDialog
+import com.jupydroid.extension.api.titleStemEnd
 import kotlinx.coroutines.launch
 
 /** How far a Save As's asking has got: the path, a taken one's overwrite, or why the disk refused. */

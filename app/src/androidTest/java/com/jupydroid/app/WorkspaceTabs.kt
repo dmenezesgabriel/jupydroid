@@ -13,7 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
-import com.jupydroid.app.ui.RENAME_FIELD_TAG
+import com.jupydroid.extension.api.RENAME_FIELD_TAG
 
 /**
  * The explorer's row for the file named [title] - the node a test taps to open it, and whose

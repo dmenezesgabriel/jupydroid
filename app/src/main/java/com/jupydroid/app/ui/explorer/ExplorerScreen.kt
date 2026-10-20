@@ -58,8 +58,8 @@ import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.DeleteFileDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
-import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.relativeTime
+import com.jupydroid.extension.api.RenameFileDialog
 import kotlinx.coroutines.delay
 import java.time.Instant
 import kotlin.time.Duration

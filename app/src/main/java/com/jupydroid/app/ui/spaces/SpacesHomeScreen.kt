@@ -43,8 +43,8 @@ import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.DeleteFileDialog
-import com.jupydroid.app.ui.RenameFileDialog
 import com.jupydroid.app.ui.relativeTime
+import com.jupydroid.extension.api.RenameFileDialog
 import java.time.Instant
 
 /**

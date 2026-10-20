@@ -1,4 +1,4 @@
-package com.jupydroid.app.ui
+package com.jupydroid.extension.api
 
 import org.junit.Assert.assertEquals
 import org.junit.Test

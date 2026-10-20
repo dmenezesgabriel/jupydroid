@@ -19,7 +19,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 
 /**
  * A breakpoint's own condition, reached by a long-press on an armed line's gutter dot -
- * [RenameFileDialog][com.jupydroid.app.ui.RenameFileDialog]'s own shape (a single `OutlinedTextField`
+ * [RenameFileDialog][com.jupydroid.extension.api.RenameFileDialog]'s own shape (a single `OutlinedTextField`
  * inside an `AlertDialog`, focused the moment it opens), applied to a Python expression instead of
  * a file name.
  *

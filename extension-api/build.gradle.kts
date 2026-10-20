@@ -41,6 +41,9 @@ ktlint {
 dependencies {
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.ui)
+    // `RenameFileDialog` is a Material `AlertDialog` the contract hands out, as JupyterLab's apputils
+    // hands its plugins `InputDialog`: an extension asks for a name through the host's own dialog.
+    api(libs.androidx.compose.material3)
 
     testImplementation(libs.junit)
 }

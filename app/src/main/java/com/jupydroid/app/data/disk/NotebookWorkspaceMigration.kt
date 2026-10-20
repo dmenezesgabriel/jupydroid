@@ -2,7 +2,7 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.incrementedFileName
-import com.jupydroid.app.domain.model.isValidFileName
+import com.jupydroid.extension.api.isValidFileName
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject

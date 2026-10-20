@@ -30,7 +30,7 @@ import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.ui.RENAME_FIELD_TAG
+import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
