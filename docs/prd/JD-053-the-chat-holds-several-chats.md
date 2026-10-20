@@ -95,9 +95,8 @@ Overall, the feature is absent.
 
 ## Open decisions
 
-- T3 checks on the device that a rename through `PATCH api/contents` moves the live model and that
-  the persona still answers under the new path. `websocket_model.py` says it does; the check
-  confirms this on the shipped server.
+- None. T3 confirmed on the device that a rename through `PATCH api/contents` moves the live model:
+  the renamed chat kept its answer and was answered again under its new path.
 
 ## Surface
 
@@ -119,7 +118,7 @@ Overall, the feature is absent.
   each open with their own messages.
 - [x] T2 — New chat creates `untitled*.chat` through `POST api/contents` and opens it; a question
   there is answered.
-- [ ] T3 — Rename... through `PATCH api/contents/<path>`, prefilled with the current name.
+- [x] T3 — Rename... through `PATCH api/contents/<path>`, prefilled with the current name.
 - [ ] T4 — Delete... with a confirm. It leaves the chat, then sends `DELETE api/contents/<path>`, then
   shows the list.
 - [ ] T5 — The demo from a fresh install. Then ADR-0111 (a chat is a `.chat` file at the workspace

@@ -1,0 +1,77 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider by a
+# person. Driven by scripts/chat-several-rename-driver.sh, which empties the workspace first.
+#
+# A chat the agent has answered is renamed from the list: a long press offers Rename, as on a row
+# of the explorer, and the dialog holds the name without `.chat`, all of it selected. The list then
+# shows the new name and not the old. Opened again, the chat still holds its answer, and a second
+# question is answered under the new path, so the server moved the live chat with its file
+# (jupyterlab_chat's `rename` handler in `websocket_model.py`).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+
+- tapOn: "Ask the agent"
+- inputText: "Count from 1 to 5, one number per line, and nothing else."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot and the model answers over the network, so
+# the bound is generous. The question holds no digit on its own line, so only the answer matches.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 300000
+- takeScreenshot: 01-untitled-answered
+
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- longPressOn: "untitled"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 10000
+- takeScreenshot: 02-a-long-press-offers-rename
+
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename chat"
+    timeout: 10000
+- takeScreenshot: 03-the-dialog-holds-the-name-selected
+# The whole name is selected, so what is typed replaces it.
+- inputText: "notes"
+- takeScreenshot: 04-notes-typed
+- tapOn: "Rename"
+# The field holds "notes" too, so the list is read only once the dialog has gone.
+- extendedWaitUntil:
+    notVisible: "Rename chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "notes"
+    timeout: 30000
+- assertNotVisible: "untitled"
+- takeScreenshot: 05-notes-listed-and-untitled-gone
+
+- tapOn: "notes"
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s+4\\s+5\\s*"
+    timeout: 30000
+- takeScreenshot: 06-notes-holds-the-answer
+
+- tapOn: "Ask the agent"
+- inputText: "Now count from 6 to 8, one number per line, and nothing else."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "6\\s+7\\s+8\\s*"
+    timeout: 300000
+- takeScreenshot: 07-answered-again-under-the-new-name
