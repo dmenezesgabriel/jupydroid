@@ -216,6 +216,7 @@ clipboard of its own and no link it could open, are closed by
 | `JD-044` | **A tab's menu closes the tabs beside it:** a long press on any tab offers Close All Other Tabs and Close Tabs to Right, and a tab with unsaved work still asks before it closes | shipped | — | `GAP-174` |
 | `JD-059` | **Text in the terminal is selected, copied and its links opened:** a long press selects what the terminal shows and Copy puts it on the clipboard, Paste sends the clipboard to the shell, and tapping a link a program prints, such as `opencode auth login`'s, opens it | shipped | — | `GAP-081`, `GAP-082` |
 | `JD-061` | **Settings is reached from every view:** the gear sits at the foot of the side panel's rail, below every panel's icon, as VS Code's Manage does; at one pane it sits at the foot of the modal rail that the bottom bar's fifth item, "More", opens ([ADR-0109](adr/0109-at-one-pane-the-rail-opens-as-a-modal-from-the-bars-last-item.md)) | shipped | — | `GAP-178` |
+| `JD-062` | **Recents arrives collapsed:** on a fresh install the Files view's Recents section starts shut, since open it takes a large share of a phone's explorer; a user's own expand or collapse is still remembered between launches. The default `recentsCollapsed = false` (`app/src/main/java/com/jupydroid/app/domain/model/ExplorerSettings.kt`) came from VS Code's view default, and this departs from it on screen space | open | — | — |
 
 ### M7 — Extensions
 
