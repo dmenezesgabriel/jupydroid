@@ -74,7 +74,9 @@ appId: com.jupydroid.app
 - tapOn: "Ask the agent"
 # 1000, not 300: the model wrote all 300 in 15.6 s, and while an answer streams Maestro takes 9-15 s
 # to match its text and as long again to tap, so a tap on Stop after 300 lands once Stop has gone.
-- inputText: "Count from 1 to 1000, one number a line, with nothing else."
+# Without a tool: asked only to count, the model has answered with `seq 1 1000` through its bash
+# tool, which asks first, and no text ever arrives to wait for.
+- inputText: "Without using any tool, write the numbers from 1 to 1000, one a line, with nothing else."
 - hideKeyboard
 - tapOn: "Send"
 # The answer is one text, matched whole, so it matches once its lines run from 1 to 20. Unanchored,
