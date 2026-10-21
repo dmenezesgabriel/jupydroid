@@ -124,3 +124,12 @@ Amended by [ADR-0111](0111-a-chat-is-a-chat-file-at-the-workspace-root-managed-t
 The "Which chat" row chose one chat, `untitled.chat`. The panel now lists every `.chat` file at the
 workspace root and creates, renames and deletes them through jupyter_server's Contents API. The
 persona a message addresses is unchanged.
+
+## Amendment — 2026-10-21
+
+Amended by [ADR-0112](0112-an-agents-tool-calls-are-rows-that-ask-and-stop-cancels-its-reply.md), on two points:
+
+- The consequence that "a question that needs a tool waits" is closed. The panel draws each tool call
+  as a row, and offers the agent's own options for a call waiting on a permission.
+- The panel still follows the newest line while the reader is at the end, but it now judges that the
+  reader has left only when a drag ends, never when layout moves the list.
