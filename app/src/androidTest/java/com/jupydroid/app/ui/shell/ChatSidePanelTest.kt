@@ -249,6 +249,48 @@ class ChatSidePanelTest {
     compose.onNodeWithTag("chat-stop").assertDoesNotExist()
   }
 
+  @Test
+  fun aQuestionSentWhileNothingWritesIsAskedAtOnce() {
+    val chat = SettableAgentChat(ChatTranscript())
+    show(chat)
+
+    send("What is 2+2?")
+
+    compose.waitUntil(TIMEOUT_MILLIS) { chat.asked == listOf("What is 2+2?") }
+    compose.onNodeWithTag("chat-queued").assertDoesNotExist()
+  }
+
+  /**
+   * Asked now, it would cut the reply short (`QuestionQueue`). It waits in a box above the input, as
+   * jupyter-chat-components draws its queue (jupyter-chat-components@992c6fb `src/components/message-queue.tsx`).
+   */
+  @Test
+  fun aQuestionSentWhileTheAgentWritesWaitsAsAPendingRow() {
+    val chat = SettableAgentChat(ChatTranscript(agentWriting = true))
+    show(chat)
+
+    send("What is 2+2?")
+
+    compose.onNodeWithText("1 queued").assertIsDisplayed()
+    compose.onNode(hasText("What is 2+2?") and hasAnyAncestor(hasTestTag("chat-queued"))).assertIsDisplayed()
+    compose.onNodeWithTag("chat-stop").assertIsDisplayed()
+    assertTrue("asked ${chat.asked} while the agent wrote", chat.asked.isEmpty())
+    assertTrue("the queue is not above the input", bounds("chat-queued").bottom <= bounds("chat-input-box").top)
+  }
+
+  @Test
+  fun theOldestPendingQuestionIsAskedWhenTheReplyEnds() {
+    val chat = SettableAgentChat(ChatTranscript(agentWriting = true))
+    show(chat)
+    send("first")
+    send("second")
+
+    chat.shown.value = ChatTranscript()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { chat.asked == listOf("first") }
+    compose.onNodeWithText("1 queued").assertIsDisplayed()
+  }
+
   /** A rejected call is a cross, whatever the agent then says of its status (`ToolCallRow`'s `isRejected`). */
   @Test
   fun aRejectedCallIsACrossBesideTheOptionChosen() {
@@ -320,6 +362,11 @@ class ChatSidePanelTest {
     compose.runOnIdle { focus.clearFocus() }
 
     compose.onNodeWithTag(CHAT_KEY_ROW).assertDoesNotExist()
+  }
+
+  private fun send(question: String) {
+    compose.onNodeWithTag("chat-input").performTextInput(question)
+    compose.onNodeWithTag("chat-send").performClick()
   }
 
   /** Where the node tagged [tag] is drawn, in the root's pixels. */

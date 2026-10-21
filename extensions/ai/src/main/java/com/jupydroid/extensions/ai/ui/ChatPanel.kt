@@ -54,6 +54,7 @@ import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatReading
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
+import com.jupydroid.extensions.ai.domain.QuestionQueue
 import com.jupydroid.extensions.ai.domain.ToolCall
 import com.jupydroid.extensions.ai.domain.readings
 import kotlinx.coroutines.flow.collectLatest
@@ -89,6 +90,25 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
       false
     }
   }
+  // A refused question or stop is shown as the chat failing, with what refused it.
+  val attempt: (suspend () -> Unit) -> Unit = { action ->
+    scope.launch {
+      try {
+        action()
+      } catch (failure: AgentChatException) {
+        reading = ChatReading.Failed(failure.message.orEmpty())
+      }
+    }
+  }
+  var queue by remember(chat) { mutableStateOf(QuestionQueue()) }
+  val askDue: (ChatTranscript) -> Unit = { transcript ->
+    val seen = queue.seen(transcript)
+    val due = seen.due(transcript)
+    queue = if (due == null) seen else seen.asked()
+    if (due != null) attempt { chat.ask(due) }
+  }
+  val open = (reading as? ChatReading.Open)?.transcript
+  LaunchedEffect(open) { open?.let(askDue) }
   Column(modifier = modifier.fillMaxSize()) {
     when (val shown = reading) {
       ChatReading.Opening -> Spacer(Modifier.weight(1f))
@@ -107,20 +127,15 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
         )
       }
     }
-    // A refused question or stop is shown as the chat failing, with what refused it.
-    val attempt: (suspend () -> Unit) -> Unit = { action ->
-      scope.launch {
-        try {
-          action()
-        } catch (failure: AgentChatException) {
-          reading = ChatReading.Failed(failure.message.orEmpty())
-        }
-      }
-    }
+    QueuedQuestions(queue.pending)
     QuestionField(
-      enabled = reading is ChatReading.Open,
-      writing = (reading as? ChatReading.Open)?.transcript?.agentWriting == true,
-      onAsk = { question -> attempt { chat.ask(question) } },
+      enabled = open != null,
+      writing = open?.agentWriting == true,
+      // Through the queue, so a question sent while a reply arrives does not cut it short.
+      onAsk = { question ->
+        queue = queue.sent(question)
+        open?.let(askDue)
+      },
       onStop = { attempt { chat.stop() } },
     )
   }
