@@ -6,6 +6,7 @@ from chat_tool_call_reads import (
     ChatReadError,
     require_allowed_and_rejected,
     require_completed_call,
+    require_answered_in_turn,
     require_stopped_short,
 )
 
@@ -102,3 +103,31 @@ class RequireStoppedShortTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def asked(body: str) -> dict[str, object]:
+    return {"body": body, "sender": "bbff425b", "metadata": {"to_persona": PERSONA}}
+
+
+COUNTED = answer("\n".join(str(n) for n in range(1, 1001)))
+QUEUED = [("What is 2+2?", "4"), ("What is 3+3?", "6")]
+
+
+class RequireAnsweredInTurnTest(unittest.TestCase):
+    def test_passes_when_the_count_ended_and_each_was_answered_before_the_next(self):
+        chat = [QUESTION, COUNTED, asked("What is 2+2?"), answer("4"), asked("What is 3+3?"), answer("6")]
+        self.assertEqual(1000, require_answered_in_turn(chat, QUEUED))
+
+    def test_fails_when_a_queued_question_cut_the_count_short(self):
+        chat = [QUESTION, answer("1\n2\n303"), asked("What is 2+2?"), answer("4"), asked("What is 3+3?"), answer("6")]
+        with self.assertRaisesRegex(ChatReadError, "reached 303"):
+            require_answered_in_turn(chat, QUEUED)
+
+    def test_fails_when_the_next_was_asked_before_the_previous_was_answered(self):
+        chat = [QUESTION, COUNTED, asked("What is 2+2?"), asked("What is 3+3?"), answer("6")]
+        with self.assertRaisesRegex(ChatReadError, "2\\+2"):
+            require_answered_in_turn(chat, QUEUED)
+
+    def test_fails_when_a_queued_question_was_never_asked(self):
+        with self.assertRaisesRegex(ChatReadError, "never asked"):
+            require_answered_in_turn([QUESTION, COUNTED, asked("What is 2+2?"), answer("4")], QUEUED)

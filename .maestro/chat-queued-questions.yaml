@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base. Driven by
+# scripts/chat-queued-questions-driver.sh, which empties the workspace first and afterwards checks in
+# untitled.chat that the count ran to 1000 and that each queued question was answered in turn.
+#
+# A question sent while the persona writes would cut its reply short (jupyter_ai_acp_client
+# `default_acp_client.py`, `prompt_and_reply`, in the shipped rootfs), so the panel holds it as a
+# pending row until the reply ends, and asks the next only once the one before has been answered.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Count from 1 to 1000, one number a line, with nothing else."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot and the model answers over the network. The
+# answer is one text, matched whole, so it matches once its lines run from 1 to 20. Unanchored, `20`
+# matched the status bar's clock at 20:20.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3\\s[\\s\\S]*\\b20\\b[\\s\\S]*"
+    timeout: 300000
+- tapOn: "Ask the agent"
+- inputText: "What is 2+2? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "1 queued"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "What is 3+3? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "2 queued"
+    timeout: 30000
+# Still writing: the queued questions did not stop the count.
+- assertVisible: "Stop"
+- takeScreenshot: 01-two-questions-wait-while-the-count-arrives
+# The count runs to 1000 before the first is asked, and the second waits for the first's answer.
+- extendedWaitUntil:
+    notVisible: "\\d queued"
+    timeout: 600000
+- extendedWaitUntil:
+    visible: "6"
+    timeout: 300000
+- extendedWaitUntil:
+    notVisible: "Stop"
+    timeout: 60000
+- takeScreenshot: 02-the-queue-is-empty-and-both-are-answered-after-the-count
