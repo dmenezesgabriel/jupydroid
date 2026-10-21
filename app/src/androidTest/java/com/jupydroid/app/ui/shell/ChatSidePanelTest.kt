@@ -28,6 +28,8 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import androidx.test.espresso.Espresso.closeSoftKeyboard
@@ -154,9 +156,14 @@ class ChatSidePanelTest {
     assertEquals(scrollRange().maxValue(), scrollRange().value())
   }
 
-  /** jupyter-chat stops following once the reader scrolls away from the end (`messages.tsx`). */
+  /**
+   * Only the reader's finger leaves the end. On SM-X216B the keyboard coming up for a fourth question
+   * moved the list back an item with no drag, and the answer then streamed out of sight. Under
+   * edge-to-edge a test host cannot make that layout move, so a scroll to the top that no finger made
+   * stands in for it.
+   */
   @Test
-  fun aReaderScrolledUpIsLeftWhereTheyAre() {
+  fun aMoveNoDragMadeDoesNotEndTheFollowing() {
     val history = listOf(ChatMessage(id = "old", body = LONG_ANSWER, fromMe = false))
     show(FakeAgentChat(history = history, replies = mapOf("Again" to LONG_ANSWER)))
     compose.onNodeWithTag("chat-messages").performScrollToIndex(0)
@@ -165,7 +172,23 @@ class ChatSidePanelTest {
     compose.onNodeWithTag("chat-send").performClick()
 
     compose.waitForIdle()
-    assertEquals(0f, scrollRange().value())
+    assertEquals(scrollRange().maxValue(), scrollRange().value())
+  }
+
+  /** jupyter-chat stops following once the reader scrolls away from the end (`messages.tsx`). */
+  @Test
+  fun aReaderScrolledUpIsLeftWhereTheyAre() {
+    val history = listOf(ChatMessage(id = "old", body = LONG_ANSWER, fromMe = false))
+    show(FakeAgentChat(history = history, replies = mapOf("Again" to LONG_ANSWER)))
+    compose.onNodeWithTag("chat-messages").performTouchInput { swipeDown() }
+    compose.waitForIdle()
+    val readerLeftItAt = scrollRange().value()
+
+    compose.onNodeWithTag("chat-input").performTextInput("Again")
+    compose.onNodeWithTag("chat-send").performClick()
+
+    compose.waitForIdle()
+    assertEquals(readerLeftItAt, scrollRange().value())
   }
 
   /**

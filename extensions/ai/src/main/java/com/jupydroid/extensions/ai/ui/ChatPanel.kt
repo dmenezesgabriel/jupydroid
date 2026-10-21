@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.ui
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
@@ -54,7 +56,9 @@ import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
 import com.jupydroid.extensions.ai.domain.readings
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -150,12 +154,18 @@ private fun Messages(
 private fun FollowTheNewest(list: LazyListState, shown: List<ChatMessage>) {
   var following by remember(list) { mutableStateOf(true) }
   LaunchedEffect(list) {
-    // Judged whenever the list moves, by the reader or by the scroll below. An answer growing beneath
-    // the end does not move it, so it does not end the following. The first position is the one
-    // before any layout, which says nothing about the reader.
-    snapshotFlow { list.firstVisibleItemIndex to list.firstVisibleItemScrollOffset }
-      .drop(1)
-      .collect { following = !list.canScrollForward }
+    // Judged once the reader's drag ends and its fling settles, and at no other move. On SM-X216B the
+    // keyboard coming up moved the list back an item with no one scrolling it, and judged then, the
+    // panel stopped following and the answer streamed out of sight
+    // (ChatSidePanelTest.aMoveNoDragMadeDoesNotEndTheFollowing).
+    list.interactionSource.interactions
+      .filter { it is DragInteraction.Stop || it is DragInteraction.Cancel }
+      .collectLatest {
+        // A frame first, so a fling the drag ends in has begun before its end is awaited.
+        withFrameNanos {}
+        snapshotFlow { list.isScrollInProgress }.first { !it }
+        following = !list.canScrollForward
+      }
   }
   val newest = shown.lastOrNull()
   // Keyed by the whole message, not its id and length: a message of tool calls keeps both while a
