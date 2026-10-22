@@ -118,7 +118,7 @@ jupyter-chat-components leaves that to its client.
 
 ## Tasks
 
-- [ ] T1 — Send while the agent writes queues the question as a pending row in a box above the input,
+- [x] T1 — Send while the agent writes queues the question as a pending row in a box above the input,
   and the oldest is asked when the reply ends, one in flight at a time
 - [ ] T2 — Remove a pending row with its ×
 - [ ] T3 — Edit a pending row in place
