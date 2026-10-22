@@ -9,7 +9,7 @@ the shipped rootfs) keeps a message's calls in `metadata.tool_calls`, with snake
     python3 scripts/chat_tool_call_reads.py completed-call untitled.chat
     python3 scripts/chat_tool_call_reads.py allowed-and-rejected untitled.chat permission-42 second-42
     python3 scripts/chat_tool_call_reads.py stopped-short untitled.chat untitled-later.chat
-    python3 scripts/chat_tool_call_reads.py answered-in-turn untitled.chat "What is 2+2?" 4 "What is 3+3?" 6
+    python3 scripts/chat_tool_call_reads.py answered-in-turn untitled.chat "Run echo …" queue-42 "What is 2+2?" 4
 """
 
 import json
@@ -102,32 +102,24 @@ def answers(messages: list[TypedMessage]) -> list[str]:
     return [str(m["body"]) for m in messages if str(m["sender"]).startswith(PERSONA_PREFIX)]
 
 
-def require_answered_in_turn(messages: list[TypedMessage], queued: list[tuple[str, str]]) -> int:
-    """Fails unless the count before the first of `queued` reached COUNT_LIMIT, and each queued question
-    was answered with its expected text before the next was asked.
+def require_answered_in_turn(messages: list[TypedMessage], asked: list[tuple[str, str]]) -> None:
+    """Fails unless each question in `asked` was answered with its expected text before the next was asked.
 
-    A question asked while the count arrived would have cut it short, and one asked before the previous
-    was answered would have cut that answer short (`QuestionQueue`). Returns the count's last number.
+    A question asked while the reply before it arrived would have cut that reply short (`QuestionQueue`),
+    leaving it without its expected text.
 
-    >>> count = {"sender": PERSONA_PREFIX, "body": "1\\n1000"}
-    >>> chat = [count, {"sender": "me", "body": "2+2?"}, {"sender": PERSONA_PREFIX, "body": "4"}]
+    >>> chat = [{"sender": "me", "body": "2+2?"}, {"sender": PERSONA_PREFIX, "body": "4"}]
     >>> require_answered_in_turn(chat, [("2+2?", "4")])
-    1000
     """
     bodies = [m["body"] for m in messages]
-    missing = [question for question, _ in queued if question not in bodies]
+    missing = [question for question, _ in asked if question not in bodies]
     if missing:
         raise ChatReadError(f"never asked {missing}; the chat holds {[str(b)[:40] for b in bodies]}")
-    starts = [bodies.index(question) for question, _ in queued] + [len(messages)]
-    numbers = [int(n) for n in re.findall(r"\d+", "\n".join(answers(messages[: starts[0]])))]
-    if max(numbers, default=0) < COUNT_LIMIT:
-        reached = max(numbers, default=None)
-        raise ChatReadError(f"the count before the queued questions reached {reached}, expected {COUNT_LIMIT}")
-    for (question, expected), start, end in zip(queued, starts, starts[1:]):
+    starts = [bodies.index(question) for question, _ in asked] + [len(messages)]
+    for (question, expected), start, end in zip(asked, starts, starts[1:]):
         replied = answers(messages[start + 1 : end])
         if not any(expected in body for body in replied):
             raise ChatReadError(f"{question!r} was not answered with {expected!r} before the next: {replied}")
-    return numbers[-1]
 
 
 def read_messages(path: str) -> list[TypedMessage]:
@@ -147,9 +139,9 @@ def main(argv: list[str]) -> int:
         count, last = require_stopped_short(read_messages(paths[0]), read_messages(paths[1]))
         print(f"{paths[0]}: the answer holds {count} numbers, the last {last}")
     elif check == "answered-in-turn":
-        queued = list(zip(paths[1::2], paths[2::2]))
-        last = require_answered_in_turn(read_messages(paths[0]), queued)
-        print(f"{paths[0]}: the count ended at {last}, then {len(queued)} queued questions were answered in turn")
+        asked = list(zip(paths[1::2], paths[2::2]))
+        require_answered_in_turn(read_messages(paths[0]), asked)
+        print(f"{paths[0]}: {len(asked)} questions were each answered before the next was asked")
     else:
         raise ChatReadError(
             f"unknown check {check!r}, expected completed-call, allowed-and-rejected, stopped-short or answered-in-turn"

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-# The Chat panel holds a question sent while opencode answers: two questions sent during a count to
-# 1000 wait as pending rows, the count runs to its end, and each is asked once the reply before it
-# has ended.
+# The Chat panel holds a question sent while opencode answers: two questions sent while its bash call
+# waits on approval wait as pending rows, and once Allow once lets the reply end, each is asked after
+# the reply before it has ended.
 #
 #   nice -n 10 timeout 2400 scripts/chat-queued-questions-driver.sh
 #
-# Exits non-zero if the flow fails, if the server logged a cancel, or unless `untitled.chat` holds the
-# count up to 1000 followed by each queued question with its answer before the next was asked.
+# Exits non-zero if the flow fails, if the server logged a cancel or anything but three turns each
+# completed before the next started, or unless `untitled.chat` holds each question answered before the
+# next was asked: the call's output, then 4, then 6.
 #
 # TABLET ONLY (SM-X216B): the chat is answered in a running Space's server, which only arm64 ships.
 # Needs opencode installed in base (scripts/jd-046-opencode-in-a-space-driver.sh).
@@ -46,6 +47,14 @@ run_flow "$ROOT/.maestro/chat-queued-questions.yaml" "$EVIDENCE" || status=$?
 pull_server_log "$EVIDENCE/jupyter_server.log"
 
 python3 "$ROOT/scripts/chat_tool_call_reads.py" answered-in-turn "$EVIDENCE/untitled.chat" \
+  "Run echo queue-\$((6*7)) with your bash tool, then answer with only what it printed." queue-42 \
   "What is 2+2? Answer with the number only." 4 "What is 3+3? Answer with the number only." 6
 # Nothing here taps Stop, so a cancel in the log is a question that cut a reply short.
 if grep "POST /api/ai/personas/cancel" "$EVIDENCE/jupyter_server.log"; then fail "the server took a cancel"; fi
+# One turn per question, each begun only once the one before had completed.
+grep "prompt_and_reply: " "$EVIDENCE/jupyter_server.log" | python3 -c '
+import sys
+steps = [line.split("prompt_and_reply: ")[1].split()[0] for line in sys.stdin]
+print("turns:", steps)
+sys.exit(steps != ["starting", "completed"] * 3)
+' || fail "the server did not run the three questions one turn after another"

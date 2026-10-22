@@ -2,7 +2,7 @@ appId: com.jupydroid.app
 ---
 # Landscape, two panes, in base, with opencode installed in base. Driven by
 # scripts/chat-queued-questions-driver.sh, which empties the workspace first and afterwards checks in
-# untitled.chat that the count ran to 1000 and that each queued question was answered in turn.
+# untitled.chat that each question was answered before the next was asked.
 #
 # A question sent while the persona writes would cut its reply short (jupyter_ai_acp_client
 # `default_acp_client.py`, `prompt_and_reply`, in the shipped rootfs), so the panel holds it as a
@@ -20,14 +20,13 @@ appId: com.jupydroid.app
     visible: "Ask the agent"
     timeout: 30000
 - tapOn: "Ask the agent"
-- inputText: "Count from 1 to 1000, one number a line, with nothing else."
+- inputText: "Run echo queue-$((6*7)) with your bash tool, then answer with only what it printed."
 - hideKeyboard
 - tapOn: "Send"
-# The first message spawns `opencode acp` under proot and the model answers over the network. The
-# answer is one text, matched whole, so it matches once its lines run from 1 to 20. Unanchored, `20`
-# matched the status bar's clock at 20:20.
+# The call waits on the user, and the persona writes until it is answered, however long the flow
+# takes: a count to 1000 ended before Maestro had typed the next question.
 - extendedWaitUntil:
-    visible: "1\\s+2\\s+3\\s[\\s\\S]*\\b20\\b[\\s\\S]*"
+    visible: ".*Allow\\?"
     timeout: 300000
 - tapOn: "Ask the agent"
 - inputText: "What is 2+2? Answer with the number only."
@@ -43,17 +42,22 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "2 queued"
     timeout: 30000
-# Still writing: the queued questions did not stop the count.
+# Still writing, and still asking: the queued questions cut nothing short.
 - assertVisible: "Stop"
-- takeScreenshot: 01-two-questions-wait-while-the-count-arrives
-# The count runs to 1000 before the first is asked, and the second waits for the first's answer.
+- assertVisible: ".*Allow\\?"
+- takeScreenshot: 01-two-questions-wait-while-the-call-asks
+- tapOn: "Allow once"
+# The reply ends with what the call printed; then the first queued is asked, and the second only
+# once the first is answered.
 - extendedWaitUntil:
     notVisible: "\\d queued"
     timeout: 600000
+# The last answer is the end to wait for, not Stop going: once "6" has streamed the screen is still
+# while the persona ends its turn, and Maestro gave up waiting on Stop after 1.3 s of a 60 s timeout.
+# The driver reads that the turn ended from the server's log instead.
 - extendedWaitUntil:
     visible: "6"
     timeout: 300000
-- extendedWaitUntil:
-    notVisible: "Stop"
-    timeout: 60000
-- takeScreenshot: 02-the-queue-is-empty-and-both-are-answered-after-the-count
+- assertVisible: "(?i)\\W*queue-42\\W*"
+- assertVisible: "4"
+- takeScreenshot: 02-allowed-the-queue-empties-and-each-is-answered-in-turn
