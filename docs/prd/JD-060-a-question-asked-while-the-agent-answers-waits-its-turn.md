@@ -120,7 +120,7 @@ jupyter-chat-components leaves that to its client.
 
 - [x] T1 — Send while the agent writes queues the question as a pending row in a box above the input,
   and the oldest is asked when the reply ends, one in flight at a time
-- [ ] T2 — Remove a pending row with its ×
+- [x] T2 — Remove a pending row with its ×
 - [ ] T3 — Edit a pending row in place
 - [ ] T4 — The queue persists per chat (the store decided, with its port, `Fake…` and adapter), follows
   a rename, goes with a delete, and is sent on reopening when no reply is arriving
