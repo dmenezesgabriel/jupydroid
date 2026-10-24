@@ -44,6 +44,9 @@ dependencies {
     // `Chat`, the rail's icon. Already in the APK through `:app`, so it costs nothing more.
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.okhttp)
+    // `AtomicFile`, the AndroidX write-then-rename the kept questions are saved with. Already in the APK
+    // through `:app`, so it costs nothing more.
+    implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
