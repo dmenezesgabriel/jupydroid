@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -17,14 +16,11 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -38,10 +34,8 @@ import androidx.compose.ui.unit.width
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.extension.api.SidePanelHost
-import com.jupydroid.extensions.ai.AiExtension
+import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
-import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
@@ -66,8 +60,8 @@ import org.junit.runner.RunWith
 class ChatSidePanelTest {
   @get:Rule val compose = createComposeRule()
 
-  private val chat =
-    openOnUntitled(FakeAgentChat(replies = mapOf("What is a Space?" to "A Linux userland the app runs.")))
+  private val panel = UntitledChatPanel(compose)
+  private val fake = FakeAgentChat(replies = mapOf("What is a Space?" to "A Linux userland the app runs."))
 
   @Test
   fun theHostTitlesThePanelChat() {
@@ -106,18 +100,21 @@ class ChatSidePanelTest {
   fun sendSitsInsideTheInputsBoxBeneathTheField() {
     show()
 
-    val box = bounds("chat-input-box")
-    val send = bounds("chat-send")
+    val box = panel.bounds("chat-input-box")
+    val send = panel.bounds("chat-send")
     assertTrue("Send $send is not inside the input's box $box", box.intersect(send) == send)
-    assertTrue("Send $send is not beneath the field ${bounds("chat-input")}", send.top >= bounds("chat-input").bottom)
+    assertTrue(
+      "Send $send is not beneath the field ${panel.bounds("chat-input")}",
+      send.top >= panel.bounds("chat-input").bottom,
+    )
   }
 
   @Test
   fun sendIsPaddedAlikeFromTheBoxsRightAndBottom() {
     show()
 
-    val box = bounds("chat-input-box")
-    val send = bounds("chat-send")
+    val box = panel.bounds("chat-input-box")
+    val send = panel.bounds("chat-send")
     assertEquals(box.right - send.right, box.bottom - send.bottom, 1f)
   }
 
@@ -243,87 +240,13 @@ class ChatSidePanelTest {
   fun stopBesideSendStopsTheReplyAndGoesAway() {
     show(FakeAgentChat(writing = true))
 
-    val stop = bounds("chat-stop")
-    val send = bounds("chat-send")
+    val stop = panel.bounds("chat-stop")
+    val send = panel.bounds("chat-send")
     assertTrue("Stop $stop is not left of Send $send", stop.right <= send.left)
     assertEquals(send.center.y, stop.center.y, 1f)
     compose.onNodeWithTag("chat-stop").performClick()
 
     compose.onNodeWithTag("chat-stop").assertDoesNotExist()
-  }
-
-  @Test
-  fun aQuestionSentWhileNothingWritesIsAskedAtOnce() {
-    val chat = SettableAgentChat(ChatTranscript())
-    show(chat)
-
-    send("What is 2+2?")
-
-    compose.waitUntil(TIMEOUT_MILLIS) { chat.asked == listOf("What is 2+2?") }
-    compose.onNodeWithTag("chat-queued").assertDoesNotExist()
-  }
-
-  /**
-   * Asked now, it would cut the reply short (`QuestionQueue`). It waits in a box above the input, as
-   * jupyter-chat-components draws its queue (jupyter-chat-components@992c6fb `src/components/message-queue.tsx`).
-   */
-  @Test
-  fun aQuestionSentWhileTheAgentWritesWaitsAsAPendingRow() {
-    val chat = SettableAgentChat(ChatTranscript(agentWriting = true))
-    show(chat)
-
-    send("What is 2+2?")
-
-    compose.onNodeWithText("1 queued").assertIsDisplayed()
-    compose.onNode(hasText("What is 2+2?") and hasAnyAncestor(hasTestTag("chat-queued"))).assertIsDisplayed()
-    compose.onNodeWithTag("chat-stop").assertIsDisplayed()
-    assertTrue("asked ${chat.asked} while the agent wrote", chat.asked.isEmpty())
-    assertTrue("the queue is not above the input", bounds("chat-queued").bottom <= bounds("chat-input-box").top)
-  }
-
-  @Test
-  fun theOldestPendingQuestionIsAskedWhenTheReplyEnds() {
-    val chat = SettableAgentChat(ChatTranscript(agentWriting = true))
-    show(chat)
-    send("first")
-    send("second")
-
-    chat.shown.value = ChatTranscript()
-
-    compose.waitUntil(TIMEOUT_MILLIS) { chat.asked == listOf("first") }
-    compose.onNodeWithText("1 queued").assertIsDisplayed()
-  }
-
-  /**
-   * Its × takes a pending question off the queue, as the remove button does in
-   * jupyter-chat-components@992c6fb `src/components/message-queue.tsx`.
-   */
-  @Test
-  fun aPendingRowsCrossRemovesOnlyThatQuestionAndItIsNeverAsked() {
-    val chat = SettableAgentChat(ChatTranscript(agentWriting = true))
-    show(chat)
-    send("first")
-    send("second")
-
-    removeQueued("second")
-    compose.onNodeWithText("1 queued").assertIsDisplayed()
-    compose.onNode(hasText("first") and hasAnyAncestor(hasTestTag("chat-queued"))).assertIsDisplayed()
-    removeQueued("first")
-    compose.onNodeWithTag("chat-queued").assertDoesNotExist()
-    chat.shown.value = ChatTranscript()
-
-    compose.waitForIdle()
-    assertTrue("asked ${chat.asked} after both were removed", chat.asked.isEmpty())
-  }
-
-  @Test
-  fun aPendingRowsCrossIsAFingerWide() {
-    show(SettableAgentChat(ChatTranscript(agentWriting = true)))
-    send("first")
-
-    val touch = compose.onNodeWithContentDescription(REMOVE_QUEUED).fetchSemanticsNode().touchBoundsInRoot
-    val finger = with(compose.density) { 48.dp.toPx() }
-    assertTrue("the × is touched within $touch, under 48 dp", touch.width >= finger && touch.height >= finger)
   }
 
   /** A rejected call is a cross, whatever the agent then says of its status (`ToolCallRow`'s `isRejected`). */
@@ -399,20 +322,6 @@ class ChatSidePanelTest {
     compose.onNodeWithTag(CHAT_KEY_ROW).assertDoesNotExist()
   }
 
-  /** Taps the × of the pending row that holds [question]. */
-  private fun removeQueued(question: String) {
-    val row = hasTestTag("chat-queued-row") and hasAnyDescendant(hasText(question))
-    compose.onNode(hasContentDescription(REMOVE_QUEUED) and hasAnyAncestor(row)).performClick()
-  }
-
-  private fun send(question: String) {
-    compose.onNodeWithTag("chat-input").performTextInput(question)
-    compose.onNodeWithTag("chat-send").performClick()
-  }
-
-  /** Where the node tagged [tag] is drawn, in the root's pixels. */
-  private fun bounds(tag: String): Rect = compose.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
-
   /** How far the messages are scrolled, and how far they can be - what a screen reader reads. */
   private fun scrollRange(): ScrollAxisRange = compose.onNodeWithTag("chat-messages").fetchSemanticsNode()
     .config[SemanticsProperties.VerticalScrollAxisRange]
@@ -426,16 +335,6 @@ class ChatSidePanelTest {
 
   private fun callsMessage(call: ToolCall) = ChatMessage(id = "t", body = "", fromMe = false, toolCalls = listOf(call))
 
-  private fun show(answering: AgentChat? = null) {
-    val panel = answering?.let(::openOnUntitled) ?: chat
-    compose.setContent {
-      JupyterDroidTheme {
-        ContributedSidePanel(contribution = panel, host = SidePanelHost(browsedDirectory = "", server = null))
-      }
-    }
-    openUntitled()
-  }
-
   /** The panel at a side pane's width beside a wider one, under the window's key row as the app draws it. */
   private fun showBesideAPane(alsoCompose: @Composable () -> Unit = {}) {
     compose.setContent {
@@ -444,26 +343,17 @@ class ChatSidePanelTest {
         WindowKeyRowHosted {
           Row(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.width(SIDE_PANE)) {
-              ContributedSidePanel(contribution = chat, host = SidePanelHost(browsedDirectory = "", server = null))
+              ContributedSidePanel(contribution = panel.contribution(fake), host = UntitledChatPanel.HOST)
             }
             Box(modifier = Modifier.weight(1f))
           }
         }
       }
     }
-    openUntitled()
+    panel.open()
   }
 
-  /** A workspace whose one chat is `untitled.chat`, answered by [answering]. */
-  private fun openOnUntitled(answering: AgentChat) = AiExtension(
-    chatFor = { _, _ -> answering },
-    chatFilesFor = { FakeChatFiles(listOf("untitled.chat")) },
-  ).sidePanels.single()
-
-  /** The panel opens on its list of chats; every test here is about the chat once it is open. */
-  private fun openUntitled() {
-    compose.onNodeWithText("untitled").performClick()
-  }
+  private fun show(answering: AgentChat = fake) = panel.show(answering)
 
   /** A key on Chat's row, and not one with the same text elsewhere. */
   private fun rowKey(text: String) = compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(CHAT_KEY_ROW)))
@@ -472,10 +362,7 @@ class ChatSidePanelTest {
     /** Taller than any screen the tests run on, one number per line. */
     val LONG_ANSWER = (1..200).joinToString("\n")
 
-    const val TIMEOUT_MILLIS = 5_000L
-
     const val CHAT_KEY_ROW = "chat_key_row"
-    const val REMOVE_QUEUED = "Remove from queue"
     val SIDE_PANE = 360.dp
 
     /** opencode's three, as its `bash` request was logged on the tablet. */
