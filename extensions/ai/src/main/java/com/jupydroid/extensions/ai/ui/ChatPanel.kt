@@ -127,7 +127,17 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
         )
       }
     }
-    QueuedQuestions(queue.pending, onRemove = { queue = queue.removed(it) })
+    QueuedQuestions(
+      queue.pending,
+      editing = queue.held,
+      onEdit = { queue = queue.editing(it) },
+      // Asked at once if the reply it was held through has already ended.
+      onSave = { question, into ->
+        queue = queue.edited(question, into)
+        open?.let(askDue)
+      },
+      onRemove = { queue = queue.removed(it) },
+    )
     QuestionField(
       enabled = open != null,
       writing = open?.agentWriting == true,

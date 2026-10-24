@@ -69,4 +69,38 @@ class QuestionQueueTest {
 
     assertEquals(asked, asked.removed("a"))
   }
+
+  @Test
+  fun editingAPendingQuestionReplacesItInPlace() {
+    val queue = QuestionQueue().sent("a").sent("b").sent("c").editing("b")
+
+    assertEquals(listOf("a", "B", "c"), queue.edited("b", "  B ").pending)
+  }
+
+  @Test
+  fun aQuestionBeingEditedIsNeverDue() {
+    assertNull(QuestionQueue().sent("a").editing("a").due(idle))
+  }
+
+  @Test
+  fun savingReleasesTheEditedQuestion() {
+    val saved = QuestionQueue().sent("a").editing("a").edited("a", "A")
+
+    assertEquals("A", saved.due(idle))
+  }
+
+  /** A pencil tapped in the frame the oldest was asked opens on a question no longer here. */
+  @Test
+  fun anEditOfAQuestionAlreadyAskedChangesNothingButTheHold() {
+    val asked = QuestionQueue().sent("a").sent("b").asked()
+
+    assertEquals(asked, asked.editing("a").edited("a", "A"))
+  }
+
+  @Test
+  fun onlyTheDueQuestionBeingEditedHoldsTheQueue() {
+    val queue = QuestionQueue().sent("first").sent("second").editing("second")
+
+    assertEquals("first", queue.due(idle))
+  }
 }

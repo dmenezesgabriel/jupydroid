@@ -19,8 +19,14 @@ package com.jupydroid.extensions.ai.domain
  * @param awaitingReply a question was asked and its agent has not yet said it writes. The persona says
  *   so only once it holds its session's lock, so the asked question's echo arrives before that, while
  *   nothing writes; without this, that echo would let the next question cut in.
+ * @param held the question being edited. It is never asked while edited, so what is asked is what the
+ *   user saved, and the questions behind it wait with it, so their order holds.
  */
-data class QuestionQueue(val pending: List<String> = emptyList(), val awaitingReply: Boolean = false) {
+data class QuestionQueue(
+  val pending: List<String> = emptyList(),
+  val awaitingReply: Boolean = false,
+  val held: String? = null,
+) {
   /** [question] beneath those already waiting. */
   fun sent(question: String): QuestionQueue = copy(pending = pending + question)
 
@@ -30,7 +36,7 @@ data class QuestionQueue(val pending: List<String> = emptyList(), val awaitingRe
 
   /** The question to ask now, or null while a reply arrives or is still to start. */
   fun due(transcript: ChatTranscript): String? =
-    pending.firstOrNull()?.takeUnless { transcript.agentWriting || awaitingReply }
+    pending.firstOrNull()?.takeUnless { transcript.agentWriting || awaitingReply || it == held }
 
   /** The queue once its [due] question has been asked. */
   fun asked(): QuestionQueue = copy(pending = pending.drop(1), awaitingReply = true)
@@ -43,4 +49,19 @@ data class QuestionQueue(val pending: List<String> = emptyList(), val awaitingRe
    * questions the first goes, which on screen is the same.
    */
   fun removed(question: String): QuestionQueue = copy(pending = pending - question)
+
+  /** The queue with [question] being edited, and so held until it is [edited]. */
+  fun editing(question: String): QuestionQueue = copy(held = question)
+
+  /**
+   * The queue with [question] saved as [into], trimmed, in its place, and no longer held, as
+   * jupyter-chat-components@992c6fb `src/components/message-queue.tsx` saves an edit.
+   *
+   * By its text, as [removed] goes: a question already asked is no longer here, and only the hold goes.
+   */
+  fun edited(question: String, into: String): QuestionQueue {
+    val at = pending.indexOf(question)
+    if (at < 0) return copy(held = null)
+    return copy(pending = pending.toMutableList().apply { set(at, into.trim()) }, held = null)
+  }
 }
