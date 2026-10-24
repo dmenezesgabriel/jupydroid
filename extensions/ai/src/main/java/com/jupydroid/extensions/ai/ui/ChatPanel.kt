@@ -35,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -229,9 +230,23 @@ private fun FollowTheNewest(list: LazyListState, shown: List<ChatMessage>) {
   // Keyed by the whole message, not its id and length: a message of tool calls keeps both while a
   // call comes to ask and its row grows by the options.
   LaunchedEffect(newest) {
-    // An offset past the item's end is clamped to the list's end, which is the item's last line.
-    if (following && newest != null) list.scrollToItem(shown.lastIndex, Int.MAX_VALUE)
+    if (following) list.scrollToTheEnd(shown)
   }
+  val current by rememberUpdatedState(shown)
+  LaunchedEffect(list) {
+    // The queue box and the keyboard take their height from the list with no message changing, and a
+    // list that kept its top left its newest line under them: on SM-X216B, a call's Allow? under the
+    // box (ChatQueuedQuestionsTest.theNewestLineStaysInViewWhenTheQueueAppears).
+    snapshotFlow { list.layoutInfo.viewportSize.height }.collect {
+      if (following) list.scrollToTheEnd(current)
+    }
+  }
+}
+
+/** [shown]'s newest message scrolled to its last line, if there is one. */
+private suspend fun LazyListState.scrollToTheEnd(shown: List<ChatMessage>) {
+  // An offset past the item's end is clamped to the list's end, which is the item's last line.
+  if (shown.isNotEmpty()) scrollToItem(shown.lastIndex, Int.MAX_VALUE)
 }
 
 /**

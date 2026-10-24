@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -18,7 +19,9 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
+import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -64,6 +67,25 @@ class ChatQueuedQuestionsTest {
       "the queue is not above the input",
       panel.bounds("chat-queued").bottom <= panel.bounds("chat-input-box").top,
     )
+  }
+
+  /**
+   * The box takes its height from the messages, and a list that kept its top would leave its newest
+   * line under the box: on SM-X216B, the call a question was queued behind, with its Allow?.
+   */
+  @Test
+  fun theNewestLineStaysInViewWhenTheQueueAppears() {
+    val reply = ChatMessage(id = "reply", body = (1..200).joinToString("\n"), fromMe = false)
+    val chat = SettableAgentChat(ChatTranscript(listOf(reply), agentWriting = true))
+    panel.show(chat)
+
+    panel.send("What is 2+2?")
+
+    compose.onNodeWithText("1 queued").assertIsDisplayed()
+    compose.waitForIdle()
+    val scrolled = compose.onNodeWithTag("chat-messages").fetchSemanticsNode()
+      .config[SemanticsProperties.VerticalScrollAxisRange]
+    assertEquals(scrolled.maxValue(), scrolled.value())
   }
 
   @Test
