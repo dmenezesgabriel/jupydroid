@@ -1848,6 +1848,28 @@ comes from the one-pane composition being rebuilt as the two-pane one, not from 
 reference was compared yet. The repair starts by finding which node asks for focus as the side pane
 recomposes.
 
+### GAP-181 — A Space stops under an open, idle terminal, and the tab it leaves drops what is typed
+
+On SM-X216B on 2026-10-24, after a fresh install, `scripts/jd-046-opencode-in-a-space-driver.sh` ran
+its probe in base's terminal. The probe ended at about 14:16, and the app stayed in front with that
+terminal tab open and idle. At 14:25, `ps -A` held only `com.jupydroid.app` for the app's uid: no
+`libproot.so`, no `jupyter_server`, no `sh`. The app's process was the same one started at 14:14:42
+(`am_proc_start`), with no `am_kill` after it. The tab still drew the probe's last output and a
+prompt. Maestro's `inputText` and `adb shell input text` each typed into it, and nothing appeared.
+Opening a new terminal from the Launcher started base again (`libproot.so`, `jupyter_server`, `sh`
+and a kernel, all children of the same app process). The tab came back as a fresh prompt, but
+`touch typed-ok` typed into it never created the file. After `launchApp` with `stopApp: true` and a
+new terminal, the same command created `typed-ok`, and the terminal took input from then on.
+
+The server's own rule should keep it up. jupyter_server's `shutdown_no_activity` returns while
+`extension_manager.any_activity()` is true, and jupyter_server_terminals' `current_activity()` returns
+the open terminals (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`,
+`jupyter_server_terminals/app.py`, in the shipped rootfs). `IdleServerStopper`
+(`app/src/main/java/com/jupydroid/app/data/space/IdleServerStopper.kt`) acts only once the app has
+stopped, and it counts an open terminal as activity. What stopped base was not captured: the server
+log and logcat were not read before the relaunch. The repair starts by reproducing it with both
+captured. The tab should then either keep its shell or say it ended and offer to start a new one.
+
 ---
 
 ## 12. Glossary
