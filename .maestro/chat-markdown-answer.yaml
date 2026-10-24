@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider by a
+# person. Driven by scripts/chat-markdown-answer-driver.sh, which empties the workspace.
+#
+# The question asks for a heading, a list and a fenced block by name and writes none of their marks,
+# so a `#`, a `-` or a fence on screen can only be the answer's, shown rather than drawn. Maestro
+# matches a node's whole text: "Persimmon" alone is the heading drawn as its own line, which the
+# question, holding the word inside a sentence, cannot match.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Answer in markdown only: a level two heading Persimmon, a bulleted list of alpha and beta, then a fenced python code block holding print(6*7). Use no tools."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot and the model answers over the network.
+- extendedWaitUntil:
+    visible: "Persimmon"
+    timeout: 300000
+- assertVisible: "alpha"
+- assertVisible: "•"
+- assertVisible: "print\\(6\\*7\\)"
+- assertNotVisible: ".*##.*"
+- assertNotVisible: ".*```.*"
+- takeScreenshot: 01-the-answer-is-drawn-as-markdown
