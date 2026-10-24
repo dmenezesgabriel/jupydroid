@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-queued-questions-demo-driver.sh runs, after part 1 queued
+# a question behind a call left asking and the driver killed the app.
+#
+# The question is read back from the app's own storage when the chat opens. The new server has no
+# reply in flight, so it is asked at once: its row is gone before a look for it can land, so the flow
+# waits for its answer. The driver shows it was not asked before the kill, so only what was kept can
+# have asked it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "12"
+    timeout: 300000
+- assertVisible: "What is 6\\+6\\? Answer with the number only\\."
+- extendedWaitUntil:
+    notVisible: "\\d queued"
+    timeout: 30000
+- takeScreenshot: 07-relaunched-the-kept-question-is-asked-and-answered

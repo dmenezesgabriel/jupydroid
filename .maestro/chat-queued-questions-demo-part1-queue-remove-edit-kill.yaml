@@ -1,0 +1,117 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-queued-questions-demo-driver.sh runs. Landscape, two panes,
+# in base, with opencode installed and signed in in base, over a workspace the driver emptied.
+#
+# One chat, end to end. Questions sent while opencode's bash call waits on approval are held as
+# pending rows, one is taken off with its × and one edited in place; Allow once ends the reply, and
+# each is then asked in turn. A second call is left asking with a question queued behind it, and the
+# driver then kills the app with that question not yet asked.
+#
+# The call waits on the user, and the persona writes until it is answered, however long the flow
+# takes: a count to 1000 ended before Maestro had typed the next question.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Run echo demo-$((6*7)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn: "Ask the agent"
+- inputText: "What is 2+2? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "1 queued"
+    timeout: 30000
+# Still writing, and still asking: the queued question cut nothing short.
+- assertVisible: "Stop"
+- assertVisible: ".*Allow\\?"
+- takeScreenshot: 01-a-question-waits-while-the-call-asks
+- tapOn: "Ask the agent"
+- inputText: "What is 3+3? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "2 queued"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "What is 5+5? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "3 queued"
+    timeout: 30000
+- takeScreenshot: 02-three-questions-wait
+# The third taken off with its ×. Its text is only in its row, so it is gone when the row is; the
+# other two still being there says it was the third row's × that was tapped.
+- tapOn:
+    text: "Remove from queue"
+    index: 2
+- extendedWaitUntil:
+    visible: "2 queued"
+    timeout: 30000
+- assertNotVisible: "What is 5\\+5\\? Answer with the number only\\."
+- assertVisible: "What is 2\\+2\\? Answer with the number only\\."
+- assertVisible: "What is 3\\+3\\? Answer with the number only\\."
+- takeScreenshot: 03-its-cross-takes-the-third-off-the-queue
+# The second edited in place: the question saved in its place is the one asked.
+- tapOn:
+    text: "Edit message"
+    index: 1
+- extendedWaitUntil:
+    visible: "Save"
+    timeout: 30000
+- eraseText: 60
+- inputText: "What is 4+4? Answer with the number only."
+- hideKeyboard
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "What is 4\\+4\\? Answer with the number only\\."
+    timeout: 30000
+- assertVisible: "2 queued"
+- assertNotVisible: "What is 3\\+3\\? Answer with the number only\\."
+- takeScreenshot: 04-the-second-edited-in-its-place
+- tapOn: "Allow once"
+- extendedWaitUntil:
+    notVisible: "\\d queued"
+    timeout: 600000
+# The last answer is the end to wait for, not Stop going: once it has streamed the screen is still
+# while the persona ends its turn, and Maestro gave up waiting on Stop after 1.3 s of a 60 s timeout.
+# The driver reads that each turn ended from the server's log instead.
+- extendedWaitUntil:
+    visible: "8"
+    timeout: 300000
+- assertVisible: "(?i)\\W*demo-42\\W*"
+- assertVisible: "4"
+- takeScreenshot: 05-allowed-each-is-answered-in-turn-and-the-box-is-gone
+# A second call left asking, with a question queued behind it for the driver's kill.
+- tapOn: "Ask the agent"
+- inputText: "Run echo kept-$((7*8)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn: "Ask the agent"
+- inputText: "What is 6+6? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "1 queued"
+    timeout: 30000
+- assertVisible: "Stop"
+- assertVisible: ".*Allow\\?"
+- takeScreenshot: 06-a-question-waits-behind-the-second-call

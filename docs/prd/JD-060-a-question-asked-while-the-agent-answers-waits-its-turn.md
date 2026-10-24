@@ -13,14 +13,16 @@ rest of the reply in flight ([GAP-177](../architecture.md)).
 
 On SM-X216B, with opencode installed and signed in in base (ADR-0106):
 
-1. Open Chat, New chat. Ask for a count from 1 to 1000, one number a line.
-2. While it arrives, type "What is 2+2?" and tap Send. A box above the input says **1 queued** and
-   holds the question. The count keeps arriving and Stop stays beside Send.
+1. Open Chat, New chat. Ask for a shell command (`echo demo-$((6*7))`), and leave its Allow? unanswered.
+   The reply stays in progress for as long as the call asks. A count to 1000 ended before the next
+   question had been typed, and was asked at once (T1's first run).
+2. While it asks, type "What is 2+2?" and tap Send. A box above the input says **1 queued** and holds
+   the question. The call keeps asking and Stop stays beside Send.
 3. Queue two more. Edit one in place, and remove the other with its ×.
-4. The count ends at 1000. The oldest pending question is asked, and its answer arrives under the
-   count. Then the edited one is asked, and the box is gone.
-5. Ask for the count again, queue a question, kill the app, then relaunch and open the chat. The
-   question is still pending, and it is asked once no reply is arriving.
+4. Allow once. The reply ends with `demo-42`. The oldest pending question is asked, and its answer
+   arrives under the reply. Then the edited one is asked, and the box is gone.
+5. Ask for a second command, queue a question while it asks, kill the app, then relaunch and open the
+   chat. The question is still pending, and it is asked once no reply is arriving.
 
 The item is not `shipped` until this has run on SM-X216B, with screenshots, snapshots and
 `maestro.log` committed under `evidence/<flow-name>/`.
