@@ -13,7 +13,6 @@ import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalTextToolbar
-import androidx.compose.ui.platform.NativeClipboard
 import androidx.compose.ui.platform.TextToolbar
 import androidx.compose.ui.platform.TextToolbarStatus
 import androidx.compose.ui.test.assertIsDisplayed
@@ -224,19 +223,6 @@ class TerminalSelectionTest {
     val origin = with(compose.density) { Offset(field.left.toPx(), field.top.toPx()) }
     return origin + Offset(inset + measured.width * (column + 0.5f), measured.height * 0.5f)
   }
-}
-
-/** A clipboard that keeps what it was given, so the test reads it without the system's own. */
-private class RecordingClipboard(override val nativeClipboard: NativeClipboard) : Clipboard {
-  private var entry: ClipEntry? = null
-
-  override suspend fun getClipEntry(): ClipEntry? = entry
-
-  override suspend fun setClipEntry(clipEntry: ClipEntry?) {
-    entry = clipEntry
-  }
-
-  fun text(): String? = entry?.clipData?.getItemAt(0)?.text?.toString()
 }
 
 /** The floating toolbar, recorded: where it was shown, the Copy it was handed, and how often it was hidden. */

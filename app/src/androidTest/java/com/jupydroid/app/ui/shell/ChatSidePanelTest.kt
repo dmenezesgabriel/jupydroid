@@ -1,12 +1,15 @@
 package com.jupydroid.app.ui.shell
 
+import android.content.ClipboardManager
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -34,6 +37,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.jupydroid.app.RecordingClipboard
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
@@ -100,6 +105,63 @@ class ChatSidePanelTest {
     compose.onNodeWithText("x = 1").assertIsDisplayed()
     compose.onAllNodesWithText("##", substring = true).assertCountEquals(0)
     compose.onAllNodesWithText("```", substring = true).assertCountEquals(0)
+  }
+
+  /**
+   * jupyter-chat puts its toolbar after every `<pre>` of a message, right-aligned, and its Copy writes
+   * the block's text (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/code-blocks/code-toolbar.tsx`).
+   */
+  @Test
+  fun copyUnderACodeBlockPutsItsCodeOnTheClipboard() {
+    val clipboard = showOnAClipboard(answered(MARKDOWN_ANSWER))
+
+    compose.onNodeWithText("Copy").performClick()
+    compose.waitForIdle()
+
+    assertEquals("x = 1", clipboard.text())
+  }
+
+  @Test
+  fun copySitsBeneathItsCodeBlockAtItsRight() {
+    showOnAClipboard(answered(MARKDOWN_ANSWER))
+
+    val code = compose.onNodeWithText("x = 1").getBoundsInRoot()
+    val copy = compose.onNodeWithText("Copy").getBoundsInRoot()
+    assertTrue("Copy at $copy is not beneath the code at $code", copy.top >= code.bottom)
+    assertTrue("Copy at $copy is not at the code's right, $code", copy.left > (code.left + code.right) / 2)
+  }
+
+  /** "Copied!" for a second in jupyter-chat (`copy-button.tsx`); a tablet before API 33 shows no confirmation. */
+  @Test
+  fun copyReadsCopiedForASecond() {
+    showOnAClipboard(answered(MARKDOWN_ANSWER))
+    // The answer is read in on the clock; the clock stops once it is drawn.
+    compose.onNodeWithText("Copy").assertIsDisplayed()
+    compose.mainClock.autoAdvance = false
+
+    compose.onNodeWithText("Copy").performClick()
+    compose.mainClock.advanceTimeByFrame()
+    compose.onNodeWithText("Copied").assertIsDisplayed()
+    compose.mainClock.advanceTimeBy(COPIED_FOR_MILLIS)
+
+    compose.onNodeWithText("Copy").assertIsDisplayed()
+  }
+
+  @Test
+  fun anAnswerWithNoCodeBlockOffersNoCopy() {
+    showOnAClipboard(answered("## Result\n\n- one"))
+
+    compose.onNodeWithText("Result").assertIsDisplayed()
+    compose.onAllNodesWithText("Copy").assertCountEquals(0)
+  }
+
+  /** The question is drawn as typed, so a fence in it is text and no code block. */
+  @Test
+  fun aQuestionHoldingAFenceOffersNoCopy() {
+    showOnAClipboard(FakeAgentChat(history = listOf(ChatMessage(id = "q", body = MARKDOWN_ANSWER, fromMe = true))))
+
+    compose.onNodeWithText(MARKDOWN_ANSWER).assertIsDisplayed()
+    compose.onAllNodesWithText("Copy").assertCountEquals(0)
   }
 
   @Test
@@ -372,6 +434,22 @@ class ChatSidePanelTest {
 
   private fun show(answering: AgentChat = fake) = panel.show(answering)
 
+  /** The panel open on [answering], copying to a clipboard the test reads back. */
+  private fun showOnAClipboard(answering: AgentChat): RecordingClipboard {
+    val context = InstrumentationRegistry.getInstrumentation().targetContext
+    val clipboard = RecordingClipboard(context.getSystemService(ClipboardManager::class.java))
+    compose.setContent {
+      CompositionLocalProvider(LocalClipboard provides clipboard) {
+        JupyterDroidTheme { ContributedSidePanel(panel.contribution(answering), UntitledChatPanel.HOST) }
+      }
+    }
+    panel.open()
+    return clipboard
+  }
+
+  private fun answered(body: String) =
+    FakeAgentChat(history = listOf(ChatMessage(id = "a", body = body, fromMe = false)))
+
   /** A key on Chat's row, and not one with the same text elsewhere. */
   private fun rowKey(text: String) = compose.onNode(hasText(text) and hasAnyAncestor(hasTestTag(CHAT_KEY_ROW)))
 
@@ -381,6 +459,9 @@ class ChatSidePanelTest {
 
     /** A heading, a list and a fenced block: the three things an agent's answer is most made of. */
     val MARKDOWN_ANSWER = "## Result\n\n- one\n\n```python\nx = 1\n```"
+
+    /** How long Copy reads Copied, with a frame to spare. */
+    const val COPIED_FOR_MILLIS = 1_100L
 
     const val CHAT_KEY_ROW = "chat_key_row"
     val SIDE_PANE = 360.dp

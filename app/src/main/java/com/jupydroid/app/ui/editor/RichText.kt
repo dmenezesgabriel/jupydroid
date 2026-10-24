@@ -35,23 +35,30 @@ import com.jupydroid.app.theme.editorPalette
  * ```
  * RichText(MarkdownDocument.parse(cell.source))
  * ```
+ *
+ * @param codeBlockActions drawn under every code block, a nested one too, and handed its code as
+ *   shown; nothing by default, as a markdown cell draws nothing there.
  */
 @Composable
-fun RichText(blocks: List<RichBlock>, modifier: Modifier = Modifier) {
+fun RichText(
+  blocks: List<RichBlock>,
+  modifier: Modifier = Modifier,
+  codeBlockActions: @Composable (code: String) -> Unit = {},
+) {
   Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(BLOCK_GAP)) {
-    blocks.forEach { RichBlockText(it) }
+    blocks.forEach { RichBlockText(it, codeBlockActions) }
   }
 }
 
 @Composable
-private fun RichBlockText(block: RichBlock) {
+private fun RichBlockText(block: RichBlock, codeBlockActions: @Composable (code: String) -> Unit) {
   val styles = richInlineStyles()
   when (block) {
     is RichBlock.Heading -> RichInlineText(block.inlines, styles, headingStyle(block.level))
     is RichBlock.Paragraph -> RichInlineText(block.inlines, styles, richTextProseStyle())
-    is RichBlock.CodeBlock -> CodeBlockText(block)
-    is RichBlock.BlockQuote -> BlockQuoteText(block)
-    is RichBlock.ListBlock -> ListBlockText(block)
+    is RichBlock.CodeBlock -> CodeBlockText(block, codeBlockActions)
+    is RichBlock.BlockQuote -> BlockQuoteText(block, codeBlockActions)
+    is RichBlock.ListBlock -> ListBlockText(block, codeBlockActions)
     RichBlock.ThematicBreak -> HorizontalDivider(color = LocalContentColor.current)
     is RichBlock.Table -> RichTable(block)
   }
@@ -59,17 +66,21 @@ private fun RichBlockText(block: RichBlock) {
 
 /** Scrolls rather than wraps: a wrapped line of code is harder to read than one you drag. */
 @Composable
-private fun CodeBlockText(block: RichBlock.CodeBlock) {
-  Text(
-    text = block.code.trimEnd('\n'),
-    style = richTextCodeStyle(),
-    color = editorPalette.preformatForeground,
-    modifier = Modifier
-      .fillMaxWidth()
-      .background(editorPalette.preformatBackground, MaterialTheme.shapes.small)
-      .padding(Spacing.sm)
-      .horizontalScroll(rememberScrollState()),
-  )
+private fun CodeBlockText(block: RichBlock.CodeBlock, codeBlockActions: @Composable (code: String) -> Unit) {
+  val code = block.code.trimEnd('\n')
+  Column {
+    Text(
+      text = code,
+      style = richTextCodeStyle(),
+      color = editorPalette.preformatForeground,
+      modifier = Modifier
+        .fillMaxWidth()
+        .background(editorPalette.preformatBackground, MaterialTheme.shapes.small)
+        .padding(Spacing.sm)
+        .horizontalScroll(rememberScrollState()),
+    )
+    codeBlockActions(code)
+  }
 }
 
 /**
@@ -78,7 +89,7 @@ private fun CodeBlockText(block: RichBlock.CodeBlock) {
  * (`DefaultMarkdownBlockRenderer.kt`).
  */
 @Composable
-private fun BlockQuoteText(block: RichBlock.BlockQuote) {
+private fun BlockQuoteText(block: RichBlock.BlockQuote, codeBlockActions: @Composable (code: String) -> Unit) {
   val rule = editorPalette.blockQuoteBorder
   val wash = editorPalette.blockQuoteBackground
   Column(
@@ -92,12 +103,12 @@ private fun BlockQuoteText(block: RichBlock.BlockQuote) {
       .padding(start = QUOTE_INDENT),
     verticalArrangement = Arrangement.spacedBy(BLOCK_GAP),
   ) {
-    block.children.forEach { RichBlockText(it) }
+    block.children.forEach { RichBlockText(it, codeBlockActions) }
   }
 }
 
 @Composable
-private fun ListBlockText(block: RichBlock.ListBlock) {
+private fun ListBlockText(block: RichBlock.ListBlock, codeBlockActions: @Composable (code: String) -> Unit) {
   Column(verticalArrangement = Arrangement.spacedBy(BLOCK_GAP)) {
     block.items.forEachIndexed { index, item ->
       Row {
@@ -107,7 +118,7 @@ private fun ListBlockText(block: RichBlock.ListBlock) {
           modifier = Modifier.width(MARKER_WIDTH),
         )
         Column(verticalArrangement = Arrangement.spacedBy(BLOCK_GAP)) {
-          item.forEach { RichBlockText(it) }
+          item.forEach { RichBlockText(it, codeBlockActions) }
         }
       }
     }

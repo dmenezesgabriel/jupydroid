@@ -264,6 +264,7 @@ private suspend fun LazyListState.scrollToTheEnd(shown: List<ChatMessage>) {
  *
  * An agent's answer is drawn as markdown by [markdown], as jupyter-chat draws a message through the
  * host's rendermime (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/messages/message-renderer.tsx`).
+ * Under each of its code blocks are [CodeBlockActions], as jupyter-chat puts its toolbar after each `<pre>`.
  * Your question is drawn as typed: what is typed in the field is what is read back.
  */
 @Composable
@@ -281,7 +282,7 @@ private fun MessageRow(
     if (message.fromMe) {
       Text(message.body, modifier = Modifier.padding(8.dp))
     } else {
-      markdown.Draw(message.body, Modifier.padding(8.dp))
+      markdown.Draw(message.body, Modifier.padding(8.dp)) { code -> CodeBlockActions(code) }
     }
   }
 }

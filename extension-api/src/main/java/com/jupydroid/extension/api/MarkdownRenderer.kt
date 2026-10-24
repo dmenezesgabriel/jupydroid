@@ -13,11 +13,17 @@ import androidx.compose.ui.Modifier
  * `src/vscode-dts/vscode.d.ts`, `ChatResponseStream.markdown`).
  *
  * ```
- * host.markdown.Draw("## Result\n\n- one", Modifier.padding(8.dp))
+ * host.markdown.Draw("## Result\n\n```\nx = 1\n```", Modifier.padding(8.dp)) { code -> Text(code) }
  * ```
  */
 fun interface MarkdownRenderer {
-  /** Draws [source], a CommonMark document with GitHub's tables, strikethrough and autolinks. */
+  /**
+   * Draws [source], a CommonMark document with GitHub's tables, strikethrough and autolinks.
+   *
+   * @param codeBlockActions the extension's own, drawn under every code block, a nested one too, and
+   *   handed its code as shown: jupyter-chat puts its toolbar after every `<pre>` the rendermime drew
+   *   (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/messages/message-renderer.tsx`).
+   */
   @Composable
-  fun Draw(source: String, modifier: Modifier)
+  fun Draw(source: String, modifier: Modifier, codeBlockActions: @Composable (code: String) -> Unit)
 }

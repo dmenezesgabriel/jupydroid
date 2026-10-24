@@ -17,9 +17,9 @@ import com.jupydroid.extension.api.MarkdownRenderer
  */
 object RichTextMarkdownRenderer : MarkdownRenderer {
   @Composable
-  override fun Draw(source: String, modifier: Modifier) {
+  override fun Draw(source: String, modifier: Modifier, codeBlockActions: @Composable (code: String) -> Unit) {
     // A streamed answer recomposes on every frame that grows it; one parse per source, not per frame.
     val blocks = remember(source) { MarkdownDocument.parse(source) }
-    RichText(blocks, modifier)
+    RichText(blocks, modifier, codeBlockActions)
   }
 }
