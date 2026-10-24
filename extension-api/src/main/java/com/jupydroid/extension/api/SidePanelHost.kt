@@ -13,8 +13,14 @@ package com.jupydroid.extension.api
  * @param spaceId the entered Space's id, for what an extension keeps on the device for each Space rather
  *   than in its workspace, as VS Code keys its workspace storage by workspace (vscode@3f3380c
  *   `src/vs/workbench/contrib/chat/common/model/chatSessionStore.ts`, `workspaceStorageHome`).
+ * @param markdown the renderer a markdown cell is drawn with, for what a panel shows as markdown.
  */
-data class SidePanelHost(val browsedDirectory: String, val server: SpaceServerEndpoint?, val spaceId: String)
+data class SidePanelHost(
+  val browsedDirectory: String,
+  val server: SpaceServerEndpoint?,
+  val spaceId: String,
+  val markdown: MarkdownRenderer,
+)
 
 /**
  * The entered Space's `jupyter_server`, asked for when a request is about to go out.

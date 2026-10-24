@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
@@ -24,12 +25,13 @@ import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
  * The Chat panel's body: the workspace's chats to pick from, or the one picked, with a way back.
  *
  * ```
- * ChatsPanel(FakeChatFiles(listOf("untitled.chat")), OpenChatSelection(), FakeQueuedQuestionsStore()) {
+ * ChatsPanel(FakeChatFiles(listOf("untitled.chat")), OpenChatSelection(), FakeQueuedQuestionsStore(), host.markdown) {
  *   FakeAgentChat()
  * }
  * ```
  *
  * @param queues where each chat's waiting questions are kept, and moved or forgotten with its file.
+ * @param markdown what an agent's answer is drawn with: the host's, so it reads as a markdown cell does.
  * @param chatFor the chat at a path relative to the workspace root.
  */
 @Composable
@@ -37,6 +39,7 @@ fun ChatsPanel(
   files: ChatFiles,
   selection: OpenChatSelection,
   queues: QueuedQuestionsStore,
+  markdown: MarkdownRenderer,
   chatFor: (String) -> AgentChat,
   modifier: Modifier = Modifier,
 ) {
@@ -51,6 +54,7 @@ fun ChatsPanel(
       chat = remember(open) { chatFor(open) },
       file = ChatFile(open),
       queues = queues,
+      markdown = markdown,
       modifier = Modifier.weight(1f),
     )
   }

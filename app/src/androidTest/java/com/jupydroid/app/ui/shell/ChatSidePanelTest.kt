@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -83,6 +84,22 @@ class ChatSidePanelTest {
 
     compose.onNodeWithText("What is a Space?").assertIsDisplayed()
     compose.onNodeWithText("A Linux userland the app runs.").assertIsDisplayed()
+  }
+
+  /**
+   * The answer goes through the renderer a markdown cell is drawn with, as jupyter-chat renders a
+   * message through the host's own rendermime (jupyter-chat@2c224bc
+   * `packages/jupyter-chat/src/components/messages/message-renderer.tsx`): its marks are drawn, not shown.
+   */
+  @Test
+  fun anAnswerIsDrawnAsMarkdown() {
+    show(FakeAgentChat(history = listOf(ChatMessage(id = "md", body = MARKDOWN_ANSWER, fromMe = false))))
+
+    compose.onNodeWithText("Result").assertIsDisplayed()
+    compose.onNodeWithText("one").assertIsDisplayed()
+    compose.onNodeWithText("x = 1").assertIsDisplayed()
+    compose.onAllNodesWithText("##", substring = true).assertCountEquals(0)
+    compose.onAllNodesWithText("```", substring = true).assertCountEquals(0)
   }
 
   @Test
@@ -361,6 +378,9 @@ class ChatSidePanelTest {
   private companion object {
     /** Taller than any screen the tests run on, one number per line. */
     val LONG_ANSWER = (1..200).joinToString("\n")
+
+    /** A heading, a list and a fenced block: the three things an agent's answer is most made of. */
+    val MARKDOWN_ANSWER = "## Result\n\n- one\n\n```python\nx = 1\n```"
 
     const val CHAT_KEY_ROW = "chat_key_row"
     val SIDE_PANE = 360.dp

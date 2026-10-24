@@ -54,7 +54,7 @@ class ContributedSidePanelTest {
       JupyterDroidTheme {
         ContributedSidePanel(
           contribution = sourceControl,
-          host = SidePanelHost(browsedDirectory, server = null, spaceId = "base"),
+          host = SidePanelHost(browsedDirectory, server = null, spaceId = "base", RichTextMarkdownRenderer),
         )
       }
     }

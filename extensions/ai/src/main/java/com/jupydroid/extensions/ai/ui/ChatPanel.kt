@@ -49,6 +49,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.jupydroid.extension.api.KeyRowPublished
+import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatFile
@@ -77,14 +78,21 @@ import kotlinx.coroutines.launch
  * A chat that drops while shown opens again on its own ([readings]), its last messages still drawn.
  *
  * ```
- * ChatPanel(FakeAgentChat(replies = mapOf("hello?" to "hi")), ChatFile("untitled.chat"), FakeQueuedQuestionsStore())
+ * val chat = FakeAgentChat(replies = mapOf("hello?" to "hi"))
+ * ChatPanel(chat, ChatFile("untitled.chat"), FakeQueuedQuestionsStore(), host.markdown)
  * ```
  *
  * @param file the chat's file, by which [queues] keeps the questions waiting in it, so they are there
  *   when it is opened again, as after the app was killed, and asked once no reply arrives.
  */
 @Composable
-fun ChatPanel(chat: AgentChat, file: ChatFile, queues: QueuedQuestionsStore, modifier: Modifier = Modifier) {
+fun ChatPanel(
+  chat: AgentChat,
+  file: ChatFile,
+  queues: QueuedQuestionsStore,
+  markdown: MarkdownRenderer,
+  modifier: Modifier = Modifier,
+) {
   var reading by remember(chat) { mutableStateOf<ChatReading>(ChatReading.Opening) }
   LaunchedEffect(chat) { chat.readings().collect { reading = it } }
   val scope = rememberCoroutineScope()
@@ -150,9 +158,9 @@ fun ChatPanel(chat: AgentChat, file: ChatFile, queues: QueuedQuestionsStore, mod
         color = MaterialTheme.colorScheme.error,
         modifier = Modifier.weight(1f),
       )
-      is ChatReading.Open -> Messages(shown.transcript, choose, Modifier.weight(1f))
+      is ChatReading.Open -> Messages(shown.transcript, markdown, choose, Modifier.weight(1f))
       is ChatReading.Reconnecting -> {
-        Messages(shown.transcript, choose, Modifier.weight(1f))
+        Messages(shown.transcript, markdown, choose, Modifier.weight(1f))
         Text(
           "Reconnecting: ${shown.reason}",
           color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -188,6 +196,7 @@ fun ChatPanel(chat: AgentChat, file: ChatFile, queues: QueuedQuestionsStore, mod
 @Composable
 private fun Messages(
   transcript: ChatTranscript,
+  markdown: MarkdownRenderer,
   onChoose: suspend (ToolCall, PermissionOption) -> Boolean,
   modifier: Modifier,
 ) {
@@ -199,7 +208,7 @@ private fun Messages(
     modifier = modifier.fillMaxWidth().testTag("chat-messages"),
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    items(shown, key = ChatMessage::id) { message -> MessageRow(message, onChoose) }
+    items(shown, key = ChatMessage::id) { message -> MessageRow(message, markdown, onChoose) }
   }
 }
 
@@ -252,16 +261,28 @@ private suspend fun LazyListState.scrollToTheEnd(shown: List<ChatMessage>) {
 /**
  * Your question tinted, so it reads apart from the answer beneath it. A message of tool calls has no
  * text of its own and is drawn as its calls' rows, with no bubble.
+ *
+ * An agent's answer is drawn as markdown by [markdown], as jupyter-chat draws a message through the
+ * host's rendermime (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/messages/message-renderer.tsx`).
+ * Your question is drawn as typed: what is typed in the field is what is read back.
  */
 @Composable
-private fun MessageRow(message: ChatMessage, onChoose: suspend (ToolCall, PermissionOption) -> Boolean) {
+private fun MessageRow(
+  message: ChatMessage,
+  markdown: MarkdownRenderer,
+  onChoose: suspend (ToolCall, PermissionOption) -> Boolean,
+) {
   if (message.toolCalls.isNotEmpty()) return ToolCallRows(message.toolCalls, onChoose)
   Surface(
     color = if (message.fromMe) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,
     shape = MaterialTheme.shapes.medium,
     modifier = Modifier.fillMaxWidth(),
   ) {
-    Text(message.body, modifier = Modifier.padding(8.dp))
+    if (message.fromMe) {
+      Text(message.body, modifier = Modifier.padding(8.dp))
+    } else {
+      markdown.Draw(message.body, Modifier.padding(8.dp))
+    }
   }
 }
 

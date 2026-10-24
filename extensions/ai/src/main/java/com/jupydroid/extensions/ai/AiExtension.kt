@@ -56,7 +56,7 @@ class AiExtension(
       key(host.server, host.spaceId) {
         val files = remember { chatFilesFor(host.server) }
         val queues = remember { queuesFor(host.spaceId) }
-        ChatsPanel(files, selection, queues, chatFor = { path -> chatFor(host.server, path) })
+        ChatsPanel(files, selection, queues, host.markdown, chatFor = { path -> chatFor(host.server, path) })
       }
     },
   )

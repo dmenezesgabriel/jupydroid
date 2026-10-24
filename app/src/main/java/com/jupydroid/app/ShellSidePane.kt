@@ -19,6 +19,7 @@ import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.shell.ContributedSidePanel
 import com.jupydroid.app.ui.shell.DebuggerSidePanel
+import com.jupydroid.app.ui.shell.RichTextMarkdownRenderer
 import com.jupydroid.app.ui.shell.RunningSidePanel
 import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelBar
@@ -130,7 +131,8 @@ fun ShellSidePane(
       val contributed = (showingPanel as? ShownPanel.Contributed)
         ?.let { shown -> appContainer.sidePanelContributions.find { it.id == shown.id } }
       if (contributed != null) {
-        val host = SidePanelHost(browsedDirectory, spacePorts.extensionServer, spacePorts.space.id)
+        val host =
+          SidePanelHost(browsedDirectory, spacePorts.extensionServer, spacePorts.space.id, RichTextMarkdownRenderer)
         ContributedSidePanel(contributed, host)
       }
       when ((showingPanel as? ShownPanel.Shell)?.panel) {

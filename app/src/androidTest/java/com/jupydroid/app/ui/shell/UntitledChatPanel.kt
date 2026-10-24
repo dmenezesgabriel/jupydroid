@@ -63,7 +63,7 @@ class UntitledChatPanel(private val compose: ComposeContentTestRule) {
     /** How long a test waits for the panel to ask what it holds. */
     const val TIMEOUT_MILLIS = 5_000L
 
-    /** No directory browsed and no server: the fake chat needs neither. */
-    val HOST = SidePanelHost(browsedDirectory = "", server = null, spaceId = "base")
+    /** No directory browsed and no server: the fake chat needs neither. The app's own renderer. */
+    val HOST = SidePanelHost(browsedDirectory = "", server = null, spaceId = "base", RichTextMarkdownRenderer)
   }
 }
