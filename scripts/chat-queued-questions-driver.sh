@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # The Chat panel holds a question sent while opencode answers: two questions sent while its bash call
-# waits on approval wait as pending rows, and once Allow once lets the reply end, each is asked after
-# the reply before it has ended.
+# waits on approval wait as pending rows, a third is taken off again with its ×, and once Allow once
+# lets the reply end, each of the two is asked after the reply before it has ended.
 #
 #   nice -n 10 timeout 2400 scripts/chat-queued-questions-driver.sh
 #
 # Exits non-zero if the flow fails, if the server logged a cancel or anything but three turns each
 # completed before the next started, or unless `untitled.chat` holds each question answered before the
-# next was asked: the call's output, then 4, then 6.
+# next was asked: the call's output, then 4, then 6, and never the question removed.
 #
 # TABLET ONLY (SM-X216B): the chat is answered in a running Space's server, which only arm64 ships.
 # Needs opencode installed in base (scripts/jd-046-opencode-in-a-space-driver.sh).
@@ -49,6 +49,8 @@ pull_server_log "$EVIDENCE/jupyter_server.log"
 python3 "$ROOT/scripts/chat_tool_call_reads.py" answered-in-turn "$EVIDENCE/untitled.chat" \
   "Run echo queue-\$((6*7)) with your bash tool, then answer with only what it printed." queue-42 \
   "What is 2+2? Answer with the number only." 4 "What is 3+3? Answer with the number only." 6
+# Removed while it waited, so it was never asked.
+if grep -F "What is 5+5?" "$EVIDENCE/untitled.chat"; then fail "the removed question was asked"; fi
 # Nothing here taps Stop, so a cancel in the log is a question that cut a reply short.
 if grep "POST /api/ai/personas/cancel" "$EVIDENCE/jupyter_server.log"; then fail "the server took a cancel"; fi
 # One turn per question, each begun only once the one before had completed.

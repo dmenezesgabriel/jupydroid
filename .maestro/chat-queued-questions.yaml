@@ -46,6 +46,26 @@ appId: com.jupydroid.app
 - assertVisible: "Stop"
 - assertVisible: ".*Allow\\?"
 - takeScreenshot: 01-two-questions-wait-while-the-call-asks
+# A third, taken off again with its ×. Its text is only in its row, so it is gone when the row is;
+# the other two still being there says it was the third row's × that was tapped.
+- tapOn: "Ask the agent"
+- inputText: "What is 5+5? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "3 queued"
+    timeout: 30000
+- takeScreenshot: 02-a-third-question-queued
+- tapOn:
+    text: "Remove from queue"
+    index: 2
+- extendedWaitUntil:
+    visible: "2 queued"
+    timeout: 30000
+- assertNotVisible: "What is 5\\+5\\? Answer with the number only\\."
+- assertVisible: "What is 2\\+2\\? Answer with the number only\\."
+- assertVisible: "What is 3\\+3\\? Answer with the number only\\."
+- takeScreenshot: 03-its-cross-takes-the-third-off-the-queue
 - tapOn: "Allow once"
 # The reply ends with what the call printed; then the first queued is asked, and the second only
 # once the first is answered.
@@ -60,4 +80,4 @@ appId: com.jupydroid.app
     timeout: 300000
 - assertVisible: "(?i)\\W*queue-42\\W*"
 - assertVisible: "4"
-- takeScreenshot: 02-allowed-the-queue-empties-and-each-is-answered-in-turn
+- takeScreenshot: 04-allowed-the-queue-empties-and-each-is-answered-in-turn
