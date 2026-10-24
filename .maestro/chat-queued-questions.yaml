@@ -66,18 +66,38 @@ appId: com.jupydroid.app
 - assertVisible: "What is 2\\+2\\? Answer with the number only\\."
 - assertVisible: "What is 3\\+3\\? Answer with the number only\\."
 - takeScreenshot: 03-its-cross-takes-the-third-off-the-queue
+# The second edited in place: its pencil opens it in a field, with a Save and no ×, and the question
+# saved in its place is the one asked. The old text is only in its row, so it is gone when the edit is.
+- tapOn:
+    text: "Edit message"
+    index: 1
+- extendedWaitUntil:
+    visible: "Save"
+    timeout: 30000
+- eraseText: 60
+- inputText: "What is 4+4? Answer with the number only."
+- hideKeyboard
+- takeScreenshot: 04-its-pencil-opens-the-second-in-a-field
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "What is 4\\+4\\? Answer with the number only\\."
+    timeout: 30000
+- assertVisible: "2 queued"
+- assertNotVisible: "What is 3\\+3\\? Answer with the number only\\."
+- assertVisible: "What is 2\\+2\\? Answer with the number only\\."
+- takeScreenshot: 05-saved-in-its-place
 - tapOn: "Allow once"
 # The reply ends with what the call printed; then the first queued is asked, and the second only
 # once the first is answered.
 - extendedWaitUntil:
     notVisible: "\\d queued"
     timeout: 600000
-# The last answer is the end to wait for, not Stop going: once "6" has streamed the screen is still
+# The last answer is the end to wait for, not Stop going: once it has streamed the screen is still
 # while the persona ends its turn, and Maestro gave up waiting on Stop after 1.3 s of a 60 s timeout.
 # The driver reads that the turn ended from the server's log instead.
 - extendedWaitUntil:
-    visible: "6"
+    visible: "8"
     timeout: 300000
 - assertVisible: "(?i)\\W*queue-42\\W*"
 - assertVisible: "4"
-- takeScreenshot: 04-allowed-the-queue-empties-and-each-is-answered-in-turn
+- takeScreenshot: 06-allowed-the-queue-empties-and-each-is-answered-in-turn
