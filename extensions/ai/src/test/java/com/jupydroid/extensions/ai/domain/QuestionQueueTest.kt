@@ -54,4 +54,19 @@ class QuestionQueueTest {
 
     assertEquals("second", asked.seen(writing).seen(idle).due(idle))
   }
+
+  @Test
+  fun removingAPendingQuestionTakesOnlyIt() {
+    val queue = QuestionQueue().sent("a").sent("b").sent("c")
+
+    assertEquals(listOf("a", "c"), queue.removed("b").pending)
+  }
+
+  /** A tap on a row's × can land in the frame after its question was asked, before the row is gone. */
+  @Test
+  fun removingAQuestionAlreadyAskedLeavesTheQueue() {
+    val asked = QuestionQueue().sent("a").sent("b").asked()
+
+    assertEquals(asked, asked.removed("a"))
+  }
 }

@@ -127,7 +127,7 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
         )
       }
     }
-    QueuedQuestions(queue.pending)
+    QueuedQuestions(queue.pending, onRemove = { queue = queue.removed(it) })
     QuestionField(
       enabled = open != null,
       writing = open?.agentWriting == true,

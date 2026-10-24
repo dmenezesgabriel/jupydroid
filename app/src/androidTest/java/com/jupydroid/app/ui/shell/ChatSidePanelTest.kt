@@ -17,11 +17,14 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -291,6 +294,38 @@ class ChatSidePanelTest {
     compose.onNodeWithText("1 queued").assertIsDisplayed()
   }
 
+  /**
+   * Its × takes a pending question off the queue, as the remove button does in
+   * jupyter-chat-components@992c6fb `src/components/message-queue.tsx`.
+   */
+  @Test
+  fun aPendingRowsCrossRemovesOnlyThatQuestionAndItIsNeverAsked() {
+    val chat = SettableAgentChat(ChatTranscript(agentWriting = true))
+    show(chat)
+    send("first")
+    send("second")
+
+    removeQueued("second")
+    compose.onNodeWithText("1 queued").assertIsDisplayed()
+    compose.onNode(hasText("first") and hasAnyAncestor(hasTestTag("chat-queued"))).assertIsDisplayed()
+    removeQueued("first")
+    compose.onNodeWithTag("chat-queued").assertDoesNotExist()
+    chat.shown.value = ChatTranscript()
+
+    compose.waitForIdle()
+    assertTrue("asked ${chat.asked} after both were removed", chat.asked.isEmpty())
+  }
+
+  @Test
+  fun aPendingRowsCrossIsAFingerWide() {
+    show(SettableAgentChat(ChatTranscript(agentWriting = true)))
+    send("first")
+
+    val touch = compose.onNodeWithContentDescription(REMOVE_QUEUED).fetchSemanticsNode().touchBoundsInRoot
+    val finger = with(compose.density) { 48.dp.toPx() }
+    assertTrue("the × is touched within $touch, under 48 dp", touch.width >= finger && touch.height >= finger)
+  }
+
   /** A rejected call is a cross, whatever the agent then says of its status (`ToolCallRow`'s `isRejected`). */
   @Test
   fun aRejectedCallIsACrossBesideTheOptionChosen() {
@@ -364,6 +399,12 @@ class ChatSidePanelTest {
     compose.onNodeWithTag(CHAT_KEY_ROW).assertDoesNotExist()
   }
 
+  /** Taps the × of the pending row that holds [question]. */
+  private fun removeQueued(question: String) {
+    val row = hasTestTag("chat-queued-row") and hasAnyDescendant(hasText(question))
+    compose.onNode(hasContentDescription(REMOVE_QUEUED) and hasAnyAncestor(row)).performClick()
+  }
+
   private fun send(question: String) {
     compose.onNodeWithTag("chat-input").performTextInput(question)
     compose.onNodeWithTag("chat-send").performClick()
@@ -434,6 +475,7 @@ class ChatSidePanelTest {
     const val TIMEOUT_MILLIS = 5_000L
 
     const val CHAT_KEY_ROW = "chat_key_row"
+    const val REMOVE_QUEUED = "Remove from queue"
     val SIDE_PANE = 360.dp
 
     /** opencode's three, as its `bash` request was logged on the tablet. */

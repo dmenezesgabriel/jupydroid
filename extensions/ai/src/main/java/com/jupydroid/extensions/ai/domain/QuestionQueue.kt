@@ -34,4 +34,13 @@ data class QuestionQueue(val pending: List<String> = emptyList(), val awaitingRe
 
   /** The queue once its [due] question has been asked. */
   fun asked(): QuestionQueue = copy(pending = pending.drop(1), awaitingReply = true)
+
+  /**
+   * The queue without [question], so it is never asked.
+   *
+   * By its text, not its place: the oldest is asked between a frame and the next, so a row's place can
+   * shift under a tap. A question already asked is no longer here, and nothing changes. Of two equal
+   * questions the first goes, which on screen is the same.
+   */
+  fun removed(question: String): QuestionQueue = copy(pending = pending - question)
 }
