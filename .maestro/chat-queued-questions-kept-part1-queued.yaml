@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-queued-questions-kept-driver.sh runs. Landscape, two panes,
+# in base, with opencode installed in base, over a workspace the driver emptied.
+#
+# A question sent while opencode's bash call waits on approval is held as a pending row. The driver
+# then reads it from the app's own storage and kills the app with the reply still unfinished.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Run echo kept-$((6*7)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+# The call waits on the user, and the persona writes until it is answered, however long the flow takes.
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn: "Ask the agent"
+- inputText: "What is 2+2? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "1 queued"
+    timeout: 30000
+- assertVisible: "Stop"
+- assertVisible: ".*Allow\\?"
+- takeScreenshot: 01-a-question-waits-while-the-call-asks
