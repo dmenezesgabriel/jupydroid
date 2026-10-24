@@ -102,8 +102,10 @@ jupyter-chat-components leaves that to its client.
   saves pending requests with the session in its workspace storage (vscode@3f3380c `chatModel.ts`
   `pendingRequests`, `chatSessionStore.ts:73`). No jupyter reference persists a queue. The repo already
   keeps per-Space bookkeeping (recents) in `filesDir`, out of the workspace. And jupyter_server refuses
-  hidden files, so a sidecar would show in the explorer. Not settled yet: the ADR (T5), and
-  following a rename and going with a delete (T4b).
+  hidden files, so a sidecar would show in the explorer. Kept by path, so a rename from the Chat list
+  moves a chat's questions (`QueuedQuestionsStore.move`, one file replace) and a delete forgets them
+  (T4b). A rename or delete made outside the list (the explorer, JupyterLab) leaves the entry: the ADR
+  (T5) records it.
 
 ## Surface
 
@@ -126,7 +128,7 @@ jupyter-chat-components leaves that to its client.
 - [x] T3 — Edit a pending row in place
 - [x] T4a — The queue persists per chat (the store decided, with its port, `Fake…` and adapter), and is
   sent on reopening when no reply is arriving
-- [ ] T4b — A chat's queue follows its rename and goes with its delete
+- [x] T4b — A chat's queue follows its rename and goes with its delete
 - [ ] T5 — The demo end to end on SM-X216B; the ADR; delete this PRD; update the backlog
 
 ## Out of scope
