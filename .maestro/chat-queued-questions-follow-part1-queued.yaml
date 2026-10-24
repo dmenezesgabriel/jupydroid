@@ -1,0 +1,61 @@
+appId: com.jupydroid.app
+---
+# The first of the three flows scripts/chat-queued-questions-follow-driver.sh runs. Landscape, two
+# panes, in base, with opencode installed in base, over a workspace the driver emptied.
+#
+# Two chats each hold a question queued while opencode's bash call waits on approval: "untitled" one
+# about 2+2, "untitled1" one about 3+3. The driver then reads both from the app's own storage and
+# kills the app, so neither is asked.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Run echo follow-one with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+# The call waits on the user, and the persona writes until it is answered, however long the flow takes.
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn: "Ask the agent"
+- inputText: "What is 2+2? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "1 queued"
+    timeout: 30000
+- takeScreenshot: 01-untitled-holds-a-question-while-the-call-asks
+
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Run echo follow-two with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn: "Ask the agent"
+- inputText: "What is 3+3? Answer with the number only."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "1 queued"
+    timeout: 30000
+- takeScreenshot: 02-untitled1-holds-a-question-while-its-call-asks

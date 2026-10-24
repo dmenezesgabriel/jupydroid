@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# The last of the three flows scripts/chat-queued-questions-follow-driver.sh runs, in the app part 2
+# left on the Chat list, after the driver read the 2+2 question kept under notes.chat.
+#
+# Opened, "notes" reads the question kept under its new path. The server has no reply in flight, so
+# it is asked at once and answered; the flow waits for the answer, since the row is gone before a look
+# for it can land.
+- tapOn: "notes"
+- extendedWaitUntil:
+    visible: "4"
+    timeout: 300000
+- assertVisible: "What is 2\\+2\\? Answer with the number only\\."
+- extendedWaitUntil:
+    notVisible: "\\d queued"
+    timeout: 30000
+- takeScreenshot: 06-notes-asks-the-question-it-kept-and-it-is-answered
