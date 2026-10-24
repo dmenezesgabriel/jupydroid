@@ -85,15 +85,14 @@ appId: com.jupydroid.app
 - assertNotVisible: "What is 3\\+3\\? Answer with the number only\\."
 - takeScreenshot: 04-the-second-edited-in-its-place
 - tapOn: "Allow once"
-- extendedWaitUntil:
-    notVisible: "\\d queued"
-    timeout: 600000
-# The last answer is the end to wait for, not Stop going: once it has streamed the screen is still
-# while the persona ends its turn, and Maestro gave up waiting on Stop after 1.3 s of a 60 s timeout.
-# The driver reads that each turn ended from the server's log instead.
+# One wait, on the last answer, which is only there once both queued questions were asked. Waited on
+# after the box had emptied, Maestro gave up on it after 1.25 s of a 300 s timeout, with the 8 arriving
+# within it, as it gave up on Stop going after 1.3 s of 60 s; the agent can take minutes to start an
+# answer. The driver reads that each turn ended from the server's log instead.
 - extendedWaitUntil:
     visible: "8"
-    timeout: 300000
+    timeout: 900000
+- assertNotVisible: "\\d queued"
 - assertVisible: "(?i)\\W*demo-42\\W*"
 - assertVisible: "4"
 - takeScreenshot: 05-allowed-each-is-answered-in-turn-and-the-box-is-gone

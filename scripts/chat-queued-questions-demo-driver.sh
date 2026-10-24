@@ -4,7 +4,7 @@
 # once Allow once ends the reply each is asked in turn, the edited one as edited. A question queued
 # behind a second call is kept across a kill and asked once the chat is opened again.
 #
-#   nice -n 10 timeout 2400 scripts/chat-queued-questions-demo-driver.sh
+#   nice -n 10 timeout 3600 scripts/chat-queued-questions-demo-driver.sh
 #
 # Run from a fresh install, the app's state wiped first: `fresh_install` (scripts/maestro-run.sh),
 # then scripts/jd-046-opencode-in-a-space-driver.sh, then a person signs opencode in from base's
