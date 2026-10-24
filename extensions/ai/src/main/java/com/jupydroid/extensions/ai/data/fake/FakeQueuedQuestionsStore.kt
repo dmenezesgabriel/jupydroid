@@ -20,4 +20,8 @@ class FakeQueuedQuestionsStore : QueuedQuestionsStore {
   override suspend fun write(chat: ChatFile, pending: List<String>) {
     if (pending.isEmpty()) held.remove(chat.path) else held[chat.path] = pending.toList()
   }
+
+  override suspend fun move(chat: ChatFile, to: ChatFile) {
+    write(to, held.remove(chat.path).orEmpty())
+  }
 }

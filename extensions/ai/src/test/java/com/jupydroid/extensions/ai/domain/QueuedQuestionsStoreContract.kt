@@ -53,4 +53,26 @@ abstract class QueuedQuestionsStoreContract {
 
     assertEquals(emptyList<String>(), store.read(ChatFile("untitled.chat")))
   }
+
+  @Test
+  fun aMoveHandsTheChatsQuestionsToItsNewPathAndLeavesNoneAtTheOld() = runBlocking {
+    val store = store()
+    store.write(ChatFile("untitled.chat"), listOf("What is 2+2?", "And 3+3?"))
+
+    store.move(ChatFile("untitled.chat"), to = ChatFile("notes.chat"))
+
+    assertEquals(listOf("What is 2+2?", "And 3+3?"), store.read(ChatFile("notes.chat")))
+    assertEquals(emptyList<String>(), store.read(ChatFile("untitled.chat")))
+  }
+
+  @Test
+  fun aMoveLeavesEveryOtherChatsQuestionsAsTheyWere() = runBlocking {
+    val store = store()
+    store.write(ChatFile("untitled.chat"), listOf("What is 2+2?"))
+    store.write(ChatFile("other.chat"), listOf("And 3+3?"))
+
+    store.move(ChatFile("untitled.chat"), to = ChatFile("notes.chat"))
+
+    assertEquals(listOf("And 3+3?"), store.read(ChatFile("other.chat")))
+  }
 }

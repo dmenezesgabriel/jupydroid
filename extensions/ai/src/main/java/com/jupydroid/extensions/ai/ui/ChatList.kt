@@ -46,6 +46,8 @@ import com.jupydroid.extension.api.RenameFileDialog
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
+import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
+import com.jupydroid.extensions.ai.domain.QueuedQuestionsStoreException
 import com.jupydroid.extensions.ai.domain.byName
 import kotlinx.coroutines.launch
 
@@ -72,14 +74,20 @@ private sealed interface ChatListing {
  * A long press on a chat offers Rename, in the host's own [RenameFileDialog], and Delete, after the
  * host's own [DeleteFileDialog], as a long press on a row of the explorer does for the same files.
  * No chat is open while the list is shown, so none holds a socket on the file Delete removes
- * ([ChatFiles.delete]).
+ * ([ChatFiles.delete]). The questions a chat has waiting in [queues] go with it: a rename moves them
+ * to its new path, and a delete forgets them, so a later chat given its old name asks none of them.
  *
  * **Read when the list is shown**: opening a chat and coming back reads the workspace again, so a
  * chat made or removed elsewhere meanwhile is listed as it now stands. A rename or a delete reads it
  * again too.
  */
 @Composable
-internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Modifier = Modifier) {
+internal fun ChatList(
+  files: ChatFiles,
+  queues: QueuedQuestionsStore,
+  onOpen: (ChatFile) -> Unit,
+  modifier: Modifier = Modifier,
+) {
   var listing by remember(files) { mutableStateOf<ChatListing>(ChatListing.Pending) }
   var reads by remember(files) { mutableIntStateOf(0) }
   var renaming by remember(files) { mutableStateOf<ChatFile?>(null) }
@@ -99,8 +107,9 @@ internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Mo
         act()
         reads++
       } catch (failure: ChatFilesException) {
-        listing = (listing as? ChatListing.Listed)?.copy(notice = failure.message.orEmpty())
-          ?: ChatListing.Failed(failure.message.orEmpty())
+        listing = listing.withNotice(failure.message.orEmpty())
+      } catch (failure: QueuedQuestionsStoreException) {
+        listing = listing.withNotice(failure.message.orEmpty())
       }
     }
   }
@@ -135,7 +144,7 @@ internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Mo
       currentTitle = chat.name,
       onConfirm = { name ->
         renaming = null
-        actThenRead { files.rename(chat, name) }
+        actThenRead { queues.move(chat, to = files.rename(chat, name)) }
       },
       onDismiss = { renaming = null },
       heading = "Rename chat",
@@ -148,12 +157,19 @@ internal fun ChatList(files: ChatFiles, onOpen: (ChatFile) -> Unit, modifier: Mo
       chat.name,
       onDelete = {
         deleting = null
-        actThenRead { files.delete(chat) }
+        actThenRead {
+          files.delete(chat)
+          queues.write(chat, emptyList())
+        }
       },
       onDismiss = { deleting = null },
     )
   }
 }
+
+/** This listing with [notice] said above its chats, or [notice] instead when none were listed. */
+private fun ChatListing.withNotice(notice: String): ChatListing =
+  (this as? ChatListing.Listed)?.copy(notice = notice) ?: ChatListing.Failed(notice)
 
 /** One of a chat row's actions: an item of its long-press menu, and a custom action of its own. */
 private class ChatRowAction(val label: String, val run: () -> Unit)

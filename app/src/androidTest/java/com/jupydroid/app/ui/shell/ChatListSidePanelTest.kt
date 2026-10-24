@@ -25,13 +25,17 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.ai.AiExtension
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
+import com.jupydroid.extensions.ai.data.fake.FakeQueuedQuestionsStore
+import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -50,7 +54,11 @@ class ChatListSidePanelTest {
   private fun panel(vararg chats: String): SidePanelContribution = AiExtension(
     chatFor = { _, path -> FakeAgentChat(history = listOf(ChatMessage(id = "m", body = "in $path", fromMe = false))) },
     chatFilesFor = { FakeChatFiles(chats.toList()) },
+    queuesFor = { kept },
   ).sidePanels.single()
+
+  /** What every panel this test shows keeps its chats' waiting questions in. */
+  private val kept = FakeQueuedQuestionsStore()
 
   @Test
   fun theChatsAreListedByNameWithoutTheirExtension() {
@@ -225,6 +233,30 @@ class ChatListSidePanelTest {
     compose.onNodeWithText("notes").assertIsDisplayed()
   }
 
+  /** Its waiting questions go with it, so they are asked in it and not in the next chat given its old name. */
+  @Test
+  fun aRenamedChatsKeptQuestionsAreKeptUnderItsNewName() {
+    runBlocking { kept.write(ChatFile("untitled.chat"), listOf("What is 2+2?")) }
+    show(panel("untitled.chat"))
+
+    rename("untitled", to = "notes")
+
+    compose.waitUntil(TIMEOUT_MILLIS) { keptFor("notes.chat") == listOf("What is 2+2?") }
+    assertEquals(emptyList<String>(), keptFor("untitled.chat"))
+  }
+
+  @Test
+  fun aRenameOntoATakenNameLeavesTheKeptQuestionsWhereTheyWere() {
+    runBlocking { kept.write(ChatFile("untitled.chat"), listOf("What is 2+2?")) }
+    show(panel("untitled.chat", "notes.chat"))
+
+    rename("untitled", to = "notes")
+
+    compose.onNodeWithText("notes.chat already exists", substring = true).assertIsDisplayed()
+    assertEquals(listOf("What is 2+2?"), keptFor("untitled.chat"))
+    assertEquals(emptyList<String>(), keptFor("notes.chat"))
+  }
+
   /** A long press is out of a screen reader's reach; the row's own actions say Rename instead. */
   @Test
   fun aScreenReaderReachesRenameWithoutALongPress() {
@@ -272,6 +304,18 @@ class ChatListSidePanelTest {
     compose.onNodeWithText("untitled").assertIsDisplayed()
   }
 
+  /** Or a new chat given its name would ask questions nobody sent in it. */
+  @Test
+  fun aDeletedChatsKeptQuestionsAreNoLongerKept() {
+    runBlocking { kept.write(ChatFile("notes.chat"), listOf("What is 2+2?")) }
+    show(panel("untitled.chat", "notes.chat"))
+
+    openDelete("notes")
+    compose.onNode(hasText("Delete") and hasClickAction()).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { keptFor("notes.chat").isEmpty() }
+  }
+
   @Test
   fun aScreenReaderReachesDeleteWithoutALongPress() {
     show(panel("untitled.chat"))
@@ -281,6 +325,8 @@ class ChatListSidePanelTest {
 
     compose.onNodeWithText("Are you sure you want to permanently delete: untitled?").assertIsDisplayed()
   }
+
+  private fun keptFor(path: String): List<String> = runBlocking { kept.read(ChatFile(path)) }
 
   private fun openDelete(chat: String) {
     compose.onNodeWithText(chat).performTouchInput { longClick() }

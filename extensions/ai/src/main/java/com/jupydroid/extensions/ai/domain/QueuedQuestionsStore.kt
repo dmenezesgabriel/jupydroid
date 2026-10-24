@@ -28,6 +28,20 @@ interface QueuedQuestionsStore {
    * @throws QueuedQuestionsStoreException when they cannot be kept.
    */
   suspend fun write(chat: ChatFile, pending: List<String>)
+
+  /**
+   * [chat]'s questions handed to [to], replacing what [to] held, and [chat] left holding none, as a
+   * renamed chat keeps what it had waiting. VS Code keys pending requests by session rather than file,
+   * so a rename there has nothing to move (vscode@3f3380c
+   * `src/vs/workbench/contrib/chat/common/model/chatModel.ts`); here they are kept by path.
+   *
+   * ```
+   * store.move(ChatFile("untitled.chat"), to = ChatFile("notes.chat"))
+   * ```
+   *
+   * @throws QueuedQuestionsStoreException when they cannot be kept.
+   */
+  suspend fun move(chat: ChatFile, to: ChatFile)
 }
 
 /**

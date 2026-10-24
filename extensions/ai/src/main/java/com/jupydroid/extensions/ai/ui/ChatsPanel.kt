@@ -29,7 +29,7 @@ import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
  * }
  * ```
  *
- * @param queues where each chat's waiting questions are kept.
+ * @param queues where each chat's waiting questions are kept, and moved or forgotten with its file.
  * @param chatFor the chat at a path relative to the workspace root.
  */
 @Composable
@@ -42,7 +42,7 @@ fun ChatsPanel(
 ) {
   val open = selection.path
   if (open == null) {
-    ChatList(files, onOpen = { selection.path = it.path }, modifier = modifier)
+    ChatList(files, queues, onOpen = { selection.path = it.path }, modifier = modifier)
     return
   }
   Column(modifier = modifier.fillMaxSize()) {

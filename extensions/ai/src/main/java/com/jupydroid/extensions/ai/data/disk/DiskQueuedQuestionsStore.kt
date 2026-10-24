@@ -43,22 +43,36 @@ class DiskQueuedQuestionsStore(
     readAll()[chat.path].orEmpty()
   }
 
-  override suspend fun write(chat: ChatFile, pending: List<String>) = writeMutex.withLock {
-    withContext(ioDispatcher) {
-      // A file that cannot be read is written over, as `readOrNone` promises.
-      val all = try {
-        readAll().toMutableMap()
-      } catch (_: QueuedQuestionsStoreException) {
-        mutableMapOf()
-      }
-      if (pending.isEmpty()) all.remove(chat.path) else all[chat.path] = pending
-      try {
-        replaceWith(Json.encodeToString(all).toByteArray())
-      } catch (failure: IOException) {
-        val action = "keeping ${chat.path}'s queued questions in ${file.path}"
-        throw QueuedQuestionsStoreException(action, "$failure", failure)
+  override suspend fun write(chat: ChatFile, pending: List<String>) =
+    rewrite("keeping ${chat.path}'s queued questions") { all -> all.hold(chat, pending) }
+
+  /** In one replace of the file, so a kill leaves the questions under one path or the other, never both. */
+  override suspend fun move(chat: ChatFile, to: ChatFile) =
+    rewrite("moving ${chat.path}'s queued questions to ${to.path}") { all ->
+      all.hold(to, all.remove(chat.path).orEmpty())
+    }
+
+  /** The file as [change] leaves every chat's questions; [action] names what failed if it cannot be kept. */
+  private suspend fun rewrite(action: String, change: (MutableMap<String, List<String>>) -> Unit) =
+    writeMutex.withLock {
+      withContext(ioDispatcher) {
+        // A file that cannot be read is written over, as `readOrNone` promises.
+        val all = try {
+          readAll().toMutableMap()
+        } catch (_: QueuedQuestionsStoreException) {
+          mutableMapOf()
+        }
+        change(all)
+        try {
+          replaceWith(Json.encodeToString(all).toByteArray())
+        } catch (failure: IOException) {
+          throw QueuedQuestionsStoreException("$action in ${file.path}", "$failure", failure)
+        }
       }
     }
+
+  private fun MutableMap<String, List<String>>.hold(chat: ChatFile, pending: List<String>) {
+    if (pending.isEmpty()) remove(chat.path) else this[chat.path] = pending
   }
 
   /** [bytes] as the whole file, or the file as it was if the write fails. */

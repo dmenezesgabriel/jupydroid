@@ -31,6 +31,16 @@ class DiskQueuedQuestionsStoreTest : QueuedQuestionsStoreContract() {
   }
 
   @Test
+  fun whatOneStoreMovedAnotherOnTheSameFileReads() = runBlocking {
+    store().write(ChatFile("untitled.chat"), listOf("What is 2+2?"))
+
+    store().move(ChatFile("untitled.chat"), to = ChatFile("notes.chat"))
+
+    assertEquals(listOf("What is 2+2?"), store().read(ChatFile("notes.chat")))
+    assertEquals(emptyList<String>(), store().read(ChatFile("untitled.chat")))
+  }
+
+  @Test
   fun aFileThatIsNotTheStoresFailsToReadNamingItsPath() {
     file.parentFile!!.mkdirs()
     file.writeText("not json")

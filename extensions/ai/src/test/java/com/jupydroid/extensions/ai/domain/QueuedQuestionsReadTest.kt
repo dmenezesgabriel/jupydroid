@@ -26,4 +26,6 @@ private class UnreadableQueuedQuestionsStore : QueuedQuestionsStore {
     throw QueuedQuestionsStoreException("reading ${chat.path}'s queued questions", "not json")
 
   override suspend fun write(chat: ChatFile, pending: List<String>) = Unit
+
+  override suspend fun move(chat: ChatFile, to: ChatFile) = Unit
 }
