@@ -10,8 +10,11 @@ package com.jupydroid.extension.api
  *   root, which is `""` - the same path the server's REST API takes.
  * @param server the entered Space's `jupyter_server`, or null when the Space has none to run, as
  *   on an ABI that ships no rootfs.
+ * @param spaceId the entered Space's id, for what an extension keeps on the device for each Space rather
+ *   than in its workspace, as VS Code keys its workspace storage by workspace (vscode@3f3380c
+ *   `src/vs/workbench/contrib/chat/common/model/chatSessionStore.ts`, `workspaceStorageHome`).
  */
-data class SidePanelHost(val browsedDirectory: String, val server: SpaceServerEndpoint?)
+data class SidePanelHost(val browsedDirectory: String, val server: SpaceServerEndpoint?, val spaceId: String)
 
 /**
  * The entered Space's `jupyter_server`, asked for when a request is about to go out.

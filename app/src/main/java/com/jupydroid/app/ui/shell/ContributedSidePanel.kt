@@ -23,7 +23,7 @@ import com.jupydroid.extension.api.SidePanelHost
  * extension restating it.
  *
  * ```
- * ContributedSidePanel(contribution, SidePanelHost(browsedDirectory = "demo", server = endpoint))
+ * ContributedSidePanel(contribution, SidePanelHost(browsedDirectory = "demo", server = endpoint, spaceId = "base"))
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)

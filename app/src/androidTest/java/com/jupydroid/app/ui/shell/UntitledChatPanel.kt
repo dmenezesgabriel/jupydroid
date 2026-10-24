@@ -11,7 +11,9 @@ import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.ai.AiExtension
 import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
+import com.jupydroid.extensions.ai.data.fake.FakeQueuedQuestionsStore
 import com.jupydroid.extensions.ai.domain.AgentChat
+import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
 
 /**
  * The AI extension's Chat panel over a workspace whose one chat is `untitled.chat`, drawn by [compose]
@@ -24,20 +26,24 @@ import com.jupydroid.extensions.ai.domain.AgentChat
  * ```
  */
 class UntitledChatPanel(private val compose: ComposeContentTestRule) {
-  /** The panel alone, answered by [answering], open on the chat. */
-  fun show(answering: AgentChat) {
+  /** The panel alone, answered by [answering] and keeping its waiting questions in [kept], open on the chat. */
+  fun show(answering: AgentChat, kept: QueuedQuestionsStore = FakeQueuedQuestionsStore()) {
     compose.setContent {
       JupyterDroidTheme {
-        ContributedSidePanel(contribution = contribution(answering), host = HOST)
+        ContributedSidePanel(contribution = contribution(answering, kept), host = HOST)
       }
     }
     open()
   }
 
   /** The panel's contribution, for a test that draws it inside something else, then calls [open]. */
-  fun contribution(answering: AgentChat): SidePanelContribution = AiExtension(
+  fun contribution(
+    answering: AgentChat,
+    kept: QueuedQuestionsStore = FakeQueuedQuestionsStore(),
+  ): SidePanelContribution = AiExtension(
     chatFor = { _, _ -> answering },
     chatFilesFor = { FakeChatFiles(listOf("untitled.chat")) },
+    queuesFor = { kept },
   ).sidePanels.single()
 
   /** The panel opens on its list of chats; the tests are about the chat once it is open. */
@@ -58,6 +64,6 @@ class UntitledChatPanel(private val compose: ComposeContentTestRule) {
     const val TIMEOUT_MILLIS = 5_000L
 
     /** No directory browsed and no server: the fake chat needs neither. */
-    val HOST = SidePanelHost(browsedDirectory = "", server = null)
+    val HOST = SidePanelHost(browsedDirectory = "", server = null, spaceId = "base")
   }
 }

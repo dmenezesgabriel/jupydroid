@@ -305,7 +305,7 @@ class ChatListSidePanelTest {
         if (shown()) {
           ContributedSidePanel(
             contribution = panel,
-            host = SidePanelHost(browsedDirectory = "", server = null),
+            host = SidePanelHost(browsedDirectory = "", server = null, spaceId = "base"),
           )
         }
       }

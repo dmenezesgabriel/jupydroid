@@ -69,6 +69,9 @@ import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.extension.api.SpaceServerEndpoint
+import com.jupydroid.extensions.ai.AiExtension
+import com.jupydroid.extensions.ai.data.disk.DiskQueuedQuestionsStore
+import com.jupydroid.extensions.git.GitExtension
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -204,6 +207,13 @@ class JupydroidApplication : Application() {
     themeSettings = DiskThemeSettingsRepository(filesDir),
     platformNightMode = UiModeManagerPlatformNightMode(getSystemService(UiModeManager::class.java)),
     launcherSettings = DiskLauncherSettingsRepository(filesDir),
+    // A chat's queued questions are app state too, one file per Space, as VS Code keeps a session's
+    // pending requests in its workspace storage (vscode@3f3380c
+    // `src/vs/workbench/contrib/chat/common/model/chatSessionStore.ts`).
+    extensions = listOf(
+      GitExtension(),
+      AiExtension(queuesFor = { spaceId -> DiskQueuedQuestionsStore(File(filesDir, "chat-queues/$spaceId.json")) }),
+    ),
     externalLinkOpener = IntentExternalLinkOpener(this),
     sharedDocumentReader = ContentResolverSharedDocumentReader(contentResolver),
     // In `cacheDir`, not `filesDir`: a fetched image is a copy the web still holds.

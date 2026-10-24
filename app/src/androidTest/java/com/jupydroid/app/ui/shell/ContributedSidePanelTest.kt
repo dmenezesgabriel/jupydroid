@@ -52,7 +52,10 @@ class ContributedSidePanelTest {
   private fun show(browsedDirectory: String) {
     compose.setContent {
       JupyterDroidTheme {
-        ContributedSidePanel(contribution = sourceControl, host = SidePanelHost(browsedDirectory, server = null))
+        ContributedSidePanel(
+          contribution = sourceControl,
+          host = SidePanelHost(browsedDirectory, server = null, spaceId = "base"),
+        )
       }
     }
   }

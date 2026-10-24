@@ -130,7 +130,8 @@ fun ShellSidePane(
       val contributed = (showingPanel as? ShownPanel.Contributed)
         ?.let { shown -> appContainer.sidePanelContributions.find { it.id == shown.id } }
       if (contributed != null) {
-        ContributedSidePanel(contributed, SidePanelHost(browsedDirectory, spacePorts.extensionServer))
+        val host = SidePanelHost(browsedDirectory, spacePorts.extensionServer, spacePorts.space.id)
+        ContributedSidePanel(contributed, host)
       }
       when ((showingPanel as? ShownPanel.Shell)?.panel) {
         SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)

@@ -18,20 +18,25 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
+import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
 
 /**
  * The Chat panel's body: the workspace's chats to pick from, or the one picked, with a way back.
  *
  * ```
- * ChatsPanel(FakeChatFiles(listOf("untitled.chat")), OpenChatSelection(), chatFor = { FakeAgentChat() })
+ * ChatsPanel(FakeChatFiles(listOf("untitled.chat")), OpenChatSelection(), FakeQueuedQuestionsStore()) {
+ *   FakeAgentChat()
+ * }
  * ```
  *
+ * @param queues where each chat's waiting questions are kept.
  * @param chatFor the chat at a path relative to the workspace root.
  */
 @Composable
 fun ChatsPanel(
   files: ChatFiles,
   selection: OpenChatSelection,
+  queues: QueuedQuestionsStore,
   chatFor: (String) -> AgentChat,
   modifier: Modifier = Modifier,
 ) {
@@ -42,7 +47,12 @@ fun ChatsPanel(
   }
   Column(modifier = modifier.fillMaxSize()) {
     OpenChatHeader(ChatFile(open).name, onBack = { selection.path = null })
-    ChatPanel(chat = remember(open) { chatFor(open) }, modifier = Modifier.weight(1f))
+    ChatPanel(
+      chat = remember(open) { chatFor(open) },
+      file = ChatFile(open),
+      queues = queues,
+      modifier = Modifier.weight(1f),
+    )
   }
 }
 

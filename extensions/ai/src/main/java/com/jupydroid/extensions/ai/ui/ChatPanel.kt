@@ -50,12 +50,16 @@ import androidx.compose.ui.unit.dp
 import com.jupydroid.extension.api.KeyRowPublished
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatReading
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.QuestionQueue
+import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
+import com.jupydroid.extensions.ai.domain.QueuedQuestionsStoreException
 import com.jupydroid.extensions.ai.domain.ToolCall
+import com.jupydroid.extensions.ai.domain.readOrNone
 import com.jupydroid.extensions.ai.domain.readings
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filter
@@ -72,11 +76,14 @@ import kotlinx.coroutines.launch
  * A chat that drops while shown opens again on its own ([readings]), its last messages still drawn.
  *
  * ```
- * ChatPanel(chat = FakeAgentChat(replies = mapOf("hello?" to "hi")))
+ * ChatPanel(FakeAgentChat(replies = mapOf("hello?" to "hi")), ChatFile("untitled.chat"), FakeQueuedQuestionsStore())
  * ```
+ *
+ * @param file the chat's file, by which [queues] keeps the questions waiting in it, so they are there
+ *   when it is opened again, as after the app was killed, and asked once no reply arrives.
  */
 @Composable
-fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
+fun ChatPanel(chat: AgentChat, file: ChatFile, queues: QueuedQuestionsStore, modifier: Modifier = Modifier) {
   var reading by remember(chat) { mutableStateOf<ChatReading>(ChatReading.Opening) }
   LaunchedEffect(chat) { chat.readings().collect { reading = it } }
   val scope = rememberCoroutineScope()
@@ -90,25 +97,50 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
       false
     }
   }
-  // A refused question or stop is shown as the chat failing, with what refused it.
+  // A refused question or stop, or questions that could not be kept, are shown as the chat failing,
+  // with what refused it.
   val attempt: (suspend () -> Unit) -> Unit = { action ->
     scope.launch {
       try {
         action()
       } catch (failure: AgentChatException) {
         reading = ChatReading.Failed(failure.message.orEmpty())
+      } catch (failure: QueuedQuestionsStoreException) {
+        reading = ChatReading.Failed(failure.message.orEmpty())
       }
     }
   }
-  var queue by remember(chat) { mutableStateOf(QuestionQueue()) }
-  val askDue: (ChatTranscript) -> Unit = { transcript ->
-    val seen = queue.seen(transcript)
+  // Null until what was kept for the chat is read, so nothing is asked or written over it before then.
+  var queue by remember(chat) { mutableStateOf<QuestionQueue?>(null) }
+  LaunchedEffect(chat) { queue = QuestionQueue(pending = queues.readOrNone(file)) }
+  // The queue as [change] leaves it, from what it is when the tap lands, not when it was drawn: the
+  // oldest may have been asked in between. Each write is launched in the order of the changes, and the
+  // store takes them in that order.
+  val keep: ((QuestionQueue) -> QuestionQueue) -> Unit = keep@{ change ->
+    val before = queue ?: return@keep
+    val next = change(before)
+    queue = next
+    if (next.pending != before.pending) attempt { queues.write(file, next.pending) }
+  }
+  val askDue: (ChatTranscript) -> Unit = askDue@{ transcript ->
+    val seen = queue?.seen(transcript) ?: return@askDue
     val due = seen.due(transcript)
-    queue = if (due == null) seen else seen.asked()
-    if (due != null) attempt { chat.ask(due) }
+    if (due == null) {
+      queue = seen
+      return@askDue
+    }
+    val asked = seen.asked()
+    queue = asked
+    // Taken off what is kept before it is asked, as VS Code dequeues a pending request before sending
+    // it (`processNextPendingRequest`): a kill between the two loses it rather than asking it twice.
+    attempt {
+      queues.write(file, asked.pending)
+      chat.ask(due)
+    }
   }
   val open = (reading as? ChatReading.Open)?.transcript
-  LaunchedEffect(open) { open?.let(askDue) }
+  val read = queue != null
+  LaunchedEffect(open, read) { open?.let(askDue) }
   Column(modifier = modifier.fillMaxSize()) {
     when (val shown = reading) {
       ChatReading.Opening -> Spacer(Modifier.weight(1f))
@@ -127,23 +159,24 @@ fun ChatPanel(chat: AgentChat, modifier: Modifier = Modifier) {
         )
       }
     }
+    val shownQueue = queue ?: QuestionQueue()
     QueuedQuestions(
-      queue.pending,
-      editing = queue.held,
-      onEdit = { queue = queue.editing(it) },
+      shownQueue.pending,
+      editing = shownQueue.held,
+      onEdit = { question -> keep { it.editing(question) } },
       // Asked at once if the reply it was held through has already ended.
       onSave = { question, into ->
-        queue = queue.edited(question, into)
+        keep { it.edited(question, into) }
         open?.let(askDue)
       },
-      onRemove = { queue = queue.removed(it) },
+      onRemove = { question -> keep { it.removed(question) } },
     )
     QuestionField(
-      enabled = open != null,
+      enabled = open != null && read,
       writing = open?.agentWriting == true,
       // Through the queue, so a question sent while a reply arrives does not cut it short.
       onAsk = { question ->
-        queue = queue.sent(question)
+        keep { it.sent(question) }
         open?.let(askDue)
       },
       onStop = { attempt { chat.stop() } },
