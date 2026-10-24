@@ -97,21 +97,23 @@ jupyter-chat-components leaves that to its client.
 
 ## Open decisions
 
-- **Where the queue is stored (T4).** One option is a workspace sidecar through the contents API, which
-  `OkHttpChatFiles` already reaches. It is scoped per Space for free, but it is visible in the explorer.
-  The other is an app-private file injected into `AiExtension`, which needs a Space key on
-  `SidePanelHost`. Either way, a chat's queue must follow a rename and go with a delete (JD-053).
-  Settle it with evidence, then write an ADR.
+- **Where the queue is stored — settled (T4a).** In the app's own storage, one JSON file per Space,
+  `filesDir/chat-queues/<spaceId>.json`, chat path to questions, through `QueuedQuestionsStore`. VS Code
+  saves pending requests with the session in its workspace storage (vscode@3f3380c `chatModel.ts`
+  `pendingRequests`, `chatSessionStore.ts:73`). No jupyter reference persists a queue. The repo already
+  keeps per-Space bookkeeping (recents) in `filesDir`, out of the workspace. And jupyter_server refuses
+  hidden files, so a sidecar would show in the explorer. Not settled yet: the ADR (T5), and
+  following a rename and going with a delete (T4b).
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| `domain` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/domain/QuestionQueue.kt`; T4: a store port |
-| `data/<mechanism>` | T4: the store's adapter |
-| `data/fake` | T4: the store's `Fake…` |
+| `domain` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/domain/QuestionQueue.kt`, `.../domain/QueuedQuestionsStore.kt` |
+| `data/<mechanism>` | `extensions/ai/.../data/disk/DiskQueuedQuestionsStore.kt` |
+| `data/fake` | `extensions/ai/.../data/fake/FakeQueuedQuestionsStore.kt` |
 | `ui` | `extensions/ai/.../ui/ChatPanel.kt`, `extensions/ai/.../ui/QueuedQuestions.kt` |
-| `AiExtension` | T4: builds the store |
+| `AiExtension` | `queuesFor(spaceId)`; `SidePanelHost.spaceId` in `:extension-api` |
 | unit tests | `extensions/ai/src/test/.../domain/QuestionQueueTest.kt` |
 | instrumented tests | `app/src/androidTest/java/com/jupydroid/app/ui/shell/ChatSidePanelTest.kt` |
 | `.maestro/` flow + `scripts/` driver | `.maestro/chat-queued-questions.yaml`, `scripts/chat-queued-questions-driver.sh`, a check in `scripts/chat_tool_call_reads.py` |
@@ -122,8 +124,9 @@ jupyter-chat-components leaves that to its client.
   and the oldest is asked when the reply ends, one in flight at a time
 - [x] T2 — Remove a pending row with its ×
 - [x] T3 — Edit a pending row in place
-- [ ] T4 — The queue persists per chat (the store decided, with its port, `Fake…` and adapter), follows
-  a rename, goes with a delete, and is sent on reopening when no reply is arriving
+- [x] T4a — The queue persists per chat (the store decided, with its port, `Fake…` and adapter), and is
+  sent on reopening when no reply is arriving
+- [ ] T4b — A chat's queue follows its rename and goes with its delete
 - [ ] T5 — The demo end to end on SM-X216B; the ADR; delete this PRD; update the backlog
 
 ## Out of scope
