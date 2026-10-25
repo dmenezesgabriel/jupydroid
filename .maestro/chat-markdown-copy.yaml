@@ -1,0 +1,52 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider by a
+# person. Driven by scripts/chat-markdown-copy-driver.sh, which empties the workspace.
+#
+# The answer is chat-markdown-answer.yaml's, asked by that flow, so its code block holds
+# print(6*7). Copy puts it on the system clipboard, and the platform's own Paste in a new
+# notebook's empty cell is what a person would do with it.
+- runFlow: chat-markdown-answer.yaml
+- takeScreenshot: 02-copy-under-the-code-block
+# "Copied" is not asserted: it reads for a second, and Maestro's settle after a tap outlasts it
+# (measured: 8 s). ChatSidePanelTest.copyReadsCopiedForASecond holds it; the paste below holds Copy.
+- tapOn: "Copy"
+# Files takes the side pane from the Chat, so from here the only print(6*7) on screen is the cell's.
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "New"
+    timeout: 10000
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Untitled.ipynb"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- assertNotVisible: "print\\(6\\*7\\)"
+- takeScreenshot: 03-an-empty-cell
+# The empty cell's field has no text to press by and the editor gives it no tag, so it is pressed at
+# a point inside it: in landscape with the explorer open, SM-X216B puts the field at
+# [805,319][1884,391] (`maestro hierarchy`). The Paste is the platform's floating toolbar's, scoped
+# to it as aud-002-4-text-clipboard.yaml does.
+- longPressOn:
+    point: "1300,354"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Paste"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 5000
+- hideKeyboard
+- assertVisible: "print\\(6\\*7\\)"
+- takeScreenshot: 04-the-cell-holds-the-code
