@@ -107,7 +107,7 @@ one insert, below. Both put a new cell below the active one for their main inser
 
 - [x] T1 — An agent's answer is drawn by the host's markdown renderer, handed to the panel in
   `SidePanelHost`
-- [ ] T2 — Copy under a code block of an answer
+- [x] T2 — Copy under a code block of an answer
 - [ ] T3 — Insert under a code block puts a code cell below the active cell, through an active-cell
   API the host hands in `SidePanelHost`
 - [ ] T4 — The demo end to end on SM-X216B; the ADR; delete this PRD; update the backlog
