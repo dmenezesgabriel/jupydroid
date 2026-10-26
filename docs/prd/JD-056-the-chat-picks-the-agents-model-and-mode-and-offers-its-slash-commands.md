@@ -145,7 +145,7 @@ pickers into one sheet; jupyter-ai has no phone layout.
   the toolbar row measured at one pane on a phone width
 - [x] T3 — `/` lists the persona's commands with their descriptions; picking one puts `/name ` in the
   input
-- [ ] T4 — The demo above on SM-X216B; a defect found is fixed red first
+- [x] T4 — The demo above on SM-X216B; a defect found is fixed red first
 - [ ] T5 — The ADR (state from Jupyter Events, the choice on the next message, persisted by the
   persona); delete this PRD; update the backlog
 
