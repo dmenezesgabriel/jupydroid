@@ -1,0 +1,75 @@
+appId: com.jupydroid.app
+---
+# The flow scripts/chat-move-to-tab-driver.sh runs: landscape, which is two panes on SM-X216B, in base
+# with opencode installed and signed in by a person, on an empty workspace.
+#
+# A chat asked and answered in the Chat panel is moved to a tab from its header: the tab opens on the
+# same transcript with both chips, and the panel goes back to its chats. Opened in the panel and moved
+# again, the tab already open is revealed rather than opened twice. The driver reads from the server's
+# log that the one question was asked once, so a move asks nothing again.
+#
+# The answer waited for holds digits the question does not, so the question, which the transcript
+# shows too, cannot match the wait for it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+# OpenRouter's free model: OpenCode's own answered no question here on 2026-10-26
+# (scripts/chat-in-tab-driver.sh).
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 10000
+- inputText: "north"
+- extendedWaitUntil:
+    notVisible: "In use"
+    timeout: 10000
+- tapOn: "OpenRouter/North Mini Code \\(free\\)"
+- tapOn: "Ask the agent"
+- inputText: "Reply with one word: panel. Then the sum 251+374 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b625\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 01-asked-and-answered-in-the-panel
+
+- tapOn: "Move to tab"
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b625\\b[\\s\\S]*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- assertVisible: ".*North Mini Code.*"
+- assertNotVisible: "All chats"
+- assertVisible: "untitled"
+- takeScreenshot: 02-moved-the-tab-holds-the-chat-and-the-panel-lists-the-chats
+
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "All chats"
+    timeout: 30000
+- takeScreenshot: 03-opened-again-in-the-panel-beside-its-tab
+- tapOn: "Move to tab"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Tab: untitled.chat"
+- assertNotVisible:
+    text: "Tab: untitled.chat"
+    index: 1
+- assertNotVisible: "All chats"
+- assertVisible: "untitled"
+- takeScreenshot: 04-moved-again-the-same-tab-is-revealed
