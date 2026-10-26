@@ -1,0 +1,52 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-model-picker-driver.sh runs: landscape, two panes, in base
+# with opencode installed and signed in by a person, on a workspace holding no chat.
+#
+# A new chat selects opencode's persona (`persona_selected`), which starts its session and publishes
+# the models opencode offers on the server's event bus, so the chip under the input names opencode's
+# own model before anything is asked. Beam Free is picked from its list, and the question is asked
+# with it.
+#
+# What the chip reads is the app's: that the agent answered *with* Beam Free is not on screen. The
+# driver reads it from untitled.chat, where the question's metadata carries the pick and the persona
+# keeps the model it switched to (`_record_config_choice`,
+# usr/lib/python3.12/site-packages/jupyter_ai_acp_client/base_acp_persona.py in the shipped rootfs).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "Default / OpenCode/Big Pickle"
+    timeout: 300000
+- takeScreenshot: 01-before-any-question-the-chip-names-opencodes-model
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "Default / OpenCode/Beam Free"
+    timeout: 10000
+- assertVisible: "In use"
+- takeScreenshot: 02-the-chip-lists-what-opencode-offers-the-one-in-use-checked
+- tapOn: "Default / OpenCode/Beam Free"
+# The list is closed and the chip names the pick.
+- assertNotVisible: "In use"
+- assertNotVisible: "Default / OpenCode/Big Pickle"
+- assertVisible: "Default / OpenCode/Beam Free"
+- takeScreenshot: 03-beam-free-picked-for-the-next-question
+- tapOn: "Ask the agent"
+- inputText: "Reply with only the word ready."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "(?i)\\W*ready\\W*"
+    timeout: 300000
+- assertVisible: "Default / OpenCode/Beam Free"
+- takeScreenshot: 04-asked-with-beam-free-and-answered
