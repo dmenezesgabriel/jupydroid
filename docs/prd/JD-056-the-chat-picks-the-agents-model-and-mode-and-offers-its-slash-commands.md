@@ -140,7 +140,7 @@ pickers into one sheet; jupyter-ai has no phone layout.
   events socket leaves the chat working), emits `persona_selected` once the chat is open, and the
   next question carries `metadata.model.id`. A chip left of Send names the model and opens the list.
   Device evidence on SM-X216B
-- [ ] T2 — The mode and effort chips: general settings beside it, riding as `metadata.settings`;
+- [x] T2 — The mode and effort chips: general settings beside it, riding as `metadata.settings`;
   the toolbar row measured at one pane on a phone width
 - [ ] T3 — `/` lists the persona's commands with their descriptions; picking one puts `/name ` in the
   input
