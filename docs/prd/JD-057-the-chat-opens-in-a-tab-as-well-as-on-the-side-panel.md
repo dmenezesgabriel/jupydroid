@@ -96,14 +96,14 @@ not. VS Code also opens a new window, which Android has no use for.
 
 ## Open decisions
 
-- **What a kill restores.** The back stack is saved state, so a chat tab could come back. ADR-0111
-  chose not to restore the open chat in the *panel*. A tab is a document like any other, and
-  documents come back. Settled in T1 by measuring what comes back for a `FileEditor` tab after a
-  kill on SM-X216B, and doing the same.
-- **The same chat in the panel and in a tab.** It can happen through the explorer. The server allows
-  two clients of one room (`chat_manager.py` `on_client_connect`, per `client_id`). The open question
-  is whether the persona answers once or twice, and whether the queue (ADR-0113) dispatches twice.
-  Measured in T1; if it duplicates, opening the tab closes the panel's chat, as a move does.
+- **What a kill restores.** Settled in T1: what a file tab does. After process death (`am kill` of the
+  backgrounded app) both a `FileEditor` tab and a chat tab come back from the saved back stack, the
+  chat read again from its file. After a force-stop neither does. `ContributedDocument` is serializable
+  like `FileEditor`, so no rule of its own is needed.
+- **The same chat in the panel and in a tab.** Settled in T1: both stay open. With both drawing
+  `untitled`, a call and a question queued behind it in the tab were each asked once and answered once
+  (three turns in the server's log, none a minute later), and both views showed the same transcript.
+  A queue is the view's own, so only the tab showed "1 queued".
 - **One pane.** At one pane the side panel is the modal rail (ADR-0109). Moving to the side panel
   from a tab opens it there.
 
@@ -122,7 +122,7 @@ No new port: what moves is the UI's, and the chat itself is still `AgentChat`.
 
 ## Tasks
 
-- [ ] T1 — An extension contributes a document by suffix; a `.chat` opened from the explorer opens
+- [x] T1 — An extension contributes a document by suffix; a `.chat` opened from the explorer opens
   as a chat tab, and opening it again reveals that tab. Settle the kill and the two-places decisions.
   Device evidence on SM-X216B
 - [ ] T2 — "Move to tab" in the open chat's header: the tab opens (or is revealed), the panel goes
