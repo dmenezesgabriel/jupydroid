@@ -122,6 +122,7 @@ fun MainNavigation(
       onOpenDocument = openDocument,
       documentCheckpoints = spacePorts.documentCheckpoints,
       documentContributions = appContainer.documentContributions,
+      onShowSidePanel = { sidePanel = it },
       content = content,
     )
   }

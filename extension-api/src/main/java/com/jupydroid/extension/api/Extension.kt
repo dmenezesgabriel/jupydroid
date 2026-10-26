@@ -56,6 +56,7 @@ class SidePanelContribution(
  * @param id unique across every extension, and stable: the tab is saved by it.
  * @param suffix the file name ending this opens, matched in any case, with its dot: `".chat"`.
  * @param icon the tab's glyph, beside its file name.
+ * @param movesTo the side panel the tab's menu moves it to, or null for a tab that stays in the main area.
  * @param content the tab's body, given the file's path relative to the workspace root and what the
  *   shell gives a panel.
  */
@@ -63,5 +64,20 @@ class DocumentContribution(
   val id: String,
   val suffix: String,
   val icon: ImageVector,
+  val movesTo: SidePanelMove? = null,
   val content: @Composable (path: String, host: SidePanelHost) -> Unit,
 )
+
+/**
+ * Where a [DocumentContribution]'s tab moves to on the side, as jupyter-chat's `moveChat` from the main
+ * area opens the chat in its side panel and then disposes the tab (jupyter-chat@2c224bc
+ * `packages/jupyterlab-chat-extension/src/index.ts`). The host shows the panel and closes the tab.
+ *
+ * ```
+ * SidePanelMove("ai.chat") { path -> selection.path = path }
+ * ```
+ *
+ * @param panelId the [SidePanelContribution.id] of the panel shown.
+ * @param open tells that panel which file to show, before it is drawn: a path relative to the workspace root.
+ */
+class SidePanelMove(val panelId: String, val open: (path: String) -> Unit)

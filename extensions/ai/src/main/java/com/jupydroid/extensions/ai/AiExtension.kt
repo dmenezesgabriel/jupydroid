@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
+import com.jupydroid.extension.api.SidePanelMove
 import com.jupydroid.extension.api.SpaceServerEndpoint
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
@@ -74,12 +75,14 @@ class AiExtension(
 
   // jupyter-chat's `defaultFor: ['chat']` (jupyter-chat@2c224bc
   // `packages/jupyterlab-chat-extension/src/index.ts`): a `.chat` the explorer opens is a chat in
-  // the main area, without the panel's list or its header, since the tab already names the file.
+  // the main area, without the panel's list or its header, since the tab already names the file. Its
+  // `moveChat` from the main area opens the chat in the panel, which then shows that chat.
   override val documents: List<DocumentContribution> = listOf(
     DocumentContribution(
       id = CHAT_DOCUMENT_ID,
       suffix = ChatFile.CHAT_EXTENSION,
       icon = Icons.AutoMirrored.Filled.Chat,
+      movesTo = SidePanelMove(CHAT_PANEL_ID) { path -> selection.path = path },
     ) {
         path,
         host,

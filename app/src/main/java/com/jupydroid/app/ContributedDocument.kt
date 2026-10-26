@@ -8,6 +8,7 @@ import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.ui.shell.ContributedDocumentPane
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.SidePanelHost
+import com.jupydroid.extension.api.SidePanelMove
 import kotlinx.serialization.Serializable
 
 /**
@@ -28,6 +29,39 @@ import kotlinx.serialization.Serializable
  */
 internal fun List<DocumentContribution>.claiming(path: String): DocumentContribution? =
   firstOrNull { path.endsWith(it.suffix, ignoreCase = true) }
+
+/**
+ * The move [document]'s contribution gives its tab, or null when it gives none or no extension gives
+ * the contribution any more.
+ *
+ * ```
+ * documentContributions.sidePanelMoveOf(ContributedDocument("ai.chat", "a.chat")) // to the Chat panel
+ * ```
+ */
+internal fun List<DocumentContribution>.sidePanelMoveOf(document: ContributedDocument): SidePanelMove? =
+  find { it.id == document.contributionId }?.movesTo
+
+/**
+ * Moves [document]'s tab to the side panel [move] names: the panel is told the file and shown, then the
+ * tab closes, a move and not a copy, in jupyter-chat's order (`SidePanelMove`). At one pane the panel
+ * is the window, drawn only while the browser's entry is on top, so that entry comes forward.
+ *
+ * ```
+ * backStack.moveToSidePanel(chatTab, move, twoPane, showPanel = { sidePanel = it }, closeTab)
+ * ```
+ */
+internal fun MutableList<NavKey>.moveToSidePanel(
+  document: ContributedDocument,
+  move: SidePanelMove,
+  twoPane: Boolean,
+  showPanel: (ShownPanel) -> Unit,
+  closeTab: (NavKey) -> Unit,
+) {
+  move.open(document.path)
+  showPanel(ShownPanel.Contributed(move.panelId))
+  closeTab(document)
+  if (!twoPane) bringBrowserForward()
+}
 
 /**
  * The [ContributedDocument] entry, in the strip's [tabbedPane] like every other document. A

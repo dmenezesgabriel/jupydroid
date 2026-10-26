@@ -11,4 +11,12 @@ class AiExtensionTest {
 
     assertEquals(listOf("ai.chat" to ".chat"), documents.map { it.id to it.suffix })
   }
+
+  /** jupyter-chat's `moveChat` from the main area lands in its own chat panel, never another's. */
+  @Test
+  fun aChatTabMovesToTheChatPanel() {
+    val extension = AiExtension()
+
+    assertEquals(extension.sidePanels.single().id, extension.documents.single().movesTo?.panelId)
+  }
 }

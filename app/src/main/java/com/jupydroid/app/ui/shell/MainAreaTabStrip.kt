@@ -33,10 +33,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
+import com.jupydroid.app.ContributedDocument
 import com.jupydroid.app.Explorer
 import com.jupydroid.app.Launcher
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.activateMainAreaTab
 import com.jupydroid.app.checkpointSaved
@@ -50,7 +52,9 @@ import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.launcherIsClosable
 import com.jupydroid.app.liveDocumentPath
 import com.jupydroid.app.mainAreaTabTitle
+import com.jupydroid.app.moveToSidePanel
 import com.jupydroid.app.runningTabTitle
+import com.jupydroid.app.sidePanelMoveOf
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.DocumentContribution
@@ -120,6 +124,8 @@ fun TabbedDocumentPane(
   documentCheckpoints: DocumentCheckpoints,
   /** What an extension's tab is drawn with, for its glyph - see [tabIcon]. */
   documentContributions: List<DocumentContribution> = emptyList(),
+  /** Shows a panel on the side, for a contributed tab moved there - see `moveToSidePanel`. */
+  onShowSidePanel: (ShownPanel) -> Unit = {},
   content: @Composable () -> Unit,
 ) {
   // The tab a rename is being asked over - held here rather than inside a tab so the dialog
@@ -158,6 +164,7 @@ fun TabbedDocumentPane(
       twoPane = twoPane,
       documentContributions = documentContributions,
       onCloseTab = onCloseTab,
+      onShowSidePanel = onShowSidePanel,
       onRenameTab = { key ->
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
         path?.let { renaming = PendingTabRename(key, it) }
@@ -250,6 +257,7 @@ private fun MainAreaTabStrip(
   twoPane: Boolean,
   documentContributions: List<DocumentContribution>,
   onCloseTab: (NavKey) -> Unit,
+  onShowSidePanel: (ShownPanel) -> Unit,
   onRenameTab: (NavKey) -> Unit,
   onSaveTabAs: (NavKey) -> Unit,
   onRevertTab: (NavKey) -> Unit,
@@ -325,6 +333,11 @@ private fun MainAreaTabStrip(
             onRevert = { onRevertTab(tab) },
             onDuplicate = { onDuplicateTab(tab) },
             onDelete = { onDeleteTab(tab) },
+            onMoveToSidePanel = (tab as? ContributedDocument)?.let { document ->
+              documentContributions.sidePanelMoveOf(document)?.let { move ->
+                { backStack.moveToSidePanel(document, move, twoPane, onShowSidePanel, onCloseTab) }
+              }
+            },
           )
         }
       }

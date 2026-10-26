@@ -71,7 +71,9 @@ import com.jupydroid.extension.api.DocumentContribution
  * Save As, which VS Code keeps on the same menu (vscode@3f3380c
  * `src/vs/workbench/contrib/files/browser/fileActions.contribution.ts`, `SAVE_FILE_AS_COMMAND_ID`),
  * `docmanager:restore-checkpoint`, which the reference keeps in the File menu beside them, and
- * `docmanager:duplicate` and `docmanager:delete`, which it binds to the tab with rename.
+ * `docmanager:duplicate` and `docmanager:delete`, which it binds to the tab with rename. A tab an
+ * extension draws may move to its side panel instead, jupyter-chat's "Move the chat to the side panel"
+ * (jupyter-chat@2c224bc `packages/jupyterlab-chat-extension/src/index.ts`, `moveChat`).
  */
 @Composable
 internal fun MainAreaTab(
@@ -96,6 +98,8 @@ internal fun MainAreaTab(
   onRevert: () -> Unit,
   onDuplicate: () -> Unit,
   onDelete: () -> Unit,
+  /** `moveChat` from the main area, or null for a tab whose contribution gives no side panel to move to. */
+  onMoveToSidePanel: (() -> Unit)? = null,
 ) {
   val chrome = chromePalette
   var menuOpen by remember { mutableStateOf(false) }
@@ -180,6 +184,16 @@ internal fun MainAreaTab(
           onCloseRight()
         },
       )
+      if (onMoveToSidePanel != null) {
+        HorizontalDivider()
+        DropdownMenuItem(
+          text = { Text("Move to side panel") },
+          onClick = {
+            menuOpen = false
+            onMoveToSidePanel()
+          },
+        )
+      }
       // `docmanager:*` binds to `[data-type="document-title"]` alone: a tab without a path stops here.
       if (!renameable) return@DropdownMenu
       HorizontalDivider()
