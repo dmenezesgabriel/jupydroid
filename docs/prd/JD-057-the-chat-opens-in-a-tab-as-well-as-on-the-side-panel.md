@@ -125,7 +125,7 @@ No new port: what moves is the UI's, and the chat itself is still `AgentChat`.
 - [x] T1 — An extension contributes a document by suffix; a `.chat` opened from the explorer opens
   as a chat tab, and opening it again reveals that tab. Settle the kill and the two-places decisions.
   Device evidence on SM-X216B
-- [ ] T2 — "Move to tab" in the open chat's header: the tab opens (or is revealed), the panel goes
+- [x] T2 — "Move to tab" in the open chat's header: the tab opens (or is revealed), the panel goes
   back to the list
 - [ ] T3 — "Move to side panel" in the chat tab's menu: the panel opens on that chat, the tab closes;
   at one pane, the modal rail
