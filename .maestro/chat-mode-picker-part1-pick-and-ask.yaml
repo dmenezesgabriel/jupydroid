@@ -1,0 +1,57 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-mode-picker-driver.sh runs: portrait, which is one pane on
+# SM-X216B (w800dp), in base with opencode installed and signed in by a person, on a workspace holding
+# no chat.
+#
+# A new chat selects opencode's persona (`persona_selected`), whose state names opencode's mode among
+# its general settings, so a chip right of the model chip names it (`build`) before anything is asked.
+# `plan` is picked from its list, and the question is asked with it.
+#
+# That the agent answered *in* plan mode is not on screen. The driver reads it from untitled.chat,
+# where the question's metadata carries the pick and the persona keeps the mode option it set
+# (`_record_config_choice`, usr/lib/python3.12/site-packages/jupyter_ai_acp_client/base_acp_persona.py
+# in the shipped rootfs).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# At one pane the Chat is behind More, as chat-markdown-insert-one-pane.yaml reaches it.
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- takeScreenshot: 01-before-any-question-the-chip-names-opencodes-mode
+- tapOn: "build"
+- extendedWaitUntil:
+    visible: "plan"
+    timeout: 10000
+- assertVisible: "In use"
+- takeScreenshot: 02-the-chip-lists-opencodes-modes-the-one-in-use-checked
+- tapOn: "plan"
+# The list is closed and the chip names the pick.
+- assertNotVisible: "In use"
+- assertNotVisible: "build"
+- assertVisible: "plan"
+- takeScreenshot: 03-plan-picked-for-the-next-question
+- tapOn: "Ask the agent"
+- inputText: "Reply with only the word ready."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "(?i)\\W*ready\\W*"
+    timeout: 300000
+- assertVisible: "plan"
+- takeScreenshot: 04-asked-in-plan-mode-and-answered

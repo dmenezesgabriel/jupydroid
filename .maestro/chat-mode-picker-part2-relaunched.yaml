@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-mode-picker-driver.sh runs, after part 1 picked plan in
+# `untitled` and asked with it.
+#
+# launchApp stops the process, and with it the Space's server, opencode and the pick the panel held.
+# What the chip names now can only be what the persona publishes for the chat: the mode it kept with
+# the chat and applies to the session it opens again.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "plan"
+    timeout: 300000
+- assertNotVisible: "build"
+- takeScreenshot: 05-relaunched-the-chip-still-names-plan
