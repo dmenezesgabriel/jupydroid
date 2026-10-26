@@ -55,6 +55,23 @@ interface WorkspaceFiles {
   suspend fun createFolder(directory: String): String
 
   /**
+   * Writes [text] to a file at [path], with any folders above it that are missing, unless something
+   * is already there; answers whether it wrote.
+   *
+   * For a file whose name is fixed by what reads it, as `.jupyter/mcp_settings.json` is by
+   * jupyter-ai. VS Code creates its `mcp.json` the same way: only when it is missing, and with its
+   * folders, since `writeFile` makes the parent before it writes (vscode@3f3380c
+   * `src/vs/platform/files/common/fileService.ts`, `src/vs/workbench/contrib/mcp/browser/mcpCommands.ts`
+   * `OpenMcpResourceCommand`). Nothing is announced on [changes]: nothing can be open on a path that
+   * did not exist.
+   *
+   * ```
+   * workspaceFiles.createIfAbsent(".jupyter/mcp_settings.json", "{\"mcp_servers\": []}")   // true, then false
+   * ```
+   */
+  suspend fun createIfAbsent(path: String, text: String): Boolean
+
+  /**
    * Renames whatever is at [path] to [name] and answers with the path it now lives at.
    *
    * `Contents.rename(oldPath, newPath)`: the file **moves**, nothing is re-created, and a directory

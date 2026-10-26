@@ -62,6 +62,7 @@ class AiExtension(
           queues,
           host.markdown,
           host.activeCell,
+          host.fileOpener,
           chatFor = { path -> chatFor(host.server, path) },
         )
       }

@@ -17,9 +17,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extension.api.NotebookActiveCell
+import com.jupydroid.extension.api.WorkspaceFileOpener
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
+import com.jupydroid.extensions.ai.domain.McpSettingsFile
 import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
 
 /**
@@ -27,14 +29,15 @@ import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
  *
  * ```
  * val files = FakeChatFiles(listOf("untitled.chat"))
- * ChatsPanel(files, OpenChatSelection(), FakeQueuedQuestionsStore(), host.markdown, host.activeCell) {
- *   FakeAgentChat()
- * }
+ * ChatsPanel(
+ *   files, OpenChatSelection(), FakeQueuedQuestionsStore(), host.markdown, host.activeCell, host.fileOpener,
+ * ) { FakeAgentChat() }
  * ```
  *
  * @param queues where each chat's waiting questions are kept, and moved or forgotten with its file.
  * @param markdown what an agent's answer is drawn with: the host's, so it reads as a markdown cell does.
  * @param activeCell where Insert under a code block of an answer puts its code.
+ * @param fileOpener what opens [McpSettingsFile] in the host's editor.
  * @param chatFor the chat at a path relative to the workspace root.
  */
 @Composable
@@ -44,12 +47,19 @@ fun ChatsPanel(
   queues: QueuedQuestionsStore,
   markdown: MarkdownRenderer,
   activeCell: NotebookActiveCell,
+  fileOpener: WorkspaceFileOpener,
   chatFor: (String) -> AgentChat,
   modifier: Modifier = Modifier,
 ) {
   val open = selection.path
   if (open == null) {
-    ChatList(files, queues, onOpen = { selection.path = it.path }, modifier = modifier)
+    ChatList(
+      files,
+      queues,
+      onOpen = { selection.path = it.path },
+      onOpenMcpSettings = { fileOpener.open(McpSettingsFile.PATH, McpSettingsFile.EMPTY) },
+      modifier = modifier,
+    )
     return
   }
   Column(modifier = modifier.fillMaxSize()) {

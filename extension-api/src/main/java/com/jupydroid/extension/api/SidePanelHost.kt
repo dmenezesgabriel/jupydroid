@@ -17,6 +17,8 @@ package com.jupydroid.extension.api
  * @param activeCell the open notebook's active cell, for code a panel puts into the notebook, as
  *   jupyter-chat's plugin is handed the notebook tracker its active-cell manager follows
  *   (jupyter-chat@2c224bc `packages/jupyterlab-chat-extension/src/index.ts`).
+ * @param fileOpener opens a workspace file in the host's editor, for settings a panel keeps in a file
+ *   the explorer does not list, as jupyter-ai keeps its MCP servers in `.jupyter/mcp_settings.json`.
  */
 data class SidePanelHost(
   val browsedDirectory: String,
@@ -24,6 +26,7 @@ data class SidePanelHost(
   val spaceId: String,
   val markdown: MarkdownRenderer,
   val activeCell: NotebookActiveCell,
+  val fileOpener: WorkspaceFileOpener,
 )
 
 /**

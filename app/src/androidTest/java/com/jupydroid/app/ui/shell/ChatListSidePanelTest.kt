@@ -25,6 +25,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.RecordingNotebookActiveCell
+import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
@@ -36,6 +37,7 @@ import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
 import com.jupydroid.extensions.ai.data.fake.FakeQueuedQuestionsStore
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatMessage
+import com.jupydroid.extensions.ai.domain.McpSettingsFile
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -60,6 +62,9 @@ class ChatListSidePanelTest {
 
   /** What every panel this test shows keeps its chats' waiting questions in. */
   private val kept = FakeQueuedQuestionsStore()
+
+  /** Where every panel this test shows asks for a workspace file to be opened. */
+  private val fileOpener = RecordingWorkspaceFileOpener()
 
   @Test
   fun theChatsAreListedByNameWithoutTheirExtension() {
@@ -99,6 +104,28 @@ class ChatListSidePanelTest {
     show(panel())
 
     compose.onNodeWithText("No chat opened").assertIsDisplayed()
+  }
+
+  /**
+   * MCP servers opens jupyter-ai's settings file in the host's editor, as VS Code's command opens
+   * `mcp.json` (vscode@3f3380c `src/vs/workbench/contrib/mcp/browser/mcpCommands.ts`), with the
+   * empty list a missing file starts as.
+   */
+  @Test
+  fun mcpServersOpensTheMcpSettingsFile() {
+    show(panel("untitled.chat"))
+
+    compose.onNodeWithText("MCP servers").performClick()
+
+    assertEquals(listOf(McpSettingsFile.PATH to McpSettingsFile.EMPTY), fileOpener.opened)
+  }
+
+  /** The file is the workspace's, not a chat's, so it needs no chat to exist. */
+  @Test
+  fun mcpServersIsOfferedWithNoChat() {
+    show(panel())
+
+    compose.onNodeWithText("MCP servers").assertIsDisplayed()
   }
 
   @Test
@@ -358,6 +385,7 @@ class ChatListSidePanelTest {
               spaceId = "base",
               RichTextMarkdownRenderer,
               RecordingNotebookActiveCell(available = false),
+              fileOpener,
             ),
           )
         }

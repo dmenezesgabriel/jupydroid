@@ -25,6 +25,9 @@ class FakeWorkspaceFiles : WorkspaceFiles {
   override suspend fun createFolder(directory: String): String =
     throw UnsupportedOperationException("FakeWorkspaceFiles holds a fixed listing; it creates nothing")
 
+  override suspend fun createIfAbsent(path: String, text: String): Boolean =
+    throw UnsupportedOperationException("FakeWorkspaceFiles holds a fixed listing; it creates nothing")
+
   override suspend fun rename(path: String, name: String): String =
     throw UnsupportedOperationException("FakeWorkspaceFiles holds a fixed listing; it moves nothing")
 

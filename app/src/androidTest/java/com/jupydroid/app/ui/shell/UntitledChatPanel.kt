@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.jupydroid.app.RecordingNotebookActiveCell
+import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelHost
@@ -71,6 +72,7 @@ class UntitledChatPanel(private val compose: ComposeContentTestRule) {
       spaceId = "base",
       RichTextMarkdownRenderer,
       RecordingNotebookActiveCell(available = false),
+      RecordingWorkspaceFileOpener(),
     )
   }
 }

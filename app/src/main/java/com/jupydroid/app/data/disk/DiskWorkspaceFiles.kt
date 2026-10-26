@@ -56,6 +56,14 @@ class DiskWorkspaceFiles(rootDir: File, private val ioDispatcher: CoroutineDispa
     root.pathIn(directory, name)
   }
 
+  override suspend fun createIfAbsent(path: String, text: String): Boolean = withContext(ioDispatcher) {
+    val file = root.fileAt(path)
+    if (root.isPresent(file)) return@withContext false
+    file.parentFile?.mkdirs()
+    file.writeAtomically { it.write(text.toByteArray()) }
+    true
+  }
+
   override suspend fun rename(path: String, name: String): String = withContext(ioDispatcher) {
     val moved = idBeside(path, name)
     // The server's own first line: `if new_path == old_path: return`, before anything is validated.

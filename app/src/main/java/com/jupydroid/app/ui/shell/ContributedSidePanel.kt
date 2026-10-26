@@ -23,7 +23,8 @@ import com.jupydroid.extension.api.SidePanelHost
  * extension restating it.
  *
  * ```
- * val host = SidePanelHost("demo", server = endpoint, spaceId = "base", RichTextMarkdownRenderer, activeCell)
+ * val host =
+ *   SidePanelHost("demo", server = endpoint, spaceId = "base", RichTextMarkdownRenderer, activeCell, fileOpener)
  * ContributedSidePanel(contribution, host)
  * ```
  */

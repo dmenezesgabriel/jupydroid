@@ -2,6 +2,7 @@ package com.jupydroid.extensions.ai.ui
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -34,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -46,6 +49,7 @@ import com.jupydroid.extension.api.RenameFileDialog
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
+import com.jupydroid.extensions.ai.domain.McpSettingsFile
 import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
 import com.jupydroid.extensions.ai.domain.QueuedQuestionsStoreException
 import com.jupydroid.extensions.ai.domain.byName
@@ -80,12 +84,17 @@ private sealed interface ChatListing {
  * **Read when the list is shown**: opening a chat and coming back reads the workspace again, so a
  * chat made or removed elsewhere meanwhile is listed as it now stands. A rename or a delete reads it
  * again too.
+ *
+ * Beside New chat, MCP servers opens [McpSettingsFile] through [onOpenMcpSettings]: the servers are
+ * the workspace's, handed to the agent of every chat, so they are reached from the list rather than
+ * from one chat.
  */
 @Composable
 internal fun ChatList(
   files: ChatFiles,
   queues: QueuedQuestionsStore,
   onOpen: (ChatFile) -> Unit,
+  onOpenMcpSettings: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   var listing by remember(files) { mutableStateOf<ChatListing>(ChatListing.Pending) }
@@ -128,10 +137,10 @@ internal fun ChatList(
       is ChatListing.Failed -> Text(shown.message, color = MaterialTheme.colorScheme.error)
       is ChatListing.Listed if shown.chats.isEmpty() -> {
         Text("No chat opened", style = MaterialTheme.typography.titleMedium)
-        NewChatButton(onNew)
+        ChatListActions(onNew, onOpenMcpSettings)
       }
       is ChatListing.Listed -> {
-        NewChatButton(onNew)
+        ChatListActions(onNew, onOpenMcpSettings)
         shown.notice?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         ChatRows(shown.chats, onOpen) { chat ->
           listOf(ChatRowAction("Rename") { renaming = chat }, ChatRowAction("Delete") { deleting = chat })
@@ -174,12 +183,23 @@ private fun ChatListing.withNotice(notice: String): ChatListing =
 /** One of a chat row's actions: an item of its long-press menu, and a custom action of its own. */
 private class ChatRowAction(val label: String, val run: () -> Unit)
 
-/** jupyter-chat's New chat, its `addIcon` before the label (jupyter-chat@2c224bc `placeholder.tsx`). */
+/** What the list offers above its chats: a new chat, and the MCP servers every chat's agent gets. */
 @Composable
-private fun NewChatButton(onClick: () -> Unit) {
+private fun ChatListActions(onNew: () -> Unit, onOpenMcpSettings: () -> Unit) {
+  Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // jupyter-chat's New chat, its `addIcon` before the label (jupyter-chat@2c224bc `placeholder.tsx`).
+    ChatListButton("New chat", Icons.Filled.Add, onNew)
+    // VS Code's MCP entries carry `Codicon.server` (vscode@3f3380c
+    // `src/vs/workbench/contrib/mcp/browser/mcpCommands.ts`); `Dns` is Material's server rack.
+    ChatListButton("MCP servers", Icons.Outlined.Dns, onOpenMcpSettings)
+  }
+}
+
+@Composable
+private fun ChatListButton(label: String, icon: ImageVector, onClick: () -> Unit) {
   OutlinedButton(onClick = onClick, modifier = Modifier.padding(vertical = 8.dp)) {
-    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
-    Text("New chat", modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
+    Icon(icon, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+    Text(label, modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
   }
 }
 

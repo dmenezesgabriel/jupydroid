@@ -102,6 +102,35 @@ abstract class WorkspaceFilesContract {
     assertTrue(runCatching { files().createFolder("../..") }.isFailure)
   }
 
+  /** A named file under folders that do not exist yet is written with them, as VS Code's `writeFile` makes them. */
+  @Test
+  fun createIfAbsentWritesTheFileAndTheFoldersAboveIt() = runTest {
+    given("keep.txt")
+    val files = files()
+    val repository = repository()
+
+    assertTrue(files.createIfAbsent(".jupyter/mcp_settings.json", "{}"))
+    assertEquals("{}", repository.readText(".jupyter/mcp_settings.json"))
+  }
+
+  /** What is already there is the user's, so it is left as it is and nothing is reported written. */
+  @Test
+  fun createIfAbsentLeavesAFileAlreadyThere() = runTest {
+    given(".jupyter/mcp_settings.json")
+    val files = files()
+    val repository = repository()
+
+    assertEquals(false, files.createIfAbsent(".jupyter/mcp_settings.json", "{}"))
+    assertEquals("x", repository.readText(".jupyter/mcp_settings.json"))
+  }
+
+  @Test
+  fun createIfAbsentOutsideTheRootIsRefused() = runTest {
+    given("keep.txt")
+
+    assertTrue(runCatching { files().createIfAbsent("../../escaped.json", "{}") }.isFailure)
+  }
+
   /**
    * A rename takes a *name* and answers with the path it now lives at.
    *

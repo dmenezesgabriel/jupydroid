@@ -27,6 +27,8 @@ import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
 import com.jupydroid.app.ui.shell.WorkspaceReplace
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.extension.api.SidePanelHost
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.plus
 
 /**
  * The shell's side pane: the one panel it is showing, and - where it is the whole window - the bar
@@ -134,12 +136,20 @@ fun ShellSidePane(
       val contributed = (showingPanel as? ShownPanel.Contributed)
         ?.let { shown -> appContainer.sidePanelContributions.find { it.id == shown.id } }
       if (contributed != null) {
+        val fileOpener = remember(spacePorts.workspaceFiles, openDocument) {
+          EditorWorkspaceFileOpener(
+            spacePorts.workspaceFiles,
+            appContainer.applicationScope + Dispatchers.Main,
+            openDocument,
+          )
+        }
         val host = SidePanelHost(
           browsedDirectory,
           spacePorts.extensionServer,
           spacePorts.space.id,
           RichTextMarkdownRenderer,
           activeCell,
+          fileOpener,
         )
         ContributedSidePanel(contributed, host)
       }

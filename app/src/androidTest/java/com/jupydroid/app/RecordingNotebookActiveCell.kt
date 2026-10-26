@@ -7,7 +7,7 @@ import com.jupydroid.extension.api.NotebookActiveCell
  *
  * ```
  * val activeCell = RecordingNotebookActiveCell(available = true)
- * SidePanelHost("", server = null, spaceId = "base", RichTextMarkdownRenderer, activeCell)
+ * SidePanelHost("", server = null, spaceId = "base", RichTextMarkdownRenderer, activeCell, fileOpener)
  * ```
  */
 class RecordingNotebookActiveCell(override val available: Boolean) : NotebookActiveCell {
