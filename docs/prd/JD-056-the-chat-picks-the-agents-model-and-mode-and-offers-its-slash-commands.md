@@ -135,7 +135,7 @@ pickers into one sheet; jupyter-ai has no phone layout.
 
 ## Tasks
 
-- [ ] T1 — The model chip: the chat reads the persona's `persona_state` over `/api/events/subscribe`
+- [x] T1 — The model chip: the chat reads the persona's `persona_state` over `/api/events/subscribe`
   (opened before the chat socket, merged, scoped to the chat's id and opencode's persona; a failed
   events socket leaves the chat working), emits `persona_selected` once the chat is open, and the
   next question carries `metadata.model.id`. A chip left of Send names the model and opens the list.
