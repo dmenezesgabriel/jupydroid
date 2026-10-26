@@ -41,6 +41,20 @@ class CodeInsertedBelowTest {
     assertEquals(state.value.cells[1].id, state.value.selectedCellId)
   }
 
+  /**
+   * Inserted from a chat, the caret is in the chat: VS Code selects the new cell and focuses no
+   * editor (vscode@3f3380c `src/vs/workbench/contrib/notebook/browser/controller/cellOperations.ts`
+   * `insertCell`), so no cell is left editing while another is active.
+   */
+  @Test
+  fun theNotebookIsLeftInCommandMode() = runTest {
+    val state = MutableStateFlow(stateOf("a", "b").copy(selectedCellId = "a").withMode(CellMode.EDIT))
+
+    editsOf(state).insertCodeBelow("print(6*7)")
+
+    assertEquals(CellMode.COMMAND, state.value.mode)
+  }
+
   @Test
   fun oneUndoTakesItBack() = runTest {
     val before = stateOf("a", "b").copy(selectedCellId = "a")
