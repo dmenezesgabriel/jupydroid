@@ -23,4 +23,4 @@ appId: com.jupydroid.app
 - assertVisible: "print\\(6\\*7\\)"
 - assertNotVisible: ".*##.*"
 - assertNotVisible: ".*```.*"
-- takeScreenshot: 07-relaunched-the-answer-is-still-drawn-as-markdown
+- takeScreenshot: 08-relaunched-the-answer-is-still-drawn-as-markdown

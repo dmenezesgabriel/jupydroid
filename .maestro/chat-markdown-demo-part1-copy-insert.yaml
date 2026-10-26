@@ -22,3 +22,11 @@ appId: com.jupydroid.app
     text: "print\\(6\\*7\\)"
     index: 2
 - takeScreenshot: 06-insert-puts-the-code-in-a-cell-below
+# A keystroke with no field tapped since. Insert took the caret out of the pasted cell, so it lands in
+# no cell; had the cell kept the caret, it would read print(6*7)z, and the driver's read of
+# Untitled.ipynb, which wants both cells exactly print(6*7), fails (InsertBelowActiveCellCaretTest).
+- inputText: "z"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "print\\(6\\*7\\)z"
+- takeScreenshot: 07-a-keystroke-after-insert-lands-in-no-cell

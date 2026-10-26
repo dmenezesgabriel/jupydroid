@@ -2,7 +2,7 @@
 # The demo of an agent's answer read as markdown, in one chat: opencode answers with a heading, a list
 # and a fenced print(6*7), drawn without their marks; Copy under the code block and the platform's
 # Paste put it in a new notebook's cell; Insert under the same block puts it in a cell below that one;
-# and after a kill the answer read back is still drawn as markdown.
+# a keystroke after it lands in no cell; and after a kill the answer read back is still drawn as markdown.
 #
 #   nice -n 10 timeout 2400 scripts/chat-markdown-demo-driver.sh
 #
