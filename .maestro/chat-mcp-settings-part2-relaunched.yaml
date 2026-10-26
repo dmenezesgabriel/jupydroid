@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-mcp-settings-driver.sh runs, after the driver put one
+# server in `.jupyter/mcp_settings.json` and killed the app.
+#
+# A file already there is the user's: MCP servers opens it as it is, and writes nothing over it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "MCP servers"
+- extendedWaitUntil:
+    visible: "Tab: mcp_settings.json"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: '[\s\S]*"kept-after-relaunch"[\s\S]*'
+    timeout: 10000
+- takeScreenshot: 03-relaunched-a-file-already-there-opens-as-it-is

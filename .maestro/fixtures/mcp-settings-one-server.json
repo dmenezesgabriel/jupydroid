@@ -1,0 +1,9 @@
+{
+  "mcp_servers": [
+    {
+      "name": "kept-after-relaunch",
+      "command": "true",
+      "args": []
+    }
+  ]
+}

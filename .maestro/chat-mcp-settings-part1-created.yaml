@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-mcp-settings-driver.sh runs, with no
+# `.jupyter/mcp_settings.json` in the workspace.
+#
+# MCP servers on the chat list writes the file jupyter-ai reads with an empty `mcp_servers` list, and
+# opens it in a tab as the explorer opens any file - which it cannot from the explorer, since
+# `.jupyter/` is hidden there.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- takeScreenshot: 01-mcp-servers-beside-new-chat
+- tapOn: "MCP servers"
+- extendedWaitUntil:
+    visible: "Tab: mcp_settings.json"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: '[\s\S]*"mcp_servers": \[\][\s\S]*'
+    timeout: 10000
+- takeScreenshot: 02-a-missing-file-opens-with-no-servers
