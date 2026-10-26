@@ -129,7 +129,7 @@ No new port: what moves is the UI's, and the chat itself is still `AgentChat`.
   back to the list
 - [x] T3 — "Move to side panel" in the chat tab's menu: the panel opens on that chat, the tab closes;
   at one pane, the modal rail
-- [ ] T4 — The demo above on SM-X216B; a defect found is fixed red first
+- [x] T4 — The demo above on SM-X216B; a defect found is fixed red first
 - [ ] T5 — The ADR (a document contribution by suffix, framed by the host; a move closes the
   source); delete this PRD; update the backlog
 
