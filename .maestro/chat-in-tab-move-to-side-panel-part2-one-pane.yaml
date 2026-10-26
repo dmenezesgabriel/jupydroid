@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-move-to-side-panel-driver.sh runs: portrait, which is one pane
+# on SM-X216B (w800dp), on the chat part 1 asked and answered.
+#
+# At one pane the side panel is the window, and the Chat is behind More (ADR-0109). The chat is moved
+# to a tab, which is then the window, and the tab's menu moves it back: the window is the Chat panel on
+# that chat, with its answer, and no tab is left.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "untitled"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "All chats"
+    timeout: 30000
+- tapOn: "Move to tab"
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b775\\b[\\s\\S]*"
+    timeout: 60000
+# The chips come from the persona's events, after the transcript.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- assertNotVisible: "All chats"
+- takeScreenshot: 03-one-pane-the-tab-is-the-window
+
+- longPressOn: "Tab: untitled.chat"
+- tapOn: "Move to side panel"
+- extendedWaitUntil:
+    notVisible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "All chats"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b775\\b[\\s\\S]*"
+    timeout: 60000
+- takeScreenshot: 04-one-pane-moved-the-chat-panel-is-the-window

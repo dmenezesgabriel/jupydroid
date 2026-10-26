@@ -1,0 +1,65 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-move-to-side-panel-driver.sh runs: landscape, which is two panes
+# on SM-X216B, in base with opencode installed and signed in by a person, on an empty workspace.
+#
+# A new chat is moved to a tab from the panel's header, and its model is picked and the question asked there. The tab's long-press menu then
+# moves it back: the Chat panel opens on that chat with the answer the tab got, and the tab is gone. The
+# driver reads from the server's log that the one question was asked once, so a move asks nothing again.
+#
+# The answer waited for holds digits the question does not, so the question, which the transcript
+# shows too, cannot match the wait for it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- tapOn: "Move to tab"
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+# Picked in the tab, where it is asked: a pick rides the next question from the view it was made in, and
+# one made in the panel before the move stayed there (the tab asked OpenCode/Big Pickle on 2026-10-26).
+# OpenRouter's free model, as scripts/chat-move-to-tab-driver.sh picks it.
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 10000
+- inputText: "north"
+- extendedWaitUntil:
+    notVisible: "In use"
+    timeout: 10000
+- tapOn: "OpenRouter/North Mini Code \\(free\\)"
+- tapOn: "Ask the agent"
+- inputText: "Reply with one word: tab. Then the sum 318+457 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b775\\b[\\s\\S]*"
+    timeout: 300000
+- assertNotVisible: "All chats"
+- takeScreenshot: 01-asked-and-answered-in-the-tab
+
+- longPressOn: "Tab: untitled.chat"
+- tapOn: "Move to side panel"
+- extendedWaitUntil:
+    notVisible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "All chats"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b775\\b[\\s\\S]*"
+    timeout: 60000
+- takeScreenshot: 02-moved-the-panel-holds-the-chat-and-the-tab-is-gone
