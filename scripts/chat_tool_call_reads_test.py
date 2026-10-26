@@ -7,6 +7,7 @@ from chat_tool_call_reads import (
     require_allowed_and_rejected,
     require_completed_call,
     require_answered_in_turn,
+    require_called_with,
     require_stopped_short,
 )
 
@@ -139,3 +140,32 @@ class RequireAnsweredInTurnTest(unittest.TestCase):
     def test_fails_when_a_question_was_never_asked(self):
         with self.assertRaisesRegex(ChatReadError, "never asked"):
             require_answered_in_turn([asked("Run echo queue-42"), answer("queue-42")], ASKED)
+
+
+def mcp_call(status: str, title: str = "quince_marmalade_code", printed: str = "marmalade-7349") -> dict[str, object]:
+    """An MCP tool's call as opencode reports it: the title is `<server>_<tool>`, the kind `other`."""
+    return {"title": title, "kind": "other", "status": status, "raw_input": {}, "raw_output": {"output": printed}}
+
+
+class RequireCalledWithTest(unittest.TestCase):
+    def test_passes_when_the_named_call_completed_returning_the_value(self):
+        chat = [QUESTION, calls_message(mcp_call("completed")), answer("marmalade-7349")]
+        require_called_with(chat, "quince_marmalade_code", "marmalade-7349")
+
+    def test_fails_when_the_answer_holds_the_value_but_no_call_returned_it(self):
+        with self.assertRaisesRegex(ChatReadError, "quince_marmalade_code"):
+            require_called_with([QUESTION, answer("marmalade-7349")], "quince_marmalade_code", "marmalade-7349")
+
+    def test_fails_when_another_tool_returned_the_value(self):
+        chat = [calls_message(mcp_call("completed", title="read"))]
+        with self.assertRaisesRegex(ChatReadError, "read"):
+            require_called_with(chat, "quince_marmalade_code", "marmalade-7349")
+
+    def test_fails_when_the_call_did_not_complete(self):
+        with self.assertRaisesRegex(ChatReadError, "failed"):
+            require_called_with([calls_message(mcp_call("failed"))], "quince_marmalade_code", "marmalade-7349")
+
+    def test_fails_when_the_call_returned_something_else(self):
+        chat = [calls_message(mcp_call("completed", printed="marmalade-0000"))]
+        with self.assertRaisesRegex(ChatReadError, "marmalade-0000"):
+            require_called_with(chat, "quince_marmalade_code", "marmalade-7349")

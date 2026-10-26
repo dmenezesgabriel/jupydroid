@@ -10,6 +10,7 @@ the shipped rootfs) keeps a message's calls in `metadata.tool_calls`, with snake
     python3 scripts/chat_tool_call_reads.py allowed-and-rejected untitled.chat permission-42 second-42
     python3 scripts/chat_tool_call_reads.py stopped-short untitled.chat untitled-later.chat
     python3 scripts/chat_tool_call_reads.py answered-in-turn untitled.chat "Run echo …" queue-42 "What is 2+2?" 4
+    python3 scripts/chat_tool_call_reads.py called-with untitled.chat quince_marmalade_code marmalade-7349
 """
 
 import json
@@ -122,6 +123,20 @@ def require_answered_in_turn(messages: list[TypedMessage], asked: list[tuple[str
             raise ChatReadError(f"{question!r} was not answered with {expected!r} before the next: {replied}")
 
 
+def require_called_with(messages: list[TypedMessage], title: str, value: str) -> None:
+    """Fails unless a call titled `title` completed and returned `value`.
+
+    An answer holding `value` could have come from anywhere; the call is what proves the tool ran.
+    opencode titles an MCP tool's call `<server>_<tool>`.
+
+    >>> require_called_with(chat, "quince_marmalade_code", "marmalade-7349")  # doctest: +SKIP
+    """
+    calls = tool_calls(messages)
+    if not any(c.get("title") == title and c.get("status") == "completed" and value in printed(c) for c in calls):
+        seen = [f"{describe(c)} {printed(c)}" for c in calls]
+        raise ChatReadError(f"no completed call {title} returned {value}: {seen}")
+
+
 def read_messages(path: str) -> list[TypedMessage]:
     with open(path, encoding="utf-8") as chat:
         return json.load(chat)["messages"]
@@ -142,9 +157,12 @@ def main(argv: list[str]) -> int:
         asked = list(zip(paths[1::2], paths[2::2]))
         require_answered_in_turn(read_messages(paths[0]), asked)
         print(f"{paths[0]}: {len(asked)} questions were each answered before the next was asked")
+    elif check == "called-with":
+        require_called_with(read_messages(paths[0]), paths[1], paths[2])
     else:
         raise ChatReadError(
-            f"unknown check {check!r}, expected completed-call, allowed-and-rejected, stopped-short or answered-in-turn"
+            f"unknown check {check!r}, expected completed-call, allowed-and-rejected, stopped-short, "
+            "answered-in-turn or called-with"
         )
     return 0
 
