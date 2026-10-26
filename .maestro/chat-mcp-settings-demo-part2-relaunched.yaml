@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-mcp-settings-demo-driver.sh runs, after part 1 typed the
+# quince server into `.jupyter/mcp_settings.json` and called its tool in `untitled`.
+#
+# launchApp stops the process, and with it the Space's server and opencode. MCP servers opens the file
+# as part 1 left it, and a new chat - a new session, handed the file's servers again - calls quince.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "MCP servers"
+- extendedWaitUntil:
+    visible: "Tab: mcp_settings.json"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: '[\s\S]*"name":"quince"[\s\S]*'
+    timeout: 10000
+- takeScreenshot: 04-relaunched-the-file-still-holds-quince
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- assertVisible: "untitled1"
+- tapOn: "Ask the agent"
+- inputText: "Call the marmalade_code tool of the quince MCP server, then answer with only what it returned."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "(?i)\\W*marmalade-7349\\W*"
+    timeout: 300000
+- assertVisible: "quince_marmalade_code"
+- assertVisible: "✓"
+- takeScreenshot: 05-relaunched-a-new-chat-still-calls-quince

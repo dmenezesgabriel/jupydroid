@@ -1,0 +1,57 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-mcp-settings-demo-driver.sh runs: landscape, two panes, in
+# base with opencode installed and signed in by a person, on a workspace holding only quince_mcp.py
+# and no `.jupyter/mcp_settings.json`.
+#
+# MCP servers opens the file with no servers; the quince server is typed into it as a person would,
+# and the editor saves it. A new chat's session is handed the servers in the file
+# (`_get_mcp_servers`, usr/lib/python3.12/site-packages/jupyter_ai_acp_client/default_acp_client.py
+# in the shipped rootfs), so opencode can call quince's one tool, whose answer no question holds.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "MCP servers"
+- extendedWaitUntil:
+    visible: "Tab: mcp_settings.json"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: '[\s\S]*"mcp_servers": \[\][\s\S]*'
+    timeout: 10000
+- takeScreenshot: 01-mcp-servers-opens-the-file-with-no-servers
+# Below the last line, so the caret lands at the end of the file and the erase empties it.
+- tapOn: '[\s\S]*"mcp_servers": \[\][\s\S]*'
+- tapOn:
+    point: "75%,85%"
+- eraseText: 40
+# One line, typed a key at a time: each opener closes itself and each closer steps over its partner
+# (PythonTypingRules), so the text lands as typed. The driver reads it back from disk.
+- inputText: '{"mcp_servers":[{"name":"quince","command":"python3","args":["/home/jupydroid/quince_mcp.py"]}]}'
+- extendedWaitUntil:
+    visible: '\{"mcp_servers":\[\{"name":"quince","command":"python3","args":\["/home/jupydroid/quince_mcp.py"\]\}\]\}\s*'
+    timeout: 10000
+- takeScreenshot: 02-the-quince-server-typed-into-the-file
+
+# The Chat stayed open beside the tab, where tapping its rail item again would close it.
+- hideKeyboard
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Call the marmalade_code tool of the quince MCP server, then answer with only what it returned."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot, which starts quince before the model answers.
+- extendedWaitUntil:
+    visible: "(?i)\\W*marmalade-7349\\W*"
+    timeout: 300000
+# opencode titles an MCP tool's call `<server>_<tool>`, which no question holds.
+- assertVisible: "quince_marmalade_code"
+- assertVisible: "✓"
+- takeScreenshot: 03-opencode-called-quince-and-answered-its-code
