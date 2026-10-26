@@ -44,13 +44,8 @@ run_flow "$ROOT/.maestro/chat-markdown-insert.yaml" "$EVIDENCE"
 wait_for_workspace_text Untitled.ipynb "print(6*7)" 60
 "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/untitled.chat\"" | tr -d '\r' >"$EVIDENCE/untitled.chat"
 "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/Untitled.ipynb\"" | tr -d '\r' >"$EVIDENCE/Untitled.ipynb"
-python3 - "$EVIDENCE/Untitled.ipynb" <<'PY' || fail "Untitled.ipynb is not an empty code cell above one of exactly print(6*7)"
-import json, sys
-cells = json.load(open(sys.argv[1]))["cells"]
-sources = ["".join(c["source"]) if isinstance(c["source"], list) else c["source"] for c in cells]
-print(f"cells: {[(c['cell_type'], s) for c, s in zip(cells, sources)]}")
-sys.exit(0 if [(c["cell_type"], s) for c, s in zip(cells, sources)] == [("code", ""), ("code", "print(6*7)")] else 1)
-PY
+python3 "$ROOT/scripts/notebook_cell_reads.py" "$EVIDENCE/Untitled.ipynb" code: 'code:print(6*7)' ||
+  fail "Untitled.ipynb is not an empty code cell above one of exactly print(6*7)"
 
 rotate_to 0
 run_flow "$ROOT/.maestro/chat-markdown-insert-one-pane.yaml" "$EVIDENCE/one-pane"

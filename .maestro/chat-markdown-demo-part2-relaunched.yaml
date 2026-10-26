@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-markdown-demo-driver.sh runs, after part 1 had the answer
+# drawn and the driver killed the app.
+#
+# After a kill the panel opens on the list, and the answer is read back from `untitled.chat`, so what
+# is drawn here comes from the stored markdown, not from what the process held. As in
+# chat-markdown-answer.yaml, "Persimmon" alone is the heading drawn as its own line.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "Persimmon"
+    timeout: 60000
+- assertVisible: "alpha"
+- assertVisible: "•"
+- assertVisible: "print\\(6\\*7\\)"
+- assertNotVisible: ".*##.*"
+- assertNotVisible: ".*```.*"
+- takeScreenshot: 07-relaunched-the-answer-is-still-drawn-as-markdown

@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-markdown-demo-driver.sh runs: landscape, two panes, in base,
+# with opencode installed in base and signed in to a provider by a person.
+#
+# chat-markdown-copy.yaml asks for the answer, copies its code block and pastes it into a new
+# notebook's empty cell, which the press leaves selected. Insert under the same code block then puts
+# the code in a new cell below it, as chat-markdown-insert.yaml does.
+- runFlow: chat-markdown-copy.yaml
+# The Chat comes back open on the chat it showed, and reads the answer back from its file.
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Persimmon"
+    timeout: 60000
+- assertNotVisible: "Insert below active cell \\(no active cell\\)"
+- takeScreenshot: 05-insert-is-enabled-with-the-pasted-cell-selected
+- tapOn: "Insert below active cell"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Three on screen now: the chat's code block, the pasted cell's and the inserted cell's.
+- assertVisible:
+    text: "print\\(6\\*7\\)"
+    index: 2
+- takeScreenshot: 06-insert-puts-the-code-in-a-cell-below
