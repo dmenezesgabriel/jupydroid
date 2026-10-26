@@ -109,16 +109,16 @@ only when a session starts. Ours follows the image, which is jupyter-ai's.
 | `:extension-api` | `extension-api/src/main/java/com/jupydroid/extension/api/WorkspaceFileOpener.kt`, `SidePanelHost.kt` |
 | `:app` host | `app/src/main/java/com/jupydroid/app/EditorWorkspaceFileOpener.kt`, `ShellSidePane.kt`, `Navigation.kt` |
 | `:extensions:ai` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/domain/McpSettingsFile.kt`, `ui/ChatList.kt`, `ui/ChatsPanel.kt`, `AiExtension.kt` |
-| unit tests | `app/src/test/java/com/jupydroid/app/EditorWorkspaceFileOpenerTest.kt`, `extensions/ai/src/test/java/com/jupydroid/extensions/ai/domain/McpSettingsFileTest.kt` |
+| unit tests | `app/src/test/java/com/jupydroid/app/EditorWorkspaceFileOpenerTest.kt`, `extensions/ai/src/test/java/com/jupydroid/extensions/ai/domain/McpSettingsFileTest.kt`, `scripts/quince_mcp_fixture_test.py`, `scripts/chat_tool_call_reads_test.py` |
 | instrumented tests | `app/src/androidTest/java/com/jupydroid/app/ui/shell/ChatListSidePanelTest.kt` |
-| `.maestro/` flow + `scripts/` driver | `.maestro/chat-mcp-settings.yaml`, `scripts/chat-mcp-settings-driver.sh` |
+| `.maestro/` flow + `scripts/` driver | `.maestro/chat-mcp-settings-part{1,2}-*.yaml`, `scripts/chat-mcp-settings-driver.sh`; the demo: `.maestro/chat-mcp-settings-demo-part{1,2}-*.yaml`, `.maestro/fixtures/quince_mcp.py`, `scripts/chat-mcp-settings-demo-driver.sh` |
 
 ## Tasks
 
 - [x] T1 — *MCP servers* on the chat list opens `.jupyter/mcp_settings.json` in the file editor,
   writing `{"mcp_servers": []}` first when it is missing, through a `WorkspaceFileOpener` the host
   hands in `SidePanelHost`
-- [ ] T2 — The demo: a stdlib Python stdio MCP fixture configured in the file, a new chat in which
+- [x] T2 — The demo: a stdlib Python stdio MCP fixture configured in the file, a new chat in which
   opencode calls its tool, and the same after a kill, on SM-X216B. A defect found is fixed red first
 - [ ] T3 — The ADR (where the file is, how it opens, when an edit applies, opencode's add-only
   registration); delete this PRD; update the backlog
