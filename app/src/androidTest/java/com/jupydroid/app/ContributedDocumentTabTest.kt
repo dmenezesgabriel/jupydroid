@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpSize
@@ -26,6 +27,8 @@ import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
+import com.jupydroid.extensions.ai.AiExtension
+import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -33,7 +36,8 @@ import org.junit.runner.RunWith
 
 /**
  * A file whose suffix an extension claims opens from the explorer as that extension's tab, drawn
- * by the extension, and a second tap on the row reveals the tab rather than opening another.
+ * by the extension, and a second tap on the row reveals the tab rather than opening another. A chat
+ * moved to a tab from the Chat panel lands in that same tab.
  */
 @RunWith(AndroidJUnit4::class)
 class ContributedDocumentTabTest {
@@ -55,8 +59,29 @@ class ContributedDocumentTabTest {
     compose.onAllNodesWithContentDescription("Tab: $FILE_NAME").assertCountEquals(1)
   }
 
+  /** The panel's move goes through the host's opener, which reveals the chat's tab where it is open. */
+  @Test
+  fun aChatMovedToATabTwiceOpensOneChatTab() {
+    temp.newFile(CHAT_FILE_NAME)
+    startApp(AiExtension(chatFilesFor = { FakeChatFiles(listOf(CHAT_FILE_NAME)) }))
+
+    // Once: the panel stays shown after a move, and picking the shown panel again collapses it.
+    compose.onNodeWithContentDescription("Chat").performClick()
+    repeat(2) {
+      compose.onNodeWithText("untitled").performClick()
+      compose.onNodeWithContentDescription("Move to tab").performClick()
+      compose.waitForTab(CHAT_FILE_NAME)
+    }
+
+    compose.onAllNodesWithContentDescription("Tab: $CHAT_FILE_NAME").assertCountEquals(1)
+  }
+
   private fun startAppWithAClaimedFile() {
     temp.newFile(FILE_NAME).writeText("{}")
+    startApp(DemoDocumentExtension())
+  }
+
+  private fun startApp(extension: Extension) {
     compose.setContent {
       // Wide enough for the explorer beside the tab, so the row is still there to tap again.
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(DpSize(1280.dp, 800.dp))) {
@@ -64,7 +89,7 @@ class ContributedDocumentTabTest {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-              extensions = listOf(DemoDocumentExtension()),
+              extensions = listOf(extension),
               enteredSpacePorts = { _, _ ->
                 EnteredSpacePorts(
                   notebookRepository = DiskNotebookRepository(temp.root),
@@ -96,6 +121,7 @@ class ContributedDocumentTabTest {
 
   private companion object {
     const val FILE_NAME = "notes.demo"
+    const val CHAT_FILE_NAME = "untitled.chat"
     const val BODY_PREFIX = "Demo document: "
     const val BODY = "$BODY_PREFIX$FILE_NAME"
     const val TIMEOUT_MILLIS = 10_000L

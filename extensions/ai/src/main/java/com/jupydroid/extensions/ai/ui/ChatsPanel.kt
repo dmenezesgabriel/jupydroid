@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +38,7 @@ import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
  * @param queues where each chat's waiting questions are kept, and moved or forgotten with its file.
  * @param markdown what an agent's answer is drawn with: the host's, so it reads as a markdown cell does.
  * @param activeCell where Insert under a code block of an answer puts its code.
- * @param fileOpener what opens [McpSettingsFile] in the host's editor.
+ * @param fileOpener what opens [McpSettingsFile] in the host's editor, and the open chat in a tab of its own.
  * @param chatFor the chat at a path relative to the workspace root.
  */
 @Composable
@@ -63,7 +64,18 @@ fun ChatsPanel(
     return
   }
   Column(modifier = modifier.fillMaxSize()) {
-    OpenChatHeader(ChatFile(open).name, onBack = { selection.path = null })
+    OpenChatHeader(
+      ChatFile(open).name,
+      onBack = { selection.path = null },
+      // jupyter-chat's `moveChat` from the side panel (jupyter-chat@2c224bc
+      // `packages/jupyterlab-chat-extension/src/index.ts`): a move, not a copy, so the tab is asked for
+      // and then the panel lets the chat go. The host opens a `.chat` as a chat tab, revealing one
+      // already open. A listed chat exists, so the empty text, what `newUntitled` writes, is never used.
+      onMoveToTab = {
+        fileOpener.open(open, "")
+        selection.path = null
+      },
+    )
     ChatPanel(
       chat = remember(open) { chatFor(open) },
       file = ChatFile(open),
@@ -75,11 +87,21 @@ fun ChatsPanel(
   }
 }
 
-/** The open chat's name, after the way back to the list, as jupyter-chat's side panel titles a chat. */
+/**
+ * The open chat's name, after the way back to the list, as jupyter-chat's side panel titles a chat, and
+ * the way to a tab at its end, wearing jupyter-chat's `launchIcon` for `moveChat`.
+ */
 @Composable
-private fun OpenChatHeader(name: String, onBack: () -> Unit) {
+private fun OpenChatHeader(name: String, onBack: () -> Unit, onMoveToTab: () -> Unit) {
   Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
     IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "All chats") }
-    Text(name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(
+      name,
+      style = MaterialTheme.typography.titleSmall,
+      maxLines = 1,
+      overflow = TextOverflow.Ellipsis,
+      modifier = Modifier.weight(1f),
+    )
+    IconButton(onClick = onMoveToTab) { Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Move to tab") }
   }
 }

@@ -8,6 +8,9 @@ package com.jupydroid.extension.api
  * `src/vs/workbench/contrib/mcp/browser/mcpCommands.ts`, `OpenMcpResourceCommand`). A file already
  * there is opened as it is.
  *
+ * The host opens it as its explorer would, so a file whose suffix a [DocumentContribution] claims
+ * opens in that contribution's tab, revealed where it is already open.
+ *
  * ```
  * val open = { host.fileOpener.open(".jupyter/mcp_settings.json", "{\"mcp_servers\": []}") }
  * Button(onClick = open) { Text("MCP servers") }
