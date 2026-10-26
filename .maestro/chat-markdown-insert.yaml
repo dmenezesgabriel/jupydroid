@@ -1,0 +1,54 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider by a
+# person. Driven by scripts/chat-markdown-insert-driver.sh, which empties the workspace.
+#
+# The answer is chat-markdown-answer.yaml's, so its code block holds print(6*7). Insert is an icon,
+# matched by its content description, which names the notebook's state: "(no active cell)" until a
+# notebook is open with a cell selected.
+- runFlow: chat-markdown-answer.yaml
+- assertVisible: "Insert below active cell \\(no active cell\\)"
+- takeScreenshot: 02-insert-is-disabled-with-no-notebook-open
+# Files takes the side pane from the Chat, so the notebook is made and opened beside it.
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "New"
+    timeout: 10000
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Untitled.ipynb"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+# The empty cell's field has no text to press by and the editor gives it no tag, so it is pressed at
+# a point inside it: in landscape with the explorer open, SM-X216B puts the field at
+# [805,319][1884,391] (`maestro hierarchy`), as chat-markdown-copy.yaml presses it. That selects it.
+- tapOn:
+    point: "1300,354"
+- hideKeyboard
+- takeScreenshot: 03-a-new-notebook-with-its-cell-selected
+# The Chat comes back open on the chat it showed, and reads the answer back from its file.
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Persimmon"
+    timeout: 60000
+- assertNotVisible: "Insert below active cell \\(no active cell\\)"
+- takeScreenshot: 04-insert-is-enabled-with-a-cell-selected
+- tapOn: "Insert below active cell"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 05-insert-puts-the-code-in-a-cell-below
+# Two on screen now: the chat's code block, and the new cell's.
+- assertVisible:
+    text: "print\\(6\\*7\\)"
+    index: 1

@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# Goes on from chat-markdown-insert.yaml with the tablet turned to portrait, which is one pane on
+# SM-X216B (w800dp), the notebook filling the window. Driven by scripts/chat-markdown-insert-driver.sh.
+#
+# At one pane the Chat is reached only by leaving the notebook, and leaving it closes its tab, so the
+# Chat finds no active cell and Insert is disabled: jupyter-chat's `available` also needs the notebook
+# visible (jupyter-chat@2c224bc `packages/jupyter-chat/src/active-cell-manager.ts`).
+- extendedWaitUntil:
+    visible: "Tab: Untitled.ipynb"
+    timeout: 10000
+- takeScreenshot: 01-the-notebook-fills-the-window
+# The one-pane arrow is named for the entry beneath it (MainAreaTabStrip.kt): the notebook's closes its
+# tab and shows the Launcher, and the Launcher's goes back to the side pane.
+- tapOn: "Back to Launcher"
+- extendedWaitUntil:
+    notVisible: "Tab: Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Back to files"
+- extendedWaitUntil:
+    visible: "More"
+    timeout: 10000
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Persimmon"
+    timeout: 60000
+- assertVisible: "Insert below active cell \\(no active cell\\)"
+- takeScreenshot: 02-the-chat-has-no-active-cell
