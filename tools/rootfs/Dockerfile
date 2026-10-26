@@ -101,6 +101,12 @@ COPY acp_lazy_import_patch.py /tmp/acp_lazy_import_patch.py
 RUN python3 /tmp/acp_lazy_import_patch.py \
  && rm -f /tmp/acp_lazy_import_patch.py
 
+# Same reason to come before the strip. See acp_replayed_updates_patch.py for why the ACP client drops a
+# loaded session's replayed history by its place in the stream, and acp_replayed_history_probe.py below.
+COPY acp_replayed_updates_patch.py acp_replayed_updates.py /tmp/
+RUN python3 /tmp/acp_replayed_updates_patch.py \
+ && rm -f /tmp/acp_replayed_updates_patch.py /tmp/acp_replayed_updates.py
+
 # The kernel entry point ships as a real, reviewable module rather than being
 # generated at runtime from strings. Placed on the default sys.path so the
 # kernelspec can name it with -m and nothing has to set PYTHONPATH.
@@ -241,6 +247,11 @@ RUN jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
 COPY acp_lazy_import_probe.py /tmp/acp_lazy_import_probe.py
 RUN python3 /tmp/acp_lazy_import_probe.py \
  && rm -f /tmp/acp_lazy_import_probe.py
+
+# A chat loaded again writes none of the history its agent replays. See acp_replayed_history_probe.py.
+COPY acp_replayed_history_probe.py /tmp/acp_replayed_history_probe.py
+RUN python3 /tmp/acp_replayed_history_probe.py \
+ && rm -f /tmp/acp_replayed_history_probe.py
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.

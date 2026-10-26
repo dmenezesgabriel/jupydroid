@@ -1846,28 +1846,6 @@ stopped, and it counts an open terminal as activity. What stopped base was not c
 log and logcat were not read before the relaunch. The repair starts by reproducing it with both
 captured. The tab should then either keep its shell or say it ended and offer to start a new one.
 
-### GAP-182 — A chat reloaded after its room emptied can repeat the agent's last answer
-
-When the last client leaves a chat's room, the server stops that chat's persona manager. The next
-client starts it again, and the persona sends `session/load` for the session the chat already holds.
-opencode replays the session's history as `session/update` notifications. Before answering,
-`jupyter_ai_acp_client` drops them while `_is_session_loading` is true
-(`usr/lib/python3.12/site-packages/jupyter_ai_acp_client/default_acp_client.py`, `session_update`, in
-the shipped rootfs, 0.3.3). But `acp` runs each notification as a task of its own through its
-dispatcher's queue, while a response resolves its future directly
-(`usr/lib/python3.12/site-packages/acp/connection.py`, `_run_notification`, `_handle_response`). A
-replayed chunk handled after the load's future resolved therefore passes the guard and is written as
-a new message.
-
-On SM-X216B on 2026-10-26, a move to a tab emptied `untitled.chat`'s room. The tab's client joined
-0.23 s later, and a second client joined while the load ran. The server completed one turn, and
-`untitled.chat` held its answer twice: `Created message` at 19:41:11.291, then `Loaded existing ACP
-client session` at 19:41:11.293. Four more reloads, two by a move and two by reopening the chat in the
-panel, wrote nothing. The guard is unchanged on jupyter-ai-acp-client@77016f63530f, and no upstream
-issue names it. The repair is a build-time patch to the guard in `tools/rootfs/`, as
-`acp_lazy_import_patch.py` patches `routes.py`, with a probe that replays history after the load's
-response and expects no message. It should also be reported upstream.
-
 ---
 
 ## 12. Glossary
