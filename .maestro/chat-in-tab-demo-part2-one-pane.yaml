@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# The second of the four flows scripts/chat-in-tab-demo-driver.sh runs. The driver turned the tablet to
+# portrait, which is one pane on SM-X216B (w800dp): the activity was relaunched and the process was not,
+# as the driver reads from its pid.
+#
+# The chat tab part 1 left open is still open, with the tab's answer, and still answers.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b628\\b[\\s\\S]*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: ".*North Mini Code.*"
+    timeout: 300000
+- takeScreenshot: 07-one-pane-the-chat-tab-is-still-open
+- tapOn: "Ask the agent"
+- inputText: "Reply with one word: portrait. Then the sum 409+276 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b685\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 08-one-pane-asked-in-the-tab-and-answered

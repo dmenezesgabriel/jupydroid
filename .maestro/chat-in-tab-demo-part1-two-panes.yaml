@@ -1,0 +1,115 @@
+appId: com.jupydroid.app
+---
+# The first of the four flows scripts/chat-in-tab-demo-driver.sh runs: landscape, which is two panes on
+# SM-X216B, in base with opencode installed and signed in by a person, on an empty workspace.
+#
+# One chat, moved both ways and opened from Files. Asked in the Chat panel, it is moved to a tab from its
+# header: the tab holds the answer and both chips, and the panel goes back to its chats. Asked again in
+# the tab, the tab's long-press menu moves it back: the panel opens on it with that answer, and the tab is
+# gone. Tapped in Files it opens as a chat tab, and tapped again the same tab is revealed. The driver
+# reads from the server's log and untitled.chat that no move asked anything again.
+#
+# Each answer waited for holds digits no question holds, so the question, which the transcript shows
+# too, cannot match the wait for it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+# OpenRouter's free model: OpenCode's own answered no question here on 2026-10-26
+# (scripts/chat-agent-controls-demo-driver.sh).
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 10000
+- inputText: "north"
+- extendedWaitUntil:
+    notVisible: "In use"
+    timeout: 10000
+- tapOn: "OpenRouter/North Mini Code \\(free\\)"
+- tapOn: "Ask the agent"
+- inputText: "Reply with one word: panel. Then the sum 136+529 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b665\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 01-asked-and-answered-in-the-panel
+
+- tapOn: "Move to tab"
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b665\\b[\\s\\S]*"
+    timeout: 60000
+# The chips come from the persona's events, after the transcript. The model asked with is the one the
+# persona kept with the chat, so the tab names it without a pick of its own.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- assertVisible: ".*North Mini Code.*"
+- assertVisible: "untitled"
+- assertNotVisible: "All chats"
+- takeScreenshot: 02-moved-to-a-tab-with-its-answer-and-chips-the-panel-lists-the-chats
+
+- tapOn: "Ask the agent"
+- inputText: "Reply with one word: tab. Then the sum 247+381 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b628\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 03-asked-in-the-tab-and-answered-there
+
+- longPressOn: "Tab: untitled.chat"
+- tapOn: "Move to side panel"
+- extendedWaitUntil:
+    notVisible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "All chats"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b628\\b[\\s\\S]*"
+    timeout: 60000
+- takeScreenshot: 04-moved-back-the-panel-holds-the-tabs-answer-and-the-tab-is-gone
+
+# Files lists untitled.chat twice: under Recent, since the move to a tab opened it, and as the
+# workspace's file below it. The file is what is tapped, and Maestro numbers matches top to bottom.
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible:
+      text: "untitled.chat"
+      index: 1
+    timeout: 30000
+- tapOn:
+    text: "untitled.chat"
+    index: 1
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b628\\b[\\s\\S]*"
+    timeout: 60000
+- assertVisible: "Ask the agent"
+- assertNotVisible: ".*\"messages\".*"
+- takeScreenshot: 05-the-chat-file-opens-as-a-chat-tab-not-json
+- tapOn:
+    text: "untitled.chat"
+    index: 1
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Tab: untitled.chat"
+- assertNotVisible:
+    text: "Tab: untitled.chat"
+    index: 1
+- takeScreenshot: 06-tapped-again-the-same-tab-is-revealed

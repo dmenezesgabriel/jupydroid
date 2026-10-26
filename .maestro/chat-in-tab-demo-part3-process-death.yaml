@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# The third of the four flows scripts/chat-in-tab-demo-driver.sh runs. The driver has sent the app home
+# and killed its process (`am kill`), which is how Android reclaims a backgrounded app: the task and its
+# saved state stay, so the activity is recreated from them when the app is opened again.
+#
+# The chat tab comes back from the saved back stack, its transcript read again from untitled.chat, and
+# its chips once the persona has started again.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 120000
+- tapOn: "Tab: untitled.chat"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b685\\b[\\s\\S]*"
+    timeout: 300000
+# The kill took the server and opencode with it, so the chips wait for the persona to start again; the
+# model it names is the one it kept with the chat.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- assertVisible: ".*North Mini Code.*"
+- takeScreenshot: 09-after-process-death-the-chat-tab-comes-back-with-its-transcript-and-chips
