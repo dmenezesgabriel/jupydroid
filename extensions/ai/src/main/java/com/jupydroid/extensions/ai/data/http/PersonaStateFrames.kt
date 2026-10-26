@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.ai.data.http
 
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSetting
@@ -17,12 +18,14 @@ import kotlinx.serialization.json.put
  *   what it leaves out is as it was (jupyter_ai_persona_manager 0.2.2 `persona_events.py`,
  *   `PersonaSessionState._emit`, in the shipped rootfs).
  * @param settings null, likewise, when the event changed something other than the general settings.
+ * @param commands null, likewise, when the event changed something other than the slash commands.
  */
 internal data class PersonaState(
   val chatId: String,
   val personaId: String,
   val models: AgentModels?,
   val settings: List<AgentSetting>? = null,
+  val commands: List<AgentCommand>? = null,
 )
 
 /**
@@ -71,12 +74,14 @@ private data class WirePersonaState(
   @SerialName("persona_id") val personaId: String? = null,
   val model: WireModelConfiguration? = null,
   val settings: List<WireSettingConfiguration>? = null,
+  @SerialName("slash_commands") val slashCommands: List<WireCommandOption>? = null,
 ) {
   /** Null for a state that names no chat or no persona, which no chat could show. */
   fun toPersonaState(): PersonaState? {
     if (chatId == null || personaId == null) return null
     val general = settings?.map(WireSettingConfiguration::toAgentSetting)
-    return PersonaState(chatId, personaId, model?.toAgentModels(), general)
+    val commands = slashCommands?.map(WireCommandOption::toAgentCommand)
+    return PersonaState(chatId, personaId, model?.toAgentModels(), general, commands)
   }
 }
 
@@ -103,4 +108,14 @@ private data class WireSettingConfiguration(
 ) {
   fun toAgentSetting(): AgentSetting =
     AgentSetting(id, name ?: id, current, options.map { AgentSettingValue(it.id, it.name ?: it.id) })
+}
+
+/**
+ * `CommandOption` dumped (`awareness_models.py`). jupyter-ai's ACP client gives each name its `/`, but the
+ * model does not require one, so a name without it is given one, as jupyter-ai's frontend does
+ * (jupyter-ai-persona-manager@d5ed04b `src/slash-commands.ts`).
+ */
+@Serializable
+private data class WireCommandOption(val name: String, val description: String? = null) {
+  fun toAgentCommand(): AgentCommand = AgentCommand(if (name.startsWith("/")) name else "/$name", description)
 }

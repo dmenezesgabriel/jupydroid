@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.ai.data.http
 
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSetting
@@ -40,6 +41,27 @@ class PersonaStateFramesTest {
     assertEquals(listOf(AgentSetting("__mode__", "Session Mode", "build", offered)), state.settings)
   }
 
+  /** Its slash commands, each `CommandOption{name, description}` (`awareness_models.py`). */
+  @Test
+  fun aPersonasStateCarriesItsCommandsAndWhatEachDoes() {
+    val state = PersonaStateFrames.parse(resource("persona-state-on-session-start.json"))!!
+
+    assertEquals(listOf(AgentCommand("/compact", "compact the session")), state.commands)
+  }
+
+  /**
+   * jupyter-ai's ACP client prefixes the `/` (jupyter_ai_acp_client 0.3.3 `default_acp_client.py`), but
+   * `CommandOption` does not require it, so its frontend adds one where it is missing
+   * (jupyter-ai-persona-manager@d5ed04b `src/slash-commands.ts`).
+   */
+  @Test
+  fun aCommandNamedWithoutASlashIsGivenOne() {
+    val commands = """[{"name": "init"}]"""
+    val frame = """{"schema_id": "$PERSONA_STATE", "chat_id": "c", "persona_id": "p", "slash_commands": $commands}"""
+
+    assertEquals(listOf(AgentCommand("/init", null)), PersonaStateFrames.parse(frame)!!.commands)
+  }
+
   /** `SettingConfiguration.name` and `SettingOption.name` fall back to the id when None (`awareness_models.py`). */
   @Test
   fun aSettingWithNoNameIsNamedByItsId() {
@@ -60,6 +82,7 @@ class PersonaStateFramesTest {
     val state = PersonaStateFrames.parse(usage)!!
     assertNull(state.models)
     assertNull(state.settings)
+    assertNull(state.commands)
   }
 
   /** `ModelOption.name` falls back to its id when None (`awareness_models.py`). */

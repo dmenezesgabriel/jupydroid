@@ -19,8 +19,8 @@ abstract class AgentChatContract {
   /**
    * A chat already holding [history], whose agent answers each question in [replies] with the reply
    * it maps to, and every other question with nothing; when [writing], its agent is writing a reply
-   * as the chat opens; its agent offers [models] and [settings], and switches to what a question is
-   * asked with.
+   * as the chat opens; its agent offers [models], [settings] and [commands], and switches to what a
+   * question is asked with.
    */
   protected abstract fun chat(
     history: List<ChatMessage> = emptyList(),
@@ -28,6 +28,7 @@ abstract class AgentChatContract {
     writing: Boolean = false,
     models: AgentModels = AgentModels(),
     settings: List<AgentSetting> = emptyList(),
+    commands: List<AgentCommand> = emptyList(),
   ): AgentChat
 
   /** What was asked before the chat was opened again is still the user's, and the answer the agent's. */
@@ -73,6 +74,12 @@ abstract class AgentChatContract {
   fun anOpenChatSaysWhichSettingsItsAgentOffersAndTheValueOfEach() =
     withOpenChat(chat(models = MODELS, settings = SETTINGS)) { _, transcripts ->
       assertEquals(SETTINGS, transcripts.until { it.agentSettings.isNotEmpty() }.agentSettings)
+    }
+
+  @Test
+  fun anOpenChatSaysWhichCommandsItsAgentOffers() =
+    withOpenChat(chat(models = MODELS, commands = COMMANDS)) { _, transcripts ->
+      assertEquals(COMMANDS, transcripts.until { it.agentCommands.isNotEmpty() }.agentCommands)
     }
 
   /** The persona applies a question's settings before it answers it (`base_persona.py`, `apply_settings_spec`). */
@@ -172,6 +179,8 @@ abstract class AgentChatContract {
         offered = listOf(AgentSettingValue("build", "build"), AgentSettingValue("plan", "plan")),
       ),
     )
+
+    val COMMANDS = listOf(AgentCommand("/compact", "compact the session"), AgentCommand("/init", null))
 
     val ALLOW_ONCE = PermissionOption(id = "once", name = "Allow once", rejects = false)
     val REJECT = PermissionOption(id = "reject", name = "Reject", rejects = true)

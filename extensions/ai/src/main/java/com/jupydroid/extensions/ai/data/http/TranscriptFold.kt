@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.ai.data.http
 
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.ChatTranscript
@@ -26,6 +27,7 @@ internal class TranscriptFold(private val out: SendChannel<ChatTranscript>, priv
   private var transcript = ChatTranscript()
   private val modelsByChat = mutableMapOf<String, AgentModels>()
   private val settingsByChat = mutableMapOf<String, List<AgentSetting>>()
+  private val commandsByChat = mutableMapOf<String, List<AgentCommand>>()
 
   /** The chat said its id, and what it holds. */
   @Synchronized
@@ -48,6 +50,7 @@ internal class TranscriptFold(private val out: SendChannel<ChatTranscript>, priv
     if (state.personaId != persona) return
     state.models?.let { modelsByChat[state.chatId] = it }
     state.settings?.let { settingsByChat[state.chatId] = it }
+    state.commands?.let { commandsByChat[state.chatId] = it }
     if (state.chatId == chatId) send()
   }
 
@@ -56,6 +59,7 @@ internal class TranscriptFold(private val out: SendChannel<ChatTranscript>, priv
     val shown = transcript.copy(
       agentModels = id?.let(modelsByChat::get) ?: AgentModels(),
       agentSettings = id?.let(settingsByChat::get).orEmpty(),
+      agentCommands = id?.let(commandsByChat::get).orEmpty(),
     )
     out.trySend(shown)
   }

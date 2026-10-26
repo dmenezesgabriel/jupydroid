@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.ai.data.http
 
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSetting
@@ -47,6 +48,19 @@ class TranscriptFoldTest {
     assertEquals(SETTINGS, shown.agentSettings)
   }
 
+  /** `report_slash_commands` emits the commands alone, when the agent sends `available_commands_update`. */
+  @Test
+  fun commandsArriveApartAndAreShownBesideTheModels() {
+    fold.opened(CHAT_ID, ChatTranscript())
+    fold.stated(PersonaState(CHAT_ID, OPENCODE_PERSONA_ID, MODELS))
+
+    fold.stated(PersonaState(CHAT_ID, OPENCODE_PERSONA_ID, models = null, commands = COMMANDS))
+
+    val shown = latest()
+    assertEquals(MODELS, shown.agentModels)
+    assertEquals(COMMANDS, shown.agentCommands)
+  }
+
   @Test
   fun anotherPersonasModelsAreNeverShown() {
     fold.opened(CHAT_ID, ChatTranscript())
@@ -75,6 +89,7 @@ class TranscriptFoldTest {
 
   private companion object {
     val MODELS = AgentModels("opencode/big-pickle", listOf(AgentModel("opencode/big-pickle", "Big Pickle")))
+    val COMMANDS = listOf(AgentCommand("/compact", "compact the session"))
     val SETTINGS =
       listOf(AgentSetting("__mode__", "Session Mode", "build", listOf(AgentSettingValue("build", "build"))))
   }

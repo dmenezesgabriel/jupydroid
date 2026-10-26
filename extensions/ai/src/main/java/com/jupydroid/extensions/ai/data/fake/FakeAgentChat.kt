@@ -2,6 +2,7 @@ package com.jupydroid.extensions.ai.data.fake
 
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.AgentSetting
@@ -21,7 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * A chat already holding [history], whose agent answers each question in [replies] with the reply it
  * maps to and every other question with nothing; when [writing], its agent is writing a reply until
- * it is stopped. Its agent offers [models] and [settings], and switches to what a question is asked with.
+ * it is stopped. Its agent offers [models], [settings] and [commands], and switches to what a question is
+ * asked with.
  *
  * What the panel talks to where the Space has no server, so it still opens and claims no answer
  * nobody gave: with nothing configured, a question goes unanswered.
@@ -36,9 +38,11 @@ class FakeAgentChat(
   writing: Boolean = false,
   models: AgentModels = AgentModels(),
   settings: List<AgentSetting> = emptyList(),
+  commands: List<AgentCommand> = emptyList(),
 ) : AgentChat {
-  private val shown =
-    MutableStateFlow(ChatTranscript(history, agentWriting = writing, agentModels = models, agentSettings = settings))
+  private val shown = MutableStateFlow(
+    ChatTranscript(history, writing, agentModels = models, agentSettings = settings, agentCommands = commands),
+  )
   private val collectors = AtomicInteger()
 
   override fun transcript(): Flow<ChatTranscript> = shown

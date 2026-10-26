@@ -47,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,7 @@ import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extension.api.NotebookActiveCell
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatMessage
@@ -191,6 +193,7 @@ fun ChatPanel(
     QuestionField(
       enabled = open != null && read,
       writing = open?.agentWriting == true,
+      commands = open?.agentCommands.orEmpty(),
       // Through the queue, so a question sent while a reply arrives does not cut it short.
       onAsk = { question ->
         keep { it.sent(question) }
@@ -305,7 +308,8 @@ private fun MessageRow(
  * click is done, puts it: 90 to Send's 100 (`packages/jupyter-chat/src/components/input/toolbar-registry.tsx`).
  *
  * Left in that row are the agent's [controls], where jupyter-ai's persona controls sit in it
- * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`).
+ * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`). Above the field, the agent's
+ * [commands] the question could still become ([SlashCommands]); picking one puts it in the field.
  *
  * While the field has the caret it publishes [ChatKeyRow] to the window, as a cell publishes its
  * symbol row. The question is a [TextFieldValue] rather than a `String` so a key can go in at the caret.
@@ -314,6 +318,7 @@ private fun MessageRow(
 private fun QuestionField(
   enabled: Boolean,
   writing: Boolean,
+  commands: List<AgentCommand>,
   onAsk: (String) -> Unit,
   onStop: () -> Unit,
   controls: @Composable () -> Unit,
@@ -336,6 +341,7 @@ private fun QuestionField(
       .clip(shape)
       .testTag("chat-input-box"),
   ) {
+    SlashCommands(commands, question.text) { question = TextFieldValue(it.typed, TextRange(it.typed.length)) }
     QuestionText(question, onChange = { question = it }, onFocusChange = { focused = it })
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     // 8 dp, and the button's 48 dp touch target adds 4 dp around its 40 dp face: the face sits

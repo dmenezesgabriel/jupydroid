@@ -6,6 +6,7 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatContract
 import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.ChatMessage
@@ -49,8 +50,9 @@ class OkHttpAgentChatTest : AgentChatContract() {
     writing: Boolean,
     models: AgentModels,
     settings: List<AgentSetting>,
+    commands: List<AgentCommand>,
   ): AgentChat {
-    val events = PersonaEventsLikeTheTablets(models, settings)
+    val events = PersonaEventsLikeTheTablets(models, settings, commands)
     serverRule.server.dispatcher = ChatLikeTheTabletsServer(history, replies, writing = writing, events = events)
     return chatUnderTest()
   }

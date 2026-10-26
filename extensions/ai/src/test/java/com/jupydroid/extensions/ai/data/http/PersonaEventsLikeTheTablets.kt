@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.ai.data.http
 
+import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import kotlinx.serialization.json.JsonElement
@@ -31,12 +32,14 @@ import java.util.concurrent.atomic.AtomicInteger
  * @param models what the persona offers, and uses until a question picks another; with no [settings]
  *   either, none offered sends no state at all, as a chat whose persona never prepared sends none.
  * @param settings its general settings, each kept until a question picks another value.
+ * @param commands its slash commands, in every whole state it publishes.
  * @param strangers whether the state of another chat, and of another persona in this one, goes out
  *   ahead of opencode's: the bus is the server's, not the chat's.
  */
 internal class PersonaEventsLikeTheTablets(
   private val models: AgentModels,
   settings: List<AgentSetting> = emptyList(),
+  private val commands: List<AgentCommand> = emptyList(),
   private val strangers: Boolean = false,
 ) {
   /** Every `POST /api/events`, in the order they came. */
@@ -79,6 +82,7 @@ internal class PersonaEventsLikeTheTablets(
         "model" to model(current),
         "settings" to settings(),
         "usage" to usage(),
+        "slash_commands" to slashCommands(),
       ),
     )
   }
@@ -141,6 +145,17 @@ internal class PersonaEventsLikeTheTablets(
           put("name", JsonPrimitive(setting.name))
           put("current", setting.current?.let(::JsonPrimitive) ?: JsonNull)
           put("options", buildJsonArray { setting.offered.forEach { add(option(it.id, it.name)) } })
+        },
+      )
+    }
+  }
+
+  private fun slashCommands() = buildJsonArray {
+    commands.forEach { command ->
+      add(
+        buildJsonObject {
+          put("name", JsonPrimitive(command.name))
+          put("description", command.description?.let(::JsonPrimitive) ?: JsonNull)
         },
       )
     }
