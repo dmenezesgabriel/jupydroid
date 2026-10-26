@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
  * ```
  * chat.transcript().collect { shown = it } // and, once the first transcript has arrived:
  * chat.ask("What is a Space?")
+ * chat.ask("And now?", AgentSelection(model = "opencode/gpt-5-nano"))
  * ```
  */
 interface AgentChat {
@@ -23,11 +24,12 @@ interface AgentChat {
   fun transcript(): Flow<ChatTranscript>
 
   /**
-   * Sends [question] to the agent. The question, and the agent's answer, arrive in [transcript].
+   * Sends [question] to the agent, which first switches to what [selection] picks. The question, and the
+   * agent's answer, arrive in [transcript], and so does the model it then uses ([ChatTranscript.agentModels]).
    *
    * @throws AgentChatException when no [transcript] is being collected.
    */
-  suspend fun ask(question: String)
+  suspend fun ask(question: String, selection: AgentSelection = AgentSelection())
 
   /**
    * Answers [call], which waits on the user, with [option], one of those it offers. The call, resolved,

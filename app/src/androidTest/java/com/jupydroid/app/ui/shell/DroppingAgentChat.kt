@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.shell
 
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
+import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
@@ -38,7 +39,7 @@ class DroppingAgentChat(private val before: ChatTranscript, private val after: C
     awaitCancellation()
   }
 
-  override suspend fun ask(question: String) = Unit
+  override suspend fun ask(question: String, selection: AgentSelection) = Unit
 
   override suspend fun choose(call: ToolCall, option: PermissionOption) = Unit
 

@@ -53,8 +53,13 @@ enum class ToolCallStatus { Running, Completed, Failed }
  * ```
  *
  * @param agentWriting whether an agent is writing a reply now, which only then can be stopped.
+ * @param agentModels the models the chat's agent offers, as it last said; none until its session starts.
  */
-data class ChatTranscript(val messages: List<ChatMessage> = emptyList(), val agentWriting: Boolean = false) {
+data class ChatTranscript(
+  val messages: List<ChatMessage> = emptyList(),
+  val agentWriting: Boolean = false,
+  val agentModels: AgentModels = AgentModels(),
+) {
   /**
    * [messages] without those that have neither text nor a tool call: jupyter-ai's ACP client creates
    * every message of an agent's with an empty body, and one that holds the agent's tool calls keeps it,

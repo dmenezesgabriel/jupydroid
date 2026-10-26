@@ -27,7 +27,7 @@ class ScriptedAgentChat(vararg openings: ChatOpening) : AgentChat {
     throw opening.ending ?: awaitCancellation()
   }
 
-  override suspend fun ask(question: String) = Unit
+  override suspend fun ask(question: String, selection: AgentSelection) = Unit
 
   override suspend fun choose(call: ToolCall, option: PermissionOption) = Unit
 

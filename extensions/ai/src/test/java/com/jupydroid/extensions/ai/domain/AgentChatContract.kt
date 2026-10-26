@@ -19,12 +19,13 @@ abstract class AgentChatContract {
   /**
    * A chat already holding [history], whose agent answers each question in [replies] with the reply
    * it maps to, and every other question with nothing; when [writing], its agent is writing a reply
-   * as the chat opens.
+   * as the chat opens; its agent offers [models] and switches to the one a question is asked with.
    */
   protected abstract fun chat(
     history: List<ChatMessage> = emptyList(),
     replies: Map<String, String> = emptyMap(),
     writing: Boolean = false,
+    models: AgentModels = AgentModels(),
   ): AgentChat
 
   /** What was asked before the chat was opened again is still the user's, and the answer the agent's. */
@@ -49,6 +50,21 @@ abstract class AgentChatContract {
 
     val answered = transcripts.until { it.messages.size == 2 }
     assertEquals(listOf("hello?" to true, "hi" to false), answered.messages.map { it.body to it.fromMe })
+  }
+
+  @Test
+  fun anOpenChatSaysWhichModelsItsAgentOffersAndWhichItUses() = withOpenChat(chat(models = MODELS)) { _, transcripts ->
+    assertEquals(MODELS, transcripts.until { it.agentModels.choosable }.agentModels)
+  }
+
+  /** The persona applies a model picked for a question before it answers it (`base_persona.py`, `apply_model_spec`). */
+  @Test
+  fun aQuestionAskedWithAModelSwitchesTheAgentToIt() = withOpenChat(chat(models = MODELS)) { chat, transcripts ->
+    transcripts.until { it.agentModels.choosable }
+
+    chat.ask("hello?", AgentSelection(model = "opencode/gpt-5-nano"))
+
+    transcripts.until { it.agentModels.current == "opencode/gpt-5-nano" }
   }
 
   @Test
@@ -120,6 +136,14 @@ abstract class AgentChatContract {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+
+    val MODELS = AgentModels(
+      current = "opencode/big-pickle",
+      offered = listOf(
+        AgentModel("opencode/big-pickle", "Big Pickle"),
+        AgentModel("opencode/gpt-5-nano", "GPT-5 Nano"),
+      ),
+    )
 
     val ALLOW_ONCE = PermissionOption(id = "once", name = "Allow once", rejects = false)
     val REJECT = PermissionOption(id = "reject", name = "Reject", rejects = true)

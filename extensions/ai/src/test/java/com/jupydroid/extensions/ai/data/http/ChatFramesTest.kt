@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
 import com.jupydroid.extensions.ai.domain.ToolCallPermission
@@ -10,6 +11,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -180,6 +182,25 @@ class ChatFramesTest {
     assertEquals("q1", frame.text("id"))
     assertEquals("hello?", frame.text("body"))
     assertEquals(OPENCODE_PERSONA_ID, frame.getValue("metadata").jsonObject.text("to_persona"))
+  }
+
+  /** A picked model rides on the question as `ModelSpec` (jupyter_ai_persona_manager `awareness_models.py`). */
+  @Test
+  fun aQuestionAskedWithAModelCarriesItAsTheModelSpec() {
+    val selection = AgentSelection(model = "opencode/gpt-5-nano")
+    val frame = Json.parseToJsonElement(ChatFrames.ask("q1", "hello?", OPENCODE_PERSONA_ID, selection)).jsonObject
+
+    val model = frame.getValue("metadata").jsonObject.getValue("model").jsonObject
+    assertEquals("opencode/gpt-5-nano", model.text("id"))
+    assertEquals(JsonObject(emptyMap()), model.getValue("settings"))
+  }
+
+  /** No `model` is "keep the current one" (`base_persona.py`, `apply_specs_in_message`). */
+  @Test
+  fun aQuestionAskedWithNoModelPickedCarriesNoModelSpec() {
+    val frame = Json.parseToJsonElement(ChatFrames.ask("q1", "hello?", OPENCODE_PERSONA_ID)).jsonObject
+
+    assertFalse("model" in frame.getValue("metadata").jsonObject)
   }
 
   private fun JsonObject.text(key: String): String = getValue(key).jsonPrimitive.content

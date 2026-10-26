@@ -4,6 +4,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
@@ -53,6 +55,8 @@ import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extension.api.NotebookActiveCell
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatReading
@@ -133,6 +137,9 @@ fun ChatPanel(
     queue = next
     if (next.pending != before.pending) attempt { queues.write(file, next.pending) }
   }
+  // The model picked for the questions sent next, as jupyter-ai keeps one per persona
+  // (jupyter-ai-persona-manager@d5ed04b `src/metadata.ts`); null keeps the agent's.
+  var picked by remember(chat) { mutableStateOf<String?>(null) }
   val askDue: (ChatTranscript) -> Unit = askDue@{ transcript ->
     val seen = queue?.seen(transcript) ?: return@askDue
     val due = seen.due(transcript)
@@ -146,7 +153,7 @@ fun ChatPanel(
     // it (`processNextPendingRequest`): a kill between the two loses it rather than asking it twice.
     attempt {
       queues.write(file, asked.pending)
-      chat.ask(due)
+      chat.ask(due, AgentSelection(model = picked))
     }
   }
   val open = (reading as? ChatReading.Open)?.transcript
@@ -191,7 +198,7 @@ fun ChatPanel(
         open?.let(askDue)
       },
       onStop = { attempt { chat.stop() } },
-    )
+    ) { ModelChip(open?.agentModels ?: AgentModels(), picked, onPick = { picked = it }) }
   }
 }
 
@@ -298,11 +305,20 @@ private fun MessageRow(
  * is [writing], Stop sits left of Send, where jupyter-chat's registration, commented out until its
  * click is done, puts it: 90 to Send's 100 (`packages/jupyter-chat/src/components/input/toolbar-registry.tsx`).
  *
+ * Left in that row are the agent's [controls], where jupyter-ai's persona controls sit in it
+ * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`).
+ *
  * While the field has the caret it publishes [ChatKeyRow] to the window, as a cell publishes its
  * symbol row. The question is a [TextFieldValue] rather than a `String` so a key can go in at the caret.
  */
 @Composable
-private fun QuestionField(enabled: Boolean, writing: Boolean, onAsk: (String) -> Unit, onStop: () -> Unit) {
+private fun QuestionField(
+  enabled: Boolean,
+  writing: Boolean,
+  onAsk: (String) -> Unit,
+  onStop: () -> Unit,
+  controls: @Composable () -> Unit,
+) {
   var question by rememberSaveable(stateSaver = TextFieldValue.Saver) { mutableStateOf(TextFieldValue()) }
   var focused by remember { mutableStateOf(false) }
   if (focused) {
@@ -325,7 +341,8 @@ private fun QuestionField(enabled: Boolean, writing: Boolean, onAsk: (String) ->
     HorizontalDivider(color = MaterialTheme.colorScheme.outline)
     // 8 dp, and the button's 48 dp touch target adds 4 dp around its 40 dp face: the face sits
     // 12 dp in, as jupyter-chat's toolbar pads its 24 px button.
-    Row(modifier = Modifier.fillMaxWidth().padding(8.dp), horizontalArrangement = Arrangement.End) {
+    Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+      Box(Modifier.weight(1f)) { controls() }
       if (writing) StopButton(onStop)
       SendButton(enabled = enabled && question.text.isNotBlank()) {
         onAsk(question.text)

@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.shell
 
 import com.jupydroid.extensions.ai.domain.AgentChat
+import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
@@ -11,7 +12,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 /**
  * A chat showing whatever the test last set in [shown], so a test can change a message the panel
  * already draws, as the server does when a call it holds comes to ask. What it was asked is in [asked],
- * oldest first, and no answer comes of it.
+ * oldest first, with what each was asked with in [selections], and no answer comes of it.
  *
  * ```
  * val chat = SettableAgentChat(before) // the panel draws before ...
@@ -25,7 +26,10 @@ class SettableAgentChat(first: ChatTranscript) : AgentChat {
 
   val asked = CopyOnWriteArrayList<String>()
 
-  override suspend fun ask(question: String) {
+  val selections = CopyOnWriteArrayList<AgentSelection>()
+
+  override suspend fun ask(question: String, selection: AgentSelection) {
+    selections += selection
     asked += question
   }
 

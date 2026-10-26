@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
@@ -152,14 +153,30 @@ internal object ChatFrames {
     }
   }
 
-  /** A `send` frame: `parse_client_message` reads its `id`, `body` and `metadata`. */
-  fun ask(id: String, question: String, persona: String): String = buildJsonObject {
-    put("type", "client")
-    put("action", "send")
-    put("id", id)
-    put("body", question)
-    put("metadata", buildJsonObject { put("to_persona", JsonPrimitive(persona)) })
-  }.toString()
+  /**
+   * A `send` frame: `parse_client_message` reads its `id`, `body` and `metadata`. A model [selection]
+   * picks rides as the `ModelSpec` the persona applies before it answers (jupyter_ai_persona_manager
+   * `base_persona.py`, `apply_specs_in_message`); none picked sends none, which keeps the current one.
+   */
+  fun ask(id: String, question: String, persona: String, selection: AgentSelection = AgentSelection()): String =
+    buildJsonObject {
+      put("type", "client")
+      put("action", "send")
+      put("id", id)
+      put("body", question)
+      put(
+        "metadata",
+        buildJsonObject {
+          put("to_persona", JsonPrimitive(persona))
+          selection.model?.let { model -> put("model", modelSpec(model)) }
+        },
+      )
+    }.toString()
+
+  private fun modelSpec(model: String) = buildJsonObject {
+    put("id", model)
+    put("settings", buildJsonObject {})
+  }
 
   private val TRANSCRIPT_ACTIONS = setOf("connection", "message")
 }

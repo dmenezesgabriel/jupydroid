@@ -1,0 +1,68 @@
+package com.jupydroid.extensions.ai.data.http
+
+import com.jupydroid.extension.api.ServerAddress
+import com.jupydroid.extensions.ai.data.logcat.ChatSocketLog
+import com.jupydroid.extensions.ai.data.logcat.chatFailureFields
+import kotlinx.coroutines.CompletableDeferred
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.WebSocket
+import okhttp3.WebSocketListener
+
+/**
+ * The server's event bus, `/api/events/subscribe`, read for the persona states on it
+ * ([PersonaStateFrames]).
+ *
+ * **Opened before the chat's socket, and awaited**: events are fire-and-forget, and the persona manager
+ * catches a client up by publishing every persona's whole state when that client connects to the chat
+ * (jupyter_ai_persona_manager 0.2.2 `persona_manager.py`, `_on_chat_event`, in the shipped rootfs), so
+ * only a subscriber already there receives it.
+ *
+ * ```
+ * val bus = PersonaEventsSubscription(client, log, chatPath).open(address) { state -> fold.stated(state) }
+ * ```
+ */
+internal class PersonaEventsSubscription(
+  private val client: OkHttpClient,
+  private val log: ChatSocketLog,
+  private val chatPath: String,
+) {
+  /**
+   * The open socket, each persona state on it handed to [onState] from its reader thread; null when the
+   * server refused it, which leaves the chat without its pickers but answering.
+   */
+  suspend fun open(address: ServerAddress, onState: (PersonaState) -> Unit): WebSocket? {
+    val opened = CompletableDeferred<WebSocket?>()
+    val request = Request.Builder()
+      .url(address.baseUrl.toHttpUrl().newBuilder().addPathSegments("api/events/subscribe").build())
+      .header("Authorization", "token ${address.token}")
+      .build()
+    client.newWebSocket(request, StateListener(opened, onState))
+    return opened.await()
+  }
+
+  private inner class StateListener(
+    private val opened: CompletableDeferred<WebSocket?>,
+    private val onState: (PersonaState) -> Unit,
+  ) : WebSocketListener() {
+    override fun onOpen(webSocket: WebSocket, response: Response) {
+      opened.complete(webSocket)
+    }
+
+    override fun onMessage(webSocket: WebSocket, text: String) {
+      PersonaStateFrames.parse(text)?.let(onState)
+    }
+
+    /** Refused, or dropped later: either way the pickers keep what they last said, and the chat goes on. */
+    override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+      log.reached("chat.events.failed", chatFailureFields(chatPath, error = t, http = response?.code))
+      opened.complete(null)
+    }
+
+    override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
+      webSocket.close(code, null)
+    }
+  }
+}

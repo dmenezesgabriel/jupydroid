@@ -6,6 +6,7 @@ import com.jupydroid.extensions.ai.data.logcat.chatFailureFields
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
@@ -63,6 +64,7 @@ class OkHttpAgentChat(
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AgentChat {
   private val heartbeat = ApiActivityHeartbeat(client, heartbeatInterval, log, chatPath)
+  private val events = PersonaEventsSubscription(client, log, chatPath)
 
   /** The chat whose `connection` frame has arrived; null while none is open. */
   @Volatile private var open: OpenChat? = null
@@ -70,22 +72,25 @@ class OkHttpAgentChat(
   // Each emission is the whole transcript, so a slow collector loses nothing by seeing only the latest.
   override fun transcript(): Flow<ChatTranscript> = callbackFlow {
     val address = server.address()
+    val fold = TranscriptFold(this, persona)
+    val bus = events.open(address, fold::stated)
     val request = Request.Builder()
       .url(chatUrl(address.baseUrl))
       .header("Authorization", "token ${address.token}")
       .build()
-    val socket = client.newWebSocket(request, TranscriptListener(this))
+    val socket = client.newWebSocket(request, TranscriptListener(this, fold))
     // Scoped to this flow, so the server may stop itself again once the panel stops collecting.
     launch { heartbeat.beat(address) }
     awaitClose {
       open = null
       socket.close(NORMAL_CLOSURE, null)
+      bus?.close(NORMAL_CLOSURE, null)
     }
   }.conflate()
 
-  override suspend fun ask(question: String) {
+  override suspend fun ask(question: String, selection: AgentSelection) {
     val socket = open?.socket ?: throw AgentChatException("the chat is not open", question)
-    val frame = ChatFrames.ask(id = UUID.randomUUID().toString(), question = question, persona = persona)
+    val frame = ChatFrames.ask(UUID.randomUUID().toString(), question, persona, selection)
     if (!socket.send(frame)) throw AgentChatException("the chat's socket is closing", question)
   }
 
@@ -123,15 +128,32 @@ class OkHttpAgentChat(
     if (code != HTTP_OK) throw AgentChatException("stopping the reply failed: http $code, ${body.take(BODY_EXCERPT)}")
   }
 
+  /**
+   * `POST api/events` selecting the persona in the chat, so it prepares and says what it offers before
+   * the first question, as jupyter-ai's toolbar does on selection (jupyter-ai-persona-manager@d5ed04b
+   * `src/persona-controls.tsx`). Refused, the persona prepares at the first question instead.
+   */
+  private suspend fun select(chatId: String) {
+    val body = PersonaStateFrames.personaSelected(chatId, persona)
+    val code = runCatching {
+      client.callWithToken(server, ioDispatcher) { base ->
+        url(base.newBuilder().addPathSegments("api/events").build()).post(body.toRequestBody(JSON_MEDIA_TYPE))
+      }.code
+    }.getOrElse { failure -> return log.reached("chat.persona.select.failed", chatFailureFields(chatPath, failure)) }
+    if (code != HTTP_NO_CONTENT) log.reached("chat.persona.select.failed", chatFailureFields(chatPath, http = code))
+  }
+
   private fun chatUrl(baseUrl: String): HttpUrl = baseUrl.toHttpUrl().newBuilder()
     .addPathSegments("api/chat/ws")
     .addPathSegment(chatPath)
     .build()
 
   /** OkHttp calls one listener's methods one at a time, from the socket's reader thread. */
-  private inner class TranscriptListener(private val out: ProducerScope<ChatTranscript>) : WebSocketListener() {
+  private inner class TranscriptListener(
+    private val out: ProducerScope<ChatTranscript>,
+    private val fold: TranscriptFold,
+  ) : WebSocketListener() {
     private var humans = emptySet<String>()
-    private var shown = ChatTranscript()
 
     /** The bots writing a reply now, by username. */
     private val writers = mutableSetOf<String>()
@@ -143,11 +165,10 @@ class OkHttpAgentChat(
       }
       when (frame) {
         is ServerFrame.Connection -> opened(webSocket, frame)
-        is ServerFrame.Message -> shown = shown.with(frame.message.toChatMessage(humans))
+        is ServerFrame.Message -> fold.changed { it.with(frame.message.toChatMessage(humans)) }
         is ServerFrame.Writing -> writing(frame)
         ServerFrame.Other -> return
       }
-      out.trySend(shown)
     }
 
     /**
@@ -169,13 +190,14 @@ class OkHttpAgentChat(
 
     private fun opened(webSocket: WebSocket, connection: ServerFrame.Connection) {
       humans = connection.humans
-      shown = ChatTranscript(connection.messages.map { it.toChatMessage(humans) })
+      fold.opened(connection.chatId, ChatTranscript(connection.messages.map { it.toChatMessage(humans) }))
       open = OpenChat(webSocket, connection.chatId)
+      out.launch { select(connection.chatId) }
     }
 
     private fun writing(frame: ServerFrame.Writing) {
       if (frame.writing) writers += frame.agent else writers -= frame.agent
-      shown = shown.copy(agentWriting = writers.isNotEmpty())
+      fold.changed { it.copy(agentWriting = writers.isNotEmpty()) }
     }
   }
 
@@ -187,6 +209,7 @@ class OkHttpAgentChat(
 
     private const val NORMAL_CLOSURE = 1000
     private const val HTTP_OK = 200
+    private const val HTTP_NO_CONTENT = 204
 
     /** Enough of an unexpected answer to recognise it by. */
     private const val BODY_EXCERPT = 200

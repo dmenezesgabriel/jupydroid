@@ -2,6 +2,8 @@ package com.jupydroid.extensions.ai.data.fake
 
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
+import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
@@ -18,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * A chat already holding [history], whose agent answers each question in [replies] with the reply it
  * maps to and every other question with nothing; when [writing], its agent is writing a reply until
- * it is stopped.
+ * it is stopped. Its agent offers [models], and switches to the one a question is asked with.
  *
  * What the panel talks to where the Space has no server, so it still opens and claims no answer
  * nobody gave: with nothing configured, a question goes unanswered.
@@ -31,16 +33,18 @@ class FakeAgentChat(
   history: List<ChatMessage> = emptyList(),
   private val replies: Map<String, String> = emptyMap(),
   writing: Boolean = false,
+  models: AgentModels = AgentModels(),
 ) : AgentChat {
-  private val shown = MutableStateFlow(ChatTranscript(history, agentWriting = writing))
+  private val shown = MutableStateFlow(ChatTranscript(history, agentWriting = writing, agentModels = models))
   private val collectors = AtomicInteger()
 
   override fun transcript(): Flow<ChatTranscript> = shown
     .onStart { collectors.incrementAndGet() }
     .onCompletion { collectors.decrementAndGet() }
 
-  override suspend fun ask(question: String) {
+  override suspend fun ask(question: String, selection: AgentSelection) {
     if (collectors.get() == 0) throw AgentChatException("the chat is not open", question)
+    selection.model?.let { model -> shown.update { it.copy(agentModels = it.agentModels.copy(current = model)) } }
     val asked = shown.value.messages.size
     shown.update { it.with(ChatMessage(id = "question-$asked", body = question, fromMe = true)) }
     val reply = replies[question] ?: return
