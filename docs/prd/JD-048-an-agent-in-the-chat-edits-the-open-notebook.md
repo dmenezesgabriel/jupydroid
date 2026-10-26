@@ -95,6 +95,9 @@ host-side and asks you to accept them. The question for us is which half the app
 | Where the web client lives | JupyterLab → a frontend plugin per extension | The AI extension already owns the event bus (`PersonaEventsSubscription.kt`) | The AI extension subscribes, and reaches the notebook through a widened `:extension-api` interface (ADR-0104 boundary) |
 | A command for something we do not answer | JupyterLab → `app.commands.execute` throws, `success: false` | Silence would cost the agent the whole `command_timeout` | Ack, then `success: false` with an error naming the command or path |
 | Review before apply | VS Code → accept/reject per edit; jupyter-ai → applied directly | Review needs a diff surface we lack | Applied directly, as jupyter-ai does. The agent's own permission request (ADR-0112) is the gate, and the cell joins undo |
+| Who may call the MCP port | jupyter-server-mcp@d1823a5 → none: it runs "on its own port, outside Jupyter Server's token/XSRF protection" (`mcp_server.py` `host_origin_protection`), with Host/Origin checks only. MCP 2025-11-25 *Security Best Practices* §Local MCP Server Compromise → stdio, or HTTP that requires an authorization token or listens on a restricted UDS. jupyter-server-mcp#25 (open) → the maintainer proposes the Jupyter Server token as `Authorization: Bearer`. jupyter-server-mcp#35 (draft) → a UDS behind a stdio proxy | Android's loopback is shared by every app with `INTERNET`, so Host/Origin checks stop browsers but not another app. A UDS needs an unmerged patch. FastMCP's native `auth=` is unreachable, because `MCPServer` builds `FastMCP(self.name)` itself | The token, as #25 proposes: a FastMCP middleware of ours, loaded through the package's own `MCPExtensionApp.mcp_middleware` hook, refuses any message whose request lacks `Authorization: Bearer <the server's IdentityProvider token>`. The agent gets the header through `PersonaManager.builtin_mcp_servers`, a `config=True` trait. No new secret, and no patch to anyone's code |
+| Which port | jupyter-server-mcp → `mcp_port` 3001, or 0 with a runtime file. persona-manager 0.2.2 `_default_builtin_mcp_servers` → `localhost:<MCPExtensionApp.mcp_port>`, read from config, so it cannot follow 0 | Two Spaces run at once (`TwoSpacesAtOnceDeviceTest`). A fixed port fails the second Space's bind | `JupyterServerLauncher` picks a free loopback port per launch and passes it as `--MCPExtensionApp.mcp_port`, with the same URL in `--PersonaManager.builtin_mcp_servers`. jupyter_client picks kernel ports the same way (bind 0, close, pass). A lost race fails safe: `ExtensionManager.start_extension` (jupyter_server 2.20.0) logs the failure and the server runs on with no tools, and the token stops one Space's agent reaching another's server |
+| JupyterLab in the image | jupyter-ai-tools@4d1c823 `pyproject.toml` → depends on `jupyterlab-ai-commands`, whose Python module is only `_jupyter_labextension_paths`, and whose `jupyterlab-diff` → `jupyterlab-cell-input-footer` chain pulls in jupyterlab 4.6.4 (`uv pip compile`, aarch64-unknown-linux-musl) | That labextension is the frontend half that the app replaces | `jupyter-ai-tools` installs with `--no-deps`; its Python dependencies (`jupyterlab-commands-toolkit`, `pycrdt`, `jupyter_ydoc`, `jupyter_server`) are in the lock |
 
 ## Gap analysis — what we already have vs the references
 
@@ -115,21 +118,24 @@ host-side and asks you to accept them. The question for us is which half the app
 
 ## Open decisions
 
-- **Whether the image's persona manager (0.2.2) builds the built-in server's URL from
-  `MCPExtensionApp.mcp_port`**, and with which headers. Read `jupyter_ai_persona_manager/persona_manager.py`
-  in the built rootfs in T1, and pin the jupyter-server-mcp version that matches it.
-- **fastmcp on musl/arm64**: its dependency tree must resolve to wheels or pure Python in the image. T1.
+- **Settled:** persona-manager 0.2.2 builds `http://localhost:<mcp_port>/mcp` with no headers, and
+  `builtin_mcp_servers` is `config=True`, so the launcher sets it (Trade-offs: which port, who may call).
+  jupyter-server-mcp is 0.4.1, the first with `mcp_middleware`. jupyter-ai 3.2.0's `<0.4.0` pin is the
+  `jupyter_ai` metapackage's, which the image does not ship.
+- **Settled:** fastmcp 4.1.2 and its tree resolve for aarch64-unknown-linux-musl, Python 3.12, binaries
+  only, and no pin already in the lock moves.
 - **Start-up cost.** fastmcp is imported by every server start once the extension loads. Measure it on
   the tablet with `-X importtime` and `scripts/read_import_profile.py`. If it lands on the clock, defer it
   as `acp_lazy_import_patch.py` does. T1.
 - **One events socket or one per chat.** Today the subscription is opened per chat. A command arrives
-  while a chat is open, but a second subscriber would ack twice. T3 settles it with a test.
+  while a chat is open, but a second subscriber would ack twice. T4 settles it with a test.
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| rootfs | `tools/rootfs/Dockerfile`, `tools/rootfs/requirements.lock`, a `jupyter_server_config.d` JSON for `MCPExtensionApp`, a build-time probe beside `acp_lazy_import_probe.py` |
+| rootfs | `tools/rootfs/Dockerfile`, `tools/rootfs/requirements.lock`, a `jupyter_server_config.d` JSON for `MCPExtensionApp`, the token middleware module beside `jupydroid_kernel.py`, a build-time probe beside `acp_lazy_import_probe.py` |
+| launcher | `app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt` (`jupyterServerArgs`: the MCP port and `builtin_mcp_servers`) |
 | `extension-api` | `extension-api/src/main/java/com/jupydroid/extension/api/` an open-notebook cells interface (path, cells, active id, insert at index) |
 | `:app` | `app/src/main/java/com/jupydroid/app/OpenNotebookActiveCell.kt` (or its sibling), `ui/editor/NotebookCellEdits.kt` |
 | extension | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/data/http/` a lab-command subscription and its frames |
@@ -141,18 +147,22 @@ holds.
 
 ## Tasks
 
-- [ ] T1 — The image ships jupyter-server-mcp, jupyter-ai-tools, jupyterlab-commands-toolkit and
-  jupyterlab-ai-commands, with `mcp_tools` set to `insert_cell` alone. On SM-X216B the agent's
-  `insert_cell` call ends with the toolkit's "No JupyterLab web client is connected". Settle the three
-  rootfs open decisions
-- [ ] T2 — `:extension-api` exposes the open notebook's path, cells and active cell, and inserts a cell
+- [ ] T1 — The image ships jupyter-server-mcp, jupyter-ai-tools (`--no-deps`) and
+  jupyterlab-commands-toolkit, with `mcp_tools` set to `insert_cell` alone and the token middleware on
+  `mcp_middleware`. A build-time probe proves the middleware refuses a request without the token and
+  serves one with it. On SM-X216B, a request to the MCP port without the token is refused, and one with it
+  lists `insert_cell` and nothing else. The start-up cost is measured
+- [ ] T2 — `JupyterServerLauncher` picks the MCP port per launch and hands the agent the URL and the
+  bearer header. On SM-X216B, the agent's `insert_cell` call ends with the toolkit's "No JupyterLab web
+  client is connected"
+- [ ] T3 — `:extension-api` exposes the open notebook's path, cells and active cell, and inserts a cell
   of a type at an index; `:app` implements it over `NotebookCellEdits`
-- [ ] T3 — The AI extension answers `get-notebook-info` and `add-cell` from the events socket (ack, then
+- [ ] T4 — The AI extension answers `get-notebook-info` and `add-cell` from the events socket (ack, then
   result through `POST /api/events`) and refuses anything else. The agent's cell lands in the notebook on
   SM-X216B
-- [ ] T4 — The demo above on SM-X216B; a defect found is fixed red first
-- [ ] T5 — The ADR (the app is the commands toolkit's web client, and `mcp_tools` lists only the tools it
-  answers); delete this PRD; update the backlog
+- [ ] T5 — The demo above on SM-X216B; a defect found is fixed red first
+- [ ] T6 — The ADR (the app is the commands toolkit's web client, `mcp_tools` lists only the tools it
+  answers, and the MCP port takes the server's token); delete this PRD; update the backlog
 
 ## Out of scope
 
