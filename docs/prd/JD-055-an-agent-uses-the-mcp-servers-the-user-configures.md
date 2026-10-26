@@ -115,7 +115,7 @@ only when a session starts. Ours follows the image, which is jupyter-ai's.
 
 ## Tasks
 
-- [ ] T1 — *MCP servers* on the chat list opens `.jupyter/mcp_settings.json` in the file editor,
+- [x] T1 — *MCP servers* on the chat list opens `.jupyter/mcp_settings.json` in the file editor,
   writing `{"mcp_servers": []}` first when it is missing, through a `WorkspaceFileOpener` the host
   hands in `SidePanelHost`
 - [ ] T2 — The demo: a stdlib Python stdio MCP fixture configured in the file, a new chat in which
