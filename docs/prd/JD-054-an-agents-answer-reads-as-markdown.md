@@ -91,8 +91,14 @@ one insert, below. Both put a new cell below the active one for their main inser
 
 - **Is the user's own question drawn as markdown?** jupyter-chat renders every text message. The item
   names the answer; T1 draws the answer and leaves the question as typed, and the ADR records it.
-- **Is Insert enabled while the Chat is the modal rail at one pane, over the notebook?** jupyter-chat
-  requires the notebook to be visible (`_notebookVisible`). Decided in T3 on a measurement.
+- **Is Insert enabled while the Chat is the modal rail at one pane, over the notebook?** Measured in T3
+  on SM-X216B in portrait (w800dp, one pane): no. The Chat is reached there only through the notebook's
+  arrow, which closes its tab, so the editor clears what it published and Insert reads "(no active
+  cell)". That is jupyter-chat's `_notebookVisible` without code of its own.
+  (`.maestro/chat-markdown-insert-one-pane.yaml`)
+- **Does the notebook stay in edit mode after an Insert?** No: command mode, as VS Code's chat insert
+  focuses no cell editor. JupyterLab's `insertBelow` keeps edit mode, but its caret is in the
+  notebook; here it is in the Chat, and a cell left editing took the typing (found on SM-X216B in T3).
 
 ## Surface
 
@@ -109,7 +115,7 @@ one insert, below. Both put a new cell below the active one for their main inser
 - [x] T1 — An agent's answer is drawn by the host's markdown renderer, handed to the panel in
   `SidePanelHost`
 - [x] T2 — Copy under a code block of an answer
-- [ ] T3 — Insert under a code block puts a code cell below the active cell, through an active-cell
+- [x] T3 — Insert under a code block puts a code cell below the active cell, through an active-cell
   API the host hands in `SidePanelHost`
 - [ ] T4 — The demo end to end on SM-X216B; the ADR; delete this PRD; update the backlog
 
