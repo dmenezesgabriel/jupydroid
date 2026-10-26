@@ -258,17 +258,16 @@ fun NotebookCellEdits.cellsRenamed(cellId: String, sources: Map<String, String>,
  * `packages/notebook/src/actions.tsx:560-584`) followed by jupyter-chat's `setSource` on the new cell
  * (jupyter-chat@2c224bc `packages/jupyter-chat/src/active-cell-manager.ts`). Nothing with no active cell.
  *
- * Left in command mode, as VS Code's chat insert focuses no cell editor (vscode@3f3380c
- * `src/vs/workbench/contrib/notebook/browser/controller/cellOperations.ts` `insertCell`): the caret is
- * in the chat, and a cell left editing would take the typing while the new one is active.
+ * The mode is left to the caret: `InsertBelowActiveCellPublication` drops it first, which is what
+ * puts the notebook in command mode.
  */
 fun NotebookCellEdits.insertCodeBelow(code: String) {
   val before = uiState.value
   val head = before.selectedCellId ?: return
   val newId = newCellId()
   val inserted = before.withCellInserted(head, CellKind.CODE, newId, code)
-  uiState.value = inserted.withSelectionCollapsed().withCellSelected(newId).withMode(CellMode.COMMAND)
-    .recording(before = before).withSearchRecomputed()
+  uiState.value = inserted.withSelectionCollapsed().withCellSelected(newId).recording(before = before)
+    .withSearchRecomputed()
   save.schedule()
 }
 

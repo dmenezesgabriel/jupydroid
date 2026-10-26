@@ -330,11 +330,7 @@ fun EditorScreen(
       )
     }
     DisposableEffect(debugPanel) { onDispose { debugPanel.clear() } }
-    // [debugPanel]'s seam again, for a contributed panel's Insert: null while no cell is active.
-    LaunchedEffect(activeCell, state.selectedCellId) {
-      activeCell.publish(viewModel.edits::insertCodeBelow.takeIf { state.selectedCellId != null })
-    }
-    DisposableEffect(activeCell) { onDispose { activeCell.clear() } }
+    InsertBelowActiveCellPublication(activeCell, state.selectedCellId, viewModel.edits)
     // The breadcrumb's row is not free on a phone, so it is not permanent either - see
     // [collapsibleRegionFraction]. Derived from the list the cells are drawn from rather than from a
     // `nestedScroll` connection, so there is one answer to "where is the document" and not two.
