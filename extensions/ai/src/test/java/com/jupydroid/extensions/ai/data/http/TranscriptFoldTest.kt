@@ -2,6 +2,8 @@ package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentSetting
+import com.jupydroid.extensions.ai.domain.AgentSettingValue
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import kotlinx.coroutines.channels.Channel
@@ -32,6 +34,19 @@ class TranscriptFoldTest {
     assertEquals(MODELS, latest().agentModels)
   }
 
+  /** `report_model_configuration` and `report_settings_configuration` each emit their own event. */
+  @Test
+  fun settingsAndModelsArriveApartAndAreBothShown() {
+    fold.opened(CHAT_ID, ChatTranscript())
+    fold.stated(PersonaState(CHAT_ID, OPENCODE_PERSONA_ID, MODELS))
+
+    fold.stated(PersonaState(CHAT_ID, OPENCODE_PERSONA_ID, models = null, settings = SETTINGS))
+
+    val shown = latest()
+    assertEquals(MODELS, shown.agentModels)
+    assertEquals(SETTINGS, shown.agentSettings)
+  }
+
   @Test
   fun anotherPersonasModelsAreNeverShown() {
     fold.opened(CHAT_ID, ChatTranscript())
@@ -60,5 +75,7 @@ class TranscriptFoldTest {
 
   private companion object {
     val MODELS = AgentModels("opencode/big-pickle", listOf(AgentModel("opencode/big-pickle", "Big Pickle")))
+    val SETTINGS =
+      listOf(AgentSetting("__mode__", "Session Mode", "build", listOf(AgentSettingValue("build", "build"))))
   }
 }

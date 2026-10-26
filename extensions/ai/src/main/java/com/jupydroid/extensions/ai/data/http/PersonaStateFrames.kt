@@ -2,6 +2,8 @@ package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentSetting
+import com.jupydroid.extensions.ai.domain.AgentSettingValue
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -14,8 +16,14 @@ import kotlinx.serialization.json.put
  * @param models null when the event changed something else: a setter emits only what it changed, and
  *   what it leaves out is as it was (jupyter_ai_persona_manager 0.2.2 `persona_events.py`,
  *   `PersonaSessionState._emit`, in the shipped rootfs).
+ * @param settings null, likewise, when the event changed something other than the general settings.
  */
-internal data class PersonaState(val chatId: String, val personaId: String, val models: AgentModels?)
+internal data class PersonaState(
+  val chatId: String,
+  val personaId: String,
+  val models: AgentModels?,
+  val settings: List<AgentSetting>? = null,
+)
 
 /**
  * The server's event bus, `/api/events/subscribe`: every event the server emits, each frame
@@ -62,11 +70,13 @@ private data class WirePersonaState(
   @SerialName("chat_id") val chatId: String? = null,
   @SerialName("persona_id") val personaId: String? = null,
   val model: WireModelConfiguration? = null,
+  val settings: List<WireSettingConfiguration>? = null,
 ) {
   /** Null for a state that names no chat or no persona, which no chat could show. */
   fun toPersonaState(): PersonaState? {
-    val chat = chatId ?: return null
-    return personaId?.let { PersonaState(chat, it, model?.toAgentModels()) }
+    if (chatId == null || personaId == null) return null
+    val general = settings?.map(WireSettingConfiguration::toAgentSetting)
+    return PersonaState(chatId, personaId, model?.toAgentModels(), general)
   }
 }
 
@@ -82,3 +92,15 @@ private data class WireModelConfiguration(
 /** `ModelOption`: its `name` "falls back to `id` when None". */
 @Serializable
 private data class WireModelOption(val id: String, val name: String? = null)
+
+/** `SettingConfiguration` dumped (`awareness_models.py`); its `name`, like each option's, falls back to `id`. */
+@Serializable
+private data class WireSettingConfiguration(
+  val id: String,
+  val current: String? = null,
+  val name: String? = null,
+  val options: List<WireModelOption> = emptyList(),
+) {
+  fun toAgentSetting(): AgentSetting =
+    AgentSetting(id, name ?: id, current, options.map { AgentSettingValue(it.id, it.name ?: it.id) })
+}

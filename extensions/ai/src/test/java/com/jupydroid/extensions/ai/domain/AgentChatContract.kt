@@ -19,13 +19,15 @@ abstract class AgentChatContract {
   /**
    * A chat already holding [history], whose agent answers each question in [replies] with the reply
    * it maps to, and every other question with nothing; when [writing], its agent is writing a reply
-   * as the chat opens; its agent offers [models] and switches to the one a question is asked with.
+   * as the chat opens; its agent offers [models] and [settings], and switches to what a question is
+   * asked with.
    */
   protected abstract fun chat(
     history: List<ChatMessage> = emptyList(),
     replies: Map<String, String> = emptyMap(),
     writing: Boolean = false,
     models: AgentModels = AgentModels(),
+    settings: List<AgentSetting> = emptyList(),
   ): AgentChat
 
   /** What was asked before the chat was opened again is still the user's, and the answer the agent's. */
@@ -66,6 +68,23 @@ abstract class AgentChatContract {
 
     transcripts.until { it.agentModels.current == "opencode/gpt-5-nano" }
   }
+
+  @Test
+  fun anOpenChatSaysWhichSettingsItsAgentOffersAndTheValueOfEach() =
+    withOpenChat(chat(models = MODELS, settings = SETTINGS)) { _, transcripts ->
+      assertEquals(SETTINGS, transcripts.until { it.agentSettings.isNotEmpty() }.agentSettings)
+    }
+
+  /** The persona applies a question's settings before it answers it (`base_persona.py`, `apply_settings_spec`). */
+  @Test
+  fun aQuestionAskedWithASettingSwitchesTheAgentToIt() =
+    withOpenChat(chat(models = MODELS, settings = SETTINGS)) { chat, transcripts ->
+      transcripts.until { it.agentSettings.isNotEmpty() }
+
+      chat.ask("hello?", AgentSelection(settings = mapOf("__mode__" to "plan")))
+
+      transcripts.until { shown -> shown.agentSettings.single().current == "plan" }
+    }
 
   @Test
   fun askingAChatNobodyOpenedThrowsAndNamesTheQuestion() = runBlocking {
@@ -142,6 +161,15 @@ abstract class AgentChatContract {
       offered = listOf(
         AgentModel("opencode/big-pickle", "Big Pickle"),
         AgentModel("opencode/gpt-5-nano", "GPT-5 Nano"),
+      ),
+    )
+
+    val SETTINGS = listOf(
+      AgentSetting(
+        id = "__mode__",
+        name = "Session Mode",
+        current = "build",
+        offered = listOf(AgentSettingValue("build", "build"), AgentSettingValue("plan", "plan")),
       ),
     )
 

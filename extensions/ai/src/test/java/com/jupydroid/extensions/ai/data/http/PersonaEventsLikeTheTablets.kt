@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentSetting
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -27,18 +28,27 @@ import java.util.concurrent.atomic.AtomicInteger
  * events.clientConnected() // what the chat socket's opening emits
  * ```
  *
- * @param models what the persona offers, and uses until a question picks another; none offered sends
- *   no state at all, as a chat whose persona never prepared sends none.
+ * @param models what the persona offers, and uses until a question picks another; with no [settings]
+ *   either, none offered sends no state at all, as a chat whose persona never prepared sends none.
+ * @param settings its general settings, each kept until a question picks another value.
  * @param strangers whether the state of another chat, and of another persona in this one, goes out
  *   ahead of opencode's: the bus is the server's, not the chat's.
  */
-internal class PersonaEventsLikeTheTablets(private val models: AgentModels, private val strangers: Boolean = false) {
+internal class PersonaEventsLikeTheTablets(
+  private val models: AgentModels,
+  settings: List<AgentSetting> = emptyList(),
+  private val strangers: Boolean = false,
+) {
   /** Every `POST /api/events`, in the order they came. */
   val emitted: MutableList<RecordedRequest> = CopyOnWriteArrayList()
 
   private val subscribers: MutableList<WebSocket> = CopyOnWriteArrayList()
 
   @Volatile private var current: String? = models.current
+
+  @Volatile private var settingsNow: List<AgentSetting> = settings
+
+  private val prepared: Boolean get() = models.choosable || settingsNow.isNotEmpty()
 
   /** Subscriptions upgraded, whose socket may not have opened on this side yet. */
   private val upgraded = AtomicInteger()
@@ -56,24 +66,38 @@ internal class PersonaEventsLikeTheTablets(private val models: AgentModels, priv
 
   /** `_on_chat_event` re-publishes every persona's whole state on `client_connected`. */
   fun clientConnected() {
-    if (!models.choosable) return
+    if (!prepared) return
     awaitSubscribers()
     if (strangers) {
       publish(stateOf("another-chat", OPENCODE_PERSONA_ID, "model" to model("stranger/a")))
       publish(stateOf(CHAT_ID, "jupyter-ai-personas::other::Persona", "model" to model("stranger/b")))
     }
-    publish(stateOf(CHAT_ID, OPENCODE_PERSONA_ID, "model" to model(current), "usage" to usage()))
+    publish(
+      stateOf(
+        CHAT_ID,
+        OPENCODE_PERSONA_ID,
+        "model" to model(current),
+        "settings" to settings(),
+        "usage" to usage(),
+      ),
+    )
   }
 
   /**
-   * A question's `ModelSpec` switches the model and re-publishes it (`apply_model_spec`); the turn then
-   * reports its usage alone (`report_usage`), as every ACP turn does.
+   * A question's `ModelSpec` switches the model and re-publishes it (`apply_model_spec`), and its
+   * settings each switch theirs and re-publish them all (`apply_settings_spec`); the turn then reports
+   * its usage alone (`report_usage`), as every ACP turn does.
    */
-  fun asked(model: String?) {
-    if (!models.choosable) return
+  fun asked(model: String?, settings: Map<String, String> = emptyMap()) {
+    if (!prepared) return
     if (model != null && model != current) {
       current = model
       publish(stateOf(CHAT_ID, OPENCODE_PERSONA_ID, "model" to model(model)))
+    }
+    val switched = settingsNow.map { it.copy(current = settings[it.id] ?: it.current) }
+    if (switched != settingsNow) {
+      settingsNow = switched
+      publish(stateOf(CHAT_ID, OPENCODE_PERSONA_ID, "settings" to settings()))
     }
     publish(stateOf(CHAT_ID, OPENCODE_PERSONA_ID, "usage" to usage()))
   }
@@ -103,17 +127,28 @@ internal class PersonaEventsLikeTheTablets(private val models: AgentModels, priv
     put(
       "options",
       buildJsonArray {
-        models.offered.forEach {
-          add(
-            buildJsonObject {
-              put("id", JsonPrimitive(it.id))
-              put("name", JsonPrimitive(it.name))
-            },
-          )
-        }
+        models.offered.forEach { add(option(it.id, it.name)) }
       },
     )
     put("settings", buildJsonArray {})
+  }
+
+  private fun settings() = buildJsonArray {
+    settingsNow.forEach { setting ->
+      add(
+        buildJsonObject {
+          put("id", JsonPrimitive(setting.id))
+          put("name", JsonPrimitive(setting.name))
+          put("current", setting.current?.let(::JsonPrimitive) ?: JsonNull)
+          put("options", buildJsonArray { setting.offered.forEach { add(option(it.id, it.name)) } })
+        },
+      )
+    }
+  }
+
+  private fun option(id: String, name: String) = buildJsonObject {
+    put("id", JsonPrimitive(id))
+    put("name", JsonPrimitive(name))
   }
 
   private fun usage() = buildJsonObject { put("total_tokens", JsonPrimitive(TOKENS)) }

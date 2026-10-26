@@ -55,7 +55,6 @@ import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extension.api.NotebookActiveCell
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
-import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatMessage
@@ -137,9 +136,9 @@ fun ChatPanel(
     queue = next
     if (next.pending != before.pending) attempt { queues.write(file, next.pending) }
   }
-  // The model picked for the questions sent next, as jupyter-ai keeps one per persona
-  // (jupyter-ai-persona-manager@d5ed04b `src/metadata.ts`); null keeps the agent's.
-  var picked by remember(chat) { mutableStateOf<String?>(null) }
+  // What was picked for the questions sent next, as jupyter-ai keeps one per persona
+  // (jupyter-ai-persona-manager@d5ed04b `src/metadata.ts`); what it leaves out keeps the agent's.
+  var selection by remember(chat) { mutableStateOf(AgentSelection()) }
   val askDue: (ChatTranscript) -> Unit = askDue@{ transcript ->
     val seen = queue?.seen(transcript) ?: return@askDue
     val due = seen.due(transcript)
@@ -153,7 +152,7 @@ fun ChatPanel(
     // it (`processNextPendingRequest`): a kill between the two loses it rather than asking it twice.
     attempt {
       queues.write(file, asked.pending)
-      chat.ask(due, AgentSelection(model = picked))
+      chat.ask(due, selection.listedIn(transcript.agentSettings))
     }
   }
   val open = (reading as? ChatReading.Open)?.transcript
@@ -198,7 +197,7 @@ fun ChatPanel(
         open?.let(askDue)
       },
       onStop = { attempt { chat.stop() } },
-    ) { ModelChip(open?.agentModels ?: AgentModels(), picked, onPick = { picked = it }) }
+    ) { AgentControls(open ?: ChatTranscript(), selection, onSelect = { selection = it }) }
   }
 }
 

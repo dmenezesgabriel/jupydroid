@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import kotlinx.coroutines.channels.SendChannel
 
@@ -24,6 +25,7 @@ internal class TranscriptFold(private val out: SendChannel<ChatTranscript>, priv
   private var chatId: String? = null
   private var transcript = ChatTranscript()
   private val modelsByChat = mutableMapOf<String, AgentModels>()
+  private val settingsByChat = mutableMapOf<String, List<AgentSetting>>()
 
   /** The chat said its id, and what it holds. */
   @Synchronized
@@ -40,16 +42,21 @@ internal class TranscriptFold(private val out: SendChannel<ChatTranscript>, priv
     send()
   }
 
-  /** A persona's state arrived; only [persona]'s models are kept, and only what it says of them. */
+  /** A persona's state arrived; only [persona]'s is kept, and only what it says, each part apart. */
   @Synchronized
   fun stated(state: PersonaState) {
-    val models = state.models ?: return
     if (state.personaId != persona) return
-    modelsByChat[state.chatId] = models
+    state.models?.let { modelsByChat[state.chatId] = it }
+    state.settings?.let { settingsByChat[state.chatId] = it }
     if (state.chatId == chatId) send()
   }
 
   private fun send() {
-    out.trySend(transcript.copy(agentModels = chatId?.let(modelsByChat::get) ?: AgentModels()))
+    val id = chatId
+    val shown = transcript.copy(
+      agentModels = id?.let(modelsByChat::get) ?: AgentModels(),
+      agentSettings = id?.let(settingsByChat::get).orEmpty(),
+    )
+    out.trySend(shown)
   }
 }

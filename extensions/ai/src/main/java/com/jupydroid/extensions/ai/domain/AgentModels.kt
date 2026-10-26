@@ -13,32 +13,32 @@ package com.jupydroid.extensions.ai.domain
  * @param current the model's id; null until the agent's session has started, or when it keeps its default.
  * @param offered what can be picked, in the agent's order.
  */
-data class AgentModels(val current: String? = null, val offered: List<AgentModel> = emptyList()) {
-  /**
-   * Whether there is anything to pick: jupyter-ai draws its Model control only then
-   * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`, `buildControls`).
-   */
-  val choosable: Boolean get() = offered.isNotEmpty()
-
-  /** [picked] if the user picked one for their next question, as jupyter-ai's `effectiveValue`; else [current]. */
-  fun inUse(picked: String?): String? = picked ?: current
-
-  /** The name of the model [inUse], or its id when nothing offered carries it (`currentControlLabel`). */
-  fun nameInUse(picked: String?): String? {
-    val id = inUse(picked) ?: return null
-    return offered.find { it.id == id }?.name ?: id
-  }
-}
+data class AgentModels(override val current: String? = null, override val offered: List<AgentModel> = emptyList()) :
+  AgentChoice
 
 /** One model the agent offers; [name] is what the user reads, [id] what a question is asked with. */
-data class AgentModel(val id: String, val name: String)
+data class AgentModel(override val id: String, override val name: String) : AgentOption
 
 /**
- * What the user picked for the questions they send next; null keeps what the agent uses now. jupyter-ai
- * stamps it on each outgoing message (jupyter-ai-persona-manager@d5ed04b `src/metadata.ts`).
+ * What the user picked for the questions they send next; null, or a setting left out, keeps what the
+ * agent uses now. jupyter-ai stamps it on each outgoing message (jupyter-ai-persona-manager@d5ed04b
+ * `src/metadata.ts`).
  *
  * ```
  * chat.ask("Which model are you?", AgentSelection(model = "opencode/gpt-5-nano"))
+ * chat.ask("Plan it first", AgentSelection(settings = mapOf("__mode__" to "plan")))
  * ```
+ *
+ * @param settings a value per [AgentSetting.id].
  */
-data class AgentSelection(val model: String? = null)
+data class AgentSelection(val model: String? = null, val settings: Map<String, String> = emptyMap()) {
+  /**
+   * This selection with only the settings in [listed]: the agent's settings change with its model, as
+   * opencode offers `effort` only for a model with variants (anomalyco/opencode@e3c4eb24
+   * `packages/opencode/src/acp/config-option.ts`, `buildEffortSelectOption`).
+   */
+  fun listedIn(listed: List<AgentSetting>): AgentSelection {
+    val ids = listed.mapTo(mutableSetOf()) { it.id }
+    return copy(settings = settings.filterKeys { it in ids })
+  }
+}

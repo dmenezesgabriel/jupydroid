@@ -4,6 +4,7 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.AgentModels
 import com.jupydroid.extensions.ai.domain.AgentSelection
+import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import com.jupydroid.extensions.ai.domain.PermissionOption
@@ -20,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * A chat already holding [history], whose agent answers each question in [replies] with the reply it
  * maps to and every other question with nothing; when [writing], its agent is writing a reply until
- * it is stopped. Its agent offers [models], and switches to the one a question is asked with.
+ * it is stopped. Its agent offers [models] and [settings], and switches to what a question is asked with.
  *
  * What the panel talks to where the Space has no server, so it still opens and claims no answer
  * nobody gave: with nothing configured, a question goes unanswered.
@@ -34,8 +35,10 @@ class FakeAgentChat(
   private val replies: Map<String, String> = emptyMap(),
   writing: Boolean = false,
   models: AgentModels = AgentModels(),
+  settings: List<AgentSetting> = emptyList(),
 ) : AgentChat {
-  private val shown = MutableStateFlow(ChatTranscript(history, agentWriting = writing, agentModels = models))
+  private val shown =
+    MutableStateFlow(ChatTranscript(history, agentWriting = writing, agentModels = models, agentSettings = settings))
   private val collectors = AtomicInteger()
 
   override fun transcript(): Flow<ChatTranscript> = shown
@@ -45,6 +48,8 @@ class FakeAgentChat(
   override suspend fun ask(question: String, selection: AgentSelection) {
     if (collectors.get() == 0) throw AgentChatException("the chat is not open", question)
     selection.model?.let { model -> shown.update { it.copy(agentModels = it.agentModels.copy(current = model)) } }
+    val switched = shown.value.agentSettings.map { it.copy(current = selection.settings[it.id] ?: it.current) }
+    shown.update { it.copy(agentSettings = switched) }
     val asked = shown.value.messages.size
     shown.update { it.with(ChatMessage(id = "question-$asked", body = question, fromMe = true)) }
     val reply = replies[question] ?: return

@@ -203,6 +203,23 @@ class ChatFramesTest {
     assertFalse("model" in frame.getValue("metadata").jsonObject)
   }
 
+  /** Picked settings ride as `{id: value}`, which `apply_settings_spec` applies (`base_persona.py`). */
+  @Test
+  fun aQuestionAskedWithASettingCarriesItInTheSettings() {
+    val selection = AgentSelection(settings = mapOf("__mode__" to "plan"))
+    val frame = Json.parseToJsonElement(ChatFrames.ask("q1", "hello?", OPENCODE_PERSONA_ID, selection)).jsonObject
+
+    val settings = frame.getValue("metadata").jsonObject.getValue("settings").jsonObject
+    assertEquals(mapOf("__mode__" to "plan"), settings.mapValues { it.value.jsonPrimitive.content })
+  }
+
+  @Test
+  fun aQuestionAskedWithNoSettingPickedCarriesNoSettings() {
+    val frame = Json.parseToJsonElement(ChatFrames.ask("q1", "hello?", OPENCODE_PERSONA_ID)).jsonObject
+
+    assertFalse("settings" in frame.getValue("metadata").jsonObject)
+  }
+
   private fun JsonObject.text(key: String): String = getValue(key).jsonPrimitive.content
 
   private fun callWith(status: String?, permission: String = ""): ToolCall {

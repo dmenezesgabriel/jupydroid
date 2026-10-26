@@ -146,7 +146,8 @@ internal class ChatLikeTheTabletsServer(
       val metadata = send["metadata"]?.jsonObject
       val persona = metadata?.get("to_persona")?.jsonPrimitive?.content
       if (persona == OPENCODE_PERSONA_ID) {
-        events?.asked(metadata["model"]?.jsonObject?.get("id")?.jsonPrimitive?.contentOrNull)
+        val settings = metadata["settings"]?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.content }
+        events?.asked(metadata["model"]?.jsonObject?.get("id")?.jsonPrimitive?.contentOrNull, settings)
       }
       val reply = replies[body]?.takeIf { persona == OPENCODE_PERSONA_ID } ?: return
       webSocket.send(frame("message", "message" to wire("reply-to-$body", reply, PERSONA)))

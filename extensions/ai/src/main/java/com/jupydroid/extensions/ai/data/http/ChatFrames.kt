@@ -155,8 +155,9 @@ internal object ChatFrames {
 
   /**
    * A `send` frame: `parse_client_message` reads its `id`, `body` and `metadata`. A model [selection]
-   * picks rides as the `ModelSpec` the persona applies before it answers (jupyter_ai_persona_manager
-   * `base_persona.py`, `apply_specs_in_message`); none picked sends none, which keeps the current one.
+   * picks rides as the `ModelSpec` the persona applies before it answers, and its settings as the
+   * `{id: value}` it applies with it (jupyter_ai_persona_manager `base_persona.py`,
+   * `apply_specs_in_message`); none picked sends none, which keeps the current one.
    */
   fun ask(id: String, question: String, persona: String, selection: AgentSelection = AgentSelection()): String =
     buildJsonObject {
@@ -169,6 +170,7 @@ internal object ChatFrames {
         buildJsonObject {
           put("to_persona", JsonPrimitive(persona))
           selection.model?.let { model -> put("model", modelSpec(model)) }
+          if (selection.settings.isNotEmpty()) put("settings", settingsSpec(selection.settings))
         },
       )
     }.toString()
@@ -176,6 +178,10 @@ internal object ChatFrames {
   private fun modelSpec(model: String) = buildJsonObject {
     put("id", model)
     put("settings", buildJsonObject {})
+  }
+
+  private fun settingsSpec(settings: Map<String, String>) = buildJsonObject {
+    settings.forEach { (id, value) -> put(id, value) }
   }
 
   private val TRANSCRIPT_ACTIONS = setOf("connection", "message")

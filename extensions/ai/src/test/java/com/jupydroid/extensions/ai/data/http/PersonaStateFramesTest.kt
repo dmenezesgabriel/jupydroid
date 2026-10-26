@@ -2,6 +2,8 @@ package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentSetting
+import com.jupydroid.extensions.ai.domain.AgentSettingValue
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -29,12 +31,35 @@ class PersonaStateFramesTest {
     assertEquals(AgentModels(current = "opencode/big-pickle", offered = offered), state.models)
   }
 
+  /** Its general settings, the mode among them as `__mode__` (`base_acp_persona.py`, `_build_awareness_config`). */
+  @Test
+  fun aPersonasStateCarriesItsSettingsAndTheValueOfEach() {
+    val state = PersonaStateFrames.parse(resource("persona-state-on-session-start.json"))!!
+
+    val offered = listOf(AgentSettingValue("build", "build"), AgentSettingValue("plan", "plan"))
+    assertEquals(listOf(AgentSetting("__mode__", "Session Mode", "build", offered)), state.settings)
+  }
+
+  /** `SettingConfiguration.name` and `SettingOption.name` fall back to the id when None (`awareness_models.py`). */
+  @Test
+  fun aSettingWithNoNameIsNamedByItsId() {
+    val setting = """[{"id": "effort", "current": null, "options": [{"id": "high"}]}]"""
+    val frame = """{"schema_id": "$PERSONA_STATE", "chat_id": "c", "persona_id": "p", "settings": $setting}"""
+
+    assertEquals(
+      listOf(AgentSetting("effort", "effort", current = null, offered = listOf(AgentSettingValue("high", "high")))),
+      PersonaStateFrames.parse(frame)!!.settings,
+    )
+  }
+
   /** A setter emits only what it changed (`PersonaSessionState._emit`): no `model` is no news of it. */
   @Test
   fun aStateThatChangedSomethingElseSaysNothingOfTheModels() {
     val usage = """{"schema_id": "$PERSONA_STATE", "chat_id": "c", "persona_id": "p", "usage": {"total_tokens": 9}}"""
 
-    assertNull(PersonaStateFrames.parse(usage)!!.models)
+    val state = PersonaStateFrames.parse(usage)!!
+    assertNull(state.models)
+    assertNull(state.settings)
   }
 
   /** `ModelOption.name` falls back to its id when None (`awareness_models.py`). */
