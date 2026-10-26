@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/chat-agent-controls-demo-driver.sh runs, after part 1 picked
+# North Mini Code and plan in `untitled` and asked with both.
+#
+# launchApp stops the process, and with it the Space's server, opencode and the picks the panel held.
+# What the chips name now can only be what the persona publishes for the chat: the model and mode it
+# kept with the chat and applies to the session it opens again.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "OpenRouter/North Mini Code \\(free\\)"
+    timeout: 300000
+- assertVisible: "plan"
+- assertNotVisible: "Default / OpenCode/Big Pickle"
+- assertNotVisible: "build"
+- takeScreenshot: 10-relaunched-the-chips-still-name-north-mini-code-and-plan

@@ -1,0 +1,111 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/chat-agent-controls-demo-driver.sh runs: portrait, which is one
+# pane on SM-X216B (w800dp), in base with opencode installed and signed in by a person, on a
+# workspace holding no chat. Everything happens in one chat, `untitled`.
+#
+# Before any question both chips name what the persona publishes (`persona_selected` starts opencode's
+# session). North Mini Code, a free OpenRouter model, is picked and a question asked with it; then
+# plan is picked and opencode asked to write a file; then `/` lists opencode's commands and `/review`
+# is picked and sent. OpenRouter, not OpenCode's own: on 2026-10-26 every OpenCode model answered
+# "Free usage limit reached." or "Insufficient account funds" in opencode's log, and opencode held
+# the turn open with nothing more to say. The driver says how the OpenRouter key got there.
+#
+# What the agent did with each pick is not on screen: the driver reads untitled.chat, the workspace
+# and the server's log. Each answer ends with a sum whose digits no question holds, so the question,
+# which the transcript shows too, cannot match the wait for it. A word did not serve: asked for plum
+# backwards, North Mini Code wrote "mlup", and asked for PLUM in capitals, the wait matched the
+# question's "plum" before any answer arrived. Three digits, as two have matched the status bar's clock.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# At one pane the Chat is behind More, as chat-markdown-insert-one-pane.yaml reaches it.
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- assertVisible: "Default / OpenCode/Big Pickle"
+- takeScreenshot: 01-before-any-question-the-chips-name-opencodes-model-and-mode
+
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 10000
+- takeScreenshot: 02-the-model-chip-lists-what-opencode-offers-the-one-in-use-checked
+# The list opens on its search field, focused: OpenRouter's models follow OpenCode's, hundreds of
+# them, and typing finds one that is otherwise a long scroll away.
+# Big Pickle, checked as in use, is the row that goes: the chip under the menu still names it. The
+# keyboard stays up, since hideKeyboard can press Back, which closes the menu.
+- inputText: "north"
+- extendedWaitUntil:
+    notVisible: "In use"
+    timeout: 10000
+- takeScreenshot: 03-searching-north-leaves-north-mini-code
+- tapOn: "OpenRouter/North Mini Code \\(free\\)"
+- tapOn: "Ask the agent"
+- inputText: "Which model are you? One line, then the sum 347+258 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b605\\b[\\s\\S]*"
+    timeout: 300000
+- assertVisible: "OpenRouter/North Mini Code \\(free\\)"
+- takeScreenshot: 04-asked-with-north-mini-code-and-answered
+
+- tapOn: "build"
+- extendedWaitUntil:
+    visible: "plan"
+    timeout: 10000
+- tapOn: "plan"
+- assertNotVisible: "In use"
+- assertNotVisible: "build"
+- takeScreenshot: 05-plan-picked-for-the-next-question
+- tapOn: "Ask the agent"
+- inputText: "Create the file sorbet.txt holding sorbet. End your reply with the sum 512+219 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b731\\b[\\s\\S]*"
+    timeout: 300000
+# Plan mode does not edit, so nothing asked to write the file.
+- assertNotVisible: ".*Allow\\?"
+- assertVisible: "plan"
+- takeScreenshot: 06-asked-in-plan-mode-to-write-a-file-it-did-not
+
+- tapOn: "Ask the agent"
+- inputText: "/"
+- extendedWaitUntil:
+    visible: "/review"
+    timeout: 60000
+- assertVisible: "/init"
+- hideKeyboard
+- takeScreenshot: 07-a-slash-lists-opencodes-commands-each-over-what-it-does
+- tapOn: "/review"
+- extendedWaitUntil:
+    notVisible: "/init"
+    timeout: 10000
+- tapOn: "Send"
+# opencode runs /review as a subtask (anomalyco/opencode@e3c4eb24
+# packages/opencode/src/command/template/review.txt), a call titled with the command's description,
+# which the closed list no longer shows: only the agent's row can match it. In plan mode the review
+# reads and edits nothing, so nothing asks; the driver waits for the turn to end in the server's log.
+- extendedWaitUntil:
+    visible: "review changes \\[commit\\|branch\\|pr\\], defaults to uncommitted"
+    timeout: 300000
+- extendedWaitUntil:
+    visible: "✓"
+    timeout: 300000
+- takeScreenshot: 08-review-sent-opencode-runs-it-as-a-subtask
