@@ -19,8 +19,9 @@ On SM-X216B, with opencode installed and signed in in base (ADR-0106):
 2. Tap the model chip: a list of the models opencode offers, the current one marked. Pick another.
    Ask "Which model are you? One line." The answer comes from the model picked.
 3. Tap the mode chip, pick `plan`. Ask opencode to create a file; it does not (plan mode does not edit).
-4. Type `/`: a list of opencode's commands with their descriptions. Pick one (e.g. `/compact`); it is
-   put in the input as `/compact `, sent, and runs.
+4. Type `/`: a list of opencode's commands with their descriptions. Pick one (e.g. `/review`); it is
+   put in the input as `/review `, sent, and runs. opencode v1.19.3 lists `/customize-opencode`, `/init`
+   and `/review` in base, and no `/compact`.
 5. Kill and relaunch, open the same chat: the chips still name the model and mode picked.
 
 The item is not `shipped` until this has been run on SM-X216B, with screenshots, snapshots and
@@ -125,10 +126,10 @@ pickers into one sheet; jupyter-ai has no phone layout.
 
 | Layer | Files |
 |---|---|
-| `domain` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/domain/AgentModels.kt` (T1), `AgentSettings`/`AgentCommands` (T2, T3), `ChatTranscript.kt`, `AgentChat.kt` |
+| `domain` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/domain/AgentModels.kt` (T1), `AgentSettings` (T2), `AgentCommand` (T3), `ChatTranscript.kt`, `AgentChat.kt` |
 | `data/http` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/data/http/PersonaStateFrames.kt`, `OkHttpAgentChat.kt`, `ChatFrames.kt` |
 | `data/fake` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/data/fake/FakeAgentChat.kt` |
-| `ui` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/ui/AgentControls.kt`, `ChatPanel.kt` |
+| `ui` | `extensions/ai/src/main/java/com/jupydroid/extensions/ai/ui/AgentControls.kt`, `SlashCommands.kt` (T3), `ChatPanel.kt` |
 | unit tests | `extensions/ai/src/test/java/com/jupydroid/extensions/ai/data/http/PersonaStateFramesTest.kt`, `OkHttpAgentChatModelsTest.kt`, `domain/AgentChatContract.kt` |
 | instrumented tests | `app/src/androidTest/java/com/jupydroid/app/ui/shell/ChatAgentControlsTest.kt` |
 | `.maestro/` flow + `scripts/` driver | `.maestro/chat-model-picker.yaml`, `scripts/chat-model-picker-driver.sh` (T1), then one per task |
@@ -142,7 +143,7 @@ pickers into one sheet; jupyter-ai has no phone layout.
   Device evidence on SM-X216B
 - [x] T2 — The mode and effort chips: general settings beside it, riding as `metadata.settings`;
   the toolbar row measured at one pane on a phone width
-- [ ] T3 — `/` lists the persona's commands with their descriptions; picking one puts `/name ` in the
+- [x] T3 — `/` lists the persona's commands with their descriptions; picking one puts `/name ` in the
   input
 - [ ] T4 — The demo above on SM-X216B; a defect found is fixed red first
 - [ ] T5 — The ADR (state from Jupyter Events, the choice on the next message, persisted by the
