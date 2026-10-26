@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.RecordingNotebookActiveCell
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
@@ -351,7 +352,13 @@ class ChatListSidePanelTest {
         if (shown()) {
           ContributedSidePanel(
             contribution = panel,
-            host = SidePanelHost(browsedDirectory = "", server = null, spaceId = "base", RichTextMarkdownRenderer),
+            host = SidePanelHost(
+              browsedDirectory = "",
+              server = null,
+              spaceId = "base",
+              RichTextMarkdownRenderer,
+              RecordingNotebookActiveCell(available = false),
+            ),
           )
         }
       }

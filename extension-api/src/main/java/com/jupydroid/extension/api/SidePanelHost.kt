@@ -14,12 +14,16 @@ package com.jupydroid.extension.api
  *   than in its workspace, as VS Code keys its workspace storage by workspace (vscode@3f3380c
  *   `src/vs/workbench/contrib/chat/common/model/chatSessionStore.ts`, `workspaceStorageHome`).
  * @param markdown the renderer a markdown cell is drawn with, for what a panel shows as markdown.
+ * @param activeCell the open notebook's active cell, for code a panel puts into the notebook, as
+ *   jupyter-chat's plugin is handed the notebook tracker its active-cell manager follows
+ *   (jupyter-chat@2c224bc `packages/jupyterlab-chat-extension/src/index.ts`).
  */
 data class SidePanelHost(
   val browsedDirectory: String,
   val server: SpaceServerEndpoint?,
   val spaceId: String,
   val markdown: MarkdownRenderer,
+  val activeCell: NotebookActiveCell,
 )
 
 /**

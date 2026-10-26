@@ -12,7 +12,7 @@ import com.jupydroid.extension.api.SpaceServerEndpoint
  * new port with its new token, which is the rule `PerRunningServer` keeps for `:app`'s own clients.
  *
  * ```
- * SidePanelHost(browsedDirectory, RunningSpaceServerEndpoint(spaceServer), spaceId = "base", RichTextMarkdownRenderer)
+ * SidePanelHost(directory, RunningSpaceServerEndpoint(spaceServer), "base", RichTextMarkdownRenderer, activeCell)
  * ```
  */
 class RunningSpaceServerEndpoint(private val server: SpaceServer) : SpaceServerEndpoint {

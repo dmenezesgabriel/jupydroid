@@ -23,8 +23,10 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -115,7 +117,7 @@ class ChatSidePanelTest {
   fun copyUnderACodeBlockPutsItsCodeOnTheClipboard() {
     val clipboard = showOnAClipboard(answered(MARKDOWN_ANSWER))
 
-    compose.onNodeWithText("Copy").performClick()
+    compose.onNodeWithContentDescription("Copy").performClick()
     compose.waitForIdle()
 
     assertEquals("x = 1", clipboard.text())
@@ -126,7 +128,7 @@ class ChatSidePanelTest {
     showOnAClipboard(answered(MARKDOWN_ANSWER))
 
     val code = compose.onNodeWithText("x = 1").getBoundsInRoot()
-    val copy = compose.onNodeWithText("Copy").getBoundsInRoot()
+    val copy = compose.onNodeWithContentDescription("Copy").getBoundsInRoot()
     assertTrue("Copy at $copy is not beneath the code at $code", copy.top >= code.bottom)
     assertTrue("Copy at $copy is not at the code's right, $code", copy.left > (code.left + code.right) / 2)
   }
@@ -136,15 +138,15 @@ class ChatSidePanelTest {
   fun copyReadsCopiedForASecond() {
     showOnAClipboard(answered(MARKDOWN_ANSWER))
     // The answer is read in on the clock; the clock stops once it is drawn.
-    compose.onNodeWithText("Copy").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Copy").assertIsDisplayed()
     compose.mainClock.autoAdvance = false
 
-    compose.onNodeWithText("Copy").performClick()
+    compose.onNodeWithContentDescription("Copy").performClick()
     compose.mainClock.advanceTimeByFrame()
-    compose.onNodeWithText("Copied").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Copied").assertIsDisplayed()
     compose.mainClock.advanceTimeBy(COPIED_FOR_MILLIS)
 
-    compose.onNodeWithText("Copy").assertIsDisplayed()
+    compose.onNodeWithContentDescription("Copy").assertIsDisplayed()
   }
 
   @Test
@@ -152,7 +154,7 @@ class ChatSidePanelTest {
     showOnAClipboard(answered("## Result\n\n- one"))
 
     compose.onNodeWithText("Result").assertIsDisplayed()
-    compose.onAllNodesWithText("Copy").assertCountEquals(0)
+    compose.onAllNodesWithContentDescription("Copy").assertCountEquals(0)
   }
 
   /** The question is drawn as typed, so a fence in it is text and no code block. */
@@ -161,7 +163,7 @@ class ChatSidePanelTest {
     showOnAClipboard(FakeAgentChat(history = listOf(ChatMessage(id = "q", body = MARKDOWN_ANSWER, fromMe = true))))
 
     compose.onNodeWithText(MARKDOWN_ANSWER).assertIsDisplayed()
-    compose.onAllNodesWithText("Copy").assertCountEquals(0)
+    compose.onAllNodesWithContentDescription("Copy").assertCountEquals(0)
   }
 
   @Test

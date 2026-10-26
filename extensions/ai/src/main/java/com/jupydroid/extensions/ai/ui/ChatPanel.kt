@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.jupydroid.extension.api.KeyRowPublished
 import com.jupydroid.extension.api.MarkdownRenderer
+import com.jupydroid.extension.api.NotebookActiveCell
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.ChatFile
@@ -79,7 +80,7 @@ import kotlinx.coroutines.launch
  *
  * ```
  * val chat = FakeAgentChat(replies = mapOf("hello?" to "hi"))
- * ChatPanel(chat, ChatFile("untitled.chat"), FakeQueuedQuestionsStore(), host.markdown)
+ * ChatPanel(chat, ChatFile("untitled.chat"), FakeQueuedQuestionsStore(), host.markdown, host.activeCell)
  * ```
  *
  * @param file the chat's file, by which [queues] keeps the questions waiting in it, so they are there
@@ -91,6 +92,7 @@ fun ChatPanel(
   file: ChatFile,
   queues: QueuedQuestionsStore,
   markdown: MarkdownRenderer,
+  activeCell: NotebookActiveCell,
   modifier: Modifier = Modifier,
 ) {
   var reading by remember(chat) { mutableStateOf<ChatReading>(ChatReading.Opening) }
@@ -158,9 +160,9 @@ fun ChatPanel(
         color = MaterialTheme.colorScheme.error,
         modifier = Modifier.weight(1f),
       )
-      is ChatReading.Open -> Messages(shown.transcript, markdown, choose, Modifier.weight(1f))
+      is ChatReading.Open -> Messages(shown.transcript, markdown, activeCell, choose, Modifier.weight(1f))
       is ChatReading.Reconnecting -> {
-        Messages(shown.transcript, markdown, choose, Modifier.weight(1f))
+        Messages(shown.transcript, markdown, activeCell, choose, Modifier.weight(1f))
         Text(
           "Reconnecting: ${shown.reason}",
           color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -197,6 +199,7 @@ fun ChatPanel(
 private fun Messages(
   transcript: ChatTranscript,
   markdown: MarkdownRenderer,
+  activeCell: NotebookActiveCell,
   onChoose: suspend (ToolCall, PermissionOption) -> Boolean,
   modifier: Modifier,
 ) {
@@ -208,7 +211,7 @@ private fun Messages(
     modifier = modifier.fillMaxWidth().testTag("chat-messages"),
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    items(shown, key = ChatMessage::id) { message -> MessageRow(message, markdown, onChoose) }
+    items(shown, key = ChatMessage::id) { message -> MessageRow(message, markdown, activeCell, onChoose) }
   }
 }
 
@@ -271,6 +274,7 @@ private suspend fun LazyListState.scrollToTheEnd(shown: List<ChatMessage>) {
 private fun MessageRow(
   message: ChatMessage,
   markdown: MarkdownRenderer,
+  activeCell: NotebookActiveCell,
   onChoose: suspend (ToolCall, PermissionOption) -> Boolean,
 ) {
   if (message.toolCalls.isNotEmpty()) return ToolCallRows(message.toolCalls, onChoose)
@@ -282,7 +286,7 @@ private fun MessageRow(
     if (message.fromMe) {
       Text(message.body, modifier = Modifier.padding(8.dp))
     } else {
-      markdown.Draw(message.body, Modifier.padding(8.dp)) { code -> CodeBlockActions(code) }
+      markdown.Draw(message.body, Modifier.padding(8.dp)) { code -> CodeBlockActions(code, activeCell) }
     }
   }
 }

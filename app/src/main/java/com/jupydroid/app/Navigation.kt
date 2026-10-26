@@ -64,6 +64,8 @@ fun MainNavigation(
   outline: OpenDocumentOutline = remember { OpenDocumentOutline() },
   /** [OpenDocumentOutline]'s own seam, crossed for the debugger's side panel - see [OpenDebugStack]. */
   debugPanel: OpenDebugStack = remember { OpenDebugStack() },
+  /** [OpenDocumentOutline]'s own seam, crossed for a contributed panel - see [OpenNotebookActiveCell]. */
+  activeCell: OpenNotebookActiveCell = remember { OpenNotebookActiveCell() },
   /**
    * Where every open document is reached by path, for something that is not its own screen -
    * today, the search panel's replace.
@@ -327,6 +329,7 @@ fun MainNavigation(
             spacePorts = spacePorts,
             outline = outline,
             debugStack = debugPanel,
+            activeCell = activeCell,
             openDocuments = openDocuments,
             openDocument = openDocument,
             openDocumentPath = openDocumentPath,
@@ -415,6 +418,7 @@ fun MainNavigation(
               // which is what puts the overlay up on a compact window instead.
               onShowTableOfContents = { sidePanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS) }.takeIf { twoPane },
               debugPanel = debugPanel,
+              activeCell = activeCell,
               onShowDebugger = { sidePanel = ShownPanel.Shell(SidePanel.DEBUGGER) }.takeIf { twoPane },
               onGoToFolder = goToFolder,
               openDocument = openDocument,

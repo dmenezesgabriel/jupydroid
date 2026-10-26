@@ -29,6 +29,7 @@ import com.jupydroid.app.DocumentOutline
 import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.OpenNotebookActiveCell
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
@@ -117,6 +118,8 @@ fun EditorScreen(
   onShowTableOfContents: (() -> Unit)?,
   /** Where this document publishes its stop's call stack and variables - see [OpenDebugStack]. */
   debugPanel: OpenDebugStack,
+  /** Where this document publishes an insert below its active cell - see [OpenNotebookActiveCell]. */
+  activeCell: OpenNotebookActiveCell,
   /** [onShowTableOfContents]'s own rule, for the debugger's side panel - see [SidePanel.DEBUGGER]. */
   onShowDebugger: (() -> Unit)?,
   /**
@@ -327,6 +330,11 @@ fun EditorScreen(
       )
     }
     DisposableEffect(debugPanel) { onDispose { debugPanel.clear() } }
+    // [debugPanel]'s seam again, for a contributed panel's Insert: null while no cell is active.
+    LaunchedEffect(activeCell, state.selectedCellId) {
+      activeCell.publish(viewModel.edits::insertCodeBelow.takeIf { state.selectedCellId != null })
+    }
+    DisposableEffect(activeCell) { onDispose { activeCell.clear() } }
     // The breadcrumb's row is not free on a phone, so it is not permanent either - see
     // [collapsibleRegionFraction]. Derived from the list the cells are drawn from rather than from a
     // `nestedScroll` connection, so there is one answer to "where is the document" and not two.

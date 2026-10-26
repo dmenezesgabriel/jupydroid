@@ -12,7 +12,7 @@ import com.jupydroid.extension.api.MarkdownRenderer
  * markdown cell is drawn by (`app/src/main/java/com/jupydroid/app/ui/editor/MarkdownCell.kt`).
  *
  * ```
- * SidePanelHost(browsedDirectory, server, spaceId = "base", markdown = RichTextMarkdownRenderer)
+ * SidePanelHost(browsedDirectory, server, spaceId = "base", markdown = RichTextMarkdownRenderer, activeCell)
  * ```
  */
 object RichTextMarkdownRenderer : MarkdownRenderer {

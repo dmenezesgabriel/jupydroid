@@ -15,10 +15,15 @@ import com.jupydroid.app.domain.model.CellKind
  * Semantics follow JupyterLab's `NotebookActions` where the obvious guess differs - see
  * `CellEditsTest`, which cites the file and line for each.
  */
-fun EditorUiState.withCellInserted(afterCellId: String, kind: CellKind, newId: String): EditorUiState {
+fun EditorUiState.withCellInserted(
+  afterCellId: String,
+  kind: CellKind,
+  newId: String,
+  source: String = "",
+): EditorUiState {
   val at = cells.indexOfFirst { it.id == afterCellId }
   if (at < 0) return this
-  return copy(cells = cells.toMutableList().apply { add(at + 1, Cell(newId, kind, "")) }, dirty = true)
+  return copy(cells = cells.toMutableList().apply { add(at + 1, Cell(newId, kind, source)) }, dirty = true)
 }
 
 /**

@@ -70,7 +70,7 @@ one insert, below. Both put a new cell below the active one for their main inser
 | Where the renderer lives | jupyter-chat → the host's rendermime, required by the plugin; VS Code → the workbench; Jewel → a library a plugin links | Moving `markdown/`, `richtext/`, `html/` and `RichText` out of `:app` would drag the editor palette with it | The host's: `:extension-api` declares a `MarkdownRenderer`, `:app` implements it over `MarkdownDocument` and `RichText`, and hands it in `SidePanelHost`, as jupyter-chat is handed `IRenderMimeRegistry` |
 | Which messages | jupyter-chat → every text message | — | The agent's answer; see Open decisions |
 | Insert | jupyter-chat → above, below, replace; VS Code → below the focused cell | — | Below the active cell, the one both have |
-| No active cell | jupyter-chat → disabled; VS Code → a notice | — | Disabled, as jupyter-chat |
+| No active cell | jupyter-chat → disabled; VS Code → a notice | — | Disabled, as jupyter-chat, and named "(no active cell)" as its title is |
 
 ## Gap analysis — what we already have vs the references
 
@@ -83,8 +83,9 @@ one insert, below. Both put a new cell below the active one for their main inser
 
 ## Deviations
 
-- The actions sit under the code block, as jupyter-chat's toolbar does, with labels rather than
-  tooltipped icons: a touchscreen has no hover.
+- The actions sit under the code block as icon buttons, as jupyter-chat's toolbar does, but each
+  names itself in a tooltip on a **long press** rather than on hover, which a touchscreen does not
+  have. Copy shows a check for a second in place of jupyter-chat's "Copied!" tooltip.
 
 ## Open decisions
 

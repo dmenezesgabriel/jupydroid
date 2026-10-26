@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.jupydroid.app.RecordingNotebookActiveCell
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelHost
@@ -63,7 +64,13 @@ class UntitledChatPanel(private val compose: ComposeContentTestRule) {
     /** How long a test waits for the panel to ask what it holds. */
     const val TIMEOUT_MILLIS = 5_000L
 
-    /** No directory browsed and no server: the fake chat needs neither. The app's own renderer. */
-    val HOST = SidePanelHost(browsedDirectory = "", server = null, spaceId = "base", RichTextMarkdownRenderer)
+    /** No directory browsed, no server and no notebook open: the fake chat needs none. The app's own renderer. */
+    val HOST = SidePanelHost(
+      browsedDirectory = "",
+      server = null,
+      spaceId = "base",
+      RichTextMarkdownRenderer,
+      RecordingNotebookActiveCell(available = false),
+    )
   }
 }

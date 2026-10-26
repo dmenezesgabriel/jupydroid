@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.RecordingNotebookActiveCell
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.git.GitExtension
@@ -54,7 +55,13 @@ class ContributedSidePanelTest {
       JupyterDroidTheme {
         ContributedSidePanel(
           contribution = sourceControl,
-          host = SidePanelHost(browsedDirectory, server = null, spaceId = "base", RichTextMarkdownRenderer),
+          host = SidePanelHost(
+            browsedDirectory,
+            server = null,
+            spaceId = "base",
+            RichTextMarkdownRenderer,
+            RecordingNotebookActiveCell(available = false),
+          ),
         )
       }
     }

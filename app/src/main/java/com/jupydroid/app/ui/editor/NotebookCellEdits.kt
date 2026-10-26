@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.MatchedLine
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
@@ -248,6 +249,22 @@ fun NotebookCellEdits.cellsRenamed(cellId: String, sources: Map<String, String>,
   if (moved || identical) return
   val on = if (cellId in before.selectedCellIds) before else before.withSelectionCollapsed().withCellSelected(cellId)
   uiState.value = on.withSources(sources).recording(before = before).withSearchRecomputed()
+  save.schedule()
+}
+
+/**
+ * [code] from outside the notebook - a chat's code block - in a new code cell below the active
+ * one, which becomes active, as one undoable operation: JupyterLab's `insertBelow` (jupyterlab@7f0e690
+ * `packages/notebook/src/actions.tsx:560-584`) followed by jupyter-chat's `setSource` on the new cell
+ * (jupyter-chat@2c224bc `packages/jupyter-chat/src/active-cell-manager.ts`). Nothing with no active cell.
+ */
+fun NotebookCellEdits.insertCodeBelow(code: String) {
+  val before = uiState.value
+  val head = before.selectedCellId ?: return
+  val newId = newCellId()
+  val inserted = before.withCellInserted(head, CellKind.CODE, newId, code)
+  uiState.value = inserted.withSelectionCollapsed().withCellSelected(newId).recording(before = before)
+    .withSearchRecomputed()
   save.schedule()
 }
 
