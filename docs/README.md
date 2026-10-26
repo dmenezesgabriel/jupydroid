@@ -141,6 +141,7 @@ These are the SHAs the local clones are pinned at:
 | `jupyter-chat` | `2c224bccb40f45438f85b28c3654da02b5c1461f` | `git clone --depth 1 https://github.com/jupyterlab/jupyter-chat` (jupyterlab-chat's frontend and server) |
 | `jupyter-chat-components` | `992c6fb9ae7c396a71397f9056a123b8e8f439b0` | `git clone --depth 1 https://github.com/jupyter-ai-contrib/jupyter-chat-components` (the tool-call rows) |
 | `jupyter-ai-acp-client` | `77016f63530f5279ad4c9bae8a8aa5a6a27a5c37` | `git clone --depth 1 https://github.com/jupyter-ai-contrib/jupyter-ai-acp-client` (newer than the 0.3.3 the image ships) |
+| `jupyter-ai-persona-manager` | `d5ed04bc6dfa05fd222d7ea1e54a528b404af4c3` | `git clone https://github.com/jupyter-ai-contrib/jupyter-ai-persona-manager && git -C jupyter-ai-persona-manager checkout v0.2.2` (the 0.2.2 the image ships: the model, mode and slash-command controls) |
 
 Clone into `reference/research_repos/`. `reference/xeus-android/` is two prose documents
 (`FEASIBILITY.md`, `STUDY_CASES.md`), not source.
