@@ -1,0 +1,127 @@
+appId: com.jupydroid.app
+---
+# The first of the three flows scripts/chat-in-tab-driver.sh runs: landscape, which is two panes on
+# SM-X216B, in base with opencode installed and signed in by a person, on a workspace holding only
+# notes.py.
+#
+# A chat made in the Chat panel is opened from Files: it opens as a chat tab, not as its JSON, above
+# the taskbar, and answers there. Tapped again, the same tab is revealed. Then the panel shows that
+# chat beside the tab, and in the tab a bash call is asked for and a question queued behind it: the
+# driver counts, in untitled.chat and the server's log, whether either was asked or answered twice.
+# Last, notes.py is opened in a file tab for the kill the next two flows measure.
+#
+# Each answer waited for holds digits no question holds, so the question, which the transcript shows
+# too, cannot match the wait for it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- takeScreenshot: 01-a-new-chat-in-the-panel
+
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "untitled.chat"
+    timeout: 30000
+- tapOn: "untitled.chat"
+- extendedWaitUntil:
+    visible: "Tab: untitled.chat"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- assertVisible: "Ask the agent"
+- assertNotVisible: ".*\"messages\".*"
+- takeScreenshot: 02-the-chat-file-opens-as-a-chat-tab-not-json
+# A pick rides the next question asked where it was made, so it is made in the tab. OpenRouter's free
+# model: OpenCode's own answered no question here on 2026-10-26 (the driver's header).
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 10000
+- inputText: "north"
+- extendedWaitUntil:
+    notVisible: "In use"
+    timeout: 10000
+- tapOn: "OpenRouter/North Mini Code \\(free\\)"
+
+- tapOn: "Ask the agent"
+- inputText: "Reply with one word: tab. Then the sum 418+237 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b655\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 03-asked-in-the-tab-and-answered-there
+
+- tapOn: "untitled.chat"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Tab: untitled.chat"
+- assertNotVisible:
+    text: "Tab: untitled.chat"
+    index: 1
+- takeScreenshot: 04-tapped-again-the-same-tab-is-revealed
+
+# The panel kept untitled open (`OpenChatSelection`), so it now draws the chat the tab draws.
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "All chats"
+    timeout: 30000
+- takeScreenshot: 05-the-same-chat-in-the-panel-and-in-the-tab
+# The tab's field and buttons are the second: the panel is drawn left of it. The bash call holds the
+# turn open on its permission, so the question after it waits in the queue for as long as the flow
+# needs to look at both views.
+- tapOn:
+    text: "Ask the agent"
+    index: 1
+- inputText: "Run echo tab-$((6*7)) with your bash tool, then answer with only what it printed."
+- hideKeyboard
+- tapOn:
+    text: "Send"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*Allow\\?"
+    timeout: 300000
+- tapOn:
+    text: "Ask the agent"
+    index: 1
+- inputText: "Then the sum 604+129 in digits, nothing else."
+- hideKeyboard
+- tapOn:
+    text: "Send"
+    index: 1
+- extendedWaitUntil:
+    visible: "1 queued"
+    timeout: 30000
+- takeScreenshot: 06-a-question-queued-in-the-tab-with-the-panel-open-on-it
+- tapOn:
+    text: "Allow once"
+    index: 1
+# One wait, on the queued question's answer, which is only there once the call's turn ended; the driver
+# reads from the server's log that no turn ran twice.
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b733\\b[\\s\\S]*"
+    timeout: 900000
+- assertVisible: "(?i)\\W*tab-42\\W*"
+- assertNotVisible: "\\d queued"
+- takeScreenshot: 07-allowed-the-call-and-the-queued-question-are-each-answered-once
+
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "notes.py"
+    timeout: 10000
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "Tab: notes.py"
+    timeout: 10000
+- assertVisible: "Tab: untitled.chat"
+- takeScreenshot: 08-a-file-tab-beside-the-chat-tab-before-the-kill

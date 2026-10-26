@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# The last of the three flows scripts/chat-in-tab-driver.sh runs. launchApp stops the app first, which
+# drops the task's saved state with it, so the app opens on the Spaces home: entering base again opens
+# no file tab, and no chat tab either.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertNotVisible: "Tab: notes.py"
+- assertNotVisible: "Tab: untitled.chat"
+- takeScreenshot: 10-after-a-force-stop-neither-tab-comes-back

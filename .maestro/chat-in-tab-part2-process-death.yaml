@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# The second of the three flows scripts/chat-in-tab-driver.sh runs. The driver has sent the app home and
+# killed its process (`am kill`), which is how Android reclaims a backgrounded app: the task and its
+# saved state stay, so the activity is recreated from them when the app is opened again.
+#
+# A file tab is a document the saved back stack brings back, and so is a chat tab: both keys are
+# serializable, and the chat is read back from its file.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Tab: notes.py"
+    timeout: 120000
+- assertVisible: "Tab: untitled.chat"
+- tapOn: "Tab: untitled.chat"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b733\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 09-after-process-death-the-file-tab-and-the-chat-tab-come-back
