@@ -1,0 +1,54 @@
+appId: com.jupydroid.app
+---
+# The flow scripts/chat-slash-commands-driver.sh runs: portrait, which is one pane on SM-X216B
+# (w800dp), in base with opencode installed and signed in by a person, on a workspace holding no chat.
+#
+# A new chat selects opencode's persona (`persona_selected`), whose state carries the slash commands
+# opencode advertises (`report_slash_commands`, in the shipped rootfs's
+# usr/lib/python3.12/site-packages/jupyter_ai_acp_client/default_acp_client.py). Typing `/` lists them
+# over the field, each over what it does; `/r` narrows the list to `/review`, and picking it puts
+# `/review ` in the field. opencode v1.19.3 lists `/customize-opencode`, `/init` and `/review` here,
+# and no `/compact`. The driver reads the field's text from the hierarchy, trailing space included,
+# which no assertion here can see.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# At one pane the Chat is behind More, as chat-markdown-insert-one-pane.yaml reaches it.
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers; the mode
+# chip naming its mode says the session is up.
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- tapOn: "Ask the agent"
+- inputText: "/"
+- extendedWaitUntil:
+    visible: "/review"
+    timeout: 60000
+- assertVisible: "/init"
+- takeScreenshot: 01-a-slash-lists-opencodes-commands-each-over-what-it-does
+# The field keeps the caret, so this types after the slash.
+- inputText: "r"
+- extendedWaitUntil:
+    notVisible: "/init"
+    timeout: 10000
+- assertVisible: "/review"
+- hideKeyboard
+- takeScreenshot: 02-r-narrows-the-list-to-review
+- tapOn: "/review"
+- extendedWaitUntil:
+    notVisible: "review changes.*"
+    timeout: 10000
+- takeScreenshot: 03-review-picked-is-in-the-field
