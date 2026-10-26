@@ -190,8 +190,10 @@ class OkHttpAgentChat(
 
     private fun opened(webSocket: WebSocket, connection: ServerFrame.Connection) {
       humans = connection.humans
-      fold.opened(connection.chatId, ChatTranscript(connection.messages.map { it.toChatMessage(humans) }))
+      // Open before the transcript says so: a collector may ask or stop on this thread as it is sent
+      // (OkHttpAgentChatTest.stop_onTheFirstTranscriptFindsTheChatOpen).
       open = OpenChat(webSocket, connection.chatId)
+      fold.opened(connection.chatId, ChatTranscript(connection.messages.map { it.toChatMessage(humans) }))
       out.launch { select(connection.chatId) }
     }
 

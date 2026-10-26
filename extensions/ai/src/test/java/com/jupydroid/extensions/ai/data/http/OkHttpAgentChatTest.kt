@@ -16,12 +16,14 @@ import com.jupydroid.extensions.ai.domain.ToolCallChoiceException
 import com.jupydroid.extensions.ai.domain.ToolCallPermission
 import com.jupydroid.extensions.ai.domain.ToolCallStatus
 import com.jupydroid.extensions.ai.domain.readings
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -252,6 +254,24 @@ class OkHttpAgentChatTest : AgentChatContract() {
     assertTrue("$failure", failure is AgentChatException)
     assertTrue("$failure", failure!!.message!!.contains("http 404"))
     assertTrue("$failure", failure.message!!.contains("Chat not initialized: $CHAT_ID"))
+  }
+
+  /**
+   * The first transcript says the chat is open, so what its collector does on seeing it finds it open.
+   * Collected unconfined, the collector runs on the socket's own thread as the transcript is sent, the
+   * order a loaded host can give it any time.
+   */
+  @Test
+  fun stop_onTheFirstTranscriptFindsTheChatOpen() = runBlocking {
+    val server = ChatLikeTheTabletsServer(writing = true)
+    serverRule.server.dispatcher = server
+    val chat = chatUnderTest()
+
+    withTimeout(TIMEOUT_MILLIS) {
+      withContext(Dispatchers.Unconfined) { chat.transcript().first { chat.stop().let { true } } }
+    }
+
+    assertEquals(1, server.cancels.size)
   }
 
   /** Runs [action] once [chat] has opened, while its transcript is still collected. */
