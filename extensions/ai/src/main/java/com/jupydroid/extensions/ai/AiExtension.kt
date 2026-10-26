@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SpaceServerEndpoint
@@ -14,8 +15,10 @@ import com.jupydroid.extensions.ai.data.http.OkHttpAgentChat
 import com.jupydroid.extensions.ai.data.http.OkHttpChatFiles
 import com.jupydroid.extensions.ai.data.logcat.LogcatChatSocketLog
 import com.jupydroid.extensions.ai.domain.AgentChat
+import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
+import com.jupydroid.extensions.ai.ui.ChatPanel
 import com.jupydroid.extensions.ai.ui.ChatsPanel
 import com.jupydroid.extensions.ai.ui.OpenChatSelection
 
@@ -69,7 +72,32 @@ class AiExtension(
     },
   )
 
+  // jupyter-chat's `defaultFor: ['chat']` (jupyter-chat@2c224bc
+  // `packages/jupyterlab-chat-extension/src/index.ts`): a `.chat` the explorer opens is a chat in
+  // the main area, without the panel's list or its header, since the tab already names the file.
+  override val documents: List<DocumentContribution> = listOf(
+    DocumentContribution(
+      id = CHAT_DOCUMENT_ID,
+      suffix = ChatFile.CHAT_EXTENSION,
+      icon = Icons.AutoMirrored.Filled.Chat,
+    ) {
+        path,
+        host,
+      ->
+      key(host.server, host.spaceId) {
+        ChatPanel(
+          chat = remember(path) { chatFor(host.server, path) },
+          file = ChatFile(path),
+          queues = remember { queuesFor(host.spaceId) },
+          markdown = host.markdown,
+          activeCell = host.activeCell,
+        )
+      }
+    },
+  )
+
   private companion object {
     const val CHAT_PANEL_ID = "ai.chat"
+    const val CHAT_DOCUMENT_ID = "ai.chat"
   }
 }

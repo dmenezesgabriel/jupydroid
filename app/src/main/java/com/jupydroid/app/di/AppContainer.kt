@@ -35,6 +35,7 @@ import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
+import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extensions.ai.AiExtension
@@ -140,6 +141,9 @@ class AppContainer(
 ) {
   /** Every extension's side panels, in the order the extensions were given - see `railOrder`. */
   val sidePanelContributions: List<SidePanelContribution> = extensions.flatMap { it.sidePanels }
+
+  /** Every extension's documents, by suffix; the first to claim a suffix opens it - see `claiming`. */
+  val documentContributions: List<DocumentContribution> = extensions.flatMap { it.documents }
 
   init {
     applicationScope.launch { preReadServerImports() }

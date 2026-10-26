@@ -53,6 +53,7 @@ import com.jupydroid.app.mainAreaTabTitle
 import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
+import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.RenameFileDialog
 import kotlinx.coroutines.launch
 
@@ -117,6 +118,8 @@ fun TabbedDocumentPane(
   onOpenDocument: (String) -> Unit,
   /** Where a document's checkpoint is made by the strip's Save and a Save As, and reverted to from its menu. */
   documentCheckpoints: DocumentCheckpoints,
+  /** What an extension's tab is drawn with, for its glyph - see [tabIcon]. */
+  documentContributions: List<DocumentContribution> = emptyList(),
   content: @Composable () -> Unit,
 ) {
   // The tab a rename is being asked over - held here rather than inside a tab so the dialog
@@ -153,6 +156,7 @@ fun TabbedDocumentPane(
       liveTabTitles = liveTabTitles,
       tabs = tabs,
       twoPane = twoPane,
+      documentContributions = documentContributions,
       onCloseTab = onCloseTab,
       onRenameTab = { key ->
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
@@ -244,6 +248,7 @@ private fun MainAreaTabStrip(
   liveTabTitles: Map<NavKey, String>,
   tabs: List<NavKey>,
   twoPane: Boolean,
+  documentContributions: List<DocumentContribution>,
   onCloseTab: (NavKey) -> Unit,
   onRenameTab: (NavKey) -> Unit,
   onSaveTabAs: (NavKey) -> Unit,
@@ -293,7 +298,7 @@ private fun MainAreaTabStrip(
           // tabs after this one, in the strip's opening order.
           val toTheRight = tabs.dropWhile { it != tab }.drop(1)
           MainAreaTab(
-            key = tab,
+            icon = tabIcon(tab, documentContributions),
             // Live wins over static, in both its forms: a document's current path (`title.label`
             // follows `context.path`) and a terminal's reported OSC title (`title.label` again -
             // `widget.ts:487`). A rename landed while the document sat in the background still

@@ -53,6 +53,7 @@ import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.extension.api.DocumentContribution
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
@@ -100,6 +101,8 @@ fun RunningSidePanel(
   onOpenSession: (KernelSessionModel) -> Unit,
   onOpenTerminal: (TerminalSession) -> Unit,
   modifier: Modifier = Modifier,
+  /** What an extension's tab is drawn with, for its row's glyph - see [tabIcon]. */
+  documentContributions: List<DocumentContribution> = emptyList(),
   viewModel: RunningPanelViewModel = viewModel { RunningPanelViewModel(kernelSessions, terminalGateway) },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -153,7 +156,7 @@ fun RunningSidePanel(
       ) {
         openTabs.forEach { tab ->
           RunningRow(
-            icon = tabIcon(tab.key),
+            icon = tabIcon(tab.key, documentContributions),
             label = tab.title,
             detail = null,
             openDescription = "Open tab: ${tab.title}",

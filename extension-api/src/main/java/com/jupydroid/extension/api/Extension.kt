@@ -19,6 +19,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 interface Extension {
   /** The panels this extension puts on the side rail, in the order it wants them. */
   val sidePanels: List<SidePanelContribution>
+
+  /** The kinds of file this extension opens as a main-area tab, by suffix; none unless it says. */
+  val documents: List<DocumentContribution> get() = emptyList()
 }
 
 /**
@@ -37,4 +40,28 @@ class SidePanelContribution(
   val label: String,
   val icon: ImageVector,
   val content: @Composable (SidePanelHost) -> Unit,
+)
+
+/**
+ * A tab for the main area, opened for every file whose name ends in [suffix], as jupyter-chat's
+ * widget factory is `defaultFor: ['chat']` (jupyter-chat@2c224bc
+ * `packages/jupyterlab-chat-extension/src/index.ts`), so the explorer opens a `.chat` as a chat.
+ *
+ * A `@Composable` body framed by the host, for the reason [SidePanelContribution] is (ADR-0105).
+ *
+ * ```
+ * DocumentContribution("ai.chat", ".chat", icon) { path, host -> ChatPanel(chatFor(host.server, path), …) }
+ * ```
+ *
+ * @param id unique across every extension, and stable: the tab is saved by it.
+ * @param suffix the file name ending this opens, matched in any case, with its dot: `".chat"`.
+ * @param icon the tab's glyph, beside its file name.
+ * @param content the tab's body, given the file's path relative to the workspace root and what the
+ *   shell gives a panel.
+ */
+class DocumentContribution(
+  val id: String,
+  val suffix: String,
+  val icon: ImageVector,
+  val content: @Composable (path: String, host: SidePanelHost) -> Unit,
 )

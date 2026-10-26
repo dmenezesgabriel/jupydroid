@@ -121,6 +121,7 @@ fun MainNavigation(
       onCloseTab = closeTab,
       onOpenDocument = openDocument,
       documentCheckpoints = spacePorts.documentCheckpoints,
+      documentContributions = appContainer.documentContributions,
       content = content,
     )
   }
@@ -131,6 +132,7 @@ fun MainNavigation(
   // widget's). Saveable so a rotation does not send the launcher back to the root the explorer
   // left.
   var browsedDirectory by rememberSaveable { mutableStateOf("") }
+  val contributionHost = rememberContributionHost(appContainer, spacePorts, browsedDirectory, activeCell, openDocument)
 
   /**
    * Whether the launcher on top of the stack got there by `maybeCreate` rather than by a tap.
@@ -165,10 +167,7 @@ fun MainNavigation(
   // point at a pane that is not there. The document's path comes from `openDocumentPaths` rather
   // than from the key, because a rename moves the file and the key keeps the path it was opened
   // under - and now that several editors can sit in the stack, each reports its own.
-  val openDocumentPath = when (val top = backStack.lastOrNull()) {
-    is Editor, is FileEditor -> top.liveDocumentPath(openDocumentPaths)
-    else -> null
-  }.takeIf { twoPane }
+  val openDocumentPath = backStack.lastOrNull()?.liveDocumentPath(openDocumentPaths).takeIf { twoPane }
   // The scene strategy measures the window for itself, so a caller that was *told* how many panes
   // to draw has to be able to overrule it - otherwise `twoPane` would decide the row marking above
   // and not the layout, and the two would disagree. Same boolean, both halves.
@@ -360,6 +359,7 @@ fun MainNavigation(
             browsedDirectory = browsedDirectory,
           )
         }
+        contributedDocumentEntry(appContainer.documentContributions, contributionHost, tabbedPane)
         entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
           // No onBack, no width fact: leaving a document is the strip's own act now - the ✕ at
           // two panes, the destination-named arrow below - so a screen states only its content.

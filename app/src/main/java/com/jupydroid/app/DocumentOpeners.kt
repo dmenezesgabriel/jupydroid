@@ -15,6 +15,7 @@ import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.import.SharedNotebook
+import com.jupydroid.extension.api.DocumentContribution
 import kotlinx.coroutines.launch
 
 /**
@@ -34,8 +35,18 @@ import kotlinx.coroutines.launch
  * old one, and a file recreated at the old name opens a tab of its own, under the lowest
  * [DocumentOpening.ordinal] no open tab on that path holds (`RecreatedPathOpeningTest`). The tab
  * revealed keeps its own kind, so a notebook renamed to `.py` still reveals the notebook editor.
+ *
+ * A suffix an extension claims goes to that extension's tab first ([claiming]), as a factory
+ * `defaultFor` a file type outranks the file editor's default. Its key is the path itself, so
+ * [openInMainArea] reveals it where the tab is already open.
  */
-internal fun MutableList<NavKey>.openDocument(path: String, openDocuments: OpenDocuments) {
+internal fun MutableList<NavKey>.openDocument(
+  path: String,
+  openDocuments: OpenDocuments,
+  documentContributions: List<DocumentContribution> = emptyList(),
+) {
+  val contributed = documentContributions.claiming(path)
+  if (contributed != null) return openInMainArea(ContributedDocument(contributed.id, path))
   val open = firstOrNull { it.livePathIn(openDocuments) == path }
   if (open != null) return openInMainArea(open)
   val opening = unusedOpeningOf(path)
@@ -93,7 +104,7 @@ internal fun rememberDocumentOpener(
   openDocuments: OpenDocuments,
 ): (String) -> Unit = remember(backStack, appContainer, openDocuments) {
   { path ->
-    backStack.openDocument(path, openDocuments)
+    backStack.openDocument(path, openDocuments, appContainer.documentContributions)
     val ports = appContainer.portsOf(backStack.enteredSpaceId())
     appContainer.applicationScope.launch { ports.recentDocuments.recordOpening(path) }
     appContainer.applicationScope.launch { ports.documentCheckpoints.checkpointIfNone(path) }

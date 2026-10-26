@@ -114,13 +114,14 @@ fun NavKey.livePathIn(openDocuments: OpenDocuments): String? =
 fun NavKey.mainAreaTabTitle(liveDocumentPaths: Map<NavKey, String>): String = when (this) {
   is Editor -> liveDocumentPath(liveDocumentPaths)!!.substringAfterLast('/')
   is FileEditor -> liveDocumentPath(liveDocumentPaths)!!.substringAfterLast('/')
+  is ContributedDocument -> path.substringAfterLast('/')
   is Terminal -> "Terminal $name"
   is Console -> title
   Launcher -> "Launcher"
   Settings -> "Settings"
   else -> error(
     "mainAreaTabTitle: $this is not a main-area key " +
-      "(Editor|FileEditor|Terminal|Console|Launcher|Settings)",
+      "(Editor|FileEditor|ContributedDocument|Terminal|Console|Launcher|Settings)",
   )
 }
 

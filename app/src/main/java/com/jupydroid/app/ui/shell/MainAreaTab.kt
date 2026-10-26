@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.Console
+import com.jupydroid.app.ContributedDocument
 import com.jupydroid.app.Editor
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.Launcher
@@ -53,6 +54,7 @@ import com.jupydroid.app.Terminal
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.DirtyMarker
+import com.jupydroid.extension.api.DocumentContribution
 
 /**
  * One `lm-TabBar-tab`: the kind's icon, the `title.label`, and the close icon that swaps for the
@@ -73,7 +75,8 @@ import com.jupydroid.app.ui.DirtyMarker
  */
 @Composable
 internal fun MainAreaTab(
-  key: NavKey,
+  /** `title.icon` - see [tabIcon]. */
+  icon: ImageVector,
   title: String,
   document: OpenDocument?,
   active: Boolean,
@@ -124,7 +127,7 @@ internal fun MainAreaTab(
         .padding(start = Spacing.sm, end = Spacing.xs),
     ) {
       Icon(
-        imageVector = tabIcon(key),
+        imageVector = icon,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.size(TAB_ICON),
@@ -228,14 +231,17 @@ internal fun MainAreaTab(
  * `title.icon` - the kind's own glyph (its `filetype` SVG), in the Material equivalents the app
  * draws. `internal` because the Running panel's Open Tabs row wears the same one - `OpenTab.icon()`
  * returns `widget.title.icon`, the strip's own property (`running-extension/src/opentabs.ts:110-112`).
+ * A contributed document wears the glyph its contribution gave, found by the id its key carries.
  */
-internal fun tabIcon(key: NavKey): ImageVector = when (key) {
+internal fun tabIcon(key: NavKey, documentContributions: List<DocumentContribution>): ImageVector = when (key) {
   is Editor -> Icons.AutoMirrored.Filled.MenuBook
   is FileEditor -> Icons.AutoMirrored.Filled.InsertDriveFile
   is Terminal -> Icons.Filled.Terminal
   is Console -> Icons.Filled.Code
   Launcher -> Icons.AutoMirrored.Filled.OpenInNew
   Settings -> Icons.Filled.Settings
+  is ContributedDocument -> documentContributions.find { it.id == key.contributionId }?.icon
+    ?: Icons.AutoMirrored.Filled.InsertDriveFile
   else -> Icons.AutoMirrored.Filled.InsertDriveFile
 }
 

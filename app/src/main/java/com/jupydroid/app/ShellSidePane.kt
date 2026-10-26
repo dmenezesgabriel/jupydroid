@@ -19,7 +19,6 @@ import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.shell.ContributedSidePanel
 import com.jupydroid.app.ui.shell.DebuggerSidePanel
-import com.jupydroid.app.ui.shell.RichTextMarkdownRenderer
 import com.jupydroid.app.ui.shell.RunningSidePanel
 import com.jupydroid.app.ui.shell.SearchSidePanel
 import com.jupydroid.app.ui.shell.SidePanelBar
@@ -27,8 +26,6 @@ import com.jupydroid.app.ui.shell.TableOfContentsSidePanel
 import com.jupydroid.app.ui.shell.WorkspaceReplace
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.extension.api.SidePanelHost
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.plus
 
 /**
  * The shell's side pane: the one panel it is showing, and - where it is the whole window - the bar
@@ -136,22 +133,10 @@ fun ShellSidePane(
       val contributed = (showingPanel as? ShownPanel.Contributed)
         ?.let { shown -> appContainer.sidePanelContributions.find { it.id == shown.id } }
       if (contributed != null) {
-        val fileOpener = remember(spacePorts.workspaceFiles, openDocument) {
-          EditorWorkspaceFileOpener(
-            spacePorts.workspaceFiles,
-            appContainer.applicationScope + Dispatchers.Main,
-            openDocument,
-          )
-        }
-        val host = SidePanelHost(
-          browsedDirectory,
-          spacePorts.extensionServer,
-          spacePorts.space.id,
-          RichTextMarkdownRenderer,
-          activeCell,
-          fileOpener,
+        ContributedSidePanel(
+          contributed,
+          rememberContributionHost(appContainer, spacePorts, browsedDirectory, activeCell, openDocument),
         )
-        ContributedSidePanel(contributed, host)
       }
       when ((showingPanel as? ShownPanel.Shell)?.panel) {
         SidePanel.TABLE_OF_CONTENTS -> TableOfContentsSidePanel(outline = outline.current)
@@ -172,6 +157,7 @@ fun ShellSidePane(
             onSaveAllTabs = onSaveAllTabs,
             onOpenSession = onOpenSession,
             onOpenTerminal = onOpenTerminal,
+            documentContributions = appContainer.documentContributions,
           )
         SidePanel.SEARCH ->
           SearchSidePanel(
