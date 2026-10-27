@@ -7,12 +7,14 @@ package com.jupydroid.extensions.ai.domain
  *   of the body each time.
  * @param fromMe whether the user of this app sent it, rather than an agent.
  * @param toolCalls the agent's tool calls this message holds, in the order it made them.
+ * @param sender the username it was sent by, an agent's being its persona id; null where none is known.
  */
 data class ChatMessage(
   val id: String,
   val body: String,
   val fromMe: Boolean,
   val toolCalls: List<ToolCall> = emptyList(),
+  val sender: String? = null,
 )
 
 /**
@@ -56,6 +58,7 @@ enum class ToolCallStatus { Running, Completed, Failed }
  * @param agentModels the models the chat's agent offers, as it last said; none until its session starts.
  * @param agentSettings the chat's agent's general settings, as it last said; none until its session starts.
  * @param agentCommands the chat's agent's slash commands, as it last said; none until it says them.
+ * @param senderNames each sender's name by username, from the chat's `users` map.
  */
 data class ChatTranscript(
   val messages: List<ChatMessage> = emptyList(),
@@ -63,16 +66,42 @@ data class ChatTranscript(
   val agentModels: AgentModels = AgentModels(),
   val agentSettings: List<AgentSetting> = emptyList(),
   val agentCommands: List<AgentCommand> = emptyList(),
+  val senderNames: Map<String, String> = emptyMap(),
 ) {
   /**
    * [messages] without those that have neither text nor a tool call: jupyter-ai's ACP client creates
    * every message of an agent's with an empty body, and one that holds the agent's tool calls keeps it,
    * the calls being in its metadata (`usr/lib/python3.12/site-packages/jupyter_ai_acp_client/tool_call_manager.py`
    * in the shipped rootfs). jupyter-chat draws one under its sender's name
-   * (jupyter-chat@9e02bb70 `packages/jupyter-chat/src/components/messages/messages.tsx`); a row here
-   * has no name above it, so one with nothing in it would be a blank bubble.
+   * (jupyter-chat@9e02bb70 `packages/jupyter-chat/src/components/messages/messages.tsx`); here one with
+   * nothing in it would be a blank bubble, and would stack the next of its sender's under no text.
    */
   val messagesShown: List<ChatMessage> get() = messages.filter { it.body.isNotEmpty() || it.toolCalls.isNotEmpty() }
+
+  /**
+   * Which agent wrote [message]: its sender's name, or its username while the `users` map names it not,
+   * as jupyter-chat falls back (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/messages/header.tsx`).
+   * Null for the user's own, which jupyter-chat draws with no name.
+   */
+  fun senderName(message: ChatMessage): String? {
+    if (message.fromMe) return null
+    return message.sender?.let { senderNames[it] ?: it }
+  }
+
+  /**
+   * The name drawn above each of [messagesShown], in its order: [senderName], unless the message shown
+   * before is the same sender's, which jupyter-chat then stacks it under with no name of its own
+   * (`packages/jupyter-chat/src/model.ts`, `stackMessages`, on by default in
+   * `packages/jupyterlab-chat-extension/schema/factory.json`).
+   */
+  val namesAbove: List<String?>
+    get() {
+      val shown = messagesShown
+      return shown.mapIndexed { index, message ->
+        val before = shown.getOrNull(index - 1)
+        if (before != null && !before.fromMe && before.sender == message.sender) null else senderName(message)
+      }
+    }
 
   /**
    * [message] in place of the one with its id, or beneath the others if it is new: jupyterlab-chat

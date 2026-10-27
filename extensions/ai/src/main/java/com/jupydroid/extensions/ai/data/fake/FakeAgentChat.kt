@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.ai.data.fake
 
+import com.jupydroid.extensions.ai.data.http.OPENCODE_PERSONA_ID
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.AgentCommand
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger
  * A chat already holding [history], whose agent answers each question in [replies] with the reply it
  * maps to and every other question with nothing; when [writing], its agent is writing a reply until
  * it is stopped. Its agent offers [models], [settings] and [commands], and switches to what a question is
- * asked with.
+ * asked with. Its agent is the persona the chat asks, named as the image's `users` map names it.
  *
  * What the panel talks to where the Space has no server, so it still opens and claims no answer
  * nobody gave: with nothing configured, a question goes unanswered.
@@ -41,7 +42,14 @@ class FakeAgentChat(
   commands: List<AgentCommand> = emptyList(),
 ) : AgentChat {
   private val shown = MutableStateFlow(
-    ChatTranscript(history, writing, agentModels = models, agentSettings = settings, agentCommands = commands),
+    ChatTranscript(
+      history,
+      writing,
+      agentModels = models,
+      agentSettings = settings,
+      agentCommands = commands,
+      senderNames = mapOf(OPENCODE_PERSONA_ID to "OpenCode"),
+    ),
   )
   private val collectors = AtomicInteger()
 
@@ -57,7 +65,9 @@ class FakeAgentChat(
     val asked = shown.value.messages.size
     shown.update { it.with(ChatMessage(id = "question-$asked", body = question, fromMe = true)) }
     val reply = replies[question] ?: return
-    shown.update { it.with(ChatMessage(id = "reply-$asked", body = reply, fromMe = false)) }
+    shown.update {
+      it.with(ChatMessage(id = "reply-$asked", body = reply, fromMe = false, sender = OPENCODE_PERSONA_ID))
+    }
   }
 
   /** Resolves [call] with [option] in the message holding it, as the server does once answered. */

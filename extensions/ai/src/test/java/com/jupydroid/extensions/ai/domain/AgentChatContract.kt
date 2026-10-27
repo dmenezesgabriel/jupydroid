@@ -55,6 +55,25 @@ abstract class AgentChatContract {
     assertEquals(listOf("hello?" to true, "hi" to false), answered.messages.map { it.body to it.fromMe })
   }
 
+  /** Each answer says which agent wrote it, whether the chat already held it or it was just asked. */
+  @Test
+  fun anAnswerIsNamedByTheAgentThatWroteIt() = withOpenChat(
+    chat(
+      history = listOf(ChatMessage(id = "b", body = "answered", fromMe = false, sender = OPENCODE)),
+      replies = mapOf(
+        "hello?" to "hi",
+      ),
+    ),
+  ) { chat, transcripts ->
+    transcripts.receive()
+
+    chat.ask("hello?")
+
+    val answered = transcripts.until { it.messages.size == 3 }
+    val names = answered.messages.map(answered::senderName)
+    assertEquals(listOf("OpenCode", null, "OpenCode"), names)
+  }
+
   @Test
   fun anOpenChatSaysWhichModelsItsAgentOffersAndWhichItUses() = withOpenChat(chat(models = MODELS)) { _, transcripts ->
     assertEquals(MODELS, transcripts.until { it.agentModels.choosable }.agentModels)
@@ -181,6 +200,9 @@ abstract class AgentChatContract {
     )
 
     val COMMANDS = listOf(AgentCommand("/compact", "compact the session"), AgentCommand("/init", null))
+
+    /** opencode's persona as the chat's `users` map names it (`base_persona.py`, `as_user`). */
+    const val OPENCODE = "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona"
 
     val ALLOW_ONCE = PermissionOption(id = "once", name = "Allow once", rejects = false)
     val REJECT = PermissionOption(id = "reject", name = "Reject", rejects = true)

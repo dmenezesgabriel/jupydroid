@@ -50,4 +50,40 @@ class ChatTranscriptTest {
 
     assertEquals(true, writing.with(ChatMessage(id = "r", body = "1", fromMe = false)).agentWriting)
   }
+
+  /** jupyter-chat names a sender by `display_name`, and draws no name above the reader's own message. */
+  @Test
+  fun anAnswerIsNamedByItsSenderAndAQuestionIsNot() {
+    val answer = ChatMessage(id = "r", body = "hi", fromMe = false, sender = OPENCODE)
+    val transcript = ChatTranscript(listOf(question, answer), senderNames = mapOf(OPENCODE to "OpenCode"))
+
+    assertEquals(listOf(null, "OpenCode"), transcript.messagesShown.map(transcript::senderName))
+  }
+
+  /** jupyter-chat stacks a message under the one before when both are the same sender's (`model.ts`). */
+  @Test
+  fun anAnswerUnderTheSameSendersShownOneIsNotNamedAgain() {
+    val calls = ChatMessage(id = "t", body = "", fromMe = false, sender = OPENCODE, toolCalls = listOf(read))
+    val empty = ChatMessage(id = "e", body = "", fromMe = false, sender = CLAUDE)
+    val answer = ChatMessage(id = "r", body = "done", fromMe = false, sender = OPENCODE)
+    val names = mapOf(OPENCODE to "OpenCode", CLAUDE to "Claude")
+    val transcript = ChatTranscript(listOf(question, calls, empty, answer), senderNames = names)
+
+    assertEquals(listOf(null, "OpenCode", null), transcript.namesAbove)
+  }
+
+  /** A sender the `users` map does not name yet is named by its username, as jupyter-chat falls back. */
+  @Test
+  fun aSenderWithNoNameYetIsNamedByItsUsername() {
+    val answer = ChatMessage(id = "r", body = "hi", fromMe = false, sender = OPENCODE)
+
+    assertEquals(OPENCODE, ChatTranscript(listOf(answer)).senderName(answer))
+  }
+
+  private val read = ToolCall(id = "c", title = "probe.txt", status = ToolCallStatus.Completed)
+
+  private companion object {
+    const val OPENCODE = "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona"
+    const val CLAUDE = "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona"
+  }
 }

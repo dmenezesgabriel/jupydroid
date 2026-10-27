@@ -26,6 +26,7 @@ class ChatFramesTest {
         chatId = "02ef3329e61d445dbfb24985d749ba04",
         humans = setOf("0f7fbf88210940d7bc0811bf662d373e"),
         messages = emptyList(),
+        names = mapOf("0f7fbf88210940d7bc0811bf662d373e" to "Anonymous Leda"),
       ),
       frame,
     )
@@ -42,6 +43,14 @@ class ChatFramesTest {
     assertEquals(setOf("7e0614b6251348fe8361f4254fed2f73", "b80d82e1618d4c79b80c1923f0c241a9"), frame.humans)
   }
 
+  /** The `.chat` file keeps its `users`, so after a relaunch each persona is still named (`ychat.py`). */
+  @Test
+  fun theConnectionFrameNamesEachSenderByItsDisplayName() {
+    val frame = ChatFrames.parse(resource("connection-after-a-relaunch.json")) as ServerFrame.Connection
+
+    assertEquals("OpenCode", frame.names[OPENCODE_PERSONA_ID])
+  }
+
   /** Shaped as `ServerMessageMessage` serializes a persona's `Message` (jupyterlab_chat 0.25.2 `ws_messages.py`). */
   @Test
   fun aMessageFrameCarriesOneMessageAndWhoSentIt() {
@@ -53,6 +62,14 @@ class ChatFramesTest {
       sender = OPENCODE_PERSONA_ID,
     )
     assertEquals(ServerFrame.Message(expected), frame)
+  }
+
+  /** The sender is kept by its username, which the `users` map then names. */
+  @Test
+  fun aPersonasMessageKeepsItsSender() {
+    val frame = ChatFrames.parse(resource("message-from-the-persona.json")) as ServerFrame.Message
+
+    assertEquals(OPENCODE_PERSONA_ID, frame.message.toChatMessage(humans = emptySet()).sender)
   }
 
   /**
@@ -154,13 +171,33 @@ class ChatFramesTest {
     assertEquals(ServerFrame.Other, ChatFrames.parse(person))
   }
 
-  /** The second frame the tablet's server sent; nothing the panel draws comes from it. */
+  /**
+   * The second frame the tablet's server sent. A persona registering sends one too (jupyterlab_chat
+   * 0.25.2 `websocket_model.py`, `set_user`), so a sender is named even when it joined after the socket.
+   */
   @Test
-  fun everyOtherActionIsNothingToDraw() {
-    val users = """{"users": {"hidden::jupyter_ai_system": {"username": "hidden::jupyter_ai_system"}},""" +
+  fun aUsersFrameNamesTheUsersItAdds() {
+    val users = """{"users": {"hidden::jupyter_ai_system": {"username": "hidden::jupyter_ai_system",""" +
+      """ "name": "System", "display_name": "System", "bot": true}}, "type": "server", "action": "users"}"""
+
+    assertEquals(ServerFrame.Users(mapOf("hidden::jupyter_ai_system" to "System")), ChatFrames.parse(users))
+  }
+
+  /** jupyter-chat names a sender `display_name ?? name ?? username` (jupyter-chat@2c224bc `messages/header.tsx`). */
+  @Test
+  fun aUserWithNoDisplayNameIsNamedByItsNameAndThenItsUsername() {
+    val users = """{"users": {"a": {"username": "a", "name": "Ada"}, "b": {"username": "b"}},""" +
       """ "type": "server", "action": "users"}"""
 
-    assertEquals(ServerFrame.Other, ChatFrames.parse(users))
+    assertEquals(ServerFrame.Users(mapOf("a" to "Ada", "b" to "b")), ChatFrames.parse(users))
+  }
+
+  /** jupyterlab-chat sends a chat's metadata as it changes; nothing the panel draws comes from it. */
+  @Test
+  fun everyOtherActionIsNothingToDraw() {
+    val metadata = """{"metadata": {"id": "x"}, "type": "server", "action": "metadata"}"""
+
+    assertEquals(ServerFrame.Other, ChatFrames.parse(metadata))
   }
 
   @Test

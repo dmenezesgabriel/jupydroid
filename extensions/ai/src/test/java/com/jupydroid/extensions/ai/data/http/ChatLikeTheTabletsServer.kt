@@ -124,9 +124,14 @@ internal class ChatLikeTheTabletsServer(
       val messages = buildJsonArray {
         held.forEach { add(wire(it, if (it.fromMe) EARLIER_ME else PERSONA)) }
       }
-      val users = buildJsonObject { listOf(EARLIER_ME, ME, PERSONA).forEach { put(it, user(it)) } }
+      // The `.chat` file keeps the users who wrote in it (`ychat.py`); a persona that has not answered
+      // yet registers once the socket is open, and `set_user` broadcasts it (`websocket_model.py`).
+      val answered = held.any { !it.fromMe }
+      val known = listOf(EARLIER_ME, ME) + listOfNotNull(PERSONA.takeIf { answered })
+      val users = buildJsonObject { known.forEach { put(it, user(it)) } }
       val id = "id" to JsonPrimitive(CHAT_ID)
       webSocket.send(frame("connection", id, "user" to user(ME), "messages" to messages, "users" to users))
+      if (!answered) webSocket.send(frame("users", "users" to buildJsonObject { put(PERSONA, user(PERSONA)) }))
       events?.clientConnected()
       if (writing) webSocket.send(writingFrame(true))
       streamed.forEach { webSocket.send(frame("message", "message" to wire("streamed", it, PERSONA))) }
@@ -167,8 +172,10 @@ internal class ChatLikeTheTabletsServer(
   private fun writingFrame(state: Boolean): String =
     frame("writing", "user" to user(PERSONA), "state" to JsonPrimitive(state))
 
+  /** As `as_user` names a persona (`base_persona.py`) and the tablet's server named its anonymous users. */
   private fun user(username: String) = buildJsonObject {
     put("username", JsonPrimitive(username))
+    put("display_name", JsonPrimitive(if (username == PERSONA) "OpenCode" else "Anonymous Leda"))
     put("bot", JsonPrimitive(username == PERSONA))
   }
 

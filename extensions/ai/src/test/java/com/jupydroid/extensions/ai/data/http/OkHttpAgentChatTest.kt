@@ -71,6 +71,21 @@ class OkHttpAgentChatTest : AgentChatContract() {
     assertEquals("token secret-token", request.headers["Authorization"])
   }
 
+  /**
+   * On a chat nobody has written to, the persona is in no `users` map yet: it is named by the `users`
+   * frame that `set_user` broadcasts as it registers (jupyterlab_chat 0.25.2 `websocket_model.py`).
+   */
+  @Test
+  fun transcript_namesAPersonaThatRegisteredAfterTheSocketOpened() = runBlocking {
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(streamed = listOf("OpenCode"))
+
+    val named = withTimeout(TIMEOUT_MILLIS) {
+      chatUnderTest().transcript().first { it.messages.isNotEmpty() && OPENCODE_PERSONA_ID in it.senderNames }
+    }
+
+    assertEquals(listOf("OpenCode"), named.messages.map(named::senderName))
+  }
+
   /** A persona sends its answer once and then updates it by id as the agent's chunks arrive. */
   @Test
   fun transcript_showsAStreamedAnswerAsOneMessage() = runBlocking {

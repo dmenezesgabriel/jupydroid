@@ -199,6 +199,7 @@ class OkHttpAgentChat(
         is ServerFrame.Connection -> opened(webSocket, frame)
         is ServerFrame.Message -> fold.changed { it.with(frame.message.toChatMessage(humans)) }
         is ServerFrame.Writing -> writing(frame)
+        is ServerFrame.Users -> fold.changed { it.copy(senderNames = it.senderNames + frame.names) }
         ServerFrame.Other -> return
       }
     }
@@ -225,7 +226,8 @@ class OkHttpAgentChat(
       // Open before the transcript says so: a collector may ask or stop on this thread as it is sent
       // (OkHttpAgentChatTest.stop_onTheFirstTranscriptFindsTheChatOpen).
       open = OpenChat(webSocket, connection.chatId)
-      fold.opened(connection.chatId, ChatTranscript(connection.messages.map { it.toChatMessage(humans) }))
+      val messages = connection.messages.map { it.toChatMessage(humans) }
+      fold.opened(connection.chatId, ChatTranscript(messages, senderNames = connection.names))
       out.launch { select(connection.chatId) }
     }
 

@@ -14,7 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -48,6 +48,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -213,6 +214,7 @@ private fun Messages(
   modifier: Modifier,
 ) {
   val shown = transcript.messagesShown
+  val names = transcript.namesAbove
   val list = rememberLazyListState()
   FollowTheNewest(list, shown)
   LazyColumn(
@@ -220,7 +222,12 @@ private fun Messages(
     modifier = modifier.fillMaxWidth().testTag("chat-messages"),
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    items(shown, key = ChatMessage::id) { message -> MessageRow(message, markdown, notebookCells, onChoose) }
+    itemsIndexed(shown, key = { _, message -> message.id }) { index, message ->
+      Column {
+        names[index]?.let { SenderName(it) }
+        MessageRow(message, markdown, notebookCells, onChoose)
+      }
+    }
   }
 }
 
@@ -268,6 +275,21 @@ private fun FollowTheNewest(list: LazyListState, shown: List<ChatMessage>) {
 private suspend fun LazyListState.scrollToTheEnd(shown: List<ChatMessage>) {
   // An offset past the item's end is clamped to the list's end, which is the item's last line.
   if (shown.isNotEmpty()) scrollToItem(shown.lastIndex, Int.MAX_VALUE)
+}
+
+/**
+ * Which agent wrote the message beneath: jupyter-chat's header, the name at weight 700 in the first font
+ * colour (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/messages/header.tsx`).
+ */
+@Composable
+private fun SenderName(name: String) {
+  Text(
+    name,
+    style = MaterialTheme.typography.labelLarge,
+    fontWeight = FontWeight.Bold,
+    color = MaterialTheme.colorScheme.onSurface,
+    modifier = Modifier.padding(bottom = 4.dp).testTag("chat-sender"),
+  )
 }
 
 /**

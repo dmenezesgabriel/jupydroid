@@ -36,6 +36,7 @@ internal data class WireMessage(
     body = body,
     fromMe = sender in humans,
     toolCalls = metadata.toolCalls.map(WireToolCall::toToolCall),
+    sender = sender,
   )
 }
 
@@ -95,7 +96,7 @@ internal data class WirePermissionOption(@SerialName("option_id") val id: String
   fun toPermissionOption(): PermissionOption = PermissionOption(id = id, name = name, rejects = "reject" in kind)
 }
 
-/** What the panel draws from a server frame; `users` and `metadata` draw nothing yet. */
+/** What the panel draws from a server frame; `metadata` draws nothing yet. */
 internal sealed interface ServerFrame {
   /**
    * @param chatId the chat's stable id (jupyterlab_chat `websocket_model.py`, `get_id`, in the shipped
@@ -105,8 +106,21 @@ internal sealed interface ServerFrame {
    *   login cookie gets `generate_anonymous_user`, a new `uuid4` (jupyter_server 2.20.0
    *   `auth/identity.py`, `IdentityProvider.get_user_token`). So the question asked before a relaunch
    *   is an earlier user's, and only `bot` tells it from a persona's answer (ADR-0106).
+   * @param names every user the chat knows, by username, named as jupyter-chat names a sender.
    */
-  data class Connection(val chatId: String, val humans: Set<String>, val messages: List<WireMessage>) : ServerFrame
+  data class Connection(
+    val chatId: String,
+    val humans: Set<String>,
+    val messages: List<WireMessage>,
+    val names: Map<String, String>,
+  ) : ServerFrame
+
+  /**
+   * Users added to the chat's map, a persona among them as it registers: `set_user` broadcasts each
+   * (jupyterlab_chat 0.25.2 `websocket_model.py`, in the shipped rootfs), so a persona that joins
+   * after the socket opened is still named.
+   */
+  data class Users(val names: Map<String, String>) : ServerFrame
 
   data class Message(val message: WireMessage) : ServerFrame
 
@@ -143,8 +157,9 @@ internal object ChatFrames {
     val user = frame?.user
     return when {
       frame?.action == "connection" && user != null && frame.id != null ->
-        ServerFrame.Connection(frame.id, frame.humans() + user.username, frame.messages)
+        ServerFrame.Connection(frame.id, frame.humans() + user.username, frame.messages, frame.names())
       frame?.action == "message" && frame.message != null -> ServerFrame.Message(frame.message)
+      frame?.action == "users" -> ServerFrame.Users(frame.names())
       frame?.action == "writing" && user?.bot == true -> ServerFrame.Writing(user.username, frame.state)
       frame != null && frame.action !in TRANSCRIPT_ACTIONS -> ServerFrame.Other
       else -> throw AgentChatException(
@@ -198,7 +213,18 @@ private data class IncomingFrame(
   val users: Map<String, FrameUser> = emptyMap(),
 ) {
   fun humans(): Set<String> = users.values.filterNot { it.bot }.mapTo(mutableSetOf()) { it.username }
+
+  fun names(): Map<String, String> = users.values.associate { it.username to it.shownName() }
 }
 
+/** A `jupyterlab_chat.models.User`; a persona's `display_name` is its name (`base_persona.py`, `as_user`). */
 @Serializable
-private data class FrameUser(val username: String, val bot: Boolean = false)
+private data class FrameUser(
+  val username: String,
+  val bot: Boolean = false,
+  val name: String? = null,
+  @SerialName("display_name") val displayName: String? = null,
+) {
+  /** jupyter-chat's `display_name ?? name ?? username` (jupyter-chat@2c224bc `messages/header.tsx`). */
+  fun shownName(): String = displayName ?: name ?: username
+}
