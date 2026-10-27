@@ -60,6 +60,11 @@ class JupyterServerLauncher(
    * already checked against the Space's catalogue (`data/disk/DiskKernelSpecs.kt`).
    */
   private val defaultKernelFor: suspend (Space) -> String = { DEFAULT_KERNEL_ID },
+  /**
+   * A free loopback port for the Space's MCP server - asked once per [start], like [settingsFor], and
+   * as late as it can be, just before the server starts, so another process has the least time to take it.
+   */
+  private val mcpPortFor: () -> Int = ::freeLoopbackPort,
   private val startTimeout: Duration = START_TIMEOUT,
   private val startupScriptTimeout: Duration = STARTUP_SCRIPT_TIMEOUT,
   private val stopTimeout: Duration = STOP_TIMEOUT,
@@ -94,8 +99,8 @@ class JupyterServerLauncher(
     }
     runStartupScript(runtime, dirs.runtime, settings.startupScript)
     val started = withContext(ioDispatcher) {
-      jupyterServerProcess(runtime, dirs.runtime, dirs.inRoot(dirs.workspace), token, settings, defaultKernel)
-        .start()
+      val rootDir = dirs.inRoot(dirs.workspace)
+      jupyterServerProcess(runtime, dirs.runtime, rootDir, token, settings, defaultKernel, mcpPortFor()).start()
     }
     process = started
     val reported = awaitConnection(dirs.runtime) ?: failStart(started, dirs.runtime)
@@ -218,6 +223,7 @@ internal fun jupyterServerProcess(
   token: String,
   settings: SpaceSettings,
   defaultKernel: String,
+  mcpPort: Int,
 ): ProcessBuilder = runtime.processBuilder(
   // JUPYTER_RUNTIME_DIR and the faulthandler both come from SpaceRuntime.environment(),
   // so every Space process - not just the server - agrees on where runtime files live.
@@ -227,7 +233,7 @@ internal fun jupyterServerProcess(
   // downstream is written against that. A terminal is the client that proves it: `PtyWithClients`
   // inherits this cwd whenever the POST carries none (`terminado/management.py:225-232`). See
   // [JupyterServerWorkingDirTest].
-  jupyterServerArgs(rootDir, token, settings.idleShutdownMinutes, defaultKernel),
+  jupyterServerArgs(rootDir, token, settings.idleShutdownMinutes, defaultKernel, mcpPort),
 )
   .redirectErrorStream(true)
   .redirectOutput(jupyterServerLogFile(runtimeDir))
@@ -248,9 +254,10 @@ internal fun jupyterServerArgs(
   token: String,
   idleShutdownMinutes: Int,
   defaultKernel: String = DEFAULT_KERNEL_ID,
+  mcpPort: Int = UPSTREAM_MCP_PORT,
 ): List<String> = listOf(
   "-m", "jupyter_server",
-  "--ServerApp.ip=127.0.0.1",
+  "--ServerApp.ip=$LOOPBACK_HOST",
   "--ServerApp.port=0", // the OS picks; the runtime file reports what was bound
   "--ServerApp.root_dir=$rootDir",
   // proot's `-0` makes every process see uid 0, which `apk add` needs, and jupyter_server refuses
@@ -306,4 +313,35 @@ internal fun jupyterServerArgs(
   //   adb shell run-as com.jupydroid.app cat files/spaces/base/run/jupyter_server.log
   // Drop it to INFO when the app is feature-complete, not before.
   "--ServerApp.log_level=DEBUG",
+) + mcpServerArgs(token, mcpPort)
+
+/**
+ * jupyter-server-mcp's port, and the entry that points the agent at it.
+ *
+ * The port is picked per launch because upstream's fixed default, [UPSTREAM_MCP_PORT], is one port
+ * for every Space, and a second Space running at once fails to bind it. The host is pinned because
+ * `MCPServer.host` defaults to `localhost`, for which uvicorn binds IPv4 and IPv6 separately
+ * (`usr/lib/python3.12/site-packages/jupyter_server_mcp/mcp_server.py` `_capture_bound_port`); on
+ * [LOOPBACK_HOST] it binds the port [freeLoopbackPort] found free.
+ *
+ * The persona manager's own entry is `http://localhost:<mcp_port>/mcp` with no headers
+ * (`usr/lib/python3.12/site-packages/jupyter_ai_persona_manager/persona_manager.py`
+ * `_default_builtin_mcp_servers` in the shipped rootfs), and the image's MCP middleware refuses any
+ * caller without the server's token (`usr/lib/python3.12/site-packages/jupydroid_mcp_bearer.py`).
+ * So the entry is set whole, header included. traitlets 5.16.1 reads a list of dicts from the command
+ * line only as a Python literal (`Container.from_string_list`, `literal_eval`); the token is hex, so
+ * it needs no quoting.
+ */
+private fun mcpServerArgs(token: String, mcpPort: Int): List<String> = listOf(
+  "--MCPExtensionApp.mcp_port=$mcpPort",
+  "--MCPServer.host=$LOOPBACK_HOST",
+  "--PersonaManager.builtin_mcp_servers=[{'type': 'http', 'name': '$MCP_SERVER_NAME', " +
+    "'url': 'http://$LOOPBACK_HOST:$mcpPort/mcp', " +
+    "'headers': [{'name': 'Authorization', 'value': 'Bearer $token'}]}]",
 )
+
+/** `MCPExtensionApp.mcp_port`'s default (`usr/lib/python3.12/site-packages/jupyter_server_mcp/extension.py`). */
+private const val UPSTREAM_MCP_PORT = 3001
+
+/** `MCPExtensionApp.mcp_name`'s default, which the persona manager's own entry also uses. */
+private const val MCP_SERVER_NAME = "Jupyter MCP Server"

@@ -59,5 +59,6 @@ class JupyterServerWorkingDirTest {
     token = "t",
     settings = SpaceSettings(),
     defaultKernel = "python3",
+    mcpPort = 41234,
   )
 }

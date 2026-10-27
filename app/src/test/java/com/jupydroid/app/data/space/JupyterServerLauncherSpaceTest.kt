@@ -40,6 +40,9 @@ class JupyterServerLauncherSpaceTest {
   /** What the launcher's `defaultKernelFor` answers right now - a test changes it between starts. */
   private var spaceOneDefaultKernel = "python3"
 
+  /** What the launcher's `mcpPortFor` answers right now - a test changes it between starts. */
+  private var spaceOneMcpPort = 41234
+
   /**
    * Killed by pid rather than through `stop()`: nothing answers `api/shutdown` at the port these
    * fakes report, so `stop()` would wait out its whole timeout. `JupyterServerLauncherStopTest`
@@ -84,6 +87,24 @@ class JupyterServerLauncherSpaceTest {
 
     assertTrue(first.toString(), "--MappingKernelManager.default_kernel_name=python3" in first)
     assertTrue(serverArgs().toString(), "--MappingKernelManager.default_kernel_name=stats" in serverArgs())
+  }
+
+  /**
+   * A port is picked at each start, never once per launcher: two Spaces run at once, and a port
+   * fixed for both fails the second one's bind.
+   */
+  @Test
+  fun eachStartGivesTheMcpServerThePortPickedThen() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    launcher.start(spaceOne)
+    val first = serverArgs()
+    killSpaceOnesServer()
+
+    spaceOneMcpPort = 41235
+    launcher.start(spaceOne)
+
+    assertTrue(first.toString(), "--MCPExtensionApp.mcp_port=41234" in first)
+    assertTrue(serverArgs().toString(), "--MCPExtensionApp.mcp_port=41235" in serverArgs())
   }
 
   /**
@@ -232,6 +253,7 @@ class JupyterServerLauncherSpaceTest {
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
       settingsFor = { spaceOneSettings },
       defaultKernelFor = { spaceOneDefaultKernel },
+      mcpPortFor = { spaceOneMcpPort },
       startTimeout = 10.seconds,
     )
   }
