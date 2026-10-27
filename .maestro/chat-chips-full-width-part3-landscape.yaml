@@ -1,7 +1,8 @@
 appId: com.jupydroid.app
 ---
 # The third of the three flows scripts/chat-chips-full-width-driver.sh runs, after the driver turns the
-# tablet to landscape, where the Chat is a side panel beside the editor: the same chips at a narrower width.
+# tablet to landscape, where the Chat is a side panel beside the editor: too narrow for the chips' whole
+# names, so they fold into one chip naming the model, whose description names every value.
 #
 # The turn relaunches the activity, and a chat that has asked nothing has no question to read its agent
 # back from, so the chip asks again and OpenCode is picked again.
@@ -15,8 +16,20 @@ appId: com.jupydroid.app
     timeout: 10000
 - tapOn: "OpenCode"
 - extendedWaitUntil:
-    visible: "build"
+    visible: "Agent: OpenCode, Model: .*: build.*"
     timeout: 300000
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: 03-opencode-chips-side-panel
+- tapOn: "Agent: OpenCode, Model: .*: build.*"
+- extendedWaitUntil:
+    visible: "plan"
+    timeout: 10000
+- assertVisible: "Search models"
+- takeScreenshot: 04-one-menu-every-control
+- tapOn: "plan"
+- extendedWaitUntil:
+    visible: "Agent: OpenCode, Model: .*: plan.*"
+    timeout: 10000
+- assertNotVisible: "Search models"
+- takeScreenshot: 05-plan-picked-in-one-tap
