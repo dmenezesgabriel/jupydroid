@@ -1805,7 +1805,26 @@ failed with "Failed to authorize: Unable to connect", the same on two runs. Earl
 console login` failed the same way when approved from a browser that covered the app ("Could not
 reach POST https://opencode.ai/console/auth/device/token", opencode 1.19.3), and succeeded from a
 pop-up window that left the app on screen. A sign-in that waits while the user is in the browser, as
-every device flow does, cannot finish on this tablet. This is the measured cost of
+every device flow does, cannot finish on this tablet.
+
+Claude Code's sign-in fails the same way, by both of its routes. This is the native `claude`
+2.1.310 that `@agentclientprotocol/claude-agent-acp` 0.97.0 bundles
+(`node_modules/@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude`), run as `claude auth login`
+in base's terminal on SM-X216B on 2026-10-27.
+- **Callback route.** With Chrome full screen over the app, the browser reached the CLI's
+  `localhost` callback and showed "You're all set up". The CLI then printed
+  `Login failed: getaddrinfo EAI_AGAIN platform.claude.com`, on two runs.
+- **Paste route.** After coming back from the browser, the code typed at "Paste code here if
+  prompted >" never reached the prompt, by `adb shell input text` or by Maestro's `inputText`.
+
+Neither is the terminal's fault, nor Claude's. With the app kept in front, a code typed into the
+same prompt was answered (`Login failed: Request failed with status code 400` for a bogus one, so its
+DNS resolved too). Bytes also reached a plain `read` and a `stty raw` reader in the same terminal.
+With Chrome opened over the app as a freeform window (`am start --windowingMode 5`), the callback
+route printed `Login successful.` and wrote `~/.claude/.credentials.json`.
+
+So, until this gap is repaired, a person signing Claude in has to keep the app on screen. The
+pop-up does that; a full-screen browser does not, and the CLI's error does not say why. This is the measured cost of
 [ADR-0075](adr/0075-several-spaces-run-at-once-each-with-its-own-server.md)'s "no foreground
 service". Termux keeps its sessions in one, with a notification
 (termux-app@3df69d1d `app/src/main/java/com/termux/app/TermuxService.java`, `startForeground`), which
@@ -1845,6 +1864,44 @@ the open terminals (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.p
 stopped, and it counts an open terminal as activity. What stopped base was not captured: the server
 log and logcat were not read before the relaunch. The repair starts by reproducing it with both
 captured. The tab should then either keep its shell or say it ended and offer to start a new one.
+
+### GAP-182 — The instrumented suite does not run clean on the dev36 emulator
+
+On 2026-10-27, the whole `androidTest` suite was run on `dev36` alone. It was installed with
+`adb -s` and run with `am instrument`, so the tablet's install was left alone. Its result is not a
+gate anyone can trust yet, for four reasons:
+
+1. **The headless emulator crashed mid-suite.** `emulator -avd dev36 -no-window` aborted inside
+   `EditorTopBarTest` with `qemu-system-x86_64-headless: … lvp_device.c:2507: VkResult
+   lvp_GetMemoryFdKHR(…): Assertion '*pFD >= 0' failed`. No later class ran. With
+   `-gpu swiftshader_indirect`, 264 tests in `com.jupydroid.app.ui.shell` ran to the end.
+2. **`TabCloseSiblingsTest` fails at HEAD as well.** `closeAllOtherTabsLeavesThePressedTabAlone`
+   and `closeTabsToRightClosesOnlyTheTabsAfterThePressedOne` find no "Close All Other Tabs" or
+   "Close Tabs to Right" node. They fail the same way on a build of the commit before the change
+   being tested.
+3. **About a dozen tests fail on window size or layout.** These ran before the crash, and none of
+   them was re-run at HEAD:
+   - `DeletedTabTest` (both)
+   - `LauncherAutoCreateTest.closingTheLastDocumentRefillsTheMainAreaAtTwoPanes`
+   - `MultiDocumentNavigationTest` (two)
+   - `OpenDocumentMarkingTest` (two)
+   - `RecreatedPathTabTest`
+   - `RenamedTabBeneathTest`
+   - `SpacesHomeNavigationTest.anImportOpensInsideTheWorkspace`
+   - `TabStripRecreationTest` (three)
+   - `TerminalPaneScreenTest.theTerminalShrinksByRoughlyOneKeyboardsWorthOfRowsNotTwo`
+   - `ConsoleInputRowTest.theInputFieldFillsMostOfTheRowRatherThanItsOwnIntrinsicWidth`
+   - `CellOutputImageTest.anImageTooLargeToDrawWholeDrawsShrunkToTheColumn` (`expected:<600.0>
+     but was:<320.0>`)
+
+   The emulator's display was 320×640 (`setDisplayActiveConfig: id:0, 320x640`).
+4. **Window-focus flakes.** `ChatSidePanelTest.aQuestionSentAppearsWithTheAgentsAnswerBeneathIt` and
+   `SidePanelBarTest.backClosesTheRailWithoutActing` failed with Espresso's
+   `RootViewWithoutFocusException` from `closeSoftKeyboard`, then passed when re-run alone.
+
+The repair starts by running the classes in items 2 and 3 at HEAD with `-gpu swiftshader_indirect`,
+to split real defects from tests that assume a wider window. Each one is then either fixed or marked
+for the window it needs.
 
 ---
 
