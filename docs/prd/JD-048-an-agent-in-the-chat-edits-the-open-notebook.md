@@ -135,10 +135,12 @@ host-side and asks you to accept them. The question for us is which half the app
   `tools/rootfs/mcp_lazy_import_patch.py` defers `MCPServer`'s import into `start_extension`. Now it is
   within 0.2 s of before, and the MCP server comes up about 6 s after the server reports running. T2's
   flow must therefore wait for the MCP server, not just for the server.
-- **One events socket or one per chat.** Today the subscription is opened per chat. A command arrives
-  while a chat is open, but a second subscriber would ack twice. T4 settles it with a test. Measured
-  in T2: the chat's socket alone is enough for the toolkit to emit, so with no ack every command costs
-  `ack_timeout` (2 s), and `insert_cell` (two commands) took 4 s to fail.
+- **Settled: one events socket per chat, one web client.** The toolkit keeps the first result and
+  ignores the rest (`tools.py` `handle_command_result`), so a second socket that ran a command would insert
+  twice. One `LabCommandWebClient` per `AiExtension` lets only the first socket to take a `requestId` run
+  it (`OkHttpAgentChatLabCommandsTest.twoOpenChatsRunACommandOnce`). A command is answered only while a
+  chat is collecting; the agent's turn is started from one. On SM-X216B the two commands were answered
+  35 ms apart, where T2 waited out `ack_timeout` for each.
 
 ## Surface
 
@@ -167,7 +169,7 @@ holds.
   client acknowledged the command" (`not_acknowledged`: the app's events socket already subscribes)
 - [x] T3 — `:extension-api` exposes the open notebook's path, cells and active cell, and inserts a cell
   of a type at an index; `:app` implements it over `NotebookCellEdits`
-- [ ] T4 — The AI extension answers `get-notebook-info` and `add-cell` from the events socket (ack, then
+- [x] T4 — The AI extension answers `get-notebook-info` and `add-cell` from the events socket (ack, then
   result through `POST /api/events`) and refuses anything else. The agent's cell lands in the notebook on
   SM-X216B
 - [ ] T5 — The demo above on SM-X216B; a defect found is fixed red first
