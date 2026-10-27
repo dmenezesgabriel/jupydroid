@@ -1,5 +1,6 @@
 """The checks behind the Chat's tool-call drivers - see `chat_tool_call_reads.py` for why they exist."""
 
+import json
 import unittest
 
 from chat_tool_call_reads import (
@@ -8,6 +9,7 @@ from chat_tool_call_reads import (
     require_completed_call,
     require_answered_in_turn,
     require_called_with,
+    require_refused_with,
     require_stopped_short,
 )
 
@@ -169,3 +171,42 @@ class RequireCalledWithTest(unittest.TestCase):
         chat = [calls_message(mcp_call("completed", printed="marmalade-0000"))]
         with self.assertRaisesRegex(ChatReadError, "marmalade-0000"):
             require_called_with(chat, "quince_marmalade_code", "marmalade-7349")
+
+
+INSERT_CELL = "Jupyter_MCP_Server_insert_cell"
+REFUSAL = "other.ipynb is not the open notebook"
+
+
+def toolkit_result(success: bool, error: str = "", title: str = INSERT_CELL) -> dict[str, object]:
+    """A call whose output is a commands-toolkit result, as an MCP tool's call stores it: a JSON string."""
+    result = {"requestId": "r-1", "success": success} | ({"error": error} if error else {"result": {}})
+    return mcp_call("completed", title=title, printed=json.dumps(result))
+
+
+class RequireRefusedWithTest(unittest.TestCase):
+    def test_passes_when_the_named_call_returned_the_refusal(self):
+        chat = [calls_message(toolkit_result(False, f"{REFUSAL} (untitled.ipynb is)"))]
+        require_refused_with(chat, INSERT_CELL, REFUSAL)
+
+    def test_fails_when_the_call_succeeded(self):
+        with self.assertRaisesRegex(ChatReadError, INSERT_CELL):
+            require_refused_with([calls_message(toolkit_result(True))], INSERT_CELL, REFUSAL)
+
+    def test_fails_when_the_answer_holds_the_refusal_but_no_call_returned_it(self):
+        with self.assertRaisesRegex(ChatReadError, INSERT_CELL):
+            require_refused_with([QUESTION, answer(REFUSAL)], INSERT_CELL, REFUSAL)
+
+    def test_fails_when_another_tool_was_refused(self):
+        chat = [calls_message(toolkit_result(False, REFUSAL, title="read"))]
+        with self.assertRaisesRegex(ChatReadError, "read"):
+            require_refused_with(chat, INSERT_CELL, REFUSAL)
+
+    def test_fails_when_the_refusal_names_something_else(self):
+        chat = [calls_message(toolkit_result(False, "No active cell or invalid active cell index"))]
+        with self.assertRaisesRegex(ChatReadError, "No active cell"):
+            require_refused_with(chat, INSERT_CELL, REFUSAL)
+
+    def test_fails_when_the_output_is_no_toolkit_result(self):
+        chat = [calls_message(mcp_call("completed", title=INSERT_CELL, printed=REFUSAL))]
+        with self.assertRaisesRegex(ChatReadError, INSERT_CELL):
+            require_refused_with(chat, INSERT_CELL, REFUSAL)

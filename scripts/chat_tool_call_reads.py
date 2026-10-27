@@ -11,6 +11,7 @@ the shipped rootfs) keeps a message's calls in `metadata.tool_calls`, with snake
     python3 scripts/chat_tool_call_reads.py stopped-short untitled.chat untitled-later.chat
     python3 scripts/chat_tool_call_reads.py answered-in-turn untitled.chat "Run echo …" queue-42 "What is 2+2?" 4
     python3 scripts/chat_tool_call_reads.py called-with untitled.chat quince_marmalade_code marmalade-7349
+    python3 scripts/chat_tool_call_reads.py refused-with untitled.chat Jupyter_MCP_Server_insert_cell "is not the open notebook"
 """
 
 import json
@@ -137,6 +138,35 @@ def require_called_with(messages: list[TypedMessage], title: str, value: str) ->
         raise ChatReadError(f"no completed call {title} returned {value}: {seen}")
 
 
+def toolkit_error(c: TypedCall) -> str | None:
+    """The error of a refused commands-toolkit result in a call's output; None for anything else.
+
+    >>> toolkit_error({"raw_output": {"output": '{"success": false, "error": "no"}'}})
+    'no'
+    """
+    try:
+        result = json.loads((c.get("raw_output") or {}).get("output", ""))
+    except (AttributeError, TypeError, json.JSONDecodeError):
+        return None
+    if not isinstance(result, dict) or result.get("success") is not False:
+        return None
+    return str(result.get("error", ""))
+
+
+def require_refused_with(messages: list[TypedMessage], title: str, value: str) -> None:
+    """Fails unless a call titled `title` returned a refused toolkit result whose error holds `value`.
+
+    jupyter-ai-tools@4d1c823 `insert_cell` returns the commands toolkit's `{success: false, error}` rather
+    than raising, so opencode stores a refused call as completed, and only its output says it was refused.
+
+    >>> require_refused_with(chat, "Jupyter_MCP_Server_insert_cell", "is not the open notebook")  # doctest: +SKIP
+    """
+    calls = [c for c in tool_calls(messages) if c.get("title") == title]
+    if not any(value in (toolkit_error(c) or "") for c in calls):
+        seen = [f"{describe(c)} {printed(c)}" for c in tool_calls(messages)]
+        raise ChatReadError(f"no call {title} was refused with {value}: {seen}")
+
+
 def read_messages(path: str) -> list[TypedMessage]:
     with open(path, encoding="utf-8") as chat:
         return json.load(chat)["messages"]
@@ -159,10 +189,12 @@ def main(argv: list[str]) -> int:
         print(f"{paths[0]}: {len(asked)} questions were each answered before the next was asked")
     elif check == "called-with":
         require_called_with(read_messages(paths[0]), paths[1], paths[2])
+    elif check == "refused-with":
+        require_refused_with(read_messages(paths[0]), paths[1], paths[2])
     else:
         raise ChatReadError(
             f"unknown check {check!r}, expected completed-call, allowed-and-rejected, stopped-short, "
-            "answered-in-turn or called-with"
+            "answered-in-turn, called-with or refused-with"
         )
     return 0
 
