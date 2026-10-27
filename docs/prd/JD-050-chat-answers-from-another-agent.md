@@ -14,7 +14,9 @@ the emulator could prove: on x86_64 there is no rootfs, so no persona):
 
 1. Fresh install of the APK; launch; enter base.
 2. In base's terminal: install opencode as JD-046's demo did; `apk add nodejs npm`;
-   `npm install -g @zed-industries/claude-agent-acp`; a person signs Claude in.
+   `npm install -g @agentclientprotocol/claude-agent-acp` (the adapter's name since it left
+   `@zed-industries`; it needs Node >= 22, and Alpine's is 22); a person signs Claude in, by hand:
+   the adapter's `initialize` offers no `authMethods`.
 3. Open the Chat. The agent chip offers **OpenCode** and **Claude**.
 4. Pick Claude, ask "Which agent are you?". The answer arrives under the name **Claude**, and the model
    and mode controls are Claude's.
@@ -57,7 +59,7 @@ already exists in our image; what is missing is entirely the app's.
 | Concern | Files |
 |---|---|
 | Adapter | `jupyter_ai_acp_client/acp_personas/claude.py`: requires `claude-agent-acp` on `PATH` (`PersonaRequirementsUnmet` at import), spawns it, `_is_auth_error` |
-| Persona id | `ClaudeAcpPersona` → `jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona` (`BasePersona.id`, `base_persona.py`) — to confirm against the shipped 0.3.3 in T1 |
+| Persona id | `ClaudeAcpPersona` → `jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona`, name `Claude` (`BasePersona.id`, `base_persona.py`; read in the shipped 0.3.3 and persona-manager 0.2.2 on SM-X216B) |
 
 ### vscode@3f3380c
 
@@ -87,7 +89,7 @@ target. That is decision 1 and 2 below.
 | `persona_selected` | `PersonaStateFrames.personaSelected` exists | `persona-controls.tsx` emits on each pick | sent for opencode only |
 | Persona list | absent | `personas/v1` | absent |
 | Sender's name | `ChatMessage` has `fromMe` only (`domain/ChatTranscript.kt`) | jupyter-chat | absent |
-| Claude in the Space | no Node in the image (`tools/rootfs/Dockerfile`) | — | the user's install; unmeasured until T1 |
+| Claude in the Space | no Node in the image (`tools/rootfs/Dockerfile`) | — | the user's install, measured in T1: Node v22.23.4 from apk, the adapter 0.97.0 from npm in 22 s with a 277 MB native Claude Code 2.1.310 that runs under proot, and `initialize` answers protocolVersion 1 |
 
 Ours is **present but unreachable**: the image loads a second persona as soon as its CLI is on `PATH`,
 and nothing in the app can address it.
@@ -121,7 +123,7 @@ Both become an ADR amending ADR-0106's "Which chat, which persona" row.
 
 ## Tasks
 
-- [ ] T1 — Claude's ACP adapter installs and starts in base: a probe run in base's terminal installs Node
+- [x] T1 — Claude's ACP adapter installs and starts in base: a probe run in base's terminal installs Node
   from apk and `@zed-industries/claude-agent-acp` from npm, and `claude-agent-acp` answers ACP
   `initialize` over stdio under proot (as JD-046's opencode probe did). Records the persona's id in the
   shipped 0.3.3.
