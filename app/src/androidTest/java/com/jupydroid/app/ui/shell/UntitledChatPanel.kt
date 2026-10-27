@@ -43,7 +43,7 @@ class UntitledChatPanel(private val compose: ComposeContentTestRule) {
     answering: AgentChat,
     kept: QueuedQuestionsStore = FakeQueuedQuestionsStore(),
   ): SidePanelContribution = AiExtension(
-    chatFor = { _, _ -> answering },
+    chatFor = { _, _, _ -> answering },
     chatFilesFor = { FakeChatFiles(listOf("untitled.chat")) },
     queuesFor = { kept },
   ).sidePanels.single()

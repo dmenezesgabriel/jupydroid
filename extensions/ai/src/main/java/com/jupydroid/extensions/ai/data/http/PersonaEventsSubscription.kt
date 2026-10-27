@@ -13,7 +13,8 @@ import okhttp3.WebSocketListener
 
 /**
  * The server's event bus, `/api/events/subscribe`, read for the persona states on it
- * ([PersonaStateFrames]).
+ * ([PersonaStateFrames]) and for the commands jupyterlab-commands-toolkit asks a web client to run
+ * ([LabCommandFrames]).
  *
  * **Opened before the chat's socket, and awaited**: events are fire-and-forget, and the persona manager
  * catches a client up by publishing every persona's whole state when that client connects to the chat
@@ -21,7 +22,7 @@ import okhttp3.WebSocketListener
  * only a subscriber already there receives it.
  *
  * ```
- * val bus = PersonaEventsSubscription(client, log, chatPath).open(address) { state -> fold.stated(state) }
+ * val bus = PersonaEventsSubscription(client, log, chatPath).open(address, fold::stated) { command -> answer(command) }
  * ```
  */
 internal class PersonaEventsSubscription(
@@ -30,22 +31,28 @@ internal class PersonaEventsSubscription(
   private val chatPath: String,
 ) {
   /**
-   * The open socket, each persona state on it handed to [onState] from its reader thread; null when the
-   * server refused it, which leaves the chat without its pickers but answering.
+   * The open socket, each persona state on it handed to [onState] and each command to [onCommand], from
+   * its reader thread; null when the server refused it, which leaves the chat without its pickers and
+   * the agent's notebook commands unanswered, but the chat answering.
    */
-  suspend fun open(address: ServerAddress, onState: (PersonaState) -> Unit): WebSocket? {
+  suspend fun open(
+    address: ServerAddress,
+    onState: (PersonaState) -> Unit,
+    onCommand: (LabCommand) -> Unit,
+  ): WebSocket? {
     val opened = CompletableDeferred<WebSocket?>()
     val request = Request.Builder()
       .url(address.baseUrl.toHttpUrl().newBuilder().addPathSegments("api/events/subscribe").build())
       .header("Authorization", "token ${address.token}")
       .build()
-    client.newWebSocket(request, StateListener(opened, onState))
+    client.newWebSocket(request, StateListener(opened, onState, onCommand))
     return opened.await()
   }
 
   private inner class StateListener(
     private val opened: CompletableDeferred<WebSocket?>,
     private val onState: (PersonaState) -> Unit,
+    private val onCommand: (LabCommand) -> Unit,
   ) : WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) {
       opened.complete(webSocket)
@@ -53,6 +60,7 @@ internal class PersonaEventsSubscription(
 
     override fun onMessage(webSocket: WebSocket, text: String) {
       PersonaStateFrames.parse(text)?.let(onState)
+      LabCommandFrames.parse(text)?.let(onCommand)
     }
 
     /** Refused, or dropped later: either way the pickers keep what they last said, and the chat goes on. */

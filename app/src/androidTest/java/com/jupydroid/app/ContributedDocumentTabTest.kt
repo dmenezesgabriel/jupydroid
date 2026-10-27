@@ -118,7 +118,7 @@ class ContributedDocumentTabTest {
   private fun openTheChatTab(twoPane: Boolean) {
     temp.newFile(CHAT_FILE_NAME)
     val extension = AiExtension(
-      chatFor = { _, path ->
+      chatFor = { _, path, _ ->
         FakeAgentChat(history = listOf(ChatMessage(id = "m", body = "in $path", fromMe = false)))
       },
       chatFilesFor = { FakeChatFiles(listOf(CHAT_FILE_NAME)) },

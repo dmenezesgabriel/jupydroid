@@ -6,12 +6,14 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
+import com.jupydroid.extension.api.NotebookCells
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelMove
 import com.jupydroid.extension.api.SpaceServerEndpoint
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.data.fake.FakeChatFiles
 import com.jupydroid.extensions.ai.data.fake.FakeQueuedQuestionsStore
+import com.jupydroid.extensions.ai.data.http.LabCommandWebClient
 import com.jupydroid.extensions.ai.data.http.OkHttpAgentChat
 import com.jupydroid.extensions.ai.data.http.OkHttpChatFiles
 import com.jupydroid.extensions.ai.data.logcat.LogcatChatSocketLog
@@ -34,15 +36,21 @@ import com.jupydroid.extensions.ai.ui.OpenChatSelection
  * AppContainer(extensions = listOf(GitExtension(), AiExtension()))
  * ```
  *
- * @param chatFor the chat at a path for a Space's server; null is a Space with no server, which talks
- *   to [FakeAgentChat] so the panel still opens and claims no answer nobody gave.
+ * @param labCommands this app as the web client that answers the agent's notebook commands, one for
+ *   every chat, so two open chats run a command once ([LabCommandWebClient]).
+ * @param chatFor the chat at a path for a Space's server, answering the agent's commands over the open
+ *   notebook's cells; null is a Space with no server, which talks to [FakeAgentChat] so the panel still
+ *   opens and claims no answer nobody gave.
  * @param chatFilesFor the workspace's chats for a Space's server; null lists [FakeChatFiles], none.
  * @param queuesFor where the questions waiting in a Space's chats are kept, by the Space's id. The
  *   default keeps them in memory only; the app passes a `DiskQueuedQuestionsStore` in its own storage.
  */
 class AiExtension(
-  private val chatFor: (SpaceServerEndpoint?, String) -> AgentChat = { server, path ->
-    server?.let { OkHttpAgentChat(it, chatPath = path, log = LogcatChatSocketLog) } ?: FakeAgentChat()
+  labCommands: LabCommandWebClient = LabCommandWebClient(),
+  private val chatFor: (SpaceServerEndpoint?, String, NotebookCells) -> AgentChat = { server, path, cells ->
+    server?.let {
+      OkHttpAgentChat(it, chatPath = path, log = LogcatChatSocketLog, notebookCells = cells, labCommands = labCommands)
+    } ?: FakeAgentChat()
   },
   private val chatFilesFor: (SpaceServerEndpoint?) -> ChatFiles = { server ->
     server?.let(::OkHttpChatFiles) ?: FakeChatFiles()
@@ -67,7 +75,7 @@ class AiExtension(
           host.markdown,
           host.notebookCells,
           host.fileOpener,
-          chatFor = { path -> chatFor(host.server, path) },
+          chatFor = { path -> chatFor(host.server, path, host.notebookCells) },
         )
       }
     },
@@ -89,7 +97,7 @@ class AiExtension(
       ->
       key(host.server, host.spaceId) {
         ChatPanel(
-          chat = remember(path) { chatFor(host.server, path) },
+          chat = remember(path) { chatFor(host.server, path, host.notebookCells) },
           file = ChatFile(path),
           queues = remember { queuesFor(host.spaceId) },
           markdown = host.markdown,

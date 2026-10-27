@@ -1,5 +1,6 @@
 package com.jupydroid.extensions.ai.data.http
 
+import com.jupydroid.extension.api.NotebookCells
 import com.jupydroid.extension.api.SpaceServerEndpoint
 import com.jupydroid.extensions.ai.data.logcat.ChatSocketLog
 import com.jupydroid.extensions.ai.data.logcat.chatFailureFields
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
@@ -62,6 +64,9 @@ class OkHttpAgentChat(
   private val log: ChatSocketLog = ChatSocketLog.Silent,
   private val heartbeatInterval: Duration = HEARTBEAT_INTERVAL,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+  private val notebookCells: NotebookCells? = null,
+  private val labCommands: LabCommandWebClient = LabCommandWebClient(),
+  private val uiDispatcher: CoroutineDispatcher = Dispatchers.Main,
 ) : AgentChat {
   private val heartbeat = ApiActivityHeartbeat(client, heartbeatInterval, log, chatPath)
   private val events = PersonaEventsSubscription(client, log, chatPath)
@@ -73,7 +78,9 @@ class OkHttpAgentChat(
   override fun transcript(): Flow<ChatTranscript> = callbackFlow {
     val address = server.address()
     val fold = TranscriptFold(this, persona)
-    val bus = events.open(address, fold::stated)
+    val bus = events.open(address, fold::stated) { command ->
+      if (labCommands.take(command)) launch { answer(command) }
+    }
     val request = Request.Builder()
       .url(chatUrl(address.baseUrl))
       .header("Authorization", "token ${address.token}")
@@ -133,14 +140,39 @@ class OkHttpAgentChat(
    * the first question, as jupyter-ai's toolbar does on selection (jupyter-ai-persona-manager@d5ed04b
    * `src/persona-controls.tsx`). Refused, the persona prepares at the first question instead.
    */
-  private suspend fun select(chatId: String) {
-    val body = PersonaStateFrames.personaSelected(chatId, persona)
+  private suspend fun select(chatId: String) =
+    emit(PersonaStateFrames.personaSelected(chatId, persona), "chat.persona.select.failed")
+
+  /**
+   * A command for this app's web client, acked before it runs so the toolkit waits for its result rather
+   * than giving up after `ack_timeout`; run on [uiDispatcher], where the editor changes its cells; and its
+   * result posted (jupyterlab-commands-toolkit@7c87c5d `src/index.ts`, `handleCommand`).
+   */
+  private suspend fun answer(command: LabCommand) {
+    val requestId = command.requestId ?: return
+    emit(LabCommandFrames.ack(requestId, labCommands.id), "chat.command.ack.failed")
+    val outcome = withContext(uiDispatcher) {
+      notebookCells?.let { NotebookLabCommands(it).answer(command.name, command.args) }
+        ?: LabCommandOutcome.Failed("${command.name}: no notebook reaches this chat")
+    }
+    log.reached("chat.command.answered", answeredFields(command, outcome))
+    emit(LabCommandFrames.result(requestId, outcome), "chat.command.result.failed")
+  }
+
+  private fun answeredFields(command: LabCommand, outcome: LabCommandOutcome): Map<String, String> = mapOf(
+    "command" to command.name,
+    "success" to (outcome is LabCommandOutcome.Done).toString(),
+    "chat" to chatPath,
+  ) + ((outcome as? LabCommandOutcome.Failed)?.let { mapOf("error" to it.error) } ?: emptyMap())
+
+  /** `POST api/events` with [body]; refused or failed, it is logged as [failure] and the chat goes on. */
+  private suspend fun emit(body: String, failure: String) {
     val code = runCatching {
       client.callWithToken(server, ioDispatcher) { base ->
         url(base.newBuilder().addPathSegments("api/events").build()).post(body.toRequestBody(JSON_MEDIA_TYPE))
       }.code
-    }.getOrElse { failure -> return log.reached("chat.persona.select.failed", chatFailureFields(chatPath, failure)) }
-    if (code != HTTP_NO_CONTENT) log.reached("chat.persona.select.failed", chatFailureFields(chatPath, http = code))
+    }.getOrElse { error -> return log.reached(failure, chatFailureFields(chatPath, error)) }
+    if (code != HTTP_NO_CONTENT) log.reached(failure, chatFailureFields(chatPath, http = code))
   }
 
   private fun chatUrl(baseUrl: String): HttpUrl = baseUrl.toHttpUrl().newBuilder()

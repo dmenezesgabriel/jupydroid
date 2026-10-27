@@ -107,6 +107,21 @@ internal class PersonaEventsLikeTheTablets(
   }
 
   /**
+   * jupyterlab-commands-toolkit@7c87c5d `tools.py` `emit`: one `lab_command` to every subscriber, which
+   * each web client acks and answers through `POST /api/events` ([emitted]).
+   */
+  fun command(name: String, args: JsonObject, requestId: String, clientId: String? = null) {
+    awaitSubscribers()
+    val fields = mapOf(
+      "schema_id" to JsonPrimitive(LAB_COMMAND),
+      "name" to JsonPrimitive(name),
+      "args" to args,
+      "requestId" to JsonPrimitive(requestId),
+    )
+    publish(JsonObject(fields + listOfNotNull(clientId?.let { "client_id" to JsonPrimitive(it) })).toString())
+  }
+
+  /**
    * Tornado adds a subscriber's listener in `open`, before the 101 reaches the client, so a client that
    * subscribed before it connected the chat is always there to catch up. Here the upgraded socket opens
    * on this side on a thread of its own, so the catch-up waits for it rather than racing it.
@@ -181,6 +196,7 @@ internal class PersonaEventsLikeTheTablets(
 
   private companion object {
     const val PERSONA_STATE = "https://schema.jupyter.org/jupyter_ai_persona_manager/persona_state/v1"
+    const val LAB_COMMAND = "https://events.jupyter.org/jupyterlab_command_toolkit/lab_command/v1"
     const val NO_CONTENT = 204
     const val TOKENS = 42
     const val SUBSCRIBE_WAIT_NANOS = 2_000_000_000L

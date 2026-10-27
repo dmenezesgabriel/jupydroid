@@ -55,7 +55,9 @@ class ChatListSidePanelTest {
 
   /** Each chat holds one message naming its own file, so what is shown says which chat opened. */
   private fun panel(vararg chats: String): SidePanelContribution = AiExtension(
-    chatFor = { _, path -> FakeAgentChat(history = listOf(ChatMessage(id = "m", body = "in $path", fromMe = false))) },
+    chatFor = { _, path, _ ->
+      FakeAgentChat(history = listOf(ChatMessage(id = "m", body = "in $path", fromMe = false)))
+    },
     chatFilesFor = { FakeChatFiles(chats.toList()) },
     queuesFor = { kept },
   ).sidePanels.single()

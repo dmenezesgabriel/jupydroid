@@ -75,7 +75,7 @@ class ChatTabTest {
   /** The Chat panel over a workspace whose one chat holds one message naming its file. */
   private fun show() {
     val panel = AiExtension(
-      chatFor = { _, path ->
+      chatFor = { _, path, _ ->
         FakeAgentChat(history = listOf(ChatMessage(id = "m", body = "in $path", fromMe = false)))
       },
       chatFilesFor = { FakeChatFiles(listOf("untitled.chat")) },
