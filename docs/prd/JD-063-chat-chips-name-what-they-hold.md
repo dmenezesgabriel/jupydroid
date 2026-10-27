@@ -96,7 +96,7 @@ No port changes, so there is no new fake.
 
 ## Tasks
 
-- [ ] T1 — The chips take their full width while the row has room. Only when they do not fit does the
+- [x] T1 — The chips take their full width while the row has room. Only when they do not fit does the
       longest give way first. Tested on the JVM (`chipWidths`), instrumented at 800 dp, and on
       SM-X216B before and after.
 - [ ] T2 — Long-pressing a chip shows "<label> • <full value>" as a plain tooltip ("Agent", "Model",

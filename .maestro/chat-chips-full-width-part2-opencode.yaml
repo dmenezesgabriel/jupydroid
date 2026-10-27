@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# The second of the three flows scripts/chat-chips-full-width-driver.sh runs. The app is still on part 1's
+# new chat, Claude picked.
+#
+# The agent chip and nothing else reads "Claude" below the empty field's "Ask the agent".
+- tapOn:
+    text: "Claude"
+    below: "Ask the agent"
+- extendedWaitUntil:
+    visible: "OpenCode"
+    timeout: 10000
+- tapOn: "OpenCode"
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-opencode-chips

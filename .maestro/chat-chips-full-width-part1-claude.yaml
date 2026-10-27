@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# The first of the three flows scripts/chat-chips-full-width-driver.sh runs: portrait, one pane on SM-X216B
+# (w800dp), in base with opencode and Claude's ACP adapter installed and both signed in, on a workspace
+# holding no chat.
+#
+# Claude is picked and nothing is asked: its chips are what the driver measures. Each wait names a chip's
+# whole value, which Maestro matches in full even where the chip draws an ellipsis, so the screenshot,
+# not the wait, says whether it is cut.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Choose agent"
+    timeout: 60000
+- tapOn: "Choose agent"
+- extendedWaitUntil:
+    visible: "Claude"
+    timeout: 10000
+- tapOn: "Claude"
+# Selecting the persona spawns `claude-agent-acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "Default (recommended)"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-claude-chips
