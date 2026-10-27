@@ -27,4 +27,12 @@ appId: com.jupydroid.app
       below: "Ask the agent"
     timeout: 60000
 - assertNotVisible: "Choose agent"
+# Each answer read back is still drawn under the agent that wrote it, from the users map the `connection`
+# frame carries on the new socket.
+- assertVisible:
+    text: "Claude"
+    above: "[\\s\\S]*\\b605\\b[\\s\\S]*"
+- assertVisible:
+    text: "OpenCode"
+    above: "[\\s\\S]*\\b731\\b[\\s\\S]*"
 - takeScreenshot: 06-relaunched-the-chip-reads-the-newest-questions-agent

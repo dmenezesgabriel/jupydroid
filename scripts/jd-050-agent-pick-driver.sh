@@ -3,7 +3,7 @@
 # and chooses neither; Claude, picked, answers under its name, then OpenCode does; after a kill, the
 # chat opened again asks OpenCode, the agent its newest question went to.
 #
-#   nice -n 10 timeout 2400 scripts/jd-050-agent-pick-driver.sh
+#   nice -n 10 timeout 2400 scripts/jd-050-agent-pick-driver.sh [evidence subdirectory, t3 by default]
 #
 # Run on an install where base holds opencode, signed in with a person's own OpenRouter key as
 # scripts/chat-agent-controls-demo-driver.sh says, and Claude's ACP adapter, installed as
@@ -24,7 +24,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/jd-030-rotation-reads.sh
 . "$ROOT/scripts/jd-030-rotation-reads.sh"
 
-EVIDENCE="$ROOT/evidence/jd-050-claude-agent/t3"
+EVIDENCE="$ROOT/evidence/jd-050-claude-agent/${1:-t3}"
 FLOWS="$ROOT/.maestro/jd-050-agent-pick"
 OPENCODE="jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona"
 CLAUDE="jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona"
