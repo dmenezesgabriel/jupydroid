@@ -31,6 +31,12 @@ grep -n "← next" docs/backlog.md
   [`research/parity-ledger.md`](research/parity-ledger.md), `GAP-NNN` and this ledger — **no Maestro
   flow, because nothing on screen changed**. It fixes only a `defect`, red test first; every other
   repair it finds becomes a `JD-NNN` with a demo of its own.
+- **An `OPS-NNN` item is the other kind that is not a capability.** It changes the repository or its
+  delivery — history, licence, CI, releases, the docs site — and closes on **the command or workflow
+  run that reproduces it**, named in the commit body, with no Maestro flow because nothing on screen
+  changed ([ADR-0122](adr/0122-work-that-ships-no-app-capability-is-an-ops-item.md)). It has a PRD,
+  deleted when it ships. Whatever a user of the app would see is split out as a `JD-NNN` with a
+  demo of its own.
 - Gate results go in the **commit body**, never here. A row gets one line.
 - Correct this file by **editing** it. Git holds the history — no dated correction blocks, no
   appended errata. That accretion is what [ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)
@@ -242,6 +248,78 @@ module boundary with the smallest of the three.
 | `JD-048` | **An agent in the Chat edits the open notebook:** jupyter-ai's MCP server (`jupyter-server-mcp` with `jupyter-ai-tools`) runs in the Space, and the app answers the notebook commands its tools send, so an agent's `insert_cell` lands in the notebook on screen ([ADR-0118](adr/0118-the-app-is-the-commands-toolkits-web-client-and-the-mcp-port-takes-the-servers-token.md)) | shipped | — | — |
 | `JD-050` | **The Chat answers from an agent other than opencode:** an ACP agent jupyter-ai ships a persona for, installed and signed in from the Space's terminal, is the one a question goes to, picked in the Chat's agent chip, and each answer is drawn under its agent's name ([ADR-0119](adr/0119-the-chat-asks-the-agent-the-user-picked-from-the-personas-the-server-lists.md)) | shipped | — | — |
 | `JD-063` | **The Chat's chips name what they hold in full:** while their whole names fit beside Send, the agent, model, mode and effort chips each take the width their name needs; where they do not, as in the side panel, they fold into one chip naming the model, whose menu has a section per control, as VS Code's phone chip does ([ADR-0120](adr/0120-the-chats-chips-keep-their-whole-width-and-fold-into-one-naming-the-model.md)) | shipped | — | — |
+
+### M8 — Security
+
+**Why this is first of the five.** The next four milestones publish the repository, then the APK,
+then a site that points at both. A weakness found after that is already published. The CI scanners
+in M10 also need a clean baseline, or they go red on the day they land. Every tool here is free,
+open source and needs no SaaS key.
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `AUD-012` | **Security posture, measured with tools:** osv-scanner over the Gradle dependencies and `tools/rootfs/requirements.lock`; a syft SBOM of the arm64 rootfs read by grype or trivy (Alpine packages and pip); opengrep/semgrep CE Kotlin and Android rules; a MobSF static scan of the APK, run locally in docker; gitleaks over every commit; Android Lint's security category. Read down our own call stack too: exported components and intent filters, WebView settings and JS bridges, `network_security_config`, `jupyter_server`'s bind address and token, the MCP bearer, terminal link opening, FileProvider paths, and the auto-backup that carries a Space's sign-ins ([ADR-0107](adr/0107-what-the-user-made-survives-a-reinstall-through-a-filtered-auto-backup.md)) | open ← next | — | — |
+| `OPS-001` | **Dependencies are locked and verified:** Gradle dependency locking and `gradle/verification-metadata.xml`, and the wrapper's checksum validated, so a scanner reads exact versions and a tampered artifact fails the build | open | — | — |
+| `JD-064` | **Repair what `AUD-012` names:** one item per finding, ranked by severity, each with a demo where it changes what a user can reach. Nothing exists here until the measurement names it | open | — | — |
+
+### M9 — Open-source readiness
+
+**Why before delivery.** GitHub's free arm64 runners, which build the arm64 rootfs natively, and
+free CodeQL serve public repositories. A private repository's minutes would not carry M10. The
+history must be clean before it is shown. The decision to rewrite it once more, superseding
+[ADR-0015](adr/0015-rewrite-history-once-to-take-the-device-out-of-it.md)'s "after a push, rotate
+instead", is taken: the remote is private and has one clone. The licence is Apache-2.0, which every
+reference we transcribe from permits ([`architecture/cross-cutting.md`](architecture/cross-cutting.md)
+§8.4).
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `AUD-013` | **What a stranger would read:** every tracked file and every commit scanned for personal data — the home path in evidence logs, an email address, machine-specific notes in `AGENTS.md` — producing the scrub list and a home-path class for `scripts/check_device_secrets.py` | open | — | — |
+| `OPS-002` | **History rewritten once more, then kept clean:** `git filter-repo` from `AUD-013`'s list, rehearsed on a bundle clone, `git log --all -S` finding no marker, force-pushed; machine-specific setup moved to a gitignored local file; an ADR superseding ADR-0015's clause | open | — | — |
+| `OPS-003` | **Licence and notices:** an Apache-2.0 `LICENSE`, a `NOTICE` for the transcribed upstreams, and a third-party listing generated from the rootfs SBOM by a reproducible command, with the corresponding-source offer GPL-2 proot, busybox and the Alpine packages owe | open | — | — |
+| `JD-065` | **Settings shows the licences of everything the APK ships:** the app's own, the transcribed upstreams', and the rootfs packages' with their source offer | open | — | — |
+| `OPS-004` | **A front door for strangers:** a README (what it is, screenshots, install, build from source including the rootfs), CONTRIBUTING (the working agreement, pre-commit, the device rule stated generically), SECURITY.md (private vulnerability reporting), a code of conduct, issue and PR templates | open | — | — |
+| `OPS-005` | **The repository goes public:** visibility flipped, secret scanning and push protection on, private vulnerability reporting on, `main` protected and requiring M10's checks once they exist | open | — | — |
+
+### M10 — Delivery
+
+**Why before polish.** Once a release is one merge away, every later item reaches a user as an APK
+rather than as a commit. The pattern is `dmenezesgabriel/claude-acc-manager`'s workflows: CI,
+security, scorecard, release-cut, release-tag, release and docs, with every action pinned by SHA.
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `OPS-006` | **CI runs the commit gate on every push and pull request:** the Gradle gate `AGENTS.md` lists, the `scripts/*_test.py` suite and pre-commit's hooks including ShellCheck, with actions pinned by SHA, linted by actionlint and zizmor, and kept current by Dependabot for actions, Gradle and pip | open | — | — |
+| `OPS-007` | **Security scans run in CI, free and keyless:** gitleaks, CodeQL (Kotlin, Python, Actions), osv-scanner, grype over the rootfs SBOM, opengrep, a MobSF static scan of the built APK and OpenSSF Scorecard, on push, pull request and a weekly cron, with SARIF in code scanning | open | — | — |
+| `OPS-008` | **Conventional commits are enforced:** a `commit-msg` hook in pre-commit, and a check over a pull request's commits and title in CI | open | — | — |
+| `JD-066` | **A user installs Jupydroid from GitHub Releases:** a release PR cut from the conventional commits, a semver tag driving `versionName` and a derived `versionCode`, the arm64 rootfs built from the digest-pinned image on a native arm64 runner, the APK signed with a release keystore held in Actions secrets and published with its changelog, SHA256SUMS, SBOM, build-provenance attestation and GPL source offer; the demo installs the released APK on the tablet and runs a cell | open | — | — |
+
+### M11 — Polish
+
+**Why after delivery, before the site.** Polish shipped through releases reaches users as it lands.
+The site's screenshots are taken after it, so they do not go stale on the day they are published.
+The audit starts from what `AUD-009` recorded against VS Code's workbench (`GAP-120`–`GAP-144`)
+rather than redoing it, and adds IntelliJ's New UI as a second reference for insets, gaps and how
+empty space is used.
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `AUD-014` | **Visual consistency and the theme matrix, measured:** every screen at one and two panes, on a phone and a tablet, under the app's System, Light and Dark against the device's Light and Dark; insets, gaps and unused space against VS Code and IntelliJ; contrast of every text and icon pair read from the screenshots against WCAG's 4.5:1 and 3:1; TalkBack labels, 48dp targets and 200% font scale | open | — | — |
+| `JD-067` | **The terminal's text sits inside a margin:** the grid is inset from the pane's edges, as VS Code's and IntelliJ's terminals are, and the columns and rows sent to the PTY account for it; measured before and after | open | — | — |
+| `JD-068` | **Repair what `AUD-014` names:** one item per gap, each holding in every theme combination. Nothing exists here until the measurement names it | open | — | — |
+
+### M12 — Documentation site
+
+**Why last.** It documents the app as the four milestones above leave it: installed from a release,
+on a public repository, in its polished form. The site is for users. The engineering documents in
+`docs/` stay where they are, and the site links to them.
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `OPS-009` | **A documentation site on GitHub Pages:** its own source directory, a strict build in CI and a Pages deploy; the generator chosen in its PRD (claude-acc-manager uses MkDocs) | open | — | — |
+| `OPS-010` | **The site's screenshots are produced, not hand-taken:** one command runs a Maestro suite on the tablet that captures every picture the site uses, in light and dark | open | — | — |
+| `OPS-011` | **Getting started:** a tutorial from installing a release to the first Space and the first notebook run | open | — | — |
+| `OPS-012` | **A page per feature area:** Spaces, notebooks, the Console, the terminal, the explorer, search, Git, Chat, MCP, settings and themes, troubleshooting; split per area in its PRD | open | — | — |
 
 ### Known gaps
 
