@@ -254,12 +254,13 @@ module boundary with the smallest of the three.
 **Why this is first of the five.** The next four milestones publish the repository, then the APK,
 then a site that points at both. A weakness found after that is already published. The CI scanners
 in M10 also need a clean baseline, or they go red on the day they land. Every tool here is free,
-open source and needs no SaaS key.
+open source and needs no SaaS key. `OPS-001` comes before the audit because a scanner can only read
+exact Gradle versions from a lockfile or verification metadata, and the build has neither.
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `AUD-012` | **Security posture, measured with tools:** osv-scanner over the Gradle dependencies and `tools/rootfs/requirements.lock`; a syft SBOM of the arm64 rootfs read by grype or trivy (Alpine packages and pip); opengrep/semgrep CE Kotlin and Android rules; a MobSF static scan of the APK, run locally in docker; gitleaks over every commit; Android Lint's security category. Read down our own call stack too: exported components and intent filters, WebView settings and JS bridges, `network_security_config`, `jupyter_server`'s bind address and token, the MCP bearer, terminal link opening, FileProvider paths, and the auto-backup that carries a Space's sign-ins ([ADR-0107](adr/0107-what-the-user-made-survives-a-reinstall-through-a-filtered-auto-backup.md)) | open ← next | — | — |
-| `OPS-001` | **Dependencies are locked and verified:** Gradle dependency locking and `gradle/verification-metadata.xml`, and the wrapper's checksum validated, so a scanner reads exact versions and a tampered artifact fails the build | open | — | — |
+| `OPS-001` | **Dependencies are locked and verified:** Gradle dependency locking and `gradle/verification-metadata.xml`, and the wrapper's checksum validated, so a scanner reads exact versions and a tampered artifact fails the build | open ← next | — | — |
+| `AUD-012` | **Security posture, measured with tools:** osv-scanner over the Gradle dependencies and `tools/rootfs/requirements.lock`; a syft SBOM of the arm64 rootfs read by grype or trivy (Alpine packages and pip); opengrep/semgrep CE Kotlin and Android rules; a MobSF static scan of the APK, run locally in docker; gitleaks over every commit; Android Lint's security category. Read down our own call stack too: exported components and intent filters, WebView settings and JS bridges, `network_security_config`, `jupyter_server`'s bind address and token, the MCP bearer, terminal link opening, FileProvider paths, and the auto-backup that carries a Space's sign-ins ([ADR-0107](adr/0107-what-the-user-made-survives-a-reinstall-through-a-filtered-auto-backup.md)) | open | — | — |
 | `JD-064` | **Repair what `AUD-012` names:** one item per finding, ranked by severity, each with a demo where it changes what a user can reach. Nothing exists here until the measurement names it | open | — | — |
 
 ### M9 — Open-source readiness
