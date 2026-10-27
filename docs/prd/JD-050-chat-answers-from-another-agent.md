@@ -101,11 +101,16 @@ None planned beyond the open decisions.
 ## Open decisions
 
 1. **Offer "No one"?** jupyter-ai does, for a chat between people. Here every chat is the user and
-   agents; a question to no one sits unanswered. Settle in T2 by reading what the router does with it
-   (`on_chat_message` routes nowhere) and whether the queue (ADR-0113) would then wait forever.
-2. **Keep the pick across a relaunch?** jupyter-ai does not. The demo's step 6 only needs the
-   transcript, but asking after a relaunch with two agents would otherwise need a pick first. Settle in
-   T2, by measuring what the panel shows after a relaunch with two personas listed.
+   agents. Read, not measured: `on_chat_message` routes a message with no `to_persona` nowhere
+   (`jupyter_ai_persona_manager/persona_manager.py` in the shipped rootfs), and ADR-0113 asks the next
+   queued question only once the one before has started a reply, so a question to no one would hold the
+   queue forever. Leaning: not offered. Settled in T3.
+2. **Keep the pick across a relaunch?** jupyter-ai does not, and its "No one" makes losing it harmless;
+   without "No one" it is not. VS Code stores the user's pick and reuses it only while it is still
+   usable, else falls back to the computed default (vscode@3f3380c
+   `src/vs/workbench/contrib/chat/common/constants.ts`, `recordUserSelectedSessionType`,
+   `getDefaultNewChatSessionTypeAndReasonFromServices`). Leaning: VS Code's rule, a pick kept and used
+   while it is listed, else `reconcileSelection`'s. Settled in T3, with where it is kept.
 
 Both become an ADR amending ADR-0106's "Which chat, which persona" row.
 
@@ -113,12 +118,12 @@ Both become an ADR amending ADR-0106's "Which chat, which persona" row.
 
 | Layer | Files |
 |---|---|
-| `domain/` | `AgentSelection` gains the persona (`domain/AgentModels.kt`); a persona option; `ChatMessage` gains its sender's name |
-| `data/http` | a `personas/v1` parse beside `PersonaStateFrames.kt`; `TranscriptFold.kt` keyed by the picked persona; `ChatFrames.kt` stamps it; `OkHttpAgentChat.kt` loses its persona constant |
+| `domain/` | `AgentSelection` gains the persona (`domain/AgentModels.kt`); a persona option; `ChatMessage` gains its sender, `ChatTranscript` the senders' names |
+| `data/http` | a `personas/v1` parse beside `PersonaStateFrames.kt`; `TranscriptFold.kt` keyed by the picked persona; `ChatFrames.kt` stamps it and reads the `users` map; `OkHttpAgentChat.kt` loses its persona constant |
 | `data/fake` | `FakeAgentChat.kt` lists two personas |
 | `ui/` | `AgentControls.kt`: an agent chip, built from `AgentChoiceChip` / `ChoiceList`; `ChatPanel.kt`: the sender's name |
 | unit tests | `PersonaStateFramesTest`, `TranscriptFoldTest`, `ChatFramesTest`, `OkHttpAgentChatModelsTest`, `FakeAgentChatTest` |
-| instrumented tests | the agent chip is there to press, and lists both |
+| instrumented tests | the sender's name is drawn above an answer; the agent chip is there to press, and lists both |
 | `.maestro/` flow + `scripts/` driver | `jd-050-claude-acp-in-a-space`, then the pick and the demo |
 
 ## Tasks
@@ -127,11 +132,14 @@ Both become an ADR amending ADR-0106's "Which chat, which persona" row.
   from apk and `@zed-industries/claude-agent-acp` from npm, and `claude-agent-acp` answers ACP
   `initialize` over stdio under proot (as JD-046's opencode probe did). Records the persona's id in the
   shipped 0.3.3.
-- [ ] T2 — The chat reads the persona list and asks the picked persona: `personas/v1` parsed, the
-  selection carries the persona, the fold follows it, each answer carries its sender's name. Settles
-  decisions 1 and 2.
-- [ ] T3 — The agent chip in the Chat's controls: picking one sends `persona_selected` and the model and
-  mode controls follow it (instrumented test + flow on SM-X216B).
+- [ ] T2 — Each agent answer says which agent wrote it: the sender's name, from the chat's `users` map
+  (`connection` and `users` frames), above an agent's message unless the one before is the same
+  sender's, as jupyter-chat stacks them; read back after a relaunch (instrumented test + flow on
+  SM-X216B, with opencode).
+- [ ] T3 — The Chat asks the agent the user picked: `personas/v1` parsed, the selection carries the
+  persona, the fold keeps each persona's state and shows the picked one's, and an agent chip in the
+  Chat's controls lists the personas and sends `persona_selected` on a pick. Settles decisions 1 and 2
+  (instrumented test + flow on SM-X216B).
 - [ ] T4 — The demo on a fresh install on SM-X216B; the ADR; this PRD deleted; the backlog row `shipped`.
 
 ## Out of scope
