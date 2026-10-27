@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The Chat's chips take their whole width while the row has room: a new chat with Claude picked, then
-# OpenCode, in portrait at one pane, then OpenCode in landscape, each window's named bounds dumped so a
-# chip's width is read, not eyeballed.
+# OpenCode, in portrait at one pane, then OpenCode in landscape, where they fold into one chip. Then a kill:
+# the chat reopened in portrait, Claude and OpenCode picked again, and landscape again. Each window's named
+# bounds are dumped so a chip's width is read, not eyeballed.
 #
 #   nice -n 10 timeout 1800 scripts/chat-chips-full-width-driver.sh <evidence subdirectory, e.g. t1/after>
 #
@@ -44,3 +45,9 @@ dump_named_bounds "$EVIDENCE/opencode"
 rotate_to 1
 run_flow "$FLOWS-part3-landscape.yaml" "$EVIDENCE/landscape" || fail "part 3 failed"
 dump_named_bounds "$EVIDENCE/landscape"
+rotate_to 0
+run_flow "$FLOWS-part4-relaunched.yaml" "$EVIDENCE/relaunched" || fail "part 4 failed"
+dump_named_bounds "$EVIDENCE/relaunched"
+rotate_to 1
+run_flow "$FLOWS-part3-landscape.yaml" "$EVIDENCE/relaunched-landscape" || fail "part 3, relaunched, failed"
+dump_named_bounds "$EVIDENCE/relaunched-landscape"

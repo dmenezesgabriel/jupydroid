@@ -1,0 +1,48 @@
+appId: com.jupydroid.app
+---
+# The fourth of the flows scripts/chat-chips-full-width-driver.sh runs, after the driver turns the tablet
+# back to portrait, on part 1's `untitled` chat.
+#
+# launchApp stops the process, and with it the Space's server. The chat asked nothing, so it has no
+# question to read its agent back from: it opens on "Choose agent", and each agent is picked again for its
+# chips to be measured as parts 1 and 2 measured them.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "Choose agent"
+    timeout: 60000
+- tapOn: "Choose agent"
+- extendedWaitUntil:
+    visible: "Claude"
+    timeout: 10000
+- tapOn: "Claude"
+- extendedWaitUntil:
+    visible: "Default (recommended)"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 06-relaunched-claude-chips
+- tapOn:
+    text: "Claude"
+    below: "Ask the agent"
+- extendedWaitUntil:
+    visible: "OpenCode"
+    timeout: 10000
+- tapOn: "OpenCode"
+- extendedWaitUntil:
+    visible: "build"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 07-relaunched-opencode-chips

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The third of the three flows scripts/chat-chips-full-width-driver.sh runs, after the driver turns the
+# The third of the flows scripts/chat-chips-full-width-driver.sh runs, after the driver turns the
 # tablet to landscape, where the Chat is a side panel beside the editor: too narrow for the chips' whole
 # names, so they fold into one chip naming the model, whose description names every value.
 #

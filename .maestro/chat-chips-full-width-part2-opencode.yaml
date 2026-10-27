@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The second of the three flows scripts/chat-chips-full-width-driver.sh runs. The app is still on part 1's
+# The second of the flows scripts/chat-chips-full-width-driver.sh runs. The app is still on part 1's
 # new chat, Claude picked.
 #
 # The agent chip and nothing else reads "Claude" below the empty field's "Ask the agent".

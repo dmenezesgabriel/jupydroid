@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The first of the three flows scripts/chat-chips-full-width-driver.sh runs: portrait, one pane on SM-X216B
+# The first of the flows scripts/chat-chips-full-width-driver.sh runs: portrait, one pane on SM-X216B
 # (w800dp), in base with opencode and Claude's ACP adapter installed and both signed in, on a workspace
 # holding no chat.
 #
