@@ -129,7 +129,9 @@ host-side and asks you to accept them. The question for us is which half the app
   within 0.2 s of before, and the MCP server comes up about 6 s after the server reports running. T2's
   flow must therefore wait for the MCP server, not just for the server.
 - **One events socket or one per chat.** Today the subscription is opened per chat. A command arrives
-  while a chat is open, but a second subscriber would ack twice. T4 settles it with a test.
+  while a chat is open, but a second subscriber would ack twice. T4 settles it with a test. Measured
+  in T2: the chat's socket alone is enough for the toolkit to emit, so with no ack every command costs
+  `ack_timeout` (2 s), and `insert_cell` (two commands) took 4 s to fail.
 
 ## Surface
 
@@ -153,9 +155,9 @@ holds.
   `mcp_middleware`. A build-time probe proves the middleware refuses a request without the token and
   serves one with it. On SM-X216B, a request to the MCP port without the token is refused, and one with it
   lists `insert_cell` and nothing else. The start-up cost is measured
-- [ ] T2 — `JupyterServerLauncher` picks the MCP port per launch and hands the agent the URL and the
+- [x] T2 — `JupyterServerLauncher` picks the MCP port per launch and hands the agent the URL and the
   bearer header. On SM-X216B, the agent's `insert_cell` call ends with the toolkit's "No JupyterLab web
-  client is connected"
+  client acknowledged the command" (`not_acknowledged`: the app's events socket already subscribes)
 - [ ] T3 — `:extension-api` exposes the open notebook's path, cells and active cell, and inserts a cell
   of a type at an index; `:app` implements it over `NotebookCellEdits`
 - [ ] T4 — The AI extension answers `get-notebook-info` and `add-cell` from the events socket (ack, then
