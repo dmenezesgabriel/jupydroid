@@ -5,7 +5,7 @@ Milestone: `M7` · State: in-progress · Depends on: JD-050 · Closes: —
 ## Outcome
 
 A user reads the agent, model, mode and effort the next question goes with straight from the Chat's
-toolbar. Where a chip still has to shorten, a long press shows its full value.
+toolbar. Where the chips cannot all fit, one chip names the model in full and opens every control at once.
 
 ## Demo
 
@@ -16,8 +16,9 @@ in base with opencode and Claude's ACP adapter installed and signed in:
    "Default (recommended)", and its mode and effort in full, with no ellipsis. The row is as tall as it
    was before.
 2. Pick OpenCode. The chips read "OpenCode", "Default / OpenCode/Big Pickle" and "build" in full.
-3. Narrow the Chat to the side panel (two panes). A chip that no longer fits ends in an ellipsis.
-   Long-pressing it shows "Model • <full name>".
+3. Turn the tablet to landscape, so the Chat is the side panel. The chips that do not fit become one
+   chip naming the model. Tapping it opens one menu: a section each for the agent, the model and each
+   setting, the value in use checked. A pick there is one tap.
 4. Kill and relaunch, then reopen the chat. Steps 1–3 still hold.
 
 Evidence goes in `evidence/jd-063-chat-chips/`.
@@ -55,14 +56,15 @@ is the decision below.
 | Fit-or-compact | `chatInputPickerResponsiveLayout.ts` `layout`: all items expanded, then compact one at a time, rightmost first, until it fits |
 | Hover | `modelPicker/modelPickerActionItem.ts` `_getHoverContents`: "Models • <name>" |
 | Ellipsis | `modelPicker/media/modelPicker.css` (`.model-picker-name .chat-input-picker-label`), `media/chatPhoneInputPresenter.css` |
+| Phone: one chip, one sheet | `chatPhoneInputPresenter.ts` `_updateTrigger`: the mode's icon, then the model's name as the chip's only text, and its aria label "<mode>, <model>"; a tap opens one sheet for mode and model (`showCombinedModeAndModelSheet`) |
 
 ## Trade-offs and what we adopt
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
 | Width while there is room | natural width (both) | — | natural width. Ours capped each chip at `1/n` of the row while room was left |
-| Width under pressure | overflow "…" popover (jupyter-ai); compact to an icon (VS Code); ellipsis (VS Code's model name and phone chip) | a popover hides controls behind a new surface. Our chips have no icon to compact to | the longest chip shortens first (a max-min fair share) and ellipsizes. Short chips stay whole |
-| Seeing a shortened value | hover/`title` (both); open the list | a list commits the user to a menu | a long-press `PlainTooltip`, "<label> • <value>", always. This is touch's hover, and `CodeBlockActions.kt` already uses one |
+| Width under pressure | overflow "…" popover (jupyter-ai); compact to an icon (VS Code); ellipsis (VS Code's model name and phone chip) | our chips have no icon to compact to | the longest chip shortens first (a max-min fair share). Short chips stay whole. Past that, the one-chip form below |
+| When they still do not fit | one "…" menu, a labelled section per control (jupyter-ai `OverflowControlsMenu`); one chip naming the model, opening one sheet for mode and model (VS Code's phone presenter); a hover (desktop only in both) | a hover has no touch form anyone can discover, so a long-press tooltip would hide the value behind a gesture nothing advertises | VS Code's phone shape, on the evidence of both: one chip whose text is the model's name and whose tap opens one menu, a labelled section per control, the value in use checked. A pick costs the two taps it costs today |
 
 Heuristics: visibility of system status (Nielsen #1), so the model in use is readable at a glance, and
 recognition rather than recall (#6).
@@ -76,12 +78,12 @@ recognition rather than recall (#6).
 
 ## Deviations
 
-There is no overflow popover and no icon compaction, for the reasons in the trade-offs table.
+There is no icon compaction: ACP models and modes carry no icon, and a glyph we drew would name nothing.
 
 ## Open decisions
 
-None. The person settled them on 2026-10-27: the standard, non-misleading option, with no workaround
-and no overengineering.
+None. The person asked on 2026-10-27 for the choice to be made on evidence, for clarity and
+discoverability, without raising a touch's cost, and without misleading. The trade-offs table records it.
 
 ## Surface
 
@@ -99,14 +101,17 @@ No port changes, so there is no new fake.
 - [x] T1 — The chips take their full width while the row has room. Only when they do not fit does the
       longest give way first. Tested on the JVM (`chipWidths`), instrumented at 800 dp, and on
       SM-X216B before and after.
-- [ ] T2 — Long-pressing a chip shows "<label> • <full value>" as a plain tooltip ("Agent", "Model",
-      the setting's own name). Instrumented long-click test, and a device flow at the side panel's
-      width.
-- [ ] T3 — The demo on SM-X216B, an ADR for the chip width and the tooltip (superseding ADR-0116's
-      "each chip shrinks"), PRD deleted, backlog row shipped.
+- [ ] T2 — When the chips' whole widths do not fit, they become one chip naming the model, whose tap
+      opens one menu with a labelled section per control ("Agent", "Model", each setting's own name),
+      the value in use checked (vscode@3f3380c `chatPhoneInputPresenter.ts`; jupyter-ai-persona-manager@d5ed04b
+      `OverflowControlsMenu`). Its accessibility label names every value, as VS Code's aria label does.
+      Instrumented test at 320 dp and in the side panel, and a device flow in landscape. The decision
+      was made on 2026-10-27 over a long-press tooltip, which nothing on a touch screen advertises.
+- [ ] T3 — The demo on SM-X216B, an ADR for the chip width and the one-chip form (superseding
+      ADR-0116's "each chip shrinks"), PRD deleted, backlog row shipped.
 
 ## Out of scope
 
 - What Claude names its default model ("Default (recommended)" does not say which model it is). That
   name is the agent's own, from its ACP config options.
-- An overflow menu or a different toolbar layout.
+- A bottom sheet for the wide case: while the chips fit, each stays its own chip.
