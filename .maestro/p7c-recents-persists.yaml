@@ -1,6 +1,7 @@
 appId: com.jupydroid.app
 ---
-# P7c's own gate: a section shut before the process died is still shut after it.
+# P7c's own gate: a section's collapse outlives the process that set it - in both directions, from
+# the shut state it arrives in (`ExplorerSettings.recentsCollapsed`'s default).
 #
 # The reference writes a view's `collapsed` straight through to storage on every change
 # (`viewContainerModel.ts:456-461`) and reads it back into the view's state on the next launch
@@ -27,15 +28,18 @@ appId: com.jupydroid.app
 - tapOn: "Back to files"
 - tapOn: "Workspace"
 - extendedWaitUntil:
-    visible: "reports/data.csv"
+    visible: "Recent"
     timeout: 5000
-- takeScreenshot: 01-open-before-the-app-is-killed
+# Nobody has touched the heading yet, so it is shut: the heading and nothing under it.
+- assertNotVisible: "reports/data.csv"
+- assertNotVisible: "Recent actions"
+- takeScreenshot: 01-arrives-shut-on-a-fresh-install
 
 - tapOn: "Recent"
 - extendedWaitUntil:
-    notVisible: "reports/data.csv"
+    visible: "reports/data.csv"
     timeout: 5000
-- takeScreenshot: 02-shut-before-the-app-is-killed
+- takeScreenshot: 02-opened-before-the-app-is-killed
 
 # The process goes. `clearState` is deliberately not used: it would delete the store this flow is
 # about along with everything else, and prove nothing.
@@ -43,25 +47,26 @@ appId: com.jupydroid.app
 - launchApp:
     clearState: false
 - runFlow: open-base-space.yaml
-- extendedWaitUntil:
-    visible: "Files"
-    timeout: 15000
-# The section is still there - the history outlived the process too - and still shut.
-- assertVisible: "Recent"
-- assertNotVisible: "reports/data.csv"
-- assertNotVisible: "Recent actions"
-- takeScreenshot: 03-still-shut-after-a-relaunch
-
-# And the stored state is a setting, not a one-way door: opening it again survives too.
-- tapOn: "Recent"
+# Open is what was stored, and the default is shut - so a row here is the store, not the default.
 - extendedWaitUntil:
     visible: "reports/data.csv"
+    timeout: 15000
+- takeScreenshot: 03-still-open-after-a-relaunch
+
+# And the stored state is a setting, not a one-way door: shutting it again survives too.
+- tapOn: "Recent"
+- extendedWaitUntil:
+    notVisible: "reports/data.csv"
     timeout: 5000
 - stopApp
 - launchApp:
     clearState: false
 - runFlow: open-base-space.yaml
 - extendedWaitUntil:
-    visible: "reports/data.csv"
+    visible: "Files"
     timeout: 15000
-- takeScreenshot: 04-open-again-and-still-open-after-a-relaunch
+# The section is still there - the history outlived the process too - and shut.
+- assertVisible: "Recent"
+- assertNotVisible: "reports/data.csv"
+- assertNotVisible: "Recent actions"
+- takeScreenshot: 04-shut-again-and-still-shut-after-a-relaunch

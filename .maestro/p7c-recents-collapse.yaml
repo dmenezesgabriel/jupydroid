@@ -41,9 +41,16 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Recent"
     timeout: 5000
-- assertVisible: "reports/data.csv"
+# It arrives shut (`ExplorerSettings.recentsCollapsed`'s default): the heading and nothing under it.
+- assertNotVisible: "reports/data.csv"
+- assertNotVisible: "Recent actions"
+- takeScreenshot: 02a-the-section-arrives-shut
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 5000
 - assertVisible: "file_editor.py"
-- takeScreenshot: 02-the-section-open-with-its-actions
+- takeScreenshot: 02b-the-section-open-with-its-actions
 
 # The heading is the collapse. Tapped on the label, which is the middle of the row rather than the
 # chevron - the reference binds the whole header, and this is what says so on a touch screen.

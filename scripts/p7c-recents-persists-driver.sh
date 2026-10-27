@@ -21,9 +21,9 @@ fi
 echo "=== the collapse survives a relaunch at ${WIDTH_DP}dp ==="
 
 # `reset_notebooks` clears `explorer-settings.json` as well since P7c, so this run starts from the
-# reference's own default (expanded) rather than from whatever the last flow left.
+# default (shut, `ExplorerSettings.recentsCollapsed`) rather than from whatever the last flow left.
 reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/file-editor.py" "file_editor.py"
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
 run_flow "$ROOT/.maestro/p7c-recents-persists.yaml" \
-  "$ROOT/evidence/p7c-recents-persists/${WIDTH_DP}dp"
+  "$ROOT/evidence/jd-062-recents-arrives-collapsed/${WIDTH_DP}dp"

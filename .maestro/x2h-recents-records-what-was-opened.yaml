@@ -58,6 +58,11 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Recent"
     timeout: 5000
-- assertVisible: "reports/Nested.ipynb"
+# The section arrives shut (`ExplorerSettings.recentsCollapsed`'s default), so its rows are a tap
+# away: the heading is what that tap is on.
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "reports/Nested.ipynb"
+    timeout: 5000
 - assertVisible: "reports/data.csv"
 - takeScreenshot: 07-recents-at-the-root
