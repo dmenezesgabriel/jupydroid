@@ -16,7 +16,10 @@ the emulator could prove: on x86_64 there is no rootfs, so no persona):
 2. In base's terminal: install opencode as JD-046's demo did; `apk add nodejs npm`;
    `npm install -g @agentclientprotocol/claude-agent-acp` (the adapter's name since it left
    `@zed-industries`; it needs Node >= 22, and Alpine's is 22); a person signs Claude in, by hand:
-   the adapter's `initialize` offers no `authMethods`.
+   the adapter's `initialize` offers no `authMethods`. The sign-in is the bundled `claude auth login`
+   (`node_modules/@anthropic-ai/claude-agent-sdk-linux-arm64-musl/claude`), approved from a browser
+   opened as a pop-up over the app: a full-screen browser freezes the app and the sign-in fails
+   (GAP-179).
 3. Open the Chat. The agent chip offers **OpenCode** and **Claude**.
 4. Pick Claude, ask "Which agent are you?". The answer arrives under the name **Claude**, and the model
    and mode controls are Claude's.
@@ -143,7 +146,7 @@ Both become an ADR amending ADR-0106's "Which chat, which persona" row (T4).
   (`connection` and `users` frames), above an agent's message unless the one before is the same
   sender's, as jupyter-chat stacks them; read back after a relaunch (instrumented test + flow on
   SM-X216B, with opencode).
-- [ ] T3 — The Chat asks the agent the user picked: `personas/v1` parsed, the selection carries the
+- [x] T3 — The Chat asks the agent the user picked: `personas/v1` parsed, the selection carries the
   persona, the fold keeps each persona's state and shows the picked one's, and an agent chip in the
   Chat's controls lists the personas and sends `persona_selected` on a pick. Applies decisions 1 and 2
   (instrumented test + flow on SM-X216B).
