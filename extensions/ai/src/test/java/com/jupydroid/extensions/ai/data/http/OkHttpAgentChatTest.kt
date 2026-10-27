@@ -8,6 +8,7 @@ import com.jupydroid.extensions.ai.domain.AgentChatDroppedException
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentPersona
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatReading
@@ -51,9 +52,11 @@ class OkHttpAgentChatTest : AgentChatContract() {
     models: AgentModels,
     settings: List<AgentSetting>,
     commands: List<AgentCommand>,
+    personas: List<AgentPersona>,
   ): AgentChat {
-    val events = PersonaEventsLikeTheTablets(models, settings, commands)
-    serverRule.server.dispatcher = ChatLikeTheTabletsServer(history, replies, writing = writing, events = events)
+    val events = PersonaEventsLikeTheTablets(models, settings, commands, personas = personas)
+    serverRule.server.dispatcher =
+      ChatLikeTheTabletsServer(history, replies, writing = writing, events = events, personas = personas)
     return chatUnderTest()
   }
 
@@ -147,11 +150,11 @@ class OkHttpAgentChatTest : AgentChatContract() {
     val open = launch { chat.readings(reopenAfter = 10.milliseconds).collect { readings.send(it) } }
     val reopened = withTimeout(TIMEOUT_MILLIS) {
       readings.receiveUntil { it is ChatReading.Open }
-      chat.ask(DROP)
+      chat.ask(DROP, OPENCODE_PERSONA_ID)
       readings.receiveUntil { it is ChatReading.Reconnecting }
       readings.receiveUntil { it is ChatReading.Open } as ChatReading.Open
     }
-    chat.ask("again?")
+    chat.ask("again?", OPENCODE_PERSONA_ID)
     val asked = withTimeout(TIMEOUT_MILLIS) {
       readings.receiveUntil { (it as? ChatReading.Open)?.transcript?.messages?.size == 2 } as ChatReading.Open
     }
@@ -203,7 +206,7 @@ class OkHttpAgentChatTest : AgentChatContract() {
 
     val open = launch { chat.transcript().collect {} }
     withTimeout(TIMEOUT_MILLIS) { while ("chat.heartbeat.failed" !in log.stages) delay(HEARTBEAT) }
-    chat.ask("still open?")
+    chat.ask("still open?", OPENCODE_PERSONA_ID)
     open.cancelAndJoin()
 
     assertEquals(mapOf("http" to "503", "chat" to "untitled.chat"), log.fieldsOf("chat.heartbeat.failed"))

@@ -3,6 +3,7 @@ package com.jupydroid.extensions.ai.data.http
 import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentPersona
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.AgentSettingValue
 import kotlinx.serialization.json.Json
@@ -95,6 +96,29 @@ class PersonaStateFramesTest {
       AgentModels(offered = listOf(AgentModel("local/x", "local/x"))),
       PersonaStateFrames.parse(frame)!!.models,
     )
+  }
+
+  /**
+   * The chat's personas, as `PersonaListState.publish` emits them on start and to a client that connects,
+   * each a `PersonaOption` dumped (jupyter_ai_persona_manager 0.2.2 `persona_events.py`, in the shipped rootfs).
+   */
+  @Test
+  fun aPersonaListNamesEachPersonaOfTheChat() {
+    val list = PersonaStateFrames.parsePersonas(resource("personas-with-claude-and-opencode.json"))!!
+
+    assertEquals(CHAT_ID, list.chatId)
+    val claude = AgentPersona("jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona", "Claude")
+    assertEquals(listOf(claude, AgentPersona(OPENCODE_PERSONA_ID, "OpenCode")), list.personas)
+  }
+
+  @Test
+  fun aPersonasStateIsNoPersonaList() {
+    assertNull(PersonaStateFrames.parsePersonas(resource("persona-state-on-session-start.json")))
+  }
+
+  @Test
+  fun aPersonaListIsNoPersonasState() {
+    assertNull(PersonaStateFrames.parse(resource("personas-with-claude-and-opencode.json")))
   }
 
   /** The socket carries every event the server emits, a chat's own among them. */

@@ -25,8 +25,8 @@ data class AgentModel(override val id: String, override val name: String) : Agen
  * `src/metadata.ts`).
  *
  * ```
- * chat.ask("Which model are you?", AgentSelection(model = "opencode/gpt-5-nano"))
- * chat.ask("Plan it first", AgentSelection(settings = mapOf("__mode__" to "plan")))
+ * chat.ask("Which model are you?", persona, AgentSelection(model = "opencode/gpt-5-nano"))
+ * chat.ask("Plan it first", persona, AgentSelection(settings = mapOf("__mode__" to "plan")))
  * ```
  *
  * @param settings a value per [AgentSetting.id].

@@ -37,7 +37,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * jupyterlab-chat's socket in the entered Space's `jupyter_server`, asking jupyter-ai's opencode persona.
+ * jupyterlab-chat's socket in the entered Space's `jupyter_server`, asking jupyter-ai's personas.
  *
  * **The JSON socket, not Yjs**: jupyterlab-chat registers `/api/chat/ws/<path>` only when no RTC
  * provider is enabled, and the image enables none (jupyterlab_chat 0.25.2 `__init__.py`, `rtc_lib.py`;
@@ -60,7 +60,6 @@ class OkHttpAgentChat(
   private val server: SpaceServerEndpoint,
   private val client: OkHttpClient = OkHttpClient(),
   private val chatPath: String = "untitled.chat",
-  private val persona: String = OPENCODE_PERSONA_ID,
   private val log: ChatSocketLog = ChatSocketLog.Silent,
   private val heartbeatInterval: Duration = HEARTBEAT_INTERVAL,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -77,8 +76,8 @@ class OkHttpAgentChat(
   // Each emission is the whole transcript, so a slow collector loses nothing by seeing only the latest.
   override fun transcript(): Flow<ChatTranscript> = callbackFlow {
     val address = server.address()
-    val fold = TranscriptFold(this, persona)
-    val bus = events.open(address, fold::stated) { command ->
+    val fold = TranscriptFold(this)
+    val bus = events.open(address, fold) { command ->
       if (labCommands.take(command)) launch { answer(command) }
     }
     val request = Request.Builder()
@@ -95,7 +94,7 @@ class OkHttpAgentChat(
     }
   }.conflate()
 
-  override suspend fun ask(question: String, selection: AgentSelection) {
+  override suspend fun ask(question: String, persona: String, selection: AgentSelection) {
     val socket = open?.socket ?: throw AgentChatException("the chat is not open", question)
     val frame = ChatFrames.ask(UUID.randomUUID().toString(), question, persona, selection)
     if (!socket.send(frame)) throw AgentChatException("the chat's socket is closing", question)
@@ -136,12 +135,16 @@ class OkHttpAgentChat(
   }
 
   /**
-   * `POST api/events` selecting the persona in the chat, so it prepares and says what it offers before
-   * the first question, as jupyter-ai's toolbar does on selection (jupyter-ai-persona-manager@d5ed04b
-   * `src/persona-controls.tsx`). Refused, the persona prepares at the first question instead.
+   * Shows [persona]'s state, then `POST api/events` selecting it in the chat, so it prepares and says what
+   * it offers before the first question, as jupyter-ai's toolbar does on selection
+   * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`). Refused, the persona prepares at the
+   * first question instead.
    */
-  private suspend fun select(chatId: String) =
-    emit(PersonaStateFrames.personaSelected(chatId, persona), "chat.persona.select.failed")
+  override suspend fun select(persona: String) {
+    val chat = open ?: throw AgentChatException("the chat is not open")
+    chat.fold.selected(persona)
+    emit(PersonaStateFrames.personaSelected(chat.chatId, persona), "chat.persona.select.failed")
+  }
 
   /**
    * A command for this app's web client, acked before it runs so the toolkit waits for its result rather
@@ -225,10 +228,9 @@ class OkHttpAgentChat(
       humans = connection.humans
       // Open before the transcript says so: a collector may ask or stop on this thread as it is sent
       // (OkHttpAgentChatTest.stop_onTheFirstTranscriptFindsTheChatOpen).
-      open = OpenChat(webSocket, connection.chatId)
+      open = OpenChat(webSocket, connection.chatId, fold)
       val messages = connection.messages.map { it.toChatMessage(humans) }
       fold.opened(connection.chatId, ChatTranscript(messages, senderNames = connection.names))
-      out.launch { select(connection.chatId) }
     }
 
     private fun writing(frame: ServerFrame.Writing) {
@@ -237,8 +239,8 @@ class OkHttpAgentChat(
     }
   }
 
-  /** An open chat's socket, and the id the server knows the chat by. */
-  private class OpenChat(val socket: WebSocket, val chatId: String)
+  /** An open chat's socket, the id the server knows the chat by, and what it shows. */
+  private class OpenChat(val socket: WebSocket, val chatId: String, val fold: TranscriptFold)
 
   companion object {
     val HEARTBEAT_INTERVAL: Duration = 30.seconds

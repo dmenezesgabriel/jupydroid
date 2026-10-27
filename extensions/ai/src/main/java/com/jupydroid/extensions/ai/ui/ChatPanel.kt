@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -58,7 +59,7 @@ import com.jupydroid.extension.api.NotebookCells
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.AgentCommand
-import com.jupydroid.extensions.ai.domain.AgentSelection
+import com.jupydroid.extensions.ai.domain.AgentPick
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ChatReading
@@ -139,10 +140,12 @@ fun ChatPanel(
     queue = next
     if (next.pending != before.pending) attempt { queues.write(file, next.pending) }
   }
-  // What was picked for the questions sent next, as jupyter-ai keeps one per persona
-  // (jupyter-ai-persona-manager@d5ed04b `src/metadata.ts`); what it leaves out keeps the agent's.
-  var selection by remember(chat) { mutableStateOf(AgentSelection()) }
+  // What was picked for the questions sent next, as jupyter-ai stamps it on each
+  // (jupyter-ai-persona-manager@d5ed04b `src/metadata.ts`).
+  var pick by remember(chat) { mutableStateOf(AgentPick()) }
   val askDue: (ChatTranscript) -> Unit = askDue@{ transcript ->
+    // With no agent to ask, the queue holds: a question to no one would never be answered.
+    val agent = pick.agentIn(transcript) ?: return@askDue
     val seen = queue?.seen(transcript) ?: return@askDue
     val due = seen.due(transcript)
     if (due == null) {
@@ -155,30 +158,15 @@ fun ChatPanel(
     // it (`processNextPendingRequest`): a kill between the two loses it rather than asking it twice.
     attempt {
       queues.write(file, asked.pending)
-      chat.ask(due, selection.listedIn(transcript.agentSettings))
+      chat.ask(due, agent, pick.selection.listedIn(transcript.agentSettings))
     }
   }
   val open = (reading as? ChatReading.Open)?.transcript
   val read = queue != null
+  val agent = selectedAgent(chat, open, pick, attempt)
   LaunchedEffect(open, read) { open?.let(askDue) }
   Column(modifier = modifier.fillMaxSize()) {
-    when (val shown = reading) {
-      ChatReading.Opening -> Spacer(Modifier.weight(1f))
-      is ChatReading.Failed -> Text(
-        shown.message,
-        color = MaterialTheme.colorScheme.error,
-        modifier = Modifier.weight(1f),
-      )
-      is ChatReading.Open -> Messages(shown.transcript, markdown, notebookCells, choose, Modifier.weight(1f))
-      is ChatReading.Reconnecting -> {
-        Messages(shown.transcript, markdown, notebookCells, choose, Modifier.weight(1f))
-        Text(
-          "Reconnecting: ${shown.reason}",
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-          modifier = Modifier.testTag("chat-reconnecting"),
-        )
-      }
-    }
+    ChatBody(reading, markdown, notebookCells, choose)
     val shownQueue = queue ?: QuestionQueue()
     QueuedQuestions(
       shownQueue.pending,
@@ -192,7 +180,7 @@ fun ChatPanel(
       onRemove = { question -> keep { it.removed(question) } },
     )
     QuestionField(
-      enabled = open != null && read,
+      enabled = agent != null && read,
       writing = open?.agentWriting == true,
       commands = open?.agentCommands.orEmpty(),
       // Through the queue, so a question sent while a reply arrives does not cut it short.
@@ -201,7 +189,36 @@ fun ChatPanel(
         open?.let(askDue)
       },
       onStop = { attempt { chat.stop() } },
-    ) { AgentControls(open ?: ChatTranscript(), selection, onSelect = { selection = it }) }
+    ) {
+      AgentControls(open ?: ChatTranscript(), pick) { pick = it }
+    }
+  }
+}
+
+/** What the chat shows above its queue and field, as [reading] has it: its messages, or why there are none. */
+@Composable
+private fun ColumnScope.ChatBody(
+  reading: ChatReading,
+  markdown: MarkdownRenderer,
+  notebookCells: NotebookCells,
+  choose: suspend (ToolCall, PermissionOption) -> Boolean,
+) {
+  when (reading) {
+    ChatReading.Opening -> Spacer(Modifier.weight(1f))
+    is ChatReading.Failed -> Text(
+      reading.message,
+      color = MaterialTheme.colorScheme.error,
+      modifier = Modifier.weight(1f),
+    )
+    is ChatReading.Open -> Messages(reading.transcript, markdown, notebookCells, choose, Modifier.weight(1f))
+    is ChatReading.Reconnecting -> {
+      Messages(reading.transcript, markdown, notebookCells, choose, Modifier.weight(1f))
+      Text(
+        "Reconnecting: ${reading.reason}",
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag("chat-reconnecting"),
+      )
+    }
   }
 }
 

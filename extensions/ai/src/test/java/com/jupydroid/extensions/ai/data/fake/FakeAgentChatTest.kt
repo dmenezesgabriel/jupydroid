@@ -4,6 +4,7 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatContract
 import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentPersona
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.ChatMessage
 
@@ -15,5 +16,6 @@ class FakeAgentChatTest : AgentChatContract() {
     models: AgentModels,
     settings: List<AgentSetting>,
     commands: List<AgentCommand>,
-  ): AgentChat = FakeAgentChat(history, replies, writing, models, settings, commands)
+    personas: List<AgentPersona>,
+  ): AgentChat = FakeAgentChat(history, replies, writing, models, settings, commands, personas)
 }

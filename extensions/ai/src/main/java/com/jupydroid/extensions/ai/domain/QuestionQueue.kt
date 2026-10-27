@@ -13,7 +13,7 @@ package com.jupydroid.extensions.ai.domain
  *
  * ```
  * val queue = QuestionQueue().sent("What is 2+2?")
- * queue.due(transcript)?.let { chat.ask(it); queue = queue.asked() }
+ * queue.due(transcript)?.let { chat.ask(it, persona); queue = queue.asked() }
  * ```
  *
  * @param awaitingReply a question was asked and its agent has not yet said it writes. The persona says

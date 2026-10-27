@@ -2,6 +2,7 @@ package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentPersona
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -35,12 +36,15 @@ import java.util.concurrent.atomic.AtomicInteger
  * @param commands its slash commands, in every whole state it publishes.
  * @param strangers whether the state of another chat, and of another persona in this one, goes out
  *   ahead of opencode's: the bus is the server's, not the chat's.
+ * @param personas the chat's persona list, published ahead of every state as `_on_chat_event` does
+ *   (jupyter_ai_persona_manager 0.2.2 `persona_manager.py`); only opencode's has state here.
  */
 internal class PersonaEventsLikeTheTablets(
   private val models: AgentModels,
   settings: List<AgentSetting> = emptyList(),
   private val commands: List<AgentCommand> = emptyList(),
   private val strangers: Boolean = false,
+  private val personas: List<AgentPersona> = listOf(AgentPersona(OPENCODE_PERSONA_ID, "OpenCode")),
 ) {
   /** Every `POST /api/events`, in the order they came. */
   val emitted: MutableList<RecordedRequest> = CopyOnWriteArrayList()
@@ -69,8 +73,9 @@ internal class PersonaEventsLikeTheTablets(
 
   /** `_on_chat_event` re-publishes every persona's whole state on `client_connected`. */
   fun clientConnected() {
-    if (!prepared) return
     awaitSubscribers()
+    publish(personaList())
+    if (!prepared) return
     if (strangers) {
       publish(stateOf("another-chat", OPENCODE_PERSONA_ID, "model" to model("stranger/a")))
       publish(stateOf(CHAT_ID, "jupyter-ai-personas::other::Persona", "model" to model("stranger/b")))
@@ -141,6 +146,12 @@ internal class PersonaEventsLikeTheTablets(
     ) + fields,
   ).toString()
 
+  private fun personaList(): String = buildJsonObject {
+    put("schema_id", JsonPrimitive(PERSONAS))
+    put("chat_id", JsonPrimitive(CHAT_ID))
+    put("personas", buildJsonArray { personas.forEach { add(option(it.id, it.name)) } })
+  }.toString()
+
   private fun model(current: String?) = buildJsonObject {
     put("current", current?.let(::JsonPrimitive) ?: JsonNull)
     put(
@@ -196,6 +207,7 @@ internal class PersonaEventsLikeTheTablets(
 
   private companion object {
     const val PERSONA_STATE = "https://schema.jupyter.org/jupyter_ai_persona_manager/persona_state/v1"
+    const val PERSONAS = "https://schema.jupyter.org/jupyter_ai_persona_manager/personas/v1"
     const val LAB_COMMAND = "https://events.jupyter.org/jupyterlab_command_toolkit/lab_command/v1"
     const val NO_CONTENT = 204
     const val TOKENS = 42

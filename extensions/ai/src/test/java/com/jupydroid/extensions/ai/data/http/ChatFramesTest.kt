@@ -43,6 +43,19 @@ class ChatFramesTest {
     assertEquals(setOf("7e0614b6251348fe8361f4254fed2f73", "b80d82e1618d4c79b80c1923f0c241a9"), frame.humans)
   }
 
+  /**
+   * The `.chat` file keeps each question's `metadata` (jupyter-chat@2c224bc
+   * `python/jupyterlab-chat/jupyterlab_chat/websocket_handler.py`, `_handle_new_message`), so after a
+   * relaunch the question says which persona it was asked of.
+   */
+  @Test
+  fun aQuestionReadBackSaysWhichPersonaItWasAskedOf() {
+    val frame = ChatFrames.parse(resource("connection-after-a-relaunch.json")) as ServerFrame.Connection
+
+    val question = frame.messages.map { it.toChatMessage(frame.humans) }.first { it.fromMe }
+    assertEquals(OPENCODE_PERSONA_ID, question.askedOf)
+  }
+
   /** The `.chat` file keeps its `users`, so after a relaunch each persona is still named (`ychat.py`). */
   @Test
   fun theConnectionFrameNamesEachSenderByItsDisplayName() {

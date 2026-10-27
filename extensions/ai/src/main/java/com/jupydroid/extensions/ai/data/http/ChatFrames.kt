@@ -37,17 +37,22 @@ internal data class WireMessage(
     fromMe = sender in humans,
     toolCalls = metadata.toolCalls.map(WireToolCall::toToolCall),
     sender = sender,
+    askedOf = metadata.toPersona,
   )
 }
 
 /**
- * The part of a message's metadata the panel reads. jupyter-ai's ACP client replaces it with
+ * The part of a message's metadata the panel reads. jupyter-ai's ACP client replaces an answer's with
  * `{"tool_calls": [...]}` each time one of the message's calls changes (jupyter_ai_acp_client 0.3.3
  * `tool_call_manager.py`, `flush_tool_call`), each call a `ToolCallState` dumped with
  * `exclude_none`, so its keys are snake_case and an unset one is absent (`tool_call_renderer.py`).
+ * A question's is what [ChatFrames.ask] sent, `to_persona` among it.
  */
 @Serializable
-internal data class WireMetadata(@SerialName("tool_calls") val toolCalls: List<WireToolCall> = emptyList())
+internal data class WireMetadata(
+  @SerialName("tool_calls") val toolCalls: List<WireToolCall> = emptyList(),
+  @SerialName("to_persona") val toPersona: String? = null,
+)
 
 /**
  * One call. `request_permission` adds the agent's options, `pending` and the session to a call it

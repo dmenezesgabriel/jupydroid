@@ -32,7 +32,8 @@ class OkHttpAgentChatModelsTest {
   fun theEventBusIsSubscribedBeforeTheChatIsOpened() = runBlocking {
     serverRule.server.dispatcher = ChatLikeTheTabletsServer(events = PersonaEventsLikeTheTablets(MODELS))
 
-    withOpenChat(chatUnderTest()) { transcripts -> transcripts.until { it.agentModels.choosable } }
+    val chat = chatUnderTest()
+    withOpenChat(chat) { transcripts -> transcripts.selectedOpencode(chat) }
 
     val first = serverRule.server.takeRequest(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)!!
     val second = serverRule.server.takeRequest(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)!!
@@ -47,8 +48,9 @@ class OkHttpAgentChatModelsTest {
       ChatLikeTheTabletsServer(events = PersonaEventsLikeTheTablets(MODELS, strangers = true))
 
     val seen = mutableListOf<ChatTranscript>()
-    withOpenChat(chatUnderTest()) { transcripts ->
-      seen += transcripts.until { it.agentModels.choosable }
+    val chat = chatUnderTest()
+    withOpenChat(chat) { transcripts ->
+      seen += transcripts.selectedOpencode(chat)
     }
 
     assertTrue("$seen", seen.all { it.agentModels.current in setOf(null, MODELS.current) })
@@ -62,8 +64,8 @@ class OkHttpAgentChatModelsTest {
     val chat = chatUnderTest()
 
     withOpenChat(chat) { transcripts ->
-      transcripts.until { it.agentModels.choosable }
-      chat.ask("hello?")
+      transcripts.selectedOpencode(chat)
+      chat.ask("hello?", OPENCODE_PERSONA_ID)
       assertEquals(MODELS, transcripts.until { it.messages.size == 2 }.agentModels)
     }
   }
@@ -76,20 +78,26 @@ class OkHttpAgentChatModelsTest {
 
     withOpenChat(chat) { transcripts ->
       transcripts.receive()
-      chat.ask("hello?")
+      chat.ask("hello?", OPENCODE_PERSONA_ID)
       val answered = transcripts.until { it.messages.size == 2 }
       assertEquals(AgentModels(), answered.agentModels)
     }
   }
 
-  /** So the persona prepares, and says what it offers, before the first question (`_on_persona_selected`). */
+  /**
+   * So the persona picked prepares, and says what it offers, before the first question
+   * (`_on_persona_selected`), as jupyter-ai's toolbar emits on each pick (jupyter-ai-persona-manager@d5ed04b
+   * `src/persona-controls.tsx`). Opening the chat selects nobody: with two agents, which is the user's to say.
+   */
   @Test
-  fun openingTheChatSelectsOpencodesPersonaInIt() = runBlocking {
+  fun selectingAPersonaSelectsItInTheChat() = runBlocking {
     val events = PersonaEventsLikeTheTablets(MODELS)
     serverRule.server.dispatcher = ChatLikeTheTabletsServer(events = events)
+    val chat = chatUnderTest()
 
-    withOpenChat(chatUnderTest()) { transcripts ->
+    withOpenChat(chat) { transcripts ->
       transcripts.receive()
+      chat.select(CLAUDE_PERSONA_ID)
       withTimeout(TIMEOUT_MILLIS) { while (events.emitted.isEmpty()) kotlinx.coroutines.delay(POLL_MILLIS) }
     }
 
@@ -97,7 +105,14 @@ class OkHttpAgentChatModelsTest {
     assertEquals("token secret-token", selected.headers["Authorization"])
     val data = Json.parseToJsonElement(selected.body!!.utf8()).jsonObject.getValue("data").jsonObject
     assertEquals(CHAT_ID, data.getValue("chat_id").jsonPrimitive.content)
-    assertEquals(OPENCODE_PERSONA_ID, data.getValue("persona_id").jsonPrimitive.content)
+    assertEquals(CLAUDE_PERSONA_ID, data.getValue("persona_id").jsonPrimitive.content)
+  }
+
+  /** What the persona said before it was selected was kept, and is shown once it is. */
+  private suspend fun ReceiveChannel<ChatTranscript>.selectedOpencode(chat: AgentChat): ChatTranscript {
+    receive()
+    chat.select(OPENCODE_PERSONA_ID)
+    return until { it.agentModels.choosable }
   }
 
   private suspend fun withOpenChat(chat: AgentChat, check: suspend (ReceiveChannel<ChatTranscript>) -> Unit) =
@@ -122,6 +137,7 @@ class OkHttpAgentChatModelsTest {
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
     const val POLL_MILLIS = 10L
+    const val CLAUDE_PERSONA_ID = "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona"
 
     val MODELS = AgentModels(
       current = "opencode/big-pickle",

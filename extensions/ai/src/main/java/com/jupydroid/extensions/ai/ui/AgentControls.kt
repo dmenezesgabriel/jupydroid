@@ -32,42 +32,71 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChoice
-import com.jupydroid.extensions.ai.domain.AgentSelection
+import com.jupydroid.extensions.ai.domain.AgentPick
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 
 /**
- * What the agent answers the next question with: a chip for its model, then one for each of its general
- * settings (its mode among them), in the order jupyter-ai builds its controls
- * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`, `buildControls`). Each chip shrinks
- * to an ellipsis before the row overflows, so on a phone's width they still share it with Send.
+ * Which agent answers the next question, and with what: a chip for the agent, then, once there is one, a
+ * chip for its model and one for each of its general settings (its mode among them), in the order
+ * jupyter-ai builds its controls, its persona menu first (jupyter-ai-persona-manager@d5ed04b
+ * `src/persona-controls.tsx`, `buildControls`). Each chip shrinks to an ellipsis before the row
+ * overflows, so on a phone's width they still share it with Send.
  *
  * ```
- * AgentControls(transcript, selection) { selection = it }
+ * AgentControls(transcript, pick) { pick = it }
  * ```
  *
- * @param selection what was picked for the next question; what it leaves out keeps the agent's.
+ * @param pick what was picked for the next question; what it leaves out keeps the chat's and the agent's.
  */
 @Composable
-internal fun AgentControls(transcript: ChatTranscript, selection: AgentSelection, onSelect: (AgentSelection) -> Unit) {
+internal fun AgentControls(transcript: ChatTranscript, pick: AgentPick, onPick: (AgentPick) -> Unit) {
   Row(verticalAlignment = Alignment.CenterVertically) {
     val shrinking = Modifier.weight(1f, fill = false)
+    // With several agents and nothing to go by, the chip asks rather than guessing. jupyter-ai shows "No one"
+    // there, but a question to no one is answered by none (jupyter-ai-persona-manager@d5ed04b
+    // `jupyter_ai_persona_manager/persona_manager.py`, `on_chat_message`), so nothing is sent until a pick.
+    val agents = transcript.agents
+    val agentChip = ChoiceChip("chat-agent", searchable = false, unchosen = "Choose agent")
+    AgentChoiceChip(agents, pick.agent, agentChip, shrinking) { onPick(pick.withAgent(it)) }
+    if (pick.agentIn(transcript) == null) return@Row
+    val selection = pick.selection
     // Only the models are searched, as VS Code searches its model picker and not its mode picker: an agent
     // signed in to OpenRouter offers hundreds of models, and a setting two or three values.
     AgentChoiceChip(transcript.agentModels, selection.model, ChoiceChip("chat-model", searchable = true), shrinking) {
-      onSelect(selection.copy(model = it))
+      onPick(pick.copy(selection = selection.copy(model = it)))
     }
     transcript.agentSettings.forEach { setting ->
       val chip = ChoiceChip("chat-setting-${setting.id}", searchable = false)
       AgentChoiceChip(setting, selection.settings[setting.id], chip, shrinking) {
-        onSelect(selection.copy(settings = selection.settings + (setting.id to it)))
+        onPick(pick.copy(selection = selection.copy(settings = selection.settings + (setting.id to it))))
       }
     }
   }
 }
 
-/** A chip's [tag], which its list and search field extend, and whether its list opens on a search field. */
-private data class ChoiceChip(val tag: String, val searchable: Boolean)
+/**
+ * The agent [open] asks with [pick], told to [chat] whenever it changes and again on every opening: a chat
+ * opened again shows nobody's state until it is told whose. Null while the chat is not open, or asks no one.
+ */
+@Composable
+internal fun selectedAgent(
+  chat: AgentChat,
+  open: ChatTranscript?,
+  pick: AgentPick,
+  attempt: (suspend () -> Unit) -> Unit,
+): String? {
+  val agent = open?.let(pick::agentIn)
+  LaunchedEffect(open != null, agent) { agent?.let { attempt { chat.select(it) } } }
+  return agent
+}
+
+/**
+ * A chip's [tag], which its list and search field extend, whether its list opens on a search field, and
+ * what it says while nothing is in use.
+ */
+private data class ChoiceChip(val tag: String, val searchable: Boolean, val unchosen: String = "")
 
 /**
  * One [choice] named on a chip that opens the values it offers, the one in use checked. jupyter-ai labels
@@ -95,7 +124,7 @@ private fun AgentChoiceChip(
     TextButton(onClick = { listed = true }, modifier = Modifier.testTag(chip.tag)) {
       // Weighted, so a long name ellipsizes rather than pushing the arrow out of the button.
       Text(
-        choice.nameInUse(picked).orEmpty(),
+        choice.nameInUse(picked) ?: chip.unchosen,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.weight(1f, fill = false),

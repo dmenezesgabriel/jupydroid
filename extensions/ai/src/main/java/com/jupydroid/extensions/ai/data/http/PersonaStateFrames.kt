@@ -3,6 +3,7 @@ package com.jupydroid.extensions.ai.data.http
 import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentPersona
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.AgentSettingValue
 import kotlinx.serialization.SerialName
@@ -29,6 +30,13 @@ internal data class PersonaState(
 )
 
 /**
+ * The personas loaded in one chat, as one `personas` event lists them: the persona manager publishes it
+ * on start and to a client that connects (jupyter_ai_persona_manager 0.2.2 `persona_events.py`,
+ * `PersonaListState.publish`, in the shipped rootfs).
+ */
+internal data class PersonaList(val chatId: String, val personas: List<AgentPersona>)
+
+/**
  * The server's event bus, `/api/events/subscribe`: every event the server emits, each frame
  * `{"schema_id": …, **data}` (jupyter_server 2.20.0 `services/events/handlers.py`,
  * `SubscribeWebsocket.event_listener`). The persona manager publishes each persona's state on it
@@ -40,6 +48,7 @@ internal data class PersonaState(
  */
 internal object PersonaStateFrames {
   private const val PERSONA_STATE = "https://schema.jupyter.org/jupyter_ai_persona_manager/persona_state/v1"
+  private const val PERSONAS = "https://schema.jupyter.org/jupyter_ai_persona_manager/personas/v1"
   private const val PERSONA_SELECTED = "https://schema.jupyter.org/jupyter_ai_persona_manager/persona_selected/v1"
 
   private val lenient = Json { ignoreUnknownKeys = true }
@@ -49,6 +58,12 @@ internal object PersonaStateFrames {
     .getOrNull()
     ?.takeIf { it.schemaId == PERSONA_STATE }
     ?.toPersonaState()
+
+  /** [text] as a chat's persona list, or null for any other event. */
+  fun parsePersonas(text: String): PersonaList? = runCatching { lenient.decodeFromString<WirePersonaList>(text) }
+    .getOrNull()
+    ?.takeIf { it.schemaId == PERSONAS }
+    ?.let { list -> PersonaList(list.chatId, list.personas.map { AgentPersona(it.id, it.name) }) }
 
   /**
    * `POST /api/events`'s body selecting [persona] in [chatId], which `_on_persona_selected` answers by
@@ -66,6 +81,17 @@ internal object PersonaStateFrames {
     )
   }.toString()
 }
+
+/** The `personas` event; each persona a `PersonaOption` dumped, whose `name` is required (`awareness_models.py`). */
+@Serializable
+private data class WirePersonaList(
+  @SerialName("schema_id") val schemaId: String? = null,
+  @SerialName("chat_id") val chatId: String,
+  val personas: List<WirePersonaOption>,
+)
+
+@Serializable
+private data class WirePersonaOption(val id: String, val name: String)
 
 @Serializable
 private data class WirePersonaState(

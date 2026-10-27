@@ -31,15 +31,17 @@ class DroppingAgentChat(private val before: ChatTranscript, private val after: C
 
   override fun transcript(): Flow<ChatTranscript> = flow {
     if (openings++ == 0) {
-      emit(before)
+      emit(before.listingAnAgent())
       throw AgentChatDroppedException(DROPPED)
     }
     reopened.await()
-    emit(after)
+    emit(after.listingAnAgent())
     awaitCancellation()
   }
 
-  override suspend fun ask(question: String, selection: AgentSelection) = Unit
+  override suspend fun ask(question: String, persona: String, selection: AgentSelection) = Unit
+
+  override suspend fun select(persona: String) = Unit
 
   override suspend fun choose(call: ToolCall, option: PermissionOption) = Unit
 

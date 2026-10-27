@@ -12,7 +12,7 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 
 /**
- * The server's event bus, `/api/events/subscribe`, read for the persona states on it
+ * The server's event bus, `/api/events/subscribe`, read for the persona lists and states on it
  * ([PersonaStateFrames]) and for the commands jupyterlab-commands-toolkit asks a web client to run
  * ([LabCommandFrames]).
  *
@@ -22,7 +22,7 @@ import okhttp3.WebSocketListener
  * only a subscriber already there receives it.
  *
  * ```
- * val bus = PersonaEventsSubscription(client, log, chatPath).open(address, fold::stated) { command -> answer(command) }
+ * val bus = PersonaEventsSubscription(client, log, chatPath).open(address, fold) { command -> answer(command) }
  * ```
  */
 internal class PersonaEventsSubscription(
@@ -31,27 +31,23 @@ internal class PersonaEventsSubscription(
   private val chatPath: String,
 ) {
   /**
-   * The open socket, each persona state on it handed to [onState] and each command to [onCommand], from
-   * its reader thread; null when the server refused it, which leaves the chat without its pickers and
+   * The open socket, each persona list and state on it handed to [fold] and each command to [onCommand],
+   * from its reader thread; null when the server refused it, which leaves the chat without its pickers and
    * the agent's notebook commands unanswered, but the chat answering.
    */
-  suspend fun open(
-    address: ServerAddress,
-    onState: (PersonaState) -> Unit,
-    onCommand: (LabCommand) -> Unit,
-  ): WebSocket? {
+  suspend fun open(address: ServerAddress, fold: TranscriptFold, onCommand: (LabCommand) -> Unit): WebSocket? {
     val opened = CompletableDeferred<WebSocket?>()
     val request = Request.Builder()
       .url(address.baseUrl.toHttpUrl().newBuilder().addPathSegments("api/events/subscribe").build())
       .header("Authorization", "token ${address.token}")
       .build()
-    client.newWebSocket(request, StateListener(opened, onState, onCommand))
+    client.newWebSocket(request, StateListener(opened, fold, onCommand))
     return opened.await()
   }
 
   private inner class StateListener(
     private val opened: CompletableDeferred<WebSocket?>,
-    private val onState: (PersonaState) -> Unit,
+    private val fold: TranscriptFold,
     private val onCommand: (LabCommand) -> Unit,
   ) : WebSocketListener() {
     override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -59,7 +55,8 @@ internal class PersonaEventsSubscription(
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
-      PersonaStateFrames.parse(text)?.let(onState)
+      PersonaStateFrames.parse(text)?.let(fold::stated)
+      PersonaStateFrames.parsePersonas(text)?.let(fold::listed)
       LabCommandFrames.parse(text)?.let(onCommand)
     }
 

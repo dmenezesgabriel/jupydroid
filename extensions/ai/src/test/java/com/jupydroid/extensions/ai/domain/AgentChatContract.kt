@@ -19,8 +19,8 @@ abstract class AgentChatContract {
   /**
    * A chat already holding [history], whose agent answers each question in [replies] with the reply
    * it maps to, and every other question with nothing; when [writing], its agent is writing a reply
-   * as the chat opens; its agent offers [models], [settings] and [commands], and switches to what a
-   * question is asked with.
+   * as the chat opens; its opencode agent offers [models], [settings] and [commands], and switches to what a
+   * question is asked with. The chat lists [personas], and each answers what it is asked.
    */
   protected abstract fun chat(
     history: List<ChatMessage> = emptyList(),
@@ -29,6 +29,7 @@ abstract class AgentChatContract {
     models: AgentModels = AgentModels(),
     settings: List<AgentSetting> = emptyList(),
     commands: List<AgentCommand> = emptyList(),
+    personas: List<AgentPersona> = listOf(OPENCODE_PERSONA),
   ): AgentChat
 
   /** What was asked before the chat was opened again is still the user's, and the answer the agent's. */
@@ -49,7 +50,7 @@ abstract class AgentChatContract {
   fun aQuestionIsAnsweredBeneathItself() = withOpenChat(chat(replies = mapOf("hello?" to "hi"))) { chat, transcripts ->
     transcripts.receive()
 
-    chat.ask("hello?")
+    chat.ask("hello?", OPENCODE)
 
     val answered = transcripts.until { it.messages.size == 2 }
     assertEquals(listOf("hello?" to true, "hi" to false), answered.messages.map { it.body to it.fromMe })
@@ -67,7 +68,7 @@ abstract class AgentChatContract {
   ) { chat, transcripts ->
     transcripts.receive()
 
-    chat.ask("hello?")
+    chat.ask("hello?", OPENCODE)
 
     val answered = transcripts.until { it.messages.size == 3 }
     val names = answered.messages.map(answered::senderName)
@@ -75,29 +76,46 @@ abstract class AgentChatContract {
   }
 
   @Test
-  fun anOpenChatSaysWhichModelsItsAgentOffersAndWhichItUses() = withOpenChat(chat(models = MODELS)) { _, transcripts ->
+  fun anOpenChatSaysWhichModelsItsAgentOffersAndWhichItUses() = withOpenChat(chat(models = MODELS)) {
+      chat,
+      transcripts,
+    ->
+    transcripts.receive()
+
+    chat.select(OPENCODE)
+
     assertEquals(MODELS, transcripts.until { it.agentModels.choosable }.agentModels)
   }
 
   /** The persona applies a model picked for a question before it answers it (`base_persona.py`, `apply_model_spec`). */
   @Test
   fun aQuestionAskedWithAModelSwitchesTheAgentToIt() = withOpenChat(chat(models = MODELS)) { chat, transcripts ->
+    transcripts.receive()
+    chat.select(OPENCODE)
     transcripts.until { it.agentModels.choosable }
 
-    chat.ask("hello?", AgentSelection(model = "opencode/gpt-5-nano"))
+    chat.ask("hello?", OPENCODE, AgentSelection(model = "opencode/gpt-5-nano"))
 
     transcripts.until { it.agentModels.current == "opencode/gpt-5-nano" }
   }
 
   @Test
   fun anOpenChatSaysWhichSettingsItsAgentOffersAndTheValueOfEach() =
-    withOpenChat(chat(models = MODELS, settings = SETTINGS)) { _, transcripts ->
+    withOpenChat(chat(models = MODELS, settings = SETTINGS)) { chat, transcripts ->
+      transcripts.receive()
+
+      chat.select(OPENCODE)
+
       assertEquals(SETTINGS, transcripts.until { it.agentSettings.isNotEmpty() }.agentSettings)
     }
 
   @Test
   fun anOpenChatSaysWhichCommandsItsAgentOffers() =
-    withOpenChat(chat(models = MODELS, commands = COMMANDS)) { _, transcripts ->
+    withOpenChat(chat(models = MODELS, commands = COMMANDS)) { chat, transcripts ->
+      transcripts.receive()
+
+      chat.select(OPENCODE)
+
       assertEquals(COMMANDS, transcripts.until { it.agentCommands.isNotEmpty() }.agentCommands)
     }
 
@@ -105,16 +123,45 @@ abstract class AgentChatContract {
   @Test
   fun aQuestionAskedWithASettingSwitchesTheAgentToIt() =
     withOpenChat(chat(models = MODELS, settings = SETTINGS)) { chat, transcripts ->
+      transcripts.receive()
+      chat.select(OPENCODE)
       transcripts.until { it.agentSettings.isNotEmpty() }
 
-      chat.ask("hello?", AgentSelection(settings = mapOf("__mode__" to "plan")))
+      chat.ask("hello?", OPENCODE, AgentSelection(settings = mapOf("__mode__" to "plan")))
 
       transcripts.until { shown -> shown.agentSettings.single().current == "plan" }
     }
 
+  /** jupyter-ai's picker lists the personas the manager publishes (`personas/v1`). */
+  @Test
+  fun anOpenChatListsItsAgents() = withOpenChat(chat(personas = BOTH)) { _, transcripts ->
+    assertEquals(BOTH, transcripts.until { it.agentPersonas.isNotEmpty() }.agentPersonas)
+  }
+
+  /** The router hands a question to the persona its `metadata.to_persona` names (`persona_manager.py`). */
+  @Test
+  fun aQuestionIsAnsweredByTheAgentItIsAskedOf() =
+    withOpenChat(chat(replies = mapOf("hello?" to "hi"), personas = BOTH)) { chat, transcripts ->
+      transcripts.receive()
+
+      chat.ask("hello?", CLAUDE)
+
+      val answered = transcripts.until { it.messages.size == 2 }
+      assertEquals(CLAUDE, answered.messages.first().askedOf)
+      assertEquals("Claude", answered.senderName(answered.messages.last()))
+    }
+
+  @Test
+  fun selectingInAChatNobodyOpenedThrows() = runBlocking {
+    val failure = runCatching { chat().select(OPENCODE) }.exceptionOrNull()
+
+    assertTrue("$failure", failure is AgentChatException)
+    assertTrue("$failure", failure!!.message!!.contains("not open"))
+  }
+
   @Test
   fun askingAChatNobodyOpenedThrowsAndNamesTheQuestion() = runBlocking {
-    val failure = runCatching { chat().ask("hello?") }.exceptionOrNull()
+    val failure = runCatching { chat().ask("hello?", OPENCODE) }.exceptionOrNull()
 
     assertTrue("$failure", failure is AgentChatException)
     assertTrue("$failure", failure!!.message!!.contains("'hello?'"))
@@ -203,6 +250,9 @@ abstract class AgentChatContract {
 
     /** opencode's persona as the chat's `users` map names it (`base_persona.py`, `as_user`). */
     const val OPENCODE = "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona"
+    const val CLAUDE = "jupyter-ai-personas::jupyter_ai_acp_client::ClaudeAcpPersona"
+    val OPENCODE_PERSONA = AgentPersona(OPENCODE, "OpenCode")
+    val BOTH = listOf(AgentPersona(CLAUDE, "Claude"), OPENCODE_PERSONA)
 
     val ALLOW_ONCE = PermissionOption(id = "once", name = "Allow once", rejects = false)
     val REJECT = PermissionOption(id = "reject", name = "Reject", rejects = true)

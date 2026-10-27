@@ -3,15 +3,16 @@ package com.jupydroid.extensions.ai.domain
 import kotlinx.coroutines.flow.Flow
 
 /**
- * A chat with an agent in the entered Space.
+ * A chat with the agents in the entered Space.
  *
- * `OkHttpAgentChat` speaks jupyterlab-chat's socket to jupyter-ai's opencode persona;
- * `FakeAgentChat` answers from a map.
+ * `OkHttpAgentChat` speaks jupyterlab-chat's socket to jupyter-ai's personas; `FakeAgentChat` answers
+ * from a map.
  *
  * ```
  * chat.transcript().collect { shown = it } // and, once the first transcript has arrived:
- * chat.ask("What is a Space?")
- * chat.ask("And now?", AgentSelection(model = "opencode/gpt-5-nano"))
+ * chat.select(persona)
+ * chat.ask("What is a Space?", persona)
+ * chat.ask("And now?", persona, AgentSelection(model = "opencode/gpt-5-nano"))
  * ```
  */
 interface AgentChat {
@@ -24,12 +25,22 @@ interface AgentChat {
   fun transcript(): Flow<ChatTranscript>
 
   /**
-   * Sends [question] to the agent, which first switches to what [selection] picks. The question, and the
-   * agent's answer, arrive in [transcript], and so does the model it then uses ([ChatTranscript.agentModels]).
+   * Sends [question] to [persona], one of [ChatTranscript.agentPersonas], which first switches to what
+   * [selection] picks. The question, and the agent's answer, arrive in [transcript], and so does the model
+   * it then uses ([ChatTranscript.agentModels]) once it is [select]ed.
    *
    * @throws AgentChatException when no [transcript] is being collected.
    */
-  suspend fun ask(question: String, selection: AgentSelection = AgentSelection())
+  suspend fun ask(question: String, persona: String, selection: AgentSelection = AgentSelection())
+
+  /**
+   * Makes [persona] the one whose models, settings and commands [transcript] carries, and has it prepare,
+   * so it says them before the first question, as jupyter-ai's picker does on each pick
+   * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`).
+   *
+   * @throws AgentChatException when no [transcript] is being collected.
+   */
+  suspend fun select(persona: String)
 
   /**
    * Answers [call], which waits on the user, with [option], one of those it offers. The call, resolved,

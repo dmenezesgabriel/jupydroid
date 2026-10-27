@@ -5,6 +5,7 @@ import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.AgentCommand
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentPersona
 import com.jupydroid.extensions.ai.domain.AgentSelection
 import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.ChatMessage
@@ -23,14 +24,16 @@ import java.util.concurrent.atomic.AtomicInteger
 /**
  * A chat already holding [history], whose agent answers each question in [replies] with the reply it
  * maps to and every other question with nothing; when [writing], its agent is writing a reply until
- * it is stopped. Its agent offers [models], [settings] and [commands], and switches to what a question is
- * asked with. Its agent is the persona the chat asks, named as the image's `users` map names it.
+ * it is stopped. It lists [personas], each named as the image's `users` map names it, and the one asked
+ * answers. Once one is selected, it offers [models], [settings] and [commands], and switches to what a
+ * question is asked with: the same for every persona, which no test here tells apart.
  *
  * What the panel talks to where the Space has no server, so it still opens and claims no answer
  * nobody gave: with nothing configured, a question goes unanswered.
  *
  * ```
- * FakeAgentChat(replies = mapOf("hello?" to "hi")).ask("hello?") // while transcript() is collected
+ * // while transcript() is collected:
+ * FakeAgentChat(replies = mapOf("hello?" to "hi")).ask("hello?", OPENCODE_PERSONA_ID)
  * ```
  */
 class FakeAgentChat(
@@ -39,34 +42,47 @@ class FakeAgentChat(
   writing: Boolean = false,
   models: AgentModels = AgentModels(),
   settings: List<AgentSetting> = emptyList(),
-  commands: List<AgentCommand> = emptyList(),
+  private val commands: List<AgentCommand> = emptyList(),
+  personas: List<AgentPersona> = listOf(AgentPersona(OPENCODE_PERSONA_ID, "OpenCode")),
 ) : AgentChat {
   private val shown = MutableStateFlow(
-    ChatTranscript(
-      history,
-      writing,
-      agentModels = models,
-      agentSettings = settings,
-      agentCommands = commands,
-      senderNames = mapOf(OPENCODE_PERSONA_ID to "OpenCode"),
-    ),
+    ChatTranscript(history, writing, senderNames = personas.associate { it.id to it.name }, agentPersonas = personas),
   )
+  private var offeredModels = models
+  private var offeredSettings = settings
+  private var selected: String? = null
   private val collectors = AtomicInteger()
 
   override fun transcript(): Flow<ChatTranscript> = shown
     .onStart { collectors.incrementAndGet() }
     .onCompletion { collectors.decrementAndGet() }
 
-  override suspend fun ask(question: String, selection: AgentSelection) {
+  override suspend fun ask(question: String, persona: String, selection: AgentSelection) {
     if (collectors.get() == 0) throw AgentChatException("the chat is not open", question)
-    selection.model?.let { model -> shown.update { it.copy(agentModels = it.agentModels.copy(current = model)) } }
-    val switched = shown.value.agentSettings.map { it.copy(current = selection.settings[it.id] ?: it.current) }
-    shown.update { it.copy(agentSettings = switched) }
+    selection.model?.let { offeredModels = offeredModels.copy(current = it) }
+    offeredSettings = offeredSettings.map { it.copy(current = selection.settings[it.id] ?: it.current) }
+    showState()
     val asked = shown.value.messages.size
-    shown.update { it.with(ChatMessage(id = "question-$asked", body = question, fromMe = true)) }
-    val reply = replies[question] ?: return
+    shown.update { it.with(ChatMessage(id = "question-$asked", body = question, fromMe = true, askedOf = persona)) }
+    val reply = replies[question]?.takeIf { shown.value.agentPersonas.any { it.id == persona } } ?: return
+    shown.update { it.with(ChatMessage(id = "reply-$asked", body = reply, fromMe = false, sender = persona)) }
+  }
+
+  override suspend fun select(persona: String) {
+    if (collectors.get() == 0) throw AgentChatException("the chat is not open")
+    selected = persona
+    showState()
+  }
+
+  /** What the [selected] persona offers; none while nothing is. */
+  private fun showState() {
+    val on = selected != null
     shown.update {
-      it.with(ChatMessage(id = "reply-$asked", body = reply, fromMe = false, sender = OPENCODE_PERSONA_ID))
+      it.copy(
+        agentModels = if (on) offeredModels else AgentModels(),
+        agentSettings = if (on) offeredSettings else emptyList(),
+        agentCommands = if (on) commands else emptyList(),
+      )
     }
   }
 

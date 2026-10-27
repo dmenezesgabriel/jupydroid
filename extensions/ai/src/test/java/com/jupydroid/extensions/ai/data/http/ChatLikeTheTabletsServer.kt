@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extensions.ai.domain.AgentModels
+import com.jupydroid.extensions.ai.domain.AgentPersona
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import com.jupydroid.extensions.ai.domain.ToolCall
 import com.jupydroid.extensions.ai.domain.ToolCallPermission
@@ -28,8 +29,8 @@ const val CHAT_ID = "02ef3329e61d445dbfb24985d749ba04"
  * Upgrades `/api/chat/ws/<path>` and speaks as `WSChatHandler` does (jupyterlab_chat 0.25.2
  * `websocket_handler.py`): `connection` first, with the history and every user it names, the user's
  * own messages in it sent by an earlier socket's anonymous user; each `send` echoed back as a
- * `message` from the sender; then, if it named the opencode persona, the persona's reply. A
- * question naming no persona goes unanswered, as the router leaves it (`persona_manager.py`).
+ * `message` from the sender, its `metadata` kept; then, if it named one of [personas], that persona's
+ * reply. A question naming no persona goes unanswered, as the router leaves it (`persona_manager.py`).
  *
  * @param ending what the server does to the socket once it has spoken, for a test of how it ends.
  * @param dropOn a question the server drops the socket for instead of echoing it, as an exiting server
@@ -41,6 +42,8 @@ const val CHAT_ID = "02ef3329e61d445dbfb24985d749ba04"
  *   /api/ai/personas/cancel` answers 404; with it, the cancel stops the persona's writing.
  * @param events `/api/events/subscribe` and `POST /api/events`, told when the chat socket opens and
  *   what each question picked; null answers both 404, as a server with no events API would.
+ * @param personas the personas loaded in the chat, each named in the `users` map as `as_user` names it;
+ *   opencode's answers a history message, as it did every one on the tablet.
  *
  * A history message's tool calls go out in its `metadata.tool_calls` ([toolCallsOnTheWire]). A
  * `POST /ai/acp/permissions` for a call awaiting the user resolves it with the option and sends the
@@ -57,6 +60,7 @@ internal class ChatLikeTheTabletsServer(
   private val writing: Boolean = false,
   private val personasReady: Boolean = true,
   private val events: PersonaEventsLikeTheTablets? = PersonaEventsLikeTheTablets(AgentModels()),
+  private val personas: List<AgentPersona> = listOf(AgentPersona(OPENCODE_PERSONA_ID, "OpenCode")),
 ) : Dispatcher() {
   /** The `Authorization` header of every `GET /api/me`, in the order they came. */
   val touches: MutableList<String> = CopyOnWriteArrayList()
@@ -131,7 +135,10 @@ internal class ChatLikeTheTabletsServer(
       val users = buildJsonObject { known.forEach { put(it, user(it)) } }
       val id = "id" to JsonPrimitive(CHAT_ID)
       webSocket.send(frame("connection", id, "user" to user(ME), "messages" to messages, "users" to users))
-      if (!answered) webSocket.send(frame("users", "users" to buildJsonObject { put(PERSONA, user(PERSONA)) }))
+      val registering = personas.map { it.id }.filterNot { it in known }
+      if (registering.isNotEmpty()) {
+        webSocket.send(frame("users", "users" to buildJsonObject { registering.forEach { put(it, user(it)) } }))
+      }
       events?.clientConnected()
       if (writing) webSocket.send(writingFrame(true))
       streamed.forEach { webSocket.send(frame("message", "message" to wire("streamed", it, PERSONA))) }
@@ -147,26 +154,28 @@ internal class ChatLikeTheTabletsServer(
       val send = Json.parseToJsonElement(text).jsonObject
       val body = send.getValue("body").jsonPrimitive.content
       if (body == dropOn) return webSocket.cancel()
-      webSocket.send(frame("message", "message" to wire(send.getValue("id").jsonPrimitive.content, body, ME)))
       val metadata = send["metadata"]?.jsonObject
+      val question = wire(ChatMessage(send.getValue("id").jsonPrimitive.content, body, fromMe = true), ME, metadata)
+      webSocket.send(frame("message", "message" to question))
       val persona = metadata?.get("to_persona")?.jsonPrimitive?.content
       if (persona == OPENCODE_PERSONA_ID) {
         val settings = metadata["settings"]?.jsonObject.orEmpty().mapValues { it.value.jsonPrimitive.content }
         events?.asked(metadata["model"]?.jsonObject?.get("id")?.jsonPrimitive?.contentOrNull, settings)
       }
-      val reply = replies[body]?.takeIf { persona == OPENCODE_PERSONA_ID } ?: return
-      webSocket.send(frame("message", "message" to wire("reply-to-$body", reply, PERSONA)))
+      val reply = replies[body]?.takeIf { personas.any { it.id == persona } } ?: return
+      webSocket.send(frame("message", "message" to wire("reply-to-$body", reply, persona!!)))
     }
   }
 
   private fun wire(id: String, body: String, sender: String) = wire(ChatMessage(id, body, fromMe = false), sender)
 
-  private fun wire(message: ChatMessage, sender: String) = buildJsonObject {
+  private fun wire(message: ChatMessage, sender: String, metadata: JsonObject? = null) = buildJsonObject {
     put("id", JsonPrimitive(message.id))
     put("body", JsonPrimitive(message.body))
     put("sender", JsonPrimitive(sender))
     put("time", JsonPrimitive(0.0))
     if (message.toolCalls.isNotEmpty()) put("metadata", toolCallsOnTheWire(message.toolCalls))
+    metadata?.let { put("metadata", it) }
   }
 
   private fun writingFrame(state: Boolean): String =
@@ -174,9 +183,10 @@ internal class ChatLikeTheTabletsServer(
 
   /** As `as_user` names a persona (`base_persona.py`) and the tablet's server named its anonymous users. */
   private fun user(username: String) = buildJsonObject {
+    val persona = personas.find { it.id == username }
     put("username", JsonPrimitive(username))
-    put("display_name", JsonPrimitive(if (username == PERSONA) "OpenCode" else "Anonymous Leda"))
-    put("bot", JsonPrimitive(username == PERSONA))
+    put("display_name", JsonPrimitive(persona?.name ?: "Anonymous Leda"))
+    put("bot", JsonPrimitive(persona != null))
   }
 
   private fun frame(action: String, vararg fields: Pair<String, JsonElement>): String =

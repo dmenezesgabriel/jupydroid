@@ -4,6 +4,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -32,7 +34,9 @@ class ChatSenderNameTest {
   fun anAgentsNameIsDrawnAboveItsAnswer() {
     panel.show(SettableAgentChat(transcript))
 
-    val name = compose.onNodeWithText("OpenCode").assertIsDisplayed().getBoundsInRoot()
+    // By its tag: the agent chip names the agent to ask, and can read the same.
+    val name = compose.onNode(hasTestTag("chat-sender") and hasText("OpenCode"))
+      .assertIsDisplayed().getBoundsInRoot()
     val answer = compose.onNodeWithText("first").assertIsDisplayed().getBoundsInRoot()
     assertTrue("the name ends at ${name.bottom}, the answer starts at ${answer.top}", name.bottom <= answer.top)
   }

@@ -8,6 +8,7 @@ package com.jupydroid.extensions.ai.domain
  * @param fromMe whether the user of this app sent it, rather than an agent.
  * @param toolCalls the agent's tool calls this message holds, in the order it made them.
  * @param sender the username it was sent by, an agent's being its persona id; null where none is known.
+ * @param askedOf the persona a question was addressed to, its `metadata.to_persona`; null for an answer.
  */
 data class ChatMessage(
   val id: String,
@@ -15,6 +16,7 @@ data class ChatMessage(
   val fromMe: Boolean,
   val toolCalls: List<ToolCall> = emptyList(),
   val sender: String? = null,
+  val askedOf: String? = null,
 )
 
 /**
@@ -55,10 +57,11 @@ enum class ToolCallStatus { Running, Completed, Failed }
  * ```
  *
  * @param agentWriting whether an agent is writing a reply now, which only then can be stopped.
- * @param agentModels the models the chat's agent offers, as it last said; none until its session starts.
- * @param agentSettings the chat's agent's general settings, as it last said; none until its session starts.
- * @param agentCommands the chat's agent's slash commands, as it last said; none until it says them.
+ * @param agentModels the models the selected agent offers, as it last said; none until its session starts.
+ * @param agentSettings the selected agent's general settings, as it last said; none until its session starts.
+ * @param agentCommands the selected agent's slash commands, as it last said; none until it says them.
  * @param senderNames each sender's name by username, from the chat's `users` map.
+ * @param agentPersonas the agents the chat lists, as the server last said; none until it says them.
  */
 data class ChatTranscript(
   val messages: List<ChatMessage> = emptyList(),
@@ -67,7 +70,11 @@ data class ChatTranscript(
   val agentSettings: List<AgentSetting> = emptyList(),
   val agentCommands: List<AgentCommand> = emptyList(),
   val senderNames: Map<String, String> = emptyMap(),
+  val agentPersonas: List<AgentPersona> = emptyList(),
 ) {
+  /** The agents the chat lists, and the one asked when the user picks none ([AgentPersonas.current]). */
+  val agents: AgentPersonas get() = AgentPersonas.of(agentPersonas, messages)
+
   /**
    * [messages] without those that have neither text nor a tool call: jupyter-ai's ACP client creates
    * every message of an agent's with an empty body, and one that holds the agent's tool calls keeps it,
