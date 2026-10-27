@@ -54,7 +54,7 @@ mapfile -t DEVICE_ADB < <(device_adb)
 # the port is ephemeral (`--ServerApp.port=0`) and the token is minted by `JupyterServerLauncher` -
 # so neither can be guessed. Same read as `p1d-shutdown-kernel-driver.sh`.
 server_info() {
-  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $RUN_DIR/jpserver-*.json'" 2>/dev/null | tr -d '\r'
+  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $RUN_DIR/jpserver-[0-9]*.json'" 2>/dev/null | tr -d '\r'
 }
 
 # Opens a forward to the server for the life of this driver.

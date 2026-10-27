@@ -45,7 +45,7 @@ mapfile -t DEVICE_ADB < <(device_adb)
 # the port is ephemeral (`--ServerApp.port=0`) and the token is minted per launch, so both are
 # read off the device rather than guessed.
 server_info() {
-  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $RUN_DIR/jpserver-*.json'" 2>/dev/null | tr -d '\r'
+  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $RUN_DIR/jpserver-[0-9]*.json'" 2>/dev/null | tr -d '\r'
 }
 
 # The server's session list as JSON, fetched through a forwarded port.

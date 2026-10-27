@@ -34,6 +34,18 @@ class JupyterRuntimeFileTest {
     assertNull(JupyterRuntimeFile.read(runtimeDir))
   }
 
+  /**
+   * jupyter-server-mcp writes `jpserver-mcp-<pid>.json` into the same directory, naming its own port
+   * (jupyter-server-mcp@d1823a5 `jupyter_server_mcp/runtime.py`). Read as the server's, it would hand
+   * the app the MCP port.
+   */
+  @Test
+  fun read_ignoresTheMcpServersRuntimeFile() {
+    write("jpserver-mcp-8.json", port = 3001)
+
+    assertNull(JupyterRuntimeFile.read(runtimeDir))
+  }
+
   /** The file is written before it is complete, so a truncated read must not be fatal. */
   @Test
   fun read_treatsAHalfWrittenFileAsNotReadyYet() {

@@ -59,7 +59,7 @@ mapfile -t DEVICE_ADB < <(device_adb)
 # token is minted per launch by `JupyterServerLauncher`. `jpserver-<pid>.json` carries both -
 # `ServerApp.server_info()` puts `token` in it, verified in the shipped rootfs.
 server_info() {
-  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $RUN_DIR/jpserver-*.json'" 2>/dev/null | tr -d '\r'
+  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $RUN_DIR/jpserver-[0-9]*.json'" 2>/dev/null | tr -d '\r'
 }
 
 # The server's session list as JSON, fetched through a forwarded port.

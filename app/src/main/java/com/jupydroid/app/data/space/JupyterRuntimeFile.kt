@@ -24,6 +24,7 @@ data class JupyterRuntimeFile(
 ) {
   companion object {
     private const val PREFIX = "jpserver-"
+    private const val SUFFIX = ".json"
     private val json = Json { ignoreUnknownKeys = true }
 
     /** Null until the server has written a complete file; the caller polls. */
@@ -50,8 +51,17 @@ data class JupyterRuntimeFile(
     }
 
     private fun runtimeFiles(runtimeDir: File): List<File> =
-      runtimeDir.listFiles { file -> file.name.startsWith(PREFIX) && file.name.endsWith(".json") }
+      runtimeDir.listFiles { file -> isServerRuntimeFile(file.name) }
         ?.sortedBy { it.name }
         .orEmpty()
+
+    /**
+     * `jpserver-<pid>.json` exactly. jupyter-server-mcp writes `jpserver-mcp-<pid>.json` beside it, naming
+     * its own port (jupyter-server-mcp@d1823a5 `jupyter_server_mcp/runtime.py`).
+     */
+    private fun isServerRuntimeFile(name: String): Boolean {
+      val pid = name.removePrefix(PREFIX).removeSuffix(SUFFIX)
+      return name.startsWith(PREFIX) && name.endsWith(SUFFIX) && pid.isNotEmpty() && pid.all(Char::isDigit)
+    }
   }
 }

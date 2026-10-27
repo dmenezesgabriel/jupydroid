@@ -14,8 +14,10 @@
 SPACE_RUN_DIR="files/spaces/base/run"
 
 # The port and token the running server wrote into its own connection file; both are per launch.
+# `jpserver-<pid>.json` only: jupyter-server-mcp writes `jpserver-mcp-<pid>.json` beside it
+# (jupyter-server-mcp@d1823a5 `jupyter_server_mcp/runtime.py`), as `JupyterRuntimeFile` says.
 server_info() {
-  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $SPACE_RUN_DIR/jpserver-*.json'" 2>/dev/null | tr -d '\r'
+  "${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $SPACE_RUN_DIR/jpserver-[0-9]*.json'" 2>/dev/null | tr -d '\r'
 }
 
 FORWARDED_PORT=""
