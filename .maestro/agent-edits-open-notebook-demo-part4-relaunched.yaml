@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# The last of the four flows scripts/agent-edits-open-notebook-demo-driver.sh runs. launchApp stops
+# the process, and with it the Space's server, so untitled.ipynb is read back from disk.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow:
+    when:
+      notVisible: "untitled.ipynb"
+    commands:
+      - tapOn: "Files"
+- extendedWaitUntil:
+    visible: "untitled.ipynb"
+    timeout: 10000
+- tapOn:
+    text: "untitled.ipynb"
+    index: 0
+- extendedWaitUntil:
+    visible: "print\\(42\\)"
+    timeout: 30000
+- assertVisible: "x = 1"
+- takeScreenshot: 05-relaunched-print-42-still-first

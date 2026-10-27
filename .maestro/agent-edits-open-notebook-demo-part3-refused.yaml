@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# The third of the four flows scripts/agent-edits-open-notebook-demo-driver.sh runs, in part 2's chat.
+#
+# other.ipynb exists but is not the open notebook, which the app refuses rather than opens
+# (extensions/ai/src/main/java/com/jupydroid/extensions/ai/data/http/NotebookLabCommands.kt). The
+# refusal travels back in the tool's output, and the driver reads it from the saved chat. The screen
+# still shows the agent's cell above x = 1, and nothing else.
+- tapOn: "Ask the agent"
+- inputText: "Use the insert_cell tool to insert a code cell containing print(7) at index 0 of other.ipynb. Use no other tool. If it fails, reply with its error."
+- hideKeyboard
+- tapOn: "Send"
+# The question names other.ipynb but not the refusal's words, so this wait needs the answer.
+- extendedWaitUntil:
+    visible: "(?s).*other\\.ipynb.*not the open notebook.*"
+    timeout: 300000
+- extendedWaitUntil:
+    notVisible: "Stop"
+    timeout: 300000
+- assertVisible: "x = 1"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 04-other-ipynb-refused

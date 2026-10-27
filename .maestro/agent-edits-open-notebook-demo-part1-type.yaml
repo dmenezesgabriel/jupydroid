@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# The first of the four flows scripts/agent-edits-open-notebook-demo-driver.sh runs. The tablet is in
+# landscape (two panes), and the app is in base, with opencode installed and signed in by a person.
+# The workspace holds the seeded untitled.ipynb, whose one cell is empty, and other.ipynb, which is
+# never opened.
+#
+# launchApp stops the process first, so the Space's server starts cold. x = 1 is typed rather than
+# seeded, so the agent's cell lands beside an edit the person made in this session.
+#
+# TABLET ONLY: on the x86_64 emulator no Space runs and no server is started.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# Files toggles the explorer, so it is tapped only when the explorer is not already showing.
+- runFlow:
+    when:
+      notVisible: "untitled.ipynb"
+    commands:
+      - tapOn: "Files"
+- extendedWaitUntil:
+    visible: "untitled.ipynb"
+    timeout: 10000
+- tapOn:
+    text: "untitled.ipynb"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+# The empty cell's field has no text to tap by; in two panes SM-X216B puts it at
+# [805,319][1884,391] (uiautomator dump), as `jd-003-python-environments-in-a-space-t6-part7-new-notebook-runs-python3.yaml`
+# found in one.
+- tapOn:
+    point: "1344,355"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "x = 1"
+- hideKeyboard
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- assertVisible: "x = 1"
+- takeScreenshot: 01-x-equals-1-typed-beside-the-chat
