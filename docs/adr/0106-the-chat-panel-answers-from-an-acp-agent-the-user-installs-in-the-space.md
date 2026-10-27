@@ -133,3 +133,10 @@ Amended by [ADR-0112](0112-an-agents-tool-calls-are-rows-that-ask-and-stop-cance
   as a row, and offers the agent's own options for a call waiting on a permission.
 - The panel still follows the newest line while the reader is at the end, but it now judges that the
   reader has left only when a drag ends, never when layout moves the list.
+
+## Amendment — 2026-10-27
+
+Amended by [ADR-0119](0119-the-chat-asks-the-agent-the-user-picked-from-the-personas-the-server-lists.md).
+The "Which chat, which persona" row addressed every message to `OpenCodeAcpPersona`. A message now
+goes to the persona the user picked from those the server lists in `personas/v1`, and each answer is
+drawn under its agent's name.
