@@ -95,11 +95,24 @@ RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: \
       -r /tmp/requirements.lock \
  && rm /tmp/requirements.lock
 
+# --no-deps because jupyter-ai-tools' one dependency the lock leaves out is jupyterlab-ai-commands,
+# whose Python module only declares a labextension (jupyterlab-ai-commands@2743d32
+# `jupyterlab_ai_commands/__init__.py`). That frontend is the half the app plays. Its
+# jupyterlab-diff chain would also bring all of jupyterlab 4.6.4. The dependencies the tools import
+# (jupyterlab-commands-toolkit, pycrdt, jupyter_ydoc, jupyter_server) are pinned in the lock.
+RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: --no-deps \
+      jupyter-ai-tools==0.7.0
+
 # Before the strip, so compileall caches the edited source. See acp_lazy_import_patch.py for why the
 # ACP client's permission route is edited, and acp_lazy_import_probe.py below for the gate on it.
 COPY acp_lazy_import_patch.py /tmp/acp_lazy_import_patch.py
 RUN python3 /tmp/acp_lazy_import_patch.py \
  && rm -f /tmp/acp_lazy_import_patch.py
+
+# The same cut for the MCP server: see mcp_lazy_import_patch.py, and mcp_lazy_import_probe.py below.
+COPY mcp_lazy_import_patch.py /tmp/mcp_lazy_import_patch.py
+RUN python3 /tmp/mcp_lazy_import_patch.py \
+ && rm -f /tmp/mcp_lazy_import_patch.py
 
 # Same reason to come before the strip. See acp_replayed_updates_patch.py for why the ACP client drops a
 # loaded session's replayed history by its place in the stream, and acp_replayed_history_probe.py below.
@@ -111,6 +124,16 @@ RUN python3 /tmp/acp_replayed_updates_patch.py \
 # generated at runtime from strings. Placed on the default sys.path so the
 # kernelspec can name it with -m and nothing has to set PYTHONPATH.
 COPY jupydroid_kernel.py /usr/lib/python3.12/site-packages/jupydroid_kernel.py
+
+# The MCP server offers the agent only the tools the app answers (insert_cell), with none
+# discovered from entry points - jupyterlab-commands-toolkit's own would hand it every JupyterLab
+# command - and only to a caller holding the server's token (jupydroid_mcp_bearer.py).
+#
+# The server's own config file, not an entry in `jupyter_server_config.d/`. jupyter_server 2.20.0
+# reads that directory only for `jpserver_extensions`. Placed there, this config was ignored, and
+# mcp_bearer_probe.py found both of the toolkit's tools open to a caller with no token.
+COPY jupydroid_mcp_bearer.py /usr/lib/python3.12/site-packages/jupydroid_mcp_bearer.py
+COPY jupyter_server_config.json /usr/etc/jupyter/jupyter_server_config.json
 
 # Fail the image build, not the device, if the kernel entry point is broken: an
 # ipykernel upgrade that moved init_iopub or _bind_socket must surface here.
@@ -252,6 +275,21 @@ RUN python3 /tmp/acp_lazy_import_probe.py \
 COPY acp_replayed_history_probe.py /tmp/acp_replayed_history_probe.py
 RUN python3 /tmp/acp_replayed_history_probe.py \
  && rm -f /tmp/acp_replayed_history_probe.py
+
+# The agent's notebook tools are jupyter-ai's server half: jupyter-server-mcp serves them over MCP,
+# and with no RTC provider here each one asks a web client - the app - to run a command through
+# jupyterlab-commands-toolkit (jupyter-ai-tools@4d1c823 `jupyter_ai_tools/utils.py`, `rtc_available`).
+# Gated after the strip, like the extensions above; mcp_bearer_probe.py says what the port must refuse.
+COPY mcp_lazy_import_probe.py mcp_bearer_probe.py /tmp/
+RUN jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
+ && for module in jupyter_server_mcp jupyter_ai_tools jupyterlab_commands_toolkit; do \
+      grep -Eq "$module .*enabled" /tmp/extensions.txt \
+   && grep -Eq "$module [0-9.]+ .*OK" /tmp/extensions.txt \
+   || { echo "server extension $module is not enabled and OK" >&2; exit 1; }; \
+    done \
+ && python3 /tmp/mcp_lazy_import_probe.py \
+ && python3 /tmp/mcp_bearer_probe.py \
+ && rm -f /tmp/extensions.txt /tmp/mcp_lazy_import_probe.py /tmp/mcp_bearer_probe.py
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.

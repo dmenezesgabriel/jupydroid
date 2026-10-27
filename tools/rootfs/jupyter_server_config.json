@@ -1,0 +1,7 @@
+{
+  "MCPExtensionApp": {
+    "mcp_tools": ["jupyter_ai_tools.toolkits.notebook:insert_cell"],
+    "use_tool_discovery": false,
+    "mcp_middleware": ["jupydroid_mcp_bearer:server_token_bearer"]
+  }
+}
