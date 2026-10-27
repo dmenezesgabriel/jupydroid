@@ -132,7 +132,7 @@ Both become an ADR amending ADR-0106's "Which chat, which persona" row.
   from apk and `@zed-industries/claude-agent-acp` from npm, and `claude-agent-acp` answers ACP
   `initialize` over stdio under proot (as JD-046's opencode probe did). Records the persona's id in the
   shipped 0.3.3.
-- [ ] T2 — Each agent answer says which agent wrote it: the sender's name, from the chat's `users` map
+- [x] T2 — Each agent answer says which agent wrote it: the sender's name, from the chat's `users` map
   (`connection` and `users` frames), above an agent's message unless the one before is the same
   sender's, as jupyter-chat stacks them; read back after a relaunch (instrumented test + flow on
   SM-X216B, with opencode).
