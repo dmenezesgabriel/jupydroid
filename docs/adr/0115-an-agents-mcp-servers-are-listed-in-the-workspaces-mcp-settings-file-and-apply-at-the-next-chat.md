@@ -108,3 +108,11 @@ shows that name. When the session started, `jupyter_server` logged
   `jupyter_server_mcp`'s notebook tools are not in the image, so the built-in list stays empty.
 - Do not route the write through the Contents API. It refuses the hidden path for as long as
   `allow_hidden` is false, and turning that on would also expose every dot-file to the web client.
+
+## Amendment — 2026-10-27
+
+Amended by [ADR-0118](0118-the-app-is-the-commands-toolkits-web-client-and-the-mcp-port-takes-the-servers-token.md).
+The image now ships `jupyter_server_mcp`, serving jupyter-ai-tools' `insert_cell` alone. The launcher
+sets `builtin_mcp_servers` to that server's per-launch URL and the server's token, so the built-in list
+is no longer empty: the server logs `MCP servers loaded: 1 builtin, 0 from settings file.` The user's
+file still adds its servers beside it, at the next chat, as above.
