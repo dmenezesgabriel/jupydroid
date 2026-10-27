@@ -95,6 +95,10 @@ class CitationsInTest(unittest.TestCase):
     def test_a_backlog_id_is_banned(self):
         self.assertEqual(["JD-041"], [t for _, t, _ in citations_in("// JD-041 adds it\n")])
 
+    def test_an_ops_id_is_banned(self):
+        """An OPS item's PRD is deleted when it ships, as a JD item's is (ADR-0122)."""
+        self.assertEqual(["OPS-006"], [t for _, t, _ in citations_in("// OPS-006 wires it\n")])
+
     def test_a_possessive_step_code_is_banned(self):
         """`P6b-0's own fix` hid 199 citations from this gate until the boundary was widened."""
         self.assertEqual(["P6b-0"], [t for _, t, _ in citations_in("// P6b-0's own fix\n")])

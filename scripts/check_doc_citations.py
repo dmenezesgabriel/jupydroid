@@ -104,6 +104,7 @@ BANNED: tuple[tuple[re.Pattern[str], str], ...] = (
     ),
     (re.compile(r"\bdocs/backlog\.md"), "the backlog is ephemeral; cite an ADR or state the fact"),
     (re.compile(r"\bJD-\d+\b"), "a backlog id - ephemeral, and the PRD is deleted when it ships"),
+    (re.compile(r"\bOPS-\d+\b"), "a backlog id - ephemeral, and the PRD is deleted when it ships"),
     (re.compile(r"\bevidence/"), "an evidence directory - restate the measurement in an ADR"),
     # Not preceded by a path or URL character, because `https://docs.python.org/3.14/reference/` is
     # the Python Language Reference - a published spec URL, which is the first thing this gate

@@ -27,7 +27,7 @@ memory. Follow these steps in order.
   then do the first piece.
 - An item is one user-visible capability crossing domain → port → adapter → UI. Never cut it horizontally:
   an adapter with no entry point is not shipped. Too large is fixed by narrowing the capability.
-- **An `AUD-NNN` item is the exception, and the only one.** It examines one area against the
+- **An `AUD-NNN` item is one of two exceptions.** It examines one area against the
   references and down our own call stack, and what it ships is a *measurement*
   ([ADR-0067](docs/adr/0067-a-parity-ledger-stores-verdicts-and-produces-its-counts.md)). It is
   still vertical — one area taken through four questions at once, never four sweeps across all of
@@ -35,6 +35,11 @@ memory. Follow these steps in order.
   is sound in growth, branching, failure handling and coupling. It records; it repairs only a
   `defect`, red test first, and every other repair it finds becomes a `JD-NNN` with a demo of its
   own.
+- **An `OPS-NNN` item is the other exception.** It changes the repository or its delivery — history,
+  licence, CI, releases, the docs site — and ships no app capability
+  ([ADR-0122](docs/adr/0122-work-that-ships-no-app-capability-is-an-ops-item.md)). It has a PRD
+  like a `JD-NNN`, and every line of code it writes is still TDD. Its user-visible half, if it has
+  one, is a `JD-NNN` of its own.
 - Finish what was started. Don't open a new item while the current one is `open` or `partial`.
 
 ## 3. Build — strict TDD, evidence over assumption
@@ -65,6 +70,9 @@ memory. Follow these steps in order.
 - **An `AUD-NNN` task runs no flow, because nothing on screen changed.** What stands in for the
   device is the command that reproduces its measurement, in the commit body — and if the task did
   touch a screen, it owes the flow like any other.
+- **An `OPS-NNN` task runs no flow either.** What stands in for the device is the command or
+  workflow run that reproduces it — a green Actions run, a published Release, a `git log --all -S`
+  that finds nothing — named in the commit body.
 
 ## 5. Close the step
 
@@ -72,7 +80,7 @@ memory. Follow these steps in order.
 - Commit each task with a conventional commit, and tick the PRD's checkbox.
 - **A code comment states its fact so it stands alone**, then cites an `ADR-NNNN`, a path in `app/src/`, a
   path inside the shipped rootfs, an upstream project at a **pinned SHA**, a spec or issue URL, or a test
-  name — never a step code, `docs/backlog.md`, a `JD-NNN`, `evidence/<step>/` or `reference/…`.
+  name — never a step code, `docs/backlog.md`, a `JD-NNN` or `OPS-NNN`, `evidence/<step>/` or `reference/…`.
   `scripts/check_doc_citations.py` is the gate.
 - **When the item ships — its demo run on the device — delete its PRD.** Anything worth keeping becomes an
   ADR or a code comment first ([ADR-0001](docs/adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).

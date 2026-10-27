@@ -34,6 +34,7 @@ Every id is a unique grep token.
 | `ADR-NNNN` | a decision, and what it forbids | durable |
 | `JD-NNN` | a backlog item; its PRD is `prd/JD-NNN-*.md` | ephemeral — PRD deleted on ship, ledger row stays one line |
 | `AUD-NNN` | an audit item: one area examined against the references and down our own call stack | ephemeral — its findings become `GAP-NNN`, `JD-NNN` and parity-ledger rows |
+| `OPS-NNN` | a repository or delivery item that ships no app capability; closes on the run that reproduces it ([ADR-0122](adr/0122-work-that-ships-no-app-capability-is-an-ops-item.md)) | ephemeral — PRD deleted on ship, ledger row stays one line |
 | `GAP-NNN` | a measured parity gap or known limitation | durable until closed |
 | `DEF-NNN` | a defect | ephemeral |
 | `CLOSED-NNN` | a question closed by measurement, so nobody re-investigates it | durable |
@@ -58,6 +59,7 @@ this repo; a table row or a single-fact statement is never wrapped, so a grep re
 | Everything about one decision | `grep -rn "ADR-0012" docs/ app/src/ tools/` |
 | Everything about one backlog item | `grep -rn "JD-001" docs/` |
 | The next item | `grep -n "← next" docs/backlog.md` |
+| Every repository or delivery item | `grep -n "OPS-" docs/backlog.md` |
 | Unchecked tasks in a PRD | `grep -n "\[ \]" docs/prd/JD-NNN-*.md` |
 | Every open gap | `grep -o "GAP-[0-9]*" docs/architecture.md \| sort -u` |
 | Every closed question | `grep -n "^### CLOSED-" docs/research/closed-questions.md` |
@@ -74,7 +76,7 @@ fresh clone.
 an `architecture.md`/`architecture/*.md` section, which is durable · an upstream project at a
 **pinned SHA** · a published spec or upstream issue URL · a test or Maestro flow name.
 
-**Banned:** a plan/step code · `docs/backlog.md` · a `JD-NNN` · `evidence/<step>/` · any
+**Banned:** a plan/step code · `docs/backlog.md` · a `JD-NNN` or `OPS-NNN` · `evidence/<step>/` · any
 `reference/…` path.
 
 `scripts/check_doc_citations.py` is the gate. It reads **every file under `app/src/` and `tools/`**,
