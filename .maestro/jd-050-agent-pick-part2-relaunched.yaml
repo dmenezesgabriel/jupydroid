@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/jd-050-agent-pick-driver.sh runs, after part 1's two answers in
+# `untitled`.
+#
+# launchApp stops the process, and with it the Space's server: the pick the chip names can now only come
+# from the newest question's `metadata.to_persona`, which the `.chat` file kept.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "untitled"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b731\\b[\\s\\S]*"
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      text: "OpenCode"
+      below: "Ask the agent"
+    timeout: 60000
+- assertNotVisible: "Choose agent"
+- takeScreenshot: 06-relaunched-the-chip-reads-the-newest-questions-agent

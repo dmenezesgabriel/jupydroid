@@ -1,0 +1,81 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/jd-050-agent-pick-driver.sh runs: portrait, one pane on SM-X216B
+# (w800dp), in base with opencode and Claude's ACP adapter installed and both signed in, on a workspace
+# holding no chat.
+#
+# The server lists both personas, so a new chat asks the user to choose one and guesses none. Claude is
+# picked and answers, then OpenCode is picked and answers. Each answer ends with a sum whose digits its
+# question does not hold, so a wait cannot match the question.
+#
+# The agent chip and an answer's sender name can read the same, so the chip is tapped as the text below
+# the empty field's "Ask the agent": the toolbar row sits under the field (`QuestionField`).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Choose agent"
+    timeout: 60000
+- takeScreenshot: 01-two-agents-and-none-chosen
+
+- tapOn: "Choose agent"
+- extendedWaitUntil:
+    visible: "Claude"
+    timeout: 10000
+- assertVisible: "OpenCode"
+- takeScreenshot: 02-the-chip-lists-both-agents
+
+- tapOn: "Claude"
+# Selecting the persona spawns `claude-agent-acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    notVisible: "Choose agent"
+    timeout: 10000
+- tapOn: "Ask the agent"
+- inputText: "Which agent are you? One line, then the sum 347+258 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b605\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 03-claude-answers-under-its-name
+
+- tapOn:
+    text: "Claude"
+    below: "Ask the agent"
+- extendedWaitUntil:
+    visible: "OpenCode"
+    timeout: 10000
+- tapOn: "OpenCode"
+# OpenCode's own free models answered nothing here on 2026-10-26 ("Free usage limit reached."), so the
+# question goes to North Mini Code, a free OpenRouter model, as the answer-names-its-agent flow does.
+- extendedWaitUntil:
+    visible: "Default / OpenCode/Big Pickle"
+    timeout: 300000
+- takeScreenshot: 04-opencode-picked-its-controls-shown
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 10000
+- inputText: "north"
+- extendedWaitUntil:
+    notVisible: "In use"
+    timeout: 10000
+- tapOn: "OpenRouter/North Mini Code \\(free\\)"
+- tapOn: "Ask the agent"
+- inputText: "Which agent are you? One line, then the sum 512+219 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b731\\b[\\s\\S]*"
+    timeout: 300000
+- takeScreenshot: 05-opencode-answers-under-its-name
