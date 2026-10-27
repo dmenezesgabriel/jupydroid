@@ -1,11 +1,16 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.isSpecified
 import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -19,7 +24,8 @@ import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
 
 /**
  * The AI extension's Chat panel over a workspace whose one chat is `untitled.chat`, drawn by [compose]
- * and opened on that chat: where every test of an open chat starts.
+ * and opened on that chat: where every test of an open chat starts. Drawn [width] wide whatever the device's
+ * width, where a test is about how the toolbar's chips share a row; else as wide as the device.
  *
  * ```
  * val panel = UntitledChatPanel(compose)
@@ -27,12 +33,14 @@ import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
  * panel.send("What is 2+2?")
  * ```
  */
-class UntitledChatPanel(private val compose: ComposeContentTestRule) {
+class UntitledChatPanel(private val compose: ComposeContentTestRule, private val width: Dp = Dp.Unspecified) {
   /** The panel alone, answered by [answering] and keeping its waiting questions in [kept], open on the chat. */
   fun show(answering: AgentChat, kept: QueuedQuestionsStore = FakeQueuedQuestionsStore()) {
     compose.setContent {
       JupyterDroidTheme {
-        ContributedSidePanel(contribution = contribution(answering, kept), host = HOST)
+        Box(if (width.isSpecified) Modifier.requiredWidth(width) else Modifier) {
+          ContributedSidePanel(contribution = contribution(answering, kept), host = HOST)
+        }
       }
     }
     open()

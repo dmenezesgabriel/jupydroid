@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extensions.ai.domain.AgentModel
@@ -37,7 +38,8 @@ import org.junit.runner.RunWith
 class ChatModelSearchTest {
   @get:Rule val compose = createComposeRule()
 
-  private val panel = UntitledChatPanel(compose)
+  // At the tablet's width, where each control is its own chip: at a phone's they fold into one.
+  private val panel = UntitledChatPanel(compose, width = 800.dp)
 
   private fun inList(name: String) = hasText(name) and hasAnyAncestor(hasTestTag(MODEL_LIST))
 

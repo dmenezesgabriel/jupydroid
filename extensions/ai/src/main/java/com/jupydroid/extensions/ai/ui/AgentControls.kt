@@ -2,6 +2,7 @@ package com.jupydroid.extensions.ai.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
@@ -25,25 +26,22 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import com.jupydroid.extensions.ai.domain.AgentChat
-import com.jupydroid.extensions.ai.domain.AgentChoice
 import com.jupydroid.extensions.ai.domain.AgentPick
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 
 /**
- * Which agent answers the next question, and with what: a chip for the agent, then, once there is one, a
- * chip for its model and one for each of its general settings (its mode among them), in the order
- * jupyter-ai builds its controls, its persona menu first (jupyter-ai-persona-manager@d5ed04b
- * `src/persona-controls.tsx`, `buildControls`). Each chip is as wide as its name while the row has room,
- * and only when it has not does the longest give way to an ellipsis, so on a phone's width they still share
- * the row with Send ([ChipRow]).
+ * Which agent answers the next question, and with what ([chatControls]): a chip each while their whole names
+ * fit beside Send, else one chip naming the model that opens them all ([ControlsChip]), as VS Code folds its
+ * pickers into one on a phone (vscode@3f3380c
+ * `src/vs/workbench/contrib/chat/browser/widget/input/chatPhoneInputPresenter.ts`).
  *
  * ```
  * AgentControls(transcript, pick) { pick = it }
@@ -53,46 +51,30 @@ import com.jupydroid.extensions.ai.domain.ChatTranscript
  */
 @Composable
 internal fun AgentControls(transcript: ChatTranscript, pick: AgentPick, onPick: (AgentPick) -> Unit) {
-  ChipRow {
-    // With several agents and nothing to go by, the chip asks rather than guessing. jupyter-ai shows "No one"
-    // there, but a question to no one is answered by none (jupyter-ai-persona-manager@d5ed04b
-    // `jupyter_ai_persona_manager/persona_manager.py`, `on_chat_message`), so nothing is sent until a pick.
-    val agents = transcript.agents
-    val agentChip = ChoiceChip("chat-agent", searchable = false, unchosen = "Choose agent")
-    AgentChoiceChip(agents, pick.agent, agentChip) { onPick(pick.withAgent(it)) }
-    if (pick.agentIn(transcript) == null) return@ChipRow
-    val selection = pick.selection
-    // Only the models are searched, as VS Code searches its model picker and not its mode picker: an agent
-    // signed in to OpenRouter offers hundreds of models, and a setting two or three values.
-    AgentChoiceChip(transcript.agentModels, selection.model, ChoiceChip("chat-model", searchable = true)) {
-      onPick(pick.copy(selection = selection.copy(model = it)))
-    }
-    transcript.agentSettings.forEach { setting ->
-      val chip = ChoiceChip("chat-setting-${setting.id}", searchable = false)
-      AgentChoiceChip(setting, selection.settings[setting.id], chip) {
-        onPick(pick.copy(selection = selection.copy(settings = selection.settings + (setting.id to it))))
-      }
-    }
-  }
+  val controls = chatControls(transcript, pick, onPick)
+  if (controls.isEmpty()) return
+  ChipRow(chips = { controls.forEach { AgentChoiceChip(it) } }, folded = { ControlsChip(controls) })
 }
 
 /**
- * [chips] side by side, centred on the row's height, each as wide as [chipWidths] lets it be. A weighted
- * `Row` held each chip to an equal part of the row, so a long name was cut beside room the others left.
- * jupyter-ai and VS Code keep a control whole while it fits (jupyter-ai-persona-manager@d5ed04b
- * `src/persona-controls.tsx`, `ControlsRow`; vscode@3f3380c
+ * [chips] side by side at the width their names need, centred on the row's height, while they fit; else
+ * [folded] alone, so no chip is ever cut. A weighted `Row` held each chip to an equal part of the row, so a
+ * long name was cut beside room the others left. jupyter-ai and VS Code keep a control whole while it fits
+ * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`, `ControlsRow`; vscode@3f3380c
  * `src/vs/workbench/contrib/chat/browser/widget/input/chatInputPickerResponsiveLayout.ts`).
  *
  * Fixes: 7aa8cfb98a80 ("feat(ai): a mode chip beside the model chip names opencode's mode and picks the
  * next question's")
  */
 @Composable
-private fun ChipRow(chips: @Composable () -> Unit) {
-  Layout(chips) { measurables, constraints ->
-    val widths = chipWidths(measurables.map { it.maxIntrinsicWidth(constraints.maxHeight) }, constraints.maxWidth)
-    val placeables = measurables.mapIndexed { chip, measurable ->
-      measurable.measure(Constraints(maxWidth = widths[chip], maxHeight = constraints.maxHeight))
-    }
+private fun ChipRow(chips: @Composable () -> Unit, folded: @Composable () -> Unit) {
+  SubcomposeLayout { constraints ->
+    // Measured, never placed, and kept out of the semantics tree: an unplaced chip still answers a screen
+    // reader and a test.
+    val whole = subcompose(ChipRowSlot.Measured) { Row(Modifier.clearAndSetSemantics {}) { chips() } }.single()
+    val fits = whole.maxIntrinsicWidth(constraints.maxHeight) <= constraints.maxWidth
+    val shown = if (fits) subcompose(ChipRowSlot.Separate, chips) else subcompose(ChipRowSlot.Folded, folded)
+    val placeables = shown.map { it.measure(constraints.copy(minWidth = 0, minHeight = 0)) }
     val height = placeables.maxOfOrNull { it.height } ?: 0
     layout(placeables.sumOf { it.width }, height) {
       var left = 0
@@ -103,6 +85,9 @@ private fun ChipRow(chips: @Composable () -> Unit) {
     }
   }
 }
+
+/** What [ChipRow] composes: the chips to measure, then the chips or the one chip they fold into, to draw. */
+private enum class ChipRowSlot { Measured, Separate, Folded }
 
 /**
  * The agent [open] asks with [pick], told to [chat] whenever it changes and again on every opening: a chat
@@ -121,77 +106,90 @@ internal fun selectedAgent(
 }
 
 /**
- * A chip's [tag], which its list and search field extend, whether its list opens on a search field, and
- * what it says while nothing is in use.
- */
-private data class ChoiceChip(val tag: String, val searchable: Boolean, val unchosen: String = "")
-
-/**
- * One [choice] named on a chip that opens the values it offers, the one in use checked. jupyter-ai labels
- * a control with its value's name (`currentControlLabel`), and draws nothing while it offers no values.
+ * One [control] named on a chip that opens the values it offers, the one in use checked. jupyter-ai labels
+ * a control with its value's name (`currentControlLabel`).
  *
  * Its "Default (<current>)" row is not drawn: the persona applies a pick and keeps it with the chat
  * (jupyter_ai_acp_client 0.3.3 `base_acp_persona.py`, `_record_config_choice`, in the shipped rootfs),
  * so after one question "default" would name the pick.
- *
- * @param picked the value picked for the next question, or null to keep the agent's.
  */
 @Composable
-private fun AgentChoiceChip(choice: AgentChoice, picked: String?, chip: ChoiceChip, onPick: (String) -> Unit) {
-  if (!choice.choosable) return
+private fun AgentChoiceChip(control: ChatControl) {
   var listed by remember { mutableStateOf(false) }
-  // Read here, not in the menu: the menu is a popup window of its own.
-  val tallest = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 3 / 5).toDp() }
+  val tallest = tallestList()
   Box {
-    TextButton(onClick = { listed = true }, modifier = Modifier.testTag(chip.tag)) {
-      // Weighted, so a long name ellipsizes rather than pushing the arrow out of the button.
-      Text(
-        choice.nameInUse(picked) ?: chip.unchosen,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.weight(1f, fill = false),
-      )
-      Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
-    }
+    ChipButton(control.valueName, Modifier.testTag(control.chip.tag)) { listed = true }
     DropdownMenu(expanded = listed, onDismissRequest = { listed = false }) {
-      ChoiceList(choice, picked, chip, tallest) {
+      ChoiceList(control, tallest) {
         listed = false
-        onPick(it)
+        control.onPick(it)
       }
     }
+  }
+}
+
+/** A toolbar chip reading [name], ellipsized when the row is narrower, with the arrow that says it opens. */
+@Composable
+internal fun ChipButton(name: String, modifier: Modifier, onClick: () -> Unit) {
+  TextButton(onClick = onClick, modifier = modifier) {
+    // Weighted, so a long name ellipsizes rather than pushing the arrow out of the button.
+    Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+    Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
   }
 }
 
 /**
- * The values [choice] offers, at most [tallest], the one in use first and checked: under a search field
- * when the [chip] is searchable, which stays put while the values scroll beneath it. jupyter-ai holds its
- * list to `60vh` (jupyter-ai-persona-manager@d5ed04b `style/base.css`) and opens on its search field
- * focused (`ControlMenu`), as VS Code's phone sheet does (vscode@3f3380c
- * `src/vs/sessions/browser/parts/mobile/mobilePickerSheet.ts`). Its query is gone once the list closes.
+ * How tall a chip's list may grow: jupyter-ai holds its list to `60vh` (jupyter-ai-persona-manager@d5ed04b
+ * `style/base.css`). Read by the chip, not in the menu: the menu is a popup window of its own.
  */
 @Composable
-private fun ChoiceList(choice: AgentChoice, picked: String?, chip: ChoiceChip, tallest: Dp, onPick: (String) -> Unit) {
+internal fun tallestList(): Dp = with(LocalDensity.current) {
+  (LocalWindowInfo.current.containerSize.height * TALLEST_LIST_SHARE).toDp()
+}
+
+/** The share of the window's height a chip's list may take, as jupyter-ai's `60vh`. */
+private const val TALLEST_LIST_SHARE = 0.6f
+
+/**
+ * The values [control] offers, at most [tallest], the one in use first and checked: under a search field
+ * when its chip is searchable, which stays put while the values scroll beneath it. jupyter-ai opens on its
+ * search field focused (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`, `ControlMenu`), as
+ * VS Code's phone sheet does (vscode@3f3380c `src/vs/sessions/browser/parts/mobile/mobilePickerSheet.ts`).
+ * Its query is gone once the list closes.
+ */
+@Composable
+private fun ChoiceList(control: ChatControl, tallest: Dp, onPick: (String) -> Unit) {
   var query by remember { mutableStateOf("") }
-  val inUse = choice.inUse(picked)
-  val listing = choice.listing(picked, query)
+  val chip = control.chip
   Column(Modifier.heightIn(max = tallest).testTag("${chip.tag}-list")) {
-    if (chip.searchable) ChoiceSearch(query, "${chip.tag}-search") { query = it }
-    if (listing.isEmpty()) DropdownMenuItem(text = { Text("No matches") }, onClick = {}, enabled = false)
+    if (chip.searchable) ChoiceSearch(query, "${chip.tag}-search", focused = true) { query = it }
     Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
-      listing.forEach { option ->
-        DropdownMenuItem(
-          text = { Text(option.name) },
-          leadingIcon = { if (option.id == inUse) Icon(Icons.Filled.Check, contentDescription = "In use") },
-          onClick = { onPick(option.id) },
-        )
-      }
+      ChoiceRows(control, query, onPick)
     }
   }
 }
 
-/** The field a searchable list opens on, focused so the keyboard is up to type the first letter. */
+/** A row for each value [control] offers that [query] matches (`AgentChoice.listing`), the one in use checked. */
 @Composable
-private fun ChoiceSearch(query: String, tag: String, onQuery: (String) -> Unit) {
+internal fun ChoiceRows(control: ChatControl, query: String, onPick: (String) -> Unit) {
+  val inUse = control.choice.inUse(control.picked)
+  val listing = control.choice.listing(control.picked, query)
+  if (listing.isEmpty()) DropdownMenuItem(text = { Text("No matches") }, onClick = {}, enabled = false)
+  listing.forEach { option ->
+    DropdownMenuItem(
+      text = { Text(option.name) },
+      leadingIcon = { if (option.id == inUse) Icon(Icons.Filled.Check, contentDescription = "In use") },
+      onClick = { onPick(option.id) },
+    )
+  }
+}
+
+/**
+ * The field a searchable list opens on, [focused] so the keyboard is up to type the first letter where the
+ * list is the model's alone.
+ */
+@Composable
+internal fun ChoiceSearch(query: String, tag: String, focused: Boolean, onQuery: (String) -> Unit) {
   val focus = remember { FocusRequester() }
   TextField(
     value = query,
@@ -201,5 +199,5 @@ private fun ChoiceSearch(query: String, tag: String, onQuery: (String) -> Unit) 
     leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
     modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag(tag),
   )
-  LaunchedEffect(focus) { focus.requestFocus() }
+  if (focused) LaunchedEffect(focus) { focus.requestFocus() }
 }
