@@ -78,13 +78,20 @@ authority here, so Gradle's own documentation is:
   `{strictly 5.4.0} ... enforced by Dependency Locking`; a planted downgrade resolves the locked
   version without failing, so what resolves is always what is locked. The ADR and the `AGENTS.md`
   update note in T3 carry this.
+- ~~Was the wrapper already sound?~~ **No, settled in T2:** `gradle-wrapper.jar` was Gradle 4.6's
+  (genuine, sum equal to Gradle's published 4.6 one), left from the template; the bump to 9.3.1 had
+  edited only the properties. It is regenerated, and both sums now equal 9.3.1's published ones.
+  The `AGENTS.md` note in T3 says a Gradle bump re-runs the `wrapper` task, not an edit.
+- **Recorded on Linux (T2), for the ADR:** `aapt2` is a per-OS artifact (`aapt2-<v>-linux.jar`), so
+  a build on macOS or Windows fails verification until its sum is added there. `-sources` and
+  `-javadoc` jars are trusted, as Gradle's guide recommends, so the IDE's source download passes.
 
 ## Tasks
 
 - [x] T1 — **Locking.** STRICT `dependencyLocking { lockAllConfigurations() }` in each module and
   plugin-classpath locking in the root; `gradle.lockfile` per module and
   `buildscript-gradle.lockfile` committed; a planted drift fails, reverted.
-- [ ] T2 — **Verification.** `gradle/verification-metadata.xml` from
+- [x] T2 — **Verification.** `gradle/verification-metadata.xml` from
   `--write-verification-metadata sha256` over the full gate; a planted wrong sum fails, reverted;
   the wrapper jar and distribution sums checked against services.gradle.org.
 - [ ] T3 — **Close.** An ADR for the locking and verification choices, an `AGENTS.md` note on
