@@ -20,8 +20,10 @@ On SM-X216B, with opencode installed and signed in in base (ADR-0106), landscape
 3. A tool-call row for `insert_cell` appears and completes (ADR-0112). A new first cell holding `print(42)`
    appears in the notebook above `x = 1`, and it is the active cell.
 4. Run the new cell: `42`.
-5. Ask the agent to insert a cell into a notebook that is not open. The tool-call row ends with an error
-   that names the path, and nothing changes on screen.
+5. Ask the agent to insert a cell into a notebook that is not open. The tool-call row completes, and its
+   output and the agent's answer name the path; nothing changes on screen. jupyter-ai-tools@4d1c823
+   `insert_cell` returns the commands toolkit's `{success: false, error}` rather than raising, as it
+   does for JupyterLab.
 6. Kill and relaunch, then open `untitled.ipynb`: `print(42)` is still its first cell.
 
 The item is not `shipped` until this has been run on SM-X216B, with screenshots, snapshots and
@@ -172,7 +174,7 @@ holds.
 - [x] T4 — The AI extension answers `get-notebook-info` and `add-cell` from the events socket (ack, then
   result through `POST /api/events`) and refuses anything else. The agent's cell lands in the notebook on
   SM-X216B
-- [ ] T5 — The demo above on SM-X216B; a defect found is fixed red first
+- [x] T5 — The demo above on SM-X216B; a defect found is fixed red first
 - [ ] T6 — The ADR (the app is the commands toolkit's web client, `mcp_tools` lists only the tools it
   answers, and the MCP port takes the server's token); delete this PRD; update the backlog
 
