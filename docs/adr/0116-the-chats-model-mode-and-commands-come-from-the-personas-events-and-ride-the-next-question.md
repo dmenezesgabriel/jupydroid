@@ -147,3 +147,10 @@ Measured on SM-X216B (240 dpi, portrait, one pane):
 - **Do not add a setter call or a host-side store for the pick.** 0.3.3 has no REST setter, and the
   persona already persists the pick in the `.chat` file. A second store would disagree with it the
   first time the agent refused a value.
+
+## Amendment — 2026-10-27
+
+Amended by [ADR-0120](0120-the-chats-chips-keep-their-whole-width-and-fold-into-one-naming-the-model.md).
+The "Phone layout" row's chip per choice stays in the toolbar row only while the chips' whole names fit
+beside Send. Each chip takes the width its name needs, not an equal share. Where they do not fit, they
+fold into one chip naming the model, which opens one menu with a section per control.
