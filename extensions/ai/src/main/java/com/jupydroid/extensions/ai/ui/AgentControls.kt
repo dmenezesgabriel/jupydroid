@@ -2,7 +2,6 @@ package com.jupydroid.extensions.ai.ui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
@@ -23,14 +22,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChoice
@@ -41,8 +41,9 @@ import com.jupydroid.extensions.ai.domain.ChatTranscript
  * Which agent answers the next question, and with what: a chip for the agent, then, once there is one, a
  * chip for its model and one for each of its general settings (its mode among them), in the order
  * jupyter-ai builds its controls, its persona menu first (jupyter-ai-persona-manager@d5ed04b
- * `src/persona-controls.tsx`, `buildControls`). Each chip shrinks to an ellipsis before the row
- * overflows, so on a phone's width they still share it with Send.
+ * `src/persona-controls.tsx`, `buildControls`). Each chip is as wide as its name while the row has room,
+ * and only when it has not does the longest give way to an ellipsis, so on a phone's width they still share
+ * the row with Send ([ChipRow]).
  *
  * ```
  * AgentControls(transcript, pick) { pick = it }
@@ -52,25 +53,52 @@ import com.jupydroid.extensions.ai.domain.ChatTranscript
  */
 @Composable
 internal fun AgentControls(transcript: ChatTranscript, pick: AgentPick, onPick: (AgentPick) -> Unit) {
-  Row(verticalAlignment = Alignment.CenterVertically) {
-    val shrinking = Modifier.weight(1f, fill = false)
+  ChipRow {
     // With several agents and nothing to go by, the chip asks rather than guessing. jupyter-ai shows "No one"
     // there, but a question to no one is answered by none (jupyter-ai-persona-manager@d5ed04b
     // `jupyter_ai_persona_manager/persona_manager.py`, `on_chat_message`), so nothing is sent until a pick.
     val agents = transcript.agents
     val agentChip = ChoiceChip("chat-agent", searchable = false, unchosen = "Choose agent")
-    AgentChoiceChip(agents, pick.agent, agentChip, shrinking) { onPick(pick.withAgent(it)) }
-    if (pick.agentIn(transcript) == null) return@Row
+    AgentChoiceChip(agents, pick.agent, agentChip) { onPick(pick.withAgent(it)) }
+    if (pick.agentIn(transcript) == null) return@ChipRow
     val selection = pick.selection
     // Only the models are searched, as VS Code searches its model picker and not its mode picker: an agent
     // signed in to OpenRouter offers hundreds of models, and a setting two or three values.
-    AgentChoiceChip(transcript.agentModels, selection.model, ChoiceChip("chat-model", searchable = true), shrinking) {
+    AgentChoiceChip(transcript.agentModels, selection.model, ChoiceChip("chat-model", searchable = true)) {
       onPick(pick.copy(selection = selection.copy(model = it)))
     }
     transcript.agentSettings.forEach { setting ->
       val chip = ChoiceChip("chat-setting-${setting.id}", searchable = false)
-      AgentChoiceChip(setting, selection.settings[setting.id], chip, shrinking) {
+      AgentChoiceChip(setting, selection.settings[setting.id], chip) {
         onPick(pick.copy(selection = selection.copy(settings = selection.settings + (setting.id to it))))
+      }
+    }
+  }
+}
+
+/**
+ * [chips] side by side, centred on the row's height, each as wide as [chipWidths] lets it be. A weighted
+ * `Row` held each chip to an equal part of the row, so a long name was cut beside room the others left.
+ * jupyter-ai and VS Code keep a control whole while it fits (jupyter-ai-persona-manager@d5ed04b
+ * `src/persona-controls.tsx`, `ControlsRow`; vscode@3f3380c
+ * `src/vs/workbench/contrib/chat/browser/widget/input/chatInputPickerResponsiveLayout.ts`).
+ *
+ * Fixes: 7aa8cfb98a80 ("feat(ai): a mode chip beside the model chip names opencode's mode and picks the
+ * next question's")
+ */
+@Composable
+private fun ChipRow(chips: @Composable () -> Unit) {
+  Layout(chips) { measurables, constraints ->
+    val widths = chipWidths(measurables.map { it.maxIntrinsicWidth(constraints.maxHeight) }, constraints.maxWidth)
+    val placeables = measurables.mapIndexed { chip, measurable ->
+      measurable.measure(Constraints(maxWidth = widths[chip], maxHeight = constraints.maxHeight))
+    }
+    val height = placeables.maxOfOrNull { it.height } ?: 0
+    layout(placeables.sumOf { it.width }, height) {
+      var left = 0
+      placeables.forEach { chip ->
+        chip.placeRelative(left, (height - chip.height) / 2)
+        left += chip.width
       }
     }
   }
@@ -109,18 +137,12 @@ private data class ChoiceChip(val tag: String, val searchable: Boolean, val unch
  * @param picked the value picked for the next question, or null to keep the agent's.
  */
 @Composable
-private fun AgentChoiceChip(
-  choice: AgentChoice,
-  picked: String?,
-  chip: ChoiceChip,
-  modifier: Modifier,
-  onPick: (String) -> Unit,
-) {
+private fun AgentChoiceChip(choice: AgentChoice, picked: String?, chip: ChoiceChip, onPick: (String) -> Unit) {
   if (!choice.choosable) return
   var listed by remember { mutableStateOf(false) }
   // Read here, not in the menu: the menu is a popup window of its own.
   val tallest = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.height * 3 / 5).toDp() }
-  Box(modifier) {
+  Box {
     TextButton(onClick = { listed = true }, modifier = Modifier.testTag(chip.tag)) {
       // Weighted, so a long name ellipsizes rather than pushing the arrow out of the button.
       Text(

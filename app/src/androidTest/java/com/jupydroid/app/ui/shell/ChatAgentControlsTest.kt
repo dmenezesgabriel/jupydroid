@@ -1,14 +1,18 @@
 package com.jupydroid.app.ui.shell
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -20,6 +24,7 @@ import com.jupydroid.extensions.ai.domain.AgentSetting
 import com.jupydroid.extensions.ai.domain.AgentSettingValue
 import com.jupydroid.extensions.ai.domain.ChatTranscript
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -152,6 +157,35 @@ class ChatAgentControlsTest {
     )
   }
 
+  /**
+   * At the tablet's 800 dp, four chips, as many as Claude's agent, model, mode and effort, leave room in the
+   * row, so none is cut: each was held to a quarter of it, and "Default (recommended)" was drawn as
+   * "Default (recomm…" beside the empty rest. Laid out at 800 dp whatever the device's width, so nothing is
+   * pressed: the chips the panel draws with no agents listed are enough.
+   */
+  @Test
+  fun aChipsNameIsWholeWhileTheRowHasRoom() {
+    val claude = AgentModels("default", listOf(AgentModel("default", "Default (recommended)")))
+    val effort = MODE.copy(id = "effort", name = "Effort", current = "default", offered = TWO_VALUES)
+    val thinking = MODE.copy(id = "thinking", name = "Thinking", current = "default", offered = TWO_VALUES)
+    val chat = SettableAgentChat(ChatTranscript(agentModels = claude, agentSettings = listOf(MODE, effort, thinking)))
+    compose.setContent {
+      JupyterDroidTheme {
+        Box(Modifier.requiredWidth(800.dp)) { ContributedSidePanel(panel.contribution(chat), UntitledChatPanel.HOST) }
+      }
+    }
+    panel.open()
+
+    assertFalse("the model's name is cut", compose.onNodeWithText(claude.offered.single().name).isCut())
+  }
+
+  /** Whether the text in this node is drawn shorter than it is, as an ellipsis draws it. */
+  private fun SemanticsNodeInteraction.isCut(): Boolean {
+    val layouts = mutableListOf<TextLayoutResult>()
+    fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+    return layouts.single().hasVisualOverflow
+  }
+
   private fun Rect.overlapsVertically(other: Rect): Boolean = top < other.bottom && other.top < bottom
 
   private companion object {
@@ -165,6 +199,8 @@ class ChatAgentControlsTest {
       current = "build",
       offered = listOf(AgentSettingValue("build", "build"), AgentSettingValue("plan", "plan")),
     )
+
+    val TWO_VALUES = listOf(AgentSettingValue("default", "Default"), AgentSettingValue("high", "High"))
 
     val MODELS = AgentModels(
       current = "opencode/big-pickle",
