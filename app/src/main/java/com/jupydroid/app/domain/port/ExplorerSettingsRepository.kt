@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.Flow
  * into either - see [ExplorerSettings].
  *
  * ```
- * explorerSettings.update(ExplorerSettings(recentsCollapsed = true))
+ * explorerSettings.update(ExplorerSettings(recentsCollapsed = false))
  * ```
  */
 interface ExplorerSettingsRepository {

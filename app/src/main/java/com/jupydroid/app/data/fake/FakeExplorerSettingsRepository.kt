@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * for the reason every port has one: a screen composes before its adapter is wired.
  *
  * ```
- * FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = true))
+ * FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = false))
  * ```
  */
 class FakeExplorerSettingsRepository(initial: ExplorerSettings = ExplorerSettings()) : ExplorerSettingsRepository {

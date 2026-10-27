@@ -23,17 +23,18 @@ class DiskExplorerSettingsRepositoryTest : ExplorerSettingsRepositoryContract() 
   private fun openStore() = DiskExplorerSettingsRepository(stateDir)
 
   /**
-   * A section a user shut is still shut after the process dies - which is the whole reason this is
+   * A section a user opened is still open after the process dies - which is the whole reason this is
    * a port and not a field on a ViewModel, and what the reference does too (`setCollapsed` writes
-   * through to storage on every change, `viewContainerModel.ts:456-461`).
+   * through to storage on every change, `viewContainerModel.ts:456-461`). Open, because shut is the
+   * default and would read back with nothing written at all.
    */
   @Test
   fun survivesTheNextLaunch() = runTest {
-    openStore().update(ExplorerSettings(recentsCollapsed = true))
+    openStore().update(ExplorerSettings(recentsCollapsed = false))
 
     val reopened = openStore().observeSettings().first()
 
-    assertEquals(true, reopened.recentsCollapsed)
+    assertEquals(false, reopened.recentsCollapsed)
   }
 
   /** A store written by something else must not take the app down on launch. */
@@ -66,7 +67,7 @@ class DiskExplorerSettingsRepositoryTest : ExplorerSettingsRepositoryContract() 
     val store = openStore()
     File(stateDir, EXPLORER_SETTINGS_FILE_NAME).mkdirs()
 
-    val refused = runCatching { store.update(ExplorerSettings(recentsCollapsed = true)) }
+    val refused = runCatching { store.update(ExplorerSettings(recentsCollapsed = false)) }
 
     assertTrue(refused.exceptionOrNull() is java.io.IOException)
     assertEquals(ExplorerSettings(), store.observeSettings().first())

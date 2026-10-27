@@ -26,9 +26,11 @@ import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.ExplorerSettings
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
+import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
@@ -107,6 +109,23 @@ class ExplorerScreenTest {
     compose.onNodeWithText(CLEAR_RECENTS).performClick()
 
     waitUntilGone(RECENTS_HEADING)
+  }
+
+  /**
+   * A store nobody has written arrives shut: the heading is there to press and the rows are not,
+   * as the reference's secondary Explorer views arrive (Outline's and Timeline's `collapsed: true`).
+   */
+  @Test
+  fun aFreshExplorerShowsTheHeadingShutAndNoRows() {
+    given("notes.txt")
+    showExplorer(
+      recents = listOf(RecentDocument(RECENT_ROW, WorkspaceEntryKind.FILE)),
+      explorerSettings = FakeExplorerSettingsRepository(),
+    )
+    waitForText(RECENTS_HEADING)
+
+    compose.onNodeWithText(RECENTS_HEADING).assertIsDisplayed()
+    compose.onAllNodesWithText(RECENT_ROW).assertCountEquals(0)
   }
 
   /**
@@ -470,6 +489,9 @@ class ExplorerScreenTest {
     onBack: (() -> Unit)? = {},
     onOpenRecent: (String) -> Unit = {},
     recents: List<RecentDocument> = emptyList(),
+    // Open unless a test says otherwise: most cases here are about what an open section offers.
+    explorerSettings: ExplorerSettingsRepository =
+      FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = false)),
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -483,7 +505,7 @@ class ExplorerScreenTest {
           kernelSpecs = FakeKernelSpecs(),
           space = BASE_SPACE,
           recentDocuments = FakeRecentDocumentsRepository(recents),
-          explorerSettings = FakeExplorerSettingsRepository(),
+          explorerSettings = explorerSettings,
           onOpenFile = onOpenFile,
           onOpenRecent = onOpenRecent,
           onBack = onBack,

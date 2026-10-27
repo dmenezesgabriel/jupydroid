@@ -21,7 +21,12 @@ import kotlinx.coroutines.launch
  *   directory
  * @property collapsed whether the section is showing its heading and none of its rows
  */
-data class RecentsUiState(val documents: List<RecentDocument> = emptyList(), val collapsed: Boolean = false)
+data class RecentsUiState(
+  val documents: List<RecentDocument> = emptyList(),
+  // The domain's default, not a second copy of it: a section drawn open for the frame before the
+  // store answers would flash its rows at a user who never asked for them.
+  val collapsed: Boolean = ExplorerSettings().recentsCollapsed,
+)
 
 /**
  * The Recents section: a record of what was opened, and the one control over it.

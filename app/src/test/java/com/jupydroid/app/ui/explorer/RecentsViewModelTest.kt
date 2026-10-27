@@ -91,13 +91,13 @@ class RecentsViewModelTest {
   }
 
   /**
-   * The section arrives open, which is the reference's own default: a view's `collapsed` is
-   * `!!viewDescriptor.collapsed` unless a stored state says otherwise
-   * (`viewContainerModel.ts:517`).
+   * The section arrives shut, as the reference's secondary Explorer views do: Outline and Timeline
+   * declare `collapsed: true`, and a view keeps `!!viewDescriptor.collapsed` until a stored state
+   * says otherwise (`viewContainerModel.ts:517`).
    */
   @Test
-  fun theSectionArrivesOpen() = runTest {
-    assertEquals(false, recents(recent("notes.txt")).uiState.value.collapsed)
+  fun theSectionArrivesShut() = runTest {
+    assertEquals(true, recents(recent("notes.txt")).uiState.value.collapsed)
   }
 
   /**
@@ -105,14 +105,14 @@ class RecentsViewModelTest {
    * (`paneview.ts:285-292`), so the same act has to bring it back.
    */
   @Test
-  fun theHeadingTogglesTheSectionShutAndOpenAgain() = runTest {
+  fun theHeadingTogglesTheSectionOpenAndShutAgain() = runTest {
     val viewModel = recents(recent("notes.txt"))
 
     viewModel.toggle()
-    assertEquals(true, viewModel.uiState.value.collapsed)
+    assertEquals(false, viewModel.uiState.value.collapsed)
 
     viewModel.toggle()
-    assertEquals(false, viewModel.uiState.value.collapsed)
+    assertEquals(true, viewModel.uiState.value.collapsed)
   }
 
   /**
@@ -121,7 +121,10 @@ class RecentsViewModelTest {
    */
   @Test
   fun collapsingTheSectionDoesNotForgetWhatWasOpened() = runTest {
-    val viewModel = recents(recent("notes.txt"))
+    val viewModel = recents(
+      settings = FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = false)),
+      opened = arrayOf(recent("notes.txt")),
+    )
 
     viewModel.toggle()
 
@@ -129,24 +132,30 @@ class RecentsViewModelTest {
   }
 
   /**
-   * A section shut before the process died comes back shut - the reference stores `collapsed` and
+   * A section opened before the process died comes back open - the reference stores `collapsed` and
    * reads it back into the view's state on the next launch (`viewContainerModel.ts:456-461`,
-   * `:90-108`).
+   * `:90-108`). Open, because shut is the default and would pass with nothing stored at all.
    */
   @Test
-  fun aSectionShutBeforeTheProcessDiedComesBackShut() = runTest {
+  fun aSectionOpenedBeforeTheProcessDiedComesBackOpen() = runTest {
     val viewModel = recents(
-      settings = FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = true)),
+      settings = FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = false)),
       opened = arrayOf(recent("notes.txt")),
     )
 
-    assertEquals(true, viewModel.uiState.value.collapsed)
+    assertEquals(false, viewModel.uiState.value.collapsed)
+  }
+
+  /** Nor does the state holder draw it open for the moment before the store answers. */
+  @Test
+  fun theStateBeforeTheStoreAnswersIsShutToo() {
+    assertEquals(true, RecentsUiState().collapsed)
   }
 
   /** And the toggle writes through, on every change, as `setCollapsed` does. */
   @Test
   fun togglingIsWrittenToTheStore() = runTest {
-    val settings = FakeExplorerSettingsRepository()
+    val settings = FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = false))
     val viewModel = recents(settings = settings, opened = arrayOf(recent("notes.txt")))
 
     viewModel.toggle()
