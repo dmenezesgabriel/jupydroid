@@ -1,0 +1,53 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/jd-050-answer-names-its-agent-driver.sh runs: portrait, one pane
+# on SM-X216B (w800dp), in base with opencode installed and signed in, on a workspace holding no chat.
+#
+# opencode answers a question in `untitled`, and its name, as the chat's `users` map gives it, is drawn
+# above the answer. North Mini Code, a free OpenRouter model, answers it: OpenCode's own models answered
+# nothing here on 2026-10-26 ("Free usage limit reached."). The answer ends with a sum whose digits the
+# question does not hold, so the wait cannot match the question.
+#
+# "OpenCode" is matched as a whole text: no chip reads only that (they read "Default / OpenCode/…" and
+# "OpenRouter/…"), and the question does not hold it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers.
+- extendedWaitUntil:
+    visible: "Default / OpenCode/Big Pickle"
+    timeout: 300000
+- assertNotVisible: "OpenCode"
+- takeScreenshot: 01-no-answer-yet-so-no-agent-named
+
+- tapOn: "Default / OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "In use"
+    timeout: 10000
+- inputText: "north"
+- extendedWaitUntil:
+    notVisible: "In use"
+    timeout: 10000
+- tapOn: "OpenRouter/North Mini Code \\(free\\)"
+- tapOn: "Ask the agent"
+- inputText: "Which agent are you? One line, then the sum 347+258 in digits."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*\\b605\\b[\\s\\S]*"
+    timeout: 300000
+- assertVisible: "OpenCode"
+- takeScreenshot: 02-the-answer-is-drawn-under-opencodes-name
