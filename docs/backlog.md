@@ -259,7 +259,7 @@ exact Gradle versions from a lockfile or verification metadata, and the build ha
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `OPS-001` | **Dependencies are locked and verified:** Gradle dependency locking and `gradle/verification-metadata.xml`, and the wrapper's checksum validated, so a scanner reads exact versions and a tampered artifact fails the build | open ← next | — | — |
+| `OPS-001` | **Dependencies are locked and verified:** Gradle dependency locking and `gradle/verification-metadata.xml`, and the wrapper's checksum validated, so a scanner reads exact versions and a tampered artifact fails the build | in-progress ← next | — | — |
 | `AUD-012` | **Security posture, measured with tools:** osv-scanner over the Gradle dependencies and `tools/rootfs/requirements.lock`; a syft SBOM of the arm64 rootfs read by grype or trivy (Alpine packages and pip); opengrep/semgrep CE Kotlin and Android rules; a MobSF static scan of the APK, run locally in docker; gitleaks over every commit; Android Lint's security category. Read down our own call stack too: exported components and intent filters, WebView settings and JS bridges, `network_security_config`, `jupyter_server`'s bind address and token, the MCP bearer, terminal link opening, FileProvider paths, and the auto-backup that carries a Space's sign-ins ([ADR-0107](adr/0107-what-the-user-made-survives-a-reinstall-through-a-filtered-auto-backup.md)) | open | — | — |
 | `JD-064` | **Repair what `AUD-012` names:** one item per finding, ranked by severity, each with a demo where it changes what a user can reach. Nothing exists here until the measurement names it | open | — | — |
 
