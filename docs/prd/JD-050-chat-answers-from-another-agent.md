@@ -68,16 +68,16 @@ already exists in our image; what is missing is entirely the app's.
 | UI entry point | `src/vs/workbench/contrib/chat/browser/widget/input/sessionTargetPickerActionItem.ts` (`ISessionTypeItem`, grouped "Agent Types" / "Other") |
 
 **Disagreement:** jupyter-ai offers "No one" and does not keep the pick; VS Code has no "no agent"
-target. That is decision 1 and 2 below.
+target. Decisions 1 and 2 below settle both.
 
 ## Trade-offs and what we adopt
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
 | Where the list comes from | jupyter-ai → `personas/v1` event; VS Code → registered session types | the event is what the server already sends, re-sent on connect | `personas/v1` on the bus `PersonaEventsSubscription` already reads |
-| Default pick | jupyter-ai → sole persona, else page-config default, else none | — | `reconcileSelection`'s rules |
-| "No one" | jupyter-ai → offered; VS Code → absent | a question sent to no one is never answered, and the panel waits on it | open decision 1 |
-| The pick across a relaunch | jupyter-ai → not kept | with two agents, a relaunch would fall back to no pick | open decision 2 |
+| Default pick | jupyter-ai → sole persona, else page-config default, else none; VS Code → remembered while usable, else a computed default | the image's default (Jupyternaut) is not installed, so jupyter-ai lands on none with two personas; the list's order is entry-point load order, which ranks nothing | decision 2: the pick, else the newest question's persona, else the sole one, else none |
+| "No one" | jupyter-ai → offered; VS Code → absent | a question sent to no one is never answered, and the panel waits on it | decision 1: not offered |
+| The pick across a relaunch | jupyter-ai → not kept; VS Code → stored, used while usable | the server already saves each question's `metadata.to_persona` in the `.chat` file | decision 2: read back from the newest question, no store of ours |
 | Whose answer it is | jupyter-chat → sender's name above each message | needs the `users` map the `connection` frame already carries | the agent's `display_name` above its answer |
 
 ## Gap analysis — what we already have vs the references
@@ -96,23 +96,30 @@ and nothing in the app can address it.
 
 ## Deviations
 
-None planned beyond the open decisions.
+None.
 
-## Open decisions
+## Decisions
 
-1. **Offer "No one"?** jupyter-ai does, for a chat between people. Here every chat is the user and
-   agents. Read, not measured: `on_chat_message` routes a message with no `to_persona` nowhere
-   (`jupyter_ai_persona_manager/persona_manager.py` in the shipped rootfs), and ADR-0113 asks the next
-   queued question only once the one before has started a reply, so a question to no one would hold the
-   queue forever. Leaning: not offered. Settled in T3.
-2. **Keep the pick across a relaunch?** jupyter-ai does not, and its "No one" makes losing it harmless;
-   without "No one" it is not. VS Code stores the user's pick and reuses it only while it is still
-   usable, else falls back to the computed default (vscode@3f3380c
-   `src/vs/workbench/contrib/chat/common/constants.ts`, `recordUserSelectedSessionType`,
-   `getDefaultNewChatSessionTypeAndReasonFromServices`). Leaning: VS Code's rule, a pick kept and used
-   while it is listed, else `reconcileSelection`'s. Settled in T3, with where it is kept.
+1. **"No one" is not offered.** jupyter-ai offers it for a chat between people; here every chat is the
+   user and agents. `on_chat_message` routes a message with no `to_persona` nowhere
+   (jupyter-ai-persona-manager@d5ed04b `jupyter_ai_persona_manager/persona_manager.py`), and ADR-0113
+   asks the next queued question only once the one before has started a reply, so a question to no one
+   would hold the queue forever.
+2. **The pick survives a relaunch with no store of ours.** jupyterlab_chat saves a sent message's
+   `metadata` in the `.chat` file (jupyter-chat@2c224bc `python/jupyterlab-chat/jupyterlab_chat/websocket_handler.py`,
+   `_handle_new_message`); measured, the `.chat` T2 pulled holds `to_persona` on the user's question.
+   The persona a question goes to is, in order:
+   1. the pick made in the panel, while it is listed;
+   2. else the `to_persona` of the user's newest question, while it is listed: VS Code's rule, a
+      remembered pick used while it is usable (vscode@3f3380c `src/vs/workbench/contrib/chat/common/constants.ts`,
+      `getUsableRememberedSessionType`);
+   3. else the sole persona listed (`reconcileSelection`);
+   4. else none: the agent chip reads "Choose agent" and Send is off until the user picks. That is where
+      jupyter-ai lands in this image, whose default persona (Jupyternaut) is not installed, without its
+      trap of sending to no one. No persona is guessed from the list's order, which is entry-point load
+      order and ranks nothing.
 
-Both become an ADR amending ADR-0106's "Which chat, which persona" row.
+Both become an ADR amending ADR-0106's "Which chat, which persona" row (T4).
 
 ## Surface
 
@@ -138,7 +145,7 @@ Both become an ADR amending ADR-0106's "Which chat, which persona" row.
   SM-X216B, with opencode).
 - [ ] T3 — The Chat asks the agent the user picked: `personas/v1` parsed, the selection carries the
   persona, the fold keeps each persona's state and shows the picked one's, and an agent chip in the
-  Chat's controls lists the personas and sends `persona_selected` on a pick. Settles decisions 1 and 2
+  Chat's controls lists the personas and sends `persona_selected` on a pick. Applies decisions 1 and 2
   (instrumented test + flow on SM-X216B).
 - [ ] T4 — The demo on a fresh install on SM-X216B; the ADR; this PRD deleted; the backlog row `shipped`.
 
