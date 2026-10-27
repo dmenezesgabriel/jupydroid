@@ -9,7 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
-import com.jupydroid.app.RecordingNotebookActiveCell
+import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
@@ -31,18 +31,18 @@ class ChatCodeInsertTest {
 
   @Test
   fun insertUnderACodeBlockHandsItsCodeToTheActiveCell() {
-    val activeCell = showOver(RecordingNotebookActiveCell(available = true))
+    val notebookCells = showOver(RecordingNotebookCells(available = true))
 
     compose.onNodeWithContentDescription(INSERT_BELOW).performClick()
     compose.waitForIdle()
 
-    assertEquals(listOf("x = 1"), activeCell.inserted)
+    assertEquals(listOf("x = 1"), notebookCells.inserted)
   }
 
   /** jupyter-chat disables its inserts with "(no active cell)" in the tooltip (`code-toolbar.tsx`). */
   @Test
   fun insertIsDisabledWithNoActiveCell() {
-    showOver(RecordingNotebookActiveCell(available = false))
+    showOver(RecordingNotebookCells(available = false))
 
     compose.onNodeWithContentDescription("$INSERT_BELOW (no active cell)").assertIsNotEnabled()
   }
@@ -50,7 +50,7 @@ class ChatCodeInsertTest {
   /** jupyter-chat names each icon in a tooltip on hover; a touchscreen has none, so a long press shows it. */
   @Test
   fun aLongPressOnTheIconNamesIt() {
-    showOver(RecordingNotebookActiveCell(available = true))
+    showOver(RecordingNotebookCells(available = true))
 
     compose.onNodeWithContentDescription(INSERT_BELOW).performTouchInput { longClick() }
 
@@ -60,7 +60,7 @@ class ChatCodeInsertTest {
   /** jupyter-chat's toolbar puts its inserts before its copy (`code-toolbar.tsx`). */
   @Test
   fun insertSitsLeftOfCopyOnItsRow() {
-    showOver(RecordingNotebookActiveCell(available = true))
+    showOver(RecordingNotebookCells(available = true))
 
     val insert = compose.onNodeWithContentDescription(INSERT_BELOW).getBoundsInRoot()
     val copy = compose.onNodeWithContentDescription("Copy").getBoundsInRoot()
@@ -68,16 +68,16 @@ class ChatCodeInsertTest {
     assertEquals("Insert and Copy are not on one row", insert.top, copy.top)
   }
 
-  /** The panel open on an answer whose one code block is `x = 1`, over [activeCell]. */
-  private fun showOver(activeCell: RecordingNotebookActiveCell): RecordingNotebookActiveCell {
+  /** The panel open on an answer whose one code block is `x = 1`, over [notebookCells]. */
+  private fun showOver(notebookCells: RecordingNotebookCells): RecordingNotebookCells {
     val answer = FakeAgentChat(history = listOf(ChatMessage(id = "a", body = ANSWER, fromMe = false)))
     compose.setContent {
       JupyterDroidTheme {
-        ContributedSidePanel(panel.contribution(answer), UntitledChatPanel.HOST.copy(activeCell = activeCell))
+        ContributedSidePanel(panel.contribution(answer), UntitledChatPanel.HOST.copy(notebookCells = notebookCells))
       }
     }
     panel.open()
-    return activeCell
+    return notebookCells
   }
 
   private companion object {

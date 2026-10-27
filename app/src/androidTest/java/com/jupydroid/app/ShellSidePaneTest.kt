@@ -72,7 +72,7 @@ class ShellSidePaneTest {
           spacePorts = EnteredSpacePorts(FakeNotebookRepository()),
           outline = OpenDocumentOutline(),
           debugStack = OpenDebugStack(),
-          activeCell = OpenNotebookActiveCell(),
+          notebookCells = OpenNotebookCells(),
           openDocuments = OpenDocuments(),
           openDocument = {},
           openDocumentPath = null,

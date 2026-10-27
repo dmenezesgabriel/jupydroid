@@ -14,7 +14,7 @@ import kotlinx.coroutines.plus
  * side panel and a contributed tab, so a chat answers the same in either.
  *
  * ```
- * val host = rememberContributionHost(appContainer, spacePorts, browsedDirectory, activeCell, openDocument)
+ * val host = rememberContributionHost(appContainer, spacePorts, browsedDirectory, notebookCells, openDocument)
  * ContributedSidePanel(contribution, host)
  * ```
  */
@@ -23,7 +23,7 @@ internal fun rememberContributionHost(
   appContainer: AppContainer,
   spacePorts: EnteredSpacePorts,
   browsedDirectory: String,
-  activeCell: OpenNotebookActiveCell,
+  notebookCells: OpenNotebookCells,
   openDocument: (String) -> Unit,
 ): SidePanelHost {
   val fileOpener = remember(spacePorts.workspaceFiles, openDocument) {
@@ -38,7 +38,7 @@ internal fun rememberContributionHost(
     spacePorts.extensionServer,
     spacePorts.space.id,
     RichTextMarkdownRenderer,
-    activeCell,
+    notebookCells,
     fileOpener,
   )
 }

@@ -18,7 +18,7 @@ import com.jupydroid.app.Explorer
 import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
-import com.jupydroid.app.OpenNotebookActiveCell
+import com.jupydroid.app.OpenNotebookCells
 import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
@@ -222,7 +222,7 @@ class EditorCloseGateTest {
           outline = OpenDocumentOutline(),
           onShowTableOfContents = null,
           debugPanel = OpenDebugStack(),
-          activeCell = OpenNotebookActiveCell(),
+          notebookCells = OpenNotebookCells(),
           onShowDebugger = null,
           twoPane = false,
           onGoToFolder = {},

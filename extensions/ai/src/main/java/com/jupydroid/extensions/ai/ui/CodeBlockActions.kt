@@ -28,7 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
-import com.jupydroid.extension.api.NotebookActiveCell
+import com.jupydroid.extension.api.NotebookCells
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -39,13 +39,13 @@ import kotlinx.coroutines.launch
  * press shows it here, since a touchscreen has no hover.
  *
  * ```
- * host.markdown.Draw(message.body, Modifier.padding(8.dp)) { code -> CodeBlockActions(code, host.activeCell) }
+ * host.markdown.Draw(message.body, Modifier.padding(8.dp)) { code -> CodeBlockActions(code, host.notebookCells) }
  * ```
  */
 @Composable
-fun CodeBlockActions(code: String, activeCell: NotebookActiveCell) {
+fun CodeBlockActions(code: String, notebookCells: NotebookCells) {
   Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-    InsertButton(code, activeCell)
+    InsertButton(code, notebookCells)
     CopyButton(code)
   }
 }
@@ -56,10 +56,10 @@ fun CodeBlockActions(code: String, activeCell: NotebookActiveCell) {
  * Disabled with no active cell, and named so, as jupyter-chat's is (`code-toolbar.tsx`).
  */
 @Composable
-private fun InsertButton(code: String, activeCell: NotebookActiveCell) {
-  val available = activeCell.available
+private fun InsertButton(code: String, notebookCells: NotebookCells) {
+  val available = notebookCells.available
   val description = if (available) INSERT_BELOW else "$INSERT_BELOW (no active cell)"
-  CodeBlockAction(description, Icons.Outlined.AddBox, enabled = available) { activeCell.insertBelow(code) }
+  CodeBlockAction(description, Icons.Outlined.AddBox, enabled = available) { notebookCells.insertBelow(code) }
 }
 
 /**

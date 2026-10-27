@@ -64,8 +64,8 @@ fun MainNavigation(
   outline: OpenDocumentOutline = remember { OpenDocumentOutline() },
   /** [OpenDocumentOutline]'s own seam, crossed for the debugger's side panel - see [OpenDebugStack]. */
   debugPanel: OpenDebugStack = remember { OpenDebugStack() },
-  /** [OpenDocumentOutline]'s own seam, crossed for a contributed panel - see [OpenNotebookActiveCell]. */
-  activeCell: OpenNotebookActiveCell = remember { OpenNotebookActiveCell() },
+  /** [OpenDocumentOutline]'s own seam, crossed for a contributed panel - see [OpenNotebookCells]. */
+  notebookCells: OpenNotebookCells = remember { OpenNotebookCells() },
   /**
    * Where every open document is reached by path, for something that is not its own screen -
    * today, the search panel's replace.
@@ -133,7 +133,8 @@ fun MainNavigation(
   // widget's). Saveable so a rotation does not send the launcher back to the root the explorer
   // left.
   var browsedDirectory by rememberSaveable { mutableStateOf("") }
-  val contributionHost = rememberContributionHost(appContainer, spacePorts, browsedDirectory, activeCell, openDocument)
+  val contributionHost =
+    rememberContributionHost(appContainer, spacePorts, browsedDirectory, notebookCells, openDocument)
 
   /**
    * Whether the launcher on top of the stack got there by `maybeCreate` rather than by a tap.
@@ -329,7 +330,7 @@ fun MainNavigation(
             spacePorts = spacePorts,
             outline = outline,
             debugStack = debugPanel,
-            activeCell = activeCell,
+            notebookCells = notebookCells,
             openDocuments = openDocuments,
             openDocument = openDocument,
             openDocumentPath = openDocumentPath,
@@ -419,7 +420,7 @@ fun MainNavigation(
               // which is what puts the overlay up on a compact window instead.
               onShowTableOfContents = { sidePanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS) }.takeIf { twoPane },
               debugPanel = debugPanel,
-              activeCell = activeCell,
+              notebookCells = notebookCells,
               onShowDebugger = { sidePanel = ShownPanel.Shell(SidePanel.DEBUGGER) }.takeIf { twoPane },
               onGoToFolder = goToFolder,
               openDocument = openDocument,

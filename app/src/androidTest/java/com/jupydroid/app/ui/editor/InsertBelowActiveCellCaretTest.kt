@@ -8,7 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
-import com.jupydroid.app.OpenNotebookActiveCell
+import com.jupydroid.app.OpenNotebookCells
 import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
@@ -32,12 +32,12 @@ import org.junit.runner.RunWith
 
 /**
  * Code inserted below the active cell from outside the notebook - a chat's Insert, through the
- * [OpenNotebookActiveCell] the editor publishes - takes the caret out of the cell being edited, as
+ * [OpenNotebookCells] the editor publishes - takes the caret out of the cell being edited, as
  * VS Code's chat insert focuses no cell editor (vscode@3f3380c
  * `src/vs/workbench/contrib/notebook/browser/controller/cellOperations.ts` `insertCell`).
  *
  * Asked of a real [EditorScreen] because the mode is where the focus is: a state that says command
- * mode while the field still holds the caret passed `CodeInsertedBelowTest` and still sent the next
+ * mode while the field still holds the caret passed `CellInsertedAtTest` and still sent the next
  * keystroke into the cell that was no longer active, on SM-X216B.
  */
 @RunWith(AndroidJUnit4::class)
@@ -46,14 +46,14 @@ class InsertBelowActiveCellCaretTest {
 
   private val repository = FakeNotebookRepository()
   private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-  private val activeCell = OpenNotebookActiveCell()
+  private val notebookCells = OpenNotebookCells()
   private lateinit var viewModel: EditorViewModel
 
   @Test
   fun theCellBeingEditedLosesTheCaret() {
     showEditing()
 
-    compose.runOnIdle { activeCell.insertBelow("print(6*7)") }
+    compose.runOnIdle { notebookCells.insertBelow("print(6*7)") }
 
     compose.onAllNodes(hasSetTextAction())[0].assertIsNotFocused()
   }
@@ -62,7 +62,7 @@ class InsertBelowActiveCellCaretTest {
   fun theNotebookIsLeftInCommandModeOnTheNewCell() {
     showEditing()
 
-    compose.runOnIdle { activeCell.insertBelow("print(6*7)") }
+    compose.runOnIdle { notebookCells.insertBelow("print(6*7)") }
 
     compose.runOnIdle {
       val state = viewModel.uiState.value
@@ -101,7 +101,7 @@ class InsertBelowActiveCellCaretTest {
           outline = OpenDocumentOutline(),
           onShowTableOfContents = null,
           debugPanel = OpenDebugStack(),
-          activeCell = activeCell,
+          notebookCells = notebookCells,
           onShowDebugger = null,
           onGoToFolder = {},
           onBack = {},
@@ -111,7 +111,7 @@ class InsertBelowActiveCellCaretTest {
     }
     compose.waitUntil(LOAD_TIMEOUT_MILLIS) { viewModel.uiState.value.cells.isNotEmpty() }
     compose.onAllNodes(hasSetTextAction())[0].performClick()
-    compose.waitUntil(LOAD_TIMEOUT_MILLIS) { activeCell.available && viewModel.uiState.value.mode == CellMode.EDIT }
+    compose.waitUntil(LOAD_TIMEOUT_MILLIS) { notebookCells.available && viewModel.uiState.value.mode == CellMode.EDIT }
   }
 
   private companion object {

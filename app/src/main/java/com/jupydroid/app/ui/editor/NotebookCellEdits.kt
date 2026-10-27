@@ -253,22 +253,26 @@ fun NotebookCellEdits.cellsRenamed(cellId: String, sources: Map<String, String>,
 }
 
 /**
- * [code] from outside the notebook - a chat's code block - in a new code cell below the active
- * one, which becomes active, as one undoable operation: JupyterLab's `insertBelow` (jupyterlab@7f0e690
- * `packages/notebook/src/actions.tsx:560-584`) followed by jupyter-chat's `setSource` on the new cell
- * (jupyter-chat@2c224bc `packages/jupyter-chat/src/active-cell-manager.ts`). Nothing with no active cell.
+ * A cell from outside the notebook - a chat's code block, an agent's `add-cell` - at [index], which
+ * becomes the one active cell, as one undoable operation: jupyterlab-ai-commands@2743d32
+ * `src/notebook-commands.ts` `registerAddCellCommand` (`insertCell(insertIndex, …)`, then
+ * `activeCellIndex = insertIndex`), and VS Code's `NotebookEdit.insertCells(index, …)`. Returns the
+ * new cell's id, which `add-cell` answers with.
  *
- * The mode is left to the caret: `InsertBelowActiveCellPublication` drops it first, which is what
+ * The mode is left to the caret: `NotebookCellsPublication` drops it first, which is what
  * puts the notebook in command mode.
+ *
+ * @throws IllegalArgumentException when [index] is outside 0 to the cell count.
  */
-fun NotebookCellEdits.insertCodeBelow(code: String) {
+fun NotebookCellEdits.insertCellAt(index: Int, kind: CellKind, source: String): String {
   val before = uiState.value
-  val head = before.selectedCellId ?: return
+  require(index in 0..before.cells.size) { "cell index $index is outside 0..${before.cells.size}" }
   val newId = newCellId()
-  val inserted = before.withCellInserted(head, CellKind.CODE, newId, code)
+  val inserted = before.withCellInsertedAt(index, kind, newId, source)
   uiState.value = inserted.withSelectionCollapsed().withCellSelected(newId).recording(before = before)
     .withSearchRecomputed()
   save.schedule()
+  return newId
 }
 
 /**

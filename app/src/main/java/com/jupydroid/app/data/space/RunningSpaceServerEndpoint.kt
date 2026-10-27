@@ -13,7 +13,7 @@ import com.jupydroid.extension.api.SpaceServerEndpoint
  *
  * ```
  * val server = RunningSpaceServerEndpoint(spaceServer)
- * SidePanelHost(directory, server, "base", RichTextMarkdownRenderer, activeCell, fileOpener)
+ * SidePanelHost(directory, server, "base", RichTextMarkdownRenderer, notebookCells, fileOpener)
  * ```
  */
 class RunningSpaceServerEndpoint(private val server: SpaceServer) : SpaceServerEndpoint {

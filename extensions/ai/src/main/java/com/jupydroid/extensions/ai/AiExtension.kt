@@ -65,7 +65,7 @@ class AiExtension(
           selection,
           queues,
           host.markdown,
-          host.activeCell,
+          host.notebookCells,
           host.fileOpener,
           chatFor = { path -> chatFor(host.server, path) },
         )
@@ -93,7 +93,7 @@ class AiExtension(
           file = ChatFile(path),
           queues = remember { queuesFor(host.spaceId) },
           markdown = host.markdown,
-          activeCell = host.activeCell,
+          notebookCells = host.notebookCells,
         )
       }
     },

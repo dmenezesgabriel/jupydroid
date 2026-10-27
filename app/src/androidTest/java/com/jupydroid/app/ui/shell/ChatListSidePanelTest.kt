@@ -24,7 +24,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.RecordingNotebookActiveCell
+import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
@@ -384,7 +384,7 @@ class ChatListSidePanelTest {
               server = null,
               spaceId = "base",
               RichTextMarkdownRenderer,
-              RecordingNotebookActiveCell(available = false),
+              RecordingNotebookCells(available = false),
               fileOpener,
             ),
           )

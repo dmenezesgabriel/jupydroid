@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.RecordingNotebookActiveCell
+import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelHost
@@ -89,7 +89,7 @@ class ChatTabTest {
             server = null,
             spaceId = "base",
             RichTextMarkdownRenderer,
-            RecordingNotebookActiveCell(available = false),
+            RecordingNotebookCells(available = false),
             fileOpener,
           ),
         )

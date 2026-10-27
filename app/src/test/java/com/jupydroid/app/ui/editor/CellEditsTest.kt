@@ -33,14 +33,6 @@ class CellEditsTest {
     assertEquals(CellKind.MARKDOWN, cells[1].kind)
   }
 
-  /** jupyter-chat's insert below is an insert and then a `setSource` on the new cell. */
-  @Test
-  fun insert_canCarryTheNewCellsSource() {
-    val cells = stateOf("a").withCellInserted("a", CellKind.CODE, newId = "new", source = "print(6*7)").cells
-
-    assertEquals("print(6*7)", cells[1].source)
-  }
-
   @Test
   fun move_swapsWithTheNeighbourInEachDirection() {
     val state = stateOf("a", "b", "c")

@@ -10,7 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.OpenDebugStack
 import com.jupydroid.app.OpenDocumentOutline
 import com.jupydroid.app.OpenDocuments
-import com.jupydroid.app.OpenNotebookActiveCell
+import com.jupydroid.app.OpenNotebookCells
 import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeKernelDebugger
@@ -146,7 +146,7 @@ class EditorScreenDebuggerAtOnePaneWidthTest {
         outline = OpenDocumentOutline(),
         onShowTableOfContents = null,
         debugPanel = OpenDebugStack(),
-        activeCell = OpenNotebookActiveCell(),
+        notebookCells = OpenNotebookCells(),
         onShowDebugger = onShowDebugger,
         twoPane = twoPane,
         onGoToFolder = {},

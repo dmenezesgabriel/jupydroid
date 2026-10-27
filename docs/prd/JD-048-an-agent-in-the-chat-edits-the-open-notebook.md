@@ -115,6 +115,13 @@ host-side and asks you to accept them. The question for us is which half the app
   each is a command the app must answer before its tool joins `mcp_tools`.
 - The web client is native, not a browser tab, so `background` and `createWidget` mean nothing; a path that
   is not the open notebook is refused rather than opened.
+- `add-cell` replaces a notebook's lone empty cell; ours inserts beside it. Replacing would change the
+  chat's Insert, which ADR-0114 ships as a cell below the empty one, and would need a delete on
+  `NotebookCells`. The demo types `x = 1` first, so it never meets one.
+- T3's seam is `NotebookCells` (`extension-api`), widened from `NotebookActiveCell` rather than added
+  beside it, so the chat's Insert and an agent's `add-cell` share one insert: `insert(index, type,
+  source)`, index-based as VS Code's `NotebookEdit.insertCells`. T4 turns `referenceCellId` and
+  `position` into that index, as `add-cell` itself does.
 
 ## Open decisions
 
@@ -158,7 +165,7 @@ holds.
 - [x] T2 — `JupyterServerLauncher` picks the MCP port per launch and hands the agent the URL and the
   bearer header. On SM-X216B, the agent's `insert_cell` call ends with the toolkit's "No JupyterLab web
   client acknowledged the command" (`not_acknowledged`: the app's events socket already subscribes)
-- [ ] T3 — `:extension-api` exposes the open notebook's path, cells and active cell, and inserts a cell
+- [x] T3 — `:extension-api` exposes the open notebook's path, cells and active cell, and inserts a cell
   of a type at an index; `:app` implements it over `NotebookCellEdits`
 - [ ] T4 — The AI extension answers `get-notebook-info` and `add-cell` from the events socket (ack, then
   result through `POST /api/events`) and refuses anything else. The agent's cell lands in the notebook on

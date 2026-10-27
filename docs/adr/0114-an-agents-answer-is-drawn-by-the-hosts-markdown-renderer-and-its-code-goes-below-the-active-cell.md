@@ -67,13 +67,13 @@ Insert, which adds a code cell below the active cell, and Copy.**
   `RichTextMarkdownRenderer` (`app/src/main/java/com/jupydroid/app/ui/shell/RichTextMarkdownRenderer.kt`)
   implements it as `MarkdownDocument.parse` into `RichText`, parsing once per source rather than per
   streamed frame.
-- `NotebookActiveCell` (`extension-api/src/main/java/com/jupydroid/extension/api/NotebookActiveCell.kt`)
-  is jupyter-chat's `IActiveCellManager` cut to the one insert: `available`, read as Compose state,
-  and `insertBelow`. `OpenNotebookActiveCell` (`app/src/main/java/com/jupydroid/app/OpenNotebookActiveCell.kt`)
-  is the seam `OpenDebugStack` already crosses. The editor publishes its insert through
-  `InsertBelowActiveCellPublication` while a cell is selected, and clears it when it has none or its
-  entry goes.
-- The insert (`NotebookCellEdits.insertCodeBelow`) puts the code in a new code cell below the active
+- `NotebookCells` (`extension-api/src/main/java/com/jupydroid/extension/api/NotebookCells.kt`)
+  carries jupyter-chat's `IActiveCellManager` cut to the one insert: `available`, read as Compose
+  state, and `insertBelow`, which is its index-based `insert` at the active cell's index plus one.
+  `OpenNotebookCells` (`app/src/main/java/com/jupydroid/app/OpenNotebookCells.kt`) is the seam
+  `OpenDebugStack` already crosses. The editor publishes its cells and insert through
+  `NotebookCellsPublication`, saying whether a cell is selected, and clears it when its entry goes.
+- The insert (`NotebookCellEdits.insertCellAt`) puts the code in a new code cell below the active
   one, which becomes active, as one undoable operation: JupyterLab's `insertBelow`
   (jupyterlab@7f0e690 `packages/notebook/src/actions.tsx`) followed by jupyter-chat's `setSource`.
   Before inserting, it drops the caret through the focus manager. That is how the notebook leaves edit
@@ -98,6 +98,6 @@ Insert, which adds a code cell below the active cell, and Copy.**
 - Insert above, replace the selection, Insert into Terminal or New File, and Apply with diffs are not
   offered. A message carrying a mime bundle (jupyter-chat's `mime_model`) is not drawn, because
   jupyter-ai's ACP persona sends text.
-- Do not set command mode in `insertCodeBelow`. A mode set in the state left the caret in the cell
+- Do not set command mode in `insertCellAt`. A mode set in the state left the caret in the cell
   being edited, and on SM-X216B the next keystroke went into that cell while the new one was active
   (`InsertBelowActiveCellCaretTest`).

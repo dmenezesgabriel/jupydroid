@@ -69,8 +69,8 @@ import com.jupydroid.extension.api.SidePanelHost
  *   the one the navigation entered.
  * @param debugStack the open notebook's stopped call stack - [SidePanel.DEBUGGER]'s own content;
  *   see [OpenDebugStack].
- * @param activeCell the open notebook's active cell, handed to a contributed panel in its
- *   [SidePanelHost]; see [OpenNotebookActiveCell].
+ * @param notebookCells the open notebook's cells, handed to a contributed panel in its
+ *   [SidePanelHost]; see [OpenNotebookCells].
  */
 @Composable
 fun ShellSidePane(
@@ -82,7 +82,7 @@ fun ShellSidePane(
   spacePorts: EnteredSpacePorts,
   outline: OpenDocumentOutline,
   debugStack: OpenDebugStack,
-  activeCell: OpenNotebookActiveCell,
+  notebookCells: OpenNotebookCells,
   openDocuments: OpenDocuments,
   openDocument: (String) -> Unit,
   openDocumentPath: String?,
@@ -135,7 +135,7 @@ fun ShellSidePane(
       if (contributed != null) {
         ContributedSidePanel(
           contributed,
-          rememberContributionHost(appContainer, spacePorts, browsedDirectory, activeCell, openDocument),
+          rememberContributionHost(appContainer, spacePorts, browsedDirectory, notebookCells, openDocument),
         )
       }
       when ((showingPanel as? ShownPanel.Shell)?.panel) {

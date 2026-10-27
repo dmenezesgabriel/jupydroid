@@ -17,7 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.extension.api.MarkdownRenderer
-import com.jupydroid.extension.api.NotebookActiveCell
+import com.jupydroid.extension.api.NotebookCells
 import com.jupydroid.extension.api.WorkspaceFileOpener
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.ChatFile
@@ -31,13 +31,13 @@ import com.jupydroid.extensions.ai.domain.QueuedQuestionsStore
  * ```
  * val files = FakeChatFiles(listOf("untitled.chat"))
  * ChatsPanel(
- *   files, OpenChatSelection(), FakeQueuedQuestionsStore(), host.markdown, host.activeCell, host.fileOpener,
+ *   files, OpenChatSelection(), FakeQueuedQuestionsStore(), host.markdown, host.notebookCells, host.fileOpener,
  * ) { FakeAgentChat() }
  * ```
  *
  * @param queues where each chat's waiting questions are kept, and moved or forgotten with its file.
  * @param markdown what an agent's answer is drawn with: the host's, so it reads as a markdown cell does.
- * @param activeCell where Insert under a code block of an answer puts its code.
+ * @param notebookCells where Insert under a code block of an answer puts its code.
  * @param fileOpener what opens [McpSettingsFile] in the host's editor, and the open chat in a tab of its own.
  * @param chatFor the chat at a path relative to the workspace root.
  */
@@ -47,7 +47,7 @@ fun ChatsPanel(
   selection: OpenChatSelection,
   queues: QueuedQuestionsStore,
   markdown: MarkdownRenderer,
-  activeCell: NotebookActiveCell,
+  notebookCells: NotebookCells,
   fileOpener: WorkspaceFileOpener,
   chatFor: (String) -> AgentChat,
   modifier: Modifier = Modifier,
@@ -81,7 +81,7 @@ fun ChatsPanel(
       file = ChatFile(open),
       queues = queues,
       markdown = markdown,
-      activeCell = activeCell,
+      notebookCells = notebookCells,
       modifier = Modifier.weight(1f),
     )
   }

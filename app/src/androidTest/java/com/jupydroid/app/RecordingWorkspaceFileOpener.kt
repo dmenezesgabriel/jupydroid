@@ -7,7 +7,7 @@ import com.jupydroid.extension.api.WorkspaceFileOpener
  *
  * ```
  * val fileOpener = RecordingWorkspaceFileOpener()
- * SidePanelHost("", server = null, spaceId = "base", RichTextMarkdownRenderer, activeCell, fileOpener)
+ * SidePanelHost("", server = null, spaceId = "base", RichTextMarkdownRenderer, notebookCells, fileOpener)
  * ```
  */
 class RecordingWorkspaceFileOpener : WorkspaceFileOpener {

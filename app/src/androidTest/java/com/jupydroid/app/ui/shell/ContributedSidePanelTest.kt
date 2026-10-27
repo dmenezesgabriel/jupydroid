@@ -4,7 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.RecordingNotebookActiveCell
+import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelHost
@@ -61,7 +61,7 @@ class ContributedSidePanelTest {
             server = null,
             spaceId = "base",
             RichTextMarkdownRenderer,
-            RecordingNotebookActiveCell(available = false),
+            RecordingNotebookCells(available = false),
             RecordingWorkspaceFileOpener(),
           ),
         )

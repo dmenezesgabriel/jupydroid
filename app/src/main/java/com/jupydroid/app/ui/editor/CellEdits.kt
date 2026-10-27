@@ -15,16 +15,19 @@ import com.jupydroid.app.domain.model.CellKind
  * Semantics follow JupyterLab's `NotebookActions` where the obvious guess differs - see
  * `CellEditsTest`, which cites the file and line for each.
  */
-fun EditorUiState.withCellInserted(
-  afterCellId: String,
-  kind: CellKind,
-  newId: String,
-  source: String = "",
-): EditorUiState {
+fun EditorUiState.withCellInserted(afterCellId: String, kind: CellKind, newId: String): EditorUiState {
   val at = cells.indexOfFirst { it.id == afterCellId }
   if (at < 0) return this
-  return copy(cells = cells.toMutableList().apply { add(at + 1, Cell(newId, kind, source)) }, dirty = true)
+  return copy(cells = cells.toMutableList().apply { add(at + 1, Cell(newId, kind, "")) }, dirty = true)
 }
+
+/**
+ * A cell at a position rather than beside one - `sharedModel.insertCell(insertIndex, …)` in
+ * jupyterlab-ai-commands@2743d32 `src/notebook-commands.ts` `registerAddCellCommand`. [index] runs
+ * from 0, above the first cell, to the cell count, below the last.
+ */
+fun EditorUiState.withCellInsertedAt(index: Int, kind: CellKind, newId: String, source: String): EditorUiState =
+  copy(cells = cells.toMutableList().apply { add(index, Cell(newId, kind, source)) }, dirty = true)
 
 /**
  * Shifts a whole run of cells past one neighbour - `move` (`actions.tsx:586-610`).
