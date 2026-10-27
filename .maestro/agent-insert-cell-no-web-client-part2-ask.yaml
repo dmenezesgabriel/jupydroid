@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/agent-insert-cell-no-web-client-driver.sh runs, with the app
+# still on part 1's open Chat and base's MCP server listening.
+#
+# A new chat's session is handed the server's built-in MCP server, with its URL and the server's
+# token (`mcpServerArgs`, app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt),
+# so opencode can call `insert_cell`. The app's events socket is a subscriber but answers no command
+# yet, so the call ends with the toolkit's "No JupyterLab web client acknowledged the command", which
+# the driver reads from the chat.
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+# Other tools are ruled out because, asked only to use insert_cell, opencode answered its failure by
+# asking to run a bash command that rewrites untitled.ipynb with nbformat, and the turn waited on it.
+- inputText: "Use the insert_cell tool to insert a code cell containing print(42) at index 0 of untitled.ipynb. Use no other tool. If it fails, reply with its error."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot, which connects to the MCP server before the
+# model answers.
+- extendedWaitUntil:
+    visible: ".*insert_cell.*"
+    timeout: 300000
+- extendedWaitUntil:
+    notVisible: "Stop"
+    timeout: 300000
+- assertVisible: "✓"
+- takeScreenshot: 02-insert-cell-called-and-the-turn-ended

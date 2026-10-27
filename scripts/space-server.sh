@@ -40,6 +40,27 @@ close_forward() {
 }
 trap close_forward EXIT
 
+# The port jupyter-server-mcp bound, from the runtime file it writes once it listens
+# (`jpserver-mcp-<pid>.json`, usr/lib/python3.12/site-packages/jupyter_server_mcp/runtime.py in the
+# shipped rootfs). The launcher picks that port per launch, and the MCP server starts about 6 s after
+# the server reports running, so this waits. A file left by an earlier run would answer at once with
+# a dead port: the caller deletes them before the server starts.
+MCP_PORT=""
+wait_for_mcp_port() { # wait_for_mcp_port <seconds>
+  local deadline=$((SECONDS + $1)) info
+  while [ "$SECONDS" -lt "$deadline" ]; do
+    info="$("${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'cat $SPACE_RUN_DIR/jpserver-mcp-*.json'" 2>/dev/null | tr -d '\r')"
+    if [ -n "$info" ]; then
+      # shellcheck disable=SC2034  # the caller uses it
+      MCP_PORT="$(printf '%s' "$info" | python3 -c 'import json,sys; print(json.load(sys.stdin)["port"])')"
+      return 0
+    fi
+    sleep 1
+  done
+  echo "no jpserver-mcp-*.json under $SPACE_RUN_DIR within $1 s - the MCP server never listened" >&2
+  return 1
+}
+
 # The server's own log, for the evidence directory. Missing is not an error: a server that never
 # started has none, and the caller's own check says why.
 pull_server_log() { # pull_server_log <dest>

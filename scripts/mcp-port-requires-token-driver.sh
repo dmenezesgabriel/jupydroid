@@ -3,8 +3,9 @@
 # without the server's own token, and lists `insert_cell` and nothing else to one holding it
 # (tools/rootfs/jupydroid_mcp_bearer.py, tools/rootfs/jupyter_server_config.json).
 #
-# Until the launcher picks the port per launch, the server listens on jupyter-server-mcp's default,
-# 3001 (`MCPExtensionApp.mcp_port`).
+# The launcher picks the port per launch (`mcpServerArgs`,
+# app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt), so it is read from the
+# MCP server's own runtime file (`wait_for_mcp_port`, scripts/space-server.sh).
 #
 # **A measurement first and a gate second.** Every answer is kept verbatim in `answers.txt`, and the
 # server's log beside it. The gate is the four answers: no header, a wrong token and a token without
@@ -23,7 +24,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/space-server.sh"
 
 EVIDENCE="$ROOT/evidence/mcp-port-requires-token"
-MCP_DEVICE_PORT=3001
 
 mapfile -t DEVICE_ADB < <(device_adb)
 
@@ -31,17 +31,19 @@ mkdir -p "$EVIDENCE"
 rm -f "$EVIDENCE/answers.txt" "$EVIDENCE/jupyter_server.log"
 
 require_installed_app
+"${DEVICE_ADB[@]}" shell "run-as $APP sh -c 'rm -f $SPACE_RUN_DIR/jpserver-mcp-*.json'"
 
 run_flow "$ROOT/.maestro/mcp-port-requires-token.yaml" "$EVIDENCE" || exit 1
 open_forward || exit 1
+wait_for_mcp_port 60 || exit 1
 
-MCP_FORWARDED_PORT="$("${DEVICE_ADB[@]}" forward tcp:0 "tcp:$MCP_DEVICE_PORT" | tr -d '\r')"
+MCP_FORWARDED_PORT="$("${DEVICE_ADB[@]}" forward tcp:0 "tcp:$MCP_PORT" | tr -d '\r')"
 close_mcp_forward() {
   "${DEVICE_ADB[@]}" forward --remove "tcp:$MCP_FORWARDED_PORT" >/dev/null 2>&1 || true
   close_forward
 }
 trap close_mcp_forward EXIT
-echo "MCP on device port $MCP_DEVICE_PORT, forwarded to 127.0.0.1:$MCP_FORWARDED_PORT"
+echo "MCP on device port $MCP_PORT, forwarded to 127.0.0.1:$MCP_FORWARDED_PORT"
 
 pull_server_log "$EVIDENCE/jupyter_server.log"
 # At DEBUG the server logs its whole config, `IdentityProvider.token` included; the evidence keeps

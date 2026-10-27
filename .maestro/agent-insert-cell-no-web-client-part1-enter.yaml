@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/agent-insert-cell-no-web-client-driver.sh runs: landscape, in
+# base with opencode installed and signed in by a person, with no `.jupyter/mcp_settings.json`.
+#
+# Entering base starts its server, and the server starts jupyter-server-mcp on the port the launcher
+# picked. The MCP server listens a few seconds after the server, and a chat's session is handed its
+# MCP servers only when it opens, so the driver waits for the MCP port before part 2 opens one.
+#
+# TABLET ONLY: on the x86_64 emulator no Space runs and no server is started.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- takeScreenshot: 01-chat-open-before-any-session
