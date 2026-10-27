@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# The second of the two flows scripts/agent-insert-cell-lands-driver.sh runs. The app is still on
+# part 1's notebook and Chat, and base's MCP server is listening.
+#
+# opencode's insert_cell sends get-notebook-info and then add-cell through the commands toolkit. The
+# chat's events socket acks and answers both over the open notebook
+# (extensions/ai/src/main/java/com/jupydroid/extensions/ai/data/http/NotebookLabCommands.kt), so the
+# new cell appears above x = 1. The driver checks the saved file, since the question itself shows
+# print(42) on screen too.
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+# "Use no other tool": when its tool failed, opencode once asked to rewrite the notebook through bash,
+# and the turn then waited on that permission prompt.
+- inputText: "Use the insert_cell tool to insert a code cell containing print(42) at index 0 of untitled.ipynb. Use no other tool. If it fails, reply with its error."
+- hideKeyboard
+- tapOn: "Send"
+# The first message spawns `opencode acp` under proot, which connects to the MCP server before the
+# model answers.
+- extendedWaitUntil:
+    visible: ".*insert_cell.*"
+    timeout: 300000
+- extendedWaitUntil:
+    notVisible: "Stop"
+    timeout: 300000
+- assertVisible: "✓"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-the-agents-cell-above-x-equals-1

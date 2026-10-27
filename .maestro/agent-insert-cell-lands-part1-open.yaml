@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# The first of the two flows scripts/agent-insert-cell-lands-driver.sh runs. The tablet is in
+# landscape (two panes), and the app is in base, with opencode installed and signed in by a person.
+# The workspace holds only the seeded untitled.ipynb, whose one cell is x = 1.
+#
+# The notebook is opened in the detail pane and the Chat beside it, so an agent's command has an open
+# notebook to land in (app/src/main/java/com/jupydroid/app/OpenNotebookCells.kt). A chat's session is
+# handed its MCP servers only when it opens, so the driver waits for the MCP port before part 2
+# starts one.
+#
+# TABLET ONLY: on the x86_64 emulator no Space runs and no server is started.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# Files toggles the explorer, so it is tapped only when the explorer is not already showing.
+- runFlow:
+    when:
+      notVisible: "untitled.ipynb"
+    commands:
+      - tapOn: "Files"
+- extendedWaitUntil:
+    visible: "untitled.ipynb"
+    timeout: 10000
+- tapOn:
+    text: "untitled.ipynb"
+    index: 0
+- extendedWaitUntil:
+    visible: "x = 1"
+    timeout: 30000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- takeScreenshot: 01-the-notebook-beside-the-chat
