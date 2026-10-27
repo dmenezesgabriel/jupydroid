@@ -9,6 +9,15 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+// The exact version of every dependency, transitive ones included, is committed in
+// `gradle.lockfile`, so a build never drifts and a scanner such as osv-scanner reads what ships.
+// STRICT fails a configuration that has no lock state rather than resolving it freely
+// (https://docs.gradle.org/9.3.1/userguide/dependency_locking.html#fine_tuning_dependency_locking_behaviour_with_lock_mode).
+dependencyLocking {
+    lockAllConfigurations()
+    lockMode.set(LockMode.STRICT)
+}
+
 android {
     namespace = "com.jupydroid.extensions.git"
     // `:app`'s own numbers, for `:app`'s own reasons (app/build.gradle.kts).

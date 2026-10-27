@@ -71,12 +71,17 @@ authority here, so Gradle's own documentation is:
 
 ## Open decisions
 
-- Does STRICT hold under the full gate, or does a configuration resolved only by lint, detekt or
-  androidTest arrive without lock state? Measured in T1 by running the gate, not assumed.
+- ~~Does STRICT hold under the full gate?~~ **Settled in T1:** it holds only when the locks are
+  written while the whole gate runs (`--write-locks` on the `AGENTS.md` command plus
+  `assembleDebugAndroidTest`). `<module>:dependencies --write-locks` alone left `:app:androidApis`
+  without lock state, and the build failed on it. A planted upgrade fails on
+  `{strictly 5.4.0} ... enforced by Dependency Locking`; a planted downgrade resolves the locked
+  version without failing, so what resolves is always what is locked. The ADR and the `AGENTS.md`
+  update note in T3 carry this.
 
 ## Tasks
 
-- [ ] T1 — **Locking.** STRICT `dependencyLocking { lockAllConfigurations() }` in each module and
+- [x] T1 — **Locking.** STRICT `dependencyLocking { lockAllConfigurations() }` in each module and
   plugin-classpath locking in the root; `gradle.lockfile` per module and
   `buildscript-gradle.lockfile` committed; a planted drift fails, reverted.
 - [ ] T2 — **Verification.** `gradle/verification-metadata.xml` from
