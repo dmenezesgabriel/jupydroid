@@ -263,6 +263,15 @@ Notes:
 - detekt is pinned to the `2.0.0-alpha.x` line because stable 1.23.8 cannot run
   on JDK 25; the alpha line is detekt's official compatibility path for
   AGP 9 + JDK 25 (no stable release supports it yet).
+- Every dependency is locked STRICT and verified by sha256
+  ([ADR-0123](docs/adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md)), so a
+  dependency or plugin bump rewrites both, in this order. First, run the gate command above plus
+  `assembleDebugAndroidTest` with `--write-locks`. Then run it again with
+  `--write-verification-metadata sha256`. Running only `<module>:dependencies` misses
+  configurations that only a task resolves, and STRICT then fails on them. Commit the lockfiles and
+  `gradle/verification-metadata.xml`, and read their diff. A Gradle bump re-runs
+  `./gradlew wrapper --gradle-version <v> --distribution-type bin --gradle-distribution-sha256-sum <published>`
+  and never edits `gradle-wrapper.properties` by hand.
 
 
 ## Host resources
