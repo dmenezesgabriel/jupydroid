@@ -124,9 +124,10 @@ host-side and asks you to accept them. The question for us is which half the app
   `jupyter_ai` metapackage's, which the image does not ship.
 - **Settled:** fastmcp 4.1.2 and its tree resolve for aarch64-unknown-linux-musl, Python 3.12, binaries
   only, and no pin already in the lock moves.
-- **Start-up cost.** fastmcp is imported by every server start once the extension loads. Measure it on
-  the tablet with `-X importtime` and `scripts/read_import_profile.py`. If it lands on the clock, defer it
-  as `acp_lazy_import_patch.py` does. T1.
+- **Settled:** it did land on the clock, +4.1 s from `server.starting` to `server.listening` warm, so
+  `tools/rootfs/mcp_lazy_import_patch.py` defers `MCPServer`'s import into `start_extension`. Now it is
+  within 0.2 s of before, and the MCP server comes up about 6 s after the server reports running. T2's
+  flow must therefore wait for the MCP server, not just for the server.
 - **One events socket or one per chat.** Today the subscription is opened per chat. A command arrives
   while a chat is open, but a second subscriber would ack twice. T4 settles it with a test.
 
@@ -147,7 +148,7 @@ holds.
 
 ## Tasks
 
-- [ ] T1 — The image ships jupyter-server-mcp, jupyter-ai-tools (`--no-deps`) and
+- [x] T1 — The image ships jupyter-server-mcp, jupyter-ai-tools (`--no-deps`) and
   jupyterlab-commands-toolkit, with `mcp_tools` set to `insert_cell` alone and the token middleware on
   `mcp_middleware`. A build-time probe proves the middleware refuses a request without the token and
   serves one with it. On SM-X216B, a request to the MCP port without the token is refused, and one with it
