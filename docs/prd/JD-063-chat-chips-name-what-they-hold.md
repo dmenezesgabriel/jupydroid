@@ -63,7 +63,7 @@ is the decision below.
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
 | Width while there is room | natural width (both) | — | natural width. Ours capped each chip at `1/n` of the row while room was left |
-| Width under pressure | overflow "…" popover (jupyter-ai); compact to an icon (VS Code); ellipsis (VS Code's model name and phone chip) | our chips have no icon to compact to | the longest chip shortens first (a max-min fair share). Short chips stay whole. Past that, the one-chip form below |
+| Width under pressure | overflow "…" popover (jupyter-ai); compact to an icon (VS Code); ellipsis (VS Code's model name and phone chip) | our chips have no icon to compact to | none in the row: chips stay whole until their whole widths do not fit, then the one-chip form below. Decided with the person on 2026-10-27 over T1's longest-first shrink, which cut a name to keep a short chip whole |
 | When they still do not fit | one "…" menu, a labelled section per control (jupyter-ai `OverflowControlsMenu`); one chip naming the model, opening one sheet for mode and model (VS Code's phone presenter); a hover (desktop only in both) | a hover has no touch form anyone can discover, so a long-press tooltip would hide the value behind a gesture nothing advertises | VS Code's phone shape, on the evidence of both: one chip whose text is the model's name and whose tap opens one menu, a labelled section per control, the value in use checked. A pick costs the two taps it costs today |
 
 Heuristics: visibility of system status (Nielsen #1), so the model in use is readable at a glance, and
@@ -89,9 +89,9 @@ discoverability, without raising a touch's cost, and without misleading. The tra
 
 | Layer | Files |
 |---|---|
-| `ui` (ai extension) | `ui/AgentControls.kt`, new `ui/ChipWidths.kt` (no Compose, JVM-testable) |
-| unit tests | `extensions/ai/src/test/java/com/jupydroid/extensions/ai/ui/ChipWidthsTest.kt` |
-| instrumented tests | `app/src/androidTest/java/com/jupydroid/app/ui/shell/ChatAgentControlsTest.kt` |
+| `ui` (ai extension) | `ui/AgentControls.kt`, new `ui/ChatControl.kt` (no Compose, JVM-testable), new `ui/ControlsChip.kt` |
+| unit tests | `extensions/ai/src/test/java/com/jupydroid/extensions/ai/ui/ChatControlTest.kt` |
+| instrumented tests | `app/src/androidTest/java/com/jupydroid/app/ui/shell/ChatAgentControlsTest.kt`, `ChatControlsChipTest.kt` |
 | `.maestro/` flow + `scripts/` driver | `.maestro/chat-chips-full-width.yaml`, `scripts/chat-chips-full-width-driver.sh` |
 
 No port changes, so there is no new fake.
@@ -101,12 +101,14 @@ No port changes, so there is no new fake.
 - [x] T1 — The chips take their full width while the row has room. Only when they do not fit does the
       longest give way first. Tested on the JVM (`chipWidths`), instrumented at 800 dp, and on
       SM-X216B before and after.
-- [ ] T2 — When the chips' whole widths do not fit, they become one chip naming the model, whose tap
+- [x] T2 — When the chips' whole widths do not fit, they become one chip naming the model, whose tap
       opens one menu with a labelled section per control ("Agent", "Model", each setting's own name),
       the value in use checked (vscode@3f3380c `chatPhoneInputPresenter.ts`; jupyter-ai-persona-manager@d5ed04b
       `OverflowControlsMenu`). Its accessibility label names every value, as VS Code's aria label does.
       Instrumented test at 320 dp and in the side panel, and a device flow in landscape. The decision
-      was made on 2026-10-27 over a long-press tooltip, which nothing on a touch screen advertises.
+      was made on 2026-10-27 over a long-press tooltip, which nothing on a touch screen advertises. The
+      menu's Model section is last and opens on the model search, unfocused (decided 2026-10-27: OpenRouter
+      lists hundreds).
 - [ ] T3 — The demo on SM-X216B, an ADR for the chip width and the one-chip form (superseding
       ADR-0116's "each chip shrinks"), PRD deleted, backlog row shipped.
 
