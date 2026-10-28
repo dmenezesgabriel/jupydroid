@@ -3859,3 +3859,28 @@ cut -f1 $E/rootfs-packages.tsv | tail -n +2 | sort | uniq -c                 # 5
 cut -f1 $E/grype-matches.tsv | tail -n +2 | sort | uniq -c                   # by severity
 awk -F'\t' '($1=="Critical"||$1=="High") && $7!="fixed"' $E/grype-matches.tsv  # the 3 with no fix
 ```
+
+**The source, the APK, the history and lint, produced.** Android Lint's `Security` category finds
+**1** issue across the four modules: `DataExtractionRules` on `android:allowBackup`
+(`AndroidManifest.xml:40`). semgrep's registry has no `p/android` pack, so `p/kotlin` runs with
+`p/mobsfscan`, MobSF's Android rules, in its place. **68** rules run on **821** files, and every
+`src/test` file is skipped by semgrep's default ignore. They give **26** findings of one rule,
+`android_kotlin_logging`: **3** in `src/main` and **23** in `src/androidTest`. gitleaks reads
+**1399** commits and finds **532** matches in **80** files, all under `evidence/` and all still
+tracked. They are server logs, runtime files and process lists, and each carries that run's
+`--IdentityProvider.token`. This is the second place the token reaches, after the `Referer`
+that `jupyter-server` logs above. MobSF scores the debug APK **43**: **3** high, **9** warning, **1** info. Of the three
+highs, the debuggable flag and the debug certificate belong to the debug build. The third is
+cleartext permitted to `127.0.0.1` and `localhost`. Two of the warnings are activities exported by
+the debug-only `ui-test-manifest` and `ui-tooling`. Of the native libraries, `libproot.so` and
+`libproot-loader.so` have no stack canary, and `libzstd-jni` lacks full RELRO.
+
+```sh
+E=evidence/aud-012-code-scans           # the commands, versions and image digests: $E/README.md
+tail -n +2 $E/lint-security.tsv | cut -f2,3 | sort | uniq -c                 # 1 DataExtractionRules
+tail -n +2 $E/semgrep-findings.tsv | awk -F'\t' '{split($3,p,"/src/"); print p[2]~/^main/?"main":"androidTest"}' \
+  | sort | uniq -c                                                            # 23 androidTest, 3 main
+tail -n +2 $E/gitleaks-findings.tsv | cut -f2 | sort -u | wc -l              # 80 files
+tail -n +2 $E/mobsf-findings.tsv | cut -f1,3 | sort | uniq -c                # by section and severity
+awk -F'\t' 'NR>1 && ($4!="true" || $5!="Full RELRO")' $E/mobsf-native-libs.tsv  # proot, zstd-jni
+```

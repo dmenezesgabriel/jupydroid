@@ -78,7 +78,7 @@ zstd -dc app/src/main/assets/spaces/base/rootfs-arm64-v8a.tzst | tar -xf - -C <d
 docker run --rm -v <disk dir>:/rootfs:ro anchore/syft@<digest> dir:/rootfs -o cyclonedx-json
 docker run --rm -v <sbom dir>:/sbom:ro anchore/grype@<digest> sbom:/sbom/rootfs.cdx.json -o json
 # T2 — source, APK, history, lint
-semgrep scan --config p/kotlin --config p/android --json app/src extensions extension-api
+semgrep scan --config p/kotlin --config p/mobsfscan --json app/src extensions extension-api
 docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks@<digest> git /repo --redact --report-format json
 docker run --rm -p 127.0.0.1:8000:8000 opensecurity/mobile-security-framework-mobsf@<digest>  # REST scan
 # lintDebug's XML report, filtered to category="Security"
@@ -130,7 +130,8 @@ T3 reads each row's code at the pinned SHA before a verdict cites it.
   `requirements.lock`; a syft CycloneDX SBOM of the unpacked arm64 rootfs, read by grype. Outputs and
   README in `evidence/aud-012-dependency-scans/`. The ledger section `## Security posture — AUD-012`
   opens with the surface and the commands; the Areas row reads `unexamined`.
-- [ ] **T2 — Source, APK, history and lint.** semgrep CE (`p/kotlin`, `p/android`), the `Security`
+- [x] **T2 — Source, APK, history and lint.** semgrep CE (`p/kotlin`, and `p/mobsfscan` because the
+  registry has no `p/android`), the `Security`
   category of `lintDebug`'s report, a MobSF static scan of the debug APK, gitleaks over every commit
   with `--redact`. Outputs in `evidence/aud-012-code-scans/`.
 - [ ] **T3 — The call stack read.** Every row of the gap table read to where it is enforced, with
