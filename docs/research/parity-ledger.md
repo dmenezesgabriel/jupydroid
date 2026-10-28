@@ -62,6 +62,7 @@ Five, each obliging something different. The full definition is in
 | Chrome and presentation | `AUD-009` | examined — below |
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
+| Security posture | `AUD-012` | unexamined |
 
 ---
 
@@ -3823,3 +3824,38 @@ What the walk found, beyond the tiers:
   for the four Gradle hooks; the three scanners are the citation gates' shared readers; `unittest
   discover` couples every `*_test.py` to every commit. The driver-bound pair stay coupled to their
   flows — a device frame is their input, the one coupling the design refuses to pretend away.
+
+## Security posture — `AUD-012`
+
+**The surface is what an attacker on the device or the network can reach, so there is no reference
+command surface and the partition claims none of it.** It has two scales. The first is what free
+scanners see in the dependencies, the image, the source, the APK and the history. The second is
+each boundary of our own call stack, read down to where it is enforced. The reference rows are the
+AUD-007/AUD-010 kind: prose and reproduction commands, not partition ids. This first part opens
+with the dependency and image half. The verdicts land in later subsections, and the Areas row stays
+`unexamined` until then.
+
+**The dependencies and the image, produced.** osv-scanner reads five lockfiles: the four
+`gradle.lockfile`s, `buildscript-gradle.lockfile` and `tools/rootfs/requirements.lock`.
+`settings-gradle.lockfile` locks nothing it could scan. **28** distinct vulnerable versions come
+back. Only **2** of them are on `releaseRuntimeClasspath`, which is what the APK carries:
+`org.jsoup:jsoup:1.23.1` and `org.apache.commons:commons-lang3:3.16.0`. The rest are `ktlint`,
+buildscript or AGP test-platform tooling. A syft SBOM of the arm64 rootfs lists **51** Alpine and
+**182** pip packages. grype finds **7** Critical and **29** High matches in it, and all but three
+of those have a fixed version. Most of them are OpenSSL 3.3.7-r0 (`libcrypto3`/`libssl3`), plus
+`certifi`, `tornado`, `jupyter-server`, `nbconvert`, `setuptools`, `black` and `zlib`. The three
+without a fix are `sqlite-libs`. Two facts are carried to the verdicts:
+`jupyter-server` 2.20.0's GHSA-c3mw-737p-c7g2 logs a token-bearing `Referer` on a 5xx, and that
+token is the one barrier loopback leaves. Re-resolving `requirements.lock` against PyPI fails on
+`aiofile==3.12.3` against a declared `<3.10`.
+
+```sh
+E=evidence/aud-012-dependency-scans     # the commands, image digests and DB date: $E/README.md
+cut -f3,4 $E/osv-findings.tsv | tail -n +2 | sort -u | wc -l                 # 28 vulnerable versions
+for p in $(cut -f3,4 $E/osv-findings.tsv | tail -n +2 | tr '\t' : | sort -u); do
+  grep -h "^$p=" app/gradle.lockfile | grep -q releaseRuntimeClasspath && echo "$p"
+done                                                                          # the 2 the APK ships
+cut -f1 $E/rootfs-packages.tsv | tail -n +2 | sort | uniq -c                 # 51 apk, 182 pypi
+cut -f1 $E/grype-matches.tsv | tail -n +2 | sort | uniq -c                   # by severity
+awk -F'\t' '($1=="Critical"||$1=="High") && $7!="fixed"' $E/grype-matches.tsv  # the 3 with no fix
+```

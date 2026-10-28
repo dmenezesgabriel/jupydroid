@@ -126,7 +126,7 @@ T3 reads each row's code at the pinned SHA before a verdict cites it.
 
 ## Tasks
 
-- [ ] **T1 — Dependencies and the image.** osv-scanner over the four lockfiles and
+- [x] **T1 — Dependencies and the image.** osv-scanner over the module and buildscript lockfiles and
   `requirements.lock`; a syft CycloneDX SBOM of the unpacked arm64 rootfs, read by grype. Outputs and
   README in `evidence/aud-012-dependency-scans/`. The ledger section `## Security posture — AUD-012`
   opens with the surface and the commands; the Areas row reads `unexamined`.
