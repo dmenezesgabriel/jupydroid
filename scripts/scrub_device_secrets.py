@@ -17,7 +17,10 @@ Called from `run_flow` after the promotion and from `pull_server_log` after the 
 lands, and runnable standalone for a directory that predates either. A clone without
 `.sensitive-strings.local` still scrubs the carriers; only the literal pass is a
 no-op there. Binary files are skipped the way the gate judges them - a NUL byte in
-the head means pixels, not text.
+the head means pixels, not text. Everything outside a match is kept byte-for-byte:
+the `.headers` bodies are CRLF and the captured logs are mixed endings, so the scrub
+decodes raw bytes with `surrogateescape` instead of `read_text` - a captured file
+changes its credential and nothing else.
 """
 from __future__ import annotations
 
@@ -49,8 +52,9 @@ def replacements_of(local: pathlib.Path) -> list[tuple[str, str]]:
     return pairs
 
 
-def _is_binary(file: pathlib.Path) -> bool:
-    return b"\x00" in file.read_bytes()[:8192]
+def _is_binary(data: bytes) -> bool:
+    """A NUL in the head means pixels, not text - the gate's own judgement."""
+    return b"\x00" in data[:8192]
 
 
 def _placeholder(match: re.Match[str]) -> str:
@@ -76,14 +80,18 @@ def scrub(directory: pathlib.Path, root: pathlib.Path = pathlib.Path()) -> int:
     pairs = replacements_of(root / check_device_secrets.LOCAL_LITERALS)
     rewritten = 0
     for file in sorted(directory.rglob("*")):
-        if not file.is_file() or _is_binary(file):
+        if not file.is_file():
             continue
-        text = file.read_text(errors="replace")
+        data = file.read_bytes()
+        if _is_binary(data):
+            continue
+        text = data.decode("utf-8", errors="surrogateescape")
         scrubbed = _carriers_scrubbed(text)
         for literal, replacement in pairs:
             scrubbed = scrubbed.replace(literal, replacement)
-        if scrubbed != text:
-            file.write_text(scrubbed)
+        scrubbed_bytes = scrubbed.encode("utf-8", errors="surrogateescape")
+        if scrubbed_bytes != data:
+            file.write_bytes(scrubbed_bytes)
             rewritten += 1
     return rewritten
 

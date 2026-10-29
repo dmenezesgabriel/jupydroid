@@ -50,6 +50,25 @@ class ScrubDeviceSecretsTest(unittest.TestCase):
         scrub_device_secrets.scrub(evidence, self.root)
         self.assertEqual(blob, (evidence / "frame.png").read_bytes())
 
+    def test_a_crlf_file_keeps_its_line_endings_and_non_utf8_bytes(self) -> None:
+        """A captured headers file is CRLF; a scrub rewrites the credential, nothing else."""
+        evidence = self.root / "evidence"
+        evidence.mkdir()
+        target = evidence / "a.headers"
+        target.write_bytes(
+            b"HTTP/1.1 200 OK\r\n"
+            + b'Set-Cookie: username-127-0-0-1-8888="<token>
+            + FAKE_HEX.encode()
+            + b'"\r\n\xff\xfe trailing\r\n'
+        )
+        scrub_device_secrets.scrub(evidence, self.root)
+        self.assertEqual(
+            b"HTTP/1.1 200 OK\r\n"
+            b'Set-Cookie: username-127-0-0-1-8888="<token>"\r\n'
+            b"\xff\xfe trailing\r\n",
+            target.read_bytes(),
+        )
+
     def test_a_clone_without_the_literals_file_is_a_no_op(self) -> None:
         bare = self.root / "clone"
         bare.mkdir()
@@ -95,6 +114,14 @@ class ScrubDeviceSecretsTest(unittest.TestCase):
         self.assertEqual(
             '<html data-jupyter-api-token="<token>">',
             self.scrubbed("body.html", html),
+        )
+
+    def test_a_text_body_named_bin_is_scrubbed(self) -> None:
+        """A `.bin` body is text when its head has no NUL - the gate reads it, so this does too."""
+        html = f'<html data-jupyter-api-token="{FAKE_HEX}">'
+        self.assertEqual(
+            '<html data-jupyter-api-token="<token>">',
+            self.scrubbed("page.bin", html),
         )
 
     def test_the_session_cookie_becomes_a_placeholder(self) -> None:
