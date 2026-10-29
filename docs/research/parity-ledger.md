@@ -62,7 +62,7 @@ Five, each obliging something different. The full definition is in
 | Chrome and presentation | `AUD-009` | examined — below |
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
-| Security posture | `AUD-012` | unexamined |
+| Security posture | `AUD-012` | examined — below |
 
 ---
 
@@ -3831,9 +3831,8 @@ What the walk found, beyond the tiers:
 command surface and the partition claims none of it.** It has two scales. The first is what free
 scanners see in the dependencies, the image, the source, the APK and the history. The second is
 each boundary of our own call stack, read down to where it is enforced. The reference rows are the
-AUD-007/AUD-010 kind: prose and reproduction commands, not partition ids. This first part opens
-with the dependency and image half. The verdicts land in later subsections, and the Areas row stays
-`unexamined` until then.
+AUD-007/AUD-010 kind: prose and reproduction commands, not partition ids. What the tools and the
+read produced comes first, then the verdicts on each, then the walk that strings them into paths.
 
 **The dependencies and the image, produced.** osv-scanner reads five lockfiles: the four
 `gradle.lockfile`s, `buildscript-gradle.lockfile` and `tools/rootfs/requirements.lock`.
@@ -4024,4 +4023,102 @@ adb shell run-as com.jupydroid.app ls -lnd files/spaces/base/bin                
 grep -n 'os.unlink\|no_browser_open_file = ' <rootfs>/usr/lib/python3.12/site-packages/jupyter_server/serverapp.py
 grep -rn 'no_browser_open_file' app/src/main                                              # none
 grep -n 'JUPYTER_RUNTIME_DIR' app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt
+```
+
+### The walk
+
+Eight attackers, each traced from where they start to where the call stack stops them. Every row
+above is a step on one of these paths. The walk reads them in order, so a refusal that only works
+because an earlier one ran is visible as such.
+
+**A web page.** An `intent:` URL reaches Chrome, which launches only a `BROWSABLE` activity, and the
+import filter carries it (`GAP-189`). Then `MainActivity.sharedNotebookIn` asks the provider for
+`DISPLAY_NAME`, falling back to the URI's last segment, and `sharedNotebookFrom` keeps only the
+name past its last `/`, and only if it ends in `.ipynb`. Anything else is null, and nothing is read.
+`ImportedNotebookEffect` then runs `importNotebook`. `ContentResolverSharedDocumentReader.readBytes`
+reads the whole stream into the heap (`GAP-190`). From the Spaces home, base is run. `copyIn` counts
+past a taken name, and `DiskWorkspaceRepository.writeBytes` goes through `WorkspaceRoot.fileAt`,
+whose canonical-path `require` refuses a path above the home. The page gets a file in the user's
+workspace under a name it chose. It never overwrites anything and nothing comes back to it. ADR-0124
+closes the route at its first step.
+
+**Another app with a content URI.** The same chain, with no browser in front. Any app may send
+`VIEW`, so this door stays open by design, and `fileAt` and the heap are what bound it.
+
+**Another app on loopback.** It needs INTERNET to connect at all. The port is OS-chosen
+(`LoopbackPort`) but loopback is small enough to scan, so the token is the whole barrier, and
+without it every request gets 403. The token comes from 32 `SecureRandom` bytes
+(`JupyterServerLauncher.TOKEN_BYTES`). There are four places it could leak, and each is closed to
+this app. argv is closed by `hidepid=invisible`. Logcat carried it 0 times. `run/` holds only `0600`
+files under a `0700` data directory, and so does the DEBUG `jupyter_server.log`. The MCP port takes
+the same token. `BearerTokenMiddleware.on_message` refuses every message without it, and refuses
+everything when the server has no token or the message has no HTTP request, so it fails closed. What
+gets past is the transport's session table: a tokenless `initialize` mints a session that `GET` and
+`DELETE` serve (`GAP-191`).
+
+**Untrusted notebook text.** A link in markdown, an output or the terminal goes to whichever
+`LocalUriHandler` is nearest. Both providers are `RenderedLinkUriHandler.kt`'s `RenderedLinksFollowed`
+and `WorkspaceLinkUriHandler.kt`. A workspace path is `resolvedAgainst` the document, null above the
+root, and `fileAt`-checked again when listed. Anything else hits `isWebLinkDestination`, an
+allowlist of `http`, `https` and `mailto`, before `IntentExternalLinkOpener.viewIntentFor`. Any other
+scheme opens nothing. Terminal links ask first (ADR-0108).
+
+**The network.** Our own traffic falls under `network_security_config`, so there is no cleartext
+except to loopback. A Space's traffic, from pip and from the kernels, goes through the rootfs's
+OpenSSL, certifi and zlib, which are the reachable half of the scanner rows (`GAP-183`, `GAP-184`).
+
+**A receiver of a share.** `IntentDocumentSharer.uriFor` runs `fileAt` before `FileProvider` mints
+the URI. The provider is unexported, so the receiver holds one per-URI read grant and nothing else.
+The provider resolves the URI again at open time against `spaces/`, and the only party who can swap
+a link in between already runs inside the Space (`adapted`, above).
+
+**A backup transport.** `SpaceHomeBackupAgent.onFullBackup` returns before writing a byte unless
+`mayCarrySignIns` sees client-side encryption or a device-to-device transfer. When one is there,
+`SpaceHomeBackupScope` carries config and homes, never the rootfs or `run/`.
+
+**A reader of the repository, or of the build host.** In history, each token is a dead server's
+(`GAP-188`). The build-only CVEs reach the host that builds, never the APK (`GAP-186`).
+
+What the walk found, beyond the rows:
+
+- **Growth is unbounded in three places, and an outside caller drives each one.** The import's
+  heap grows with what a provider serves (`GAP-190`). The MCP session table grows with each
+  tokenless `initialize` (`GAP-191`). `run/` grows with each killed server (`GAP-192`). Every other
+  boundary is a fixed-size check: a name, a path, a scheme, a token, a flag.
+- **Branching is five refusal arms, and each one is a single predicate.** The name rule, `fileAt`'s
+  `require`, the scheme allowlist, `refusal_of_header` and `mayCarrySignIns`. Each one says yes to a
+  stated set and no to everything else. None of them lists what to refuse, so a new scheme, a new
+  path shape or a new transport flag is refused until someone adds it.
+- **Failure fails closed at every arm, and quietly at the import.** `fileAt` throws, the
+  middleware raises, the opener is never called, and the agent returns early. The import wraps
+  read, run and write in one `runCatching`, so any refusal along it drops the import with no message
+  to the user and no file written. That is closed, but silent. Nothing this audit judged needs it
+  to be louder.
+- **Coupling: one token and one directory.** The server's token guards the REST port, the kernels
+  through it, and the MCP port. `spaces/` is both the share provider's root and the parent of every
+  Space's `run/`. So the share boundary rests on `uriFor`'s mint-time check, and the token boundary
+  rests on file modes the app's umask sets. Where the `0777` above `spaces/base` came from was not
+  found. It is inert under the `0700` data directory.
+
+**The references, both directions.** `termux-app@3df69d1` has every door we have and more: exported
+activities and a provider behind a `dangerous` permission, where we export one activity and no
+provider. It checks a share at open time, where we check at mint time. It copies an import to disk in
+chunks, where we read it into the heap. It ships `allowBackup="false"`, where we back up behind
+encryption. The shipped `jupyter_server` sets the token and XSRF barrier we inherit, with a token of
+24 bytes against our 32. `jupyterlab` and `vscode-jupyter` are clients of that same barrier and add
+none of their own. `winlator@fb66541b` (`app/app/src/main/AndroidManifest.xml`) exports one launcher
+activity, and every other component and its one provider are `exported="false"`. Its surface is a
+subset of ours, so there is no row for it.
+
+**The tally.** 36 findings: **16** `present`, **8** `adapted`, **1** `undocumented` (ADR-0124),
+**11** `absent` (`GAP-183` to `GAP-192`, ranked in `JD-064`), **0** `defect`.
+
+```sh
+awk '/^### The (scanner findings|call stack) — verdicts/{f=1;next} /^###? /{f=0} f&&/^\| /&&!/^\| Finding /' \
+  docs/research/parity-ledger.md | awk -F'|' '{gsub(/[ *]/,"",$4); print $4}' | sort | uniq -c
+grep -n 'fun fileAt' -A7 app/src/main/java/com/jupydroid/app/data/disk/WorkspaceRoot.kt         # the require
+grep -n 'WEB_LINK_SCHEMES\|fun String.isWebLinkDestination' -A2 app/src/main/java/com/jupydroid/app/richtext/RichLinkDestination.kt
+grep -n '_refusal' -A10 tools/rootfs/jupydroid_mcp_bearer.py                                    # closed on no token
+grep -n 'runCatching' -A5 app/src/main/java/com/jupydroid/app/DocumentOpeners.kt               # the quiet arm
+grep -n 'exported' reference/research_repos/winlator/app/app/src/main/AndroidManifest.xml      # 1 true, 4 false
 ```

@@ -144,7 +144,7 @@ T3 reads each row's code at the pinned SHA before a verdict cites it.
   `defect` against `jupydroid_mcp_bearer.py`'s own intent (a fix rebuilds the rootfs), and whether
   the share provider resolving again against `spaces/` at open time is reachable by anyone who
   does not already hold the token.
-- [ ] **T5 — The walk and the close.** Areas row → `examined`; this PRD deleted; the backlog row
+- [x] **T5 — The walk and the close.** Areas row → `examined`; this PRD deleted; the backlog row
   shipped and the marker moved to `JD-064`, or past it if T4 names nothing.
 
 ## Out of scope
