@@ -98,7 +98,7 @@ None. The version question is settled by the ELF readings above (taken 2026-10-2
 
 ## Tasks
 
-- [ ] T1 — The measure. Red: no tool reads the APK's `.so`s for RELRO. Green:
+- [x] T1 — The measure. Red: no tool reads the APK's `.so`s for RELRO. Green:
   `scripts/read_apk_native_libs.py` classifies each `lib/**/*.so` in an APK or AAR —
   `none`/`partial`/`full` plus whether the RELRO segment ends on a 16 KiB boundary — with fixture
   tests built from the real `readelf` output of the `-9` and `-24` binaries. Its run on the
