@@ -146,7 +146,7 @@ One commit each; each regenerates locks and sums with the `AGENTS.md` procedure 
 `assembleDebugAndroidTest`, once with `--write-locks --write-verification-metadata sha256` together
 then again with neither — and each commit body quotes the scan before and after.
 
-- [ ] T1 — Gradle wrapper → 9.6.1 and AGP → 9.5.0. The UTP lock entries only rewrite when those
+- [x] T1 — Gradle wrapper → 9.6.1 and AGP → 9.5.0. The UTP lock entries only rewrite when those
   configurations resolve, so the write-locks run adds `connectedDebugAndroidTest` on the emulator
   (`dependencies --configuration` is the fallback where no device exists). Rescan names what the
   bump cleared.

@@ -1,7 +1,9 @@
 [versions]
-# 9.1.1 rather than 9.0.1 because `adaptive-*:1.3.0` requires "Android Gradle plugin 9.1.0 or
-# higher" and says so in its AAR metadata; 9.1.1 is the first patch of the minimum it asks for.
-androidGradlePlugin = "9.1.1"
+# 9.5.0 over the `adaptive-*:1.3.0` minimum (9.1.0 per its AAR metadata): the newest stable, so the
+# buildscript classpath and the `unified-test-platform-*` pins resolve the newest tested jar set
+# rather than one floored by constraints. It needs Gradle >= 9.6.0, which the wrapper is
+# (https://developer.android.com/build/releases/about-agp).
+androidGradlePlugin = "9.5.0"
 androidxCore = "1.18.0"
 androidxLifecycle = "2.10.0"
 androidxActivity = "1.13.0"
