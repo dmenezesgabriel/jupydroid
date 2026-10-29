@@ -1936,14 +1936,6 @@ version bump for jsoup and a constraint for the transitive commons-lang3, with b
 `gradle/verification-metadata.xml` rewritten as
 [ADR-0123](adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md) orders.
 
-### GAP-186 — Build tooling resolves known-vulnerable versions
-
-osv-scanner's other 21 vulnerable Maven versions are logback, guava, netty (six artifacts),
-bouncycastle, httpclient, jose4j, jdom2 and `kotlin-gradle-plugin` 2.3.20. They are locked only in
-ktlint, the buildscript classpath and AGP's `_internal-unified-test-platform-*` configurations, so
-none of them ships in the APK. What they expose is the build host. The repair starts with the
-plugin bumps that bring newer versions, and then constrains whatever is still left.
-
 ### GAP-187 — zstd-jni's native library is linked without full RELRO
 
 MobSF's binary analysis of the debug APK reads `libzstd-jni-1.5.7-9.so` with no RELRO on arm64-v8a
