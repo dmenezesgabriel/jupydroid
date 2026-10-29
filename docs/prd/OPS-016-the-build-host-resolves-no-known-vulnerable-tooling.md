@@ -152,7 +152,7 @@ then again with neither — and each commit body quotes the scan before and afte
   bump cleared.
 - [x] T2 — Kotlin → 2.4.21 on the same `kotlin` ref (compose-compiler and serialization ride it).
   Same regen and rescan; the gate's `compileDebugKotlin` is the compat check.
-- [ ] T3 — The floors for whatever T2's rescan still names, in
+- [x] T3 — The floors for whatever T2's rescan still names, in
   `gradle/dependency-floors.gradle.kts` + the root `classpath` block, decided per family: one
   `netty-bom` platform constraint per UTP configuration, the logback pair on `ktlint`, the singles
   per name. `connectedDebugAndroidTest` re-run exercises UTP under the floors. Rescan → zero Maven

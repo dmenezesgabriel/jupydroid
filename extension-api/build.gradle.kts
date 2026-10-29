@@ -9,6 +9,10 @@ plugins {
     alias(libs.plugins.ktlint)
 }
 
+// Floors under the build-only classpaths (`ktlint`, `androidLintTool`); the script carries
+// the set and the reasons.
+apply(from = "$rootDir/gradle/dependency-floors.gradle.kts")
+
 // The exact version of every dependency, transitive ones included, is committed in
 // `gradle.lockfile`, so a build never drifts and a scanner such as osv-scanner reads what ships.
 // STRICT fails a configuration that has no lock state rather than resolving it freely
