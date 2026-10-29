@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# JD-069 demo, part 4: after a force-stop, the relaunch keeps the Space the first part
+# created, and the same cell renders the same again. The driver re-seeds
+# `Apk Advisories.ipynb` before this, so no output saved by the first part can satisfy
+# the wait.
+#
+# TABLET ONLY (SM-X216B): the cell runs on a real kernel.
+- launchApp
+- extendedWaitUntil:
+    visible: "Advisories"
+    timeout: 30000
+- assertVisible: "space-1 · .*"
+- takeScreenshot: 01-space-persists-after-relaunch
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Apk Advisories.ipynb"
+    timeout: 10000
+- tapOn: "Apk Advisories.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "Above the fixed version"
+      childOf:
+        text: "Cell output"
+    timeout: 180000
+- assertVisible:
+    text: "jsoup drew this line"
+    childOf:
+      text: "Cell output"
+- takeScreenshot: 02-relaunched-renders-the-same

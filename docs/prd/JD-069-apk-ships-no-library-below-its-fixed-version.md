@@ -104,7 +104,7 @@ item must prove (that the shipped versions moved), not whether it repairs.
   (ADR-0123's two-flag order fails: unlocked resolution downloads candidate metadata the
   recorded sums never covered). The lockfile diff shows only the
   two moves, the ship-check is clean, and the html/ tests still pass.
-- [ ] T2 — The demo on the tablet, with evidence. Then ship: delete this PRD and edit the
+- [x] T2 — The demo on the tablet, with evidence. Then ship: delete this PRD and edit the
   backlog row.
 
 ## Out of scope
