@@ -265,9 +265,12 @@ Notes:
   AGP 9 + JDK 25 (no stable release supports it yet).
 - Every dependency is locked STRICT and verified by sha256
   ([ADR-0123](docs/adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md)), so a
-  dependency or plugin bump rewrites both, in this order. First, run the gate command above plus
-  `assembleDebugAndroidTest` with `--write-locks`. Then run it again with
-  `--write-verification-metadata sha256`. Running only `<module>:dependencies` misses
+  dependency or plugin bump rewrites both. Run the gate command above plus
+  `assembleDebugAndroidTest` once with `--write-locks --write-verification-metadata sha256`
+  together, then run it again with neither, so STRICT and verification both prove out on the
+  new files. The flags must go on the *same* run: `--write-locks` resolves unlocked, which
+  downloads candidate metadata the recorded sums never covered, so it fails verification
+  unless that run is also writing them. Running only `<module>:dependencies` misses
   configurations that only a task resolves, and STRICT then fails on them. Commit the lockfiles and
   `gradle/verification-metadata.xml`, and read their diff. A Gradle bump re-runs
   `./gradlew wrapper --gradle-version <v> --distribution-type bin --gradle-distribution-sha256-sum <published>`

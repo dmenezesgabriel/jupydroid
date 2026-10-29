@@ -133,6 +133,10 @@ dependencies {
     implementation(libs.commonmark.ext.autolink)
     implementation(libs.jsoup)
     implementation(libs.commons.compress)
+    // commons-compress 1.27.1 brings commons-lang3 3.16.0, below the fix for
+    // https://github.com/advisories/GHSA-j288-q9x7-2f5v; the floor is the version its own next
+    // release (1.28.0) declares. A floor, not a declared need - nothing under src/main calls it.
+    constraints { implementation(libs.commons.lang3) }
     // @aar: the plain jar publishes no Android ABIs; the AAR carries arm64-v8a's libzstd-jni.
     implementation("${libs.zstd.jni.get()}@aar")
     // The jar (not the AAR) so JVM unit tests get linux-x86_64's bundled zstd for archives

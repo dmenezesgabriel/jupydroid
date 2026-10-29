@@ -96,11 +96,13 @@ item must prove (that the shipped versions moved), not whether it repairs.
 
 ## Tasks
 
-- [ ] T1 — The bump and the floor. Red: on `releaseRuntimeClasspath`, `dependencyInsight`
+- [x] T1 — The bump and the floor. Red: on `releaseRuntimeClasspath`, `dependencyInsight`
   resolves jsoup 1.23.1 and lang3 3.16.0, and the audit's ship-check flags both. Green:
   `jsoup = "1.23.2"`, `commonsLang3 = "3.18.0"` declared as an `implementation` constraint,
-  then the gate plus `assembleDebugAndroidTest` run with `--write-locks` and again with
-  `--write-verification-metadata sha256` (ADR-0123's order). The lockfile diff shows only the
+  then the gate plus `assembleDebugAndroidTest` run once with
+  `--write-locks --write-verification-metadata sha256` together and again with neither
+  (ADR-0123's two-flag order fails: unlocked resolution downloads candidate metadata the
+  recorded sums never covered). The lockfile diff shows only the
   two moves, the ship-check is clean, and the html/ tests still pass.
 - [ ] T2 — The demo on the tablet, with evidence. Then ship: delete this PRD and edit the
   backlog row.
