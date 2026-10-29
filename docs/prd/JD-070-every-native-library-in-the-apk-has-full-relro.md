@@ -103,7 +103,7 @@ None. The version question is settled by the ELF readings above (taken 2026-10-2
   `none`/`partial`/`full` plus whether the RELRO segment ends on a 16 KiB boundary — with fixture
   tests built from the real `readelf` output of the `-9` and `-24` binaries. Its run on the
   current APK reproduces AUD-012's rows; its run on the `-24` AAR reads all-Full.
-- [ ] T2 — The bump. `zstdJni = "1.5.7-24"`, a catalog comment recording that ≥1.5.7-13 is the
+- [x] T2 — The bump. `zstdJni = "1.5.7-24"`, a catalog comment recording that ≥1.5.7-13 is the
   release line whose Android .so links full RELRO (the upstream issue URL), then the gate plus
   `assembleDebugAndroidTest` with `--write-locks` and `--write-verification-metadata sha256`
   together, and again with neither (ADR-0123's order). The lockfile diff shows only the zstd-jni
