@@ -3884,3 +3884,62 @@ tail -n +2 $E/gitleaks-findings.tsv | cut -f2 | sort -u | wc -l              # 8
 tail -n +2 $E/mobsf-findings.tsv | cut -f1,3 | sort | uniq -c                # by section and severity
 awk -F'\t' 'NR>1 && ($4!="true" || $5!="Full RELRO")' $E/mobsf-native-libs.tsv  # proot, zstd-jni
 ```
+
+**The call stack, read.** Each boundary was read down to where it is enforced, then measured on the
+tablet with adb ([the readings](../../evidence/aud-012-call-stack/README.md)). The release manifest
+exports **1** component of ours, `MainActivity`, plus `ProfileInstallReceiver` behind `DUMP`. Debug
+adds the two androidx test and tooling activities MobSF counted, and both builds use the same
+`network_security_config`. There is no WebView, so the WebView row has nothing under it.
+
+- **Inbound VIEW.** `MainActivity.sharedNotebookIn` keeps the provider's display name only past its
+  last `/`, and only if it ends in `.ipynb` (`import/SharedNotebook.kt`). `importNotebook` writes
+  through `DiskWorkspaceRepository.writeBytes`, whose `WorkspaceRoot.fileAt` refuses any canonical
+  path that leaves the home. `copyIn` counts past a taken name, so nothing is overwritten. Four
+  facts are carried to the verdicts. First, `ContentResolverSharedDocumentReader.readBytes` reads
+  the whole stream into memory with no bound, where `termux-app@3df69d1`
+  `FileReceiverActivity.saveStreamWithName` copies to disk in 4 KiB chunks after asking for a name.
+  Second, the filter carries `BROWSABLE`, which Termux's VIEW alias does not. Third, a VIEW from
+  the Spaces home **runs base**. Fourth, a VIEW can name this app's own unexported `…exports`
+  provider, which the app itself may read.
+- **Outbound share.** `IntentDocumentSharer.uriFor` refuses `..`, an absolute path and a symlink
+  that leaves the home, all before `FileProvider` sees them. The provider resolves the URI again
+  when the receiver opens it, but against its own root, `spaces/`. A link swapped in between
+  therefore reaches `run/`. Termux checks the canonical path at **open** time against its own roots
+  (`TermuxOpenReceiver$ContentProvider.openFile`).
+- **Files on disk.** `files/` down to `spaces/base` is `0777`, under a `0700` app data directory.
+  Every file in `run/` is `0600`. A killed server leaves its `jpserver-<pid>-open.html`, which
+  holds a token-bearing URL, and its kernels' HMAC-keyed connection files. The tablet held **17**
+  servers' worth.
+- **Server.** The token is 32 bytes from `SecureRandom` (`JupyterServerLauncher.TOKEN_BYTES`),
+  against upstream's `os.urandom(24)` (`jupyter_server/auth/identity.py` `_token_default`). The
+  server binds `127.0.0.1` only. An app without INTERNET cannot connect at all. An app with it gets
+  **403** on every request without the token: status, kernels by query token, shutdown. The token
+  rides on argv. `/proc` is `hidepid=invisible`, `gid=readproc`, and an ordinary app holds no
+  `readproc`. It reaches logcat **0** times. It is on **6** lines of `run/jupyter_server.log`, from
+  DEBUG's `Config changed` dump. The 80 evidence files gitleaks found are copies of that log, of
+  `run/` and of process lists.
+- **MCP.** `jupydroid_mcp_bearer.BearerTokenMiddleware.on_message` refuses every message,
+  `initialize` included, with `hmac.compare_digest`. On the tablet, `tools/list` and `tools/call`
+  without a bearer both come back refused. But the middleware runs per **message**, after FastMCP's
+  stateful transport has already made a session. A tokenless `initialize` returns **200** with an
+  `mcp-session-id`. That id is then served a `GET` SSE stream and a `DELETE`, also **200**, with
+  no bearer (`fastmcp/server/http.py`: `auth=None` routes every method).
+- **Links.** Every rendered, output and terminal link reaches `LocalUriHandler`. Workspace paths go
+  to `WorkspaceLinkUriHandler`, whose `resolvedAgainst` gives null above the root, and the listing
+  is `fileAt`-checked again. Everything else falls to `RenderedLinkUriHandler`, which passes only
+  `http`, `https` and `mailto` to `IntentExternalLinkOpener`. That handler is the opener's only
+  production caller, so `intent:`, `file:` and `content:` open nothing.
+- **Backup.** `SpaceHomeBackupAgent.mayCarrySignIns` lets the homes go only to client-side
+  encryption or a device-to-device transfer. D2D carrying sign-ins is ADR-0107's stated choice.
+  `SpaceHomeBackupScope` carries each Space's `config.json` and home, less `.cache`, virtualenvs
+  and symlinks, so neither the rootfs nor `run/` goes.
+
+```sh
+E=evidence/aud-012-call-stack           # every device command and its output: $E/README.md
+JAVA_HOME=<jdk> devjob ./gradlew :app:processDebugMainManifest :app:processReleaseMainManifest
+grep -c 'exported="true"' app/build/intermediates/merged_manifest/release/*/AndroidManifest.xml   # 2
+grep -rn "android.webkit\|addJavascriptInterface" app/src extensions extension-api                # none
+grep -rn "LocalUriHandler provides" app/src/main                         # the two handlers above
+adb shell mount | grep ' /proc '                                         # hidepid=invisible,gid=3009
+adb shell "curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:<port>/api/status"       # 403
+```

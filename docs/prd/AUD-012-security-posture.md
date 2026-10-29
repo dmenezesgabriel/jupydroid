@@ -101,10 +101,10 @@ T3 reads each row's code at the pinned SHA before a verdict cites it.
 | Boundary | Ours (file) | Question T3 answers |
 |---|---|---|
 | Inbound intent | `MainActivity` `VIEW content:// */*`, `DocumentOpeners.kt` | Is a hostile URI's display name or content able to write outside the workspace, or exhaust memory? |
-| Outbound share | FileProvider + `IntentDocumentSharer.uriFor` | Does `../` or a symlink reach the rootfs or the token? |
+| Outbound share | FileProvider + `IntentDocumentSharer.uriFor` | `../` and a leaving symlink are refused at mint; a link swapped in before the receiver opens is resolved against `spaces/` — reachable? |
 | Network | `res/xml/network_security_config.xml` | Cleartext only to loopback — confirmed in the merged manifest? |
 | Server | `JupyterServerLauncher.jupyterServerArgs`, `token` | Entropy against upstream's 24 bytes; token file mode; token in logs or evidence |
-| MCP | `tools/rootfs/jupydroid_mcp_bearer.py` | Every message checked, constant-time compare? |
+| MCP | `tools/rootfs/jupydroid_mcp_bearer.py` | Every message is checked in constant time; a tokenless `initialize` still mints a session that `GET` and `DELETE` serve — a finding or noise? |
 | Links | `IntentExternalLinkOpener`, `RenderedLinkUriHandler.kt`, `TerminalPaneScreen.kt` | `intent:`/`file:`/`content:` schemes from untrusted notebook text |
 | Backup | `SpaceHomeBackupAgent`, `SpaceHomeBackupScope` | Device-to-device transfer carries sign-ins — intended? |
 
@@ -134,7 +134,7 @@ T3 reads each row's code at the pinned SHA before a verdict cites it.
   registry has no `p/android`), the `Security`
   category of `lintDebug`'s report, a MobSF static scan of the debug APK, gitleaks over every commit
   with `--redact`. Outputs in `evidence/aud-012-code-scans/`.
-- [ ] **T3 — The call stack read.** Every row of the gap table read to where it is enforced, with
+- [x] **T3 — The call stack read.** Every row of the gap table read to where it is enforced, with
   the reference rows read at their SHAs.
 - [ ] **T4 — The verdicts.** Every scanner finding and every T3 boundary gets one verdict. `defect`
   → red test and fix in-slice; `absent` → `GAP-NNN` in `docs/architecture.md` and a `JD-064` line;
