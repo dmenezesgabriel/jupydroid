@@ -92,6 +92,10 @@ RUN apk add --no-cache python3 py3-pip git
 # --only-binary=:all: is a gate, not an optimisation - if a package ever stops
 # publishing a musllinux wheel we want the build to fail loudly rather than
 # quietly start compiling from source under emulation.
+#
+# pip and setuptools are pinned in the lock too, so this install replaces the copies apk put there:
+# Alpine 3.21's py3-pip 24.3.1-r0 and the py3-setuptools 70.3.0-r0 it depends on are its newest,
+# and both carry advisories fixed only on PyPI. apk's database still names the old versions.
 COPY requirements.lock /tmp/requirements.lock
 RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: \
       -r /tmp/requirements.lock \

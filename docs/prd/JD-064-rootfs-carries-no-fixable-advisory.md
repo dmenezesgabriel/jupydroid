@@ -81,8 +81,8 @@ None.
 
 ## Open decisions
 
-- sqlite-libs 3.48.0-r4 has three High matches with no fixed version. T1 reads its state again from
-  the new image, and the item ships with it named if it is still unfixed.
+- sqlite-libs 3.48.0-r4 has three High matches with no fixed version. They are still unfixed in the
+  T2 image, so the item ships with them named.
 
 ## Surface
 
@@ -98,7 +98,7 @@ None.
 - [x] T1 — Alpine packages. Red: grype's fixable apk matches on the current image. Green: every
   stage's digest moves to the current `alpine:3.21`, the arm64 image is rebuilt, and syft+grype
   find 0 fixable apk matches. Bump `BUNDLED_ROOTFS_VERSION`.
-- [ ] T2 — Python pins. Red: grype's fixable pypi matches. Green: bump the six pins, plus pip 24.3.1 (six advisories, fixed on PyPI only, because Alpine 3.21's py3-pip stops at 24.3.1), rebuild, and
+- [x] T2 — Python pins. Red: grype's fixable pypi matches. Green: bump the six pins, plus pip 24.3.1 (six advisories, fixed on PyPI only, because Alpine 3.21's py3-pip stops at 24.3.1), rebuild, and
   find 0 fixable pypi matches. The image's own build-time probes still pass.
 - [ ] T3 — The demo flow on the tablet, with evidence. Then ship: delete this PRD, and edit the
   backlog row.
