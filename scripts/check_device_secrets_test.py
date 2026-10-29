@@ -12,7 +12,7 @@ import subprocess
 import tempfile
 import unittest
 
-from check_device_secrets import local_rules_from, main, offences_in
+from check_device_secrets import TOKEN_CARRIERS, local_rules_from, main, offences_in
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -26,6 +26,25 @@ FAKE_HEX = "ab12" + "cd34" * 15
 #: so `username-<host>=` and a pipe-bearing value are never contiguous in this file - the
 #: gate scans it too.
 FAKE_SIGNED = "2|1:0|10:1787869994|24:x|4:e30=|" + FAKE_HEX
+#: Each written form the token - or the session cookie minted from it - reaches evidence in.
+CARRIER_CASES = {
+    "argv": "--IdentityProvider.token=" + FAKE_HEX,
+    "deprecated argv": "--ServerApp.token=" + FAKE_HEX,
+    "config dump": "'token': DeferredConfigString('" + FAKE_HEX + "')",
+    "rendered page": 'data-jupyter-api-token="' + FAKE_HEX + '"',
+    "session cookie": 'Set-Cookie: username-127-0-0-1-8888="' + FAKE_SIGNED + '"',
+    "bare cookie": "Cookie: username-127-0-0-1-8888=" + FAKE_SIGNED,
+    "runtime file": '"token": "' + FAKE_HEX + '"',
+    "kernel key": '"key": "' + FAKE_HEX + '"',
+    "query url": "GET /lab?token=" + FAKE_HEX + " HTTP/1.1",
+    "referer url": "Referer: http://127.0.0.1/lab?x=1&token=" + FAKE_HEX,
+    "Authorization header": "Authorization: token " + FAKE_HEX,
+    "Bearer": "Authorization: Bearer " + FAKE_HEX,
+}
+#: The committable half of AUD-013's scrub list, seeded by OPS-015: `git filter-repo
+#: --replace-text` input like `.sensitive-strings.local`, except tracked - a fresh clone
+#: rebuilds the rewrite's input from it.
+SEED_CARRIERS = REPO / "evidence" / "aud-013-scrub-list" / "token-carriers.txt"
 
 
 class OffencesInTest(unittest.TestCase):
@@ -44,22 +63,7 @@ class OffencesInTest(unittest.TestCase):
         self.assertEqual(1, len(offences_in("evidence/x/run.txt", FAKE_TOKEN, [])))
 
     def test_every_server_credential_carrier_is_refused(self) -> None:
-        """Each written form the token - or the session cookie minted from it - reaches evidence in."""
-        cases = {
-            "argv": "--IdentityProvider.token=" + FAKE_HEX,
-            "deprecated argv": "--ServerApp.token=" + FAKE_HEX,
-            "config dump": "'token': DeferredConfigString('" + FAKE_HEX + "')",
-            "rendered page": 'data-jupyter-api-token="' + FAKE_HEX + '"',
-            "session cookie": 'Set-Cookie: username-127-0-0-1-8888="' + FAKE_SIGNED + '"',
-            "bare cookie": "Cookie: username-127-0-0-1-8888=" + FAKE_SIGNED,
-            "runtime file": '"token": "' + FAKE_HEX + '"',
-            "kernel key": '"key": "' + FAKE_HEX + '"',
-            "query url": "GET /lab?token=" + FAKE_HEX + " HTTP/1.1",
-            "referer url": "Referer: http://127.0.0.1/lab?x=1&token=" + FAKE_HEX,
-            "Authorization header": "Authorization: token " + FAKE_HEX,
-            "Bearer": "Authorization: Bearer " + FAKE_HEX,
-        }
-        for name, text in cases.items():
+        for name, text in CARRIER_CASES.items():
             with self.subTest(carrier=name):
                 self.assertEqual(1, len(offences_in("evidence/x/f", text, [])), name)
 
@@ -135,6 +139,31 @@ class LocalRulesFromTest(unittest.TestCase):
         with self.assertRaises(ValueError) as raised:
             local_rules_from("regex:[unclosed==>X\n")
         self.assertIn("[unclosed", str(raised.exception))
+
+
+class SeededScrubListTest(unittest.TestCase):
+    """The seeded carriers file must cover every shape TOKEN_CARRIERS refuses, or the rewrite's
+    input and the gate drift apart - a carrier added to one and not the other is a live token
+    scrubbed from history but still committable, or refused but left in it."""
+
+    def test_only_regex_lines_are_seeded(self) -> None:
+        """A literal cannot be committed - in a tracked file it would be the secret it names."""
+        rules = local_rules_from(SEED_CARRIERS.read_text())
+        self.assertEqual(len(TOKEN_CARRIERS), len(rules))
+        for rule, _ in rules:
+            self.assertIsInstance(rule, re.Pattern)
+
+    def test_every_carrier_shape_the_gate_refuses_is_covered(self) -> None:
+        rules = [rule for rule, _ in local_rules_from(SEED_CARRIERS.read_text())]
+        for name, text in CARRIER_CASES.items():
+            with self.subTest(carrier=name):
+                self.assertTrue(any(rule.search(text) for rule in rules), name)
+
+    def test_every_seeded_rule_catches_a_carrier_shape(self) -> None:
+        """A line that catches nothing TOKEN_CARRIERS refuses is drift the other way."""
+        rules = [rule for rule, _ in local_rules_from(SEED_CARRIERS.read_text())]
+        for rule in rules:
+            self.assertTrue(any(rule.search(text) for text in CARRIER_CASES.values()), rule.pattern)
 
 
 class MainTest(unittest.TestCase):

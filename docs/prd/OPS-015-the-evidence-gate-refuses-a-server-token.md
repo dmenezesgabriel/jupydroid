@@ -177,7 +177,7 @@ Distinct dead credentials at HEAD: **73** — 59 hex token values and 14 signed 
   carrier; the repo-wide test stays green because T2 scrubbed HEAD. Green: `offences_in`/`LEAKS`
   gains the class and the docstring names the fourth kind of refusal. Settle the `regex:`-lines
   decision and write `.sensitive-strings.local`'s additions. Demo steps 1–2 and 4.
-- [ ] T4 — **`AUD-013`'s list is seeded, then ship.** The scrub list gets the 105 paths (the union,
+- [x] T4 — **`AUD-013`'s list is seeded, then ship.** The scrub list gets the 105 paths (the union,
   above — reproduced by the gate's own output plus `gitleaks-findings.tsv`) and the carrier set;
   the commit body names the artifact. Delete this PRD and edit the backlog row.
 
