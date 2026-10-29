@@ -109,7 +109,7 @@ None.
   Winlator's `RootFSInstaller.clearRootDir` (`winlator@fb66541`), and it is the line ADR-0107
   already draws: a program installed into the rootfs is installed again. Bump
   `BUNDLED_ROOTFS_VERSION` to 20, so every tree that took 18 or 19 by overlay is cleaned.
-- [ ] T4 — The demo flow on the tablet, with evidence. Then ship: delete this PRD, and edit the
+- [x] T4 — The demo flow on the tablet, with evidence. Then ship: delete this PRD, and edit the
   backlog row.
 
 ## Out of scope

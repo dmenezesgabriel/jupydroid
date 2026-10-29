@@ -1,0 +1,51 @@
+appId: com.jupydroid.app
+---
+# The first launch after an upgrade that bumped `BaseSpaceInstaller.BUNDLED_ROOTFS_VERSION`, so base
+# re-extracts from the bundled rootfs. Driven by scripts/rootfs-advisories-demo-driver.sh.
+#
+# TABLET ONLY (SM-X216B): both notebooks run a cell.
+#
+# `Versions.ipynb` prints libcrypto3, libssl3 and zlib off `/lib/apk/db/installed`, then certifi,
+# jupyter_server and tornado off their dist-info, as one line. Maestro full-matches a node, and no
+# version number is in the cell's source, so FakeKernelGateway's echo cannot satisfy the wait.
+# `Pip.ipynb` runs `%pip install tabulate`, which fetches over HTTPS through the image's OpenSSL and
+# certifi's trust store.
+- launchApp
+# Generous: the re-extract runs before the home lists base.
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 180000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Versions.ipynb"
+    timeout: 10000
+- tapOn: "Versions.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "libcrypto3=3\\.3\\.7-r2 libssl3=3\\.3\\.7-r2 zlib=1\\.3\\.2-r1 certifi=2026\\.10\\.23 jupyter_server=2\\.21\\.1 tornado=6\\.6"
+      childOf: {text: "Cell output"}
+    timeout: 180000
+- takeScreenshot: 01-base-reads-the-fixed-versions
+- tapOn: "Pip.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: Pip.ipynb"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Unscoped: `childOf` scopes to the first `Cell output` it finds, which can be Versions.ipynb's
+# (docs/architecture/cross-cutting.md, "What a test here cannot do"). The source reads
+# `%pip install tabulate`, which this pattern cannot match.
+- extendedWaitUntil:
+    visible: ".*Successfully installed tabulate.*"
+    timeout: 300000
+- takeScreenshot: 02-pip-installs-over-https
