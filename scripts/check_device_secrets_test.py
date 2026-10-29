@@ -7,17 +7,25 @@ gate it tests - a literal `B` + `SSID=` line in it would be refused by its own s
 from __future__ import annotations
 
 import pathlib
+import re
 import subprocess
 import tempfile
 import unittest
 
-from check_device_secrets import literals_from, main, offences_in
+from check_device_secrets import local_rules_from, main, offences_in
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
 FAKE_BSSID = "B" + "SSID=aa:bb:cc:dd:ee:ff"
 FAKE_SSID = "SS" + "ID: " + '"HomeNetwork"'
 FAKE_TOKEN = "FCM_NMS_" + "TOKEN_RECEIVED extra: Bundle[{token=abc}]"
+#: 64 hex chars, the token JupyterServerLauncher.TOKEN_BYTES mints. Never written whole:
+#: the carrier patterns want it contiguous, and this file is scanned by the gate too.
+FAKE_HEX = "ab12" + "cd34" * 15
+#: A tornado signed-value shape: pipe-separated fields, then the hex signature. Concatenated
+#: so `username-<host>=` and a pipe-bearing value are never contiguous in this file - the
+#: gate scans it too.
+FAKE_SIGNED = "2|1:0|10:1787869994|24:x|4:e30=|" + FAKE_HEX
 
 
 class OffencesInTest(unittest.TestCase):
@@ -35,15 +43,63 @@ class OffencesInTest(unittest.TestCase):
     def test_a_push_token_is_refused(self) -> None:
         self.assertEqual(1, len(offences_in("evidence/x/run.txt", FAKE_TOKEN, [])))
 
+    def test_every_server_credential_carrier_is_refused(self) -> None:
+        """Each written form the token - or the session cookie minted from it - reaches evidence in."""
+        cases = {
+            "argv": "--IdentityProvider.token=" + FAKE_HEX,
+            "deprecated argv": "--ServerApp.token=" + FAKE_HEX,
+            "config dump": "'token': DeferredConfigString('" + FAKE_HEX + "')",
+            "rendered page": 'data-jupyter-api-token="' + FAKE_HEX + '"',
+            "session cookie": 'Set-Cookie: username-127-0-0-1-8888="' + FAKE_SIGNED + '"',
+            "bare cookie": "Cookie: username-127-0-0-1-8888=" + FAKE_SIGNED,
+            "runtime file": '"token": "' + FAKE_HEX + '"',
+            "kernel key": '"key": "' + FAKE_HEX + '"',
+            "query url": "GET /lab?token=" + FAKE_HEX + " HTTP/1.1",
+            "referer url": "Referer: http://127.0.0.1/lab?x=1&token=" + FAKE_HEX,
+            "Authorization header": "Authorization: token " + FAKE_HEX,
+            "Bearer": "Authorization: Bearer " + FAKE_HEX,
+        }
+        for name, text in cases.items():
+            with self.subTest(carrier=name):
+                self.assertEqual(1, len(offences_in("evidence/x/f", text, [])), name)
+
+    def test_the_offence_names_the_carrier_and_truncates_the_credential(self) -> None:
+        """A live token must not be copied into the hook's stderr - carrier and head only."""
+        [offence] = offences_in("evidence/x/ps.txt", "--IdentityProvider.token=" + FAKE_HEX, [])
+        self.assertIn("--IdentityProvider.token", offence)
+        self.assertIn(FAKE_HEX[:8], offence)
+        self.assertNotIn(FAKE_HEX, offence)
+
+    def test_placeholders_and_truncations_stay_legal(self) -> None:
+        """A credential requires the hex value; READMEs quote these redacted forms."""
+        text = (
+            "--IdentityProvider.token=<token>\n"
+            "Bearer <token>\n"
+            "?token=...\n"
+            "Authorization: token 80d528b4...29c1\n"
+            "'token': DeferredConfigString('<token>')\n"
+            'data-jupyter-api-token="<token>"\n'
+            'username-127-0-0-1-8888="<token>"\n'
+            '"token": "<token>"\n'
+            '"key": "<token>"\n'
+        )
+        self.assertEqual([], offences_in("evidence/x/readme.md", text, []))
+
     def test_a_full_device_dump_is_refused_by_its_path_alone(self) -> None:
         """What `git add -f` past the .gitignore looks like: an innocent-looking dump is still a dump."""
         for path in ("evidence/x/logcat.txt", "evidence/x/device-logcat.txt", "evidence/x/activities.txt"):
             self.assertEqual(1, len(offences_in(path, "", [])), path)
 
     def test_a_local_literal_is_refused_in_content_and_in_the_path(self) -> None:
-        literals = ["SERIAL123"]
-        self.assertEqual(1, len(offences_in("evidence/x/maestro.log", "device SERIAL123", literals)))
-        self.assertEqual(1, len(offences_in("evidence/x/shard-SERIAL123.txt", "", literals)))
+        rules = ["SERIAL123"]
+        self.assertEqual(1, len(offences_in("evidence/x/maestro.log", "device SERIAL123", rules)))
+        self.assertEqual(1, len(offences_in("evidence/x/shard-SERIAL123.txt", "", rules)))
+
+    def test_a_local_regex_rule_is_refused_in_content_and_in_the_path(self) -> None:
+        """The file is `git filter-repo --replace-text` input; `regex:` is honoured like it."""
+        rules = [re.compile("serial[0-9]+")]
+        self.assertEqual(1, len(offences_in("evidence/x/maestro.log", "device serial42", rules)))
+        self.assertEqual(1, len(offences_in("evidence/x/shard-serial42.txt", "", rules)))
 
     def test_the_offence_names_the_file_and_what_was_found(self) -> None:
         [offence] = offences_in("evidence/x/run.txt", FAKE_TOKEN, [])
@@ -54,20 +110,35 @@ class OffencesInTest(unittest.TestCase):
         self.assertEqual([], offences_in("evidence/x/maestro.log", "Tap on id: run-cell COMPLETED", ["SERIAL123"]))
 
 
-class LiteralsFromTest(unittest.TestCase):
+class LocalRulesFromTest(unittest.TestCase):
     def test_it_reads_the_left_side_of_filter_repos_replace_text_format(self) -> None:
         """One file feeds both `git filter-repo --replace-text` and this gate, so they cannot drift."""
-        self.assertEqual(["SERIAL123", "bare"], literals_from("SERIAL123==>TABLET_SERIAL\n\n# note\nbare\n"))
+        self.assertEqual(
+            [("SERIAL123", "TABLET_SERIAL"), ("bare", "")],
+            local_rules_from("SERIAL123==>TABLET_SERIAL\n\n# note\nbare\n"),
+        )
 
-    def test_it_refuses_a_pattern_it_cannot_honour(self) -> None:
-        """filter-repo understands `regex:`; a gate that read it as a literal would pass the real leak."""
+    def test_a_regex_line_is_honoured_as_a_pattern(self) -> None:
+        """filter-repo reads `regex:` natively; honouring it keeps the one file feeding all three."""
+        [(rule, replacement)] = local_rules_from("regex:serial[0-9]+==>SERIAL\n")
+        self.assertEqual("SERIAL", replacement)
+        self.assertTrue(rule.search("a serial42 b"))
+        self.assertFalse(rule.search("a plain b"))
+
+    def test_it_refuses_a_glob_it_cannot_honour(self) -> None:
+        """filter-repo understands `glob:`; a gate that read it as a literal would pass the real leak."""
         with self.assertRaises(ValueError) as raised:
-            literals_from("regex:R[0-9]+==>SERIAL\n")
-        self.assertIn("regex:R[0-9]+", str(raised.exception))
+            local_rules_from("glob:R9*==>SERIAL\n")
+        self.assertIn("glob:R9*", str(raised.exception))
+
+    def test_a_bad_regex_names_the_line(self) -> None:
+        with self.assertRaises(ValueError) as raised:
+            local_rules_from("regex:[unclosed==>X\n")
+        self.assertIn("[unclosed", str(raised.exception))
 
 
 class MainTest(unittest.TestCase):
-    def test_it_reads_the_local_literals_from_the_root_it_is_given(self) -> None:
+    def test_it_reads_the_local_rules_from_the_root_it_is_given(self) -> None:
         root = pathlib.Path(tempfile.mkdtemp())
         (root / ".sensitive-strings.local").write_text("SERIAL123==>TABLET_SERIAL\n")
         (root / "maestro.log").write_text("device SERIAL123\n")

@@ -7,9 +7,10 @@ passes, because the secrets come from two places:
 - the token carriers `check_device_secrets.TOKEN_CARRIERS` names - the Jupyter
   server's token is minted per launch, so every pulled `jupyter_server.log` lands a
   fresh one no literal list could name;
-- the `literal==>replacement` pairs of `.sensitive-strings.local` (the tablet's
-  serial - `run_flow` writes one every time, in `get-serialno` and in maestro's own
-  banner) - the same transformation the history rewrite used, at write time.
+- the rules of `.sensitive-strings.local` (the tablet's serial - `run_flow`
+  writes one every time, in `get-serialno` and in maestro's own banner) - the
+  same transformation the history rewrite used, at write time. A `regex:` line
+  is honoured the way `git filter-repo --replace-text` honours it.
 
     scrub_device_secrets.py evidence/p8a-cold-path/cold-r1
 
@@ -33,23 +34,17 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent))
 import check_device_secrets  # noqa: E402
 
 
-def replacements_of(local: pathlib.Path) -> list[tuple[str, str]]:
-    """The (literal, replacement) pairs `.sensitive-strings.local` declares.
+def replacements_of(local: pathlib.Path) -> list[tuple[check_device_secrets.LocalRule, str]]:
+    """The (rule, replacement) pairs `.sensitive-strings.local` declares.
 
     ```
     replacements_of(".sensitive-strings.local" holding "R9XX000==>TABLET_SERIAL")
     # -> [("R9XX000", "TABLET_SERIAL")]
     ```
     """
-    pairs: list[tuple[str, str]] = []
     if not local.is_file():
-        return pairs
-    for line in local.read_text().splitlines():
-        if not line.strip() or line.startswith("#"):
-            continue
-        literal, _, replacement = line.partition("==>")
-        pairs.append((literal, replacement))
-    return pairs
+        return []
+    return check_device_secrets.local_rules_from(local.read_text())
 
 
 def _is_binary(data: bytes) -> bool:
@@ -67,12 +62,12 @@ def _placeholder(match: re.Match[str]) -> str:
 def _carriers_scrubbed(text: str) -> str:
     """[text] with each token carrier's credential replaced by its placeholder."""
     for carrier in check_device_secrets.TOKEN_CARRIERS:
-        text = carrier.sub(_placeholder, text)
+        text = carrier.pattern.sub(_placeholder, text)
     return text
 
 
 def scrub(directory: pathlib.Path, root: pathlib.Path = pathlib.Path()) -> int:
-    """Rewrites every text file under [directory] with carriers and literals replaced.
+    """Rewrites every text file under [directory] with carriers and local rules replaced.
 
     Returns the number of files rewritten; 0 is a clean answer, not a shrug - the
     gate is what refuses, this only prepares.
@@ -87,8 +82,12 @@ def scrub(directory: pathlib.Path, root: pathlib.Path = pathlib.Path()) -> int:
             continue
         text = data.decode("utf-8", errors="surrogateescape")
         scrubbed = _carriers_scrubbed(text)
-        for literal, replacement in pairs:
-            scrubbed = scrubbed.replace(literal, replacement)
+        for rule, replacement in pairs:
+            scrubbed = (
+                rule.sub(replacement, scrubbed)
+                if isinstance(rule, re.Pattern)
+                else scrubbed.replace(rule, replacement)
+            )
         scrubbed_bytes = scrubbed.encode("utf-8", errors="surrogateescape")
         if scrubbed_bytes != data:
             file.write_bytes(scrubbed_bytes)

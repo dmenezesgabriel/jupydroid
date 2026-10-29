@@ -24,6 +24,10 @@ import scrub_device_secrets  # noqa: E402
 #: 64 hex chars, the token JupyterServerLauncher.TOKEN_BYTES mints. Never written whole:
 #: the carrier patterns want it contiguous, and this file is scanned by the gate too.
 FAKE_HEX = "ab12" + "cd34" * 15
+#: A tornado signed-value shape: pipe-separated fields, then the hex signature. The pipes are
+#: the carrier's mark, so it joins the `username-...=` prefix only at runtime - this file is
+#: scanned by the gate too.
+FAKE_SIGNED_COOKIE = "2|1:0|10:1787869994|24:x|4:e30=|" + FAKE_HEX
 
 
 class ScrubDeviceSecretsTest(unittest.TestCase):
@@ -57,8 +61,8 @@ class ScrubDeviceSecretsTest(unittest.TestCase):
         target = evidence / "a.headers"
         target.write_bytes(
             b"HTTP/1.1 200 OK\r\n"
-            + b'Set-Cookie: username-127-0-0-1-8888="<token>
-            + FAKE_HEX.encode()
+            + b'Set-Cookie: username-127-0-0-1-8888="'
+            + FAKE_SIGNED_COOKIE.encode()
             + b'"\r\n\xff\xfe trailing\r\n'
         )
         scrub_device_secrets.scrub(evidence, self.root)
@@ -82,6 +86,15 @@ class ScrubDeviceSecretsTest(unittest.TestCase):
         (evidence / "maestro.log").write_text("Running on R9XX000\n")
         scrub_device_secrets.scrub(evidence, self.root)
         self.assertIn("TABLET_SERIAL", (evidence / "maestro.log").read_text())
+
+    def test_a_regex_line_in_the_literals_file_scrubs_by_pattern(self) -> None:
+        """The file is `git filter-repo --replace-text` input; `regex:` is honoured like it."""
+        (self.root / ".sensitive-strings.local").write_text("regex:serial[0-9]+==>S\n")
+        evidence = self.root / "evidence"
+        evidence.mkdir()
+        (evidence / "device.txt").write_text("serial serial42 and serial7\n")
+        scrub_device_secrets.scrub(evidence, self.root)
+        self.assertEqual("serial S and S\n", (evidence / "device.txt").read_text())
 
     def scrubbed(self, name: str, text: str) -> str:
         """The contents of [name] under a fresh evidence dir after one scrub."""
@@ -126,7 +139,7 @@ class ScrubDeviceSecretsTest(unittest.TestCase):
 
     def test_the_session_cookie_becomes_a_placeholder(self) -> None:
         """The cookie authenticates as the user while its server lives - the token's product."""
-        signed = "2|1:0|10:1787869994|24:x|4:e30=|" + FAKE_HEX
+        signed = FAKE_SIGNED_COOKIE
         self.assertEqual(
             'Set-Cookie: username-127-0-0-1-8888="<token>"\n',
             self.scrubbed("a.headers", f'Set-Cookie: username-127-0-0-1-8888="{signed}"\n'),
