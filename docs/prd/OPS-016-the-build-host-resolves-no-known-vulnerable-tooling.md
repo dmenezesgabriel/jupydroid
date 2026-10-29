@@ -150,7 +150,7 @@ then again with neither — and each commit body quotes the scan before and afte
   configurations resolve, so the write-locks run adds `connectedDebugAndroidTest` on the emulator
   (`dependencies --configuration` is the fallback where no device exists). Rescan names what the
   bump cleared.
-- [ ] T2 — Kotlin → 2.4.21 on the same `kotlin` ref (compose-compiler and serialization ride it).
+- [x] T2 — Kotlin → 2.4.21 on the same `kotlin` ref (compose-compiler and serialization ride it).
   Same regen and rescan; the gate's `compileDebugKotlin` is the compat check.
 - [ ] T3 — The floors for whatever T2's rescan still names, in
   `gradle/dependency-floors.gradle.kts` + the root `classpath` block, decided per family: one

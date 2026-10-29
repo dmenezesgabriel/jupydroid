@@ -30,7 +30,10 @@ jsoup = "1.23.2"
 coroutines = "1.10.2"
 detekt = "2.0.0-alpha.5"
 junit = "4.13.2"
-kotlin = "2.3.20"
+# >=2.4.20-Beta1 is the GHSA-r937-wjx7-w2jp fix line (unsafe deserialization in the Kotlin
+# build cache, on the build host only); 2.4.21 is the newest stable past it. The ref also
+# versions the compose-compiler and kotlin-serialization plugins, which release on KGP's train.
+kotlin = "2.4.21"
 kotlinxSerialization = "1.11.0"
 antlr = "4.13.2"
 okhttp = "5.4.0"
