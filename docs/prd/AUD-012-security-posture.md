@@ -136,9 +136,14 @@ T3 reads each row's code at the pinned SHA before a verdict cites it.
   with `--redact`. Outputs in `evidence/aud-012-code-scans/`.
 - [x] **T3 — The call stack read.** Every row of the gap table read to where it is enforced, with
   the reference rows read at their SHAs.
-- [ ] **T4 — The verdicts.** Every scanner finding and every T3 boundary gets one verdict. `defect`
-  → red test and fix in-slice; `absent` → `GAP-NNN` in `docs/architecture.md` and a `JD-064` line;
-  `undocumented` → an ADR.
+- [x] **T4a — The scanners' verdicts.** Every T1 and T2 finding gets one verdict, read against
+  reachability. `defect` → red test and fix in-slice; `absent` → `GAP-NNN` in `docs/architecture.md`
+  and a `JD-064` line; `undocumented` → an ADR. Ledger subsection "The scanner findings — verdicts".
+- [ ] **T4b — The call stack's verdicts.** The same, for every T3 boundary. Two of them come with a
+  decision: whether a tokenless MCP `initialize` minting a session that `GET` and `DELETE` serve is a
+  `defect` against `jupydroid_mcp_bearer.py`'s own intent (a fix rebuilds the rootfs), and whether
+  the share provider resolving again against `spaces/` at open time is reachable by anyone who
+  does not already hold the token.
 - [ ] **T5 — The walk and the close.** Areas row → `examined`; this PRD deleted; the backlog row
   shipped and the marker moved to `JD-064`, or past it if T4 names nothing.
 

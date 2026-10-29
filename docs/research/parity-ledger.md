@@ -3943,3 +3943,42 @@ grep -rn "LocalUriHandler provides" app/src/main                         # the t
 adb shell mount | grep ' /proc '                                         # hidepid=invisible,gid=3009
 adb shell "curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:<port>/api/status"       # 403
 ```
+
+### The scanner findings — verdicts
+
+Every T1 and T2 finding has one verdict, read against what can reach it rather than against the
+scanner's score. A known-vulnerable version with a fixed upstream release is `absent`: the fix
+exists, and we do not carry it. Its rank comes from who can reach the vulnerable code, and the
+`GAP-NNN` says where the repair starts. The call stack's own boundaries are judged in the next
+subsection. **No `defect` and no `undocumented`**: every finding that differs from a sound default
+already has its reason written down.
+
+| Finding | Ours | Verdict | Why / id |
+|---|---|---|---|
+| OpenSSL `libcrypto3`/`libssl3` 3.3.7-r0 and `zlib` 1.3.2-r0, in the rootfs | Alpine packages in `rootfs-arm64-v8a.tzst` | **absent** | `GAP-183`. Reachable from the network: pip and every kernel's HTTPS go through this OpenSSL, and zlib inflates what they download. Ranked first |
+| `sqlite-libs` 3.48.0-r4, in the rootfs | the same image | **absent** | `GAP-183`. No fixed version exists yet. Its inputs are files the Space's own uid writes, such as IPython's history database |
+| `tornado` 6.5.7, `jupyter-server` 2.20.0, `certifi`, `nbconvert`, `setuptools`, `black`, in the rootfs | `tools/rootfs/requirements.lock` | **absent** | `GAP-184`. tornado and jupyter-server serve the loopback port that every app holding INTERNET can reach. jupyter-server's GHSA-c3mw-737p-c7g2 logs a token-bearing `Referer` on a 5xx. certifi is the TLS trust store. Ranked second |
+| `aiofile==3.12.3` against a declared `<3.10` | `requirements.lock` | present | `py_key_value_aio` 0.4.6 declares `<3.10` only for `python_full_version < '3.11'`, and `>=3.12.3` from 3.11 on. The image runs 3.12, so the lock is consistent. osv-scanner's resolver ignored the marker |
+| `org.jsoup:jsoup` 1.23.1, GHSA-65r4-943x-97jj | `html/HtmlDocument.kt`, `html/HtmlInlines.kt` | **absent** | `GAP-185`. The flaw is in `XmlTreeBuilder`. Ours enters only through `Jsoup.parseBodyFragment`, the HTML tree builder, and nothing calls `Parser.xmlParser`, so it is unreachable |
+| `org.apache.commons:commons-lang3` 3.16.0, GHSA-j288-q9x7-2f5v | transitive on `releaseRuntimeClasspath` | **absent** | `GAP-185`. The flaw is in `ClassUtils.getClass`, which nothing under `app/src/main` or an extension's `src/main` calls |
+| logback, guava, netty (six artifacts), bouncycastle, httpclient, jose4j, jdom2, `kotlin-gradle-plugin` | only ktlint, buildscript and AGP `_internal-unified-test-platform-*` configurations | **absent** | `GAP-186`. None of them is on `releaseRuntimeClasspath`, so the APK carries none of them. What they expose is the build host. Ranked last |
+| Lint `DataExtractionRules` on `android:allowBackup` | `AndroidManifest.xml` | adapted | the manifest's comment and `SpaceHomeBackupAgent.kt` say why `backupAgent` with `fullBackupOnly` has no rules file ([ADR-0107](../adr/0107-what-the-user-made-survives-a-reinstall-through-a-filtered-auto-backup.md)) |
+| semgrep `android_kotlin_logging`: 3 in `src/main`, 23 in `src/androidTest` | `SpaceLifecycleLog.kt`, `ChatSocketLog.kt`, device tests | present | the main three write the structured JSON lines `AGENTS.md` asks for, and logcat carried the server token **0** times on the tablet (the call stack, above). `androidTest` does not ship. `termux-app@3df69d1` logs to logcat the same way (`termux-shared/src/main/java/com/termux/shared/logger/Logger.java`) |
+| MobSF: debug certificate, `debuggable`, exported `ComponentActivity` and `PreviewActivity` | the debug APK | present | debug-only. The release merged manifest has none of them (the call stack, above) |
+| MobSF: `ProfileInstallReceiver` behind `DUMP` | androidx `profileinstaller` | present | `DUMP` is a signature/privileged permission, so no ordinary app holds it |
+| MobSF: cleartext to `127.0.0.1` and `localhost` | `res/xml/network_security_config.xml` | adapted | the file's comment says why: loopback only, never app-wide |
+| MobSF: `allowBackup` | `AndroidManifest.xml` | adapted | ADR-0107 |
+| MobSF: `android_ip_disclosure` | `JupyterServerLauncher`, `LoopbackPort`, `FakeServerLauncher` | present | the literal is `127.0.0.1`, the loopback bind that is the design |
+| MobSF: `android_hardcoded` on 7 of our classes, and 3 `hardcoded_secret_candidates` | `RunningTab`, `CellCollapse`, `KernelInputRequest`, `SymbolRow`, `TocHeading`, `RecentsSection`, `FrameUser` | present | **read by hand**. The hits are a JSON key, a `LazyColumn` key, a keyboard's Tab key, stdin's `password` flag and the chat's `user` role. The candidates are numeric or hex constants, one of them RFC 6455's WebSocket GUID. None is a secret |
+| MobSF: `android_insecure_random` (jsoup `DataUtil`), `android_temp_file` (zstd-jni `Native`), `android_logging` in antlr and jsoup | third-party classes | present | jsoup's random is a multipart boundary, zstd-jni's temp file is its fallback for unpacking its own `.so`, and the logging is in the libraries' own debug paths |
+| MobSF: no stack canary in `libproot.so` and `libproot-loader.so` | `scripts/stage_proot.py` | present | **read by hand**. Both are Alpine edge's `proot-static` 5.4.0-r2, pinned by sha256 and shipped unmodified. `file` reports `static-pie linked, stripped` and `strings` finds no `__stack_chk`. With no symbol table, MobSF's check cannot read a canary either way. The loader is proot's own, built without libc |
+| MobSF: `libzstd-jni-1.5.7-9.so` without full RELRO (none on arm64, partial elsewhere) | `com.github.luben:zstd-jni`, prebuilt | **absent** | `GAP-187`. The other prebuilt in the APK, `libandroidx.graphics.path.so`, has full RELRO on every ABI |
+| gitleaks: 532 matches in 80 tracked files | `evidence/**` | **absent** | `GAP-188`. Each match is a dead server's `--IdentityProvider.token`, which is random per run and worthless once that server stopped. `scripts/check_device_secrets.py` has no class that refuses one |
+
+```sh
+grep -h "Requires-Dist: aiofile" <rootfs>/usr/lib/python3.12/site-packages/py_key_value_aio-*.dist-info/METADATA
+grep -rn "xmlParser\|XmlTreeBuilder" app/src/main extensions/*/src/main               # none
+grep -rn "ClassUtils\|commons.lang3" app/src/main extensions/*/src/main               # none
+file app/src/main/jniLibs/arm64-v8a/libproot*.so                       # static-pie linked, stripped
+strings -a app/src/main/jniLibs/arm64-v8a/libproot.so | grep -c __stack_chk          # 0
+```

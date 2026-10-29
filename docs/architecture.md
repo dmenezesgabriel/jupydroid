@@ -1903,6 +1903,63 @@ The repair starts by running the classes in items 2 and 3 at HEAD with `-gpu swi
 to split real defects from tests that assume a wider window. Each one is then either fixed or marked
 for the window it needs.
 
+### GAP-183 — The rootfs ships OpenSSL and zlib below their fixed revisions
+
+grype, reading a syft SBOM of `rootfs-arm64-v8a.tzst` on 2026-10-27, matched `libcrypto3` and
+`libssl3` 3.3.7-r0 to 3 Critical and 9 High advisories each. All are fixed in 3.3.7-r1 or -r2. It
+also matched `zlib` 1.3.2-r0 to one High, fixed in 1.3.2-r1. These are reachable from the network:
+pip and every kernel's HTTPS go through this OpenSSL, and zlib inflates what they download.
+`sqlite-libs` 3.48.0-r4 matches 3 High with no fixed version yet, and its inputs are files the
+Space's own uid writes. The repair starts by rebuilding the image from `tools/rootfs/Dockerfile` with
+the Alpine packages upgraded, then re-running grype on the new SBOM. sqlite is read again then.
+
+### GAP-184 — The rootfs's Python packages lag their fixed versions
+
+The same scan matched six pinned packages in `tools/rootfs/requirements.lock`, each with a fixed
+release: `tornado` 6.5.7 (three High, fixed in 6.5.8 and 6.5.9), `jupyter-server` 2.20.0
+(GHSA-c3mw-737p-c7g2, fixed in 2.21.0), `certifi` 2026.7.22 (Critical), `nbconvert` 7.17.1,
+`setuptools` 70.3.0 and `black` 26.5.1. tornado and jupyter-server serve the loopback port that every
+app holding INTERNET can reach. jupyter-server's advisory logs a token-bearing `Referer` on a 5xx,
+and that token is the port's one barrier. certifi is the trust store for every HTTPS request a Space
+makes. The repair starts by bumping those pins and rebuilding the image, with tornado and
+jupyter-server first.
+
+### GAP-185 — The APK carries jsoup and commons-lang3 below their fixed versions
+
+osv-scanner finds two vulnerable versions on `releaseRuntimeClasspath`. One is `org.jsoup:jsoup`
+1.23.1 (GHSA-65r4-943x-97jj, fixed in 1.23.2), whose flaw is an out-of-memory error in
+`XmlTreeBuilder`. The other is `org.apache.commons:commons-lang3` 3.16.0 (GHSA-j288-q9x7-2f5v, fixed
+in 3.18.0), whose flaw is recursion in `ClassUtils.getClass`. Neither is reachable today. HTML enters
+only through `Jsoup.parseBodyFragment` (`app/src/main/java/com/jupydroid/app/html/HtmlDocument.kt`),
+nothing calls `Parser.xmlParser`, and nothing in our source calls `ClassUtils`. The repair is a
+version bump for jsoup and a constraint for the transitive commons-lang3, with both lockfiles and
+`gradle/verification-metadata.xml` rewritten as
+[ADR-0123](adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md) orders.
+
+### GAP-186 — Build tooling resolves known-vulnerable versions
+
+osv-scanner's other 21 vulnerable Maven versions are logback, guava, netty (six artifacts),
+bouncycastle, httpclient, jose4j, jdom2 and `kotlin-gradle-plugin` 2.3.20. They are locked only in
+ktlint, the buildscript classpath and AGP's `_internal-unified-test-platform-*` configurations, so
+none of them ships in the APK. What they expose is the build host. The repair starts with the
+plugin bumps that bring newer versions, and then constrains whatever is still left.
+
+### GAP-187 — zstd-jni's native library is linked without full RELRO
+
+MobSF's binary analysis of the debug APK reads `libzstd-jni-1.5.7-9.so` with no RELRO on arm64-v8a
+and partial RELRO on the three other ABIs. The other prebuilt in the APK,
+`libandroidx.graphics.path.so`, has full RELRO on every ABI. The library comes prebuilt inside
+`com.github.luben:zstd-jni`. The repair starts by reading the newest release's ELF and, if it is
+the same, by raising the linker flag upstream.
+
+### GAP-188 — Tracked evidence carries server tokens, and no gate refuses one
+
+gitleaks over all 1399 commits found 532 matches in 80 files, all under `evidence/` and all still
+tracked. Each one is a server's `--IdentityProvider.token`, copied with a server log, a runtime file
+or a process list. Every token is random per run and grants nothing once its server stops, but
+`scripts/check_device_secrets.py` has no class that would refuse a live one. The repair starts by
+giving that gate a token class, and by adding these files to the scrub list for the history rewrite.
+
 ---
 
 ## 12. Glossary
