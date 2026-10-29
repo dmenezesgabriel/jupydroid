@@ -108,7 +108,7 @@ None. The version question is settled by the ELF readings above (taken 2026-10-2
   `assembleDebugAndroidTest` with `--write-locks` and `--write-verification-metadata sha256`
   together, and again with neither (ADR-0123's order). The lockfile diff shows only the zstd-jni
   move; the measure on the built APK reads every `.so` Full.
-- [ ] T3 — The demo on the tablet, with evidence. The driver refuses to run unless the lockfile
+- [x] T3 — The demo on the tablet, with evidence. The driver refuses to run unless the lockfile
   resolves `1.5.7-24` and the measure on the built APK is all-Full. Then ship: delete this PRD and
   edit the backlog row.
 
