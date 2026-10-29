@@ -63,7 +63,7 @@ class covers the header shape even when the value is partial.
 | The gate | `scripts/check_device_secrets.py` — `LEAKS` (BSSID, SSID, FCM), `DUMP_PATH`, `.sensitive-strings.local` literals; `offences_in` prints `{path}: device data {value!r} matches {pattern}` |
 | Its tests | `scripts/check_device_secrets_test.py` — fakes are built by concatenation because the file must pass the gate it tests; `ThisRepositoryTest` runs `main()` over `git ls-files` |
 | The write-time scrub | `scripts/scrub_device_secrets.py` + `_test.py` — applies `.sensitive-strings.local` `literal==>replacement` pairs; already imports `check_device_secrets`; called on every flow's output dir by `scripts/maestro-run.sh` (`run_flow`) |
-| Hand-rolled precursors | `sed -i "s/$TOKEN/<token>/g"` in `scripts/agent-edits-open-notebook-demo-driver.sh`, `agent-insert-cell-lands-driver.sh`, `agent-insert-cell-no-web-client-driver.sh` — the `<token>` placeholder convention exists; `$TOKEN` is read from `jpserver-*.json` by `scripts/space-server.sh` |
+| Hand-rolled precursors | `sed -i "s/$TOKEN/<token>/g"` in `scripts/agent-edits-open-notebook-demo-driver.sh`, `agent-insert-cell-lands-driver.sh`, `agent-insert-cell-no-web-client-driver.sh`, `mcp-port-requires-token-driver.sh` — the `<token>` placeholder convention exists; `$TOKEN` is read from `jpserver-*.json` by `scripts/space-server.sh` |
 | The token's production side | `app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt` — `TOKEN_BYTES = 32` (64-hex `SecureRandom`), `--IdentityProvider.token=` argv, `mcpServerArgs` `'value': 'Bearer <token>'`, `postShutdown`'s `Authorization: token`; `--ServerApp.log_level=DEBUG` is why the log dumps the config, the token among it |
 | The finding | `evidence/aud-012-code-scans/gitleaks-findings.tsv` (532 findings, 80 paths, all still tracked), `docs/research/parity-ledger.md` and `docs/architecture.md` §GAP-188 |
 | The scrub list | `.sensitive-strings.local` (gitignored `literal==>replacement`, one per line) — it fed the gate, the scrubber and ADR-0015's `git filter-repo --replace-text`; `regex:`/`glob:` lines are refused today (`PATTERN_PREFIXES`, and a test pins that) |
@@ -107,7 +107,7 @@ Distinct dead token values at HEAD: **59**.
 | Value length | `{64}` only · `{48,64}` | Ours is 64 (`TOKEN_BYTES = 32`); upstream's default is 48 (`os.urandom(24)`, `identity.py`) | **`[0-9a-f]{48,64}`** — both minted shapes; `{40,}` admits more accidental hex for no covered case |
 | One home for the carriers | a pattern per tool · a shared list | Two tools must agree on what a token looks like or the scrubber cleans what the gate still refuses | **`scripts/check_device_secrets.py` owns the carrier table**; `scrub_device_secrets.py` already imports it. Group 1 of each pattern is the value — refused by the gate, rewritten by the scrubber |
 | Dead tokens already tracked | leave them · scrub in place | `ThisRepositoryTest` runs the gate over every tracked file — a gate without the scrub lands red on all ~98 files | **Scrub in place**, value → `<token>` (the drivers' convention), in the task before the gate class |
-| Write-time scrub | keep per-driver `sed` (3 drivers) · scrubber gains the pass | Every `pull_server_log` lands a fresh live token; a driver that forgets the `sed` fails the gate — ~70 files already did | **The carrier pass in `scrub_device_secrets.py`**, which `run_flow` already calls; the three `sed` lines go |
+| Write-time scrub | keep per-driver `sed` (4 drivers) · scrubber gains the pass | Every `pull_server_log` lands a fresh live token; a driver that forgets the `sed` fails the gate — ~70 files already did | **The carrier pass in `scrub_device_secrets.py`**, called by `pull_server_log` itself — `run_flow` runs *before* the pull, so its call can never see the log; the four `sed` lines go |
 | The `username-*` cookie | refuse it · token shapes only | The signed value authenticates as the user while its server lives — it is the token's product, not a separate secret | **Refuse it** — "and its kin" in the ledger row names it |
 | The `.bin` bodies | byte-level scrub · leave for the rewrite | `text_of`/`_is_binary` judge a NUL-headed file by path; a byte rewrite of a captured body rewrites binary structure to save a dead value | **Leave them** — on the scrub list for OPS-002, which rewrites history byte-for-byte anyway |
 
@@ -116,7 +116,7 @@ Distinct dead token values at HEAD: **59**.
 | Concern | Ours today | Gap |
 |---|---|---|
 | Refusing a server token in evidence | `LEAKS` covers BSSID, SSID, FCM and `.sensitive-strings.local` literals | absent — gitleaks counted 532 matches across history |
-| Write-time token scrub | three `agent-*` drivers `sed` it by hand; every other pull of the server log writes it live | present but partial |
+| Write-time token scrub | four drivers `sed` it by hand; every other pull of the server log writes it live | present but partial |
 | The tracked files | ~98 carry a carrier plus a dead value; 7 more did only in earlier blobs | present — to be scrubbed in place |
 | `AUD-013`'s scrub list | does not exist yet | absent — this item seeds it |
 
@@ -153,17 +153,20 @@ Distinct dead token values at HEAD: **59**.
 |---|---|
 | gate | `scripts/check_device_secrets.py`, `scripts/check_device_secrets_test.py` |
 | scrubber | `scripts/scrub_device_secrets.py`, `scripts/scrub_device_secrets_test.py` |
-| drivers | the three `sed` lines in `agent-*-driver.sh` |
+| drivers | `pull_server_log` in `space-server.sh`; the four `sed` lines it replaces |
 | tracked evidence | the ~98 carrier files under `evidence/`, scrubbed in place |
 | scrub list | `.sensitive-strings.local` additions and/or the artifact `AUD-013` defines |
 | docs | this PRD deleted on ship; `docs/backlog.md` row edited |
 
 ## Tasks
 
-- [ ] T1 — **The scrubber scrubs the token's carriers.** Red: `scrub_device_secrets_test.py` gains a
+- [x] T1 — **The scrubber scrubs the token's carriers.** Red: `scrub_device_secrets_test.py` gains a
   case per carrier (fake hex by concatenation, per the sibling file's own rule; each asserts the
   value became `<token>`). Green: `check_device_secrets.py` owns the carrier table with group 1 the
-  value, `scrub()` applies it, and the three `sed` lines are replaced by the scrubber call.
+  value, `scrub()` applies it, and `pull_server_log` calls it after every pull — the four `sed`
+  lines (the three `agent-*` drivers plus `mcp-port-requires-token-driver.sh`) go. The ~15 drivers
+  that `cat` the log into evidence without `pull_server_log` still land a live token; the T3 gate
+  is their backstop, as the trade-off row names it.
 - [ ] T2 — **The tracked files are scrubbed in place.** One mechanical commit: the one-off
   `python3 scripts/scrub_device_secrets.py evidence/` run; its body carries the command, the
   per-carrier match counts it rewrote, and the `git grep` count reaching zero for live values.

@@ -46,9 +46,6 @@ trap close_mcp_forward EXIT
 echo "MCP on device port $MCP_PORT, forwarded to 127.0.0.1:$MCP_FORWARDED_PORT"
 
 pull_server_log "$EVIDENCE/jupyter_server.log"
-# At DEBUG the server logs its whole config, `IdentityProvider.token` included; the evidence keeps
-# the log and not the token.
-sed -i "s/$TOKEN/<token>/g" "$EVIDENCE/jupyter_server.log"
 
 # Streamable HTTP by hand (MCP 2025-11-25 `basic/transports`): an `initialize` POST, and with the
 # token, `notifications/initialized` and `tools/list` on the session it returned. An answer is JSON

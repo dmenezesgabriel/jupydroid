@@ -40,6 +40,34 @@ LEAKS = (
     re.compile(r"\bSSID[=:]\s*\"([^\"]+)\""),
     re.compile(r"(FCM_\w*TOKEN\w*)"),
 )
+#: A Jupyter server's token - and the session credential minted from it - in each written form
+#: the evidence reaches it in. An offence is a credential in the position that mints it, not a
+#: bare long hex (the tree's pinned sha256s are legitimate). The token is minted per launch, so
+#: no `.sensitive-strings.local` literal could name it; the carrier is the stable part. Group 1
+#: of each pattern is the credential: scrub_device_secrets rewrites it to `<token>`. {48,64}
+#: covers upstream's os.urandom(24) default
+#: (usr/lib/python3.12/site-packages/jupyter_server/auth/identity.py _token_default) and our
+#: TOKEN_BYTES = 32 (app/src/main/java/com/jupydroid/app/data/space/JupyterServerLauncher.kt).
+TOKEN_CARRIERS = (
+    # argv in `ps` captures; ServerApp.token is the deprecated twin since jupyter_server 2.0.
+    re.compile(r"--(?:IdentityProvider|ServerApp)\.token=([0-9a-f]{48,64})"),
+    # The DEBUG "Config changed" dump (usr/lib/python3.12/site-packages/traitlets/config/loader.py).
+    re.compile(r"'token': DeferredConfigString\(['\"]([0-9a-f]{48,64})['\"]\)"),
+    # jupyter_server/templates/page.html renders the token into every served page.
+    re.compile(r'data-jupyter-api-token="([0-9a-f]{48,64})"'),
+    # The session cookie, minted by tornado's create_signed_value
+    # (usr/lib/python3.12/site-packages/tornado/web.py) - quoted in a Set-Cookie line or bare in
+    # a Cookie header; the pipe is the signed shape.
+    re.compile(r'username-[\w.-]+="?([^"\s;]*\|[^"\s;]*)'),
+    # jpserver-<pid>.json, the runtime file serverapp.py writes (jpserver-mcp-<pid>.json too).
+    re.compile(r'"token": "([0-9a-f]{48,64})"'),
+    # kernel-*.json connection files: a live key grants channel access the way the token does.
+    re.compile(r'"key": "([0-9a-f]{48,64})"'),
+    # The GHSA-c3mw-737p-c7g2 leak shape: a token-bearing URL in an access or Referer line.
+    re.compile(r"[?&]token=([0-9a-f]{48,64})"),
+    # The Authorization header in both schemes, and the PersonaManager argv's 'value': 'Bearer'.
+    re.compile(r"(?:Authorization:\s*token\s+|Bearer\s+)([0-9a-f]{48,64})"),
+)
 #: filter-repo's non-literal forms. Read as literals they would match nothing and pass the leak.
 PATTERN_PREFIXES = ("regex:", "glob:")
 

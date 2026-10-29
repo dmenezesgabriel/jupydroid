@@ -63,6 +63,12 @@ wait_for_mcp_port() { # wait_for_mcp_port <seconds>
 
 # The server's own log, for the evidence directory. Missing is not an error: a server that never
 # started has none, and the caller's own check says why.
+#
+# At DEBUG the server logs its whole config, `IdentityProvider.token` among it, and the token is
+# minted per launch - so every pull lands a fresh credential in evidence. The directory the log
+# lands in is scrubbed on every pull (check_device_secrets.py's TOKEN_CARRIERS), which is what
+# lets the drivers that used to `sed` the token away by hand forget to.
 pull_server_log() { # pull_server_log <dest>
   "${DEVICE_ADB[@]}" shell "run-as $APP cat $SPACE_RUN_DIR/jupyter_server.log" >"$1" 2>/dev/null || true
+  python3 "$ROOT_DIR/scrub_device_secrets.py" "$(dirname "$1")"
 }

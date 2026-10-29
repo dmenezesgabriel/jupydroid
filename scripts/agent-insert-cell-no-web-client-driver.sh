@@ -64,8 +64,6 @@ run_flow "$FLOWS-part2-ask.yaml" "$EVIDENCE/ask" || fail "part 2 failed"
 
 open_forward || fail "base's server wrote no connection file"
 pull_server_log "$EVIDENCE/jupyter_server.log"
-# At DEBUG the server logs its whole config, the token among it; the evidence keeps the log, not it.
-sed -i "s/$TOKEN/<token>/g" "$EVIDENCE/jupyter_server.log"
 grep -qF "MCP server started on port $MCP_PORT" "$EVIDENCE/jupyter_server.log" ||
   fail "the log does not say the MCP server started on $MCP_PORT"
 grep -qF "$LOADED" "$EVIDENCE/jupyter_server.log" || fail "the log does not say '$LOADED'"

@@ -1,23 +1,28 @@
 #!/usr/bin/env python3
-"""Scrubs local literals out of an evidence directory before it can be committed.
+"""Scrubs device secrets out of an evidence directory before it can be committed.
 
-`check_device_secrets.py` is the gate: a local literal (the tablet's serial, per
-`.sensitive-strings.local`) may not appear in a tracked file. `run_flow` writes one
-every time - `record_device` asks `get-serialno`, and maestro echoes the serial in
-its own banner - so scrubbing at commit time meant remembering to. This applies the
-same `literal==>replacement` transformation the history rewrite used, at write time:
-called from `run_flow` after the promotion, and runnable standalone for a directory
-that predates it.
+`check_device_secrets.py` is the gate, and what lands here is what it refuses. Two
+passes, because the secrets come from two places:
+
+- the token carriers `check_device_secrets.TOKEN_CARRIERS` names - the Jupyter
+  server's token is minted per launch, so every pulled `jupyter_server.log` lands a
+  fresh one no literal list could name;
+- the `literal==>replacement` pairs of `.sensitive-strings.local` (the tablet's
+  serial - `run_flow` writes one every time, in `get-serialno` and in maestro's own
+  banner) - the same transformation the history rewrite used, at write time.
 
     scrub_device_secrets.py evidence/p8a-cold-path/cold-r1
 
-A clone without `.sensitive-strings.local` has nothing to scrub and is a no-op, the
-same carve-out the gate itself makes. Binary files are skipped the way the gate
-judges them - a NUL byte in the head means pixels, not text.
+Called from `run_flow` after the promotion and from `pull_server_log` after the log
+lands, and runnable standalone for a directory that predates either. A clone without
+`.sensitive-strings.local` still scrubs the carriers; only the literal pass is a
+no-op there. Binary files are skipped the way the gate judges them - a NUL byte in
+the head means pixels, not text.
 """
 from __future__ import annotations
 
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -48,21 +53,33 @@ def _is_binary(file: pathlib.Path) -> bool:
     return b"\x00" in file.read_bytes()[:8192]
 
 
+def _placeholder(match: re.Match[str]) -> str:
+    """A carrier's match with the credential itself - group 1 - swapped for <token>."""
+    whole = match.group(0)
+    start, end = match.start(1) - match.start(0), match.end(1) - match.start(0)
+    return whole[:start] + "<token>" + whole[end:]
+
+
+def _carriers_scrubbed(text: str) -> str:
+    """[text] with each token carrier's credential replaced by its placeholder."""
+    for carrier in check_device_secrets.TOKEN_CARRIERS:
+        text = carrier.sub(_placeholder, text)
+    return text
+
+
 def scrub(directory: pathlib.Path, root: pathlib.Path = pathlib.Path()) -> int:
-    """Rewrites every text file under [directory] with the literals replaced.
+    """Rewrites every text file under [directory] with carriers and literals replaced.
 
     Returns the number of files rewritten; 0 is a clean answer, not a shrug - the
     gate is what refuses, this only prepares.
     """
     pairs = replacements_of(root / check_device_secrets.LOCAL_LITERALS)
-    if not pairs:
-        return 0
     rewritten = 0
     for file in sorted(directory.rglob("*")):
         if not file.is_file() or _is_binary(file):
             continue
         text = file.read_text(errors="replace")
-        scrubbed = text
+        scrubbed = _carriers_scrubbed(text)
         for literal, replacement in pairs:
             scrubbed = scrubbed.replace(literal, replacement)
         if scrubbed != text:
