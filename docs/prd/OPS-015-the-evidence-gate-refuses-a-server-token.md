@@ -90,14 +90,14 @@ truncated README quote. The scrub list's membership is the union: **105 paths**.
 |---|---|---|
 | `--IdentityProvider.token=<64hex>` | `ps-*.txt` process lists | 14 matches, 11 files |
 | `'token': DeferredConfigString('<64hex>')` | `jupyter_server*.log` "Config changed" dumps | 160 matches, 64 files |
-| `data-jupyter-api-token="<64hex>"` | `p2j-2-export-formats/bodies/*.bin` rendered pages | 8 matches, 8 files — all binary, so the gate today reads path only |
+| `data-jupyter-api-token="<64hex>"` | `p2j-2-export-formats/bodies/*.bin` rendered pages | 8 matches, 8 files — ASCII HTML at HEAD (no NUL in the head), so the gate reads them as text |
 | `username-127-0-0-1-<port>="<sig\|payload\|hmac>"` | `bodies/*.headers` `Set-Cookie` lines | 14 matches, 14 files |
 | `"token": "<64hex>"` | `p2j-2-export-formats/jpserver.json` | 1 match, 1 file |
 | `[?&]token=<hex>` | `-open.html` URLs, access/`Referer` log lines (GHSA-c3mw-737p-c7g2's leak shape) | 0 — only the elided `?token=...` the server logs |
 | `Authorization: token\|Bearer <hex>` | probe outputs; the persona-manager argv `'value': 'Bearer <hex>'` a `ps` would carry | 0 live — placeholders (`<token>`, `0000`, `80d528b4...29c1`) only |
 | `"key": "<64hex>"` | `kernel-*.json` connection files under `run/` | 0 — never captured yet |
 
-Distinct dead token values at HEAD: **59**.
+Distinct dead credentials at HEAD: **73** — 59 hex token values and 14 signed session cookies.
 
 ## Trade-offs and what we adopt
 
@@ -109,7 +109,7 @@ Distinct dead token values at HEAD: **59**.
 | Dead tokens already tracked | leave them · scrub in place | `ThisRepositoryTest` runs the gate over every tracked file — a gate without the scrub lands red on all ~98 files | **Scrub in place**, value → `<token>` (the drivers' convention), in the task before the gate class |
 | Write-time scrub | keep per-driver `sed` (4 drivers) · scrubber gains the pass | Every `pull_server_log` lands a fresh live token; a driver that forgets the `sed` fails the gate — ~70 files already did | **The carrier pass in `scrub_device_secrets.py`**, called by `pull_server_log` itself — `run_flow` runs *before* the pull, so its call can never see the log; the four `sed` lines go |
 | The `username-*` cookie | refuse it · token shapes only | The signed value authenticates as the user while its server lives — it is the token's product, not a separate secret | **Refuse it** — "and its kin" in the ledger row names it |
-| The `.bin` bodies | byte-level scrub · leave for the rewrite | `text_of`/`_is_binary` judge a NUL-headed file by path; a byte rewrite of a captured body rewrites binary structure to save a dead value | **Leave them** — on the scrub list for OPS-002, which rewrites history byte-for-byte anyway |
+| The `.bin` bodies | byte-level scrub · leave for the rewrite | The eight that carry the token are ASCII HTML at HEAD — the gate's `text_of` reads them, so leaving them makes T3's repo-wide test red | **Scrub them** — the NUL-in-head test decides, and these are text; only a NUL-headed capture waits for OPS-002 |
 
 ## Gap analysis
 
@@ -117,7 +117,7 @@ Distinct dead token values at HEAD: **59**.
 |---|---|---|
 | Refusing a server token in evidence | `LEAKS` covers BSSID, SSID, FCM and `.sensitive-strings.local` literals | absent — gitleaks counted 532 matches across history |
 | Write-time token scrub | four drivers `sed` it by hand; every other pull of the server log writes it live | present but partial |
-| The tracked files | ~98 carry a carrier plus a dead value; 7 more did only in earlier blobs | present — to be scrubbed in place |
+| The tracked files | 98 carry a carrier plus a dead value; 7 more did only in earlier blobs | present — to be scrubbed in place |
 | `AUD-013`'s scrub list | does not exist yet | absent — this item seeds it |
 
 ## Deviations
@@ -167,10 +167,12 @@ Distinct dead token values at HEAD: **59**.
   lines (the three `agent-*` drivers plus `mcp-port-requires-token-driver.sh`) go. The ~15 drivers
   that `cat` the log into evidence without `pull_server_log` still land a live token; the T3 gate
   is their backstop, as the trade-off row names it.
-- [ ] T2 — **The tracked files are scrubbed in place.** One mechanical commit: the one-off
-  `python3 scripts/scrub_device_secrets.py evidence/` run; its body carries the command, the
-  per-carrier match counts it rewrote, and the `git grep` count reaching zero for live values.
-  `.bin` bodies are excluded on purpose (deviation, above).
+- [x] T2 — **The tracked files are scrubbed in place.** The scrubber's byte path is fixed first
+  (a CRLF file with a non-UTF-8 byte keeps both outside the match), so the one-off rewrites the
+  credential and nothing else. The `python3 scripts/scrub_device_secrets.py evidence/` run; the
+  commit body carries the command, the per-carrier match counts it rewrote, and the `git grep`
+  count reaching zero for live values. The eight `.bin` pages are scrubbed too: at HEAD they are
+  ASCII HTML, which the gate reads as text.
 - [ ] T3 — **The gate refuses them.** Red: `check_device_secrets_test.py` gains a refusal case per
   carrier; the repo-wide test stays green because T2 scrubbed HEAD. Green: `offences_in`/`LEAKS`
   gains the class and the docstring names the fourth kind of refusal. Settle the `regex:`-lines
