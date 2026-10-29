@@ -1,5 +1,7 @@
 package com.jupydroid.app.data.space
 
+import com.jupydroid.app.data.disk.SPACE_CONFIG_FILE_NAME
+import com.jupydroid.app.data.disk.deleteTreeUnlinkingLinks
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,7 +21,7 @@ data class InstalledSpace(
  *
  * Idempotent through a stamp file holding the bundled version, the same trick as
  * Winlator's `.rfs_version`: re-running is free, and bumping [bundledVersion] in a
- * release re-extracts over the old tree.
+ * release replaces the old image, keeping the Space's own state.
  *
  * Under proot the image runs as built (ADR-0073), so an install is an extract, a sweep of
  * the links an older install made into `nativeLibraryDir`, and the kernelspec. Nothing a
@@ -42,7 +44,7 @@ class BaseSpaceInstaller(
 ) {
   suspend fun installIfNeeded(): InstalledSpace {
     val alreadyInstalled = isInstalled()
-    val written = if (alreadyInstalled) 0 else extractor.extract(archive, baseDir)
+    val written = if (alreadyInstalled) 0 else replaceImage()
     sweepStaleScriptLinks()
     SpaceKernelSpec.install(baseDir, ioDispatcher)
     withContext(ioDispatcher) {
@@ -84,6 +86,23 @@ class BaseSpaceInstaller(
     return !target.exists() || !target.path.startsWith(baseDir.canonicalPath + File.separator)
   }
 
+  /**
+   * Deletes the image an earlier version extracted, then extracts this one. An extract over the
+   * old tree leaves every file only the old image had, so base held `tornado-6.5.7.dist-info`
+   * beside `tornado-6.6.dist-info` and reported the old version. What survives is the Space's own
+   * state ([SPACE_STATE]); a program installed into the rootfs is installed again, as after a
+   * restore (ADR-0107). Winlator clears its rootfs but `home` the same way before re-extracting
+   * (`winlator@fb66541 app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java`, `clearRootDir`).
+   */
+  private suspend fun replaceImage(): Int {
+    withContext(ioDispatcher) {
+      baseDir.listFiles().orEmpty()
+        .filterNot { it.name in SPACE_STATE }
+        .forEach { deleteTreeUnlinkingLinks(it.toPath()) }
+    }
+    return extractor.extract(archive, baseDir)
+  }
+
   private suspend fun installedVersion(): Int? = withContext(ioDispatcher) {
     stampFile().takeIf { it.isFile }?.readText()?.trim()?.toIntOrNull()
   }
@@ -97,6 +116,9 @@ class BaseSpaceInstaller(
   private companion object {
     const val STAMP_PATH = ".jupydroid/rootfs-version"
 
+    /** Base's own top-level entries, which no image carries: workspace, pip's user base, stamps, config. */
+    val SPACE_STATE = setOf("home", "pkgs", ".jupydroid", SPACE_CONFIG_FILE_NAME)
+
     /** `usr/local/bin/<script>` -> `bin/shebang-exec`: the trampoline only the surgery made. */
     const val SHEBANG_EXEC_PATH = "bin/shebang-exec"
 
@@ -104,6 +126,6 @@ class BaseSpaceInstaller(
     const val CONSOLE_SCRIPT_DIR = "usr/local/bin"
 
     /** Bump when the bundled rootfs changes so installed Spaces are re-extracted. */
-    const val BUNDLED_ROOTFS_VERSION = 19
+    const val BUNDLED_ROOTFS_VERSION = 20
   }
 }

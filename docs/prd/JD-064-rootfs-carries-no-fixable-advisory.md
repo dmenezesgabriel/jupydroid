@@ -100,7 +100,16 @@ None.
   find 0 fixable apk matches. Bump `BUNDLED_ROOTFS_VERSION`.
 - [x] T2 — Python pins. Red: grype's fixable pypi matches. Green: bump the six pins, plus pip 24.3.1 (six advisories, fixed on PyPI only, because Alpine 3.21's py3-pip stops at 24.3.1), rebuild, and
   find 0 fixable pypi matches. The image's own build-time probes still pass.
-- [ ] T3 — The demo flow on the tablet, with evidence. Then ship: delete this PRD, and edit the
+- [x] T3 — A re-extract leaves none of the old image behind. The demo's first run on the tablet
+  (stamp 17 → 19) printed tornado 6.5.7, jupyter_server 2.20.0 and certifi 2026.7.22. The old and
+  new dist-info sat side by side, because `BaseSpaceInstaller` extracts over the old tree and
+  deletes nothing. Red: an upgrade leaves a file that only the old image had. Green: before
+  extracting, delete every top-level entry of base except the Space's own state (`home/`,
+  `pkgs/`, `.jupydroid/`, `config.json`), unlinking links rather than following them. That is
+  Winlator's `RootFSInstaller.clearRootDir` (`winlator@fb66541`), and it is the line ADR-0107
+  already draws: a program installed into the rootfs is installed again. Bump
+  `BUNDLED_ROOTFS_VERSION` to 20, so every tree that took 18 or 19 by overlay is cleaned.
+- [ ] T4 — The demo flow on the tablet, with evidence. Then ship: delete this PRD, and edit the
   backlog row.
 
 ## Out of scope
