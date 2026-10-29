@@ -133,7 +133,7 @@ None — the layer, the hook and the status code are each settled by the cited c
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — red: extend `mcp_bearer_probe.py` to assert a tokenless `POST initialize` returns 401 and
+- [x] T1 — red: extend `mcp_bearer_probe.py` to assert a tokenless `POST initialize` returns 401 and
   **no `mcp-session-id`**, tokenless `GET`/`DELETE` are refused, and a tokenless `GET`/`DELETE`
   carrying a real session id is still refused. green: `BearerTokenHttpMiddleware` +
   `server_token_http_middlewares()` in `jupydroid_mcp_bearer.py`; `mcp_http_bearer_patch.py` adds the

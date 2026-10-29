@@ -120,6 +120,14 @@ COPY mcp_lazy_import_patch.py /tmp/mcp_lazy_import_patch.py
 RUN python3 /tmp/mcp_lazy_import_patch.py \
  && rm -f /tmp/mcp_lazy_import_patch.py
 
+# The bearer at the HTTP layer, one step earlier than mcp_middleware's: the transport mints a
+# session before its first message dispatches, so refusing inside message dispatch still left a
+# tokenless caller holding a session and its streams. See mcp_http_bearer_patch.py; the refusal it
+# installs is what mcp_bearer_probe.py proves below.
+COPY mcp_http_bearer_patch.py /tmp/mcp_http_bearer_patch.py
+RUN python3 /tmp/mcp_http_bearer_patch.py \
+ && rm -f /tmp/mcp_http_bearer_patch.py
+
 # Same reason to come before the strip. See acp_replayed_updates_patch.py for why the ACP client drops a
 # loaded session's replayed history by its place in the stream, and acp_replayed_history_probe.py below.
 COPY acp_replayed_updates_patch.py acp_replayed_updates.py /tmp/

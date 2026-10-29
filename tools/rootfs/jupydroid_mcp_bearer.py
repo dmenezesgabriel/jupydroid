@@ -15,6 +15,12 @@ FastMCP's `auth=` out of reach. That hook logs a factory that fails and goes on 
 build proves the refusal end to end (`mcp_bearer_probe.py`).
 
     {"MCPExtensionApp": {"mcp_middleware": ["jupydroid_mcp_bearer:server_token_bearer"]}}
+
+The message middleware alone is not the whole boundary, though: FastMCP's stateful transport mints
+the session before the first message dispatches, so a tokenless `initialize` still got an
+`mcp-session-id` that `GET` and `DELETE` served. `BearerTokenHttpMiddleware` is the same refusal one
+layer up - ASGI, before the session manager - and `mcp_http_bearer_patch.py` passes it to
+`MCPServer`'s `http_app(middleware=...)` call, which has no config hook in 0.4.1.
 """
 
 import hmac
@@ -25,8 +31,13 @@ from fastmcp.exceptions import AuthorizationError
 from fastmcp.server.dependencies import get_http_request
 from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
 from jupyter_server.serverapp import ServerApp
+from starlette.datastructures import Headers
+from starlette.middleware import Middleware as StarletteMiddleware
+from starlette.responses import Response
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 EXPECTED_SHAPE = "an `Authorization: Bearer <the Jupyter server's token>` header"
+NO_TOKEN_REASON = "the server has no token, so no caller can prove it holds one"
 
 
 class BearerTokenMiddleware(Middleware):
@@ -48,12 +59,54 @@ class BearerTokenMiddleware(Middleware):
     def _refusal(self) -> str | None:
         expected = self._expected_token()
         if not expected:
-            return "the server has no token, so no caller can prove it holds one"
+            return NO_TOKEN_REASON
         try:
             header = get_http_request().headers.get("authorization")
         except RuntimeError:
             return "the message arrived without an HTTP request"
         return refusal_of_header(header, expected)
+
+
+class BearerTokenHttpMiddleware:
+    """Refuses every HTTP request without the bearer before the transport mints a session.
+
+    `BearerTokenMiddleware` runs inside FastMCP's message dispatch, which the stateful transport
+    only reaches *after* minting the session: a tokenless `initialize` got 200 and an
+    `mcp-session-id` that `GET` and `DELETE` then served, so sessions and their streams grew
+    without limit. Passed to `FastMCP.http_app(middleware=...)`, this runs after the Host/Origin
+    guard and before the router, so before `StreamableHTTPSessionManager.handle_request`
+    (PrefectHQ/fastmcp@0f4674e `fastmcp_slim/fastmcp/server/http.py` `create_streamable_http_app`).
+    jupyter-server-mcp 0.4.1 exposes no config for it, so `mcp_http_bearer_patch.py` adds the
+    argument to `MCPServer`'s `http_app()` call at image build.
+
+    Example:
+        >>> Middleware(BearerTokenHttpMiddleware, expected_token=lambda: "s3cret")
+    """
+
+    def __init__(self, app: ASGIApp, expected_token: Callable[[], str]) -> None:
+        self._app = app
+        self._expected_token = expected_token
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self._app(scope, receive, send)
+            return
+        refusal = self._refusal(scope)
+        if refusal is None:
+            await self._app(scope, receive, send)
+            return
+        response = Response(
+            f"{refusal}; expected {EXPECTED_SHAPE}",
+            status_code=401,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        await response(scope, receive, send)
+
+    def _refusal(self, scope: Scope) -> str | None:
+        expected = self._expected_token()
+        if not expected:
+            return NO_TOKEN_REASON
+        return refusal_of_header(Headers(scope=scope).get("authorization"), expected)
 
 
 def refusal_of_header(header: str | None, expected: str) -> str | None:
@@ -77,10 +130,23 @@ def refusal_of_header(header: str | None, expected: str) -> str | None:
     return None
 
 
+def _server_token() -> str:
+    return ServerApp.instance().identity_provider.token
+
+
 def server_token_bearer() -> Middleware:
     """The `mcp_middleware` factory: the running server's `IdentityProvider.token`, read per message.
 
     Example:
         >>> {"MCPExtensionApp": {"mcp_middleware": ["jupydroid_mcp_bearer:server_token_bearer"]}}
     """
-    return BearerTokenMiddleware(lambda: ServerApp.instance().identity_provider.token)
+    return BearerTokenMiddleware(_server_token)
+
+
+def server_token_http_middlewares() -> list[StarletteMiddleware]:
+    """The `middleware=` list `mcp_http_bearer_patch.py` passes to `FastMCP.http_app`.
+
+    Example:
+        >>> app = mcp.http_app(transport="http", middleware=server_token_http_middlewares())
+    """
+    return [StarletteMiddleware(BearerTokenHttpMiddleware, expected_token=_server_token)]

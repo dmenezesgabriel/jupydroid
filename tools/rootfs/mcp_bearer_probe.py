@@ -15,10 +15,13 @@ that quoted the header would log the token whenever it was sent without its sche
 """
 
 import asyncio
+import json
 import socket
 import subprocess
 import tempfile
 import time
+import urllib.error
+import urllib.request
 from typing import TextIO
 
 from fastmcp import Client
@@ -26,6 +29,15 @@ from fastmcp.client.transports import StreamableHttpTransport
 
 TOKEN = "mcp-bearer-probe-token"
 STARTUP_SECONDS = 180
+
+#: The same `initialize` the device driver sends (scripts/mcp-port-requires-token-driver.sh).
+INITIALIZE = json.dumps({
+    "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+        "protocolVersion": "2025-11-25", "capabilities": {},
+        "clientInfo": {"name": "mcp-bearer-probe", "version": "1"},
+    },
+}).encode()
+MCP_HEADERS = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
 
 
 def free_loopback_port() -> int:
@@ -66,6 +78,67 @@ async def refusal(url: str, headers: dict[str, str]) -> str | None:
     raise AssertionError(f"headers {sorted(headers)} reached the tools {tools}, expected a refusal")
 
 
+def http_request(
+    method: str, url: str, headers: dict[str, str], body: bytes | None = None
+) -> tuple[int, dict[str, str]]:
+    """One raw request to the MCP endpoint: (status, lower-cased headers). Reads no body.
+
+    A `GET` on a live session is an SSE stream that never ends, so the body is never read.
+
+    Example:
+        >>> status, headers = http_request("DELETE", url, {"Authorization": "Bearer t"})
+    """
+    request = urllib.request.Request(url, data=body, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return response.status, {key.lower(): value for key, value in response.headers.items()}
+    except urllib.error.HTTPError as refused:
+        return refused.code, {key.lower(): value for key, value in refused.headers.items()}
+
+
+def refused_without_session(
+    method: str, url: str, headers: dict[str, str], body: bytes | None = None
+) -> None:
+    """A tokenless `method` gets 401 and no `mcp-session-id` back.
+
+    Example:
+        >>> refused_without_session("GET", url, {"Accept": "text/event-stream"})
+    """
+    status, answered = http_request(method, url, headers, body)
+    assert status == 401 and "mcp-session-id" not in answered, (
+        f"a tokenless {method} got HTTP {status} with headers {sorted(answered)}, "
+        "expected 401 and no session minted"
+    )
+    assert "www-authenticate" in answered, f"the {method} refusal carried no challenge"
+
+
+def prove_http_layer(url: str) -> None:
+    """The transport itself refuses a caller without the token, so no session is ever minted.
+
+    The message middleware's refusal runs after FastMCP's stateful transport mints the session:
+    unpatched, a tokenless `initialize` answers 200 with an `mcp-session-id` that `GET` and
+    `DELETE` then serve (measured on the tablet; refused only *inside* the stream).
+    `jupydroid_mcp_bearer.BearerTokenHttpMiddleware` runs before the session manager.
+    """
+    refused_without_session("POST", url, MCP_HEADERS, INITIALIZE)
+    for method in ("GET", "DELETE"):
+        refused_without_session(method, url, {"Accept": "text/event-stream"})
+    bearer = {"Authorization": f"Bearer {TOKEN}"}
+    status, answered = http_request("POST", url, MCP_HEADERS | bearer, INITIALIZE)
+    session = answered.get("mcp-session-id")
+    assert status == 200 and session, (
+        f"the token's initialize got HTTP {status}, expected 200 and an mcp-session-id"
+    )
+    for method in ("GET", "DELETE"):
+        refused_without_session(method, url, {"Accept": "text/event-stream", "mcp-session-id": session})
+    served = {**bearer, "Accept": "application/json, text/event-stream",
+              "mcp-session-id": session, "MCP-Protocol-Version": "2025-11-25"}
+    for method in ("GET", "DELETE"):
+        status, _ = http_request(method, url, served)
+        assert status == 200, f"the token's {method} on its session got HTTP {status}, expected 200"
+    print("no token mints nothing, on POST, GET or DELETE; the token is served")
+
+
 async def prove(url: str) -> None:
     print("no header:", await refusal(url, {}))
     print("wrong token:", await refusal(url, {"Authorization": "Bearer not-the-token"}))
@@ -73,6 +146,7 @@ async def prove(url: str) -> None:
     tools = await listed_tools(url, {"Authorization": f"Bearer {TOKEN}"})
     assert tools == ["insert_cell"], f"the token listed {tools}, expected exactly ['insert_cell']"
     print("the server's token lists", tools)
+    prove_http_layer(url)
 
 
 mcp_port = free_loopback_port()
