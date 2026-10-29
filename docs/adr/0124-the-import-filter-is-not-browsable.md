@@ -42,7 +42,7 @@ declares it without `BROWSABLE`.
 
 **The import filter is not `BROWSABLE`.** A notebook reaches the app from another app's `VIEW`
 under `DEFAULT`, never from an `intent:` URL on a web page. The removal is a repair, so it is not
-made in the audit that found it. It is `GAP-189`, ranked in `JD-064`. Its demo opens a downloaded
+made in the audit that found it. It is `GAP-189`, repaired by `JD-072`. Its demo opens a downloaded
 `.ipynb` from the browser's downloads and from My Files, and fires a Chrome `intent:` link at the app,
 which must now open nothing.
 

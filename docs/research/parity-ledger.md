@@ -4111,7 +4111,7 @@ activity, and every other component and its one provider are `exported="false"`.
 subset of ours, so there is no row for it.
 
 **The tally.** 36 findings: **16** `present`, **8** `adapted`, **1** `undocumented` (ADR-0124),
-**11** `absent` (`GAP-183` to `GAP-192`, ranked in `JD-064`), **0** `defect`.
+**11** `absent` (`GAP-183` to `GAP-192`, repaired by `JD-064` and the M8 rows ranked after it), **0** `defect`.
 
 ```sh
 awk '/^### The (scanner findings|call stack) — verdicts/{f=1;next} /^###? /{f=0} f&&/^\| /&&!/^\| Finding /' \
