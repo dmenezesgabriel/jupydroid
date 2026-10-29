@@ -11,11 +11,13 @@
 # so the premise of the rootfs approach is intact: no hand-cross-compiling.
 #
 # Pinned by digest so a rebuild reproduces the image that produced the committed
-# evidence. alpine:3.21 as of 2026-08-04:
+# evidence. alpine:3.21 as of 2026-10-29. `apk add` never upgrades what the base already holds, so
+# the digest is what moves the base's own packages: this one carries libcrypto3/libssl3 3.3.7-r2,
+# zlib 1.3.2-r1 and musl 1.2.5-r12, past the advisories grype matched in the one before it.
 
 # A separate stage purely so the shipped rootfs does not grow a C toolchain: only the
 # 8 KB .so crosses over. See sigsys_report.c for why it exists.
-FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d AS sigsys-builder
+FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd AS sigsys-builder
 RUN apk add --no-cache gcc musl-dev
 COPY sigsys_report.c /tmp/sigsys_report.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libsigsys_report.so /tmp/sigsys_report.c \
@@ -51,7 +53,7 @@ RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /
 #
 # Built with Alpine's config, so every applet symlink the rootfs already carries still names an
 # applet this binary has.
-FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d AS busybox-builder
+FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd AS busybox-builder
 RUN apk add --no-cache gcc musl-dev make perl bzip2 linux-headers utmps-dev utmps-static pkgconf
 COPY busybox.config /tmp/busybox.config
 RUN wget -qO /tmp/busybox.tar.bz2 https://busybox.net/downloads/busybox-1.37.0.tar.bz2 \
@@ -79,7 +81,7 @@ RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
  && /tmp/busybox/busybox ls / >/dev/null \
  && /tmp/busybox/busybox | head -1
 
-FROM alpine:3.21@sha256:48b0309ca019d89d40f670aa1bc06e426dc0931948452e8491e3d65087abc07d
+FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd
 
 # git is what jupyterlab-git's server half runs for every answer it gives (ADR-0104).
 RUN apk add --no-cache python3 py3-pip git
