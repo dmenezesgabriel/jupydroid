@@ -1960,6 +1960,45 @@ or a process list. Every token is random per run and grants nothing once its ser
 `scripts/check_device_secrets.py` has no class that would refuse a live one. The repair starts by
 giving that gate a token class, and by adding these files to the scrub list for the history rewrite.
 
+### GAP-189 — The import filter is BROWSABLE, so a web page can start an import
+
+`MainActivity`'s `VIEW` filter on `content://` carries `BROWSABLE`, which Chrome requires before an
+`intent:` URL on a web page may launch an activity. One tap on a page therefore starts an import of a
+`content://` URI the page chose. The app reads that URI with its own identity, including its own
+unexported `…exports` provider. [ADR-0124](adr/0124-the-import-filter-is-not-browsable.md) decides
+that the category goes. The repair starts in `app/src/main/AndroidManifest.xml`, and its demo opens a
+downloaded `.ipynb` from the browser and from My Files.
+
+### GAP-190 — An imported document is read whole into memory, with no bound
+
+`ContentResolverSharedDocumentReader.readBytes` reads the shared stream with `readBytes()`, so a
+provider that serves a large or endless stream exhausts the app's heap before the import can refuse
+it. `termux-app@3df69d1` `FileReceiverActivity.saveStreamWithName` copies 4 KiB at a time to disk
+instead. The repair starts by bounding the read and refusing what exceeds the bound with a message
+that names the size. A notebook that large is not one the editor could open anyway.
+
+### GAP-191 — The MCP port mints a session for a caller without the token
+
+`jupydroid_mcp_bearer.BearerTokenMiddleware` refuses every MCP *message* without the server's bearer,
+`initialize` included. FastMCP's stateful HTTP transport has already made a session by then. On the
+tablet, a tokenless `initialize` gets 200 and an `mcp-session-id`, and that id is served a `GET` SSE
+stream and a `DELETE` (`fastmcp/server/http.py`, `auth=None` routes every method). No tool and no
+data is reached, but any app holding INTERNET can mint sessions without limit and hold their streams
+open. The repair starts by refusing at the HTTP layer, before the session manager runs, as
+https://github.com/jupyter-ai-contrib/jupyter-server-mcp/issues/25 proposes. Then it extends
+`tools/rootfs/mcp_bearer_probe.py` to the `GET` and `DELETE`, and rebuilds the image.
+
+### GAP-192 — A killed server's runtime files are never removed
+
+A server stopped by a kill removes nothing from `run/`. The tablet held 17 servers' worth:
+`jpserver-<pid>-open.html` (a token-bearing URL), `jpserver-mcp-<pid>.json` and kernels' HMAC-keyed
+connection files. Every file is `0600` and every token in them is dead, so the cost is a directory
+that grows without bound. Upstream prunes only a dead `jpserver-<pid>.json`, lazily, in
+`list_running_servers` (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`). It also
+offers `ServerApp.no_browser_open_file`, which stops the `-open.html` from being written at all. The
+repair starts by passing that flag from `JupyterServerLauncher.jupyterServerArgs`, and by clearing a
+Space's `run/` before its server starts.
+
 ---
 
 ## 12. Glossary

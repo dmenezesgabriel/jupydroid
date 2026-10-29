@@ -44,6 +44,14 @@ class IntentDocumentSharer(
    * The provider's root is every Space's directory (`res/xml/exported_documents.xml`), which also
    * holds each Space's rootfs. So the workspace is checked here first: `fileAt` throws
    * `IllegalArgumentException` for any [path] that leaves it, the same type the provider throws.
+   *
+   * The check runs when the URI is minted, while the provider resolves it again when the receiver
+   * opens it, against `spaces/`. A symlink swapped into the home between the two would reach the
+   * Space's `run/`, where its server's token lives. That is still enough, because only code running
+   * inside the Space can make the swap, and every such process already reads `run/` as
+   * `JUPYTER_RUNTIME_DIR` (`SpaceRuntime.kt`). The provider is not exported, so no other app can
+   * name a path of its own. Termux checks at open time instead, in an exported provider
+   * (termux-app@3df69d1da197dd9bd71a3bafd902dffd720576b4 `TermuxOpenReceiver$ContentProvider.openFile`).
    */
   fun uriFor(path: String): Uri = FileProvider.getUriForFile(context, authority, WorkspaceRoot(workspace).fileAt(path))
 

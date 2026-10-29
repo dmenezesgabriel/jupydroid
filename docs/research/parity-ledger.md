@@ -3982,3 +3982,46 @@ grep -rn "ClassUtils\|commons.lang3" app/src/main extensions/*/src/main         
 file app/src/main/jniLibs/arm64-v8a/libproot*.so                       # static-pie linked, stripped
 strings -a app/src/main/jniLibs/arm64-v8a/libproot.so | grep -c __stack_chk          # 0
 ```
+
+### The call stack — verdicts
+
+Every boundary the call stack read has one verdict, judged by who can reach it. The reference is
+`termux-app@3df69d1` where it has the same door, and the shipped `jupyter_server` where the door is
+the server's. Two readings needed a decision. **The tokenless MCP session is `absent`, not a
+`defect`**: the middleware refuses every message as its docstring says, so no tool and no data is
+reached. What it lacks is a refusal *before* the transport mints a session. **The share provider's
+second resolution is `adapted`**: swapping a link into a Space home between mint and open takes code
+already running in that Space, and every Space process can read its own `run/` directly
+(`SpaceRuntime.kt`, `JUPYTER_RUNTIME_DIR`). So it reaches nothing the token does not already reach.
+**No `defect`.**
+
+| Finding | Ours | Verdict | Why / id |
+|---|---|---|---|
+| Inbound: a hostile display name | `import/SharedNotebook.kt` `sharedNotebookFrom`, `DiskWorkspaceRepository.writeBytes` | present | only the name past its last `/` is kept, and only if it ends in `.ipynb`. `WorkspaceRoot.fileAt` refuses a canonical path above the home, and `copyIn` counts past a taken name, so nothing is overwritten. Termux's `FileReceiverActivity` also asks for a name, and writes inside its own home |
+| Inbound: `BROWSABLE` on the `VIEW` filter | `app/src/main/AndroidManifest.xml` | **undocumented** | [ADR-0124](../adr/0124-the-import-filter-is-not-browsable.md). It came in with the filter, with no reason written. Chrome launches only `BROWSABLE` activities from an `intent:` URL, so any web page can start an import. Termux's VIEW alias does not carry it. The ADR drops it, and the repair is `GAP-189` |
+| Inbound: the stream is read whole | `ContentResolverSharedDocumentReader.readBytes` | **absent** | `GAP-190`. Termux copies 4 KiB chunks to disk (`FileReceiverActivity.saveStreamWithName`). Ours holds the whole stream in the heap, so an app that serves an endless one exhausts it |
+| Inbound: from the Spaces home, a `VIEW` runs base | `DocumentOpeners.kt` `importNotebook` | adapted | its KDoc says why: a Space is entered only running, and the document is read before anything runs |
+| Inbound: a `VIEW` naming our own unexported `…exports` provider | `MainActivity.sharedNotebookIn` | present | the app reads it with its own identity, but the provider's root is `spaces/` and the name must end in `.ipynb`. What can be named is a notebook the user already owns, and the copy lands in their workspace. Nothing goes back to the sender. ADR-0124 closes the web-page route to it |
+| Outbound: the provider resolves the URI again at open time, against `spaces/` | `IntentDocumentSharer.uriFor` | adapted | its comment says why the mint-time `fileAt` check suffices. Termux re-checks at open (`TermuxOpenReceiver$ContentProvider.openFile`), where its provider is exported. Ours is not, and the only one who can swap the link can already read `run/` |
+| Files: `files/` down to `spaces/base` and `home/` are `0777` | the app data directory | present | inert: the data directory above them is `0700`, so no other uid can traverse to them. Nothing in `app/src/main` or `tools/rootfs` sets the mode, and the tarball's `bin/` lands `0700`, so the app's umask is `077`. Where the `0777` came from was not found |
+| Files: a killed server's `-open.html`, `jpserver-mcp-*.json` and kernel files stay in `run/` | `SpaceDirs.runtime` | **absent** | `GAP-192`. Upstream prunes only a dead `jpserver-<pid>.json`, lazily (`list_running_servers`), and offers `no_browser_open_file`, which we do not pass. Every file is `0600` and every token in them dead, so this is growth, not exposure |
+| Server: the token's entropy | `JupyterServerLauncher.TOKEN_BYTES` | present | 32 bytes from `SecureRandom`, against upstream's `os.urandom(24)` (`jupyter_server/auth/identity.py` `_token_default`) |
+| Server: the bind and the barrier | `jupyterServerArgs`, `LoopbackPort` | present | `127.0.0.1` only. An app without INTERNET cannot connect, and one with it gets 403 on status, kernels and shutdown without the token. argv is hidden by `hidepid=invisible`, and an app holds no `readproc` |
+| Server: the token on six lines of `run/jupyter_server.log` | `--ServerApp.log_level=DEBUG` | adapted | the argument's comment says why DEBUG, and the file is `0600` and truncated at every start. Logcat carried the token 0 times. Its copies in tracked evidence are `GAP-188` |
+| MCP: every message is refused without the bearer, in constant time | `tools/rootfs/jupydroid_mcp_bearer.py` | present | `hmac.compare_digest`. `tools/list` and `tools/call` without it come back refused on the tablet. MCP 2025-11-25 asks a local server to require a token |
+| MCP: a tokenless `initialize` mints a session that `GET` and `DELETE` serve | the same, under FastMCP's stateful transport | **absent** | `GAP-191`. Nothing behind the session is reached, but sessions and held streams are minted without limit. The refusal belongs before the session manager, as jupyter-server-mcp issue #25 proposes |
+| Links: `intent:`, `file:` and `content:` from untrusted text | `RenderedLinkUriHandler.kt`, `WorkspaceLinkUriHandler`, `IntentExternalLinkOpener` | present | only `http`, `https` and `mailto` reach the opener, which has no other production caller. Workspace links are `fileAt`-checked twice. Terminal links ask first (ADR-0108) |
+| Backup: a device-to-device transfer carries sign-ins | `SpaceHomeBackupAgent.mayCarrySignIns`, `SpaceHomeBackupScope` | adapted | ADR-0107's stated choice. Neither the rootfs nor `run/` goes, so no token travels |
+| Network: cleartext permitted | `res/xml/network_security_config.xml` | adapted | loopback only, as its comment says; the same in the release and debug merged manifests |
+| WebView settings and JS bridges | none | present | there is no WebView. HTML renders into Compose (`html/HtmlDocument.kt`), so the surface is empty |
+
+```sh
+grep -n -A3 'action.VIEW' app/src/main/AndroidManifest.xml | grep -c BROWSABLE            # 1
+git log --format=%h -S'category.BROWSABLE' -- app/src/main/AndroidManifest.xml          # b59d9068
+grep -n 'readBytes()' app/src/main/java/com/jupydroid/app/data/intent/ContentResolverSharedDocumentReader.kt
+grep -rnE '777|a\+rwx|o\+w' app/src/main tools/rootfs | grep -v requirements.lock         # none
+adb shell run-as com.jupydroid.app ls -lnd files/spaces/base/bin                          # drwx------
+grep -n 'os.unlink\|no_browser_open_file = ' <rootfs>/usr/lib/python3.12/site-packages/jupyter_server/serverapp.py
+grep -rn 'no_browser_open_file' app/src/main                                              # none
+grep -n 'JUPYTER_RUNTIME_DIR' app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt
+```

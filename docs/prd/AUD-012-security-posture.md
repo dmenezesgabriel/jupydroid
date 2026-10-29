@@ -139,7 +139,7 @@ T3 reads each row's code at the pinned SHA before a verdict cites it.
 - [x] **T4a — The scanners' verdicts.** Every T1 and T2 finding gets one verdict, read against
   reachability. `defect` → red test and fix in-slice; `absent` → `GAP-NNN` in `docs/architecture.md`
   and a `JD-064` line; `undocumented` → an ADR. Ledger subsection "The scanner findings — verdicts".
-- [ ] **T4b — The call stack's verdicts.** The same, for every T3 boundary. Two of them come with a
+- [x] **T4b — The call stack's verdicts.** The same, for every T3 boundary. Two of them come with a
   decision: whether a tokenless MCP `initialize` minting a session that `GET` and `DELETE` serve is a
   `defect` against `jupydroid_mcp_bearer.py`'s own intent (a fix rebuilds the rootfs), and whether
   the share provider resolving again against `spaces/` at open time is reachable by anyone who
