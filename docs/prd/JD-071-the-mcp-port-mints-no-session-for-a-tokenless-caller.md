@@ -139,7 +139,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   `server_token_http_middlewares()` in `jupydroid_mcp_bearer.py`; `mcp_http_bearer_patch.py` adds the
   `middleware=` kwarg to `mcp_server.py`'s `http_app()` call; Dockerfile COPYs and RUNs it beside
   `mcp_lazy_import_patch.py`. Verified by `tools/rootfs/build.sh x86_64`.
-- [ ] T2 — extend `mcp-port-requires-token-driver.sh` to the `GET` and `DELETE` arms; rebuild the
+- [x] T2 — extend `mcp-port-requires-token-driver.sh` to the `GET` and `DELETE` arms; rebuild the
   arm64 image, stage, assemble, install on `SM-X216B`; run the flow + driver; commit
   `evidence/mcp-port-requires-token/`.
 
