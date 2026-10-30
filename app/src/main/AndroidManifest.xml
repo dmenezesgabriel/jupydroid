@@ -67,11 +67,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
                 <!-- .ipynb has no standard MIME type and file managers hand out
                      content URIs whose path does not encode the extension
                      (e.g. MediaStore /external/file/<id>), so match any content
-                     URI and validate the extension via the display name. -->
+                     URI and validate the extension via the display name. No
+                     BROWSABLE: Chrome launches a page's intent: link only into
+                     BROWSABLE activities, and a web page has no business
+                     starting this import (ADR-0124). -->
                 <data
                     android:scheme="content"
                     android:mimeType="*/*" />
