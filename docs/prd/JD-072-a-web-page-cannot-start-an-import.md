@@ -140,7 +140,7 @@ and docs.
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — red: `ImportIntentFilterTest` asserts `VIEW` + `content://…` + `*/*` resolves
+- [x] T1 — red: `ImportIntentFilterTest` asserts `VIEW` + `content://…` + `*/*` resolves
   `MainActivity` and the same intent with `CATEGORY_BROWSABLE` resolves nothing of this package —
   it fails while `BROWSABLE` is present. green: delete the line, extend the filter comment with the
   reason (`ADR-0124`). `:app:connectedDebugAndroidTest` on the emulator is enough — resolution
