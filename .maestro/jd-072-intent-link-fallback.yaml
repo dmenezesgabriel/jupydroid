@@ -1,0 +1,26 @@
+appId: com.android.chrome
+---
+# The tap asks Chrome to launch the `intent:` link's resolved `BROWSABLE` activity. There is
+# none - the import filter carries `DEFAULT` alone (ADR-0124) - so Chrome navigates the tab
+# to the link's own `browser_fallback_url`. The fallback's marker is the positive oracle:
+# "nothing happened" cannot be screenshot-proven, but a page that exists only when resolution
+# failed can be. The driver then reads `resumed_package` and the workspace for the app's
+# half of the proof. Run by scripts/jd-072-import-filter-not-browsable-driver.sh.
+#
+# TABLET ONLY (SM-X216B): see jd-072-intent-link-page.yaml.
+# A menu left drawn at the last session's end is drawn again at this one's start - it
+# outlives force-stop and reattach (see jd-072-intent-link-page.yaml) - so it is dismissed
+# first, and the link is waited on fresh rather than assumed to have stayed visible.
+- runFlow:
+    when:
+      visible: "New Incognito tab"
+    commands:
+      - pressKey: Back
+- extendedWaitUntil:
+    visible: "open the shared notebook"
+    timeout: 30000
+- tapOn: "open the shared notebook"
+- extendedWaitUntil:
+    visible: "intent fallback reached: nothing resolved the link"
+    timeout: 30000
+- takeScreenshot: 03-intent-link-fallback
