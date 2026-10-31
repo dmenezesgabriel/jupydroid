@@ -2,6 +2,7 @@ package com.jupydroid.app
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
@@ -49,6 +50,7 @@ fun MainNavigation(
   appContainer: AppContainer,
   sharedNotebook: SharedNotebook?,
   onImportConsumed: () -> Unit,
+  importReports: SnackbarHostState = remember { SnackbarHostState() },
   // Passed in rather than read at the point of use, for the reason `CellActionsTest` records:
   // `currentWindowAdaptiveInfo()` measures the *activity's* window, which a
   // `DeviceConfigurationOverride` around a composable does not change - so a test that tried to
@@ -197,7 +199,7 @@ fun MainNavigation(
     !twoPane && onePanePanel != ShownPanel.Shell(SidePanel.FILES) && backStack.lastOrNull() is Explorer
 
   // The VIEW intent - opened in the Space entered, or in base from the home; see the effect's own KDoc.
-  ImportedNotebookEffect(sharedNotebook, appContainer, backStack, openDocument, onImportConsumed)
+  ImportedNotebookEffect(sharedNotebook, appContainer, backStack, openDocument, onImportConsumed, importReports)
 
   // `maybeCreate` and the fill's provenance - extracted with the rest of the launcher lifecycle,
   // for the same reason `openLaunched` below is: a lambda's branches count toward this function's

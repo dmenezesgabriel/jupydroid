@@ -70,7 +70,7 @@ The bound's final value, after the heap measurement. An ADR records it and the s
 
 ## Tasks
 
-- [ ] T1 — a bounded read that refuses past the bound with the size, and an import that shows it
+- [x] T1 — a bounded read that refuses past the bound with the size, and an import that shows it
 - [ ] T2 — the device demo above
 
 ## Out of scope

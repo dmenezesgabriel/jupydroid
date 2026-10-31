@@ -25,6 +25,6 @@ class ContentResolverSharedDocumentReader(
   override suspend fun readBytes(uri: String): ByteArray = withContext(ioDispatcher) {
     val stream = contentResolver.openInputStream(Uri.parse(uri))
       ?: throw IllegalArgumentException("the provider of '$uri' served no stream; expected a readable document")
-    stream.use { it.readBytes() }
+    stream.use { it.readBoundedBytes(SharedDocumentReader.MAX_BYTES) }
   }
 }

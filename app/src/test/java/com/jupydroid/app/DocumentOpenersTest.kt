@@ -128,6 +128,21 @@ class DocumentOpenersTest {
   }
 
   @Test
+  fun anImportOverTheLimitOpensNothingAndSaysWhichFileAndTheLimit() = runTest {
+    val backStack = mutableListOf<NavKey>(SpacesHome)
+    val servers = FakeSpaceServers()
+    val reader = FakeSharedDocumentReader(mapOf(SHARED.uri to ByteArray(11)), limitBytes = 10)
+    val reports = mutableListOf<String>()
+
+    val opened = backStack.importNotebook(SHARED, SpaceRepositories()::of, servers, reader, reports::add)
+
+    assertNull(opened)
+    assertEquals(listOf<NavKey>(SpacesHome), backStack)
+    assertEquals("a refused file starts no Space", emptySet<String>(), servers.running.value)
+    assertEquals(listOf("${SHARED.fileName} is over the 10 B limit for an import"), reports)
+  }
+
+  @Test
   fun anImportWhoseRunIsRefusedOpensNothing() = runTest {
     val backStack = mutableListOf<NavKey>(SpacesHome)
 

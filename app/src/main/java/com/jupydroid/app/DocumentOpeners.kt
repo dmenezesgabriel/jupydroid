@@ -1,5 +1,6 @@
 package com.jupydroid.app
 
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -11,6 +12,7 @@ import com.jupydroid.app.domain.model.NOTEBOOK_SUFFIX
 import com.jupydroid.app.domain.model.incrementedFileName
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.SharedDocumentReader
+import com.jupydroid.app.domain.port.SharedDocumentTooLarge
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.WorkspaceRepository
@@ -158,7 +160,7 @@ internal suspend fun MutableList<NavKey>.openNewTerminal(terminalGateway: Termin
  * list pane the document pairs with, rather than a bare home underneath it.
  *
  * ```
- * ImportedNotebookEffect(sharedNotebook, appContainer, backStack, openDocument, onImportConsumed)
+ * ImportedNotebookEffect(sharedNotebook, appContainer, backStack, openDocument, onImportConsumed, importReports)
  * ```
  */
 @Composable
@@ -168,7 +170,11 @@ internal fun ImportedNotebookEffect(
   backStack: MutableList<NavKey>,
   openDocument: (String) -> Unit,
   onImportConsumed: () -> Unit,
+  importReports: SnackbarHostState,
 ) {
+  // Launched rather than awaited: a snackbar suspends until it is dismissed, and the import is
+  // consumed the moment it is settled, not seconds later.
+  val reportScope = rememberCoroutineScope()
   LaunchedEffect(sharedNotebook) {
     sharedNotebook?.let { shared ->
       backStack.importNotebook(
@@ -176,6 +182,7 @@ internal fun ImportedNotebookEffect(
         appContainer::portsOf,
         appContainer.spaceServers,
         appContainer.sharedDocumentReader,
+        { message -> reportScope.launch { importReports.showSnackbar(message) } },
       )
         ?.let(openDocument)
       onImportConsumed()
@@ -201,13 +208,23 @@ internal suspend fun MutableList<NavKey>.importNotebook(
   portsOf: (spaceId: String) -> EnteredSpacePorts,
   spaceServers: SpaceServers,
   reader: SharedDocumentReader,
+  reportRefusal: suspend (String) -> Unit = {},
 ): String? {
   val spaceId = enteredSpaceId()
   return runCatching {
     val bytes = reader.readBytes(shared.uri)
     if (!isInWorkspace()) spaceServers.run(spaceId)
     portsOf(spaceId).workspaceRepository.copyIn(shared.fileName, bytes)
+  }.onFailure { refusal ->
+    if (refusal is SharedDocumentTooLarge) reportRefusal(refusal.refusalMessage(shared.fileName))
   }.getOrNull()?.also { enterWorkspace(spaceId) }
+}
+
+/** What the user is told, with the limit in the unit a person counts a file in. */
+private fun SharedDocumentTooLarge.refusalMessage(fileName: String): String {
+  val mebibyte = 1024 * 1024
+  val limit = if (limitBytes % mebibyte == 0) "${limitBytes / mebibyte} MiB" else "$limitBytes B"
+  return "$fileName is over the $limit limit for an import"
 }
 
 /**

@@ -8,13 +8,18 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.di.AppContainer
@@ -52,12 +57,17 @@ class MainActivity : ComponentActivity() {
   /** Every screen, with the key row that the one being typed into publishes beneath them all. */
   @Composable
   private fun AppWindow() {
+    val importReports = remember { SnackbarHostState() }
     WindowKeyRowHosted {
-      MainNavigation(
-        appContainer = appContainer,
-        sharedNotebook = sharedNotebook,
-        onImportConsumed = { sharedNotebook = null },
-      )
+      Box(Modifier.fillMaxSize()) {
+        MainNavigation(
+          appContainer = appContainer,
+          sharedNotebook = sharedNotebook,
+          onImportConsumed = { sharedNotebook = null },
+          importReports = importReports,
+        )
+        SnackbarHost(importReports, Modifier.align(Alignment.BottomCenter))
+      }
     }
   }
 
