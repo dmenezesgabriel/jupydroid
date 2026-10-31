@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -66,7 +67,9 @@ class MainActivity : ComponentActivity() {
           onImportConsumed = { sharedNotebook = null },
           importReports = importReports,
         )
-        SnackbarHost(importReports, Modifier.align(Alignment.BottomCenter))
+        // navigationBarsPadding: under edge-to-edge the tablet's taskbar is drawn over the bottom edge,
+        // and a snackbar without it sits behind the taskbar's icons.
+        SnackbarHost(importReports, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
       }
     }
   }

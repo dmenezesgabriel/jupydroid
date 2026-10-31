@@ -23,7 +23,7 @@ interface SharedDocumentReader {
   companion object {
     /**
      * `jupyterlab@7f0e690 packages/filebrowser/src/model.ts` `LARGE_FILE_SIZE`: the size past which
-     * JupyterLab will not take a file without being asked. An import has no one to ask.
+     * JupyterLab will not take a file without being asked. An import has no one to ask. ADR-0127.
      */
     const val MAX_BYTES: Int = 15 * 1024 * 1024
   }

@@ -1,5 +1,6 @@
 package com.jupydroid.app
 
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -173,7 +174,8 @@ internal fun ImportedNotebookEffect(
   importReports: SnackbarHostState,
 ) {
   // Launched rather than awaited: a snackbar suspends until it is dismissed, and the import is
-  // consumed the moment it is settled, not seconds later.
+  // consumed the moment it is settled, not seconds later. Long, because the refusal is the only word
+  // the user gets and a Short one had expired before a screenshot of it was taken.
   val reportScope = rememberCoroutineScope()
   LaunchedEffect(sharedNotebook) {
     sharedNotebook?.let { shared ->
@@ -182,7 +184,7 @@ internal fun ImportedNotebookEffect(
         appContainer::portsOf,
         appContainer.spaceServers,
         appContainer.sharedDocumentReader,
-        { message -> reportScope.launch { importReports.showSnackbar(message) } },
+        { message -> reportScope.launch { importReports.showSnackbar(message, duration = SnackbarDuration.Long) } },
       )
         ?.let(openDocument)
       onImportConsumed()
