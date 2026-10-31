@@ -302,6 +302,11 @@ internal fun jupyterServerArgs(
   // (`usr/lib/python3.12/site-packages/jupyter_server/services/contents/filemanager.py`, `delete_file`).
   "--FileContentsManager.delete_to_trash=False",
   "--no-browser",
+  // `--no-browser` only stops a browser opening. The redirect page `jpserver-<pid>-open.html`, which
+  // carries the token in its URL, is still written and removed only by a clean stop, so a killed
+  // server left one per start (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`,
+  // `no_browser_open_file`). The app reads `jpserver-<pid>.json` and never opens it.
+  "--ServerApp.no_browser_open_file=True",
   // DEBUG until the app is feature-complete, because the server's own account is the half of
   // every kernel investigation we could not see. The execution stall cost six sightings partly
   // for this reason: our log could say "nothing came back" and never which of `Nudge: attempt N`,
