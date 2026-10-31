@@ -61,16 +61,6 @@ class JupyterRuntimeFileTest {
     assertEquals("http://127.0.0.1:45243/", JupyterRuntimeFile.read(runtimeDir)?.url)
   }
 
-  /** A stale file from a killed server would otherwise point at a dead port. */
-  @Test
-  fun clear_removesRuntimeFilesSoAStaleOneIsNeverRead() {
-    write("jpserver-8.json", port = 45243)
-
-    JupyterRuntimeFile.clear(runtimeDir)
-
-    assertNull(JupyterRuntimeFile.read(runtimeDir))
-  }
-
   @Test
   fun read_rejectsAFileWithNoPortRatherThanGuessing() {
     File(runtimeDir, "jpserver-8.json").writeText("{\"url\": \"http://127.0.0.1:1/\"}")

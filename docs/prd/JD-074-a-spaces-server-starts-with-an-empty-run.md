@@ -71,7 +71,7 @@ grep decides; a function with no caller is removed with its test.
 ## Tasks
 
 - [x] T1 — `--ServerApp.no_browser_open_file=True` in the server's arguments
-- [ ] T2 — `SpaceDirs.clearRuntime()`, called by `start()` in place of the single-file clear
+- [x] T2 — `SpaceDirs.clearRuntime()`, called by `start()` in place of the single-file clear
 - [ ] T3 — the device demo above
 
 ## Out of scope

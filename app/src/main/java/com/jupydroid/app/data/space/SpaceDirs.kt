@@ -43,5 +43,24 @@ class SpaceDirs(val spaceDir: File) {
     }
   }
 
+  /**
+   * Empties [runtime] and keeps the directory, so a server starts beside only its own files.
+   *
+   * A killed server removes nothing: its `jpserver-<pid>-open.html`, `jpserver-mcp-<pid>.json` and
+   * kernels' connection files stayed, one set per start (ADR-0128). Nothing in it outlives a start -
+   * the logs are truncated by the redirect that opens them - so what is cleared is only what a
+   * dead process left. Where the directory was never provisioned there is nothing to clear.
+   *
+   * ```
+   * dirs.clearRuntime() // before the server's process is built
+   * ```
+   */
+  fun clearRuntime() {
+    val leftovers = runtime.listFiles() ?: return
+    leftovers.forEach { leftover ->
+      check(leftover.deleteRecursively()) { "could not delete '$leftover' from '$runtime': expected it removed" }
+    }
+  }
+
   private fun shapeOf(path: File): String = if (path.exists()) "a file" else "nothing (mkdirs failed)"
 }

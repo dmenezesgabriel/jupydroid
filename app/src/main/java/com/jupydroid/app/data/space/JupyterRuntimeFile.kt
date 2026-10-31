@@ -45,11 +45,6 @@ data class JupyterRuntimeFile(
       }
     }
 
-    /** A leftover file from a killed server would otherwise advertise a dead port. */
-    fun clear(runtimeDir: File) {
-      runtimeFiles(runtimeDir).forEach { it.delete() }
-    }
-
     private fun runtimeFiles(runtimeDir: File): List<File> =
       runtimeDir.listFiles { file -> isServerRuntimeFile(file.name) }
         ?.sortedBy { it.name }

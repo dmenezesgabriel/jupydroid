@@ -195,6 +195,18 @@ class JupyterServerLauncherSpaceTest {
       ?.let { pid -> ProcessHandle.of(pid).ifPresent { it.destroyForcibly() } }
   }
 
+  /** A killed server removes nothing, so a start begins from an empty `run/` (ADR-0128). */
+  @Test
+  fun start_clearsWhatAKilledServerLeftInRun() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    val stale = listOf("jpserver-9-open.html", "jpserver-mcp-9.json", "kernel-abc.json")
+      .map { File(spaceOneDir(), "run/$it").apply { parentFile!!.mkdirs() }.also { f -> f.writeText("stale") } }
+
+    launcher.start(spaceOne)
+
+    assertEquals(emptyList<File>(), stale.filter(File::exists))
+  }
+
   @Test
   fun start_connectsToTheServerTheSpaceItWasHandedReported() = runBlocking {
     val connection = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
