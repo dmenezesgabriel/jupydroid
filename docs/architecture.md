@@ -1986,10 +1986,9 @@ A server stopped by a kill removes nothing from `run/`. The tablet held 17 serve
 `jpserver-<pid>-open.html` (a token-bearing URL), `jpserver-mcp-<pid>.json` and kernels' HMAC-keyed
 connection files. Every file is `0600` and every token in them is dead, so the cost is a directory
 that grows without bound. Upstream prunes only a dead `jpserver-<pid>.json`, lazily, in
-`list_running_servers` (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`). It also
-offers `ServerApp.no_browser_open_file`, which stops the `-open.html` from being written at all. The
-repair starts by passing that flag from `JupyterServerLauncher.jupyterServerArgs`, and by clearing a
-Space's `run/` before its server starts.
+`list_running_servers` (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`). `ServerApp.no_browser_open_file`
+is not configurable, so the `-open.html` is written regardless. The repair is clearing a Space's `run/`
+before its server starts.
 
 ---
 

@@ -15,21 +15,20 @@ upstream prunes that one file alone, lazily (`usr/lib/python3.12/site-packages/j
 ## Decision drivers
 
 - Nothing a former server left is read by a later one.
-- No token-bearing file is written that nothing opens.
+- A killed server's token-bearing `-open.html` does not outlive the next start.
 - No file in `run/` that a start needs is deleted.
 
 ## Options considered
 
 | Question | Options | Chosen |
 |---|---|---|
-| The `-open.html` | leave it and clear it at start; `ServerApp.no_browser_open_file` (`serverapp.py`, line 1768) | the flag: the page is not written, and the app reads `jpserver-<pid>.json` |
+| The `-open.html` | leave it and clear it at start; `ServerApp.no_browser_open_file` (`serverapp.py`, line 1768) | clear it at start. `no_browser_open_file` is declared without `.tag(config=True)`, so the server logs `Config option `no_browser_open_file` not recognized by `ServerApp`` and still writes the page; it cannot be set from argv or a config file |
 | What a start clears | the files of the server (`jpserver-<digits>.json`), as before; every file in `run/` | every file: the logs are truncated by the redirect that opens them and are written after the clear, and the SIGSYS log is in `tmp/`, so nothing in `run/` outlives a start |
 | Home | `JupyterRuntimeFile`; the launcher; `SpaceDirs` | `SpaceDirs.clearRuntime()`: it owns `runtime`, and `ensure()` is its provisioning twin |
 
 ## Decision
 
-**`--ServerApp.no_browser_open_file=True` joins `jupyterServerArgs`, and `JupyterServerLauncher.start`
-calls `SpaceDirs.clearRuntime()` after `stop()`, which empties `run/` and keeps the directory.**
+**`JupyterServerLauncher.start` calls `SpaceDirs.clearRuntime()` after `stop()`, which empties `run/` and keeps the directory.** The running server's own `jpserver-<pid>-open.html` stays until it stops.
 
 `JupyterRuntimeFile.clear` had no other caller and is removed. A Space whose `run/` was never
 provisioned is left alone: clearing creates nothing.
@@ -37,6 +36,6 @@ provisioned is left alone: clearing creates nothing.
 ## Consequences
 
 - `run/` holds one server's files: its `jpserver-<pid>.json`, `jpserver-mcp-<pid>.json`, kernels'
-  connection files and the two logs.
+  connection files, its `ipc` sockets and `jupyter_server.log` (and `startup.log` where a Space has a startup script).
 - A start deletes what the previous run left in `run/`, so a postmortem of a killed server reads
   its logs before the next start, not after.

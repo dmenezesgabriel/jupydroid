@@ -4003,7 +4003,7 @@ already running in that Space, and every Space process can read its own `run/` d
 | Inbound: a `VIEW` naming our own unexported `…exports` provider | `MainActivity.sharedNotebookIn` | present | the app reads it with its own identity, but the provider's root is `spaces/` and the name must end in `.ipynb`. What can be named is a notebook the user already owns, and the copy lands in their workspace. Nothing goes back to the sender. ADR-0124 closes the web-page route to it |
 | Outbound: the provider resolves the URI again at open time, against `spaces/` | `IntentDocumentSharer.uriFor` | adapted | its comment says why the mint-time `fileAt` check suffices. Termux re-checks at open (`TermuxOpenReceiver$ContentProvider.openFile`), where its provider is exported. Ours is not, and the only one who can swap the link can already read `run/` |
 | Files: `files/` down to `spaces/base` and `home/` are `0777` | the app data directory | present | inert: the data directory above them is `0700`, so no other uid can traverse to them. Nothing in `app/src/main` or `tools/rootfs` sets the mode, and the tarball's `bin/` lands `0700`, so the app's umask is `077`. Where the `0777` came from was not found |
-| Files: a killed server's `-open.html`, `jpserver-mcp-*.json` and kernel files stay in `run/` | `SpaceDirs.runtime` | **absent** | `GAP-192`. Upstream prunes only a dead `jpserver-<pid>.json`, lazily (`list_running_servers`), and offers `no_browser_open_file`, which we do not pass. Every file is `0600` and every token in them dead, so this is growth, not exposure |
+| Files: a killed server's `-open.html`, `jpserver-mcp-*.json` and kernel files stay in `run/` | `SpaceDirs.runtime` | **absent** | `GAP-192`. Upstream prunes only a dead `jpserver-<pid>.json`, lazily (`list_running_servers`), and its `no_browser_open_file` is not a configurable trait (the server logs it as unrecognised), so the `-open.html` is cleared at start instead. Every file is `0600` and every token in them dead, so this is growth, not exposure |
 | Server: the token's entropy | `JupyterServerLauncher.TOKEN_BYTES` | present | 32 bytes from `SecureRandom`, against upstream's `os.urandom(24)` (`jupyter_server/auth/identity.py` `_token_default`) |
 | Server: the bind and the barrier | `jupyterServerArgs`, `LoopbackPort` | present | `127.0.0.1` only. An app without INTERNET cannot connect, and one with it gets 403 on status, kernels and shutdown without the token. argv is hidden by `hidepid=invisible`, and an app holds no `readproc` |
 | Server: the token on six lines of `run/jupyter_server.log` | `--ServerApp.log_level=DEBUG` | adapted | the argument's comment says why DEBUG, and the file is `0600` and truncated at every start. Logcat carried the token 0 times. Its copies in tracked evidence are `GAP-188` |
@@ -4020,8 +4020,7 @@ git log --format=%h -S'category.BROWSABLE' -- app/src/main/AndroidManifest.xml  
 grep -n 'readBytes()' app/src/main/java/com/jupydroid/app/data/intent/ContentResolverSharedDocumentReader.kt
 grep -rnE '777|a\+rwx|o\+w' app/src/main tools/rootfs | grep -v requirements.lock         # none
 adb shell run-as com.jupydroid.app ls -lnd files/spaces/base/bin                          # drwx------
-grep -n 'os.unlink\|no_browser_open_file = ' <rootfs>/usr/lib/python3.12/site-packages/jupyter_server/serverapp.py
-grep -rn 'no_browser_open_file' app/src/main                                              # none
+grep -n -A2 'no_browser_open_file = ' <rootfs>/usr/lib/python3.12/site-packages/jupyter_server/serverapp.py   # no .tag(config=True)
 grep -n 'JUPYTER_RUNTIME_DIR' app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt
 ```
 

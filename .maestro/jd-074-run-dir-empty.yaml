@@ -1,0 +1,28 @@
+appId: com.jupydroid.app
+---
+# A Space's server starts with an empty run/: a cell runs on the real kernel after the driver seeded
+# stale runtime files, so the server whose files the driver then lists is one that really started.
+# The product 42 is computed and in no cell's source, which FakeKernelGateway's echo cannot produce.
+# Run by scripts/jd-074-run-dir-empty-driver.sh.
+#
+# TABLET ONLY (SM-X216B): on x86_64 MainActivity falls back to FakeKernelGateway and no server starts.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "jd-074-run-dir-empty.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "jd-074-run-dir-empty.ipynb"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-notebook-open
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- takeScreenshot: 02-cell-ran-on-the-kernel
