@@ -100,8 +100,6 @@ command a person runs.
 
 ## Open decisions
 
-- **A reformat's size.** `ruff format` may touch most of 12 k lines. T2 measures the diff first; if
-  it is large it lands as its own `style:` commit before the hook, so no feature commit hides it.
 - **Rootfs imports.** The rootfs patches import packages that exist only inside the image. T5 settles
   how mypy sees them, scoped to those files and named, never a global `ignore_missing_imports`.
 - **Tests under mypy.** T4 measures whether the `_test.py` files add findings worth keeping or only
@@ -123,7 +121,7 @@ and record. Every line of code is still TDD: the red is a planted violation the 
 
 - [x] T1 — ruff lint (`E,F,I,B,UP`). Add ruff to the locked dev group, measure findings per rule,
   fix the real ones, suppress none to force green.
-- [ ] T2 — ruff format. Measure the diff; apply it as its own commit; wire `ruff format --check`.
+- [x] T2 — ruff format. Measure the diff; apply it as its own commit; wire `ruff format --check`.
 - [ ] T3 — ruff `S` (bandit's checks). Measure; fix or justify each finding by name; decide on bandit.
 - [ ] T4 — mypy over `scripts/`. Measure at the strictness the gates already satisfy.
 - [ ] T5 — mypy over `tools/rootfs/`.

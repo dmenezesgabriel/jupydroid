@@ -59,6 +59,12 @@ repos:
         entry: uv run --locked ruff check
         language: system
         types: [python]
+      # Also a pure checker: `ruff format --check` fails, a person runs `ruff format` (rule 7).
+      - id: ruff-format
+        name: python format (ruff)
+        entry: uv run --locked ruff format --check
+        language: system
+        types: [python]
       # **The source sets are named, and that is the repair rather than a detail.** `ktlintCheck`
       # is an aggregate over whatever tasks the plugin happened to register, so when it registered
       # none for Kotlin it resolved to the `.kts` build scripts and reported "Passed" for months
