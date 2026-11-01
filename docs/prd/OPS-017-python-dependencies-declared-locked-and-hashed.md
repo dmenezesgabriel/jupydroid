@@ -102,13 +102,14 @@ hashing, the authorities are the tools' own documentation:
 
 ## Open decisions
 
-- **Why a re-lock fails.** AUD-012 recorded `aiofile: "==3.12.3,>=3.5.0,!=3.9.0,<3.10"`. Yet on
-  2026-10-29 `uv pip compile --python-platform aarch64-unknown-linux-musl --python-version 3.12
-  --only-binary :all:` resolved the lock unchanged. T2 first finds which package declares
-  `aiofile<3.10`. jupyter-ai-tools, installed `--no-deps` outside the lock, is the first suspect. The
-  answer decides whether it gets a constraint, an override or stays outside the compile.
-- **Hashes for both ABIs.** The lock must carry the hashes of the musllinux wheels for aarch64 and
-  for x86_64, because `build.sh` builds both. T2 checks that one compile records them all.
+- **Why a re-lock failed — settled.** `py_key_value_aio` 0.4.6 declares `aiofile<3.10` only for
+  `python_full_version < '3.11'` (`docs/research/parity-ledger.md`); osv-scanner ignored the marker. With
+  `--python-version 3.12` the compile resolves, so no constraint or override is needed. A compile from the
+  17 direct dependencies alone resolves to newer transitives and drops seven packages, so the first compile
+  keeps the existing lock's pins (uv reads the existing `-o` file as preferences) and `--upgrade` is the
+  deliberate bump.
+- **Hashes for both ABIs — settled.** One compile records every distribution of each chosen version, so the
+  aarch64 and x86_64 compiles give byte-identical hash lists.
 
 ## Surface
 
@@ -116,7 +117,7 @@ hashing, the authorities are the tools' own documentation:
 |---|---|
 | host manifest | `pyproject.toml`, `.python-version`, `uv.lock` (new) |
 | hooks | `.pre-commit-config.yaml` (`entry: uv run --locked …`) |
-| rootfs | `tools/rootfs/requirements.in` (new), `tools/rootfs/requirements.lock`, `tools/rootfs/Dockerfile` |
+| rootfs | `tools/rootfs/requirements.in`, `jupyter-ai-tools.in` (new), `requirements.lock`, `jupyter-ai-tools.lock`, `Dockerfile` |
 | docs | `AGENTS.md` (the gate command, the update procedure), an ADR beside ADR-0123 |
 
 ## Tasks
@@ -125,7 +126,7 @@ hashing, the authorities are the tools' own documentation:
   the Pillow imports. Green: root `pyproject.toml` (non-package, `requires-python`, a dependency group
   holding Pillow), `.python-version` and `uv.lock`, and the pre-commit Python hooks and `AGENTS.md`'s
   test command run through `uv run --locked`. Demo steps 1–2.
-- [ ] T2 — The rootfs lock. Settle the aiofile question first. Then write `requirements.in` from the
+- [x] T2 — The rootfs lock. Settle the aiofile question first. Then write `requirements.in` from the
   direct dependencies, compile `requirements.lock` with hashes, install with `--require-hashes`, and
   rebuild. Demo steps 3–5.
 - [ ] T3 — The ADR (Python dependencies are declared, locked and verified by sha256) and the

@@ -5,7 +5,7 @@
 #
 # Writes build/rootfs/rootfs-<abi>.tzst plus a manifest of what went in.
 # The tarball is a build artifact, not a committed file: it is far too big for
-# git and is reproducible from the pinned Dockerfile + requirements.lock.
+# git and is reproducible from the pinned Dockerfile + requirements.lock (compiled from requirements.in).
 #
 # arm64-v8a on an x86_64 host runs every RUN under qemu, so the host needs an arm64 binfmt handler,
 # and that handler does not survive a reboot. Without it the first RUN fails with

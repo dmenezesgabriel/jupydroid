@@ -93,21 +93,29 @@ RUN apk add --no-cache python3 py3-pip git
 # publishing a musllinux wheel we want the build to fail loudly rather than
 # quietly start compiling from source under emulation.
 #
+# --require-hashes: the lock is compiled from requirements.in with the sha256 of every wheel, so a
+# substituted or re-uploaded artifact fails this build instead of shipping (ADR-0123's rule, for pip).
+# The hashes cover the musllinux wheels of both ABIs, so one lock serves the arm64 and x86_64 builds.
+#
 # pip and setuptools are pinned in the lock too, so this install replaces the copies apk put there:
 # Alpine 3.21's py3-pip 24.3.1-r0 and the py3-setuptools 70.3.0-r0 it depends on are its newest,
 # and both carry advisories fixed only on PyPI. apk's database still names the old versions.
 COPY requirements.lock /tmp/requirements.lock
-RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: \
+RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: --require-hashes \
       -r /tmp/requirements.lock \
  && rm /tmp/requirements.lock
 
+# Its own hashed lock (jupyter-ai-tools.lock, compiled with `uv pip compile --no-deps`), because
+# --require-hashes also covers a package installed alone.
 # --no-deps because jupyter-ai-tools' one dependency the lock leaves out is jupyterlab-ai-commands,
 # whose Python module only declares a labextension (jupyterlab-ai-commands@2743d32
 # `jupyterlab_ai_commands/__init__.py`). That frontend is the half the app plays. Its
 # jupyterlab-diff chain would also bring all of jupyterlab 4.6.4. The dependencies the tools import
 # (jupyterlab-commands-toolkit, pycrdt, jupyter_ydoc, jupyter_server) are pinned in the lock.
-RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: --no-deps \
-      jupyter-ai-tools==0.7.0
+COPY jupyter-ai-tools.lock /tmp/jupyter-ai-tools.lock
+RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: --require-hashes --no-deps \
+      -r /tmp/jupyter-ai-tools.lock \
+ && rm /tmp/jupyter-ai-tools.lock
 
 # Before the strip, so compileall caches the edited source. See acp_lazy_import_patch.py for why the
 # ACP client's permission route is edited, and acp_lazy_import_probe.py below for the gate on it.

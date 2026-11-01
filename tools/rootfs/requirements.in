@@ -1,0 +1,31 @@
+# The rootfs's direct dependencies. requirements.lock is compiled from this file and holds every
+# transitive package with the sha256 of every wheel; the Dockerfile installs it with --require-hashes.
+# Recompile from this directory (the header of requirements.lock records the exact command).
+#
+# Each line is a package no other package in the lock requires, pinned to the version the image ran
+# when this file was written, so the first compile reproduced that image exactly.
+
+# The kernel and its entry point (jupydroid_kernel.py), and the numeric stack cells import.
+ipykernel==7.3.0
+scipy==1.18.0
+
+# The language server and its plugins (`pylsp --version` gates the image build).
+python-lsp-server==1.15.0
+autopep8==2.0.4
+flake8==7.1.2
+pydocstyle==6.3.0
+pylint==4.0.9
+pyparsing==3.1.4
+rope==1.14.0
+whatthepatch==1.0.7
+yapf==0.43.0
+
+# The server halves of the extensions (ADR-0104, ADR-0106, ADR-0118).
+jupyterlab-git==0.55.0
+jupyter-ai-acp-client==0.3.3
+jupyter-server-mcp==0.4.1
+jupyterlab-commands-toolkit==0.3.1
+
+# Replace the copies apk installs, which carry advisories fixed only on PyPI.
+pip==26.2.2
+setuptools==84.1.0

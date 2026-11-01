@@ -132,6 +132,7 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".py": python_prose,
     ".toml": hash_comments,
     ".lock": hash_comments,
+    ".in": hash_comments,
     ".config": hash_comments,
     ".yaml": hash_comments,
     "Dockerfile": hash_comments,
