@@ -286,7 +286,7 @@ reference we transcribe from permits ([`architecture/cross-cutting.md`](architec
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `AUD-013` | **What a stranger would read:** every tracked file and every commit scanned for personal data — the home path in evidence logs, an email address, machine-specific notes in `AGENTS.md` — producing the scrub list and a home-path class for `scripts/check_device_secrets.py` | open ← next | — | — |
+| `AUD-013` | **What a stranger would read:** every tracked file and every commit scanned for personal data — the home path in evidence logs, an email address, machine-specific notes in `AGENTS.md` — producing the scrub list and a home-path class for `scripts/check_device_secrets.py` | in-progress ← next | [PRD](prd/AUD-013-what-a-stranger-would-read.md) | — |
 | `OPS-002` | **History rewritten once more, then kept clean:** `git filter-repo` from `AUD-013`'s list, rehearsed on a bundle clone, `git log --all -S` finding no marker, force-pushed; machine-specific setup moved to a gitignored local file; an ADR superseding ADR-0015's clause | open | — | — |
 | `OPS-003` | **Licence and notices:** an Apache-2.0 `LICENSE`, a `NOTICE` for the transcribed upstreams, and a third-party listing generated from the rootfs SBOM by a reproducible command, with the corresponding-source offer GPL-2 proot, busybox and the Alpine packages owe | open | — | — |
 | `JD-065` | **Settings shows the licences of everything the APK ships:** the app's own, the transcribed upstreams', and the rootfs packages' with their source offer | open | — | — |
