@@ -49,7 +49,7 @@ git grep -hoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" | sort | uniq -c | s
 
 ## Tasks
 
-- [ ] T1 — `scripts/read_personal_data.py`: per-class hit counts over tracked files (+ `_test.py`).
+- [x] T1 — `scripts/read_personal_data.py`: per-class hit counts over tracked files (+ `_test.py`).
 - [ ] T2 — the scrub list (file, class, replacement) for `OPS-002`; the three PNG frames looked at;
   the email above classified.
 - [ ] T3 — a home-path class in `scripts/check_device_secrets.py`, red test first; the

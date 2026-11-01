@@ -46,6 +46,7 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/clear_system_anr.py" = ["S603"]
 "scripts/read_apk_native_libs.py" = ["S603", "S607"]
 "scripts/read_reference_commands.py" = ["S603", "S607"]
+"scripts/read_personal_data.py" = ["S603", "S607"]
 # The tests run `git ls-files` and the fixture with this interpreter, from literal argv.
 "scripts/check_device_secrets_test.py" = ["S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]
