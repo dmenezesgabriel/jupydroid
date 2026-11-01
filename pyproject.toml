@@ -19,7 +19,7 @@ host = [
 ]
 
 # Run by the commit gate, never imported: ruff lints scripts/ and tools/rootfs/, its S rules carrying bandit's checks,
-# and mypy type-checks scripts/ (OPS-014). types-PyYAML because PyYAML ships no inline types; Pillow does.
+# and mypy type-checks scripts/ (ADR-0131). types-PyYAML because PyYAML ships no inline types; Pillow does.
 dev = [
     "mypy>=2.0,<3",
     "ruff>=0.15,<0.16",
