@@ -111,7 +111,9 @@ and record. Every line of code is still TDD: the red is a planted violation the 
 - [x] T2 — Dependency Analysis plugin. **Rejected for now**: 3.20.1 states it is only known to work
   with AGP 8.10.0 to 9.3.1 and the tree is on 9.5.0; retry when its range reaches the AGP in
   `gradle/libs.versions.toml`. Numbers are in the commit body.
-- [ ] T3 — Konsist against `ArchitectureGuardTest`.
+- [x] T3 — Konsist against `ArchitectureGuardTest`. **Rejected**: 0.18.1 (built with Kotlin 2.4.21)
+  parses all of `app/src/main` (565 files, 59,343 lines) per test class and ran out of memory at the
+  default test heap and again at 2g, after 10m52s. Numbers are in the commit body.
 - [ ] T4 — PMD CPD duplication, threshold from measurement.
 - [ ] T5 — Kover coverage: measure; gate only if a floor means something.
 - [ ] T6 — Pitest, time-boxed.
