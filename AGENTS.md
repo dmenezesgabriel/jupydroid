@@ -278,6 +278,14 @@ Notes:
   `gradle/verification-metadata.xml`, and read their diff. A Gradle bump re-runs
   `./gradlew wrapper --gradle-version <v> --distribution-type bin --gradle-distribution-sha256-sum <published>`
   and never edits `gradle-wrapper.properties` by hand.
+- Python dependencies are declared, locked and verified by sha256 too
+  ([ADR-0130](docs/adr/0130-python-dependencies-are-locked-and-verified-by-sha256.md)). A host bump
+  edits `pyproject.toml`, runs `uv lock` (`--upgrade-package <name>` for one package), then the
+  unittest command above, and commits `uv.lock`. A rootfs bump edits `tools/rootfs/requirements.in`
+  (or `jupyter-ai-tools.in`), re-runs the command in the header of the matching `.lock` from
+  `tools/rootfs/` (add `--upgrade-package <name>` to move one package; a bare compile keeps today's
+  pins), rebuilds the image, and commits the lock after reading its diff. Never edit a lock by hand
+  or drop `--require-hashes` to get a build through.
 
 
 ## Host resources
