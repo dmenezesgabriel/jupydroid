@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import sys
+from typing import Any
 
 
 def outputs_of(path: str) -> str:
@@ -24,7 +25,7 @@ def outputs_of(path: str) -> str:
     return "\n\n".join(blocks)
 
 
-def rendered(cell: dict) -> str:
+def rendered(cell: dict[str, Any]) -> str:
     """One cell's outputs, or a note saying it produced none."""
     lines = []
     for output in cell.get("outputs", []):

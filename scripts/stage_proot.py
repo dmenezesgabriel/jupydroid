@@ -52,7 +52,7 @@ def carve_embedded_elf(outer: bytes) -> bytes:
 def _elf64_extent(header: bytes) -> int:
     (section_offset,) = struct.unpack_from("<Q", header, 0x28)
     entry_size, entry_count = struct.unpack_from("<HH", header, 0x3A)
-    return section_offset + entry_size * entry_count
+    return int(section_offset + entry_size * entry_count)
 
 
 def require_pinned(payload: bytes, expected_sha256: str, name: str) -> None:

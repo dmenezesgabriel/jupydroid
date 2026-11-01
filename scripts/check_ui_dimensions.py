@@ -93,7 +93,7 @@ def _is_documented(lines: list[str], at: int) -> bool:
     return at > 0 and bool(KDOC_END.match(lines[at - 1]))
 
 
-def _message(relative: str, at: int, line: str, declared: re.Match | None, value: str) -> str:
+def _message(relative: str, at: int, line: str, declared: re.Match[str] | None, value: str) -> str:
     if declared:
         return (
             f"{relative}:{at + 1}: `{declared.group(1)}` is {value}.dp with no KDoc saying why - "

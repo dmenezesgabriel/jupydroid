@@ -11,8 +11,10 @@ its first colon, so `code:` is an empty code cell.
 
 import json
 import sys
+from typing import Any
 
-TypedNotebook = dict[str, object]
+# JSON read off disk: its shape is checked where it is used, so the values are Any, not object.
+TypedNotebook = dict[str, Any]
 TypedCell = tuple[str, str]
 
 
@@ -38,7 +40,7 @@ def expected_pairs(arguments: list[str]) -> list[TypedCell]:
     malformed = [a for a in arguments if ":" not in a]
     if malformed:
         raise CellReadError(f"expected cells as type:source, e.g. code:print(1), got {malformed}")
-    return [tuple(a.split(":", 1)) for a in arguments]
+    return [(kind, source) for kind, source in (a.split(":", 1) for a in arguments)]
 
 
 def require_cells(cells: list[TypedCell], expected: list[TypedCell]) -> None:

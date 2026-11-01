@@ -65,6 +65,14 @@ repos:
         entry: uv run --locked ruff format --check
         language: system
         types: [python]
+      # Whole program, not the staged files: a changed signature breaks its callers in files the
+      # commit does not touch. Config (strict, tests excluded and why) lives in pyproject.toml.
+      - id: mypy
+        name: python types (mypy)
+        entry: uv run --locked mypy
+        language: system
+        types: [python]
+        pass_filenames: false
       # **The source sets are named, and that is the repair rather than a detail.** `ktlintCheck`
       # is an aggregate over whatever tasks the plugin happened to register, so when it registered
       # none for Kotlin it resolved to the `.kts` build scripts and reported "Passed" for months

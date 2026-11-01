@@ -54,6 +54,7 @@ import sys
 import xml.etree.ElementTree as ElementTree
 
 from PIL import Image
+from pixel_reads import pixel_at
 
 #: `bounds="[left,top][right,bottom]"`, the one notation `uiautomator dump` writes them in.
 BOUNDS = re.compile(r"\[(\d+),(\d+)]\[(\d+),(\d+)]")
@@ -131,7 +132,7 @@ def _scale(frame: tuple[int, int], screen: tuple[int, int]) -> float:
 
 def _mode_colour(region: Image.Image) -> str:
     width, height = region.size
-    counted = collections.Counter(region.getpixel((x, y))[:3] for y in range(height) for x in range(width))
+    counted = collections.Counter(pixel_at(region, (x, y))[:3] for y in range(height) for x in range(width))
     (red, green, blue), _ = counted.most_common(1)[0]
     return f"#{red:02X}{green:02X}{blue:02X}"
 

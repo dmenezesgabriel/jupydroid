@@ -33,6 +33,7 @@ Tests in terminal_content_extent_test.py.
 from __future__ import annotations
 
 from PIL import Image
+from pixel_reads import pixel_at
 
 #: How far a pixel's own R+G+B sum must sit from the sampled background's before it is ink -
 #: comfortably below the ~450 gap a real light-on-dark or dark-on-light glyph measures, and
@@ -60,7 +61,7 @@ def terminal_content_bottom_y(
     Returns [content_top_y] unchanged if nothing terminal-sized is found at all.
     """
     image = Image.open(image_path).convert("RGB")
-    background = image.getpixel((_BACKGROUND_SAMPLE_X, content_top_y))
+    background = pixel_at(image, (_BACKGROUND_SAMPLE_X, content_top_y))
     bottom_y = content_top_y
     for start, end in _ink_bands(image, x_range, content_top_y, background):
         if end - start + 1 > _MAX_GLYPH_STROKE_HEIGHT:
@@ -89,7 +90,7 @@ def terminal_row_spacing_px(
         assert big > small  # a bigger font sets a taller cell
     """
     image = Image.open(image_path).convert("RGB")
-    background = image.getpixel((_BACKGROUND_SAMPLE_X, content_top_y))
+    background = pixel_at(image, (_BACKGROUND_SAMPLE_X, content_top_y))
     rows = [
         band
         for band in _ink_bands(image, x_range, content_top_y, background)
@@ -135,7 +136,7 @@ def _ink_bands(
     image: Image.Image,
     x_range: tuple[int, int],
     top_y: int,
-    background: tuple[int, int, int],
+    background: tuple[int, ...],
 ) -> list[tuple[int, int]]:
     """Consecutive-row runs with a pixel in [x_range] that contrasts against [background]."""
     x_start, x_end = x_range
@@ -145,7 +146,7 @@ def _ink_bands(
     band_start: int | None = None
     for y in range(top_y, height):
         row_has_ink = any(
-            abs(sum(image.getpixel((x, y))) - background_sum) > _CONTRAST_THRESHOLD for x in range(x_start, x_end)
+            abs(sum(pixel_at(image, (x, y))) - background_sum) > _CONTRAST_THRESHOLD for x in range(x_start, x_end)
         )
         if row_has_ink and band_start is None:
             band_start = y

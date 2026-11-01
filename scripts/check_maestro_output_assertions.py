@@ -40,6 +40,7 @@ import json
 import pathlib
 import re
 import sys
+from typing import Any
 
 import yaml
 
@@ -114,7 +115,7 @@ def missing_fixture(flow: pathlib.Path, scripts: pathlib.Path) -> list[str]:
     return [f"{flow}: its driver names a fixture that is not on disk ({fixture}); an unexpanded shell variable?"]
 
 
-def steps(flow: pathlib.Path) -> list:
+def steps(flow: pathlib.Path) -> list[Any]:
     documents = list(yaml.safe_load_all(flow.read_text()))
     return documents[-1] if len(documents) > 1 and isinstance(documents[-1], list) else []
 

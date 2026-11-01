@@ -81,7 +81,7 @@ def shipped_busybox(tarball: pathlib.Path) -> bytes | None:
             member = archive.extractfile(BUSYBOX_MEMBER)
         except KeyError:
             return None
-        return member.read()
+        return None if member is None else member.read()
 
 
 def main(root: pathlib.Path = pathlib.Path()) -> int:

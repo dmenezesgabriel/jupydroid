@@ -34,6 +34,7 @@ from collections.abc import Iterator
 from typing import BinaryIO, TextIO
 
 from PIL import Image
+from pixel_reads import pixel_at
 
 _HEADER = struct.Struct("<5I")
 _RGB_888 = 3
@@ -90,7 +91,7 @@ def modal_colour(image: Image.Image) -> tuple[str, float]:
     """
     width, height = image.size
     counts = collections.Counter(
-        image.getpixel((x, y)) for y in range(0, height, _SAMPLE_STEP) for x in range(0, width, _SAMPLE_STEP)
+        pixel_at(image, (x, y)) for y in range(0, height, _SAMPLE_STEP) for x in range(0, width, _SAMPLE_STEP)
     )
     (red, green, blue), count = counts.most_common(1)[0]
     return f"#{red:02X}{green:02X}{blue:02X}", count / sum(counts.values())

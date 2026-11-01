@@ -123,7 +123,7 @@ and record. Every line of code is still TDD: the red is a planted violation the 
   fix the real ones, suppress none to force green.
 - [x] T2 — ruff format. Measure the diff; apply it as its own commit; wire `ruff format --check`.
 - [x] T3 — ruff `S` (bandit's checks). Measure; fix or justify each finding by name; decide on bandit.
-- [ ] T4 — mypy over `scripts/`. Measure at the strictness the gates already satisfy.
+- [x] T4 — mypy over `scripts/`. Measure at the strictness the gates already satisfy.
 - [ ] T5 — mypy over `tools/rootfs/`.
 - [ ] T6 — The ADR (kept and rejected, with numbers) and ship: delete this PRD, edit the backlog row.
 

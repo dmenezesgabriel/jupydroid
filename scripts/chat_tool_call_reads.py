@@ -18,9 +18,11 @@ the shipped rootfs) keeps a message's calls in `metadata.tool_calls`, with snake
 import json
 import re
 import sys
+from typing import Any
 
-TypedMessage = dict[str, object]
-TypedCall = dict[str, object]
+# JSON read off disk: its shape is checked where it is used, so the values are Any, not object.
+TypedMessage = dict[str, Any]
+TypedCall = dict[str, Any]
 
 PERSONA_PREFIX = "jupyter-ai-personas::"
 COUNT_LIMIT = 1000
@@ -80,7 +82,7 @@ def require_allowed_and_rejected(messages: list[TypedMessage], allowed_text: str
 
 
 def newest_answer(messages: list[TypedMessage]) -> str:
-    return [m for m in messages if str(m["sender"]).startswith(PERSONA_PREFIX)][-1]["body"]
+    return str([m for m in messages if str(m["sender"]).startswith(PERSONA_PREFIX)][-1]["body"])
 
 
 def require_stopped_short(first: list[TypedMessage], later: list[TypedMessage]) -> tuple[int, int | None]:
@@ -170,7 +172,8 @@ def require_refused_with(messages: list[TypedMessage], title: str, value: str) -
 
 def read_messages(path: str) -> list[TypedMessage]:
     with open(path, encoding="utf-8") as chat:
-        return json.load(chat)["messages"]
+        messages: list[TypedMessage] = json.load(chat)["messages"]
+    return messages
 
 
 def main(argv: list[str]) -> int:

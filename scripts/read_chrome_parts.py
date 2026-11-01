@@ -45,6 +45,7 @@ import dataclasses
 import sys
 
 from PIL import Image
+from pixel_reads import pixel_at
 
 #: Narrower than this and it is a seam between parts rather than a part. The rail is the narrowest
 #: real part at ~120px on this project's tablet, and a `strokeThickness` border is 1-2px.
@@ -105,7 +106,7 @@ def column_colour(image: Image.Image, x: int) -> str:
     height = image.size[1]
     top, bottom = int(height * _Y_WINDOW[0]), int(height * _Y_WINDOW[1])
     step = max(1, (bottom - top) // _SAMPLES)
-    counts = collections.Counter(image.getpixel((x, y))[:3] for y in range(top, bottom, step))
+    counts = collections.Counter(pixel_at(image, (x, y))[:3] for y in range(top, bottom, step))
     red, green, blue = counts.most_common(1)[0][0]
     return f"#{red:02X}{green:02X}{blue:02X}"
 

@@ -182,7 +182,8 @@ def contrast_ratio(one: str, other: str) -> float:
 def role_foreground(theme: dict[str, Any], role: str) -> str | None:
     """One `SyntaxPalette` role's colour: `plain` is the editor's own foreground, the rest scopes."""
     if role == "plain":
-        return theme["colors"].get("editor.foreground")
+        foreground: str | None = theme["colors"].get("editor.foreground")
+        return foreground
     scopes = SYNTAX_SCOPES[role]
     return next((color for scope in scopes if (color := scope_foreground(theme, scope))), None)
 
