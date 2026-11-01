@@ -63,7 +63,7 @@ git grep -hoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" | sort | uniq -c | s
 - [x] T3 — `home_rule(home)` in `scripts/check_device_secrets.py` (the host's `/home/<name>`, never
   stored) and the scrubber applying it, red test first. Split from the gate class: refusing the home
   turns the whole-tree sweep red until T4 cleans 1127 evidence files.
-- [ ] T4 — the tree scrubbed: evidence through `scripts/scrub_device_secrets.py`; `scripts/java-home.sh`
+- [x] T4 — the tree scrubbed: evidence through `scripts/scrub_device_secrets.py`; `scripts/java-home.sh`
   uses `$HOME` (`scripts/java_home_test.py`); the `AGENTS.md` machine note made generic - no local
   file, since the script derives the path the note held and nothing would read one.
 - [ ] T5 — the gate refuses the host's home in `main`; the whole-tree sweep stays green.

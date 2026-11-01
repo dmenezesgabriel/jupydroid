@@ -31,6 +31,10 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py314"
+# evidence/ holds captured runs, not source: a harness copy there is a record, so it is neither linted
+# nor reformatted. The hooks pass --force-exclude because pre-commit hands ruff the staged filenames, and
+# a named file ignores an exclude without it.
+extend-exclude = ["evidence"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S"]

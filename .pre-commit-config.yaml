@@ -56,13 +56,13 @@ repos:
       # local gate and CI run one ruff. Rules and per-file exceptions live in pyproject.toml.
       - id: ruff-check
         name: python lint (ruff)
-        entry: uv run --locked ruff check
+        entry: uv run --locked ruff check --force-exclude
         language: system
         types: [python]
       # Also a pure checker: `ruff format --check` fails, a person runs `ruff format` (rule 7).
       - id: ruff-format
         name: python format (ruff)
-        entry: uv run --locked ruff format --check
+        entry: uv run --locked ruff format --check --force-exclude
         language: system
         types: [python]
       # Whole program, not the staged files: a changed signature breaks its callers in files the
