@@ -1,6 +1,6 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.window.core.layout.WindowSizeClass
 
@@ -41,7 +41,7 @@ internal fun labelsFitOnActionRow(widthDp: Int): Boolean = widthDp >= MEDIUM_WID
 /** What the current window says, for callers with no reason to care how it is measured. */
 @Composable
 internal fun labelsFitOnActionRow(): Boolean =
-  currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(MEDIUM_WIDTH_DP)
+  currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(MEDIUM_WIDTH_DP)
 
 /** `WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND`, restated so the pure rule needs no android. */
 private const val MEDIUM_WIDTH_DP = WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND

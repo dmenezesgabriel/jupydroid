@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.shell
 
 import com.jupydroid.app.MainDispatcherRule
@@ -11,6 +13,7 @@ import com.jupydroid.app.domain.model.SearchProgress
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.port.WorkspaceSearcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll

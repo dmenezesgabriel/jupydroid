@@ -1,9 +1,12 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.SnapshotReadWatch
 import com.jupydroid.app.domain.model.TextEdit
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.console
 
 import androidx.compose.foundation.text.input.insert
@@ -20,6 +22,7 @@ import com.jupydroid.app.ui.editor.ExecutionStatus
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import com.jupydroid.app.ui.editor.RecordingKernelGateway
 import com.jupydroid.app.ui.editor.StaleSessionKernelGateway
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow

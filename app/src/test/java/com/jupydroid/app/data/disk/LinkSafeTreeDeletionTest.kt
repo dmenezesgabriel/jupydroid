@@ -17,7 +17,7 @@ class LinkSafeTreeDeletionTest {
     val outside = File(tempFolder.newFolder("outside"), "kept.txt").apply { writeText("kept") }
     val root = tempFolder.newFolder("root")
     File(root, "a/b/file.txt").apply { parentFile!!.mkdirs() }.writeText("gone")
-    Files.createSymbolicLink(File(root, "a/out").toPath(), outside.parentFile.toPath())
+    Files.createSymbolicLink(File(root, "a/out").toPath(), outside.parentFile!!.toPath())
 
     deleteTreeUnlinkingLinks(root.toPath())
 

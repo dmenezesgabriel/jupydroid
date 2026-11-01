@@ -2,9 +2,9 @@ package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Stop
@@ -76,7 +76,7 @@ internal fun DebuggerControlBar(
     }
     if (onToggleVariables != null) {
       IconButton(onClick = onToggleVariables) {
-        Icon(Icons.Filled.List, contentDescription = SHOW_DEBUGGER_PANEL)
+        Icon(Icons.AutoMirrored.Filled.List, contentDescription = SHOW_DEBUGGER_PANEL)
       }
     }
   }

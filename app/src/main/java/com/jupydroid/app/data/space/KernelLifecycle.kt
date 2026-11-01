@@ -249,7 +249,7 @@ class OkHttpKernelLifecycle(
    * record of a process that is not there. Anything else, **200 included**, is a refusal.
    */
   private fun requireSessionGone(response: Response, serverSessionId: String) {
-    val body = response.body?.string().orEmpty()
+    val body = response.body.string()
     when (response.code) {
       SESSION_DELETED -> Unit
       SESSION_ALREADY_GONE -> log.reached(KernelLog.SESSION_ALREADY_GONE, mapOf("sessionId" to serverSessionId))
@@ -293,7 +293,7 @@ private class SessionRest(
       .build()
 
     client.newCall(request).execute().use { response ->
-      val body = response.body?.string().orEmpty()
+      val body = response.body.string()
       if (!response.isSuccessful) {
         throw KernelLifecycleException("GET $path failed: HTTP ${response.code} $body")
       }
@@ -318,7 +318,7 @@ private class SessionRest(
       .build()
 
     return client.newCall(request).execute().use { response ->
-      val answer = response.body?.string().orEmpty()
+      val answer = response.body.string()
       if (!response.isSuccessful) {
         throw KernelLifecycleException("$method $path failed: HTTP ${response.code} $answer")
       }

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.data.fake.FakeNotebookExporter
@@ -6,6 +8,7 @@ import com.jupydroid.app.domain.port.ExportedDocument
 import com.jupydroid.app.domain.port.NotebookExportException
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

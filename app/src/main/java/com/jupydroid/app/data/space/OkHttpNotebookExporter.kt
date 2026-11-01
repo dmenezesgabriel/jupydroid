@@ -101,7 +101,7 @@ class OkHttpNotebookExporter(
     client.newCall(request).execute().use { response ->
       NbConvertAnswer(
         code = response.code,
-        bytes = response.body?.bytes() ?: ByteArray(0),
+        bytes = response.body.bytes(),
         contentType = response.header("Content-Type"),
         contentDisposition = response.header("Content-Disposition"),
       )

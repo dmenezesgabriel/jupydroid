@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.fileeditor
 
 import com.jupydroid.app.MainDispatcherRule
@@ -9,6 +11,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.syntax.JsonSyntax
 import com.jupydroid.app.syntax.PythonSyntax
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest

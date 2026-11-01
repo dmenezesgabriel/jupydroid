@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
@@ -16,6 +18,7 @@ import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.SteppingCommand
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope

@@ -242,6 +242,8 @@ class NotebookRoundTripTest {
   }
 
   private companion object {
+    val lenientJson = Json { ignoreUnknownKeys = true }
+
     val ORIGINAL: JsonObject = json(
       """
       {
@@ -304,7 +306,7 @@ class NotebookRoundTripTest {
 
     fun json(text: String): JsonElement = Json.parseToJsonElement(text)
 
-    fun JsonObject.toNotebook() = Json { ignoreUnknownKeys = true }
+    fun JsonObject.toNotebook() = lenientJson
       .decodeFromJsonElement(NotebookFile.serializer(), this)
       .toDomain(id = "nb", preserved = this)
 

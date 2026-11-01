@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.KernelSessionRegistry
@@ -5,6 +7,7 @@ import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.ServerConnection
 import com.jupydroid.app.domain.port.ServerLauncher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList

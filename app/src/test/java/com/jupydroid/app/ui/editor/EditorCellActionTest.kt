@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.ui.text.TextRange
@@ -15,6 +17,7 @@ import com.jupydroid.app.domain.port.LanguageRange
 import com.jupydroid.app.domain.port.LanguageServerException
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LanguageWorkspaceEdit
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

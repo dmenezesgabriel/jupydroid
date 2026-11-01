@@ -113,7 +113,7 @@ object MarkdownDocument {
     is IndentedCodeBlock -> RichBlock.CodeBlock(literal, null)
     is BlockQuote -> RichBlock.BlockQuote(blocks())
     is BulletList -> RichBlock.ListBlock(ordered = false, startFrom = 1, items = items())
-    is OrderedList -> RichBlock.ListBlock(ordered = true, startFrom = startNumber, items = items())
+    is OrderedList -> RichBlock.ListBlock(ordered = true, startFrom = markerStartNumber ?: 1, items = items())
     is ThematicBreak -> RichBlock.ThematicBreak
     is TableBlock -> asTable { it.inlines() }
     // Anything else - link reference definitions - has no place in a notebook cell and is dropped

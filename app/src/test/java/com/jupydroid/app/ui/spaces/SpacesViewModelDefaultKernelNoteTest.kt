@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.spaces
 
 import com.jupydroid.app.MainDispatcherRule
@@ -10,6 +12,7 @@ import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.KernelSpecModels
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

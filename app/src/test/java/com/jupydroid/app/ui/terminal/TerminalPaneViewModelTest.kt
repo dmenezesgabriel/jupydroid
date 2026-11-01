@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.ui.terminal
 
 import androidx.compose.ui.unit.IntSize
@@ -10,6 +12,7 @@ import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.terminal.CellStyle
 import com.jupydroid.app.terminal.TerminalPalette
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest

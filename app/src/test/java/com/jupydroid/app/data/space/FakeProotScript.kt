@@ -24,7 +24,7 @@ object FakeProotScript {
 
   /** Writes an executable `#!/bin/sh` [body] at in-root [program] of [root], standing in for it. */
   fun program(root: File, program: String, body: String): File = File(root, program.removePrefix("/")).apply {
-    parentFile.mkdirs()
+    parentFile!!.mkdirs()
     writeText("#!/bin/sh\n${body.trimIndent()}\n")
     setExecutable(true)
   }

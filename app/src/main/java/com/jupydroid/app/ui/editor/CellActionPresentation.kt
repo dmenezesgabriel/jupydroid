@@ -1,6 +1,6 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.runtime.Composable
 import androidx.window.core.layout.WindowSizeClass
 
@@ -30,7 +30,7 @@ internal fun cellActionPresentationFor(widthDp: Int): CellActionPresentation =
 /** What the current window says, for callers that have no reason to care how it is measured. */
 @Composable
 internal fun currentCellActionPresentation(): CellActionPresentation =
-  if (currentWindowAdaptiveInfo().windowSizeClass.isWidthAtLeastBreakpoint(MEDIUM_WIDTH_DP)) {
+  if (currentWindowAdaptiveInfoV2().windowSizeClass.isWidthAtLeastBreakpoint(MEDIUM_WIDTH_DP)) {
     CellActionPresentation.MENU
   } else {
     CellActionPresentation.SHEET

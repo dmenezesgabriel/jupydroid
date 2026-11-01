@@ -33,8 +33,12 @@ class AppWindowTest {
    * the whole window to keep the focused field visible, which dragged the top app bar up **under
    * the status bar** every time a cell was tapped: `Back` measured `[16,44][40,68]` with no
    * keyboard and `[16,0][40,17]` with one.
+   *
+   * `SOFT_INPUT_ADJUST_RESIZE` is deprecated by the platform, but the manifest still declares
+   * `adjustResize` (`AndroidManifest.xml`), and this test is the check that it took effect.
    */
   @Test
+  @Suppress("DEPRECATION")
   fun theActivityResizesForTheKeyboardRatherThanPanning() {
     ActivityScenario.launch(MainActivity::class.java).use { scenario ->
       scenario.onActivity { activity ->

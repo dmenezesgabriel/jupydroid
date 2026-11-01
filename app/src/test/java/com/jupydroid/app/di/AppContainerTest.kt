@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeKernelGateway
@@ -14,6 +16,7 @@ import com.jupydroid.app.domain.model.WorkspaceChange
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.ui.editor.AnnouncingWorkspaceFiles
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.advanceTimeBy

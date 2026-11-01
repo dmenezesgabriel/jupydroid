@@ -1,7 +1,7 @@
 package com.jupydroid.app
 
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.adaptive.layout.PaneScaffoldDirective
 import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
 import androidx.compose.runtime.Composable
@@ -20,7 +20,7 @@ import androidx.compose.runtime.Composable
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 internal fun paneScaffoldDirective(): PaneScaffoldDirective =
-  calculatePaneScaffoldDirective(currentWindowAdaptiveInfo())
+  calculatePaneScaffoldDirective(currentWindowAdaptiveInfoV2())
 
 /** Whether this window has room for both panes, which is `maxHorizontalPartitions > 1`. */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -30,7 +30,7 @@ internal fun isWindowWideEnoughForTwoPanes(): Boolean = paneScaffoldDirective().
 /**
  * The directive with both panes forbidden, for a caller that has been told to draw one.
  *
- * The seam exists because `currentWindowAdaptiveInfo()` measures the **activity's** window, which a
+ * The seam exists because `currentWindowAdaptiveInfoV2()` measures the **activity's** window, which a
  * `DeviceConfigurationOverride` around a composable does not change - so a test cannot choose the
  * branch by forcing a width, and would drive one branch twice while appearing to cover both. The
  * same reason `MainNavigation` takes `twoPane` as a parameter at all (`CellActionsTest`).

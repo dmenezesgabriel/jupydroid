@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -114,7 +114,10 @@ private fun ReplaceChevron(shown: Boolean, onToggleShown: () -> Unit) {
   ) {
     // The shape says which way the row is, so the label says what a tap will *do*, which is this
     // app's rule for every toggle.
-    Icon(if (shown) Icons.Filled.ExpandMore else Icons.Filled.KeyboardArrowRight, contentDescription = null)
+    Icon(
+      if (shown) Icons.Filled.ExpandMore else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+      contentDescription = null,
+    )
   }
 }
 

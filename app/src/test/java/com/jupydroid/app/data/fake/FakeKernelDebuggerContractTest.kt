@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalCoroutinesApi::class)
+
 package com.jupydroid.app.data.fake
 
 import com.jupydroid.app.domain.port.BreakpointRequest
@@ -6,6 +8,7 @@ import com.jupydroid.app.domain.port.KernelDebugger
 import com.jupydroid.app.domain.port.KernelDebuggerContract
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.SteppingCommand
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
