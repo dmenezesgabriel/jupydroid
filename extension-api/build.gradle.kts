@@ -40,6 +40,13 @@ android {
 
 kotlin {
     jvmToolchain(17)
+    // A new compiler warning fails the build: 658 had piled up unread across the source sets,
+    // and a warning nobody is made to read is one nobody reads.
+    // Every declaration an extension can see is public on purpose (ADR-0104), never by default.
+    explicitApi()
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
 }
 
 detekt {

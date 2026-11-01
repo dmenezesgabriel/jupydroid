@@ -106,7 +106,7 @@ claim to verify in the task, on the pin that task resolves.
 Each: trial on the tree → decide → wire (pre-commit and the `AGENTS.md` command) → commit, or reject
 and record. Every line of code is still TDD: the red is a planted violation the gate must fail.
 
-- [ ] T1 — Compiler strictness: `allWarningsAsErrors` on every module and `explicitApi()` on
+- [x] T1 — Compiler strictness: `allWarningsAsErrors` on every module and `explicitApi()` on
   `:extension-api`. Measure warnings per module first; fix real findings, suppress none to force green.
 - [ ] T2 — Dependency Analysis plugin.
 - [ ] T3 — Konsist against `ArchitectureGuardTest`.

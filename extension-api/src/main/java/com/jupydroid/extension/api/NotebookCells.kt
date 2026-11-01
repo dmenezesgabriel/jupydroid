@@ -18,18 +18,18 @@ package com.jupydroid.extension.api
  * val id = host.notebookCells.insert(0, NotebookCellType.CODE, "print(42)")
  * ```
  */
-interface NotebookCells {
+public interface NotebookCells {
   /** Whether a notebook is open with an active cell, read as Compose state so a button follows it. */
-  val available: Boolean
+  public val available: Boolean
 
   /** The open notebook's path in the workspace, as the server's REST API takes it; null with none open. */
-  val path: String?
+  public val path: String?
 
   /** The open notebook's cells in order, read when asked rather than when the notebook opened. */
-  val cells: List<NotebookCellSummary>
+  public val cells: List<NotebookCellSummary>
 
   /** The active cell's id, or null when no notebook is open or none of its cells is active. */
-  val activeCellId: String?
+  public val activeCellId: String?
 
   /**
    * Puts a cell of [type] holding [source] at [index], from 0 above the first cell to the cell count
@@ -38,10 +38,10 @@ interface NotebookCells {
    * @return the new cell's id, or null when no notebook is open.
    * @throws IllegalArgumentException when [index] is outside 0 to the cell count.
    */
-  fun insert(index: Int, type: NotebookCellType, source: String): String?
+  public fun insert(index: Int, type: NotebookCellType, source: String): String?
 
   /** Puts [code] in a new code cell below the active one, which then becomes active; nothing with no active cell. */
-  fun insertBelow(code: String) {
+  public fun insertBelow(code: String) {
     val active = cells.indexOfFirst { it.id == activeCellId }
     if (active < 0) return
     insert(active + 1, NotebookCellType.CODE, code)
@@ -49,7 +49,7 @@ interface NotebookCells {
 }
 
 /** One cell as [NotebookCells] lists it: `get-notebook-info`'s `{cellId, cellType}`. */
-data class NotebookCellSummary(val id: String, val type: NotebookCellType)
+public data class NotebookCellSummary(public val id: String, public val type: NotebookCellType)
 
 /** nbformat's three `cell_type`s. */
-enum class NotebookCellType { CODE, MARKDOWN, RAW }
+public enum class NotebookCellType { CODE, MARKDOWN, RAW }

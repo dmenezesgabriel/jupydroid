@@ -16,12 +16,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
  * }
  * ```
  */
-interface Extension {
+public interface Extension {
   /** The panels this extension puts on the side rail, in the order it wants them. */
-  val sidePanels: List<SidePanelContribution>
+  public val sidePanels: List<SidePanelContribution>
 
   /** The kinds of file this extension opens as a main-area tab, by suffix; none unless it says. */
-  val documents: List<DocumentContribution> get() = emptyList()
+  public val documents: List<DocumentContribution> get() = emptyList()
 }
 
 /**
@@ -35,11 +35,11 @@ interface Extension {
  * @param label the rail item's name, for a screen reader and a flow, and the panel's title bar.
  * @param content the panel's body. The host draws the title bar and the side bar's surface around it.
  */
-class SidePanelContribution(
-  val id: String,
-  val label: String,
-  val icon: ImageVector,
-  val content: @Composable (SidePanelHost) -> Unit,
+public class SidePanelContribution(
+  public val id: String,
+  public val label: String,
+  public val icon: ImageVector,
+  public val content: @Composable (SidePanelHost) -> Unit,
 )
 
 /**
@@ -60,12 +60,12 @@ class SidePanelContribution(
  * @param content the tab's body, given the file's path relative to the workspace root and what the
  *   shell gives a panel.
  */
-class DocumentContribution(
-  val id: String,
-  val suffix: String,
-  val icon: ImageVector,
-  val movesTo: SidePanelMove? = null,
-  val content: @Composable (path: String, host: SidePanelHost) -> Unit,
+public class DocumentContribution(
+  public val id: String,
+  public val suffix: String,
+  public val icon: ImageVector,
+  public val movesTo: SidePanelMove? = null,
+  public val content: @Composable (path: String, host: SidePanelHost) -> Unit,
 )
 
 /**
@@ -80,4 +80,4 @@ class DocumentContribution(
  * @param panelId the [SidePanelContribution.id] of the panel shown.
  * @param open tells that panel which file to show, before it is drawn: a path relative to the workspace root.
  */
-class SidePanelMove(val panelId: String, val open: (path: String) -> Unit)
+public class SidePanelMove(public val panelId: String, public val open: (path: String) -> Unit)

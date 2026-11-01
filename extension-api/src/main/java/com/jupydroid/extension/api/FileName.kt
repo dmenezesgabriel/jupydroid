@@ -19,7 +19,7 @@ package com.jupydroid.extension.api
  * extension that names a file in the workspace answers to the same server (ADR-0104). Pure, so it
  * needs no file, no repository, nothing to mock.
  */
-fun isValidFileName(name: String): Boolean {
+public fun isValidFileName(name: String): Boolean {
   val trimmed = name.trim()
   return trimmed.isNotEmpty() && FORBIDDEN.none { it in trimmed } && !trimmed.startsWith(".")
 }

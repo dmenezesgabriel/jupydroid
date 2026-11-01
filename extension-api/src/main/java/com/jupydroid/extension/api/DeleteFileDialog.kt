@@ -27,7 +27,7 @@ import androidx.compose.runtime.Composable
  * ```
  */
 @Composable
-fun DeleteFileDialog(name: String, onDelete: () -> Unit, onDismiss: () -> Unit) {
+public fun DeleteFileDialog(name: String, onDelete: () -> Unit, onDismiss: () -> Unit) {
   AlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Delete") },

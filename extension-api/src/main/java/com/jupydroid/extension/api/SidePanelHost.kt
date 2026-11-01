@@ -20,13 +20,13 @@ package com.jupydroid.extension.api
  * @param fileOpener opens a workspace file in the host's editor, for settings a panel keeps in a file
  *   the explorer does not list, as jupyter-ai keeps its MCP servers in `.jupyter/mcp_settings.json`.
  */
-data class SidePanelHost(
-  val browsedDirectory: String,
-  val server: SpaceServerEndpoint?,
-  val spaceId: String,
-  val markdown: MarkdownRenderer,
-  val notebookCells: NotebookCells,
-  val fileOpener: WorkspaceFileOpener,
+public data class SidePanelHost(
+  public val browsedDirectory: String,
+  public val server: SpaceServerEndpoint?,
+  public val spaceId: String,
+  public val markdown: MarkdownRenderer,
+  public val notebookCells: NotebookCells,
+  public val fileOpener: WorkspaceFileOpener,
 )
 
 /**
@@ -41,10 +41,10 @@ data class SidePanelHost(
  * Request.Builder().url(address.baseUrl + "/git/status").header("Authorization", "token ${address.token}")
  * ```
  */
-fun interface SpaceServerEndpoint {
+public fun interface SpaceServerEndpoint {
   /** The running server's address, starting the Space's server if none is running. */
-  suspend fun address(): ServerAddress
+  public suspend fun address(): ServerAddress
 }
 
 /** Where a running `jupyter_server` listens, and the token it requires on every request. */
-data class ServerAddress(val baseUrl: String, val token: String)
+public data class ServerAddress(public val baseUrl: String, public val token: String)

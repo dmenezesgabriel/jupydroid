@@ -208,6 +208,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | ktlint | formatter + check | `.editorconfig` (`org.jlleitschuh.gradle.ktlint` **14.x**; 12.x registers no source-set task under AGP 9) |
 | detekt | static analysis | `config/detekt/detekt.yml` |
 | Android Lint | Android-specific checks | AGP built-in (`:app:lintDebug`) |
+| compiler strictness | a new Kotlin warning fails the build; `:extension-api` also states every visibility and return type | `kotlin { compilerOptions { allWarningsAsErrors } }` in each module, `explicitApi()` in `extension-api/build.gradle.kts` |
 | pre-commit | commit gate | `.pre-commit-config.yaml` |
 | file-length gate | ≤500 lines/file | `scripts/check-file-line-length.sh` |
 | ShellCheck | every shell script, followed into what it sources | `.pre-commit-config.yaml` (`koalaman/shellcheck-precommit` v0.11.0, needs Docker) + `.shellcheckrc` |

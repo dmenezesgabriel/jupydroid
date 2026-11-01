@@ -2,6 +2,7 @@ package com.jupydroid.extension.api
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
@@ -27,13 +28,13 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * slot.withdraw(row)     // it leaves; a row published since is kept
  * ```
  */
-class WindowKeyRowSlot {
+public class WindowKeyRowSlot {
   /** What the window draws above the keyboard, or null when nothing being typed into wants a row. */
-  var row by mutableStateOf<(@Composable () -> Unit)?>(null)
+  public var row: (@Composable () -> Unit)? by mutableStateOf<(@Composable () -> Unit)?>(null)
     private set
 
   /** Shows [row], replacing whichever row was showing. */
-  fun publish(row: @Composable () -> Unit) {
+  public fun publish(row: @Composable () -> Unit) {
     this.row = row
   }
 
@@ -41,7 +42,7 @@ class WindowKeyRowSlot {
    * Takes [row] away, and only [row]: when one document replaces another, the incoming screen can
    * publish before the outgoing one is disposed (`WindowKeyRowSlotTest`).
    */
-  fun withdraw(row: @Composable () -> Unit) {
+  public fun withdraw(row: @Composable () -> Unit) {
     if (this.row === row) this.row = null
   }
 }
@@ -52,7 +53,8 @@ class WindowKeyRowSlot {
  * Public only so the host can provide it - `app/src/main/java/com/jupydroid/app/ui/shell/WindowKeyRowHosted.kt`,
  * in another module. An extension publishes through [KeyRowPublished] and never reads this.
  */
-val LocalWindowKeyRowSlot = staticCompositionLocalOf<WindowKeyRowSlot?> { null }
+public val LocalWindowKeyRowSlot: ProvidableCompositionLocal<WindowKeyRowSlot?> =
+  staticCompositionLocalOf<WindowKeyRowSlot?> { null }
 
 /**
  * Puts [row] in the window's key row while this is composed, and takes it away when it leaves.
@@ -65,7 +67,7 @@ val LocalWindowKeyRowSlot = staticCompositionLocalOf<WindowKeyRowSlot?> { null }
  * ```
  */
 @Composable
-fun KeyRowPublished(row: @Composable () -> Unit) {
+public fun KeyRowPublished(row: @Composable () -> Unit) {
   val slot = LocalWindowKeyRowSlot.current
   if (slot == null) {
     row()

@@ -16,7 +16,7 @@ package com.jupydroid.extension.api
  * Button(onClick = open) { Text("MCP servers") }
  * ```
  */
-fun interface WorkspaceFileOpener {
+public fun interface WorkspaceFileOpener {
   /** Opens [path], relative to the workspace root, writing [initialText] to it first when nothing is there. */
-  fun open(path: String, initialText: String)
+  public fun open(path: String, initialText: String)
 }

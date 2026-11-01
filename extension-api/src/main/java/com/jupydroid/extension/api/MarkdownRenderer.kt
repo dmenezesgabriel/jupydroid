@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
  * host.markdown.Draw("## Result\n\n```\nx = 1\n```", Modifier.padding(8.dp)) { code -> Text(code) }
  * ```
  */
-fun interface MarkdownRenderer {
+public fun interface MarkdownRenderer {
   /**
    * Draws [source], a CommonMark document with GitHub's tables, strikethrough and autolinks.
    *
@@ -25,5 +25,5 @@ fun interface MarkdownRenderer {
    *   (jupyter-chat@2c224bc `packages/jupyter-chat/src/components/messages/message-renderer.tsx`).
    */
   @Composable
-  fun Draw(source: String, modifier: Modifier, codeBlockActions: @Composable (code: String) -> Unit)
+  public fun Draw(source: String, modifier: Modifier, codeBlockActions: @Composable (code: String) -> Unit)
 }

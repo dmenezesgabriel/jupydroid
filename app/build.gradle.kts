@@ -83,6 +83,11 @@ android {
 
 kotlin {
     jvmToolchain(17)
+    // A new compiler warning fails the build: 658 had piled up unread across the source sets,
+    // and a warning nobody is made to read is one nobody reads.
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
 }
 
 detekt {

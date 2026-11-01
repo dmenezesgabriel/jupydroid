@@ -19,7 +19,7 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 
-const val RENAME_FIELD_TAG = "rename-field"
+public const val RENAME_FIELD_TAG: String = "rename-field"
 
 /**
  * Renames a file, from Recents, from the document itself, from the browser's row menu, or a chat
@@ -59,7 +59,7 @@ const val RENAME_FIELD_TAG = "rename-field"
  * ```
  */
 @Composable
-fun RenameFileDialog(
+public fun RenameFileDialog(
   currentTitle: String,
   onConfirm: (String) -> Unit,
   onDismiss: () -> Unit,
@@ -134,7 +134,7 @@ fun RenameFileDialog(
  * titleStemEnd("Untitled")      // 8
  * ```
  */
-fun titleStemEnd(title: String): Int {
+public fun titleStemEnd(title: String): Int {
   val lastDot = title.lastIndexOf('.')
   return if (lastDot <= 0) title.length else lastDot
 }
