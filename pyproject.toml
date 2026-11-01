@@ -1,0 +1,20 @@
+# The host's tooling, not a package: the gates, measures and their tests under scripts/ run from
+# the environment `uv.lock` resolves, so a hook, the local gate and CI all see one set of versions
+# (ADR-0123 is the same rule for Gradle). Nothing here is published.
+[project]
+name = "jupydroid-host-tooling"
+version = "0"
+requires-python = ">=3.14"
+dependencies = []
+
+[tool.uv]
+package = false
+default-groups = ["host"]
+
+[dependency-groups]
+# Imported by scripts/: Pillow by the read_* image measures, PyYAML by check_maestro_output_assertions.
+host = [
+    "Pillow>=12.1,<13",
+    "PyYAML>=6.0,<7",
+]
+

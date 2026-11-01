@@ -41,3 +41,4 @@ evidence/**/dumpsys*.txt
 # The local list of literals the device-secrets gate refuses. `prompt-execution.md` is tracked: a
 # clean session needs it, so it cannot be personal (ADR-0001).
 /.sensitive-strings.local
+.venv/

@@ -22,25 +22,25 @@ repos:
         files: '\.kt$'
       - id: maestro-output-assertions
         name: maestro flows observe what the kernel produced
-        entry: scripts/check_maestro_output_assertions.py
+        entry: uv run --locked python scripts/check_maestro_output_assertions.py
         language: system
         files: '^\.maestro/.*\.(yaml|ipynb)$'
         pass_filenames: false
       - id: ui-dimensions
         name: a gap has a name, and the name is in one place
-        entry: scripts/check_ui_dimensions.py
+        entry: uv run --locked python scripts/check_ui_dimensions.py
         language: system
         files: '^app/src/main/java/com/jupydroid/app/ui/.*\.kt$'
         pass_filenames: false
       - id: busybox-seccomp
         name: busybox asks Android for nothing it refuses apps
-        entry: scripts/check_busybox_seccomp.py
+        entry: uv run --locked python scripts/check_busybox_seccomp.py
         language: system
         files: '^(tools/rootfs/busybox\.config|tools/rootfs/Dockerfile|tools/rootfs/stage-app-artifacts\.sh)$'
         pass_filenames: false
       - id: driver-isolation
         name: every flow starts from the Home list it seeded
-        entry: scripts/check_driver_isolation.py
+        entry: uv run --locked python scripts/check_driver_isolation.py
         language: system
         files: '^scripts/.*-driver\.sh$'
         pass_filenames: false
@@ -48,7 +48,7 @@ repos:
       # and their tests are milliseconds.
       - id: maestro-gate-tests
         name: the maestro gates' own tests
-        entry: python3 -m unittest discover -s scripts -p '*_test.py'
+        entry: uv run --locked python -m unittest discover -s scripts -p '*_test.py'
         language: system
         pass_filenames: false
         always_run: true
@@ -61,17 +61,17 @@ repos:
       # unqualified task runs wherever it exists, and passes for a module where it does not.
       - id: monospace-home
         name: what code looks like has one home
-        entry: python3 scripts/check_monospace_home.py
+        entry: uv run --locked python scripts/check_monospace_home.py
         language: system
         pass_filenames: false
         always_run: true
       - id: device-secrets
         name: evidence proves the app, not the house it ran in
-        entry: python3 scripts/check_device_secrets.py
+        entry: uv run --locked python scripts/check_device_secrets.py
         language: system
       - id: palette-consumers
         name: a palette states colours something draws
-        entry: python3 scripts/check_palette_consumers.py
+        entry: uv run --locked python scripts/check_palette_consumers.py
         language: system
         pass_filenames: false
         always_run: true
@@ -83,13 +83,13 @@ repos:
       # and AndroidManifest.xml unread while the gate reported them clean.
       - id: doc-citations
         name: a comment cites what still resolves
-        entry: python3 scripts/check_doc_citations.py
+        entry: uv run --locked python scripts/check_doc_citations.py
         language: system
         pass_filenames: false
         always_run: true
       - id: retired-doc-citations
         name: no file names a document ADR-0001 deleted
-        entry: python3 scripts/check_retired_doc_citations.py
+        entry: uv run --locked python scripts/check_retired_doc_citations.py
         language: system
         types: [text]
       - id: ktlint-check

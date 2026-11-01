@@ -256,7 +256,7 @@ nothing about one that does not.
 `androidTest` - `assembleDebug` compiles `main`, `testDebugUnitTest` compiles `test`, and the
 ktlint check is a formatter, which parses without resolving.
 
-And `python3 -m unittest discover -s scripts -p '*_test.py'`
+And `uv run --locked python -m unittest discover -s scripts -p '*_test.py'`
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current

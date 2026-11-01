@@ -121,7 +121,7 @@ hashing, the authorities are the tools' own documentation:
 
 ## Tasks
 
-- [ ] T1 — The host tooling. Red: the test suite run in a venv without system site-packages fails on
+- [x] T1 — The host tooling (PyYAML was undeclared too: `check_maestro_output_assertions.py`). Red: the test suite run in a venv without system site-packages fails on
   the Pillow imports. Green: root `pyproject.toml` (non-package, `requires-python`, a dependency group
   holding Pillow), `.python-version` and `uv.lock`, and the pre-commit Python hooks and `AGENTS.md`'s
   test command run through `uv run --locked`. Demo steps 1–2.
