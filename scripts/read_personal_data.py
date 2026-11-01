@@ -10,7 +10,8 @@ history rewrite, what is there. It counts *files* (what `git grep -l` counts), o
 often the pattern repeats. Binary files are skipped: their pixels are read by eye.
 
 ```sh
-python3 scripts/read_personal_data.py
+python3 scripts/read_personal_data.py                 # files per class
+python3 scripts/read_personal_data.py --scrub-rules   # filter-repo rules for this machine's home
 ```
 
 Tests in read_personal_data_test.py.
@@ -20,6 +21,7 @@ from __future__ import annotations
 
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -51,6 +53,20 @@ def report(counts: dict[str, int]) -> str:
     return "\n".join(f"{name}: {count} files" for name, count in counts.items())
 
 
+def scrub_rules(home: Path) -> list[str]:
+    """`git filter-repo --replace-text` rules that take the host account out of every blob.
+
+    Built from [home], never stored: a committed list of the literal it removes would carry it. Only
+    the host account is a rule; a guest's `/home/jupydroid` names nobody. `scripts/java-home.sh`
+    *uses* the path, so it is edited by hand to `$HOME` before the rewrite, not left to this rule.
+
+    ```
+    scrub_rules(Path("/home/ana"))  # -> ["/home/ana==>/home/user"]
+    ```
+    """
+    return [f"{home}==>/home/user"]
+
+
 def tracked_texts(root: Path) -> dict[str, str]:
     """Contents of every tracked non-binary file under [root]."""
     listing = subprocess.run(
@@ -66,4 +82,7 @@ def tracked_texts(root: Path) -> dict[str, str]:
 
 
 if __name__ == "__main__":
-    print(report(files_per_class(tracked_texts(REPO))))
+    if "--scrub-rules" in sys.argv[1:]:
+        print("\n".join(scrub_rules(Path.home())))
+    else:
+        print(report(files_per_class(tracked_texts(REPO))))

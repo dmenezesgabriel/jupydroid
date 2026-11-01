@@ -33,7 +33,9 @@ Classes, each counted by its own pattern so the number is produced, not stored:
 
 ```sh
 python3 scripts/read_personal_data.py                 # hits per class over tracked files
-git grep -l "/home/gabriel" | wc -l                   # files carrying the home path
+python3 scripts/read_personal_data.py --scrub-rules   # the filter-repo rules, from this machine's home
+git grep -l "$HOME" -- ':!evidence'                   # the files a replace-text cannot fix: edit by hand
+git grep -l "$HOME" | wc -l                           # files carrying the home path
 git log --all -S"/home/gabriel" --oneline | wc -l     # commits whose diff adds or removes it
 git log --all --format=%B | grep -c "/home/gabriel"   # commit-message lines
 git log --format='%an <%ae>' | sort | uniq -c         # author identities
@@ -44,14 +46,20 @@ git grep -hoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" | sort | uniq -c | s
 
 - **Author email on every commit.** Authorship, not a leak a file edit can fix. Keeping it, or
   rewriting through a mailmap to a noreply address, is `OPS-002`'s call; this item only counts it.
-- `robert.einhorn.hu@gmail.com` (two files): upstream attribution or personal data? Read the
-  files before classifying.
+- **Resolved: keep `robert.einhorn.hu@gmail.com`** (`tools/grammars/python/`, two files). It is the
+  upstream author's address in an MIT notice the licence requires us to keep: attribution, not ours.
+- **Resolved: the three PNG frames show nothing personal.** Two Settings screens and one emulator
+  document; the status bar holds no SSID, name or account. The "email in a PNG" was `git grep`
+  matching compressed bytes.
+- **Hand edits before the rewrite:** `scripts/java-home.sh` *uses* its path, so it becomes `$HOME`, not
+  `/home/user`; the `AGENTS.md` machine note moves to the gitignored local file (T3). The
+  `gabriel@tablet` terminal title in `MainAreaTabStripTest.kt` carries a first name: `user@tablet`.
 
 ## Tasks
 
 - [x] T1 — `scripts/read_personal_data.py`: per-class hit counts over tracked files (+ `_test.py`).
-- [ ] T2 — the scrub list (file, class, replacement) for `OPS-002`; the three PNG frames looked at;
-  the email above classified.
+- [x] T2 — the scrub list for `OPS-002` (`--scrub-rules`); the three PNG frames looked at; the email
+  classified.
 - [ ] T3 — a home-path class in `scripts/check_device_secrets.py`, red test first; the
   machine-specific `AGENTS.md` note handed to `OPS-002`.
 - [ ] T4 — close: backlog row edited, this PRD deleted.

@@ -4,8 +4,9 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
-from read_personal_data import CLASSES, files_per_class, report
+from read_personal_data import CLASSES, files_per_class, report, scrub_rules
 
 
 class FilesPerClassTest(unittest.TestCase):
@@ -23,6 +24,15 @@ class FilesPerClassTest(unittest.TestCase):
     def test_report_prints_one_line_per_class(self) -> None:
         lines = report({"home path": 3, "email": 0}).splitlines()
         self.assertEqual(lines, ["home path: 3 files", "email: 0 files"])
+
+
+class ScrubRulesTest(unittest.TestCase):
+    def test_the_hosts_home_is_replaced_by_a_neutral_one_in_filter_repo_format(self) -> None:
+        self.assertEqual(scrub_rules(Path("/home/ana")), ["/home/ana==>/home/user"])
+
+    def test_a_guest_path_is_not_a_rule(self) -> None:
+        rules = scrub_rules(Path("/home/ana"))
+        self.assertFalse(any("jupydroid" in rule for rule in rules))
 
 
 if __name__ == "__main__":
