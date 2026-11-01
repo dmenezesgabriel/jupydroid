@@ -263,7 +263,7 @@ And `uv run --locked ruff check scripts tools`, `uv run --locked ruff format --c
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current
-  shell env); on this machine: `/home/user/android-studio/jbr`.
+  shell env); unset, `scripts/java-home.sh` falls back to `$HOME/android-studio/jbr`.
 - pre-commit install alternatives: `pip install pre-commit` or `uv tool install
   pre-commit`.
 - detekt is pinned to the `2.0.0-alpha.x` line because stable 1.23.8 cannot run

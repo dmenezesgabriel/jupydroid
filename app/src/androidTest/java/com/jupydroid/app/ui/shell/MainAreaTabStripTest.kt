@@ -404,10 +404,10 @@ class MainAreaTabStripTest {
 
     tab("Terminal 1").assertIsDisplayed()
 
-    liveTitles[Terminal("1")] = "gabriel@tablet:~/reports"
+    liveTitles[Terminal("1")] = "user@tablet:~/reports"
     compose.waitForIdle()
 
-    tab("gabriel@tablet:~/reports").assertIsDisplayed()
+    tab("user@tablet:~/reports").assertIsDisplayed()
   }
 
   /**

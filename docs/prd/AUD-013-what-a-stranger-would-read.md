@@ -52,7 +52,7 @@ git grep -hoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" | sort | uniq -c | s
   document; the status bar holds no SSID, name or account. The "email in a PNG" was `git grep`
   matching compressed bytes.
 - **Hand edits before the rewrite:** `scripts/java-home.sh` *uses* its path, so it becomes `$HOME`, not
-  `/home/user`; the `AGENTS.md` machine note moves to the gitignored local file (T3). The
+  `/home/user`; the `AGENTS.md` machine note becomes generic (T4). The
   `gabriel@tablet` terminal title in `MainAreaTabStripTest.kt` carries a first name: `user@tablet`.
 
 ## Tasks
@@ -64,7 +64,8 @@ git grep -hoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" | sort | uniq -c | s
   stored) and the scrubber applying it, red test first. Split from the gate class: refusing the home
   turns the whole-tree sweep red until T4 cleans 1127 evidence files.
 - [ ] T4 — the tree scrubbed: evidence through `scripts/scrub_device_secrets.py`; `scripts/java-home.sh`
-  uses `$HOME`; the `AGENTS.md` machine note made generic and moved to a gitignored local file.
+  uses `$HOME` (`scripts/java_home_test.py`); the `AGENTS.md` machine note made generic - no local
+  file, since the script derives the path the note held and nothing would read one.
 - [ ] T5 — the gate refuses the host's home in `main`; the whole-tree sweep stays green.
 - [ ] T6 — close: backlog row edited, this PRD deleted.
 
