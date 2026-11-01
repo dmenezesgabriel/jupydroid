@@ -121,7 +121,10 @@ and record. Every line of code is still TDD: the red is a planted violation the 
   3m52s cold, locks and sha256 written), but the logic packages already measure 94.8% of lines and 79.6% of
   branches, and what is left is device-only adapters Kover cannot credit, so any floor is either arbitrary slack
   or a demand for JVM tests of code only a device runs. Numbers are in the commit body.
-- [ ] T6 — Pitest, time-boxed.
+- [x] T6 — Pitest, time-boxed. **Rejected for now**: `pl.droidsonroids.pitest` 0.3.0 (the Android fork; upstream
+  has no Android support) runs on AGP 9.5.0, but without the commercial Arcmutate Kotlin plugin 3 of the 11
+  survivors in `glob` are compiler intrinsics, and the whole tree extrapolates to about 80 minutes. Numbers are in
+  the commit body.
 - [ ] T7 — The ADR (kept and rejected, with numbers) and ship: delete this PRD, edit the backlog row.
 
 ## Out of scope
