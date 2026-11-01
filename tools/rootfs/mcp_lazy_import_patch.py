@@ -23,6 +23,8 @@ FUNCTION_START_WITH_IMPORT = FUNCTION_START + "            from .mcp_server impo
 
 def extension_path() -> pathlib.Path:
     spec = importlib.util.find_spec("jupyter_server_mcp")
+    if spec is None or spec.origin is None:
+        sys.exit(f"jupyter_server_mcp has no file origin, expected an installed package: {spec!r}")
     return pathlib.Path(spec.origin).with_name("extension.py")
 
 

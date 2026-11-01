@@ -133,6 +133,7 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".toml": hash_comments,
     ".lock": hash_comments,
     ".in": hash_comments,
+    ".ini": hash_comments,
     ".config": hash_comments,
     ".yaml": hash_comments,
     "Dockerfile": hash_comments,

@@ -69,6 +69,10 @@ _SUBPROCESS_OUTPUT_NOTICE = (
 class JupydroidKernelApp(IPKernelApp):
     """IPKernelApp whose IOPub thread does not open the forked-subprocess pipe."""
 
+    # Declared so mypy can type the self-referencing bind below; a bare annotation creates no attribute, so the
+    # base class's traitlet is untouched.
+    iopub_port: int
+
     def init_iopub(self, context: zmq.Context) -> None:
         """Mirror of the base implementation with `pipe=False`.
 
@@ -104,6 +108,9 @@ class JupydroidDebugpyClient(DebugpyClient):
     `getifaddrs()`.
     """
 
+    # -1 until the first lookup, then the port as a string (the base class does the same); see iopub_port above.
+    debugpy_port: str | int
+
     def get_host_port(self) -> tuple[str, str]:
         """Mirror of the base implementation, sourcing the port from `socket` not `zmq`."""
         if self.debugpy_port == -1:
@@ -115,7 +122,7 @@ class JupydroidDebugpyClient(DebugpyClient):
                 probe.close()
             self.endpoint = f"tcp://{self.debugpy_host}:{port}"
             self.debugpy_port = str(port)
-        return self.debugpy_host, self.debugpy_port
+        return self.debugpy_host, str(self.debugpy_port)
 
 
 class JupydroidDebugger(Debugger):

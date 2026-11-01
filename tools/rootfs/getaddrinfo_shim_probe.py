@@ -18,7 +18,7 @@ HOSTNAME = "probe.example.invalid"
 ANSWER_IP = "93.184.216.34"
 
 
-def dns_server():
+def dns_server() -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("127.0.0.1", 53))
     query, addr = sock.recvfrom(512)

@@ -19,11 +19,11 @@ import jupyter_server.serverapp  # noqa: F401 - the server has loaded it before 
 from jupyter_ai_acp_client.routes import PermissionHandler
 
 
-def loaded_acp_modules():
+def loaded_acp_modules() -> list[str]:
     return sorted(name for name in sys.modules if name == "acp" or name.startswith("acp."))
 
 
-def handler_over_one_plain_persona():
+def handler_over_one_plain_persona() -> SimpleNamespace:
     manager = SimpleNamespace(personas={"plain": object()})
     settings = {"jupyter-ai": {"persona-managers": {"probe.chat": manager}}}
     return SimpleNamespace(serverapp=SimpleNamespace(web_app=SimpleNamespace(settings=settings)))

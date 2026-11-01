@@ -20,12 +20,14 @@ FUNCTION_START = '        Returns the client or None.\n        """\n'
 FUNCTION_START_WITH_IMPORT = FUNCTION_START + "        from .base_acp_persona import BaseAcpPersona\n"
 
 
-def routes_path():
+def routes_path() -> pathlib.Path:
     spec = importlib.util.find_spec("jupyter_ai_acp_client")
+    if spec is None or spec.origin is None:
+        sys.exit(f"jupyter_ai_acp_client has no file origin, expected an installed package: {spec!r}")
     return pathlib.Path(spec.origin).with_name("routes.py")
 
 
-def replace_once(source, old, new):
+def replace_once(source: str, old: str, new: str) -> str:
     count = source.count(old)
     if count != 1:
         sys.exit(f"routes.py holds {count} copies of {old!r}, expected exactly 1")

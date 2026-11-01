@@ -131,7 +131,7 @@ def refusal_of_header(header: str | None, expected: str) -> str | None:
 
 
 def _server_token() -> str:
-    return ServerApp.instance().identity_provider.token
+    return str(ServerApp.instance().identity_provider.token)
 
 
 def server_token_bearer() -> Middleware:

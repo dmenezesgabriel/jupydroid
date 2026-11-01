@@ -20,6 +20,7 @@ import json
 import logging
 import sys
 from types import SimpleNamespace
+from typing import Any
 
 from jupyter_ai_acp_client.default_acp_client import JaiAcpClient
 
@@ -54,22 +55,22 @@ for line in sys.stdin:
 class RecordingChat:
     """The persona's chat, reduced to the messages the client writes into it."""
 
-    def __init__(self):
-        self.bodies = {}
+    def __init__(self) -> None:
+        self.bodies: dict[str, str] = {}
 
-    def add_message(self, new_message, trigger_actions=None):
+    def add_message(self, new_message: Any, trigger_actions: Any = None) -> str:
         message_id = f"message-{len(self.bodies)}"
         self.bodies[message_id] = new_message.body
         return message_id
 
-    def update_message(self, message, append=False, trigger_actions=None):
+    def update_message(self, message: Any, append: bool = False, trigger_actions: Any = None) -> None:
         self.bodies[message.id] = (self.bodies[message.id] if append else "") + message.body
 
-    def get_message(self, message_id):
+    def get_message(self, message_id: str) -> None:
         return None
 
 
-def persona_over(chat):
+def persona_over(chat: RecordingChat) -> SimpleNamespace:
     return SimpleNamespace(
         id="probe-persona",
         chat=chat,
@@ -81,7 +82,7 @@ def persona_over(chat):
     )
 
 
-async def written_after_load_and_prompt():
+async def written_after_load_and_prompt() -> list[str]:
     agent = await asyncio.create_subprocess_exec(
         sys.executable,
         "-c",

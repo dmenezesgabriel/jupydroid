@@ -73,6 +73,13 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      # The image's modules, checked as Python 3.12 from their own config (tools/rootfs/mypy.ini).
+      - id: mypy-rootfs
+        name: python types, rootfs (mypy)
+        entry: uv run --locked mypy --config-file tools/rootfs/mypy.ini
+        language: system
+        types: [python]
+        pass_filenames: false
       # **The source sets are named, and that is the repair rather than a detail.** `ktlintCheck`
       # is an aggregate over whatever tasks the plugin happened to register, so when it registered
       # none for Kotlin it resolved to the `.kts` build scripts and reported "Passed" for months

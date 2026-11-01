@@ -49,10 +49,10 @@ MCP_HEADERS = {"Content-Type": "application/json", "Accept": "application/json, 
 def free_loopback_port() -> int:
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
-        return probe.getsockname()[1]
+        return int(probe.getsockname()[1])
 
 
-def start_server(mcp_port: int, log: TextIO) -> subprocess.Popen:
+def start_server(mcp_port: int, log: TextIO) -> subprocess.Popen[bytes]:
     return subprocess.Popen(
         [
             "python3",
@@ -70,7 +70,7 @@ def start_server(mcp_port: int, log: TextIO) -> subprocess.Popen:
     )
 
 
-def wait_until_listening(server: subprocess.Popen, port: int) -> None:
+def wait_until_listening(server: subprocess.Popen[bytes], port: int) -> None:
     deadline = time.monotonic() + STARTUP_SECONDS
     while time.monotonic() < deadline:
         assert server.poll() is None, f"jupyter_server exited with {server.returncode} before MCP listened"
