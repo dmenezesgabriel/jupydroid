@@ -121,7 +121,7 @@ Each: trial on the tree → decide → wire (pre-commit and the `AGENTS.md` comm
 and record. Every line of code is still TDD: the red is a planted violation the gate must fail.
 `OPS-017` T1 comes first, since these tools install from its lock.
 
-- [ ] T1 — ruff lint (`E,F,I,B,UP`). Add ruff to the locked dev group, measure findings per rule,
+- [x] T1 — ruff lint (`E,F,I,B,UP`). Add ruff to the locked dev group, measure findings per rule,
   fix the real ones, suppress none to force green.
 - [ ] T2 — ruff format. Measure the diff; apply it as its own commit; wire `ruff format --check`.
 - [ ] T3 — ruff `S` (bandit's checks). Measure; fix or justify each finding by name; decide on bandit.

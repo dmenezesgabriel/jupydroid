@@ -11,7 +11,8 @@ the shipped rootfs) keeps a message's calls in `metadata.tool_calls`, with snake
     python3 scripts/chat_tool_call_reads.py stopped-short untitled.chat untitled-later.chat
     python3 scripts/chat_tool_call_reads.py answered-in-turn untitled.chat "Run echo …" queue-42 "What is 2+2?" 4
     python3 scripts/chat_tool_call_reads.py called-with untitled.chat quince_marmalade_code marmalade-7349
-    python3 scripts/chat_tool_call_reads.py refused-with untitled.chat Jupyter_MCP_Server_insert_cell "is not the open notebook"
+    python3 scripts/chat_tool_call_reads.py refused-with untitled.chat \
+        Jupyter_MCP_Server_insert_cell "is not the open notebook"
 """
 
 import json
@@ -118,7 +119,7 @@ def require_answered_in_turn(messages: list[TypedMessage], asked: list[tuple[str
     if missing:
         raise ChatReadError(f"never asked {missing}; the chat holds {[str(b)[:40] for b in bodies]}")
     starts = [bodies.index(question) for question, _ in asked] + [len(messages)]
-    for (question, expected), start, end in zip(asked, starts, starts[1:]):
+    for (question, expected), start, end in zip(asked, starts, starts[1:], strict=False):
         replied = answers(messages[start + 1 : end])
         if not any(expected in body for body in replied):
             raise ChatReadError(f"{question!r} was not answered with {expected!r} before the next: {replied}")
@@ -184,7 +185,7 @@ def main(argv: list[str]) -> int:
         count, last = require_stopped_short(read_messages(paths[0]), read_messages(paths[1]))
         print(f"{paths[0]}: the answer holds {count} numbers, the last {last}")
     elif check == "answered-in-turn":
-        asked = list(zip(paths[1::2], paths[2::2]))
+        asked = list(zip(paths[1::2], paths[2::2], strict=False))
         require_answered_in_turn(read_messages(paths[0]), asked)
         print(f"{paths[0]}: {len(asked)} questions were each answered before the next was asked")
     elif check == "called-with":

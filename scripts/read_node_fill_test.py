@@ -7,7 +7,6 @@ import tempfile
 import unittest
 
 from PIL import Image
-
 from read_node_fill import node_fill
 
 WASH = (0xDA, 0xDA, 0xDA)
@@ -22,8 +21,8 @@ def _dump(
 ) -> str:
     """A `uiautomator dump` holding [nodes] as [attribute] -> bounds, inside a [screen] root."""
     rows = "".join(
-        f'<node {attribute}="{desc}" bounds="[{l},{t}][{r},{b}]" />'
-        for desc, (l, t, r, b) in nodes.items()
+        f'<node {attribute}="{desc}" bounds="[{left},{top}][{right},{bottom}]" />'
+        for desc, (left, top, right, bottom) in nodes.items()
     )
     return (
         '<?xml version="1.0" encoding="UTF-8"?><hierarchy rotation="0">'

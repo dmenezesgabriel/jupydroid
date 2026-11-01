@@ -6,9 +6,8 @@ import pathlib
 import tempfile
 import unittest
 
-from PIL import Image
-
 from check_node_fill import fill_failures
+from PIL import Image
 
 PANEL = (0xFA, 0xFA, 0xFD)
 WASH = (0xDA, 0xDA, 0xDA)

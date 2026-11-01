@@ -52,6 +52,13 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      # A pure checker (no --fix, AGENTS.md rule 7), from the uv.lock environment so the hook, the
+      # local gate and CI run one ruff. Rules and per-file exceptions live in pyproject.toml.
+      - id: ruff-check
+        name: python lint (ruff)
+        entry: uv run --locked ruff check
+        language: system
+        types: [python]
       # **The source sets are named, and that is the repair rather than a detail.** `ktlintCheck`
       # is an aggregate over whatever tasks the plugin happened to register, so when it registered
       # none for Kotlin it resolved to the `.kts` build scripts and reported "Passed" for months

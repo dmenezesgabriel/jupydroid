@@ -1,0 +1,6 @@
+# The image runs Python 3.12 (Dockerfile), the host 3.14: same rules, an older target.
+extend = "../../pyproject.toml"
+target-version = "py312"
+# One cache at the root: scripts/check_doc_citations.py reads every file under tools/, and a
+# second cache's CACHEDIR.TAG there has no scanner, so the gate would fail by name.
+cache-dir = "../../.ruff_cache"

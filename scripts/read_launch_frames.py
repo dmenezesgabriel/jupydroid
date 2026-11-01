@@ -29,7 +29,8 @@ import pathlib
 import struct
 import sys
 import time
-from typing import BinaryIO, Iterator, TextIO
+from collections.abc import Iterator
+from typing import BinaryIO, TextIO
 
 from PIL import Image
 

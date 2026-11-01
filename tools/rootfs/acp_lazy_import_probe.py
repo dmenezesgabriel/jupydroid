@@ -14,8 +14,8 @@ import asyncio
 import sys
 from types import SimpleNamespace
 
-import jupyter_server.serverapp  # noqa: F401 - the server has loaded it before any extension
 import jupyter_ai_acp_client  # noqa: F401
+import jupyter_server.serverapp  # noqa: F401 - the server has loaded it before any extension
 from jupyter_ai_acp_client.routes import PermissionHandler
 
 

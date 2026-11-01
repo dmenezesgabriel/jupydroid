@@ -7,7 +7,6 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from PIL import Image
-
 from terminal_content_extent import (
     terminal_content_bottom_y,
     terminal_row_spacing_px,
@@ -152,6 +151,12 @@ class TerminalRowSpacingPxTest(unittest.TestCase):
         self.assertEqual(31, terminal_row_spacing_px(path, content_top_y=_CONTENT_TOP))
 
 
+def _strip_differs(before: str, after: str) -> bool:
+    return terminal_top_strip_differs(
+        before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20
+    )
+
+
 class TerminalTopStripDiffersTest(unittest.TestCase):
     """Gesture scrollback's own proof that a drag moved *something* -
     a fixed strip just below the app bar, compared pixel-for-pixel between two captures, rather
@@ -180,12 +185,12 @@ class TerminalTopStripDiffersTest(unittest.TestCase):
     def test_false_when_both_captures_show_the_same_content(self) -> None:
         before = self._painted_path({30: (10, 40)})
         after = self._painted_path({30: (10, 40)})
-        self.assertFalse(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
+        self.assertFalse(_strip_differs(before, after))
 
     def test_true_when_the_strip_shows_different_content(self) -> None:
         before = self._painted_path({30: (10, 40)})  # e.g. "23"
         after = self._painted_path({30: (10, 90)})  # e.g. "MARKER_123..."
-        self.assertTrue(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
+        self.assertTrue(_strip_differs(before, after))
 
     def test_ignores_a_difference_below_the_strip(self) -> None:
         """A change well past `strip_height` - `TerminalExtraKeysRow`/a keyboard's own territory
@@ -194,12 +199,12 @@ class TerminalTopStripDiffersTest(unittest.TestCase):
         size = (_WIDTH, 600)
         before = self._painted_path({30: (10, 40)}, size=size)
         after = self._painted_path({30: (10, 40), 500: (10, 590)}, size=size)
-        self.assertFalse(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
+        self.assertFalse(_strip_differs(before, after))
 
     def test_works_on_light_ink_over_a_dark_background_too(self) -> None:
         before = self._painted_path({30: (10, 40)}, background=_DARK_BG, ink=_DARK_INK)
         after = self._painted_path({30: (10, 90)}, background=_DARK_BG, ink=_DARK_INK)
-        self.assertTrue(terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20))
+        self.assertTrue(_strip_differs(before, after))
 
 
 if __name__ == "__main__":

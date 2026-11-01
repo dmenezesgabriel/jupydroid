@@ -337,7 +337,9 @@ class RowsOfTest(unittest.TestCase):
                 # The same basename under two ABIs: extraction must not clobber one with the other.
                 zf.writestr("jni/arm64-v8a/same-name.so", b"arm64")
                 zf.writestr("jni/x86/same-name.so", b"x86")
-            read = lambda p: ARM64_1_5_7_24 if "v8a" in str(p) else ARMV7_1_5_7_9
+            def read(path: object) -> str:
+                return ARM64_1_5_7_24 if "v8a" in str(path) else ARMV7_1_5_7_9
+
             rows = rows_of_archive(archive, read)
         self.assertEqual([r.library for r in rows], ["jni/arm64-v8a/same-name.so", "jni/x86/same-name.so"])
         self.assertEqual([r.relro for r in rows], ["full", "partial"])

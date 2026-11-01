@@ -93,7 +93,7 @@ class CommentsOnlyTest(unittest.TestCase):
 
     def test_it_is_the_complement_of_without_comments(self):
         source = '/** k */\nval u = "a // b" // tail\n'
-        for kept, dropped in zip(comments_only(source), without_comments(source)):
+        for kept, dropped in zip(comments_only(source), without_comments(source), strict=True):
             if kept == "\n":
                 continue  # a newline is kept by both halves on purpose, so line numbers hold
             self.assertTrue(kept == " " or dropped == " ", f"{kept!r} survived both")

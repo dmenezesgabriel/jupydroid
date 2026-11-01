@@ -96,7 +96,7 @@ def terminal_row_spacing_px(
     ]
     if len(rows) < 2:
         return 0
-    gaps = sorted(next_start - start for (start, _), (next_start, _) in zip(rows, rows[1:]))
+    gaps = sorted(next_start - start for (start, _), (next_start, _) in zip(rows, rows[1:], strict=False))
     return gaps[len(gaps) // 2]
 
 

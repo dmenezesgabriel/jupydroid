@@ -36,7 +36,9 @@ def nbconvert_message(body: bytes) -> str:
     """The `nbconvert failed: …` line out of tornado's error page, unescaped."""
     page = body.decode("utf-8", "replace")
     match = re.search(r"<pre>(.*?)</pre>", page, re.S) or re.search(r"nbconvert failed[^<]*", page)
-    return html.unescape(match.group(1) if match and match.lastindex else match.group(0)).strip() if match else page[:400]
+    if not match:
+        return page[:400]
+    return html.unescape(match.group(1) if match.lastindex else match.group(0)).strip()
 
 
 def excerpt(path: pathlib.Path, status: str) -> str:

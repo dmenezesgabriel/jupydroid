@@ -6,9 +6,9 @@ import unittest
 from chat_tool_call_reads import (
     ChatReadError,
     require_allowed_and_rejected,
-    require_completed_call,
     require_answered_in_turn,
     require_called_with,
+    require_completed_call,
     require_refused_with,
     require_stopped_short,
 )

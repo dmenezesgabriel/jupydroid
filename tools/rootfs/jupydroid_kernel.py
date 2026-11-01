@@ -50,8 +50,8 @@ from __future__ import annotations
 import logging
 import socket
 
-import zmq
 import ipykernel.debugger as _ipykernel_debugger
+import zmq
 from ipykernel.debugger import Debugger, DebugpyClient
 from ipykernel.iostream import IOPubThread
 from ipykernel.kernelapp import IPKernelApp

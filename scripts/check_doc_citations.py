@@ -45,9 +45,8 @@ from __future__ import annotations
 import argparse
 import re
 import sys
-from pathlib import Path
-
 from collections.abc import Callable
+from pathlib import Path
 
 from kotlin_source import comments_only
 from script_source import hash_comments, python_prose

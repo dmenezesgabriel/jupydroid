@@ -182,7 +182,7 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 0
     captures = [open(path).read() for path in argv]
-    for path, capture in zip(argv, captures):
+    for path, capture in zip(argv, captures, strict=True):
         print(f"### `{path}`\n")
         print(table_md(capture))
         print()

@@ -7,7 +7,6 @@ import tempfile
 import unittest
 
 from PIL import Image
-
 from read_chrome_parts import chrome_bands, part_seams
 
 RAIL = (0x19, 0x1A, 0x1B)

@@ -210,6 +210,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | Android Lint | Android-specific checks | AGP built-in (`:app:lintDebug`) |
 | compiler strictness | a new Kotlin warning fails the build; `:extension-api` also states every visibility and return type | `kotlin { compilerOptions { allWarningsAsErrors } }` in each module, `explicitApi()` in `extension-api/build.gradle.kts` |
 | pre-commit | commit gate | `.pre-commit-config.yaml` |
+| python lint | ruff `E,F,I,B,UP` over `scripts/` and `tools/`; each exception a named `per-file-ignores` entry | `pyproject.toml` `[tool.ruff]`, `tools/rootfs/ruff.toml` (py312, the image's interpreter) |
 | file-length gate | ≤500 lines/file | `scripts/check-file-line-length.sh` |
 | ShellCheck | every shell script, followed into what it sources | `.pre-commit-config.yaml` (`koalaman/shellcheck-precommit` v0.11.0, needs Docker) + `.shellcheckrc` |
 | duplication gate | no Kotlin block of 150+ tokens is copied, tests included; PMD CPD, which Gradle's PMD plugin does not run | `:app:cpd` in `app/build.gradle.kts` (`cpdTool`, `libs.versions.toml` `pmd`) |
@@ -256,7 +257,8 @@ nothing about one that does not.
 `androidTest` - `assembleDebug` compiles `main`, `testDebugUnitTest` compiles `test`, and the
 ktlint check is a formatter, which parses without resolving.
 
-And `uv run --locked python -m unittest discover -s scripts -p '*_test.py'`
+And `uv run --locked ruff check scripts tools` and
+`uv run --locked python -m unittest discover -s scripts -p '*_test.py'`
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current

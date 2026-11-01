@@ -6,9 +6,8 @@ import pathlib
 import tempfile
 import unittest
 
-from PIL import Image
-
 from check_chrome_parts import frame_failures
+from PIL import Image
 
 RAIL = (0x19, 0x1A, 0x1B)
 PAGE = (0x12, 0x13, 0x14)

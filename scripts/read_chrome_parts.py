@@ -130,7 +130,7 @@ def part_seams(image_path: str) -> list[Seam]:
     parts = [at for at, run in enumerate(runs) if run.width >= _MIN_PART_WIDTH]
     return [
         Seam(runs[left].end, runs[right].start, tuple(run.colour for run in runs[left + 1:right]))
-        for left, right in zip(parts, parts[1:])
+        for left, right in zip(parts, parts[1:], strict=False)
     ]
 
 
