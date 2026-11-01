@@ -95,6 +95,21 @@ class ScrubDeviceSecretsTest(unittest.TestCase):
         scrub_device_secrets.scrub(evidence, self.root)
         self.assertEqual("serial S and S\n", (evidence / "device.txt").read_text())
 
+    def test_the_hosts_home_path_becomes_the_placeholder_account(self) -> None:
+        """A maestro.log lists its classpath under the account that ran it."""
+        evidence = self.root / "evidence"
+        evidence.mkdir()
+        (evidence / "maestro.log").write_text("cp /home/ana/.maestro/lib/x.jar /home/jupydroid/y\n")
+        scrub_device_secrets.scrub(evidence, self.root, home=pathlib.Path("/home/ana"))
+        self.assertEqual("cp /home/user/.maestro/lib/x.jar /home/jupydroid/y\n", (evidence / "maestro.log").read_text())
+
+    def test_a_host_without_a_named_home_scrubs_no_path(self) -> None:
+        evidence = self.root / "evidence"
+        evidence.mkdir()
+        (evidence / "maestro.log").write_text("cp /root/.maestro/lib/x.jar\n")
+        scrub_device_secrets.scrub(evidence, self.root, home=pathlib.Path("/root"))
+        self.assertEqual("cp /root/.maestro/lib/x.jar\n", (evidence / "maestro.log").read_text())
+
     def scrubbed(self, name: str, text: str) -> str:
         """The contents of [name] under a fresh evidence dir after one scrub."""
         evidence = self.root / "evidence"

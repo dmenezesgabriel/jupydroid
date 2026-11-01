@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import unittest
 
-from check_device_secrets import TOKEN_CARRIERS, local_rules_from, main, offences_in
+from check_device_secrets import TOKEN_CARRIERS, home_rule, local_rules_from, main, offences_in
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -140,6 +140,31 @@ class LocalRulesFromTest(unittest.TestCase):
         with self.assertRaises(ValueError) as raised:
             local_rules_from("regex:[unclosed==>X\n")
         self.assertIn("[unclosed", str(raised.exception))
+
+
+class HomeRuleTest(unittest.TestCase):
+    """The host's account is a rule built at run time: a committed literal would be the leak it names."""
+
+    def hosts_rule(self) -> tuple[re.Pattern[str], str]:
+        rule = home_rule(pathlib.Path("/home/ana"))
+        if rule is None:
+            self.fail("/home/ana names an account under /home, so it must yield a rule")
+        return rule
+
+    def test_the_hosts_home_is_a_regex_rule_rewritten_to_the_placeholder(self) -> None:
+        pattern, replacement = self.hosts_rule()
+        self.assertEqual("/home/user", replacement)
+        self.assertEqual("see /home/user/x", pattern.sub(replacement, "see /home/ana/x"))
+
+    def test_a_longer_account_sharing_the_prefix_is_not_the_hosts(self) -> None:
+        pattern, _ = self.hosts_rule()
+        for other in ("/home/anabel/x", "/home/ana-b/x", "/home/ana.b"):
+            self.assertIsNone(pattern.search(other), other)
+
+    def test_a_home_that_is_not_a_named_account_under_home_is_no_rule(self) -> None:
+        """/root would flag the shipped rootfs's own paths, and /home/user is the placeholder itself."""
+        for home in ("/root", "/", "/home/user", "/home/ana/sub", "/Users/ana"):
+            self.assertIsNone(home_rule(pathlib.Path(home)), home)
 
 
 class SeededScrubListTest(unittest.TestCase):

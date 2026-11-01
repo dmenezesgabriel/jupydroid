@@ -45,6 +45,9 @@ LOCAL_LITERALS = ".sensitive-strings.local"
 #: line is compiled and searched - the two forms `git filter-repo --replace-text` reads natively.
 LocalRule = str | re.Pattern[str]
 
+#: The account name a scrubbed path ends up under; the same replacement `read_personal_data.py` prints.
+HOME_PLACEHOLDER = "user"
+
 DUMP_PATH = re.compile(r"(^|/)([^/]*logcat[^/]*|activities|dumpsys[^/]*)\.txt$")
 #: The emulator's virtual network is the same on every machine, so it identifies nobody.
 EMULATOR_WIFI = {"00:13:10:85:fe:01", "AndroidWifi"}
@@ -123,6 +126,23 @@ def local_rules_from(replacements: str) -> list[tuple[LocalRule, str]]:
         else:
             rules.append((body, replacement))
     return rules
+
+
+def home_rule(home: pathlib.Path) -> tuple[re.Pattern[str], str] | None:
+    """The rule that takes the host's account out of text, or None when [home] names no account.
+
+    Built from [home] at run time, never stored: a committed rule would be the path it removes.
+    Only `/home/<name>` is an account worth hiding - `/root` would match the shipped rootfs's own
+    paths, and `/home/user` is the placeholder itself. The lookahead keeps `/home/ana` from
+    matching `/home/anabel`.
+
+    ```
+    home_rule(pathlib.Path("/home/ana"))  # -> (re.compile(r"/home/ana(?![\\w.-])"), "/home/user")
+    ```
+    """
+    if home.parent != pathlib.Path("/home") or home.name == HOME_PLACEHOLDER:
+        return None
+    return re.compile(re.escape(str(home)) + r"(?![\w.-])"), f"/home/{HOME_PLACEHOLDER}"
 
 
 def _hits(rule: LocalRule, path: str, text: str) -> bool:

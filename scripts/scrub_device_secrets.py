@@ -10,7 +10,9 @@ passes, because the secrets come from two places:
 - the rules of `.sensitive-strings.local` (the tablet's serial - `run_flow`
   writes one every time, in `get-serialno` and in maestro's own banner) - the
   same transformation the history rewrite used, at write time. A `regex:` line
-  is honoured the way `git filter-repo --replace-text` honours it.
+  is honoured the way `git filter-repo --replace-text` honours it;
+- the host's own `/home/<name>`, which every `maestro.log` lists in its classpath
+  (`check_device_secrets.home_rule`) - built from the running account, so no clone stores it.
 
     scrub_device_secrets.py evidence/p8a-cold-path/cold-r1
 
@@ -67,13 +69,20 @@ def _carriers_scrubbed(text: str) -> str:
     return text
 
 
-def scrub(directory: pathlib.Path, root: pathlib.Path = pathlib.Path()) -> int:
-    """Rewrites every text file under [directory] with carriers and local rules replaced.
+def scrub(
+    directory: pathlib.Path,
+    root: pathlib.Path = pathlib.Path(),
+    home: pathlib.Path | None = None,
+) -> int:
+    """Rewrites every text file under [directory] with carriers, local rules and [home] replaced.
 
-    Returns the number of files rewritten; 0 is a clean answer, not a shrug - the
-    gate is what refuses, this only prepares.
+    [home] is the running account's unless given. Returns the number of files rewritten; 0 is a
+    clean answer, not a shrug - the gate is what refuses, this only prepares.
     """
     pairs = replacements_of(root / check_device_secrets.LOCAL_LITERALS)
+    home_pair = check_device_secrets.home_rule(home or pathlib.Path.home())
+    if home_pair is not None:
+        pairs.append(home_pair)
     rewritten = 0
     for file in sorted(directory.rglob("*")):
         if not file.is_file():

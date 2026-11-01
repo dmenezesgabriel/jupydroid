@@ -60,9 +60,13 @@ git grep -hoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" | sort | uniq -c | s
 - [x] T1 — `scripts/read_personal_data.py`: per-class hit counts over tracked files (+ `_test.py`).
 - [x] T2 — the scrub list for `OPS-002` (`--scrub-rules`); the three PNG frames looked at; the email
   classified.
-- [ ] T3 — a home-path class in `scripts/check_device_secrets.py`, red test first; the
-  machine-specific `AGENTS.md` note handed to `OPS-002`.
-- [ ] T4 — close: backlog row edited, this PRD deleted.
+- [x] T3 — `home_rule(home)` in `scripts/check_device_secrets.py` (the host's `/home/<name>`, never
+  stored) and the scrubber applying it, red test first. Split from the gate class: refusing the home
+  turns the whole-tree sweep red until T4 cleans 1127 evidence files.
+- [ ] T4 — the tree scrubbed: evidence through `scripts/scrub_device_secrets.py`; `scripts/java-home.sh`
+  uses `$HOME`; the `AGENTS.md` machine note made generic and moved to a gitignored local file.
+- [ ] T5 — the gate refuses the host's home in `main`; the whole-tree sweep stays green.
+- [ ] T6 — close: backlog row edited, this PRD deleted.
 
 ## Out of scope
 
