@@ -108,7 +108,9 @@ and record. Every line of code is still TDD: the red is a planted violation the 
 
 - [x] T1 — Compiler strictness: `allWarningsAsErrors` on every module and `explicitApi()` on
   `:extension-api`. Measure warnings per module first; fix real findings, suppress none to force green.
-- [ ] T2 — Dependency Analysis plugin.
+- [x] T2 — Dependency Analysis plugin. **Rejected for now**: 3.20.1 states it is only known to work
+  with AGP 8.10.0 to 9.3.1 and the tree is on 9.5.0; retry when its range reaches the AGP in
+  `gradle/libs.versions.toml`. Numbers are in the commit body.
 - [ ] T3 — Konsist against `ArchitectureGuardTest`.
 - [ ] T4 — PMD CPD duplication, threshold from measurement.
 - [ ] T5 — Kover coverage: measure; gate only if a floor means something.
