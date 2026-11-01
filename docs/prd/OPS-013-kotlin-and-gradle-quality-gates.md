@@ -117,7 +117,10 @@ and record. Every line of code is still TDD: the red is a planted violation the 
 - [x] T4 — PMD CPD duplication. **Kept at 150 tokens** (`:app:cpd`, PMD 7.29.0 via a locked `cpdTool`): the tree
   measures zero there in main and test sources. 100 tokens finds `NotebookSaveConflict` / `FileSaveConflict` (41
   lines), a real copy left unmerged, and 4 test clusters. Numbers are in the commit body.
-- [ ] T5 — Kover coverage: measure; gate only if a floor means something.
+- [x] T5 — Kover coverage. **Rejected**: 0.9.11 runs on AGP 9.5.0 and Kotlin 2.4.21 (`:app:koverXmlReportDebug`,
+  3m52s cold, locks and sha256 written), but the logic packages already measure 94.8% of lines and 79.6% of
+  branches, and what is left is device-only adapters Kover cannot credit, so any floor is either arbitrary slack
+  or a demand for JVM tests of code only a device runs. Numbers are in the commit body.
 - [ ] T6 — Pitest, time-boxed.
 - [ ] T7 — The ADR (kept and rejected, with numbers) and ship: delete this PRD, edit the backlog row.
 
