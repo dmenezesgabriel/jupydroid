@@ -4,3 +4,13 @@ target-version = "py312"
 # One cache at the root: scripts/check_doc_citations.py reads every file under tools/, and a
 # second cache's CACHEDIR.TAG there has no scanner, so the gate would fail by name.
 cache-dir = "../../.ruff_cache"
+
+# S101: a probe's assert is its verdict; it runs as a script in the image, never under `python -O`.
+[lint.per-file-ignores]
+"*_probe.py" = ["S101"]
+# S105: a fixture token and a human-readable reason, not credentials.
+"jupydroid_mcp_bearer.py" = ["S105"]
+# S105 as above; S310/S603/S607: the probe talks to its own loopback server and starts it from a literal argv.
+"mcp_bearer_probe.py" = ["S105", "S310", "S603", "S607"]
+# S108: a path the fake persona returns; nothing is written there.
+"acp_replayed_history_probe.py" = ["S108"]
