@@ -101,6 +101,7 @@ ktlint {
 
 // Declared before `dependencies` uses it: the Kotlin DSL evaluates the file top to bottom.
 val antlrTool: Configuration by configurations.creating
+val cpdTool: Configuration by configurations.creating
 
 dependencies {
     // `:app` is the only module that sees every extension; each sees `:extension-api` alone (ADR-0104).
@@ -155,6 +156,9 @@ dependencies {
     implementation(libs.antlr.runtime)
     // Tool-only: it generates the lexer at build time and is never packaged.
     antlrTool(libs.antlr.tool)
+    // Tool-only, like antlrTool: the copy-paste detector behind the `cpd` task, never packaged.
+    cpdTool(libs.pmd.cli)
+    cpdTool(libs.pmd.kotlin)
     implementation(libs.okhttp)
     // Tooling
     debugImplementation(libs.androidx.compose.ui.tooling)
@@ -240,4 +244,25 @@ androidComponents {
             GeneratePythonLexer::outputDir,
         )
     }
+}
+
+// --- Duplication gate ----------------------------------------------------------------
+//
+// Fails on a copy of at least CPD_MINIMUM_TOKENS tokens anywhere in the four modules' Kotlin, tests
+// included. 150 is where the tree measured zero in main and test sources; 100 finds the
+// NotebookSaveConflict/FileSaveConflict pair, which is real and not yet merged.
+val cpdMinimumTokens = 150
+
+tasks.register<JavaExec>("cpd") {
+    description = "Fails when a block of at least $cpdMinimumTokens tokens is copied within the Kotlin sources."
+    group = "verification"
+    classpath = cpdTool
+    mainClass = "net.sourceforge.pmd.cli.PmdCli"
+    val sourceDirs = listOf(".", "../extension-api", "../extensions/git", "../extensions/ai")
+        .flatMap { module -> listOf("src/main", "src/test").map { "$module/$it" } }
+        .map { layout.projectDirectory.dir(it).asFile }
+        .filter { it.isDirectory }
+    val cpdOptions = listOf("cpd", "--language", "kotlin", "--minimum-tokens", "$cpdMinimumTokens", "--format", "text")
+    args(cpdOptions + sourceDirs.flatMap { listOf("--dir", it.absolutePath) })
+    jvmArgs("-Xmx1g")
 }

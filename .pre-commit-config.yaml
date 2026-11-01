@@ -108,6 +108,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: cpd
+        name: no Kotlin block copied past 150 tokens
+        entry: scripts/gradlew-jbr :app:cpd
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: android-lint
         name: android lint
         entry: scripts/gradlew-jbr :app:lintDebug :extension-api:lintDebug :extensions:git:lintDebug :extensions:ai:lintDebug

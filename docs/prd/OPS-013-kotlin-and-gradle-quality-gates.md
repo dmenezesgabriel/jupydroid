@@ -114,7 +114,9 @@ and record. Every line of code is still TDD: the red is a planted violation the 
 - [x] T3 — Konsist against `ArchitectureGuardTest`. **Rejected**: 0.18.1 (built with Kotlin 2.4.21)
   parses all of `app/src/main` (565 files, 59,343 lines) per test class and ran out of memory at the
   default test heap and again at 2g, after 10m52s. Numbers are in the commit body.
-- [ ] T4 — PMD CPD duplication, threshold from measurement.
+- [x] T4 — PMD CPD duplication. **Kept at 150 tokens** (`:app:cpd`, PMD 7.29.0 via a locked `cpdTool`): the tree
+  measures zero there in main and test sources. 100 tokens finds `NotebookSaveConflict` / `FileSaveConflict` (41
+  lines), a real copy left unmerged, and 4 test clusters. Numbers are in the commit body.
 - [ ] T5 — Kover coverage: measure; gate only if a floor means something.
 - [ ] T6 — Pitest, time-boxed.
 - [ ] T7 — The ADR (kept and rejected, with numbers) and ship: delete this PRD, edit the backlog row.

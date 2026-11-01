@@ -36,6 +36,7 @@ junit = "4.13.2"
 kotlin = "2.4.21"
 kotlinxSerialization = "1.11.0"
 antlr = "4.13.2"
+pmd = "7.29.0"
 okhttp = "5.4.0"
 ktlint = "14.2.0"
 nav3Core = "1.0.1"
@@ -101,6 +102,10 @@ zstd-jni = { module = "com.github.luben:zstd-jni", version.ref = "zstdJni" }
 # java.net.http (verified against android.jar for API 36), so a library is required.
 antlr-tool = { module = "org.antlr:antlr4", version.ref = "antlr" }
 antlr-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
+# Tool-only, for the `cpd` task: the copy-paste detector. Gradle's own PMD plugin runs Java rules and
+# has no CPD, so the CLI is invoked directly the way `antlrTool` invokes ANTLR.
+pmd-cli = { module = "net.sourceforge.pmd:pmd-cli", version.ref = "pmd" }
+pmd-kotlin = { module = "net.sourceforge.pmd:pmd-kotlin", version.ref = "pmd" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 # Markdown for the cells' prose. BSD-2-Clause, pure Java, and its AST is walked directly -
 # org.commonmark.renderer is a separate package we never touch, so no HTML and no WebView.
