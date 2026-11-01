@@ -31,6 +31,7 @@ python3 scripts/read_port_surface.py --unused   # only what nothing names
 
 Tests in read_port_surface_test.py.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -87,9 +88,10 @@ def operations_of(source: str) -> list[Operation]:
     found: list[Operation] = []
     for declaration in INTERFACE.finditer(code):
         opened, body = _body_after(code, declaration.end())
-        found += [Operation(declaration.group(1), member.group(1),
-                            code.count("\n", 0, opened + member.start()) + 1)
-                  for member in MEMBER.finditer(body)]
+        found += [
+            Operation(declaration.group(1), member.group(1), code.count("\n", 0, opened + member.start()) + 1)
+            for member in MEMBER.finditer(body)
+        ]
     return found
 
 
@@ -141,8 +143,11 @@ def naming(name: str, code: dict[Path, str]) -> list[Path]:
     not a use of it - see [_declares_here].
     """
     word = re.compile(rf"(?<![A-Za-z0-9_]){re.escape(name)}(?![A-Za-z0-9_])")
-    return [path for path, text in code.items()
-            if any(not _declares_here(text, found.start()) for found in word.finditer(text))]
+    return [
+        path
+        for path, text in code.items()
+        if any(not _declares_here(text, found.start()) for found in word.finditer(text))
+    ]
 
 
 def _declares_here(text: str, at: int) -> bool:
@@ -171,12 +176,10 @@ def unused_operations(port_dir: Path, production: Path) -> list[Operation]:
     return _unused(ports_under(port_dir), production_code(production), port_dir.resolve())
 
 
-def _unused(ports: dict[str, list[Operation]], code: dict[Path, str],
-            port_dir: Path) -> list[Operation]:
+def _unused(ports: dict[str, list[Operation]], code: dict[Path, str], port_dir: Path) -> list[Operation]:
     """The declared operations of [ports] that nothing in [code] but their own declaration names."""
     declared = [operation for operations in ports.values() for operation in operations]
-    return [operation for operation in declared
-            if not _named_outside(operation.name, code, port_dir)]
+    return [operation for operation in declared if not _named_outside(operation.name, code, port_dir)]
 
 
 def _named_outside(name: str, code: dict[Path, str], port_dir: Path) -> bool:
@@ -190,26 +193,27 @@ def _report(port_dir: Path, production: Path) -> None:
     code = production_code(production)
     ports = ports_under(port_dir)
     unused = {(operation.port, operation.name) for operation in _unused(ports, code, port_dir.resolve())}
-    print(f"{len(ports)} ports, {sum(len(ops) for ops in ports.values())} operations, "
-          f"{len(unused)} named nowhere in production code")
+    print(
+        f"{len(ports)} ports, {sum(len(ops) for ops in ports.values())} operations, "
+        f"{len(unused)} named nowhere in production code"
+    )
     for port, operations in ports.items():
         print(f"\n{port}  ({len(operations)})")
         _print_operations(port, operations, code, unused)
 
 
-def _print_operations(port: str, operations: list[Operation], code: dict[Path, str],
-                      unused: set[tuple[str, str]]) -> None:
+def _print_operations(
+    port: str, operations: list[Operation], code: dict[Path, str], unused: set[tuple[str, str]]
+) -> None:
     """One line per operation: where it is declared, and how many production files name it."""
     for operation in operations:
-        mark = ("NAMED NOWHERE" if (port, operation.name) in unused
-                else f"{len(naming(operation.name, code))} files")
+        mark = "NAMED NOWHERE" if (port, operation.name) in unused else f"{len(naming(operation.name, code))} files"
         print(f"  {operation.name:28s} :{operation.line:<4d} {mark}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Read this app's port surface and its use.")
-    parser.add_argument("--unused", action="store_true",
-                        help="print only the operations nothing names, one per line")
+    parser.add_argument("--unused", action="store_true", help="print only the operations nothing names, one per line")
     parser.add_argument("--port-dir", type=Path, default=REPO / PORT_DIR)
     parser.add_argument("--production", type=Path, default=REPO / MAIN_DIR)
     args = parser.parse_args()

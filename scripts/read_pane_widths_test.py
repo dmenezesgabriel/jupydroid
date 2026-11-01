@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for read_pane_widths.py."""
+
 from __future__ import annotations
 
 import unittest

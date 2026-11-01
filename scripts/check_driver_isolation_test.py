@@ -12,6 +12,7 @@ real, and a test that did the same would change meaning every time a driver is e
 
     python3 -m unittest discover -s scripts -p '*_test.py'
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -107,9 +108,7 @@ class DriverIsolationTest(unittest.TestCase):
         has passed, in the driver's own disk check, which reads like a defect in the app and is
         not - `file-editor` did exactly this on the sweep of 2026-08-14.
         """
-        found = self.assertOffences(
-            f'{RESETS}\n{SEEDS}\ntyped="$(adb shell run-as "$APP" cat x)"', 1
-        )
+        found = self.assertOffences(f'{RESETS}\n{SEEDS}\ntyped="$(adb shell run-as "$APP" cat x)"', 1)
         self.assertIn("$ADB", found[0])
 
     def test_the_fallback_definition_is_not_a_call(self) -> None:
@@ -176,9 +175,7 @@ class DriverIsolationTest(unittest.TestCase):
 
     def test_a_driver_with_no_width_rule_is_not_asked_to_name_one(self) -> None:
         """The rule is about flows with two legal widths, not about every driver."""
-        self.assertOffences(
-            f'{RESETS}\n{SEEDS}\nrun_flow "$ROOT/.maestro/x.yaml" "$ROOT/evidence/x"', 0
-        )
+        self.assertOffences(f'{RESETS}\n{SEEDS}\nrun_flow "$ROOT/.maestro/x.yaml" "$ROOT/evidence/x"', 0)
 
     def test_a_compact_window_driver_is_not_asked_to_name_a_width(self) -> None:
         """COMPACT WINDOW is < 600dp, which is one device here - so one directory is honest.

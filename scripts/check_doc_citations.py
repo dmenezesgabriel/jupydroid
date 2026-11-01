@@ -40,6 +40,7 @@ Usage:
 
 Tests in check_doc_citations_test.py.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -225,9 +226,7 @@ def unknown_adrs_in(
     """
     prose = comment_scanner(source)
     return [
-        (prose.count("\n", 0, m.start()) + 1, m.group(0))
-        for m in ADR_CITED.finditer(prose)
-        if m.group(1) not in known
+        (prose.count("\n", 0, m.start()) + 1, m.group(0)) for m in ADR_CITED.finditer(prose) if m.group(1) not in known
     ]
 
 
@@ -264,9 +263,7 @@ def scanned_files(package: str | None) -> list[Path]:
     tree = {f for root in roots for f in root.rglob("*") if f.is_file()}
     named = {f for name in SCANNED_FILES for f in ROOT.glob(name)}
     candidates = tree | named
-    files = sorted(
-        f for f in candidates if f.exists() and f.suffix not in NO_PROSE and not is_binary(f)
-    )
+    files = sorted(f for f in candidates if f.exists() and f.suffix not in NO_PROSE and not is_binary(f))
     if package is None:
         return files
     return [f for f in files if f"/com/jupydroid/app/{package}/" in f.as_posix()]

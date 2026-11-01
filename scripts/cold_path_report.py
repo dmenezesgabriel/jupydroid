@@ -17,6 +17,7 @@ a mode's runs can be read off together.
 
 Tests in cold_path_report_test.py.
 """
+
 from __future__ import annotations
 
 import json
@@ -29,8 +30,10 @@ from statistics import median
 THREADTIME = re.compile(r"^\d{2}-\d{2} (\d{2}):(\d{2}):(\d{2})\.(\d{3})")
 
 PROCESS_STARTED = re.compile(r"ActivityManager\( *\d+\): Start proc \d+:com\.jupydroid\.app/")
-DISPLAYED = re.compile(r"Displayed com\.jupydroid\.app/\.MainActivity.*\+(\d+)s(\d+)ms|"
-                       r"Displayed com\.jupydroid\.app/\.MainActivity.*\+(\d+)ms")
+DISPLAYED = re.compile(
+    r"Displayed com\.jupydroid\.app/\.MainActivity.*\+(\d+)s(\d+)ms|"
+    r"Displayed com\.jupydroid\.app/\.MainActivity.*\+(\d+)ms"
+)
 STAGE_JSON = re.compile(r"JupydroidSpace\( *\d+\): (\{.*\})")
 
 #: The order a healthy run reaches them - the table's row order, so a stage that showed up early

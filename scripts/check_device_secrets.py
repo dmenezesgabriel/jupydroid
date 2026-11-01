@@ -32,6 +32,7 @@ nothing true and costs the commit hook the whole screenshot set.
 
 Tests in check_device_secrets_test.py, including one that runs the gate over every tracked file.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -52,6 +53,8 @@ LEAKS = (
     re.compile(r"\bSSID[=:]\s*\"([^\"]+)\""),
     re.compile(r"(FCM_\w*TOKEN\w*)"),
 )
+
+
 #: A Jupyter server's token - and the session credential minted from it - in each written form
 #: the evidence reaches it in. An offence is a credential in the position that mints it, not a
 #: bare long hex (the tree's pinned sha256s are legitimate). The token is minted per launch, so

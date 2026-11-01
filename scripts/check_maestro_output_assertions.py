@@ -33,6 +33,7 @@ is fine too - nothing renders is a real claim, and it is how Clear outputs is ch
 This only looks at assertions placed *after* a Run. Before one, a flow is reading the source
 on purpose, and a blanket rule fires on 38 legitimate assertions.
 """
+
 from __future__ import annotations
 
 import json
@@ -162,10 +163,7 @@ def waived(flow: pathlib.Path, needle: str, marker: str) -> bool:
     """A waiver is a `# <marker>: <why>` comment on the line above the assertion."""
     waiver = re.compile(rf"#\s*{re.escape(marker)}:")
     lines = flow.read_text().split("\n")
-    return any(
-        needle in line and number > 0 and waiver.search(lines[number - 1])
-        for number, line in enumerate(lines)
-    )
+    return any(needle in line and number > 0 and waiver.search(lines[number - 1]) for number, line in enumerate(lines))
 
 
 def complaints(flow: pathlib.Path, step: object, sources: str) -> list[str]:

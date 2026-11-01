@@ -26,6 +26,7 @@ Tests in check_monospace_home_test.py, including one that runs the gate over thi
 gate that has stopped matching anything fails rather than passing quietly - which
 `check_ui_dimensions.py` did, silently, until its own test was run from the wrong directory.
 """
+
 from __future__ import annotations
 
 import pathlib

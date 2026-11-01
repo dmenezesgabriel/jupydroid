@@ -22,6 +22,7 @@ python3 scripts/read_ledger_partition.py --unassigned # the ids nobody owns, and
 
 Tests in read_ledger_partition_test.py.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -52,7 +53,8 @@ COMMAND_IN_CELL = re.compile(
     r"|imageviewer|csv|tsv|mermaid|application|sidebar|apputils|mainmenu|viewmenu|runmenu"
     r"|tabsmenu|settingsmenu|helpmenu|recentmenu|help|launcher|settingeditor|shortcuts"
     r"|workspace-ui|logconsole|pluginmanager|extensionmanager|property-inspector|router)"
-    r":[A-Za-z0-9-]+)`")
+    r":[A-Za-z0-9-]+)`"
+)
 
 #: Packages whose whole command surface the partition covers - every id they declare must be
 #: owned. `notebook-extension` is read separately because only its `notebook:` ids are the
@@ -75,16 +77,34 @@ COMMAND_IN_CELL = re.compile(
 #: check counts once. `statusbar:toggle` and `workspace-indicator:toggle` are bound to module-level
 #: `const`s `COMMAND_ID` cannot see, so the ledger names them rather than the partition owning
 #: them.
-PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension",
-                        "filebrowser-extension", "docmanager-extension", "docmanager",
-                        "console-extension", "running-extension", "terminal-extension",
-                        "rendermime-extension", "markdownviewer-extension", "htmlviewer-extension",
-                        "mathjax-extension", "imageviewer-extension", "csvviewer-extension",
-                        "mermaid-extension",
-                        "application-extension", "apputils-extension", "mainmenu-extension",
-                        "launcher-extension", "settingeditor-extension", "help-extension",
-                        "shortcuts-extension", "workspaces-extension", "logconsole-extension",
-                        "pluginmanager-extension", "extensionmanager-extension")
+PARTITIONED_PACKAGES = (
+    "documentsearch-extension",
+    "toc-extension",
+    "filebrowser-extension",
+    "docmanager-extension",
+    "docmanager",
+    "console-extension",
+    "running-extension",
+    "terminal-extension",
+    "rendermime-extension",
+    "markdownviewer-extension",
+    "htmlviewer-extension",
+    "mathjax-extension",
+    "imageviewer-extension",
+    "csvviewer-extension",
+    "mermaid-extension",
+    "application-extension",
+    "apputils-extension",
+    "mainmenu-extension",
+    "launcher-extension",
+    "settingeditor-extension",
+    "help-extension",
+    "shortcuts-extension",
+    "workspaces-extension",
+    "logconsole-extension",
+    "pluginmanager-extension",
+    "extensionmanager-extension",
+)
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
 #: is AUD-004's while the rest of `fileeditor-extension` waits for the file-editor slice, and
@@ -96,8 +116,7 @@ PARTITIONED_PACKAGES = ("documentsearch-extension", "toc-extension",
 #: that package's own ids never reaches it and neither does the package-whole read of
 #: `toc-extension`.
 CARRIED_PACKAGES = ("fileeditor-extension", "notebook-extension")
-CARRIED_IDS = ("fileeditor:find", "toc:run-cells",
-               "fileeditor:create-new", "fileeditor:create-new-markdown-file")
+CARRIED_IDS = ("fileeditor:find", "toc:run-cells", "fileeditor:create-new", "fileeditor:create-new-markdown-file")
 
 
 def declared_ids(packages: Path) -> list[str]:
@@ -114,12 +133,13 @@ def declared_ids(packages: Path) -> list[str]:
     from read_reference_commands import jupyterlab_command_ids
 
     by_package = jupyterlab_command_ids(packages)
-    carried = [found for package in CARRIED_PACKAGES
-               for found in by_package.get(package, []) if found in CARRIED_IDS]
-    return ([found for found in by_package.get("notebook-extension", [])
-             if found.startswith("notebook:")]
-            + [found for package in PARTITIONED_PACKAGES for found in by_package.get(package, [])]
-            + carried)
+    carried = [found for package in CARRIED_PACKAGES for found in by_package.get(package, []) if found in CARRIED_IDS]
+    return (
+        [found for found in by_package.get("notebook-extension", []) if found.startswith("notebook:")]
+        + [found for package in PARTITIONED_PACKAGES for found in by_package.get(package, [])]
+        + carried
+    )
+
 
 #: A slice, and optionally the task inside it: `AUD-002` `T2b`. The task is kept because it is what
 #: makes the remaining work pickable - "this slice's editing half" is a different answer from "this
@@ -141,9 +161,11 @@ def ledger_partition(ledger: Path = LEDGER) -> dict[str, str]:
     for ids, owner in _partition_rows(ledger):
         for found in ids:
             if found in owners:
-                raise ValueError(f"{ledger}: {found} is claimed by both `{owners[found]}` and "
-                                 f"`{owner}`; each id belongs to exactly one slice, and a family "
-                                 f"that spans two is split into one row per owner")
+                raise ValueError(
+                    f"{ledger}: {found} is claimed by both `{owners[found]}` and "
+                    f"`{owner}`; each id belongs to exactly one slice, and a family "
+                    f"that spans two is split into one row per owner"
+                )
             owners[found] = owner
     return owners
 
@@ -178,9 +200,11 @@ def _owner_of(ids: list[str], columns: list[str], ledger: Path) -> str:
     stated = columns[1] if len(columns) > 1 else ""
     named = OWNER_IN_CELL.findall(stated)
     if not any(token.startswith("AUD-") for token in named):
-        raise ValueError(f"{ledger}: {', '.join(ids)} is owned by nobody - the Owner column reads "
-                         f"{stated!r}, and must name an `AUD-NNN`, optionally with the task inside "
-                         f"it, as in '`AUD-002` `T2b`'")
+        raise ValueError(
+            f"{ledger}: {', '.join(ids)} is owned by nobody - the Owner column reads "
+            f"{stated!r}, and must name an `AUD-NNN`, optionally with the task inside "
+            f"it, as in '`AUD-002` `T2b`'"
+        )
     return " ".join(named)
 
 
@@ -189,10 +213,11 @@ def _partition_lines(ledger: Path) -> list[str]:
     lines = ledger.read_text(encoding="utf-8").splitlines()
     opened = next((at for at, line in enumerate(lines) if line.strip() == PARTITION_HEADING), None)
     if opened is None:
-        raise ValueError(f"{ledger} has no `{PARTITION_HEADING}` heading, so nothing in it says "
-                         f"which slice owns which command id")
-    rest = enumerate(lines[opened + 1:], opened + 1)
-    return lines[opened + 1:next((at for at, line in rest if line.startswith("#")), len(lines))]
+        raise ValueError(
+            f"{ledger} has no `{PARTITION_HEADING}` heading, so nothing in it says which slice owns which command id"
+        )
+    rest = enumerate(lines[opened + 1 :], opened + 1)
+    return lines[opened + 1 : next((at for at, line in rest if line.startswith("#")), len(lines))]
 
 
 def _report_unassigned(ledger: Path) -> None:
@@ -207,8 +232,9 @@ def _report_unassigned(ledger: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Which slice owns which reference command id.")
-    parser.add_argument("--unassigned", action="store_true",
-                        help="print the ids nobody owns, and the owned ids nothing declares")
+    parser.add_argument(
+        "--unassigned", action="store_true", help="print the ids nobody owns, and the owned ids nothing declares"
+    )
     parser.add_argument("--ledger", type=Path, default=LEDGER, help="the parity ledger to read")
     args = parser.parse_args()
     if args.unassigned:

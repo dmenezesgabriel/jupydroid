@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the chrome-parts oracle, including one run over this repository's own frames."""
+
 from __future__ import annotations
 
 import pathlib
@@ -48,7 +49,7 @@ class ChromeBandsTest(unittest.TestCase):
         """The mode down a column, not one pixel of it - a row label must not read as its own part."""
         frame = _painted([(200, RAIL), (200, PAGE)])
         image = Image.open(frame)
-        for column in range(40, 60):          # a label's own glyph strokes, a minority of the column
+        for column in range(40, 60):  # a label's own glyph strokes, a minority of the column
             for row in range(90, 100):
                 image.putpixel((column, row), (0xBB, 0xBE, 0xBF))
         image.save(frame)
@@ -69,7 +70,7 @@ class PartSeamsTest(unittest.TestCase):
 
     def test_a_seam_reports_the_gap_it_fills(self) -> None:
         frame = _painted([(120, RAIL), (2, SEAM), (300, PAGE)])
-        seam, = part_seams(frame)
+        (seam,) = part_seams(frame)
         self.assertEqual((119, 122, 2), (seam.after, seam.before, seam.width))
 
     def test_three_parts_have_two_seams(self) -> None:

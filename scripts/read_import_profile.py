@@ -20,6 +20,7 @@ A measurement, not a gate:
 
 Tests in read_import_profile_test.py.
 """
+
 from __future__ import annotations
 
 import collections
@@ -62,7 +63,7 @@ def cost_of(profile: str, root: str) -> ImportCost:
     start = at
     while start > 0 and lines[start - 1].depth > lines[at].depth:
         start -= 1
-    return ImportCost(lines[at].cumulative_us, lines[start:at + 1])
+    return ImportCost(lines[at].cumulative_us, lines[start : at + 1])
 
 
 def self_by_package(cost: ImportCost) -> list[tuple[str, int]]:

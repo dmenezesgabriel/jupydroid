@@ -14,6 +14,7 @@ character for character, and every line number a gate reports is the one the fil
 
 Tests in xml_source_test.py.
 """
+
 from __future__ import annotations
 
 _OPEN, _CLOSE = "<!--", "-->"

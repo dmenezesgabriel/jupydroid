@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Pins `cold_path_report.py`'s parsing on the real logcat shapes it will read."""
+
 from __future__ import annotations
 
 import unittest
@@ -49,7 +50,7 @@ class ParseLogcatTest(unittest.TestCase):
 
     def test_only_the_first_occurrence_of_a_stage_counts(self) -> None:
         later_frame = (
-            '09-27 13:32:19.999 I/JupydroidSpace( 3796): '
+            "09-27 13:32:19.999 I/JupydroidSpace( 3796): "
             '{"stage":"kernel.frame.received","subscribers":"2","msgType":"stream","bytes":"4"}\n'
         )
         marks = report.marks_of(LOGCAT + later_frame)
@@ -58,7 +59,7 @@ class ParseLogcatTest(unittest.TestCase):
     def test_a_frame_before_the_execute_request_is_not_the_answer(self) -> None:
         # Greet/status chatter arrives before the cell is asked; the mark must follow the ask.
         early = (
-            '09-27 13:32:15.990 I/JupydroidSpace( 3796): '
+            "09-27 13:32:15.990 I/JupydroidSpace( 3796): "
             '{"stage":"kernel.frame.received","subscribers":"2","msgType":"status","bytes":"600"}\n'
         )
         lines = LOGCAT.splitlines(True)
@@ -69,7 +70,7 @@ class ParseLogcatTest(unittest.TestCase):
         # The shape SpaceServer logs once a Space has an id of its own - captured on SM-X216B.
         capture = (
             '10-08 16:01:37.383 I/JupydroidSpace(16266): {"stage":"installing Space base"}\n'
-            '10-08 16:01:37.436 I/JupydroidSpace(16266): '
+            "10-08 16:01:37.436 I/JupydroidSpace(16266): "
             '{"stage":"starting jupyter_server for Space base"}\n'
         )
         marks = report.marks_of(capture)
@@ -94,7 +95,7 @@ class ParseLogcatTest(unittest.TestCase):
 
     def test_the_session_request_is_the_row_kernel_spawn_is_timed_from(self) -> None:
         requested = (
-            '09-27 13:32:12.000 I/JupydroidSpace( 3796): '
+            "09-27 13:32:12.000 I/JupydroidSpace( 3796): "
             '{"stage":"kernel.session.requested","path":"Cold Path.ipynb"}\n'
         )
         lines = LOGCAT.splitlines(True)

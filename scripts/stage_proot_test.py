@@ -1,4 +1,5 @@
 """Tests for stage_proot.py: the carve, the pin and the staged files, on synthetic bytes."""
+
 from __future__ import annotations
 
 import hashlib

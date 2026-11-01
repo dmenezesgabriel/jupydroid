@@ -147,7 +147,7 @@ def toolkit_error(c: TypedCall) -> str | None:
     """
     try:
         result = json.loads((c.get("raw_output") or {}).get("output", ""))
-    except (AttributeError, TypeError, json.JSONDecodeError):
+    except AttributeError, TypeError, json.JSONDecodeError:
         return None
     if not isinstance(result, dict) or result.get("success") is not False:
         return None

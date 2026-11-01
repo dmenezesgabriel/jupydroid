@@ -1,4 +1,5 @@
 """Tests for check_ui_dimensions.py."""
+
 from __future__ import annotations
 
 import pathlib
@@ -54,7 +55,7 @@ class OffencesTest(unittest.TestCase):
 
     def test_a_literal_in_a_line_comment_is_not_a_dimension(self):
         """Prose is not a point of use, which is the whole rule - see the module docstring."""
-        self.assertEqual([], self.offences("// 8.dp used to live here\nval name = \"x\"\n"))
+        self.assertEqual([], self.offences('// 8.dp used to live here\nval name = "x"\n'))
 
     def test_a_kdoc_may_name_the_number_it_is_explaining(self):
         """`theme/CornerRadius.kt` is the file that found this: its KDoc explains a retired literal."""
@@ -74,7 +75,7 @@ class OffencesTest(unittest.TestCase):
         self.assertIn(":4:", found[0])
 
     def test_a_file_with_no_dimensions_is_silent(self):
-        self.assertEqual([], self.offences("val name = \"x\"\n"))
+        self.assertEqual([], self.offences('val name = "x"\n'))
 
 
 class ScopeTest(unittest.TestCase):

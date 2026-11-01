@@ -28,6 +28,7 @@ python3 scripts/read_reference_commands.py --jupyterlab-package notebook-extensi
 
 Tests in read_reference_commands_test.py.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -67,8 +68,8 @@ PINNED_ROW = re.compile(r"^\| `([a-z0-9-]+)` \| `([0-9a-f]{40})` \| `([^`]+)`", 
 #: are bound module-level but so is every `const cmd = 'console:create'` an `execute` call names,
 #: so the ledger names those two by hand.
 COMMAND_ID = re.compile(
-    r"^\s+export const [A-Za-z]\w*(?:: *string)? *=\s*['\"]([a-z0-9-]+:[A-Za-z0-9:_.-]+)['\"]",
-    re.M)
+    r"^\s+export const [A-Za-z]\w*(?:: *string)? *=\s*['\"]([a-z0-9-]+:[A-Za-z0-9:_.-]+)['\"]", re.M
+)
 
 #: A member of `export namespace NotebookActions`, which is indented by exactly two spaces.
 ACTION_FUNCTION = re.compile(r"^  export (?:async )?function (\w+)", re.M)
@@ -105,8 +106,7 @@ def pinned_clones(readme: Path) -> dict[str, tuple[str, str]]:
     return {project: (sha, clone) for project, sha, clone in rows}
 
 
-def reference_dir(project: str, root: Path = REFERENCE_ROOT,
-                  readme: Path = REPO / "docs/README.md") -> Path:
+def reference_dir(project: str, root: Path = REFERENCE_ROOT, readme: Path = REPO / "docs/README.md") -> Path:
     """The clone of [project], or a refusal naming the command that would create it.
 
     ```
@@ -121,7 +121,8 @@ def reference_dir(project: str, root: Path = REFERENCE_ROOT,
         sha, clone = clones[project]
         raise FileNotFoundError(
             f"{path} is absent - reference/ is gitignored and travels with no clone. "
-            f"Make it with: {clone} {path} - then check out {sha}")
+            f"Make it with: {clone} {path} - then check out {sha}"
+        )
     return path
 
 
@@ -131,8 +132,7 @@ def clone_head(clone: Path) -> str | None:
     A count measured against a different revision is a different count, so the report prints this
     beside every number instead of trusting the pin.
     """
-    found = subprocess.run(["git", "-C", str(clone), "rev-parse", "HEAD"],
-                           capture_output=True, text=True, check=False)
+    found = subprocess.run(["git", "-C", str(clone), "rev-parse", "HEAD"], capture_output=True, text=True, check=False)
     return found.stdout.strip() or None
 
 
@@ -176,9 +176,10 @@ def notebook_action_names(actions: Path) -> list[str]:
     text = actions.read_text(encoding="utf-8")
     start = text.find(ACTIONS_NAMESPACE)
     if start < 0:
-        raise ValueError(f"{actions} declares no `{ACTIONS_NAMESPACE}`, so it is not the file "
-                         f"holding the action surface")
-    return sorted(set(ACTION_FUNCTION.findall(text[start:_namespace_end(text, start)])))
+        raise ValueError(
+            f"{actions} declares no `{ACTIONS_NAMESPACE}`, so it is not the file holding the action surface"
+        )
+    return sorted(set(ACTION_FUNCTION.findall(text[start : _namespace_end(text, start)])))
 
 
 def _namespace_end(text: str, start: int) -> int:
@@ -200,8 +201,7 @@ def vscode_jupyter_command_ids(manifest: Path) -> list[str]:
     contributes = json.loads(manifest.read_text(encoding="utf-8")).get("contributes", {})
     commands = contributes.get("commands")
     if not commands:
-        raise ValueError(f"{manifest} declares no `contributes.commands`; it contributes "
-                         f"{sorted(contributes)}")
+        raise ValueError(f"{manifest} declares no `contributes.commands`; it contributes {sorted(contributes)}")
     return sorted({entry["command"] for entry in commands})
 
 
@@ -218,11 +218,11 @@ def lsp_method_names(tokens_ts: Path) -> dict[str, list[str]]:
     text = tokens_ts.read_text(encoding="utf-8")
     start = text.find(METHOD_NAMESPACE)
     if start < 0:
-        raise ValueError(f"{tokens_ts} declares no `{METHOD_NAMESPACE}`, so it is not the file "
-                         f"holding the LSP method surface")
-    body = text[start:_namespace_end(text, start)]
-    return {direction: LSP_MEMBER.findall(members)
-            for direction, members in LSP_DIRECTION.findall(body)}
+        raise ValueError(
+            f"{tokens_ts} declares no `{METHOD_NAMESPACE}`, so it is not the file holding the LSP method surface"
+        )
+    body = text[start : _namespace_end(text, start)]
+    return {direction: LSP_MEMBER.findall(members) for direction, members in LSP_DIRECTION.findall(body)}
 
 
 def rootfs_kernel_message_types(kernelbase: Path) -> dict[str, list[str]]:
@@ -239,8 +239,10 @@ def rootfs_kernel_message_types(kernelbase: Path) -> dict[str, list[str]]:
     ```
     """
     text = kernelbase.read_text(encoding="utf-8")
-    return {"shell": _declared_strings(text, "msg_types", kernelbase),
-            "control_only": _declared_strings(text, "control_msg_types", kernelbase)}
+    return {
+        "shell": _declared_strings(text, "msg_types", kernelbase),
+        "control_only": _declared_strings(text, "control_msg_types", kernelbase),
+    }
 
 
 def _declared_strings(text: str, name: str, source: Path) -> list[str]:
@@ -251,9 +253,10 @@ def _declared_strings(text: str, name: str, source: Path) -> list[str]:
     """
     opener = re.compile(rf"^\s*{name} = \[", re.M).search(text)
     if not opener:
-        raise ValueError(f"{source} declares no `{name} = [`, so it is not the file holding the "
-                         f"kernel's message dispatch")
-    return re.findall(r'"([a-z_]+)"', text[opener.end():text.index("]", opener.end())])
+        raise ValueError(
+            f"{source} declares no `{name} = [`, so it is not the file holding the kernel's message dispatch"
+        )
+    return re.findall(r'"([a-z_]+)"', text[opener.end() : text.index("]", opener.end())])
 
 
 def _report_jupyterlab(root: Path, readme: Path) -> None:
@@ -295,16 +298,13 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Enumerate what each reference offers.")
     parser.add_argument("--all", action="store_true", help="report every reference (the default)")
     parser.add_argument("--jupyterlab-package", help="print one package's command ids, one per line")
-    parser.add_argument("--notebook-actions", action="store_true",
-                        help="print NotebookActions' members, one per line")
-    parser.add_argument("--vscode-jupyter-commands", action="store_true",
-                        help="print the contributed command ids, one per line")
-    parser.add_argument("--kernelbase", type=Path,
-                        help="an ipykernel kernelbase.py extracted from the shipped rootfs")
-    parser.add_argument("--lsp-methods", action="store_true",
-                        help="print Method's direction enums and their members")
-    parser.add_argument("--reference-root", type=Path, default=REFERENCE_ROOT,
-                        help="where the clones live")
+    parser.add_argument("--notebook-actions", action="store_true", help="print NotebookActions' members, one per line")
+    parser.add_argument(
+        "--vscode-jupyter-commands", action="store_true", help="print the contributed command ids, one per line"
+    )
+    parser.add_argument("--kernelbase", type=Path, help="an ipykernel kernelbase.py extracted from the shipped rootfs")
+    parser.add_argument("--lsp-methods", action="store_true", help="print Method's direction enums and their members")
+    parser.add_argument("--reference-root", type=Path, default=REFERENCE_ROOT, help="where the clones live")
     args = parser.parse_args()
     readme = REPO / "docs/README.md"
     if args.jupyterlab_package:

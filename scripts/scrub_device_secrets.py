@@ -23,6 +23,7 @@ the `.headers` bodies are CRLF and the captured logs are mixed endings, so the s
 decodes raw bytes with `surrogateescape` instead of `read_text` - a captured file
 changes its credential and nothing else.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -84,9 +85,7 @@ def scrub(directory: pathlib.Path, root: pathlib.Path = pathlib.Path()) -> int:
         scrubbed = _carriers_scrubbed(text)
         for rule, replacement in pairs:
             scrubbed = (
-                rule.sub(replacement, scrubbed)
-                if isinstance(rule, re.Pattern)
-                else scrubbed.replace(rule, replacement)
+                rule.sub(replacement, scrubbed) if isinstance(rule, re.Pattern) else scrubbed.replace(rule, replacement)
             )
         scrubbed_bytes = scrubbed.encode("utf-8", errors="surrogateescape")
         if scrubbed_bytes != data:

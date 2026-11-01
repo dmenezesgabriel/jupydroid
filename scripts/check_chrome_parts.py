@@ -26,6 +26,7 @@ to a border colour would fail correct behaviour. So the seams are checked where 
 
 Tests in check_chrome_parts_test.py, including one over the frames P7a actually captured.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -82,8 +83,7 @@ def _seam_failures(frame: str, border: str) -> list[str]:
     the part behind it. Holding the blend to the hex would fail correct behaviour.
     """
     return [
-        f"{frame}: the seam at x{seam.after + 1} is {' '.join(seam.colours) or 'NOT DRAWN'}, "
-        f"expected {border} in it"
+        f"{frame}: the seam at x{seam.after + 1} is {' '.join(seam.colours) or 'NOT DRAWN'}, expected {border} in it"
         for seam in part_seams(frame)
         if border not in seam.colours
     ]

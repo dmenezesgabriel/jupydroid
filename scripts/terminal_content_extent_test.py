@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for terminal_content_extent.py."""
+
 from __future__ import annotations
 
 import unittest
@@ -152,9 +153,7 @@ class TerminalRowSpacingPxTest(unittest.TestCase):
 
 
 def _strip_differs(before: str, after: str) -> bool:
-    return terminal_top_strip_differs(
-        before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20
-    )
+    return terminal_top_strip_differs(before, after, x_range=(0, _WIDTH), content_top_y=_CONTENT_TOP, strip_height=20)
 
 
 class TerminalTopStripDiffersTest(unittest.TestCase):

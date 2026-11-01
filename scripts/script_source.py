@@ -20,6 +20,7 @@ one it had in the source and a gate can name the line it found.
 
 Tests in script_source_test.py.
 """
+
 from __future__ import annotations
 
 _QUOTES = ("'", '"')
@@ -93,9 +94,7 @@ def python_prose(source: str) -> str:
     """
     kept = _triple_quoted_spans(source)
     comments = hash_comments(source)
-    return "".join(
-        source[i] if i in kept or source[i] == "\n" else comments[i] for i in range(len(source))
-    )
+    return "".join(source[i] if i in kept or source[i] == "\n" else comments[i] for i in range(len(source)))
 
 
 def _triple_quoted_spans(source: str) -> set[int]:

@@ -13,6 +13,7 @@ fails red is the instrumented `assertReservesMinimumTouchTarget`.
 
     adb shell wm density | python3 scripts/read_touch_target_bounds.py hierarchy.xml
 """
+
 from __future__ import annotations
 
 import re

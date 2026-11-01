@@ -27,14 +27,7 @@ def dns_server():
     header = txn_id + b"\x81\x80" + b"\x00\x01" + b"\x00\x01" + b"\x00\x00" + b"\x00\x00"
     question = query[12:]  # echo the question section back verbatim
     # Answer: name -> compression pointer at offset 12, TYPE=A, CLASS=IN, TTL=60, RDLENGTH=4
-    answer = (
-        b"\xc0\x0c"
-        + b"\x00\x01"
-        + b"\x00\x01"
-        + struct.pack("!I", 60)
-        + b"\x00\x04"
-        + socket.inet_aton(ANSWER_IP)
-    )
+    answer = b"\xc0\x0c" + b"\x00\x01" + b"\x00\x01" + struct.pack("!I", 60) + b"\x00\x04" + socket.inet_aton(ANSWER_IP)
     sock.sendto(header + question + answer, addr)
     sock.close()
 

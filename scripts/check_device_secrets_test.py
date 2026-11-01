@@ -4,6 +4,7 @@
 Every leak here is fake, and assembled from pieces: this file is committed, so it has to pass the
 gate it tests - a literal `B` + `SSID=` line in it would be refused by its own subject.
 """
+
 from __future__ import annotations
 
 import pathlib

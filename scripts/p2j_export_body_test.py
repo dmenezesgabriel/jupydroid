@@ -6,6 +6,7 @@ returned in full is `evidence/p2j-2-export-formats/`.
 
     python3 -m unittest discover -s scripts -p '*_test.py'
 """
+
 from __future__ import annotations
 
 import io

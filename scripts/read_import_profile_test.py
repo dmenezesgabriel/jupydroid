@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """What `read_import_profile` must say about one module's share of a `python3 -X importtime` run."""
+
 from __future__ import annotations
 
 import unittest
@@ -25,8 +26,7 @@ class ReadImportProfileTest(unittest.TestCase):
 
     def test_self_time_is_summed_by_top_level_package(self) -> None:
         """A package's modules are spread through the tree; a cut is made per package."""
-        self.assertEqual([("pydantic", 340), ("root", 100), ("inner", 20)],
-                         self_by_package(cost_of(PROFILE, "root")))
+        self.assertEqual([("pydantic", 340), ("root", 100), ("inner", 20)], self_by_package(cost_of(PROFILE, "root")))
 
     def test_what_was_imported_before_or_after_the_root_is_not_its_cost(self) -> None:
         """`shared` was already loaded, so the root paid nothing for it, as at server start."""

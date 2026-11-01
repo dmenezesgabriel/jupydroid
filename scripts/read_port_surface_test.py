@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for read_port_surface.py."""
+
 from __future__ import annotations
 
 import tempfile
@@ -78,12 +79,15 @@ interface NotebookRepository {
 
 class PortsUnderTest(unittest.TestCase):
     def test_each_interface_file_becomes_one_port(self) -> None:
-        root = _tree({
-            "KernelGateway.kt": "interface KernelGateway {\n  suspend fun connect()\n}\n",
-            "FileNameTakenException.kt": "class FileNameTakenException : Exception()\n",
-        })
-        self.assertEqual({"KernelGateway": ["connect"]},
-                         {port: [op.name for op in ops] for port, ops in ports_under(root).items()})
+        root = _tree(
+            {
+                "KernelGateway.kt": "interface KernelGateway {\n  suspend fun connect()\n}\n",
+                "FileNameTakenException.kt": "class FileNameTakenException : Exception()\n",
+            }
+        )
+        self.assertEqual(
+            {"KernelGateway": ["connect"]}, {port: [op.name for op in ops] for port, ops in ports_under(root).items()}
+        )
 
 
 class NamedInTest(unittest.TestCase):
@@ -125,8 +129,7 @@ class OverrideIsNotUseTest(unittest.TestCase):
 
     def test_an_override_that_delegates_on_the_same_line_is_a_use(self) -> None:
         """`BaseSpaceKernelGateway` is written this way, so a line check would lose the real call."""
-        tree = _tree({"data/space/Base.kt":
-                      "  override suspend fun openDocument(p: String) = inner.openDocument(p)\n"})
+        tree = _tree({"data/space/Base.kt": "  override suspend fun openDocument(p: String) = inner.openDocument(p)\n"})
         self.assertEqual([tree / "data/space/Base.kt"], named_in("openDocument", tree))
 
     def test_a_plain_call_is_still_a_use(self) -> None:
@@ -143,30 +146,23 @@ class OverrideIsNotUseTest(unittest.TestCase):
 
 class UnusedOperationsTest(unittest.TestCase):
     def test_an_operation_nothing_names_is_reported(self) -> None:
-        ports = _tree({"NotebookRepository.kt":
-                       "interface NotebookRepository {\n  suspend fun deleteNotebook()\n}\n"})
+        ports = _tree({"NotebookRepository.kt": "interface NotebookRepository {\n  suspend fun deleteNotebook()\n}\n"})
         production = _tree({"ui/Screen.kt": "val x = 1\n"})
-        self.assertEqual([Operation("NotebookRepository", "deleteNotebook", 2)],
-                         unused_operations(ports, production))
+        self.assertEqual([Operation("NotebookRepository", "deleteNotebook", 2)], unused_operations(ports, production))
 
     def test_an_operation_production_code_names_is_not_reported(self) -> None:
-        ports = _tree({"NotebookRepository.kt":
-                       "interface NotebookRepository {\n  suspend fun readNotebook()\n}\n"})
+        ports = _tree({"NotebookRepository.kt": "interface NotebookRepository {\n  suspend fun readNotebook()\n}\n"})
         production = _tree({"ui/Screen.kt": "repository.readNotebook()\n"})
         self.assertEqual([], unused_operations(ports, production))
 
     def test_the_fake_that_implements_it_is_not_production_use(self) -> None:
         """Every port has a `Fake…` by rule, so a fake's override would make nothing ever unused."""
-        ports = _tree({"NotebookRepository.kt":
-                       "interface NotebookRepository {\n  suspend fun deleteNotebook()\n}\n"})
-        production = _tree({"data/fake/FakeNotebookRepository.kt":
-                            "override suspend fun deleteNotebook() = Unit\n"})
-        self.assertEqual(["deleteNotebook"],
-                         [op.name for op in unused_operations(ports, production)])
+        ports = _tree({"NotebookRepository.kt": "interface NotebookRepository {\n  suspend fun deleteNotebook()\n}\n"})
+        production = _tree({"data/fake/FakeNotebookRepository.kt": "override suspend fun deleteNotebook() = Unit\n"})
+        self.assertEqual(["deleteNotebook"], [op.name for op in unused_operations(ports, production)])
 
     def test_the_ports_own_declaration_is_not_production_use(self) -> None:
-        ports = _tree({"NotebookRepository.kt":
-                       "interface NotebookRepository {\n  suspend fun deleteNotebook()\n}\n"})
+        ports = _tree({"NotebookRepository.kt": "interface NotebookRepository {\n  suspend fun deleteNotebook()\n}\n"})
         self.assertEqual(["deleteNotebook"], [op.name for op in unused_operations(ports, ports)])
 
 
@@ -182,8 +178,15 @@ class ThisRepositorysPortsTest(unittest.TestCase):
         self.assertEqual(set(), set(self.ports) ^ fakes)
 
     def test_the_ports_named_in_building_blocks_are_all_found(self) -> None:
-        for port in ("NotebookRepository", "KernelGateway", "KernelDebugger", "ServerLauncher",
-                     "WorkspaceSearcher", "SpaceRepository", "LanguageServerPort"):
+        for port in (
+            "NotebookRepository",
+            "KernelGateway",
+            "KernelDebugger",
+            "ServerLauncher",
+            "WorkspaceSearcher",
+            "SpaceRepository",
+            "LanguageServerPort",
+        ):
             with self.subTest(port=port):
                 self.assertIn(port, self.ports)
 

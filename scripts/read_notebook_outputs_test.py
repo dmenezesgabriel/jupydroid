@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """What `read_notebook_outputs` must say about a notebook the kernel has written to."""
+
 from __future__ import annotations
 
 import json
@@ -19,8 +20,12 @@ class ReadNotebookOutputsTest(unittest.TestCase):
 
     def test_a_cell_that_raised_shows_the_exception_rather_than_nothing(self) -> None:
         """The probe's interesting answers are failures - a refused syscall, an unreachable name."""
-        error = {"output_type": "error", "ename": "OSError", "evalue": "[Errno 8] Exec format error",
-                 "traceback": ["Traceback...", "OSError: [Errno 8] Exec format error"]}
+        error = {
+            "output_type": "error",
+            "ename": "OSError",
+            "evalue": "[Errno 8] Exec format error",
+            "traceback": ["Traceback...", "OSError: [Errno 8] Exec format error"],
+        }
 
         text = self.read(self.cell("import subprocess", [error]))
 
@@ -36,8 +41,7 @@ class ReadNotebookOutputsTest(unittest.TestCase):
         self.assertIn("unhandled output_type 'future_kind'", text)
 
     def test_every_cell_is_numbered_in_order(self) -> None:
-        notebook = {"cells": [self.cell("a", [stream("1")])["cells"][0],
-                              self.cell("b", [stream("2")])["cells"][0]]}
+        notebook = {"cells": [self.cell("a", [stream("1")])["cells"][0], self.cell("b", [stream("2")])["cells"][0]]}
 
         text = self.read(notebook)
 

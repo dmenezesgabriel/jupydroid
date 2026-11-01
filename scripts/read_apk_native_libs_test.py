@@ -5,6 +5,7 @@ The fixtures are verbatim `readelf -lW` + `readelf -dW` output of the real zstd-
 binaries on Maven Central: 1.5.7-9 (what the APK ships today), 1.5.7-12 (Full RELRO whose
 RELRO segment still fails a 16 KiB device - luben/zstd-jni#381) and 1.5.7-24 (the fix).
 """
+
 from __future__ import annotations
 
 import unittest
@@ -287,9 +288,7 @@ class BindsNowTest(unittest.TestCase):
 class RowForTest(unittest.TestCase):
     def test_arm64_1_5_7_9_has_no_relro(self) -> None:
         row = row_for("jni/arm64-v8a/libzstd-jni-1.5.7-9.so", ARM64_1_5_7_9)
-        self.assertEqual(
-            row, NativeLibRow("jni/arm64-v8a/libzstd-jni-1.5.7-9.so", "none", 0x4000, "n/a")
-        )
+        self.assertEqual(row, NativeLibRow("jni/arm64-v8a/libzstd-jni-1.5.7-9.so", "none", 0x4000, "n/a"))
 
     def test_armv7_1_5_7_9_is_partial(self) -> None:
         row = row_for("jni/armeabi-v7a/libzstd-jni-1.5.7-9.so", ARMV7_1_5_7_9)
@@ -337,6 +336,7 @@ class RowsOfTest(unittest.TestCase):
                 # The same basename under two ABIs: extraction must not clobber one with the other.
                 zf.writestr("jni/arm64-v8a/same-name.so", b"arm64")
                 zf.writestr("jni/x86/same-name.so", b"x86")
+
             def read(path: object) -> str:
                 return ARM64_1_5_7_24 if "v8a" in str(path) else ARMV7_1_5_7_9
 

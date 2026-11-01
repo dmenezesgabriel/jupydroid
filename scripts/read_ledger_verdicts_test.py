@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for read_ledger_verdicts.py."""
+
 from __future__ import annotations
 
 import tempfile
@@ -27,8 +28,12 @@ class LedgerVerdictTest(unittest.TestCase):
     """The verdicts the ledger stores, read back - see read_ledger_verdicts.py."""
 
     def test_a_row_gives_every_id_in_its_first_column_its_verdict(self) -> None:
-        found = ledger_verdicts(_ledger(
-            _TABLE_HEAD + "| `notebook:move-cell-up`, `notebook:move-cell-down` | `withCellsMoved` | present | — |\n"))
+        found = ledger_verdicts(
+            _ledger(
+                _TABLE_HEAD
+                + "| `notebook:move-cell-up`, `notebook:move-cell-down` | `withCellsMoved` | present | — |\n"
+            )
+        )
         self.assertEqual({"notebook:move-cell-up": "present", "notebook:move-cell-down": "present"}, found)
 
     def test_emphasis_around_a_verdict_is_not_part_of_it(self) -> None:
@@ -38,10 +43,13 @@ class LedgerVerdictTest(unittest.TestCase):
 
     def test_an_id_given_two_verdicts_is_refused_naming_both(self) -> None:
         with self.assertRaises(ValueError) as raised:
-            ledger_verdicts(_ledger(
-                _TABLE_HEAD
-                + "| `notebook:undo` | ours | present | — |\n"
-                + "| `notebook:undo` | ours | adapted | a comment |\n"))
+            ledger_verdicts(
+                _ledger(
+                    _TABLE_HEAD
+                    + "| `notebook:undo` | ours | present | — |\n"
+                    + "| `notebook:undo` | ours | adapted | a comment |\n"
+                )
+            )
         for named in ("notebook:undo", "present", "adapted"):
             self.assertIn(named, str(raised.exception))
 
@@ -66,10 +74,14 @@ class LedgerVerdictTest(unittest.TestCase):
 
     def test_the_partition_table_is_not_read_as_verdicts(self) -> None:
         """It names the same ids in the same notation, and judges none of them."""
-        found = ledger_verdicts(_ledger(
-            f"{PARTITION_HEADING}\n\n| Reference ids | Owner | Why it is that slice's |\n|---|---|---|\n"
-            + "| `notebook:trust` | `AUD-008` | rendering |\n\n"
-            + _TABLE_HEAD + "| `notebook:undo` | ours | present | — |\n"))
+        found = ledger_verdicts(
+            _ledger(
+                f"{PARTITION_HEADING}\n\n| Reference ids | Owner | Why it is that slice's |\n|---|---|---|\n"
+                + "| `notebook:trust` | `AUD-008` | rendering |\n\n"
+                + _TABLE_HEAD
+                + "| `notebook:undo` | ours | present | — |\n"
+            )
+        )
         self.assertEqual({"notebook:undo": "present"}, found)
 
     def test_a_row_naming_no_command_id_is_not_a_verdict_on_one(self) -> None:
@@ -84,43 +96,67 @@ class LedgerVerdictTest(unittest.TestCase):
         AUD-009's twenty chrome families - menu shells and the hyphenated `workspace-ui:`/
         `property-inspector:` included - are collected while a family no slice has claimed
         stays unread."""
-        found = ledger_verdicts(_ledger(
-            _TABLE_HEAD
-            + "| `documentsearch:start` | ours | present | — |\n"
-            + "| `filebrowser:rename`, `docmanager:save` | ours | present | — |\n"
-            + "| `console:clear`, `running:show-panel`, `kernelmenu:shutdownAll` | ours | adapted | — |\n"
-            + "| `terminal:create-new` | ours | present | — |\n"
-            + "| `rendermime:handle-local-link`, `markdownviewer:trust` | ours | adapted | — |\n"
-            + "| `htmlviewer:trust-html`, `imageviewer:zoom-in` | ours | absent | GAP-001 |\n"
-            + "| `csv:go-to-line`, `tsv:go-to-line`, `mermaid:copy-source` | ours | absent | GAP-001 |\n"
-            + "| `mathjax:clipboard` | ours | present | — |\n"
-            + "| `application:close`, `apputils:change-theme`, `sidebar:switch` | ours | adapted | — |\n"
-            + "| `mainmenu:open-first`, `viewmenu:word-wrap`, `recentmenu:reopen-last` | ours | absent | GAP-001 |\n"
-            + "| `runmenu:run-all`, `tabsmenu:open`, `settingsmenu:open`, `helpmenu:get-kernel` | ours | absent | GAP-001 |\n"
-            + "| `help:about`, `launcher:create`, `settingeditor:open`, `shortcuts:reset-all` | ours | absent | GAP-001 |\n"
-            + "| `workspace-ui:create-new`, `logconsole:open`, `property-inspector:show-panel`, `router:tree` | ours | adapted | — |\n"
-            + "| `pluginmanager:open`, `extensionmanager:toggle`, `apputils:print` | ours | absent | GAP-001 |\n"
-            + "| `inspector:open` | ours | adapted | a caller-table row |\n"))
-        self.assertEqual({"documentsearch:start": "present", "filebrowser:rename": "present",
-                          "docmanager:save": "present", "console:clear": "adapted",
-                          "running:show-panel": "adapted", "kernelmenu:shutdownAll": "adapted",
-                          "terminal:create-new": "present",
-                          "rendermime:handle-local-link": "adapted",
-                          "markdownviewer:trust": "adapted", "htmlviewer:trust-html": "absent",
-                          "imageviewer:zoom-in": "absent", "csv:go-to-line": "absent",
-                          "tsv:go-to-line": "absent", "mermaid:copy-source": "absent",
-                          "mathjax:clipboard": "present",
-                          "application:close": "adapted", "apputils:change-theme": "adapted",
-                          "sidebar:switch": "adapted", "mainmenu:open-first": "absent",
-                          "viewmenu:word-wrap": "absent", "recentmenu:reopen-last": "absent",
-                          "runmenu:run-all": "absent", "tabsmenu:open": "absent",
-                          "settingsmenu:open": "absent", "helpmenu:get-kernel": "absent",
-                          "help:about": "absent", "launcher:create": "absent",
-                          "settingeditor:open": "absent", "shortcuts:reset-all": "absent",
-                          "workspace-ui:create-new": "adapted", "logconsole:open": "adapted",
-                          "property-inspector:show-panel": "adapted", "router:tree": "adapted",
-                          "pluginmanager:open": "absent", "extensionmanager:toggle": "absent",
-                          "apputils:print": "absent"}, found)
+        found = ledger_verdicts(
+            _ledger(
+                _TABLE_HEAD
+                + "| `documentsearch:start` | ours | present | — |\n"
+                + "| `filebrowser:rename`, `docmanager:save` | ours | present | — |\n"
+                + "| `console:clear`, `running:show-panel`, `kernelmenu:shutdownAll` | ours | adapted | — |\n"
+                + "| `terminal:create-new` | ours | present | — |\n"
+                + "| `rendermime:handle-local-link`, `markdownviewer:trust` | ours | adapted | — |\n"
+                + "| `htmlviewer:trust-html`, `imageviewer:zoom-in` | ours | absent | GAP-001 |\n"
+                + "| `csv:go-to-line`, `tsv:go-to-line`, `mermaid:copy-source` | ours | absent | GAP-001 |\n"
+                + "| `mathjax:clipboard` | ours | present | — |\n"
+                + "| `application:close`, `apputils:change-theme`, `sidebar:switch` | ours | adapted | — |\n"
+                + "| `mainmenu:open-first`, `viewmenu:word-wrap`, `recentmenu:reopen-last` | ours | absent | GAP-001 |\n"
+                + "| `runmenu:run-all`, `tabsmenu:open`, `settingsmenu:open`, `helpmenu:get-kernel` | ours | absent | GAP-001 |\n"
+                + "| `help:about`, `launcher:create`, `settingeditor:open`, `shortcuts:reset-all` | ours | absent | GAP-001 |\n"
+                + "| `workspace-ui:create-new`, `logconsole:open`, `property-inspector:show-panel`, `router:tree` | ours | adapted | — |\n"
+                + "| `pluginmanager:open`, `extensionmanager:toggle`, `apputils:print` | ours | absent | GAP-001 |\n"
+                + "| `inspector:open` | ours | adapted | a caller-table row |\n"
+            )
+        )
+        self.assertEqual(
+            {
+                "documentsearch:start": "present",
+                "filebrowser:rename": "present",
+                "docmanager:save": "present",
+                "console:clear": "adapted",
+                "running:show-panel": "adapted",
+                "kernelmenu:shutdownAll": "adapted",
+                "terminal:create-new": "present",
+                "rendermime:handle-local-link": "adapted",
+                "markdownviewer:trust": "adapted",
+                "htmlviewer:trust-html": "absent",
+                "imageviewer:zoom-in": "absent",
+                "csv:go-to-line": "absent",
+                "tsv:go-to-line": "absent",
+                "mermaid:copy-source": "absent",
+                "mathjax:clipboard": "present",
+                "application:close": "adapted",
+                "apputils:change-theme": "adapted",
+                "sidebar:switch": "adapted",
+                "mainmenu:open-first": "absent",
+                "viewmenu:word-wrap": "absent",
+                "recentmenu:reopen-last": "absent",
+                "runmenu:run-all": "absent",
+                "tabsmenu:open": "absent",
+                "settingsmenu:open": "absent",
+                "helpmenu:get-kernel": "absent",
+                "help:about": "absent",
+                "launcher:create": "absent",
+                "settingeditor:open": "absent",
+                "shortcuts:reset-all": "absent",
+                "workspace-ui:create-new": "adapted",
+                "logconsole:open": "adapted",
+                "property-inspector:show-panel": "adapted",
+                "router:tree": "adapted",
+                "pluginmanager:open": "absent",
+                "extensionmanager:toggle": "absent",
+                "apputils:print": "absent",
+            },
+            found,
+        )
 
     def test_a_task_with_one_verdict_owes_one_for_every_id_it_owns(self) -> None:
         """Examined is derived, not stored: the first verdict opens the task, and opens all of it."""

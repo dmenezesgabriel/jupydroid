@@ -28,6 +28,7 @@ what `step2-import` and `step4-editor` did, and the first whole-suite run on the
 their flows against the tablet. Passing `--device` is not optional; go through `maestro_test` or
 `run_flow` and it is not possible to forget.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -137,15 +138,8 @@ def untargeted_maestro(driver: pathlib.Path, statements: list[str]) -> list[str]
 
 def bare_adb(driver: pathlib.Path, statements: list[str]) -> list[str]:
     """A driver reaching for `adb` off PATH instead of the `$ADB` every driver already defines."""
-    offending = [
-        line
-        for line in statements
-        if CALLS_BARE_ADB.search(line) and not DEFINES_THE_FALLBACK.search(line)
-    ]
-    return [
-        f'{driver}: calls bare `adb`, which is not on every PATH; use "$ADB" - {line}'
-        for line in offending
-    ]
+    offending = [line for line in statements if CALLS_BARE_ADB.search(line) and not DEFINES_THE_FALLBACK.search(line)]
+    return [f'{driver}: calls bare `adb`, which is not on every PATH; use "$ADB" - {line}' for line in offending]
 
 
 def _continued(statements: list[str]) -> list[str]:

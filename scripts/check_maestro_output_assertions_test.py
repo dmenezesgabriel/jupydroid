@@ -11,6 +11,7 @@ meaning every time a flow is edited.
 
     python3 -m unittest discover -s scripts -p '*_test.py'
 """
+
 from __future__ import annotations
 
 import json
@@ -123,9 +124,7 @@ class MaestroGateTest(unittest.TestCase):
 
     def test_allows_it_when_waived_on_the_line_above(self):
         steps = (
-            '- tapOn: "Run cell"\n'
-            "# matches-source: the rendered text is the source text\n"
-            '- assertVisible: "omega"\n'
+            '- tapOn: "Run cell"\n# matches-source: the rendered text is the source text\n- assertVisible: "omega"\n'
         )
         self.assertEqual([], self.flow(steps))
 

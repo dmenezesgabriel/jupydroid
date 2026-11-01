@@ -15,6 +15,7 @@ A document retired later is added to `RETIRED` in the same commit that deletes i
 
 Tests in check_retired_doc_citations_test.py, including one over every tracked file.
 """
+
 from __future__ import annotations
 
 import pathlib

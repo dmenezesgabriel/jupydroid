@@ -11,6 +11,7 @@ and the count of nodes named `Settings` - one wherever its gear is drawn (ADR-01
 
 Tests in read_named_bounds_test.py.
 """
+
 from __future__ import annotations
 
 import re

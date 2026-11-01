@@ -10,6 +10,7 @@ run, so it can never be a `.sensitive-strings.local` literal. The fakes here are
 assembled from pieces, per check_device_secrets_test.py's own rule: this file is
 committed, so it must not carry a carrier plus a hex run the gate refuses.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -67,9 +68,7 @@ class ScrubDeviceSecretsTest(unittest.TestCase):
         )
         scrub_device_secrets.scrub(evidence, self.root)
         self.assertEqual(
-            b"HTTP/1.1 200 OK\r\n"
-            b'Set-Cookie: username-127-0-0-1-8888="<token>"\r\n'
-            b"\xff\xfe trailing\r\n",
+            b'HTTP/1.1 200 OK\r\nSet-Cookie: username-127-0-0-1-8888="<token>"\r\n\xff\xfe trailing\r\n',
             target.read_bytes(),
         )
 

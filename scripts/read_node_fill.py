@@ -45,6 +45,7 @@ stand on: it prints what it found and exits 0, because half its job is to be run
 Tests in read_node_fill_test.py, including one that reads this repository's own committed pre-fix
 frame - an oracle that cannot see the bug cannot be trusted to see the fix.
 """
+
 from __future__ import annotations
 
 import collections
@@ -104,11 +105,7 @@ def _screen_of(tree: ElementTree.Element) -> tuple[int, int]:
 
 
 def _bounds_of(tree: ElementTree.Element, attribute: str, value: str) -> tuple[int, int, int, int]:
-    found = [
-        BOUNDS.match(node.get("bounds", ""))
-        for node in tree.iter("node")
-        if node.get(attribute) == value
-    ]
+    found = [BOUNDS.match(node.get("bounds", "")) for node in tree.iter("node") if node.get(attribute) == value]
     bounded = [match for match in found if match]
     if len(bounded) == 1:
         return tuple(int(group) for group in bounded[0].groups())  # type: ignore[return-value]
@@ -134,9 +131,7 @@ def _scale(frame: tuple[int, int], screen: tuple[int, int]) -> float:
 
 def _mode_colour(region: Image.Image) -> str:
     width, height = region.size
-    counted = collections.Counter(
-        region.getpixel((x, y))[:3] for y in range(height) for x in range(width)
-    )
+    counted = collections.Counter(region.getpixel((x, y))[:3] for y in range(height) for x in range(width))
     (red, green, blue), _ = counted.most_common(1)[0]
     return f"#{red:02X}{green:02X}{blue:02X}"
 

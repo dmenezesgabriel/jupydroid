@@ -13,6 +13,7 @@ flow that left the wrong screen up describes no such node, and "nothing to check
 
 Tests in check_node_fill_test.py.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -21,9 +22,7 @@ import sys
 from read_node_fill import node_fill
 
 
-def fill_failures(
-    dump: str, frame: str, attribute: str, value: str, expected: str
-) -> list[str]:
+def fill_failures(dump: str, frame: str, attribute: str, value: str, expected: str) -> list[str]:
     """What is wrong with the region [attribute]=[value] names in [frame], or an empty list.
 
     ```

@@ -31,12 +31,18 @@ TOKEN = "mcp-bearer-probe-token"
 STARTUP_SECONDS = 180
 
 #: The same `initialize` the device driver sends (scripts/mcp-port-requires-token-driver.sh).
-INITIALIZE = json.dumps({
-    "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
-        "protocolVersion": "2025-11-25", "capabilities": {},
-        "clientInfo": {"name": "mcp-bearer-probe", "version": "1"},
-    },
-}).encode()
+INITIALIZE = json.dumps(
+    {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2025-11-25",
+            "capabilities": {},
+            "clientInfo": {"name": "mcp-bearer-probe", "version": "1"},
+        },
+    }
+).encode()
 MCP_HEADERS = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
 
 
@@ -47,11 +53,21 @@ def free_loopback_port() -> int:
 
 
 def start_server(mcp_port: int, log: TextIO) -> subprocess.Popen:
-    return subprocess.Popen([
-        "python3", "-m", "jupyter_server", "--allow-root", "--ServerApp.ip=127.0.0.1",
-        "--ServerApp.port=0", "--ServerApp.root_dir=/tmp", f"--IdentityProvider.token={TOKEN}",
-        f"--MCPExtensionApp.mcp_port={mcp_port}",
-    ], stdout=log, stderr=subprocess.STDOUT)
+    return subprocess.Popen(
+        [
+            "python3",
+            "-m",
+            "jupyter_server",
+            "--allow-root",
+            "--ServerApp.ip=127.0.0.1",
+            "--ServerApp.port=0",
+            "--ServerApp.root_dir=/tmp",
+            f"--IdentityProvider.token={TOKEN}",
+            f"--MCPExtensionApp.mcp_port={mcp_port}",
+        ],
+        stdout=log,
+        stderr=subprocess.STDOUT,
+    )
 
 
 def wait_until_listening(server: subprocess.Popen, port: int) -> None:
@@ -96,9 +112,7 @@ def http_request(
         return refused.code, {key.lower(): value for key, value in refused.headers.items()}
 
 
-def refused_without_session(
-    method: str, url: str, headers: dict[str, str], body: bytes | None = None
-) -> None:
+def refused_without_session(method: str, url: str, headers: dict[str, str], body: bytes | None = None) -> None:
     """A tokenless `method` gets 401 and no `mcp-session-id` back.
 
     Example:
@@ -106,8 +120,7 @@ def refused_without_session(
     """
     status, answered = http_request(method, url, headers, body)
     assert status == 401 and "mcp-session-id" not in answered, (
-        f"a tokenless {method} got HTTP {status} with headers {sorted(answered)}, "
-        "expected 401 and no session minted"
+        f"a tokenless {method} got HTTP {status} with headers {sorted(answered)}, expected 401 and no session minted"
     )
     assert "www-authenticate" in answered, f"the {method} refusal carried no challenge"
 
@@ -126,13 +139,15 @@ def prove_http_layer(url: str) -> None:
     bearer = {"Authorization": f"Bearer {TOKEN}"}
     status, answered = http_request("POST", url, MCP_HEADERS | bearer, INITIALIZE)
     session = answered.get("mcp-session-id")
-    assert status == 200 and session, (
-        f"the token's initialize got HTTP {status}, expected 200 and an mcp-session-id"
-    )
+    assert status == 200 and session, f"the token's initialize got HTTP {status}, expected 200 and an mcp-session-id"
     for method in ("GET", "DELETE"):
         refused_without_session(method, url, {"Accept": "text/event-stream", "mcp-session-id": session})
-    served = {**bearer, "Accept": "application/json, text/event-stream",
-              "mcp-session-id": session, "MCP-Protocol-Version": "2025-11-25"}
+    served = {
+        **bearer,
+        "Accept": "application/json, text/event-stream",
+        "mcp-session-id": session,
+        "MCP-Protocol-Version": "2025-11-25",
+    }
     for method in ("GET", "DELETE"):
         status, _ = http_request(method, url, served)
         assert status == 200, f"the token's {method} on its session got HTTP {status}, expected 200"

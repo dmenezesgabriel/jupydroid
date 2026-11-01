@@ -24,6 +24,7 @@ python3 scripts/read_apk_native_libs.py <dir-of-.so-files>
 
 Tests in read_apk_native_libs_test.py.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -111,15 +112,11 @@ def native_entries(names: Iterable[str]) -> list[str]:
 
 
 def readelf(path: Path) -> str:
-    out = subprocess.run(
-        ["readelf", "-lW", "-dW", str(path)], check=True, capture_output=True, text=True
-    )
+    out = subprocess.run(["readelf", "-lW", "-dW", str(path)], check=True, capture_output=True, text=True)
     return out.stdout
 
 
-def rows_of_archive(
-    archive: Path, read: Callable[[Path], str] = readelf
-) -> list[NativeLibRow]:
+def rows_of_archive(archive: Path, read: Callable[[Path], str] = readelf) -> list[NativeLibRow]:
     """Rows for every `lib/` or `jni/` `.so` entry; entry paths are preserved under the temp
     dir because two ABIs can carry the same basename."""
     rows = []
@@ -133,11 +130,7 @@ def rows_of_archive(
 
 
 def rows_of_dir(root: Path, read: Callable[[Path], str] = readelf) -> list[NativeLibRow]:
-    return [
-        row_for(str(p.relative_to(root)), read(p))
-        for p in sorted(root.rglob("*.so"))
-        if p.is_file()
-    ]
+    return [row_for(str(p.relative_to(root)), read(p)) for p in sorted(root.rglob("*.so")) if p.is_file()]
 
 
 def main(argv: list[str] | None = None) -> int:

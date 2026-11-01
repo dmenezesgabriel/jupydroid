@@ -19,6 +19,7 @@ recorded in an ADR with these numbers beside it.
 
 Tests in read_search_box_width_test.py.
 """
+
 from __future__ import annotations
 
 import re

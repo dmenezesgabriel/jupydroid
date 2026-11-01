@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for read_reference_commands.py."""
+
 from __future__ import annotations
 
 import json
@@ -36,28 +37,36 @@ class JupyterLabCommandIdsTest(unittest.TestCase):
     """The ids are grouped by package because that is the unit a slice of the audit takes."""
 
     def test_an_id_is_found_and_keyed_by_its_package(self) -> None:
-        packages = _tree({"notebook-extension/src/index.ts": """
+        packages = _tree(
+            {
+                "notebook-extension/src/index.ts": """
 export namespace CommandIDs {
   export const runAll = 'notebook:run-all-cells';
 }
-"""})
-        self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]},
-                         jupyterlab_command_ids(packages))
+"""
+            }
+        )
+        self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]}, jupyterlab_command_ids(packages))
 
     def test_a_constant_whose_value_has_no_namespace_colon_is_not_an_id(self) -> None:
         """`export const FACTORY = 'Notebook'` is a widget factory name, not a command."""
-        packages = _tree({"notebook-extension/src/index.ts": """
+        packages = _tree(
+            {
+                "notebook-extension/src/index.ts": """
   export const FACTORY = 'Notebook';
   export const runAll = 'notebook:run-all-cells';
-"""})
-        self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]},
-                         jupyterlab_command_ids(packages))
+"""
+            }
+        )
+        self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]}, jupyterlab_command_ids(packages))
 
     def test_the_same_id_declared_in_two_files_of_one_package_counts_once(self) -> None:
-        packages = _tree({
-            "notebook-extension/src/index.ts": "  export const a = 'notebook:x';\n",
-            "notebook-extension/src/other.tsx": "  export const b = 'notebook:x';\n",
-        })
+        packages = _tree(
+            {
+                "notebook-extension/src/index.ts": "  export const a = 'notebook:x';\n",
+                "notebook-extension/src/other.tsx": "  export const b = 'notebook:x';\n",
+            }
+        )
         self.assertEqual({"notebook-extension": ["notebook:x"]}, jupyterlab_command_ids(packages))
 
     def test_an_id_prettier_wrapped_onto_the_next_line_is_found(self) -> None:
@@ -66,22 +75,30 @@ export namespace CommandIDs {
         `notebook:move-cursor-heading-above-or-collapse` is declared this way, so a pattern that
         needs the value on the `export const` line reports a notebook surface two commands short.
         """
-        packages = _tree({"notebook-extension/src/index.ts": """
+        packages = _tree(
+            {
+                "notebook-extension/src/index.ts": """
   export const selectHeadingAboveOrCollapse =
     'notebook:move-cursor-heading-above-or-collapse';
-"""})
-        self.assertEqual({"notebook-extension": ["notebook:move-cursor-heading-above-or-collapse"]},
-                         jupyterlab_command_ids(packages))
+"""
+            }
+        )
+        self.assertEqual(
+            {"notebook-extension": ["notebook:move-cursor-heading-above-or-collapse"]}, jupyterlab_command_ids(packages)
+        )
 
     def test_a_wrapped_declaration_of_a_namespaceless_value_is_still_not_an_id(self) -> None:
         """The colon rule survives the wrap - otherwise the fix for one would undo the other."""
-        packages = _tree({"notebook-extension/src/index.ts": """
+        packages = _tree(
+            {
+                "notebook-extension/src/index.ts": """
   export const FACTORY =
     'Notebook';
   export const runAll = 'notebook:run-all-cells';
-"""})
-        self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]},
-                         jupyterlab_command_ids(packages))
+"""
+            }
+        )
+        self.assertEqual({"notebook-extension": ["notebook:run-all-cells"]}, jupyterlab_command_ids(packages))
 
     def test_a_type_annotated_declaration_is_found(self) -> None:
         """`export const name: string = 'id'` is the same declaration, with prettier's annotation.
@@ -89,20 +106,28 @@ export namespace CommandIDs {
         Twenty of `application-extension`'s 29 ids are written that way (`index.tsx:65-117`), so
         a pattern reading only the bare form undercounts that package by more than half.
         """
-        packages = _tree({"application-extension/src/index.tsx": """
+        packages = _tree(
+            {
+                "application-extension/src/index.tsx": """
   export const activateNextTab: string = 'application:activate-next-tab';
-"""})
-        self.assertEqual({"application-extension": ["application:activate-next-tab"]},
-                         jupyterlab_command_ids(packages))
+"""
+            }
+        )
+        self.assertEqual({"application-extension": ["application:activate-next-tab"]}, jupyterlab_command_ids(packages))
 
     def test_a_wrapped_type_annotated_declaration_is_found(self) -> None:
         """Both shapes at once - the annotation plus a value wrapped onto the next line."""
-        packages = _tree({"application-extension/src/index.tsx": """
+        packages = _tree(
+            {
+                "application-extension/src/index.tsx": """
   export const activatePreviousTab: string =
     'application:activate-previous-tab';
-"""})
-        self.assertEqual({"application-extension": ["application:activate-previous-tab"]},
-                         jupyterlab_command_ids(packages))
+"""
+            }
+        )
+        self.assertEqual(
+            {"application-extension": ["application:activate-previous-tab"]}, jupyterlab_command_ids(packages)
+        )
 
     def test_a_module_level_const_is_not_an_id(self) -> None:
         """`const command: string = 'statusbar:toggle'` is a real command bound without `export`.
@@ -112,9 +137,13 @@ export namespace CommandIDs {
         than counted here (`statusbar-extension/src/index.ts:49`,
         `workspaces-extension/src/index.ts:76`).
         """
-        packages = _tree({"statusbar-extension/src/index.ts": """
+        packages = _tree(
+            {
+                "statusbar-extension/src/index.ts": """
 const command: string = 'statusbar:toggle';
-"""})
+"""
+            }
+        )
         self.assertEqual({}, jupyterlab_command_ids(packages))
 
     def test_a_package_declaring_none_is_absent_rather_than_empty(self) -> None:
@@ -123,11 +152,13 @@ const command: string = 'statusbar:toggle';
 
     def test_built_output_and_dependencies_are_not_read(self) -> None:
         """`lib/` is compiled `src/`, so reading it would count every id twice."""
-        packages = _tree({
-            "notebook-extension/lib/index.js": "  export const a = 'notebook:built';\n",
-            "notebook-extension/node_modules/dep/src/i.ts": "  export const b = 'dep:x';\n",
-            "notebook-extension/src/index.ts": "  export const c = 'notebook:real';\n",
-        })
+        packages = _tree(
+            {
+                "notebook-extension/lib/index.js": "  export const a = 'notebook:built';\n",
+                "notebook-extension/node_modules/dep/src/i.ts": "  export const b = 'dep:x';\n",
+                "notebook-extension/src/index.ts": "  export const c = 'notebook:real';\n",
+            }
+        )
         self.assertEqual({"notebook-extension": ["notebook:real"]}, jupyterlab_command_ids(packages))
 
 
@@ -184,9 +215,10 @@ class VsCodeJupyterCommandIdsTest(unittest.TestCase):
         return vscode_jupyter_command_ids(root / "package.json")
 
     def test_every_contributed_command_is_listed(self) -> None:
-        self.assertEqual(["jupyter.restartkernel", "jupyter.runallcells"],
-                         self.ids({"commands": [{"command": "jupyter.runallcells"},
-                                                {"command": "jupyter.restartkernel"}]}))
+        self.assertEqual(
+            ["jupyter.restartkernel", "jupyter.runallcells"],
+            self.ids({"commands": [{"command": "jupyter.runallcells"}, {"command": "jupyter.restartkernel"}]}),
+        )
 
     def test_a_manifest_contributing_no_command_is_an_error_naming_the_key(self) -> None:
         with self.assertRaises(ValueError) as raised:
@@ -250,8 +282,7 @@ class LspMethodNamesTest(unittest.TestCase):
 
     def test_each_direction_enum_reports_its_wire_strings_in_order(self) -> None:
         names = self.names(self.TOKENS)
-        self.assertEqual(["textDocument/publishDiagnostics", "$/logTrace"],
-                         names["ServerNotification"])
+        self.assertEqual(["textDocument/publishDiagnostics", "$/logTrace"], names["ServerNotification"])
         self.assertEqual(["textDocument/completion", "initialize"], names["ClientRequest"])
 
     def test_the_member_wire_value_is_reported_not_its_identifier(self) -> None:
@@ -262,8 +293,7 @@ class LspMethodNamesTest(unittest.TestCase):
     def test_an_enum_after_the_namespace_is_not_read(self) -> None:
         """A later top-level `export enum` is not a direction, so the namespace bound holds."""
         source = self.TOKENS + "export enum Other {\n  A = 'not/a/method'\n}\n"
-        self.assertNotIn("not/a/method",
-                         [m for names in self.names(source).values() for m in names])
+        self.assertNotIn("not/a/method", [m for names in self.names(source).values() for m in names])
 
     def test_a_file_without_the_namespace_is_an_error_naming_what_was_wanted(self) -> None:
         with self.assertRaises(ValueError) as raised:
@@ -275,16 +305,28 @@ class PinnedClonesTest(unittest.TestCase):
     """The SHAs have one home - `docs/README.md` - and this reads it rather than storing them again."""
 
     def test_a_row_yields_its_sha_and_clone_command(self) -> None:
-        readme = _tree({"README.md": (
-            "| Project | Pinned SHA | Clone |\n"
-            "|---|---|---|\n"
-            "| `jupyterlab` | `7f0e690680a763d3c3db5dc0231803b0ba0e1e12` | "
-            "`git clone --depth 1 https://github.com/jupyterlab/jupyterlab` |\n"
-        )}) / "README.md"
+        readme = (
+            _tree(
+                {
+                    "README.md": (
+                        "| Project | Pinned SHA | Clone |\n"
+                        "|---|---|---|\n"
+                        "| `jupyterlab` | `7f0e690680a763d3c3db5dc0231803b0ba0e1e12` | "
+                        "`git clone --depth 1 https://github.com/jupyterlab/jupyterlab` |\n"
+                    )
+                }
+            )
+            / "README.md"
+        )
         self.assertEqual(
-            {"jupyterlab": ("7f0e690680a763d3c3db5dc0231803b0ba0e1e12",
-                            "git clone --depth 1 https://github.com/jupyterlab/jupyterlab")},
-            pinned_clones(readme))
+            {
+                "jupyterlab": (
+                    "7f0e690680a763d3c3db5dc0231803b0ba0e1e12",
+                    "git clone --depth 1 https://github.com/jupyterlab/jupyterlab",
+                )
+            },
+            pinned_clones(readme),
+        )
 
     def test_the_repositorys_own_readme_pins_every_project_this_tool_reads(self) -> None:
         clones = pinned_clones(REPO / "docs/README.md")
@@ -350,9 +392,13 @@ class PinnedSurfaceTest(unittest.TestCase):
                 self.assertEqual(pinned[project][0], clone_head(clone))
 
     def test_the_five_package_counts_section_1_names(self) -> None:
-        for package, expected in (("filebrowser-extension", 38), ("console-extension", 21),
-                                  ("terminal-extension", 11), ("documentsearch-extension", 6),
-                                  ("toc-extension", 5)):
+        for package, expected in (
+            ("filebrowser-extension", 38),
+            ("console-extension", 21),
+            ("terminal-extension", 11),
+            ("documentsearch-extension", 6),
+            ("toc-extension", 5),
+        ):
             with self.subTest(package=package):
                 self.assertEqual(expected, len(self.by_package[package]))
 
@@ -364,8 +410,10 @@ class PinnedSurfaceTest(unittest.TestCase):
     def test_the_three_ids_the_notebook_extension_declares_for_other_namespaces(self) -> None:
         """The remainder of the 102, named so that a change in it is read rather than counted."""
         ids = self.by_package["notebook-extension"]
-        self.assertEqual(["completer:invoke-notebook", "completer:select-notebook", "toc:run-cells"],
-                         [found for found in ids if not found.startswith("notebook:")])
+        self.assertEqual(
+            ["completer:invoke-notebook", "completer:select-notebook", "toc:run-cells"],
+            [found for found in ids if not found.startswith("notebook:")],
+        )
 
     def test_the_whole_command_surface_is_435_ids_across_34_packages(self) -> None:
         unique = {found for ids in self.by_package.values() for found in ids}
@@ -375,8 +423,7 @@ class PinnedSurfaceTest(unittest.TestCase):
         """Twenty of `application-extension`'s 29 are typed declarations, and all three of
         `hub-extension`'s - the surface the annotation fix made visible."""
         self.assertEqual(29, len(self.by_package["application-extension"]))
-        self.assertEqual(["hub:control-panel", "hub:logout", "hub:restart"],
-                         self.by_package["hub-extension"])
+        self.assertEqual(["hub:control-panel", "hub:logout", "hub:restart"], self.by_package["hub-extension"])
 
     def test_notebook_actions_declares_69_functions(self) -> None:
         """ADR-0027's specification, bounded to the namespace - the file holds 83 to its end."""

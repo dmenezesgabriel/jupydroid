@@ -18,7 +18,7 @@ import pathlib
 import sys
 
 FUNCTION_START = (
-    '    async def _run_http_async_without_signals(self, host: str, port: int) -> None:\n'
+    "    async def _run_http_async_without_signals(self, host: str, port: int) -> None:\n"
     '        """Run FastMCP over HTTP without taking over process signal handlers."""\n'
     '        transport = "http"\n'
 )

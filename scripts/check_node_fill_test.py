@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the node-fill gate."""
+
 from __future__ import annotations
 
 import pathlib

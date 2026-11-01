@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for check_busybox_seccomp.py."""
+
 from __future__ import annotations
 
 import io

@@ -15,6 +15,7 @@ not a silent float. `tools/rootfs/stage-app-artifacts.sh arm64-v8a` runs it:
 
 Tests in stage_proot_test.py.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -41,15 +42,15 @@ def carve_embedded_elf(outer: bytes) -> bytes:
     """
     at = outer.find(ELF_MAGIC, 1)
     while at >= 0:
-        header = outer[at:at + ELF64_HEADER_SIZE]
+        header = outer[at : at + ELF64_HEADER_SIZE]
         if len(header) == ELF64_HEADER_SIZE and header[4] == ELFCLASS64:
-            return outer[at:at + _elf64_extent(header)]
+            return outer[at : at + _elf64_extent(header)]
         at = outer.find(ELF_MAGIC, at + 1)
     raise ValueError(f"no embedded ELF64 in {len(outer)} bytes; expected proot.static with its loader inside")
 
 
 def _elf64_extent(header: bytes) -> int:
-    section_offset, = struct.unpack_from("<Q", header, 0x28)
+    (section_offset,) = struct.unpack_from("<Q", header, 0x28)
     entry_size, entry_count = struct.unpack_from("<HH", header, 0x3A)
     return section_offset + entry_size * entry_count
 

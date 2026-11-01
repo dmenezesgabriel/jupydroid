@@ -59,8 +59,7 @@ def prune(out: pathlib.Path, flow: str, stems: list[str]) -> list[str]:
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
         raise SystemExit(
-            f"usage: {argv[0]} <evidence-dir> <flow-name> [frame-stem...]; "
-            f"got {len(argv) - 1} argument(s)"
+            f"usage: {argv[0]} <evidence-dir> <flow-name> [frame-stem...]; got {len(argv) - 1} argument(s)"
         )
     out = pathlib.Path(argv[1])
     if not out.is_dir():

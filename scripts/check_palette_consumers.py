@@ -44,6 +44,7 @@ to keep honest; it is no longer the field's *only* reader.
 Tests in check_palette_consumers_test.py, including one that runs the gate over this repository,
 so a gate that has stopped matching anything fails rather than passing quietly.
 """
+
 from __future__ import annotations
 
 import dataclasses
@@ -97,8 +98,8 @@ def declared_fields(source: pathlib.Path, name: str) -> list[str]:
     start = re.search(rf"^data class {re.escape(name)}\($", text, re.MULTILINE)
     if not start:
         raise ValueError(f"no `data class {name}(` in {source}; the gate cannot see its fields")
-    body = text[start.end():]
-    return FIELD.findall(body[:body.index("\n)")])
+    body = text[start.end() :]
+    return FIELD.findall(body[: body.index("\n)")])
 
 
 def unread_fields(root: pathlib.Path) -> list[str]:

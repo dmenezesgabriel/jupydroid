@@ -15,6 +15,7 @@ a failure.
 
 Tests in read_pane_widths_test.py.
 """
+
 from __future__ import annotations
 
 import re

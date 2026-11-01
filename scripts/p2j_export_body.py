@@ -13,6 +13,7 @@ Three shapes arrive from `GET /nbconvert/<format>/<path>` and each needs differe
 Used by `scripts/p2j-2-export-formats-driver.sh`; kept out of it because doing any of the three in
 shell produced something unreadable.
 """
+
 from __future__ import annotations
 
 import html

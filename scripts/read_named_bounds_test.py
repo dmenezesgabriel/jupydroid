@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for read_named_bounds.py."""
+
 from __future__ import annotations
 
 import unittest

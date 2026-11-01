@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the palette-consumer gate, including one run over this repository."""
+
 from __future__ import annotations
 
 import pathlib

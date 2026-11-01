@@ -29,6 +29,7 @@ a threshold of its own.
 
 Tests in terminal_content_extent_test.py.
 """
+
 from __future__ import annotations
 
 from PIL import Image

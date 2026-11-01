@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for read_ledger_partition.py."""
+
 from __future__ import annotations
 
 import tempfile
@@ -36,18 +37,25 @@ class LedgerPartitionTest(unittest.TestCase):
     """The stored half of the audit, read back - see read_ledger_partition.py."""
 
     def test_a_row_maps_every_id_in_its_first_column_to_its_owner(self) -> None:
-        found = ledger_partition(_ledger(
-            _TABLE_HEAD
-            + "| `notebook:insert-cell-above`, `notebook:insert-cell-below` | `AUD-002` `T2b` | ours |\n"))
-        self.assertEqual({"notebook:insert-cell-above": "AUD-002 T2b",
-                          "notebook:insert-cell-below": "AUD-002 T2b"}, found)
+        found = ledger_partition(
+            _ledger(
+                _TABLE_HEAD
+                + "| `notebook:insert-cell-above`, `notebook:insert-cell-below` | `AUD-002` `T2b` | ours |\n"
+            )
+        )
+        self.assertEqual(
+            {"notebook:insert-cell-above": "AUD-002 T2b", "notebook:insert-cell-below": "AUD-002 T2b"}, found
+        )
 
     def test_an_id_claimed_by_two_rows_is_refused_naming_both_owners(self) -> None:
         with self.assertRaises(ValueError) as raised:
-            ledger_partition(_ledger(
-                _TABLE_HEAD
-                + "| `notebook:trust` | `AUD-008` | rendering |\n"
-                + "| `notebook:trust` | `AUD-009` | chrome |\n"))
+            ledger_partition(
+                _ledger(
+                    _TABLE_HEAD
+                    + "| `notebook:trust` | `AUD-008` | rendering |\n"
+                    + "| `notebook:trust` | `AUD-009` | chrome |\n"
+                )
+            )
         for named in ("notebook:trust", "AUD-008", "AUD-009"):
             self.assertIn(named, str(raised.exception))
 
@@ -60,15 +68,23 @@ class LedgerPartitionTest(unittest.TestCase):
 
     def test_a_table_before_the_heading_is_not_part_of_the_partition(self) -> None:
         """The ledger is mostly verdict tables, which carry ids and own nothing."""
-        found = ledger_partition(_ledger(
-            "| `notebook:run-cell` | `AUD-001` | a verdict row, elsewhere |\n\n"
-            + _TABLE_HEAD + "| `notebook:trust` | `AUD-008` | rendering |\n"))
+        found = ledger_partition(
+            _ledger(
+                "| `notebook:run-cell` | `AUD-001` | a verdict row, elsewhere |\n\n"
+                + _TABLE_HEAD
+                + "| `notebook:trust` | `AUD-008` | rendering |\n"
+            )
+        )
         self.assertEqual({"notebook:trust": "AUD-008"}, found)
 
     def test_a_table_after_the_next_heading_is_not_part_of_the_partition(self) -> None:
-        found = ledger_partition(_ledger(
-            _TABLE_HEAD + "| `notebook:trust` | `AUD-008` | rendering |\n"
-            + "\n## The next section\n\n| `notebook:undo` | `AUD-002` `T2b` | beyond the table |\n"))
+        found = ledger_partition(
+            _ledger(
+                _TABLE_HEAD
+                + "| `notebook:trust` | `AUD-008` | rendering |\n"
+                + "\n## The next section\n\n| `notebook:undo` | `AUD-002` `T2b` | beyond the table |\n"
+            )
+        )
         self.assertEqual({"notebook:trust": "AUD-008"}, found)
 
     def test_a_ledger_without_the_heading_names_the_heading_it_looked_for(self) -> None:
@@ -79,8 +95,9 @@ class LedgerPartitionTest(unittest.TestCase):
     def test_unassigned_reports_both_directions(self) -> None:
         """An id owned by nobody, and an owned id the reference does not declare - both are wrong."""
         owned = {"notebook:trust": "AUD-008", "notebook:invented": "AUD-002 T2b"}
-        self.assertEqual((["notebook:undo"], ["notebook:invented"]),
-                         unassigned_ids(["notebook:trust", "notebook:undo"], owned))
+        self.assertEqual(
+            (["notebook:undo"], ["notebook:invented"]), unassigned_ids(["notebook:trust", "notebook:undo"], owned)
+        )
 
     def test_the_families_the_partition_has_reached_are_read(self) -> None:
         """`notebook:` alone misses AUD-004's own ids - `documentsearch:` is camelCase.
@@ -91,87 +108,94 @@ class LedgerPartitionTest(unittest.TestCase):
         chrome brings the menu shells and the hyphenated `workspace-ui:`/`property-inspector:`
         families - a prefix may contain a dash, a suffix may not.
         """
-        found = ledger_partition(_ledger(
-            _TABLE_HEAD
-            + "| `documentsearch:highlightNext`, `toc:display-numbering` | `AUD-004` `T2` | in-document |\n"
-            + "| `fileeditor:find`, `editmenu:find` | `AUD-004` `T2` | carried |\n"
-            + "| `filebrowser:go-up`, `filebrowser:toggle-hidden-files` | `AUD-005` `T2` | the tree |\n"
-            + "| `docmanager:save`, `docmanager:recents` | `AUD-005` `T4` | persistence |\n"
-            + "| `console:clear`, `completer:invoke-console`, `filemenu:create-console` "
-            + "| `AUD-006` `T2` | the console |\n"
-            + "| `kernelmenu:shutdownAll`, `filemenu:close-and-cleanup` | `AUD-006` `T3` | delegates |\n"
-            + "| `running:kernel-shut-down`, `running:show-panel` | `AUD-006` `T4` | the panel |\n"
-            + "| `terminal:create-new`, `terminal:shut-down` | `AUD-007` `T2` | the pane |\n"
-            + "| `rendermime:handle-local-link`, `markdownviewer:trust` | `AUD-008` `T2` | rendering |\n"
-            + "| `htmlviewer:trust-html`, `mathjax:clipboard`, `mathjax:scale` | `AUD-008` `T2` | viewers |\n"
-            + "| `imageviewer:zoom-in`, `csv:go-to-line`, `tsv:go-to-line` | `AUD-008` `T2` | formats |\n"
-            + "| `mermaid:copy-source` | `AUD-008` `T2` | rendering |\n"
-            + "| `application:close`, `sidebar:switch`, `property-inspector:show-panel`, "
-            + "`router:tree` | `AUD-009` `T2` | the shell |\n"
-            + "| `apputils:change-theme` | `AUD-009` `T3` | presentation |\n"
-            + "| `mainmenu:open-first`, `viewmenu:word-wrap`, `runmenu:run-all`, `tabsmenu:open` "
-            + "| `AUD-009` `T2` | the menus |\n"
-            + "| `settingsmenu:open`, `helpmenu:get-kernel`, `recentmenu:reopen-last` "
-            + "| `AUD-009` `T2` | menu shells |\n"
-            + "| `help:about`, `launcher:create`, `settingeditor:open`, `shortcuts:reset-all` "
-            + "| `AUD-009` `T4` | surfaces |\n"
-            + "| `workspace-ui:create-new`, `logconsole:open`, `apputils:print` "
-            + "| `AUD-009` `T4` | surfaces |\n"
-            + "| `pluginmanager:open`, `extensionmanager:toggle` | `AUD-009` `T4` | panels |\n"))
-        self.assertEqual({"documentsearch:highlightNext": "AUD-004 T2",
-                          "toc:display-numbering": "AUD-004 T2",
-                          "fileeditor:find": "AUD-004 T2",
-                          "editmenu:find": "AUD-004 T2",
-                          "filebrowser:go-up": "AUD-005 T2",
-                          "filebrowser:toggle-hidden-files": "AUD-005 T2",
-                          "docmanager:save": "AUD-005 T4",
-                          "docmanager:recents": "AUD-005 T4",
-                          "console:clear": "AUD-006 T2",
-                          "completer:invoke-console": "AUD-006 T2",
-                          "filemenu:create-console": "AUD-006 T2",
-                          "kernelmenu:shutdownAll": "AUD-006 T3",
-                          "filemenu:close-and-cleanup": "AUD-006 T3",
-                          "running:kernel-shut-down": "AUD-006 T4",
-                          "running:show-panel": "AUD-006 T4",
-                          "terminal:create-new": "AUD-007 T2",
-                          "terminal:shut-down": "AUD-007 T2",
-                          "rendermime:handle-local-link": "AUD-008 T2",
-                          "markdownviewer:trust": "AUD-008 T2",
-                          "htmlviewer:trust-html": "AUD-008 T2",
-                          "mathjax:clipboard": "AUD-008 T2",
-                          "mathjax:scale": "AUD-008 T2",
-                          "imageviewer:zoom-in": "AUD-008 T2",
-                          "csv:go-to-line": "AUD-008 T2",
-                          "tsv:go-to-line": "AUD-008 T2",
-                          "mermaid:copy-source": "AUD-008 T2",
-                          "application:close": "AUD-009 T2",
-                          "sidebar:switch": "AUD-009 T2",
-                          "property-inspector:show-panel": "AUD-009 T2",
-                          "router:tree": "AUD-009 T2",
-                          "apputils:change-theme": "AUD-009 T3",
-                          "mainmenu:open-first": "AUD-009 T2",
-                          "viewmenu:word-wrap": "AUD-009 T2",
-                          "runmenu:run-all": "AUD-009 T2",
-                          "tabsmenu:open": "AUD-009 T2",
-                          "settingsmenu:open": "AUD-009 T2",
-                          "helpmenu:get-kernel": "AUD-009 T2",
-                          "recentmenu:reopen-last": "AUD-009 T2",
-                          "help:about": "AUD-009 T4",
-                          "launcher:create": "AUD-009 T4",
-                          "settingeditor:open": "AUD-009 T4",
-                          "shortcuts:reset-all": "AUD-009 T4",
-                          "workspace-ui:create-new": "AUD-009 T4",
-                          "logconsole:open": "AUD-009 T4",
-                          "apputils:print": "AUD-009 T4",
-                          "pluginmanager:open": "AUD-009 T4",
-                          "extensionmanager:toggle": "AUD-009 T4"}, found)
+        found = ledger_partition(
+            _ledger(
+                _TABLE_HEAD
+                + "| `documentsearch:highlightNext`, `toc:display-numbering` | `AUD-004` `T2` | in-document |\n"
+                + "| `fileeditor:find`, `editmenu:find` | `AUD-004` `T2` | carried |\n"
+                + "| `filebrowser:go-up`, `filebrowser:toggle-hidden-files` | `AUD-005` `T2` | the tree |\n"
+                + "| `docmanager:save`, `docmanager:recents` | `AUD-005` `T4` | persistence |\n"
+                + "| `console:clear`, `completer:invoke-console`, `filemenu:create-console` "
+                + "| `AUD-006` `T2` | the console |\n"
+                + "| `kernelmenu:shutdownAll`, `filemenu:close-and-cleanup` | `AUD-006` `T3` | delegates |\n"
+                + "| `running:kernel-shut-down`, `running:show-panel` | `AUD-006` `T4` | the panel |\n"
+                + "| `terminal:create-new`, `terminal:shut-down` | `AUD-007` `T2` | the pane |\n"
+                + "| `rendermime:handle-local-link`, `markdownviewer:trust` | `AUD-008` `T2` | rendering |\n"
+                + "| `htmlviewer:trust-html`, `mathjax:clipboard`, `mathjax:scale` | `AUD-008` `T2` | viewers |\n"
+                + "| `imageviewer:zoom-in`, `csv:go-to-line`, `tsv:go-to-line` | `AUD-008` `T2` | formats |\n"
+                + "| `mermaid:copy-source` | `AUD-008` `T2` | rendering |\n"
+                + "| `application:close`, `sidebar:switch`, `property-inspector:show-panel`, "
+                + "`router:tree` | `AUD-009` `T2` | the shell |\n"
+                + "| `apputils:change-theme` | `AUD-009` `T3` | presentation |\n"
+                + "| `mainmenu:open-first`, `viewmenu:word-wrap`, `runmenu:run-all`, `tabsmenu:open` "
+                + "| `AUD-009` `T2` | the menus |\n"
+                + "| `settingsmenu:open`, `helpmenu:get-kernel`, `recentmenu:reopen-last` "
+                + "| `AUD-009` `T2` | menu shells |\n"
+                + "| `help:about`, `launcher:create`, `settingeditor:open`, `shortcuts:reset-all` "
+                + "| `AUD-009` `T4` | surfaces |\n"
+                + "| `workspace-ui:create-new`, `logconsole:open`, `apputils:print` "
+                + "| `AUD-009` `T4` | surfaces |\n"
+                + "| `pluginmanager:open`, `extensionmanager:toggle` | `AUD-009` `T4` | panels |\n"
+            )
+        )
+        self.assertEqual(
+            {
+                "documentsearch:highlightNext": "AUD-004 T2",
+                "toc:display-numbering": "AUD-004 T2",
+                "fileeditor:find": "AUD-004 T2",
+                "editmenu:find": "AUD-004 T2",
+                "filebrowser:go-up": "AUD-005 T2",
+                "filebrowser:toggle-hidden-files": "AUD-005 T2",
+                "docmanager:save": "AUD-005 T4",
+                "docmanager:recents": "AUD-005 T4",
+                "console:clear": "AUD-006 T2",
+                "completer:invoke-console": "AUD-006 T2",
+                "filemenu:create-console": "AUD-006 T2",
+                "kernelmenu:shutdownAll": "AUD-006 T3",
+                "filemenu:close-and-cleanup": "AUD-006 T3",
+                "running:kernel-shut-down": "AUD-006 T4",
+                "running:show-panel": "AUD-006 T4",
+                "terminal:create-new": "AUD-007 T2",
+                "terminal:shut-down": "AUD-007 T2",
+                "rendermime:handle-local-link": "AUD-008 T2",
+                "markdownviewer:trust": "AUD-008 T2",
+                "htmlviewer:trust-html": "AUD-008 T2",
+                "mathjax:clipboard": "AUD-008 T2",
+                "mathjax:scale": "AUD-008 T2",
+                "imageviewer:zoom-in": "AUD-008 T2",
+                "csv:go-to-line": "AUD-008 T2",
+                "tsv:go-to-line": "AUD-008 T2",
+                "mermaid:copy-source": "AUD-008 T2",
+                "application:close": "AUD-009 T2",
+                "sidebar:switch": "AUD-009 T2",
+                "property-inspector:show-panel": "AUD-009 T2",
+                "router:tree": "AUD-009 T2",
+                "apputils:change-theme": "AUD-009 T3",
+                "mainmenu:open-first": "AUD-009 T2",
+                "viewmenu:word-wrap": "AUD-009 T2",
+                "runmenu:run-all": "AUD-009 T2",
+                "tabsmenu:open": "AUD-009 T2",
+                "settingsmenu:open": "AUD-009 T2",
+                "helpmenu:get-kernel": "AUD-009 T2",
+                "recentmenu:reopen-last": "AUD-009 T2",
+                "help:about": "AUD-009 T4",
+                "launcher:create": "AUD-009 T4",
+                "settingeditor:open": "AUD-009 T4",
+                "shortcuts:reset-all": "AUD-009 T4",
+                "workspace-ui:create-new": "AUD-009 T4",
+                "logconsole:open": "AUD-009 T4",
+                "apputils:print": "AUD-009 T4",
+                "pluginmanager:open": "AUD-009 T4",
+                "extensionmanager:toggle": "AUD-009 T4",
+            },
+            found,
+        )
 
     def test_an_unreached_family_is_not_read(self) -> None:
         """`inspector:open` is a real id verdicted in AUD-003's caller table - and unclaimed,
         because no slice owns the inspector-extension family yet. Unread rather than wrongly
         claimed."""
-        found = ledger_partition(_ledger(
-            _TABLE_HEAD + "| `inspector:open` | `AUD-003` | only a verdict cell |\n"))
+        found = ledger_partition(_ledger(_TABLE_HEAD + "| `inspector:open` | `AUD-003` | only a verdict cell |\n"))
         self.assertEqual({}, found)
 
     def test_declared_ids_cover_whole_packages_and_carried_ones(self) -> None:
@@ -181,91 +205,121 @@ class LedgerPartitionTest(unittest.TestCase):
         partition now. From the packages a later slice owns, only the carried ids do -
         `fileeditor:undo` waits with the file editor's slice. `htmlviewer-extension` declares
         in `index.tsx`, so the fixture writes one there."""
-        packages = _packages({
-            # `COMMAND_ID` reads a namespace member - indented, never at column 0.
-            "notebook-extension": "  export const u = 'notebook:undo';\n"
-                                  "  export const r = 'notebook:redo';",
-            "documentsearch-extension": "  export const s = 'documentsearch:start';\n"
-                                        "  export const n = 'documentsearch:highlightNext';",
-            "toc-extension": "  export const t = 'toc:show-panel';",
-            "filebrowser-extension": "  export const g = 'filebrowser:go-up';\n"
-                                     "  export const h = 'filebrowser:toggle-hidden-files';",
-            "docmanager-extension": "  export const s = 'docmanager:save';",
-            "docmanager": "  export const r = 'docmanager:recents';",
-            "console-extension": "  export const c = 'console:clear';\n"
-                                  "  export const i = 'completer:invoke-console';",
-            "running-extension": "  export const s = 'running:show-panel';",
-            "terminal-extension": "  export const c = 'terminal:create-new';\n"
-                                  "  export const d = 'terminal:shut-down';",
-            "fileeditor-extension": "  export const f = 'fileeditor:find';\n"
-                                    "  export const c = 'fileeditor:create-new';\n"
-                                    "  export const m = 'fileeditor:create-new-markdown-file';\n"
-                                    "  export const u = 'fileeditor:undo';",
-            "mainmenu-extension": "  export const e = 'editmenu:find';\n"
-                                  "  export const k = 'kernelmenu:shutdownAll';\n"
-                                  "  export const c = 'filemenu:create-console';\n"
-                                  "  export const s = 'filemenu:close-and-cleanup';\n"
-                                  "  export const o = 'filemenu:open';\n"
-                                  "  export const r = 'editmenu:redo';",
-            "rendermime-extension": "  export const l = 'rendermime:handle-local-link';",
-            "markdownviewer-extension": "  export const o = 'markdownviewer:open';\n"
-                                        "  export const t = 'markdownviewer:trust';",
-            "mathjax-extension": "  export const c = 'mathjax:clipboard';",
-            "imageviewer-extension": "  export const z = 'imageviewer:zoom-in';",
-            "csvviewer-extension": "  export const c = 'csv:go-to-line';\n"
-                                   "  export const t = 'tsv:go-to-line';",
-            "mermaid-extension": "  export const c = 'mermaid:copy-source';",
-            "application-extension": "  export const c = 'application:close';\n"
-                                      "  export const s = 'sidebar:switch';\n"
-                                      "  export const p = 'property-inspector:show-panel';",
-            "apputils-extension": "  export const t = 'apputils:change-theme';\n"
-                                  "  export const p = 'apputils:print';",
-            "launcher-extension": "  export const c = 'launcher:create';",
-            "settingeditor-extension": "  export const o = 'settingeditor:open';",
-            "help-extension": "  export const a = 'help:about';",
-            "shortcuts-extension": "  export const r = 'shortcuts:reset-all';",
-            "workspaces-extension": "  export const c = 'workspace-ui:create-new';",
-            "logconsole-extension": "  export const o = 'logconsole:open';",
-            "pluginmanager-extension": "  export const o = 'pluginmanager:open';",
-            "extensionmanager-extension": "  export const t = 'extensionmanager:toggle';",
-        })
+        packages = _packages(
+            {
+                # `COMMAND_ID` reads a namespace member - indented, never at column 0.
+                "notebook-extension": "  export const u = 'notebook:undo';\n  export const r = 'notebook:redo';",
+                "documentsearch-extension": "  export const s = 'documentsearch:start';\n"
+                "  export const n = 'documentsearch:highlightNext';",
+                "toc-extension": "  export const t = 'toc:show-panel';",
+                "filebrowser-extension": "  export const g = 'filebrowser:go-up';\n"
+                "  export const h = 'filebrowser:toggle-hidden-files';",
+                "docmanager-extension": "  export const s = 'docmanager:save';",
+                "docmanager": "  export const r = 'docmanager:recents';",
+                "console-extension": "  export const c = 'console:clear';\n"
+                "  export const i = 'completer:invoke-console';",
+                "running-extension": "  export const s = 'running:show-panel';",
+                "terminal-extension": "  export const c = 'terminal:create-new';\n"
+                "  export const d = 'terminal:shut-down';",
+                "fileeditor-extension": "  export const f = 'fileeditor:find';\n"
+                "  export const c = 'fileeditor:create-new';\n"
+                "  export const m = 'fileeditor:create-new-markdown-file';\n"
+                "  export const u = 'fileeditor:undo';",
+                "mainmenu-extension": "  export const e = 'editmenu:find';\n"
+                "  export const k = 'kernelmenu:shutdownAll';\n"
+                "  export const c = 'filemenu:create-console';\n"
+                "  export const s = 'filemenu:close-and-cleanup';\n"
+                "  export const o = 'filemenu:open';\n"
+                "  export const r = 'editmenu:redo';",
+                "rendermime-extension": "  export const l = 'rendermime:handle-local-link';",
+                "markdownviewer-extension": "  export const o = 'markdownviewer:open';\n"
+                "  export const t = 'markdownviewer:trust';",
+                "mathjax-extension": "  export const c = 'mathjax:clipboard';",
+                "imageviewer-extension": "  export const z = 'imageviewer:zoom-in';",
+                "csvviewer-extension": "  export const c = 'csv:go-to-line';\n  export const t = 'tsv:go-to-line';",
+                "mermaid-extension": "  export const c = 'mermaid:copy-source';",
+                "application-extension": "  export const c = 'application:close';\n"
+                "  export const s = 'sidebar:switch';\n"
+                "  export const p = 'property-inspector:show-panel';",
+                "apputils-extension": "  export const t = 'apputils:change-theme';\n"
+                "  export const p = 'apputils:print';",
+                "launcher-extension": "  export const c = 'launcher:create';",
+                "settingeditor-extension": "  export const o = 'settingeditor:open';",
+                "help-extension": "  export const a = 'help:about';",
+                "shortcuts-extension": "  export const r = 'shortcuts:reset-all';",
+                "workspaces-extension": "  export const c = 'workspace-ui:create-new';",
+                "logconsole-extension": "  export const o = 'logconsole:open';",
+                "pluginmanager-extension": "  export const o = 'pluginmanager:open';",
+                "extensionmanager-extension": "  export const t = 'extensionmanager:toggle';",
+            }
+        )
         # `htmlviewer-extension` ships no `index.ts` at the pinned SHA - `index.tsx` is it.
         tsx = packages / "htmlviewer-extension" / "src" / "index.tsx"
         tsx.parent.mkdir(parents=True)
         tsx.write_text("  export const t = 'htmlviewer:trust-html';", encoding="utf-8")
-        self.assertEqual(sorted(["notebook:undo", "notebook:redo",
-                                 "documentsearch:start", "documentsearch:highlightNext",
-                                 "toc:show-panel", "filebrowser:go-up",
-                                 "filebrowser:toggle-hidden-files", "docmanager:save",
-                                 "docmanager:recents", "fileeditor:find", "editmenu:find",
-                                 "fileeditor:create-new", "fileeditor:create-new-markdown-file",
-                                 "console:clear", "completer:invoke-console",
-                                 "running:show-panel", "kernelmenu:shutdownAll",
-                                 "filemenu:create-console", "filemenu:close-and-cleanup",
-                                 "filemenu:open", "editmenu:redo",
-                                 "terminal:create-new", "terminal:shut-down",
-                                 "rendermime:handle-local-link", "markdownviewer:open",
-                                 "markdownviewer:trust", "htmlviewer:trust-html",
-                                 "mathjax:clipboard", "imageviewer:zoom-in", "csv:go-to-line",
-                                 "tsv:go-to-line", "mermaid:copy-source",
-                                 "application:close", "sidebar:switch",
-                                 "property-inspector:show-panel",
-                                 "apputils:change-theme", "apputils:print",
-                                 "launcher:create", "settingeditor:open", "help:about",
-                                 "shortcuts:reset-all", "workspace-ui:create-new",
-                                 "logconsole:open", "pluginmanager:open",
-                                 "extensionmanager:toggle"]),
-                         sorted(declared_ids(packages)))
+        self.assertEqual(
+            sorted(
+                [
+                    "notebook:undo",
+                    "notebook:redo",
+                    "documentsearch:start",
+                    "documentsearch:highlightNext",
+                    "toc:show-panel",
+                    "filebrowser:go-up",
+                    "filebrowser:toggle-hidden-files",
+                    "docmanager:save",
+                    "docmanager:recents",
+                    "fileeditor:find",
+                    "editmenu:find",
+                    "fileeditor:create-new",
+                    "fileeditor:create-new-markdown-file",
+                    "console:clear",
+                    "completer:invoke-console",
+                    "running:show-panel",
+                    "kernelmenu:shutdownAll",
+                    "filemenu:create-console",
+                    "filemenu:close-and-cleanup",
+                    "filemenu:open",
+                    "editmenu:redo",
+                    "terminal:create-new",
+                    "terminal:shut-down",
+                    "rendermime:handle-local-link",
+                    "markdownviewer:open",
+                    "markdownviewer:trust",
+                    "htmlviewer:trust-html",
+                    "mathjax:clipboard",
+                    "imageviewer:zoom-in",
+                    "csv:go-to-line",
+                    "tsv:go-to-line",
+                    "mermaid:copy-source",
+                    "application:close",
+                    "sidebar:switch",
+                    "property-inspector:show-panel",
+                    "apputils:change-theme",
+                    "apputils:print",
+                    "launcher:create",
+                    "settingeditor:open",
+                    "help:about",
+                    "shortcuts:reset-all",
+                    "workspace-ui:create-new",
+                    "logconsole:open",
+                    "pluginmanager:open",
+                    "extensionmanager:toggle",
+                ]
+            ),
+            sorted(declared_ids(packages)),
+        )
 
     def test_a_toc_id_declared_inside_notebook_extension_is_carried(self) -> None:
         """`toc:run-cells` is declared by `notebook-extension` under the `toc:` prefix
         (`index.ts:351`) for the ToC row's context menu - a package-whole read of
         `toc-extension` misses it, and the `notebook:` filter over `notebook-extension`'s
         own ids would drop it too."""
-        packages = _packages({
-            "notebook-extension": "  export const t = 'toc:run-cells';\n"
-                                  "  export const u = 'notebook:undo';",
-        })
+        packages = _packages(
+            {
+                "notebook-extension": "  export const t = 'toc:run-cells';\n  export const u = 'notebook:undo';",
+            }
+        )
         self.assertIn("toc:run-cells", declared_ids(packages))
 
 

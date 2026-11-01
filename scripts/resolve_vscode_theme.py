@@ -17,6 +17,7 @@ cd reference/research_repos/vscode/extensions/theme-defaults/themes
 python3 .../resolve_vscode_theme.py 2026-dark.json --role comment
 ```
 """
+
 from __future__ import annotations
 
 import argparse
@@ -87,7 +88,7 @@ def _copy_string(text: str, start: int, out: list[str]) -> int:
         if text[j] == '"':
             break
         j += 1
-    out.append(text[start:j + 1])
+    out.append(text[start : j + 1])
     return j + 1
 
 
@@ -159,7 +160,7 @@ def _relative_luminance(hex_color: str) -> float:
     digits = hex_color.lstrip("#")[:6]
     if len(digits) != 6:
         raise ValueError(f"expected a 6- or 8-digit hex colour like '#8b949e', got {hex_color!r}")
-    channels = [int(digits[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    channels = [int(digits[i : i + 2], 16) / 255 for i in (0, 2, 4)]
     linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
     return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
@@ -205,8 +206,7 @@ def main() -> None:
     parser.add_argument("theme", type=Path, help="the outermost theme file, e.g. 2026-dark.json")
     parser.add_argument("--role", help="print one syntax role's colour and nothing else")
     parser.add_argument("--color", help="print one workbench colour id and nothing else")
-    parser.add_argument("--against", default="editor.background",
-                        help="the colour id every role is measured against")
+    parser.add_argument("--against", default="editor.background", help="the colour id every role is measured against")
     args = parser.parse_args()
     theme = resolve(args.theme)
     if args.color:

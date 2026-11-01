@@ -1,4 +1,5 @@
 """What `read_search_box_width` reads out of a dump - P2x-3d, and the replace box at P2x-5e."""
+
 from __future__ import annotations
 
 import unittest
@@ -38,12 +39,13 @@ class ReadSearchBoxWidthTest(unittest.TestCase):
         """A toggle names what a tap will *do*, so "Ignore case" is the on state of the same control."""
         flipped = DUMP.replace('content-desc="Match case"', 'content-desc="Ignore case"')
 
-        self.assertEqual(["Ignore case", "Match whole word", "Use regular expression"],
-                         [at[0] for at in toggle_spans(flipped, density=240)])
+        self.assertEqual(
+            ["Ignore case", "Match whole word", "Use regular expression"],
+            [at[0] for at in toggle_spans(flipped, density=240)],
+        )
 
     def test_the_room_left_for_a_query_is_the_box_up_to_the_first_toggle(self) -> None:
-        self.assertEqual(192.0, text_room_between(box_span(DUMP, density=240),
-                                                  toggle_spans(DUMP, density=240)))
+        self.assertEqual(192.0, text_room_between(box_span(DUMP, density=240), toggle_spans(DUMP, density=240)))
 
     def test_a_dump_with_no_panel_says_so_rather_than_reporting_zero(self) -> None:
         with self.assertRaises(LookupError):
@@ -71,8 +73,9 @@ class ReadReplaceBoxWidthTest(unittest.TestCase):
     def test_the_replace_row_carries_one_toggle_and_it_flips_its_name(self) -> None:
         flipped = self.DUMP.replace('content-desc="Preserve case"', 'content-desc="Replace verbatim"')
 
-        self.assertEqual(["Replace verbatim"],
-                         [at[0] for at in toggle_spans(flipped, density=240, labels=REPLACE_TOGGLE_LABELS)])
+        self.assertEqual(
+            ["Replace verbatim"], [at[0] for at in toggle_spans(flipped, density=240, labels=REPLACE_TOGGLE_LABELS)]
+        )
 
     def test_the_room_left_for_a_replacement_stops_at_its_toggle(self) -> None:
         box = box_span(self.DUMP, density=240, label=REPLACE_BOX_LABEL)

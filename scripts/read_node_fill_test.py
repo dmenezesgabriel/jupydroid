@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the node-fill oracle, including one run over this repository's own committed frame."""
+
 from __future__ import annotations
 
 import pathlib
@@ -56,7 +57,7 @@ class NodeFillTest(unittest.TestCase):
         for x in range(40, 88):
             for y in range(100, 148):
                 image.putpixel((x, y), WASH)
-        for x in range(58, 70):               # the glyph's own strokes, a minority of the square
+        for x in range(58, 70):  # the glyph's own strokes, a minority of the square
             for y in range(115, 133):
                 image.putpixel((x, y), INK)
         dump = _dump({"Ignore case": (40, 100, 88, 148)})

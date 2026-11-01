@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the cold-launch frame reader, over streams built the way screenrecord writes them."""
+
 from __future__ import annotations
 
 import io

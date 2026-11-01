@@ -26,6 +26,7 @@ fails red is the instrumented `everyCodePromptInOneFrameStartsAtTheSameX`.
 
     adb shell wm density | python3 scripts/read_gutter_x.py hierarchy.xml
 """
+
 from __future__ import annotations
 
 import re

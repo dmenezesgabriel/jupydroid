@@ -37,6 +37,7 @@ theme says, and this module holds no expected value of its own.
 Tests in read_chrome_parts_test.py, including one that reads the committed *before* frame and
 asserts the defect is visible in it - an oracle that cannot see the bug cannot see the fix.
 """
+
 from __future__ import annotations
 
 import collections
@@ -129,7 +130,7 @@ def part_seams(image_path: str) -> list[Seam]:
     runs = _runs(_column_colours(image_path))
     parts = [at for at, run in enumerate(runs) if run.width >= _MIN_PART_WIDTH]
     return [
-        Seam(runs[left].end, runs[right].start, tuple(run.colour for run in runs[left + 1:right]))
+        Seam(runs[left].end, runs[right].start, tuple(run.colour for run in runs[left + 1 : right]))
         for left, right in zip(parts, parts[1:], strict=False)
     ]
 

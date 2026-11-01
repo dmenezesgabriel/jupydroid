@@ -7,6 +7,7 @@ two output types a probe produces are handled - `stream` (what `print` writes) a
 raised exception leaves) - and an unknown type is reported rather than skipped, so a silent gap
 cannot look like a cell that printed nothing.
 """
+
 from __future__ import annotations
 
 import json

@@ -20,6 +20,7 @@ is the same length as the source, character for character.
 
 Tests in kotlin_source_test.py.
 """
+
 from __future__ import annotations
 
 
@@ -52,7 +53,7 @@ def without_comments(source: str) -> str:
             was = at
             at = _past_block_comment(source, at)
             out.append(_blanked(source[was:at]))
-        elif rest.startswith('"""') or source[at] in '"\'':
+        elif rest.startswith('"""') or source[at] in "\"'":
             was = at
             at = _past_literal(source, at)
             out.append(source[was:at])
@@ -60,7 +61,6 @@ def without_comments(source: str) -> str:
             out.append(source[at])
             at += 1
     return "".join(out)
-
 
 
 def comments_only(source: str) -> str:
@@ -94,7 +94,7 @@ def comments_only(source: str) -> str:
             was = at
             at = _past_block_comment(source, at)
             out.append(source[was:at])
-        elif rest.startswith('"""') or source[at] in '"\'':
+        elif rest.startswith('"""') or source[at] in "\"'":
             was = at
             at = _past_literal(source, at)
             out.append(_blanked(source[was:at]))

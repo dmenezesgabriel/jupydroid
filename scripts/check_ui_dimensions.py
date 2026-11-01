@@ -38,6 +38,7 @@ so this file's line numbers and its read of the line above a declaration still h
 Tests in check_ui_dimensions_test.py, including one that runs the gate over this repository, so a
 gate that has stopped matching anything fails rather than passing quietly.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -98,10 +99,7 @@ def _message(relative: str, at: int, line: str, declared: re.Match | None, value
             f"{relative}:{at + 1}: `{declared.group(1)}` is {value}.dp with no KDoc saying why - "
             f"put the reason above it, or take the value from `Spacing`"
         )
-    return (
-        f"{relative}:{at + 1}: {value}.dp inline - use `Spacing`, or name it in a documented "
-        f"`val`: {line.strip()}"
-    )
+    return f"{relative}:{at + 1}: {value}.dp inline - use `Spacing`, or name it in a documented `val`: {line.strip()}"
 
 
 def offences(root: pathlib.Path | None = None) -> list[str]:

@@ -27,6 +27,7 @@ python3 scripts/read_ledger_verdicts.py --counts   # how many of each, which the
 
 Tests in read_ledger_verdicts_test.py.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -40,8 +41,7 @@ from read_ledger_partition import COMMAND_IN_CELL, LEDGER, ledger_partition
 VERDICTS = ("present", "adapted", "undocumented", "absent", "defect")
 
 #: What each verdict obliges the row to name, where it obliges a name at all (ADR-0067).
-OBLIGATION = {"absent": (re.compile(r"GAP-\d{3}"), "GAP-NNN"),
-              "undocumented": (re.compile(r"ADR-\d{4}"), "ADR-NNNN")}
+OBLIGATION = {"absent": (re.compile(r"GAP-\d{3}"), "GAP-NNN"), "undocumented": (re.compile(r"ADR-\d{4}"), "ADR-NNNN")}
 
 
 def ledger_verdicts(ledger: Path = LEDGER) -> dict[str, str]:
@@ -58,8 +58,10 @@ def ledger_verdicts(ledger: Path = LEDGER) -> dict[str, str]:
     for ids, verdict in _verdict_rows(ledger):
         for found in ids:
             if found in verdicts:
-                raise ValueError(f"{ledger}: {found} is judged both `{verdicts[found]}` and `{verdict}`; "
-                                 f"an entry carries exactly one verdict")
+                raise ValueError(
+                    f"{ledger}: {found} is judged both `{verdicts[found]}` and `{verdict}`; "
+                    f"an entry carries exactly one verdict"
+                )
             verdicts[found] = verdict
     return verdicts
 
@@ -107,19 +109,21 @@ def _verdict_of(ids: list[str], cells: list[str], column: int, ledger: Path) -> 
     """The row's verdict, refusing one that is none of the five or skips what it obliges."""
     verdict = cells[column].strip("*` ")
     if verdict not in VERDICTS:
-        raise ValueError(f"{ledger}: {', '.join(ids)} has the verdict {verdict!r}, and a verdict is "
-                         f"one of {', '.join(VERDICTS)}")
+        raise ValueError(
+            f"{ledger}: {', '.join(ids)} has the verdict {verdict!r}, and a verdict is one of {', '.join(VERDICTS)}"
+        )
     pattern, shape = OBLIGATION.get(verdict, (None, ""))
     if pattern and not pattern.search(cells[-1]):
-        raise ValueError(f"{ledger}: {', '.join(ids)} is `{verdict}`, which obliges a {shape} in its "
-                         f"last column; it reads {cells[-1]!r}")
+        raise ValueError(
+            f"{ledger}: {', '.join(ids)} is `{verdict}`, which obliges a {shape} in its "
+            f"last column; it reads {cells[-1]!r}"
+        )
     return verdict
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Which verdict the parity ledger gives each command id.")
-    parser.add_argument("--missing", action="store_true",
-                        help="print the ids an examined task owns without a verdict")
+    parser.add_argument("--missing", action="store_true", help="print the ids an examined task owns without a verdict")
     parser.add_argument("--counts", action="store_true", help="print how many ids carry each verdict")
     parser.add_argument("--ledger", type=Path, default=LEDGER, help="the parity ledger to read")
     args = parser.parse_args()

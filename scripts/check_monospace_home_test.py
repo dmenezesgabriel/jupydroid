@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for check_monospace_home.py."""
+
 from __future__ import annotations
 
 import pathlib

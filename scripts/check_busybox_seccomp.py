@@ -41,6 +41,7 @@ that setting, gated.
 
 Tests in check_busybox_seccomp_test.py, including one that runs the gate over this repository.
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -68,8 +69,7 @@ def dispatches_through_check_suid(elf: bytes) -> bool:
     """
     if BUSYBOX_BANNER not in elf:
         raise ValueError(
-            f"expected a busybox binary containing {BUSYBOX_BANNER!r}; "
-            f"got {len(elf)} bytes starting {elf[:16]!r}"
+            f"expected a busybox binary containing {BUSYBOX_BANNER!r}; got {len(elf)} bytes starting {elf[:16]!r}"
         )
     return CHECK_SUID_FINGERPRINT in elf
 

@@ -1,4 +1,5 @@
 """Tests for script_source.py."""
+
 from __future__ import annotations
 
 import unittest
@@ -33,7 +34,7 @@ class HashCommentsTest(unittest.TestCase):
         self.assertEqual("# three", hash_comments(source).splitlines()[2].strip())
 
     def test_an_escaped_quote_does_not_open_a_string(self):
-        self.assertEqual(" " * 8 + "# real\n", hash_comments("echo \\\" # real\n"))
+        self.assertEqual(" " * 8 + "# real\n", hash_comments('echo \\" # real\n'))
 
     def test_a_parameter_expansion_hash_is_not_a_comment(self):
         """`${#list[@]}` is a length, and `$#` is the argument count."""

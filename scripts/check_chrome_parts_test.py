@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the chrome-parts check, including one run over the frames P7a captured."""
+
 from __future__ import annotations
 
 import pathlib
@@ -102,8 +103,9 @@ class FrameFailuresTest(unittest.TestCase):
     def test_a_cells_own_edge_is_not_held_to_the_border(self) -> None:
         """Frame 03 has a notebook in it, whose cells are `#191A1B` on a `#121314` page. Those
         edges are not part borders, which is why only the browser frame carries the seam claim."""
-        frame = _painted([(120, RAIL), (2, SEAM), (540, RAIL), (60, PAGE), (600, RAIL)],
-                         "03-a-document-beside-the-panel.png")
+        frame = _painted(
+            [(120, RAIL), (2, SEAM), (540, RAIL), (60, PAGE), (600, RAIL)], "03-a-document-beside-the-panel.png"
+        )
         self.assertEqual([], frame_failures(frame, PART_HEX, PAGE_HEX, BORDER_HEX, "two-pane"))
 
     def test_a_two_pane_document_frame_still_has_its_rail_checked(self) -> None:
