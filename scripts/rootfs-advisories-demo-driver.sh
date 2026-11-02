@@ -65,7 +65,7 @@ capture "base's rootfs stamp before the upgrade" echo "$BEFORE"
 in_app "rm -rf $SITE_PACKAGES/tabulate $SITE_PACKAGES/tabulate-*.dist-info"
 reset_notebooks
 seed_notebook "$VERSIONS_FIXTURE" "Versions"
-seed_notebook "$ROOT/.maestro/fixtures/jd-003-pip.ipynb" "Pip"
+seed_notebook "$ROOT/.maestro/fixtures/python-environments-in-a-space-pip.ipynb" "Pip"
 
 run_flow "$FLOWS-part1-versions-and-pip.yaml" "$EVIDENCE/versions-and-pip" || fail "part 1 failed"
 AFTER="$(in_app "cat $STAMP")"

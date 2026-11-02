@@ -81,7 +81,7 @@ This amends [ADR-0076](0076-entering-a-space-binds-per-space-ports-and-a-noteboo
 "`python3` today": a new notebook still records the kernel's own name through
 `specs(space).defaultSpec` — now the Space's stored default rather than always `python3`.
 
-Measured on `SM-X216B` (`scripts/jd-003-python-environments-in-a-space-driver.sh`): Register on
+Measured on `SM-X216B` (`scripts/python-environments-in-a-space-demo-driver.sh`): Register on
 `envs/stats` wrote `usr/local/share/jupyter/kernels/stats/kernel.json`, argv
 `/home/jupydroid/envs/stats/bin/python -c "import runpy; runpy.run_path(...)"`; `config.json`
 read `"defaultKernel":"stats"` with the app killed and a relaunch read it back; a notebook left

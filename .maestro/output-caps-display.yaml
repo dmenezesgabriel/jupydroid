@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# 300 display() calls draw their first 50 outputs and a "Show more outputs" row, which draws the
+# rest when tapped (OutputCountLimit.kt). Every value asserted is one the kernel computed - `49`,
+# `50` and `299` are not in the source `for i in range(300): display(i)`, and FakeKernelGateway
+# would echo the source instead, with no row at all. Opened by
+# output-caps-baseline-open.yaml, seeded and measured by scripts/output-caps-display-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+- scrollUntilVisible:
+    element: "Show more outputs"
+    direction: DOWN
+    timeout: 30000
+# The row follows the 50th output, so the 51st is the one it hides.
+- assertVisible:
+    text: "49"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: "50"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 01-the-first-fifty-and-the-row
+- tapOn: "Show more outputs"
+- assertVisible:
+    text: "50"
+    childOf: {text: "Cell output"}
+- assertNotVisible: "Show more outputs"
+- takeScreenshot: 02-the-rest-is-drawn
+- scrollUntilVisible:
+    element:
+      text: "299"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 60000
+- takeScreenshot: 03-the-last-output

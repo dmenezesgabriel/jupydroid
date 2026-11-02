@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# A 200k-line print draws its first 25 lines, a row counting the 199970 it hides, and its last 5
+# (OutputLineWindow.kt). Every value asserted is one the kernel computed - `24`, `199970` and
+# `199999` are not in the source `for i in range(200_000): print(i)`, and FakeKernelGateway would
+# echo the source instead. Opened by output-caps-baseline-open.yaml, seeded and measured by
+# scripts/output-caps-notebook-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel, and the print itself takes ~50 s under proot.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+# The head is its own text node, so a full match fails if the window let a 26th line through.
+- assertVisible:
+    text: "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 01-the-head-is-drawn
+- scrollUntilVisible:
+    element: "199970 lines hidden"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    text: "199995\n199996\n199997\n199998\n199999\n?"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 02-the-hidden-count-and-the-tail

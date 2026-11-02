@@ -1,0 +1,20 @@
+appId: com.jupydroid.app
+---
+# Opens the notebook ${MAESTRO_NOTEBOOK} and stops there, so the driver can reset the frame
+# statistics before the run it measures. Seeded by scripts/output-caps-baseline-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the run that follows needs a real kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "${MAESTRO_NOTEBOOK}.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "${MAESTRO_NOTEBOOK}.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- takeScreenshot: 01-opened

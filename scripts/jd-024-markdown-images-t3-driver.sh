@@ -42,10 +42,10 @@ seed_notebook "$ROOT/.maestro/fixtures/jd-024-web-images.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
 "${DEVICE[@]}" shell run-as com.jupydroid.app rm -rf cache/remote-images
 
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 show_web_images "$EVIDENCE/run"
 
 # No network at all: what draws now was read from the cache the first open filled.
 "${DEVICE[@]}" shell cmd connectivity airplane-mode enable
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/offline-open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/offline-open"
 show_web_images "$EVIDENCE/offline"

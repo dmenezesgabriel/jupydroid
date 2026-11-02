@@ -22,7 +22,7 @@ seed_notebook "$ROOT/.maestro/fixtures/jd-024-workspace-images.ipynb" "$NOTEBOOK
 seed_file "$ROOT/.maestro/fixtures/jd-024-plot.png" "img/plot.png"
 seed_file "$ROOT/.maestro/fixtures/jd-024-spaced-plot.png" "img/my plot.png"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 run_flow "$ROOT/.maestro/jd-024-markdown-images-t2.yaml" "$EVIDENCE/run"
 
 # `uiautomator dump` writes to the device, so it is read back rather than piped.

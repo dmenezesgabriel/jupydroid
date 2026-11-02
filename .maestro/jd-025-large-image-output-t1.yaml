@@ -3,7 +3,7 @@ appId: com.jupydroid.app
 # A 12800 x 3200 PNG, 163 840 000 bytes decoded and past the 150 MiB a canvas draws, draws shrunk to
 # the column where it used to take the app down (ADR-0087). The cell builds it from `zlib` and
 # `struct`, so the kernel made the image, and `42` is computed from `6 * 7`; FakeKernelGateway would
-# echo the source instead and draw no image. Opened by jd-015-output-caps-baseline-open.yaml, seeded
+# echo the source instead and draw no image. Opened by output-caps-baseline-open.yaml, seeded
 # by scripts/jd-025-large-image-output-t1-driver.sh.
 #
 # A flow cannot read a width: the driver's `uiautomator dump` measures the image's bounds against

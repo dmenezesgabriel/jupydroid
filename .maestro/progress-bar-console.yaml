@@ -1,0 +1,48 @@
+appId: com.jupydroid.app
+---
+# A `\r` progress loop run from the Console lands as one output reading `100% done`, `42`, `56`:
+# a Console entry folds adjacent stdout streams and `\r` rewrites the line (ConsoleViewModel.kt,
+# StreamFold.kt). The loop lives in a function the notebook's cell defines and prints nothing; the
+# Console calls it, so every stream message is parented to the Console's own execute. A loop typed
+# into the Console would need newlines `inputText` cannot press. `100%`, `42` and `56` are in no
+# source, and FakeKernelGateway would echo `progress()` instead. Seeded by
+# scripts/progress-bar-console-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+#
+# The assertion full-matches one output node, so it fails on any of: a frame per repaint, a `\r`
+# drawn literally, or `42`/`56` in an output of their own.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Progress Console.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Progress Console.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- tapOn: "Run cell"
+# Generous: the first run installs the Space and starts jupyter_server.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 180000
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- inputText: "progress()"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible:
+      text: "100% done\n42\n56"
+      childOf: {text: "Cell output"}
+    timeout: 30000
+- takeScreenshot: 01-the-console-progress-bar-is-one-line-and-the-prints-join-it

@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# A Console on the notebook's kernel runs the same `display(Markdown(...))` and draws it the way the
+# cell did. `Markdown` and `display` are names only the cell imported, so a Console that draws the
+# heading is on the cell's kernel. Run by scripts/markdown-output-demo-driver.sh after part 1,
+# on the screen part 1 left.
+#
+# The Console has one entry, so `childOf: {text: "Cell output"}` reaches it: Maestro resolves that
+# selector to the first such node (docs/architecture/cross-cutting.md, 8.6).
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+# Part 1 left the notebook in command mode, where the kernel bar is: a `back` here would close the
+# notebook rather than leave edit mode.
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- inputText: "display(Markdown(\"# Heading\\n**bold** and `code`\\n- item\"))"
+- tapOn: "Run"
+# The soft keyboard covers the transcript's newest entry, so it goes before the wait looks for it.
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      text: "Heading"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- assertVisible:
+    text: "bold and code"
+    childOf: {text: "Cell output"}
+- assertVisible:
+    text: "item"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: "<IPython\\.core\\.display\\.Markdown object>"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 04-the-console-draws-the-same-markdown

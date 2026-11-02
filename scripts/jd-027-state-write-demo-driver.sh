@@ -90,14 +90,14 @@ change_theme_and_recent() {
 
 # Step 4: Thesis, a venv with ipykernel in its terminal, and that venv registered as a kernel.
 register_a_kernel() {
-  run_part "$FLOWS/jd-003-python-environments-in-a-space-t1-part1-create-thesis.yaml" part2-create-thesis
+  run_part "$FLOWS/python-environments-in-a-space-create-thesis.yaml" part2-create-thesis
   # Seeded before the venv because seeding force-stops the app, which would take Thesis's server.
-  NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/jd-003-registered-kernel.ipynb" "Registered"
-  run_part "$FLOWS/jd-003-python-environments-in-a-space-t3-part2-make-envs.yaml" part3-make-envs
+  NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/python-environments-in-a-space-registered-kernel.ipynb" "Registered"
+  run_part "$FLOWS/python-environments-in-a-space-make-envs.yaml" part3-make-envs
   NOTEBOOK_DIR="$THESIS_HOME" wait_for_workspace_text envs.txt deep-rc= 600
   "$ADB" shell "run-as $APP cat $THESIS_HOME/envs.txt" | tr -d '\r' | grep -qxF "stats-rc=0" ||
     { echo "envs/stats was not made with ipykernel" >&2; exit 1; }
-  run_part "$FLOWS/jd-003-python-environments-in-a-space-t4-part3-register.yaml" part4-register
+  run_part "$FLOWS/python-environments-in-a-space-register.yaml" part4-register
   record registered "$STATS_SPEC"
 }
 
@@ -106,7 +106,7 @@ rename_the_space() {
   local before
   before="$(inode_and_mode "$CONFIG")"
   record before-rename "$CONFIG"
-  run_part "$FLOWS/jd-002-manage-spaces-part2-rename.yaml" part5-rename
+  run_part "$FLOWS/manage-spaces-rename.yaml" part5-rename
   record after-rename "$CONFIG"
   report_replaced "$CONFIG" "$before"
 }

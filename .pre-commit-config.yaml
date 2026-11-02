@@ -7,7 +7,7 @@ repos:
   # ShellCheck's own hook (koalaman/shellcheck README): the pinned upstream image, run offline
   # by pre-commit over every file it identifies as shell, by extension or shebang. .shellcheckrc
   # makes it follow sourced files. gradlew is Gradle's generated wrapper; .maestro/fixtures/ is
-  # test data the flows assert byte for byte (jd-009-setup.sh is a user's startup script).
+  # test data the flows assert byte for byte (configure-a-space-setup.sh is a user's startup script).
   - repo: https://github.com/koalaman/shellcheck-precommit
     rev: v0.11.0
     hooks:

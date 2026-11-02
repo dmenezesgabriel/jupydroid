@@ -22,7 +22,7 @@ NOTEBOOK="Rendered Link"
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-021-rendered-link.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 [ "$(resumed_package)" = "$APP" ] || { echo "expected $APP resumed before the tap" >&2; exit 1; }
 run_flow "$ROOT/.maestro/jd-021-rendered-link-t1-part1-cell-link.yaml" "$EVIDENCE/cell-link"
 require_another_app_resumed "$EVIDENCE/cell-link"

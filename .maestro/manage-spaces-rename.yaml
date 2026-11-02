@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# JD-002 demo, step 5: space-1 is renamed from Thesis to Dissertation, and keeps its id. Runs no
+# cell. `scripts/manage-spaces-driver.sh` checks that config.json's name changed while the
+# directory stayed `space-1` - a row on screen does not prove what the file holds.
+- launchApp
+- extendedWaitUntil:
+    visible: "Rename Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Rename Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Rename Space"
+    timeout: 5000
+- inputText: "Dissertation"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Dissertation"
+    timeout: 10000
+- assertNotVisible: "Thesis"
+- assertVisible: "space-1 · .*"
+- takeScreenshot: 04-renamed-dissertation-still-space-1

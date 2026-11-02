@@ -24,7 +24,7 @@ reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-024-html-images.ipynb" "$NOTEBOOK"
 seed_file "$ROOT/.maestro/fixtures/jd-024-plot.png" "img/plot.png"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 
 run_flow "$ROOT/.maestro/jd-024-markdown-images-t4-part1-run.yaml" "$EVIDENCE/run"
 image_bounds "$EVIDENCE/run"

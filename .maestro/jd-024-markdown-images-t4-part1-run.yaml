@@ -2,7 +2,7 @@ appId: com.jupydroid.app
 ---
 # An HTML <img> draws in a markdown cell at its width attribute and inside a line of prose, and in a
 # code cell's text/html output once it runs (ADR-0088). Opened by
-# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-024-markdown-images-t4-driver.sh.
+# output-caps-baseline-open.yaml, seeded by scripts/jd-024-markdown-images-t4-driver.sh.
 #
 # TABLET ONLY (SM-X216B): the flow runs a cell.
 # Each image is its own node, named by its alt. Its line's text holds the alt too, so a fallback

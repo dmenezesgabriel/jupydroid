@@ -49,18 +49,18 @@ require_installed_app
 "$ADB" shell "run-as $APP sh -c 'rm -rf files/spaces/space-* files/spaces/base/config.json'"
 reset_notebooks
 
-run_part "$FLOWS/jd-003-python-environments-in-a-space-t1-part1-create-thesis.yaml" part1-create-thesis
+run_part "$FLOWS/python-environments-in-a-space-create-thesis.yaml" part1-create-thesis
 # Seeded before part 2 because seeding force-stops the app, which would take Thesis's server with it.
-NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/jd-003-registered-kernel.ipynb" "Registered"
-run_part "$FLOWS/jd-003-python-environments-in-a-space-t3-part2-make-envs.yaml" part2-make-envs
+NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/python-environments-in-a-space-registered-kernel.ipynb" "Registered"
+run_part "$FLOWS/python-environments-in-a-space-make-envs.yaml" part2-make-envs
 NOTEBOOK_DIR="$THESIS_HOME" wait_for_workspace_text envs.txt deep-rc= 600
 "$ADB" shell "run-as $APP cat $THESIS_HOME/envs.txt" | tr -d '\r' | grep -qxF "stats-rc=0" ||
   { echo "envs/stats was not made with ipykernel" >&2; exit 1; }
 
-run_part "$FLOWS/jd-003-python-environments-in-a-space-t4-part3-register.yaml" part3-register
+run_part "$FLOWS/python-environments-in-a-space-register.yaml" part3-register
 record registered "$STATS_SPEC_DIR/kernel.json"
 record before-rename "$CONFIG"
-run_part "$FLOWS/jd-002-manage-spaces-part2-rename.yaml" part4-rename
+run_part "$FLOWS/manage-spaces-rename.yaml" part4-rename
 record after-rename "$CONFIG"
 record before-relaunch "$BASE_SPEC_DIR/kernel.json"
 run_part "$FLOWS/jd-027-state-write-t2-relaunch-and-run.yaml" part5-relaunch-and-run

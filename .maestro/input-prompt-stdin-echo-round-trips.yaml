@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# A notebook JupyterLab saved after an `input()` keeps the answer as a `stdin` stream
+# (jupyterlab@7f0e690 packages/outputarea/src/widget.ts, `onInputRequest`). Opening it here must
+# draw that echo, and the next save must write it back as `stdin`. It used to be dropped on read.
+#
+# No cell is run: the echo is seeded into the fixture, so reading and writing it are the only
+# things under test. The save is forced by a paste below, AUD-002's shape. The driver reads the
+# file the save wrote. Seeded by scripts/input-prompt-stdin-echo-round-trips-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Stdin Echo.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Stdin Echo.ipynb"
+- extendedWaitUntil:
+    visible: "\\[2\\]:"
+    timeout: 30000
+# The echo, then the print it fed: on the broken build only the second is there.
+- assertVisible:
+    text: "Name\\? Ada"
+    childOf:
+      text: "Cell output"
+- assertVisible:
+    text: "hi Ada"
+    childOf:
+      text: "Cell output"
+- takeScreenshot: 01-the-stdin-echo-drawn-above-the-print
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Copy"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Paste below"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    text: "Name\\? Ada"
+    index: 1
+- takeScreenshot: 02-the-pasted-copy-carries-the-echo-into-the-save

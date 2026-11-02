@@ -23,7 +23,7 @@ NOTEBOOK="Large Image Output"
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-025-large-image-output.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 run_flow "$ROOT/.maestro/jd-025-large-image-output-t1.yaml" "$EVIDENCE/run"
 
 image_bounds "$EVIDENCE/run"

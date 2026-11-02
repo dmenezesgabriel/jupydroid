@@ -20,7 +20,7 @@ mapfile -t DEVICE < <(device_adb)
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-024-markdown-images.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 run_flow "$ROOT/.maestro/jd-024-markdown-images-t1.yaml" "$EVIDENCE/run"
 
 # `uiautomator dump` writes to the device, so it is read back rather than piped.

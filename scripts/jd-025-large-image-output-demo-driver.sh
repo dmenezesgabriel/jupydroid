@@ -44,7 +44,7 @@ tall_part() {
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-025-large-image-output-demo.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$OUT/part1-open" || exit 1
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$OUT/part1-open" || exit 1
 wide_part part2-wide
 tall_part part3-tall
 wide_part part4-console

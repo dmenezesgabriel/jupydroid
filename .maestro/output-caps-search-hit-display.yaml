@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# A search over 300 display() calls finds `277` in an output past the 50 drawn, and counts it
+# without drawing it while the query is typed; stepping onto it with the arrows draws the rest
+# (CellOutputsView.kt, isCurrentHitUndrawn). `277` is in no source here - the cell is
+# `for i in range(300): display(i)` - so only the kernel can have computed it, and before the step
+# it is in no drawn output at all. Opened by output-caps-baseline-open.yaml, seeded and
+# measured by scripts/output-caps-search-hit-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+- scrollUntilVisible:
+    element: "Show more outputs"
+    direction: DOWN
+    timeout: 30000
+- tapOn: "Find in notebook"
+- inputText: "277"
+- assertVisible: "Matches -/-"
+- tapOn: "Search options"
+- tapOn: "Search cell outputs"
+# Found and current, as a query lands - and still undrawn, because a query reveals nothing.
+- assertVisible: "Matches 1/1"
+# Re-finding moves the notebook to the hit's cell top (EditorScreen's scroll on `search.current`),
+# and the keyboard covers the half below it - so the row is scrolled back to, not assumed on screen.
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Show more outputs"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 01-found-and-still-undrawn
+- tapOn: "Next match"
+- assertVisible: "Matches 1/1"
+- scrollUntilVisible:
+    element:
+      text: "277"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 60000
+- assertNotVisible: "Show more outputs"
+- takeScreenshot: 02-stepped-onto-and-drawn

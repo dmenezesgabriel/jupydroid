@@ -4,7 +4,7 @@ appId: com.jupydroid.app
 # paragraph is one text node, so the flow reads that its tildes are gone; the line through the struck
 # words is no assertion Maestro has, and is read from the screenshots. `42` is computed by the kernel
 # from `6 * 7`; FakeKernelGateway would echo the source instead. Opened by
-# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-020-gfm-markdown-t2-driver.sh.
+# output-caps-baseline-open.yaml, seeded by scripts/jd-020-gfm-markdown-t2-driver.sh.
 #
 # TABLET ONLY (SM-X216B): the flow runs a cell.
 #

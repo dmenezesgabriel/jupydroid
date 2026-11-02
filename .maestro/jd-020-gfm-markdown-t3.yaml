@@ -4,7 +4,7 @@ appId: com.jupydroid.app
 # its own characters, so the text reads the same linked or not: what the flow can assert is that each
 # paragraph draws whole, and the link's accent and underline are read from the screenshots. `42` is
 # computed by the kernel from `6 * 7`; FakeKernelGateway would echo the source instead. Opened by
-# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-020-gfm-markdown-t3-driver.sh.
+# output-caps-baseline-open.yaml, seeded by scripts/jd-020-gfm-markdown-t3-driver.sh.
 #
 # TABLET ONLY (SM-X216B): the flow runs a cell.
 #

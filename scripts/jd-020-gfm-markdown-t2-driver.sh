@@ -20,5 +20,5 @@ NOTEBOOK="GFM Strikethrough"
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-020-gfm-strikethrough.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 run_flow "$ROOT/.maestro/jd-020-gfm-markdown-t2.yaml" "$EVIDENCE/run"

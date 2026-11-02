@@ -1,0 +1,85 @@
+appId: com.jupydroid.app
+---
+# The Console cuts a runaway as a notebook cell does, since its transcript draws through the same
+# CellOutputs (ConsoleTranscriptView.kt): a 200k-line print draws its head, a row counting the
+# 199970 lines it hides and its tail, and the row draws every line; 300 display() calls draw the
+# first 50 and a "Show more outputs" row that draws the rest. Every value asserted is one the
+# kernel computed - `24`, `199970`, `999`, `49`, `50` and `299` are in no source typed here, and
+# FakeKernelGateway would echo the source instead. Opened by output-caps-baseline-open.yaml
+# on the control notebook, whose run starts the kernel the Console shares; seeded and measured by
+# scripts/output-caps-console-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs cells.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- inputText: "for i in range(200_000): print(i)"
+- tapOn: "Run"
+# The soft keyboard covers the transcript's newest entry, so it goes before the wait looks for it.
+- hideKeyboard
+# The print itself takes ~50 s under proot.
+- extendedWaitUntil:
+    visible:
+      text: "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 01-the-head-is-drawn
+- scrollUntilVisible:
+    element: "199970 lines hidden"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    text: "199995\n199996\n199997\n199998\n199999\n?"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 02-the-hidden-count-and-the-tail
+- tapOn: "199970 lines hidden"
+- extendedWaitUntil:
+    visible:
+      text: "0\n1\n2\n[\\s\\S]*\n998\n999"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- assertNotVisible: "199970 lines hidden"
+- takeScreenshot: 03-every-line-is-drawn
+# Cleared, so the next entry is not below 200k drawn lines.
+- tapOn: "Console actions"
+- tapOn: "Clear Console Cells"
+- tapOn:
+    id: "console-input-field"
+- inputText: "for i in range(300): display(i)"
+- tapOn: "Run"
+- hideKeyboard
+- scrollUntilVisible:
+    element: "Show more outputs"
+    direction: DOWN
+    timeout: 60000
+# The row follows the 50th output, so the 51st is the one it hides.
+- assertVisible:
+    text: "49"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: "50"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 04-the-first-fifty-and-the-row
+- tapOn: "Show more outputs"
+- assertVisible:
+    text: "50"
+    childOf: {text: "Cell output"}
+- assertNotVisible: "Show more outputs"
+- takeScreenshot: 05-the-rest-is-drawn
+- scrollUntilVisible:
+    element:
+      text: "299"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 60000
+- takeScreenshot: 06-the-last-output

@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# Three PNG strips draw at JupyterLab's widths: 96 px with no width draws 96 dp, one asking for
+# width=100 draws 100 dp, and a 2000 px one shrinks to the column. `42` is computed by the kernel
+# from `6 * 7`; FakeKernelGateway would echo the source instead and draw no image. Opened by
+# output-caps-baseline-open.yaml, seeded by scripts/image-formats-widths-driver.sh.
+#
+# A flow cannot read a width: the driver's `uiautomator dump` measures each image's bounds, and the
+# screenshot shows them.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+# `42` is printed after the three displays, so with it in view every image is drawn above it.
+- scrollUntilVisible:
+    element:
+      text: "42"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    text: "Cell image output"
+    index: 2
+- assertNotVisible:
+    text: "<IPython.core.display.Image object>"
+- takeScreenshot: 01-three-widths-and-the-print

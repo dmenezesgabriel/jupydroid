@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# Runs the cell the open flow left on screen and waits for its execution count: the end of the run
+# being timed. The count proves no kernel - FakeKernelGateway emits `1` as well - so the screenshots
+# are the proof (`42`, or the displayed numbers, which the fake's echo of the source cannot draw).
+# The output text is not matched because a 200k-line node is what is being measured.
+# Seeded by scripts/output-caps-baseline-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel, and an unbounded output is what may stall the UI.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+- takeScreenshot: 02-ran
+- scroll
+- takeScreenshot: 03-scrolled

@@ -24,7 +24,7 @@ OWN_WIDTH_DP=300
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-025-tall-image.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 
 run_flow "$ROOT/.maestro/jd-025-large-image-output-t2-markdown.yaml" "$EVIDENCE/markdown"
 image_bounds "$EVIDENCE/markdown"

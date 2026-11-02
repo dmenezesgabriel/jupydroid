@@ -29,7 +29,7 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 # The empty cell's field has no text to tap by; in two panes SM-X216B puts it at
-# [805,319][1884,391] (uiautomator dump), as `jd-003-python-environments-in-a-space-t6-part7-new-notebook-runs-python3.yaml`
+# [805,319][1884,391] (uiautomator dump), as `python-environments-in-a-space-new-notebook-runs-python3.yaml`
 # found in one.
 - tapOn:
     point: "1344,355"

@@ -1,0 +1,8 @@
+appId: com.jupydroid.app
+---
+# Types the PRD's coloured print into whichever field has focus. Shared by the notebook and the
+# Console halves of ansi-colour-demo-dark.yaml, so both run the same line.
+#
+# PythonTypingRules closes the `(` and the `"` and steps over them when they are typed again, and
+# leaves each `[` unpaired because a `"` follows it, so the line lands as written.
+- inputText: "print(\"\\x1b[31mred\\x1b[0m \\x1b[1;32mbold green\\x1b[0m \\x1b[38;5;208morange\\x1b[0m\")"

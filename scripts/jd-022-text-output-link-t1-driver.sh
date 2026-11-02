@@ -24,7 +24,7 @@ NOTEBOOK="Text Output Link"
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-022-text-output-link.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 
 run_flow "$FLOWS-part1-beside.yaml" "$EVIDENCE/part1-beside"
 package="$(resumed_package)"

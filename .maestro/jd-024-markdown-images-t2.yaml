@@ -2,7 +2,7 @@ appId: com.jupydroid.app
 ---
 # A markdown image naming a workspace file beside the notebook draws in the rendered cell: a plot
 # at its own width, a strip found under an escaped file name, and an image naming no file drawing
-# its alt text. Opened by jd-015-output-caps-baseline-open.yaml, seeded by
+# its alt text. Opened by output-caps-baseline-open.yaml, seeded by
 # scripts/jd-024-markdown-images-t2-driver.sh.
 #
 # Runs no cell, so any device draws it; the driver runs it on the tablet the item's demo needs.

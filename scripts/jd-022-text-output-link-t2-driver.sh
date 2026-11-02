@@ -25,7 +25,7 @@ reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-022-traceback-path-link.ipynb" "$NOTEBOOK"
 seed_file "$ROOT/.maestro/fixtures/jd-022-mod.py" "mod.py"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 run_flow "$FLOWS-part1-run.yaml" "$EVIDENCE/part1-run"
 run_flow "$FLOWS-part2-stdout-path.yaml" "$EVIDENCE/part2-stdout-path"
 run_flow "$FLOWS-part3-stderr-paths.yaml" "$EVIDENCE/part3-stderr-paths"

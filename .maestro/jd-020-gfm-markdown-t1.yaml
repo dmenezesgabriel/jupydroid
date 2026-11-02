@@ -5,7 +5,7 @@ appId: com.jupydroid.app
 # inside its column is the alignment, which no Maestro assertion reads: the driver dumps the
 # hierarchy, and RichTableTest measures it. `42` is computed by the kernel from `6 * 7`;
 # FakeKernelGateway would echo the source instead and draw no table. Opened by
-# jd-015-output-caps-baseline-open.yaml, seeded by scripts/jd-020-gfm-markdown-t1-driver.sh.
+# output-caps-baseline-open.yaml, seeded by scripts/jd-020-gfm-markdown-t1-driver.sh.
 #
 # TABLET ONLY (SM-X216B): the flow runs a cell.
 #

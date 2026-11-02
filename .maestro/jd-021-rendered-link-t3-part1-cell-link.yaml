@@ -3,7 +3,7 @@ appId: com.jupydroid.app
 # A tap on a `#heading` link in a rendered markdown cell scrolls to the heading's cell. The links
 # sit a long cell below the code cell the notebook opens on, and `## Results` a long cell below them
 # and inside `# Chapter`'s collapsed section, so the tap has to reveal it as well as scroll; `#results` finds it through the slug rule, and `#Conclusion` - no heading has
-# that name - says so on a snackbar. Opened by jd-015-output-caps-baseline-open.yaml; seeded by
+# that name - says so on a snackbar. Opened by output-caps-baseline-open.yaml; seeded by
 # scripts/jd-021-rendered-link-t3-driver.sh. Each link is a paragraph of its own, so its text node
 # is the link.
 #

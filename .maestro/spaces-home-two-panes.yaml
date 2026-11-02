@@ -1,0 +1,64 @@
+appId: com.jupydroid.app
+---
+# JD-002 T5, two panes: the app opens on the Spaces home, only base's Open is live, Open enters
+# base's workspace, and Back from its resting state - the lone launcher - comes back to the home.
+# Runs no cell. Landscape on the tablet; `scripts/spaces-home-driver.sh` rotates.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Spaces"
+- assertNotVisible: "Files"
+- takeScreenshot: 01-cold-start-lands-on-the-home
+
+# A user Space is listed with its own Open, held until a second Space can run.
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Thesis"
+    timeout: 10000
+- takeScreenshot: 02-only-base-can-be-opened
+# Pressed, not inspected: the hierarchy puts the label on the button's inner node and `enabled` on
+# the outer one, so what a disabled Open is shown by is that pressing it enters nothing.
+- tapOn: "Open Thesis \\(space-1\\)"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Thesis"
+- assertNotVisible: "Files"
+- tapOn: "Delete Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Are you sure.*"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    below: "Are you sure.*"
+- extendedWaitUntil:
+    notVisible: "Thesis"
+    timeout: 10000
+
+# Two panes: Open lands on the browser beside the launcher that fills the empty main area.
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible:
+      id: "launcher-screen"
+    timeout: 10000
+- takeScreenshot: 03-base-workspace-two-panes
+# A relaunch that keeps the process comes back inside the workspace it left, which is what the
+# shared step's `when` relies on.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- assertNotVisible: "Open Base \\(base\\)"
+# The lone launcher is the resting state, so Back leaves the workspace.
+- back
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- assertNotVisible: "Files"
+- takeScreenshot: 04-back-from-two-panes-returns-home

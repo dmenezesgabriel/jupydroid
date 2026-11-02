@@ -21,6 +21,6 @@ NOTEBOOK="Heading Link"
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/jd-021-heading-link.ipynb" "$NOTEBOOK"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
-run_flow "$ROOT/.maestro/jd-015-output-caps-baseline-open.yaml" "$EVIDENCE/open"
+run_flow "$ROOT/.maestro/output-caps-baseline-open.yaml" "$EVIDENCE/open"
 run_flow "$ROOT/.maestro/jd-021-rendered-link-t3-part1-cell-link.yaml" "$EVIDENCE/cell-link"
 run_flow "$ROOT/.maestro/jd-021-rendered-link-t3-part2-output-heading.yaml" "$EVIDENCE/output-heading"

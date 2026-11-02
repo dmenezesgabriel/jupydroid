@@ -2,7 +2,7 @@ appId: com.jupydroid.app
 ---
 # A markdown image naming its cell's attachment draws in the rendered cell: a chart at its own
 # width, a banner wider than the column shrunk to it, found under an escaped name, and an image
-# naming no attachment drawing its alt text. Opened by jd-015-output-caps-baseline-open.yaml,
+# naming no attachment drawing its alt text. Opened by output-caps-baseline-open.yaml,
 # seeded by scripts/jd-024-markdown-images-t1-driver.sh.
 #
 # Runs no cell, so any device draws it; the driver runs it on the tablet the item's demo needs.

@@ -2,7 +2,7 @@ appId: com.jupydroid.app
 ---
 # A tap on a workspace link in a rendered markdown cell goes where the link points: `notes.md`
 # opens as a document, `missing.md` - which nothing seeded - says so on a snackbar naming the path
-# it resolved to, and `docs/` is browsed. Opened by jd-015-output-caps-baseline-open.yaml; seeded
+# it resolved to, and `docs/` is browsed. Opened by output-caps-baseline-open.yaml; seeded
 # by scripts/jd-021-rendered-link-t2-driver.sh. Each link is a paragraph of its own, so its text
 # node is the link; the link texts are not file names, so no explorer row answers the tap.
 #

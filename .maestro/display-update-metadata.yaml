@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# An image displayed with `width=100` draws, and the driver then reads the autosaved file for that
+# width in the output's `metadata` - which a save used to write back as `{}`. `42` is computed by
+# the kernel from `6 * 7`; FakeKernelGateway would echo the source instead and draw no image.
+# Opened by output-caps-baseline-open.yaml, seeded and read by
+# scripts/display-update-metadata-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+- assertVisible:
+    text: "42"
+    childOf: {text: "Cell output"}
+- assertVisible: "Cell image output"
+- takeScreenshot: 01-the-image-and-the-print

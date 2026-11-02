@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# A search over a 200k-line print finds `123456` in the lines the cut hides, and counts it without
+# drawing it while the query is typed; stepping onto it with the arrows draws the whole output
+# (CellOutputsView.kt, OutputLineWindow.hides). Chunk 0 is matched whole, `0` through `999`, which
+# only exists once every line is drawn - and `999` is a value the kernel computed, where
+# FakeKernelGateway would echo the source instead. Opened by output-caps-baseline-open.yaml,
+# seeded and measured by scripts/output-caps-search-hit-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel, and the print itself takes ~50 s under proot.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+- scrollUntilVisible:
+    element: "199970 lines hidden"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Find in notebook"
+- inputText: "123456"
+# Off by default, so the source alone is searched and holds no `123456`.
+- assertVisible: "Matches -/-"
+- tapOn: "Search options"
+- tapOn: "Search cell outputs"
+# Found and current, as a query lands - and still hidden, because a query reveals nothing.
+- assertVisible: "Matches 1/1"
+# Re-finding moves the notebook to the hit's cell top (EditorScreen's scroll on `search.current`),
+# and the keyboard covers the half below it - so the row is scrolled back to, not assumed on screen.
+- hideKeyboard
+- scrollUntilVisible:
+    element: "199970 lines hidden"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 01-found-and-still-hidden
+- tapOn: "Next match"
+# The wait is the expand being timed: maestro.log stamps the tap and the match.
+- extendedWaitUntil:
+    visible:
+      text: "0\n1\n2\n[\\s\\S]*\n998\n999"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- assertNotVisible: "199970 lines hidden"
+- assertVisible: "Matches 1/1"
+- takeScreenshot: 02-stepped-onto-and-drawn
