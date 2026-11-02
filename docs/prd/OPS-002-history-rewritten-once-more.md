@@ -179,7 +179,22 @@ One TDD unit each, one conventional commit each.
     and `run_part` expands `${1#part*-}`, and each driver was checked to resolve the flows its old self
     did. Left to T8: item ids in flow header comments and driver bodies (`JD-002 demo, step 5`) and the
     names a flow types on the device.
-  - [ ] T7f — `jd-020` to `jd-039`.
+  - [x] T7f — `jd-020` to `jd-039` (226 files: 36 fixtures, 133 flows, 51 drivers, 6 sourced helpers; 225
+    paths after the two identical `notes.py` fixtures merged). Named by hand where the strip collided: 22 of
+    the 23 collision groups differ in content, so each `tN` driver and its flows take what the task showed
+    (`gfm-table`, `rendered-web-link`, `text-output-url`, `markdown-images-attachment`,
+    `large-image-output-wide`, `atomic-save-notebook`, `state-write-settings`, `save-conflict-notebook`,
+    `rotation-dirty-tab` and their siblings), and the `partN` segment is dropped from flows. Nine single-task
+    drivers that were the stem of their own demo (`save-on-demand`, `tab-reload`, `not-text` and six more)
+    were qualified by what they show (`-running-row`, `-icon`, `-refused` and the like), for the substring rule; the check over
+    the final stems finds no pair with a T7f name as the inner one. The stem rewrite also turned a
+    `FLOWS` prefix into a bare fixture stem (`save-conflict`) and rewrote the tool's own docstring example;
+    both were repaired by hand. Fixtures the ruff hooks had never linted failed when the rename staged them:
+    `mod.py` stays one line (flows tap `~/mod.py:1`), so `pyproject.toml` exempts it with its reason, and the
+    disk-writer fixture was formatted. Left to T8: item ids in flow header comments and driver bodies
+    (`jd-023's flow`, the theme drivers' usage lines) and the names a flow types on the device. T7g must
+    qualify `jd-043-tab-demo`, since `chat-in-tab-demo` already contains `tab-demo`, and `notes.py`,
+    `target.ipynb` and `counter.ipynb` are now taken fixture names.
   - [ ] T7g — `jd-040` to `jd-074` (563 `jd` files in total).
 - [ ] T8 — ids out of code: `check_doc_citations.py` loses its driver and flow exemption and learns
   `AUD-NNN`; the 141 id matches in code and tests and whatever the wider scope surfaces are restated.
