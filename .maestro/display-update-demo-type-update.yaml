@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Types the PRD's update source into whichever field has focus, a line at a time: `inputText` cannot
+# Types the demo's update source into whichever field has focus, a line at a time: `inputText` cannot
 # type a newline, so Enter goes between the lines. A one-line `for` body leaves no indent to take
 # back off. Shared by the notebook's cell 2 and the Console's entry 2 of
 # display-update-demo-run.yaml, so both run the same source.

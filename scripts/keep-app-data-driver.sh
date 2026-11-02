@@ -95,6 +95,6 @@ diff <(grep -v '^\$' "$EVIDENCE/state-before.txt" | awk '{print $NF}') \
   fail "what was there before the uninstall is not all there after it"
 
 run_flow "$ROOT/.maestro/keep-app-data-after.yaml" "$EVIDENCE" || exit 1
-wait_for_workspace_text jd058-opencode-version.txt version-rc=0 120 || exit 1
-"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/jd058-opencode-version.txt\"" | tr -d '\r' \
+wait_for_workspace_text opencode-version.txt version-rc=0 120 || exit 1
+"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/opencode-version.txt\"" | tr -d '\r' \
   >"$EVIDENCE/opencode-version-after.txt"

@@ -1,7 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6a-15's own gate: the Open risks entry named since P6a-8 - "the debugger panel never
-# reselects a frame" - closed against a real, two-frame call stack. `debugger-step.ipynb`'s own
+# The debugger panel reselects a frame, against a real, two-frame call stack. `debugger-step.ipynb`'s own
 # fixture never calls a function, so it can only ever produce a single-frame stack; this fixture
 # (`debugger-nested-call.ipynb`) breaks on a line inside a real `helper` call so debugpy's own
 # `stackTrace` answers two frames - the caller frame this feature exists to make reachable.
@@ -22,7 +21,7 @@ appId: com.jupydroid.app
     timeout: 20000
 - tapOn: "Debugger Nested Call.ipynb"
 - assertVisible: "(?s).*def helper\\(x\\):.*"
-# The breakpoint column P6a-12 gave its own strip, left of the line-2 gutter - the same point
+# The breakpoint column has a strip of its own, left of the line-2 gutter - the same point
 # every other debugger flow taps for line 2, since the row's own height and the gutter's own
 # left edge do not move with a cell's indentation.
 - tapOn:
@@ -37,7 +36,7 @@ appId: com.jupydroid.app
     visible: "Terminate"
     timeout: 120000
 - tapOn: "Debugger"
-# A fresh stop always resolves the top frame first (P6a-8a's own rule) - `helper`'s own line and
+# A fresh stop always resolves the top frame first - `helper`'s own line and
 # its own `x`, debugpy's real reply for this fixture's real call.
 - assertVisible: "helper — line 2"
 - assertVisible: "<module> — line 5"

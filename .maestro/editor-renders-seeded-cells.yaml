@@ -17,7 +17,7 @@ appId: com.jupydroid.app
     timeout: 20000
 - takeScreenshot: 01-home-with-seeded-notebook
 - tapOn: "Two Cells.ipynb"
-# `[ ]:` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
+# `[ ]:` rather than the word "code": a code cell's kind label is Jupyter's own
 # bracket, where `[ ]:` is "never run" and the trailing colon is the reference's
 # (`packages/cells/src/inputarea.ts:283-290`).
 #
@@ -34,7 +34,7 @@ appId: com.jupydroid.app
 - assertVisible: "Markdown cell here"
 - takeScreenshot: 02-editor-cells
 - tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
-                               # and a uiautomator dump carries both (evidence/u-flow-sweep/).
+                               # and a uiautomator dump carries both.
 # Home comes back scrolled to the top, so the row needs finding again for the same reason.
 - scrollUntilVisible:
     element:

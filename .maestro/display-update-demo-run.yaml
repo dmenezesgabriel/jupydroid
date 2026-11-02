@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded: cell 1 shows a display handle, cell 2
+# The demo, typed into a new notebook rather than seeded: cell 1 shows a display handle, cell 2
 # updates it three times and cell 1 ends on `'frame 3'` alone while cell 2 shows nothing; cell 3
 # draws an image displayed with `width=100`; and a Console on the notebook's kernel redraws its own
 # entry 1 the same way from entry 2. Run by scripts/display-update-demo-driver.sh, which
@@ -55,7 +55,7 @@ appId: com.jupydroid.app
     point: "1300,724"
 - waitForAnimationToEnd:
     timeout: 3000
-# The 1x1 PNG of the T1 fixture, display-update-metadata.ipynb.
+# The 1x1 PNG of the display-update-metadata.ipynb fixture.
 - inputText: "import base64; from IPython.display import Image, display; display(Image(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), width=100))"
 - hideKeyboard
 

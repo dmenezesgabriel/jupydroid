@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Audit A4: the markdown editor drew its source black in both themes, which is invisible on
+# The markdown editor drew its source black in both themes, which is invisible on
 # dark. Run once per theme - the driver flips the device between them, because a single-theme
 # check is exactly what let this through.
 - launchApp
@@ -29,10 +29,10 @@ appId: com.jupydroid.app
 # colour, and half a keyboard is not that - so put it away and come back to the top of the cell.
 - hideKeyboard
 # **Back to the top of the document by swiping, not by scrolling to an element.**
-# `scrollUntilVisible` needs something that is *off* screen to aim at, and since P2v-2 drew the
-# heading's caret rendered-only (ADR-0057) the only node left on an open markdown cell is its field
+# `scrollUntilVisible` needs something that is *off* screen to aim at, and now that the
+# heading's caret is drawn rendered-only (ADR-0057) the only node left on an open markdown cell is its field
 # - which carries the whole source as one node, so it is already partly visible and the scroll is a
-# no-op that leaves the cell's first line above the viewport. Before P2v-2 the anchor was that
+# no-op that leaves the cell's first line above the viewport. Before that the anchor was that
 # caret, and before that a kind label this app invented, the reference giving markdown no prompt at
 # all (`packages/cells/src/widget.ts:1693-1700`).
 #

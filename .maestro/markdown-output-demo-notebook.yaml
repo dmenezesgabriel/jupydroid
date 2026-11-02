@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded. One cell displays IPython's Markdown
+# The demo, typed into a new notebook rather than seeded. One cell displays IPython's Markdown
 # (a heading, a paragraph with bold and code, a list item) and prints `6 * 7`; the output draws as
 # markdown, and the table of contents lists its heading. Run by
 # scripts/markdown-output-demo-driver.sh.

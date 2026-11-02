@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The second half of P6a-7b's gate, run by scripts/debugger-stop-driver.sh after a real
+# The second half of debugger-stops-at-breakpoint.yaml's gate, run by scripts/debugger-stop-driver.sh after a real
 # `sleep` - not a Maestro wait. `waitForAnimationToEnd` was tried first and measured unreliable
 # here: timed against this tablet's own continuously-spinning "running" indicator, a 1000ms and a
 # 14000ms timeout differed by ~7.6s of wall clock rather than the ~13s a faithful wait would have

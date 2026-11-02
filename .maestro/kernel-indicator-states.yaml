@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2w-2: the kernel indicator - which kernel this notebook runs on, and what it is doing.
+# The kernel indicator - which kernel this notebook runs on, and what it is doing.
 #
 # TABLET ONLY. The whole claim is that the state follows a *real* kernel: cold to No Kernel,
 # Starting while the Space installs and the server comes up, Busy for as long as the cell sleeps,
@@ -66,7 +66,7 @@ appId: com.jupydroid.app
 # **The tap is the picker**, which is the reference's own wiring: `kernelName` calls
 # `dialogs.selectKernel` on click (`toolbar/widget.tsx:155`), it does not open a menu - the menu
 # the tap used to open still lives on the bottom bar's `⋮`, which is where "Shut Down Kernel" is
-# asked from below. P8g's own flow drives the picking; this one only proves the dialog came up.
+# asked from below. kernel-picker-tablet.yaml drives the picking; this one only proves the dialog came up.
 - tapOn: "Kernel Python 3: Idle"
 - assertVisible: "Select Kernel"
 - takeScreenshot: 05-the-indicator-opens-the-picker

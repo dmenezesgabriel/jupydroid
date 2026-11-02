@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8d: the multi-document model. Two notebooks open at once keep two live kernel sessions - the
+# The multi-document model. Two notebooks open at once keep two live kernel sessions - the
 # thing the single-detail stack made impossible. The driver counts `kernel.session.opened` lines
 # with distinct session ids in the promoted logcat; this flow is the on-screen half.
 #
@@ -24,9 +24,9 @@ appId: com.jupydroid.app
     index: 0
 - extendedWaitUntil:
     visible:
-      # The kernel's answer, not the cell's source: `print('p8d-alpha')` puts the same text
+      # The kernel's answer, not the cell's source: `print('document-alpha')` puts the same text
       # in the editor field, so the wait is scoped to the output it produced.
-      text: "p8d-alpha"
+      text: "document-alpha"
       childOf: {text: "Cell output"}
     timeout: 120000
 - takeScreenshot: 01-first-ran
@@ -47,17 +47,17 @@ appId: com.jupydroid.app
     index: 0
 - extendedWaitUntil:
     visible:
-      text: "p8d-beta"
+      text: "document-beta"
       childOf: {text: "Cell output"}
     timeout: 120000
 - takeScreenshot: 02-second-ran
 
 # Reveal: tapping the first document again brings it forward with its *output already there* -
-# a fresh entry would show an unrun cell, so the surviving `p8d-alpha` is the whole assertion.
+# a fresh entry would show an unrun cell, so the surviving `document-alpha` is the whole assertion.
 - tapOn: "multi-document-first.ipynb"
 - extendedWaitUntil:
     visible:
-      text: "p8d-alpha"
+      text: "document-alpha"
       childOf: {text: "Cell output"}
     timeout: 30000
 - takeScreenshot: 03-first-revealed

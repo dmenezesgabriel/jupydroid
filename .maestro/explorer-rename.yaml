@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# X2f: a row's own menu renames the thing it names, through the real UI.
+# A row's own menu renames the thing it names, through the real UI.
 #
 # The reference renames from the row and joins the typed name onto the directory being browsed
 # (`listing.ts:_doRename`); ours is a long press for the menu and a dialog for the name, because
@@ -27,7 +27,7 @@ appId: com.jupydroid.app
 
 # The dialog opens with the stem selected, so typing replaces `notes` and leaves `.txt` alone -
 # `setSelectionRange(0, value.length - ext.length)` (`docmanager/src/dialogs.ts:271`). No tap into
-# the field: X2b's rename flows learned that a tap collapses that selection and the suffix
+# the field: explorer-rename-open-document.yaml learned that a tap collapses that selection and the suffix
 # survives twice over as `notes.txtxt`.
 - tapOn: "Rename"
 - extendedWaitUntil:

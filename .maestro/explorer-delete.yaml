@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# X2g: the row menu deletes, and asks first.
+# The row menu deletes, and asks first.
 #
 # `DirListing.delete` (`listing.ts:451-500`) puts the question in front of the deletion, focuses
 # Cancel "to protect from accidental deletion", and says **permanently** when there is no trash to

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-002 demo, steps 2-4: a cold start lands on the Spaces home with base alone and protected, a
+# A cold start lands on the Spaces home with base alone and protected, a
 # Space is created by name, and a blank name cannot be created. Runs no cell - the acts write
 # config.json, not a kernel. Landscape on the tablet; `scripts/manage-spaces-driver.sh`
 # rotates and checks the disk.

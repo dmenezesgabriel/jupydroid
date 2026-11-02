@@ -24,7 +24,7 @@ appId: com.jupydroid.app
     timeout: 15000
 - tapOn:
     id: "terminal-input"
-- inputText: "sh jd046-importtime-probe.sh; cat jd046-importtime.txt"
+- inputText: "sh acp-importtime-probe.sh; cat acp-importtime.txt"
 - pressKey: Enter
 - hideKeyboard
 - takeScreenshot: 01-probe-started

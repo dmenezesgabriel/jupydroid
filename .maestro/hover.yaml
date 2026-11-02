@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P5e-3: "Symbol info" asks `textDocument/hover` at the caret's virtual position and draws the
+# "Symbol info" asks `textDocument/hover` at the caret's virtual position and draws the
 # markdown it answers.
 #
 # The affordance is a cell-menu row, not a long-press: a long press fights text selection, and

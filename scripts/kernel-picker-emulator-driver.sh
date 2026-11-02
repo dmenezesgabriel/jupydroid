@@ -15,6 +15,6 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/kernel-picker-emulator.ipynb" "P8g Emulator"
+seed_notebook "$ROOT/.maestro/fixtures/kernel-picker-emulator.ipynb" "Kernel Picker Emulator"
 run_flow "$ROOT/.maestro/kernel-picker-emulator.yaml" \
   "$ROOT/evidence/kernel-picker-tablet/emulator/$(window_width_dp)dp"

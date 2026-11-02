@@ -6,7 +6,7 @@ appId: com.jupydroid.app
 #
 # An open document with no unsaved work re-reads its file when something else writes it, and one
 # with unsaved work does not (vscode@3f3380c `textFileEditorModelManager.ts` `onDidFilesChange`).
-# The first part is the T1 flow as it stands: a cell rewrites both open documents, the clean ones
+# The first part is document-follows-file.yaml as it stands: a cell rewrites both open documents, the clean ones
 # follow with no tap, and a typed edit survives the second write. Then the app's own save: with
 # autosave on, the debounce writes notes.py, inotify reports that save like anyone's, and the tab
 # must not re-read it - a re-read would move the caret, so the next letter typed lands elsewhere.

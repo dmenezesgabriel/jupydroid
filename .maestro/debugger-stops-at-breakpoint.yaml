@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P6a-7b's own gate, the debugger's first behaviour-visible flow: a breakpoint armed on a cell's
+# The debugger's first behaviour-visible flow: a breakpoint armed on a cell's
 # second line pauses a real kernel before that line runs. `x = 41` runs; `print(x + 1)` does not,
-# because nothing in this app sends `continue` yet - that is P6a-9's own job, so the run is left
+# because nothing in this app sends `continue` yet - that is debugger-step-continue.yaml's job, so the run is left
 # genuinely, permanently paused rather than resumed. Seeded by
 # scripts/debugger-stop-driver.sh.
 #

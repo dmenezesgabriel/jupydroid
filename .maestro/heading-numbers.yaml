@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2h-5: `toc:display-numbering` and `toc:display-h1-numbering`.
+# `toc:display-numbering` and `toc:display-h1-numbering`.
 #
 # The claim the reference's own label makes is the one worth proving: *"Show heading number in the
 # **document**"* (`packages/toc-extension/src/index.ts:113`). The number goes on the notebook's

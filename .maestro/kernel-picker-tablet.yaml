@@ -1,15 +1,15 @@
 appId: com.jupydroid.app
 ---
-# P8g: kernel choice - `selectKernel` end to end against real kernels.
+# Kernel choice - `selectKernel` end to end against real kernels.
 #
 # TABLET ONLY (SM-X216B). The whole claim is that a *different* kernel answers after the pick:
-# `marker_echo` only exists because the p8g-echo kernelspec's `env` set it, and `shared_7` only
+# `marker_echo` only exists because the echo-kernel kernelspec's `env` set it, and `shared_7` only
 # exists because the session was re-bound to a kernel that already held the variable. The
 # emulator's FakeKernelGateway echoes source and shares nothing - every one of those assertions
 # would be a fiction there. The picker's own shape is `kernel-picker-emulator`'s, which runs
 # no cell.
 #
-# The second kernelspec is planted by the provider's own first cell: `p8g-echo`, same interpreter
+# The second kernelspec is planted by the provider's own first cell: `echo-kernel`, same interpreter
 # and launcher as `python3` (sys.executable is the Space's musl interpreter), one `env` marker
 # apart - a real `kernel.json` jupyter lists, not a fake in the app. It lands while the server is
 # up, which is the point: `KernelSpecManager.find_kernel_specs` re-walks `kernel_dirs` on every
@@ -18,8 +18,8 @@ appId: com.jupydroid.app
 #
 # Three proofs in one pass, in the reference's own terms:
 #   * `{"id": <running>}`   - "Connect to Existing python Kernel" PATCHes the session onto the
-#     provider's kernel, and `p8g_shared` is already there when it arrives.
-#   * `{"name": "p8g-echo"}` - "Start python Kernel" swaps the interpreter, and `_updateSpec`
+#     provider's kernel, and `provider_shared` is already there when it arrives.
+#   * `{"name": "echo-kernel"}` - "Start python Kernel" swaps the interpreter, and `_updateSpec`
 #     writes it to `metadata.kernelspec`.
 #   * reopen                - the persisted name seeds the next kernel, which answers `echo`.
 - launchApp
@@ -30,10 +30,10 @@ appId: com.jupydroid.app
 # ---- the provider's kernel comes up holding a variable ----
 - scrollUntilVisible:
     element:
-      text: "P8g Provider.ipynb"
+      text: "Kernel Picker Provider.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "P8g Provider.ipynb"
+- tapOn: "Kernel Picker Provider.ipynb"
 # The plant cell fills the first screen; the second cell's source is below the fold, so the
 # "notebook opened" wait names this one's own text.
 - extendedWaitUntil:
@@ -62,14 +62,14 @@ appId: com.jupydroid.app
 # ---- the consumer starts on the kernel its metadata names ----
 - scrollUntilVisible:
     element:
-      text: "P8g Consumer.ipynb"
+      text: "Kernel Picker Consumer.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "P8g Consumer.ipynb"
+- tapOn: "Kernel Picker Consumer.ipynb"
 - extendedWaitUntil:
     # matches-source: waits for the cell's *source* to render - the "notebook opened" wait, not
-    # an output. P8G_KERNEL is also a literal in the provider's plant-cell source.
-    visible: ".*P8G_KERNEL.*"
+    # an output. PICKER_KERNEL is also a literal in the provider's plant-cell source.
+    visible: ".*PICKER_KERNEL.*"
     timeout: 30000
 # Lazily connected, as always: nothing has asked for a kernel yet.
 - assertVisible: "No Kernel"
@@ -90,12 +90,12 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Select Kernel"
     timeout: 10000
-- assertVisible: "Select kernel for: \"P8g Consumer.ipynb\""
+- assertVisible: "Select kernel for: \"Kernel Picker Consumer.ipynb\""
 - assertVisible: "Start python Kernel"
 # Asserts the *picker row* the planted kernelspec produced - the same four words sit in the
 # provider's plant-cell source, which the dialog covers anyway.
 # matches-source: the dialog row, not a cell output.
-- assertVisible: "P8g Echo Python"
+- assertVisible: "Echo Python"
 - assertVisible: "Use No Kernel"
 - assertVisible: "Start Kernel"
 # The picker's LazyColumn is bounded inside the dialog's text slot, so the deep groups are
@@ -112,13 +112,13 @@ appId: com.jupydroid.app
 # `(<id>)` suffix needs a trailing wildcard; `\\.` pins the literal dot.
 - scrollUntilVisible:
     element:
-      text: "P8g Provider\\.ipynb.*"
+      text: "Kernel Picker Provider\\.ipynb.*"
     direction: DOWN
     timeout: 20000
 - takeScreenshot: 03-picker-groups
 
 # ---- `{"id": ...}`: attach to the provider's running kernel ----
-- tapOn: "P8g Provider\\.ipynb.*"
+- tapOn: "Kernel Picker Provider\\.ipynb.*"
 - tapOn: "^Select$"
 - extendedWaitUntil:
     visible: "Kernel Python 3: Idle"
@@ -129,16 +129,16 @@ appId: com.jupydroid.app
     timeout: 120000
 - takeScreenshot: 04-attached-to-provider-kernel
 
-# ---- `{"name": "p8g-echo"}`: swap the interpreter ----
+# ---- `{"name": "echo-kernel"}`: swap the interpreter ----
 - tapOn: "Kernel Python 3: Idle"
 - extendedWaitUntil:
     visible: "Select Kernel"
     timeout: 10000
-- tapOn: "P8g Echo Python"
+- tapOn: "Echo Python"
 - tapOn: "^Select$"
 # `_isChangingKernel` reads 'starting' while the PATCH is out (`sessioncontext.tsx:623-625`).
 - extendedWaitUntil:
-    visible: "Kernel P8g Echo Python: Idle"
+    visible: "Kernel Echo Python: Idle"
     timeout: 60000
 - takeScreenshot: 05-bound-to-echo
 - tapOn: "Run all cells"
@@ -154,13 +154,13 @@ appId: com.jupydroid.app
 - back
 - scrollUntilVisible:
     element:
-      text: "P8g Consumer.ipynb"
+      text: "Kernel Picker Consumer.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "P8g Consumer.ipynb"
+- tapOn: "Kernel Picker Consumer.ipynb"
 - extendedWaitUntil:
     # matches-source: same as above - the open wait reads the cell's source.
-    visible: ".*P8G_KERNEL.*"
+    visible: ".*PICKER_KERNEL.*"
     timeout: 30000
 - tapOn: "Run all cells"
 - extendedWaitUntil:
@@ -168,13 +168,13 @@ appId: com.jupydroid.app
       text: "marker_echo"
       childOf: {text: "Cell output"}
     timeout: 120000
-- assertVisible: "Kernel P8g Echo Python: Idle"
+- assertVisible: "Kernel Echo Python: Idle"
 # A fresh kernel, not the provider's: the variable is gone again.
 - assertVisible: "shared_unset"
 - takeScreenshot: 07-reopened-honours-persisted-spec
 
 # ---- `null`: "No Kernel" is the pick that ends the session ----
-- tapOn: "Kernel P8g Echo Python: Idle"
+- tapOn: "Kernel Echo Python: Idle"
 - extendedWaitUntil:
     visible: "Select Kernel"
     timeout: 10000

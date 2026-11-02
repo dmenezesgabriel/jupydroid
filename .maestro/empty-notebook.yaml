@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Audit A2: a notebook with no cells used to show "No cells yet" and offer no way to add one.
+# A notebook with no cells used to show "No cells yet" and offer no way to add one.
 # The fixture has no `cells` key at all - which is exactly what createNotebook writes, and what
 # an import leaves behind. Seeded by scripts/empty-notebook-driver.sh.
 - launchApp
@@ -17,7 +17,7 @@ appId: com.jupydroid.app
     direction: DOWN
     timeout: 20000
 - tapOn: "Empty Notebook.ipynb"
-# `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
+# `[ ]` rather than the word "code": a code cell's kind label is Jupyter's own
 # bracket, where `[ ]` is "never run".
 - extendedWaitUntil:
     visible: "\\[ \\]:"
@@ -31,15 +31,15 @@ appId: com.jupydroid.app
 - tapOn: "Cell menu Insert code below"
 - takeScreenshot: 02-and-the-menu-works-from-it
 # Now the other route in: a notebook created from the browser's New menu, which is where Home's
-# FAB items went in X2h.
+# FAB items went when the browser replaced Home.
 - back
 - tapOn: "New"
 - extendedWaitUntil:
     visible: "New notebook"
     timeout: 5000
 - tapOn: "New notebook"
-# No restart. This flow used to stop and relaunch here because audit A3 was open and a new
-# notebook did not reach Recents until the list was rebuilt; A3 was fixed in e517e4a, and
+# No restart. This flow used to stop and relaunch here because a new
+# notebook did not reach Recents until the list was rebuilt; that was fixed in e517e4a, and
 # create-shows-up proves the row arrives on its own. The relaunch also had no settle, so it
 # raced the disk scan - a workaround that had outlived its reason and could only misfire.
 # `Untitled.ipynb` is the server's name for a new notebook, and waiting on it means the row is
@@ -48,7 +48,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Untitled.ipynb"
     timeout: 15000
-# The row arriving is not the list holding still: A3's fix scrolls Recents to a newly-topmost
+# The row arriving is not the list holding still: that fix scrolls Recents to a newly-topmost
 # notebook, and a tap dispatched mid-animation lands where the row was rather than where it is.
 # Seen failing exactly here once in thirty flows, and green on the retry - the settle after a
 # launch has an in-app twin, needed after anything that re-orders the list.
@@ -57,7 +57,7 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Untitled.ipynb"
     index: 0
-# `[ ]` rather than the word "code": U4 replaced a code cell's kind label with Jupyter's own
+# `[ ]` rather than the word "code": a code cell's kind label is Jupyter's own
 # bracket, where `[ ]` is "never run".
 - extendedWaitUntil:
     visible: "\\[ \\]:"

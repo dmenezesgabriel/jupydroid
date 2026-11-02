@@ -23,19 +23,19 @@ mapfile -t DEVICE_ADB < <(device_adb)
 require_installed_app
 # The workspace starts empty, so the profiles are this run's and no earlier run's.
 reset_notebooks
-seed_file "$ROOT/.maestro/fixtures/importtime-probe.sh" "jd046-importtime-probe.sh"
+seed_file "$ROOT/.maestro/fixtures/importtime-probe.sh" "acp-importtime-probe.sh"
 
 run_flow "$ROOT/.maestro/importtime.yaml" "$EVIDENCE" || exit 1
 finished=0
-wait_for_workspace_text jd046-importtime.txt probe-done 600 || finished=$?
+wait_for_workspace_text acp-importtime.txt probe-done 600 || finished=$?
 "${DEVICE_ADB[@]}" exec-out screencap -p >"$EVIDENCE/02-probe-answered.png"
 [ "$finished" = 0 ] || exit 1
 
-for name in jd046-importtime jd046-importtime-1 jd046-importtime-2 jd046-importtime-3; do
+for name in acp-importtime acp-importtime-1 acp-importtime-2 acp-importtime-3; do
   "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/$name.txt\"" | tr -d '\r' >"$EVIDENCE/$name.txt"
 done
 for run in 1 2 3; do
-  python3 -I "$ROOT/scripts/read_import_profile.py" "$EVIDENCE/jd046-importtime-$run.txt" \
+  python3 -I "$ROOT/scripts/read_import_profile.py" "$EVIDENCE/acp-importtime-$run.txt" \
     jupyter_ai_acp_client >"$EVIDENCE/by-package-$run.txt"
   head -1 "$EVIDENCE/by-package-$run.txt"
 done

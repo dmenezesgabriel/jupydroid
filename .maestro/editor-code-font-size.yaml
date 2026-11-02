@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-4: the Settings screen's Code font size stepper resizes a real notebook cell, and the
+# The Settings screen's Code font size stepper resizes a real notebook cell, and the
 # choice survives a relaunch. Nothing below runs a cell, so the emulator - and its
 # FakeKernelGateway - is enough; this flow is sharded across both devices the same way
 # settings-screen.yaml and theme-override.yaml are, since a notebook cell is drawn

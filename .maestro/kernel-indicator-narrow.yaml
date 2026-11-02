@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# P2w-2's layout half: what the kernel indicator keeps when the row cannot afford its name.
+# The layout half of kernel-indicator-states.yaml: what the kernel indicator keeps when the row cannot afford its name.
 #
 # NARROW WINDOW (<840dp): the emulator at 320dp. Free width in this action row is **72dp** there
-# (`evidence/p2o-3-two-pane-threshold/320/hierarchy.xml`) and a status glyph beside "Python 3"
+# (read off the uiautomator hierarchy) and a status glyph beside "Python 3"
 # wants about 110dp, so 320dp is the only width that decides this - a 1280dp tablet has 567dp free
 # and would draw the name whatever the rule said.
 #

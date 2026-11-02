@@ -55,8 +55,8 @@ read_ws() {
   "$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell \
     "run-as $APP sh -c 'test -f \"$WS/$1\" && cat \"$WS/$1\" || echo \"<absent>\"'" | tr -d '\r'
 }
-version="$(read_ws p5b-version.txt)"
-init="$(read_ws p5b-init.out)"
+version="$(read_ws pylsp-version.txt)"
+init="$(read_ws pylsp-init.out)"
 {
   echo "pylsp --version:"; echo "$version"; echo
   echo "initialize over stdio:"; echo "$init"

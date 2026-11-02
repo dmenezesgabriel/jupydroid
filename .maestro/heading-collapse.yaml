@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2f-1: a heading hides the section under it, and the fold survives the app being killed.
+# A heading hides the section under it, and the fold survives the app being killed.
 #
 # A heading owns a **section**, not a cell: `setHeadingCollapse` walks forward from the heading
 # until it meets one of equal or higher level (`packages/notebook/src/actions.tsx:2374-2405`). So

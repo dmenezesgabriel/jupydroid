@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P5e-1: the gutter mark's tap answers what VS Code's `markerHoverParticipant` answers on hover -
+# The gutter mark's tap answers what VS Code's `markerHoverParticipant` answers on hover -
 # the line's findings in a floating card.
 #
 # The mark itself is canvas, so the flow taps its *pixel* (the square `02` shows at the glyph
@@ -26,7 +26,7 @@ appId: com.jupydroid.app
     timeout: 180000
 - takeScreenshot: 01-kernel-session-open
 
-# Both marks published - the gate the rest of the flow rides on (same as P5d-2b).
+# Both marks published - the gate the rest of the flow rides on (same as diagnostics.yaml).
 - extendedWaitUntil:
     visible: ".*diagnostic on line 1: error, undefined name 'never_defined_lsp_name'.*"
     timeout: 60000

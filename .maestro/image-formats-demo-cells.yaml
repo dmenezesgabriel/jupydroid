@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded. Cell 1 displays a 96x8 strip in each
+# The demo, typed into a new notebook rather than seeded. Cell 1 displays a 96x8 strip in each
 # of image/jpeg, image/gif, image/webp and image/bmp, each alone with raw=True, then prints `6 * 7`.
 # Cell 2 displays a 96 px PNG with width=100, and cell 3 a 96 px PNG with no width, kept as `img3`
 # for the Console in part 2. Run by scripts/image-formats-demo-driver.sh.

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2j-4, the half that is a layout question: does the export row fit, and does its picker?
+# The half that is a layout question: does the export row fit, and does its picker?
 #
 # **NARROW WINDOW** (<840dp). The label is the reference's own - *"Save and Export Notebook As…"* -
 # and it is the longest row in this menu by some way; *"Reveal.js Slides"* is the longest in the

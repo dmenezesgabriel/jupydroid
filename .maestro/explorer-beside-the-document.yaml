@@ -1,11 +1,11 @@
 appId: com.jupydroid.app
 ---
-# X2b, fixed: the file browser is one pane on its own; when it opens a document, Explorer pairs
+# The file browser is one pane on its own; when it opens a document, Explorer pairs
 # with it (Explorer|Editor, Explorer|FileEditor) - the split JupyterLab makes between the
 # filebrowser and the dock. Which pane is drawn is then double-checked by the driver FROM THE
 # APP'S OWN TREE (see explorer-beside-the-document-driver.sh).
 #
-# **Since X2h the browser has no back arrow in any state**, because it is the first screen: what
+# **The browser has no back arrow in any state**, because it is the first screen: what
 # used to tell "one pane" from "list pane" was that arrow, and the crumb now has to do it alone.
 # "Workspace" is only ever the browser's, so it appearing beside a document's text *is* the pair,
 # and the driver's tree check is what says nothing else is drawn.

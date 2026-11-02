@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6a-19's own gate, part 2 (the row's own file name): once stopped, the control bar's own toggle
+# Part 2 of the one-pane toggle gate: once stopped, the control bar's own toggle
 # opens the call stack and variables **without hiding the control bar it came from** - the non-modal
 # sheet's whole point, proved by both being on screen in the same screenshot. Continues from
 # debugger-variables-toggle-one-pane.yaml's own stop, at line 2 of the same fixture.

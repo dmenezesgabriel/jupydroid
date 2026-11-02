@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-002 demo, step 5: space-1 is renamed from Thesis to Dissertation, and keeps its id. Runs no
+# Renaming space-1 from Thesis to Dissertation keeps its id. Runs no
 # cell. `scripts/manage-spaces-driver.sh` checks that config.json's name changed while the
 # directory stayed `space-1` - a row on screen does not prove what the file holds.
 - launchApp

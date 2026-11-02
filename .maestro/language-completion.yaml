@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P5c: the completion popup is answered by the Space's language server (`pylsp` over stdio), not by
+# The completion popup is answered by the Space's language server (`pylsp` over stdio), not by
 # the kernel's `complete_request` - same popup, better source.
 #
 # The first cell is RUN first, and that is not scene-setting: completion deliberately never
@@ -16,8 +16,8 @@ appId: com.jupydroid.app
 # neither reliably.
 #
 # `os.path.jo` and not `pri`: `join` is the answer only a server that parsed `import os` gives -
-# a cell-local, static analysis result, which is the point of the swap (P5a measured the same
-# `initialize`-shaped exchange against the shipped `pylsp` directly).
+# a cell-local, static analysis result, which is the point of the swap (the same
+# `initialize`-shaped exchange was measured against the shipped `pylsp` directly).
 #
 # TABLET ONLY, for the same reason `code-size.yaml` states: on the x86_64 emulator
 # `MainActivity` falls back to `FakeKernelGateway`, so a run there proves nothing about the

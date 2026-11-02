@@ -4,7 +4,7 @@ appId: com.jupydroid.app
 # assertion is only true on a device that happens to have no notebooks. It was green for months on
 # that accident and went red the first time it ran on the tablet, which by then had twenty-seven.
 #
-# **The empty state is the browser's since X2h.** Home had a "No recent notebooks yet" message;
+# **The empty state is the browser's.** Home had a "No recent notebooks yet" message;
 # an empty workspace is an empty listing under a breadcrumb, which is what `DirListing` shows
 # too - the reference has no empty-state copy either. So what is asserted is the surface being
 # there with nothing on it, which is the same claim without inventing a message.

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-9c: the `•` a dirty document's title carries, on both title bars - the file editor's own bar
+# The `•` a dirty document's title carries, on both title bars - the file editor's own bar
 # and the notebook's title strip. `jp-mod-dirty` marks the widget in the reference and the tab
 # draws the dot (`ui-components/style/icons.css:268-278`); neither of this app's bars is a tab
 # strip, so the marker is the `•` beside the title, announced as "Unsaved changes".

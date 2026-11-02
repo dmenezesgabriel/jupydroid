@@ -5,7 +5,7 @@ appId: com.jupydroid.app
 # draw that echo, and the next save must write it back as `stdin`. It used to be dropped on read.
 #
 # No cell is run: the echo is seeded into the fixture, so reading and writing it are the only
-# things under test. The save is forced by a paste below, AUD-002's shape. The driver reads the
+# things under test. The save is forced by a paste below. The driver reads the
 # file the save wrote. Seeded by scripts/input-prompt-stdin-echo-round-trips-driver.sh.
 - launchApp
 - waitForAnimationToEnd:

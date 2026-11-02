@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
-# P6a-11's own gate: Interrupt has zero effect on a kernel paused under the debugger (confirmed
-# live on the tablet during P6a-10's own investigation - eleven repeated interrupts over two
+# Interrupt has zero effect on a kernel paused under the debugger (confirmed
+# live on the tablet while investigating debugger-reattach-after-clear.yaml - eleven repeated interrupts over two
 # minutes never freed a genuinely stopped session). Terminate is the real escape hatch this row
 # adds - a kernel restart, wired through DebuggerControlBar's fifth button - and this flow drives
 # the exact scenario that used to take a manual kernel kill to get out of.

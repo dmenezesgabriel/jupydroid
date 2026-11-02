@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2j-4: `notebook:export-to-format`, end to end - the picker, the conversion, and the file.
+# `notebook:export-to-format`, end to end - the picker, the conversion, and the file.
 #
 # **The picker is the slow step and that is by design.** Nothing asks the Space anything until this
 # row is chosen, because the Space is started on demand and a menu that booted a runtime to
@@ -38,7 +38,7 @@ appId: com.jupydroid.app
     timeout: 180000
 - takeScreenshot: 03-the-formats-that-convert
 # The four the tablet measured, and none of the ten that cannot: a row that can only fail is a
-# control that lies (`evidence/export-formats/`).
+# control that lies.
 - assertVisible: "Markdown"
 - assertVisible: "Executable Script"
 - assertVisible: "Reveal.js Slides"

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8g, the picker's shape where no Space can run: the dialog opens from the indicator's tap and
+# The picker's shape where no Space can run: the dialog opens from the indicator's tap and
 # lists what the catalogue has. **No cell is run**, deliberately - on x86_64 the fake gateway
 # echoes source, so a Run's assertions would be green against a kernel that does not exist. The
 # real proof is kernel-picker-tablet.yaml on the tablet.
@@ -16,10 +16,10 @@ appId: com.jupydroid.app
 - runFlow: open-base-space.yaml
 - scrollUntilVisible:
     element:
-      text: "P8g Emulator.ipynb"
+      text: "Kernel Picker Emulator.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "P8g Emulator.ipynb"
+- tapOn: "Kernel Picker Emulator.ipynb"
 - extendedWaitUntil:
     visible: ".*print.*"
     timeout: 30000
@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Select Kernel"
     timeout: 10000
-- assertVisible: "Select kernel for: \"P8g Emulator.ipynb\""
+- assertVisible: "Select kernel for: \"Kernel Picker Emulator.ipynb\""
 # The persisted `python3` resolves to language `python`, so the catalogue splits the language
 # groups out - the reference's own ordering, not a flat list.
 - assertVisible: "Start python Kernel"

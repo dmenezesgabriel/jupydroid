@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2i-5: Match Case, Match Whole Word and Use Regular Expression - the three toggles the reference
+# Match Case, Match Whole Word and Use Regular Expression - the three toggles the reference
 # puts on its search box (`packages/documentsearch/src/searchview.tsx:185-210`), here behind the
 # bar's overflow because the bar already carries five targets at 360dp.
 #

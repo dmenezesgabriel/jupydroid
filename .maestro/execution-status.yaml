@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U4: a cell says where its run got to, not just whether it is spinning.
+# A cell says where its run got to, not just whether it is spinning.
 #
 # TABLET ONLY - this runs cells. On the x86_64 emulator MainActivity falls back to
 # FakeKernelGateway, which echoes the source back as stdout: the second cell would not raise, the

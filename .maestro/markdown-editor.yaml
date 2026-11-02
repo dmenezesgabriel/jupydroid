@@ -1,11 +1,11 @@
 appId: com.jupydroid.app
 ---
-# Audit A5: the markdown editor gets a line-number gutter (A5a) and highlighted source (A5b).
+# The markdown editor gets a line-number gutter and highlighted source.
 # Both are drawn, not laid out as text, so the screenshots are the gate - the assertions here
 # only get the app to the state worth photographing.
 #
 # Seeded by scripts/markdown-editor-driver.sh; until 2026-08-07 it had none and leaned on
-# whatever a1c's driver had left on the device.
+# whatever markdown-render-driver.sh had left on the device.
 - launchApp
 - runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
@@ -27,15 +27,15 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "(?s).*# Analysis.*"
     timeout: 10000
-# Same reason as a4: the editor takes the caret, so the keyboard covers half the screen and the
+# Same reason as markdown-contrast.yaml: the editor takes the caret, so the keyboard covers half the screen and the
 # cell has scrolled past its first lines. The gutter and the highlighting are what this
 # screenshot is for, so put the keyboard away and come back to the top of the cell.
 - hideKeyboard
 # **Back to the top of the document by swiping, not by scrolling to an element.**
-# `scrollUntilVisible` needs something that is *off* screen to aim at, and since P2v-2 drew the
-# heading's caret rendered-only (ADR-0057) the only node left on an open markdown cell is its field
+# `scrollUntilVisible` needs something that is *off* screen to aim at, and now that the
+# heading's caret is drawn rendered-only (ADR-0057) the only node left on an open markdown cell is its field
 # - which carries the whole source as one node, so it is already partly visible and the scroll is a
-# no-op that leaves the cell's first line above the viewport. Before P2v-2 the anchor was that
+# no-op that leaves the cell's first line above the viewport. Before that the anchor was that
 # caret, and before that a kind label this app invented, the reference giving markdown no prompt at
 # all (`packages/cells/src/widget.ts:1693-1700`).
 #

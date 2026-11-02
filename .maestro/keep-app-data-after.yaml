@@ -42,7 +42,7 @@ appId: com.jupydroid.app
     timeout: 15000
 - tapOn:
     id: "terminal-input"
-- inputText: "opencode --version > jd058-opencode-version.txt 2>&1; echo version-rc=$? >> jd058-opencode-version.txt"
+- inputText: "opencode --version > opencode-version.txt 2>&1; echo version-rc=$? >> opencode-version.txt"
 - pressKey: Enter
 - hideKeyboard
 - takeScreenshot: 09-opencode-asked

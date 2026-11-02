@@ -29,18 +29,18 @@ record_persisted_kernelspec() {
   local adb
   mapfile -t adb < <(device_adb)
   mkdir -p "$OUT"
-  "${adb[@]}" shell "run-as $APP cat '$NOTEBOOK_DIR/P8g Consumer.ipynb'" >"$OUT/persisted-consumer.ipynb"
+  "${adb[@]}" shell "run-as $APP cat '$NOTEBOOK_DIR/Kernel Picker Consumer.ipynb'" >"$OUT/persisted-consumer.ipynb"
   python3 - <<'PY' "$OUT/persisted-consumer.ipynb" >"$OUT/persisted-kernelspec.txt"
 import json, sys
 nb = json.load(open(sys.argv[1]))
 print(json.dumps(nb["metadata"].get("kernelspec"), indent=2))
 PY
-  grep -q '"name": "p8g-echo"' "$OUT/persisted-kernelspec.txt" ||
-    { echo "persisted kernelspec is not p8g-echo:"; cat "$OUT/persisted-kernelspec.txt"; return 1; }
+  grep -q '"name": "echo-kernel"' "$OUT/persisted-kernelspec.txt" ||
+    { echo "persisted kernelspec is not echo-kernel:"; cat "$OUT/persisted-kernelspec.txt"; return 1; }
 }
 
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/kernel-picker-provider.ipynb" "P8g Provider"
-seed_notebook "$ROOT/.maestro/fixtures/kernel-picker-consumer.ipynb" "P8g Consumer"
+seed_notebook "$ROOT/.maestro/fixtures/kernel-picker-provider.ipynb" "Kernel Picker Provider"
+seed_notebook "$ROOT/.maestro/fixtures/kernel-picker-consumer.ipynb" "Kernel Picker Consumer"
 run_flow "$ROOT/.maestro/kernel-picker-tablet.yaml" "$OUT"
 record_persisted_kernelspec

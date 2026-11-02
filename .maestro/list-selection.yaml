@@ -1,15 +1,15 @@
 appId: com.jupydroid.app
 ---
-# P7a-1b: the explorer's row for the document that is open, which is `list.inactiveSelectionBackground`.
+# The explorer's row for the document that is open, which is `list.inactiveSelectionBackground`.
 #
-# **What this flow is for is a colour, and no assertion can read one** - the lesson P7a-1's own
-# driver records, and the reason that step's defect survived P2u-1 with every flow green. So the
+# **What this flow is for is a colour, and no assertion can read one** - the lesson this flow's
+# driver records, and the reason the defect survived with every flow green. So the
 # deliverable is the frame plus the hierarchy the driver dumps after it, and
 # `scripts/check_node_fill.py` is what turns the pair into something that can fail.
 #
 # The claim: 2026 Light states this id **translucent** - `#DADADA99` - and the ramp flattened it to
 # an opaque `#DADADA`, because the row was drawn from `secondaryContainer`, a role that also served
-# the search toggles and two contextual bars. P7a-1b gives the row the side bar's own field, so it
+# the search toggles and two contextual bars. The row takes the side bar's own field, so it
 # paints `#E7E7E8` over `sideBar.background` the way the reference does.
 #
 # **WIDE WINDOW (>= 840dp)**: a row is marked only where there is a pane beside it to be marked

@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P6a-9's own gate, part 3 (the row's own file name): a real, paused kernel actually moves again -
+# Part 3 of the step-and-continue gate: a real, paused kernel actually moves again -
 # the reverse of debugger-stops-at-breakpoint.yaml's own assertion ("nothing sends
-# continue yet - that is P6a-9's own job"). Continues from debugger-stopped-after-step-settled.yaml,
+# continue yet - that is this flow's job"). Continues from debugger-stopped-after-step-settled.yaml,
 # stopped at line 2 of the three-line fixture (`x = 41` / `y = x + 1` / `print(y)`).
 #
 # Text-based waits throughout (`extendedWaitUntil: visible:`) rather than a shell `sleep` between

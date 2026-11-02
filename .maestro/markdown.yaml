@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Audit finding A1: markdown cells were read-only, so an existing one could not be edited and
+# Markdown cells were read-only, so an existing one could not be edited and
 # an inserted one was a bare header with nothing under it. Seeded by scripts/markdown-driver.sh.
 - launchApp
 - runFlow: open-base-space.yaml

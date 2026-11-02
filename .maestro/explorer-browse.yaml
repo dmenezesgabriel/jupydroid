@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# X2a: the workspace as files. Recents lists notebooks wherever they are and cannot show a folder
+# The workspace as files. Recents lists notebooks wherever they are and cannot show a folder
 # at all, so everything below - the folder, the notebook inside it, the data file beside it - is
 # invisible to every other flow in the suite.
 - launchApp

@@ -1,6 +1,6 @@
 appId: com.sec.android.app.myfiles
 ---
-# jd-023's open, shaped for a device that has chosen before: Samsung's select-then-confirm
+# Opening a notebook from My Files, shaped for a device that has chosen before: Samsung's select-then-confirm
 # resolver writes a preferred-activity record for the VIEW's MIME, and on this device the
 # octet-stream record already names JupyterDroid - no shell command clears it (measured:
 # `pm clear-package-preferred-activities`, `pm clear`, suspend, uninstall all leave it), so

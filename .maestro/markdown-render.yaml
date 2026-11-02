@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Audit A1c: markdown is drawn as Compose - no WebView, no HTML. Seeded by the driver.
+# Markdown is drawn as Compose - no WebView, no HTML. Seeded by the driver.
 - launchApp
 - runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
@@ -36,10 +36,10 @@ appId: com.jupydroid.app
 # keyboard away and come back up to the button, which is what a person does before pressing Run.
 - hideKeyboard
 # **Back to the top of the document by swiping, not by scrolling to an element.**
-# `scrollUntilVisible` needs something that is *off* screen to aim at, and since P2v-2 drew the
-# heading's caret rendered-only (ADR-0057) the only node left on an open markdown cell is its field
+# `scrollUntilVisible` needs something that is *off* screen to aim at, and now that the
+# heading's caret is drawn rendered-only (ADR-0057) the only node left on an open markdown cell is its field
 # - which carries the whole source as one node, so it is already partly visible and the scroll is a
-# no-op that leaves the cell's first line above the viewport. Before P2v-2 the anchor was that
+# no-op that leaves the cell's first line above the viewport. Before that the anchor was that
 # caret, and before that a kind label this app invented, the reference giving markdown no prompt at
 # all (`packages/cells/src/widget.ts:1693-1700`).
 #

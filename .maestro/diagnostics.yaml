@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P5d-2b: `publishDiagnostics` as gutter marks. The server pushes the publications unprompted once
+# `publishDiagnostics` as gutter marks. The server pushes the publications unprompted once
 # the document is synced; `NotebookDiagnostics` maps their ranges back through the virtual document
 # and the cell gutters draw a severity-coloured square - CodeMirror's lint-gutter job in the
 # reference.
@@ -9,7 +9,7 @@ appId: com.jupydroid.app
 # diagnostics for TalkBack (`diagnostic on line 1: error, ...`), which is also what a flow can
 # see - and then the same mark's *pixel* is checked in the screenshots by eye.
 #
-# The discriminating shape is the same one P5d-1's flow comments record: the marked name is
+# The discriminating shape is the same one virtual-document.yaml's comments record: the marked name is
 # never run, so the kernel's namespace cannot be where the diagnostic came from - only the
 # shared virtual document pyflakes linted knows it. And the last step re-types the cell to a
 # *different* undefined name: a mark naming it appears only if edits resync the document -

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Step 7.2 `text/html`: an output arrives as markup and is drawn as Compose, not shown as its
+# `text/html`: an output arrives as markup and is drawn as Compose, not shown as its
 # `text/plain` twin and not shown as its own tags. Seeded by the driver; needs a real kernel,
 # so this runs on the tablet.
 - launchApp
@@ -62,7 +62,7 @@ appId: com.jupydroid.app
 # Run All from the notebook bar rather than the second cell's own button.
 #
 # `index: 1` counted the `Run cell` buttons *rendered*, and how many of a notebook is rendered
-# is a function of the window: U7 gave 360dp of the tablet to the list pane, the first cell's
+# is a function of the window: once the list pane took 360dp of the tablet, the first cell's
 # source began to wrap, and the second cell fell below the fold - so index 1 stopped existing.
 # An index over a scrolling list was never addressing the cell it named; the bar is on screen
 # at every width and runs both, which is what this flow wants anyway.

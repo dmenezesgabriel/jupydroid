@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-002 demo, steps 8-9: after the driver kills the process, the home lists Base and Scratch
+# After the driver kills the process, the home lists Base and Scratch
 # from disk; only base opens, Open enters its workspace, and Back returns to the home. Runs no
 # cell. Landscape, so Back leaves from the lone launcher (`SpacesHome.kt`, `popWorkspaceEntry`).
 - launchApp

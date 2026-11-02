@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6a-9's own gate, part 1: arms a breakpoint on line 2 of a three-line cell and runs it - the
+# Part 1 of the step-and-continue gate: arms a breakpoint on line 2 of a three-line cell and runs it - the
 # same shape as debugger-stops-at-breakpoint.yaml, on a fixture of its own
 # (.maestro/fixtures/debugger-step.ipynb, `x = 41` / `y = x + 1` / `print(y)`) so stepping past the
 # stop has a line 3 to land on and Continue has something (`y` = 42) to finish printing. Seeded by

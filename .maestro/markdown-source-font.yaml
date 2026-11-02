@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2s: a markdown cell's *source* against a raw cell's, in one frame.
+# A markdown cell's *source* against a raw cell's, in one frame.
 #
 # Seeded by scripts/markdown-source-font-driver.sh; clearState would delete the fixture.
 #
@@ -40,12 +40,12 @@ appId: com.jupydroid.app
     timeout: 30000
 - assertNotVisible: "iiii mmmm WWWW _markdown_"
 - takeScreenshot: 01-markdown-rendered
-# A tap on the rendered cell opens its editor with the caret placed (audit A1c), which is what puts
+# A tap on the rendered cell opens its editor with the caret placed (see markdown-render.yaml), which is what puts
 # the *source* on screen rather than the prose rendered from it.
 - tapOn: "iiii mmmm WWWW markdown"
 - waitForAnimationToEnd:
     timeout: 3000
-# a5's reason, and the tablet is what proved it applies here: opening the editor takes the caret,
+# markdown-editor.yaml's reason, and the tablet is what proved it applies here: opening the editor takes the caret,
 # so the soft keyboard covers the cell under the one being edited and the raw cell is off screen.
 # The emulator hid this - `dev36` has a hardware keyboard, so nothing ever came up there.
 # Unrendering is a mode rather than a focus state, so putting the keyboard away leaves the source

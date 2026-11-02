@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6a-17's own gate: an ad hoc expression, typed while stopped, runs against the real kernel's own
+# An ad hoc expression, typed while stopped, runs against the real kernel's own
 # top frame and its real answer renders in the panel - not this app's own state echoing something
 # already on screen, since `x * 2` is not a value any variable row already shows.
 #

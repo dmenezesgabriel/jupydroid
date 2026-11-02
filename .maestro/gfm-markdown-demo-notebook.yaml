@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded. The first cell becomes markdown and
+# The demo, typed into a new notebook rather than seeded. The first cell becomes markdown and
 # holds a pipe table with a left, a centred and a right column, then a paragraph with struck text and
 # a bare URL; rendered, it draws a grid, struck text and a link and none of its own syntax. A code
 # cell below displays a second table through IPython's Markdown and prints `6 * 7`. Run by

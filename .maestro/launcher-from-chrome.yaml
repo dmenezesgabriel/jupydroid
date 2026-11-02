@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6d-3: the Launcher, reached the way the reference reaches it - the `+` JupyterLab keeps on its
+# The Launcher, reached the way the reference reaches it - the `+` JupyterLab keeps on its
 # tab strip, on this shell's navigation chrome (the rail at two panes, the bottom bar at one) -
 # and its cards launching the documents they name.
 #

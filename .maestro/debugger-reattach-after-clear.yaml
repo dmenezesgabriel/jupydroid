@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6a-10's own gate: debugpy keeps a debug session, and any breakpoint set through it, alive for
+# debugpy keeps a debug session, and any breakpoint set through it, alive for
 # the life of the **kernel process** - not this app's own session object. Before this fix,
 # RealKernelDebugger.attach() unconditionally re-sent `initialize`/`attach` on every run of a cell
 # that had ever carried a breakpoint, and debugpy rejects both once already done

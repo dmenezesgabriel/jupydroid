@@ -7,9 +7,9 @@
 # `-X importtime` attributes to jupyter_ai_acp_client only what it adds, as at server start. The
 # first run may read from a cold page cache, so there are three.
 #
-# Each run's stderr lands in jd046-importtime-<n>.txt beside this script, and jd046-importtime.txt
+# Each run's stderr lands in acp-importtime-<n>.txt beside this script, and acp-importtime.txt
 # ends in `probe-done`, so the driver can tell a finished probe from a hung one.
-OUT="$PWD/jd046-importtime.txt"
+OUT="$PWD/acp-importtime.txt"
 : >"$OUT"
 
 say() { echo "$*" >>"$OUT"; }
@@ -17,7 +17,7 @@ say() { echo "$*" >>"$OUT"; }
 say "python=$(python3 --version 2>&1)"
 for run in 1 2 3; do
   python3 -X importtime -c "import jupyter_server.serverapp; import jupyter_ai_acp_client" \
-    2>"$PWD/jd046-importtime-$run.txt"
+    2>"$PWD/acp-importtime-$run.txt"
   say "run-$run-rc=$?"
 done
 say "probe-done"

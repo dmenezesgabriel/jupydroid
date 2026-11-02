@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# X2d: the Files bar's New drop-down creates through the real UI. The reference's filebrowser
+# The Files bar's New drop-down creates through the real UI. The reference's filebrowser
 # toolbar has a New widget for exactly these three; this is the same menu adapted to a phone's
 # bar. Nothing below runs a cell, so the emulator - and its FakeKernelGateway - is enough; the
 # disk side of each creation is proven by the driver, not by what a screenshot shows.

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# X2c: a file that is not a notebook opens in the plain editor, and typing lands on disk via the
+# A file that is not a notebook opens in the plain editor, and typing lands on disk via the
 # debounced save. Seeded by scripts/file-editor-driver.sh.
 - launchApp
 - waitForAnimationToEnd:

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2j-2: bring `jupyter_server` up so the driver can ask nbconvert what it can actually convert.
+# Bring `jupyter_server` up so the driver can ask nbconvert what it can actually convert.
 #
 # The flow's whole job is the *side effect*. Nothing here is about export - there is no export in
 # the app yet - it opens the fixture and runs one cell, because a run is what starts the Space and
@@ -10,7 +10,7 @@ appId: com.jupydroid.app
 # `asciidoc`, `latex` and `rst` all route through `convert_pandoc`), a stored `image/png` output
 # (which makes `resources['outputs']` non-empty, so `respond_zip` answers with a zip instead of the
 # plain artifact) and a stored `text/html` one. nbformat keeps outputs in the file, so none of them
-# needs a kernel - the same reading that let P2h-6 be a width rule rather than an ABI one.
+# needs a kernel.
 #
 # TABLET ONLY: on the x86_64 emulator `MainActivity` falls back to `FakeKernelGateway` and no
 # server is started at all, so there would be nothing for the driver to ask.
@@ -33,7 +33,7 @@ appId: com.jupydroid.app
 # `print(3 ** 5)`, and it is the notebook's **first** cell for a layout reason rather than a
 # narrative one: with it last, its output landed under the kernel bar and the assertion failed
 # against a screen whose own `ran in 6.2 s` said the cell had run
-# (`evidence/export-formats/README.md`). First, the output is at the top of the viewport
+# (measured on the tablet). First, the output is at the top of the viewport
 # and no scroll is needed to see it.
 #
 # 243 is computed and appears in no cell's source, so `FakeKernelGateway`'s echo cannot produce

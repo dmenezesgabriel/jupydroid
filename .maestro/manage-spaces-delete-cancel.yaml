@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-002 demo, step 6 first half: delete asks first, naming the Space as "<name> (<id>)", and
+# First half of deleting a Space: delete asks first, naming the Space as "<name> (<id>)", and
 # Cancel keeps it. Runs no cell. `scripts/manage-spaces-driver.sh` checks that the
 # directory is still there afterwards.
 - launchApp

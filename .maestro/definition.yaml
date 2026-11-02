@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P5e-5: "Go to definition" asks `textDocument/definition` at the caret's virtual position and lands
+# "Go to definition" asks `textDocument/definition` at the caret's virtual position and lands
 # the caret where jedi says the name is defined - VS Code's `editor.action.goToDefinition`
 # (`_openReference` in `goToCommands.ts`).
 #

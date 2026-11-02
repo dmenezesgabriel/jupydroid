@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2f-4: a new heading takes the level of the section it is in, and "below" means the end of that
+# A new heading takes the level of the section it is in, and "below" means the end of that
 # section rather than the next cell.
 #
 # `insertSameLevelHeadingBelow` inserts at `findLowerEqualLevelHeadingBelow`

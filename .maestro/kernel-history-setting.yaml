@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2k-3: `accessKernelHistory`, the setting the two `notebook:access-*-history-entry` commands are
+# `accessKernelHistory`, the setting the two `notebook:access-*-history-entry` commands are
 # gated on - off until asked for, which is the reference's own default and its own instruction to
 # the user (`docs/source/user/notebook.md:191`).
 #

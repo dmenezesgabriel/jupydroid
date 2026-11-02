@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-002 demo, step 6 second half: a confirmed delete removes the row. Runs no cell.
+# Second half of deleting a Space: a confirmed delete removes the row. Runs no cell.
 # `scripts/manage-spaces-driver.sh` checks that `files/spaces/space-1` is gone.
 #
 # Cannot assert the progress bar: a delete on disk ends before Maestro can capture it. What sees

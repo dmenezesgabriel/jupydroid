@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded: input() prompts under the cell and
+# The demo, typed into a new notebook rather than seeded: input() prompts under the cell and
 # carries on with the answer, getpass() masks it, Stop closes an unanswered prompt, and a Console
 # entry prompts the same way (ADR-0082). Each prompt is ipykernel's own: FakeKernelGateway sends no
 # `input_request`, so no field would appear, and it would echo each source - which holds neither

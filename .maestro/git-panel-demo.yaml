@@ -3,7 +3,7 @@ appId: com.jupydroid.app
 # Landscape, two panes, on a fresh install with an emptied workspace. Driven by
 # scripts/git-panel-demo-driver.sh.
 #
-# The PRD's demo, in its order. The Source Control panel is the Git extension's (ADR-0104): it asks
+# The demo, in its order. The Source Control panel is the Git extension's (ADR-0104): it asks
 # jupyterlab-git's handler in base's `jupyter_server` for the status of the directory the explorer
 # shows. The repository is made in the Space's own terminal: `a.txt` is committed and then edited,
 # and `c.txt` is new and left alone.

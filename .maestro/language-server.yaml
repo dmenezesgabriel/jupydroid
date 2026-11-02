@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P5b: the build that now wires `StdioLanguageServer` into `AppContainer` still drives the
+# The build that now wires `StdioLanguageServer` into `AppContainer` still drives the
 # Space's language tooling end-to-end in a real terminal.
 #
-# The port itself has no user-visible surface yet - P5c is what the completion popup plugs
-# into - so the flow's honest claim is the one the wiring could have broken: `pylsp` still
+# The port itself has no user-visible surface yet - the completion popup
+# (language-completion.yaml) plugs into it - so the flow's honest claim is the one the wiring could have broken: `pylsp` still
 # answers by name and over stdio on the build carrying the adapter. The port's own session,
 # handshake to shutdown, is the driver's `am instrument` run of StdioLanguageServerDeviceTest,
 # and the `lsp.start`/`lsp.stop` stages it leaves in logcat are the lifecycle evidence.
@@ -34,11 +34,11 @@ appId: com.jupydroid.app
     timeout: 60000
 - tapOn:
     id: "terminal-input"
-- inputText: "pylsp --version > p5b-version.txt 2>&1"
+- inputText: "pylsp --version > pylsp-version.txt 2>&1"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 20000
-- inputText: "echo rc=$? >> p5b-version.txt"
+- inputText: "echo rc=$? >> pylsp-version.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 8000
@@ -46,11 +46,11 @@ appId: com.jupydroid.app
 
 # The transport the adapter speaks, typed as one pipeline: a `Content-Length`-framed
 # `initialize` gets a framed reply. `timeout` covers the pipe staying open after the answer.
-- inputText: "printf 'Content-Length: 107\\r\\n\\r\\n%s' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"processId\":null,\"rootUri\":null,\"capabilities\":{}}}' | timeout 15 pylsp > p5b-init.out 2>&1"
+- inputText: "printf 'Content-Length: 107\\r\\n\\r\\n%s' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"processId\":null,\"rootUri\":null,\"capabilities\":{}}}' | timeout 15 pylsp > pylsp-init.out 2>&1"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 30000
-- inputText: "echo rc=$? >> p5b-init.out"
+- inputText: "echo rc=$? >> pylsp-init.out"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 8000

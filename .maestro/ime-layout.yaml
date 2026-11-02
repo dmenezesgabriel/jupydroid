@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U6: the cell you are typing into has to still be on screen once the keyboard is up.
+# The cell you are typing into has to still be on screen once the keyboard is up.
 #
 # Eight cells, so the last one is well below the fold on a 320x640dp phone - which is the only
 # way to ask the question. With a short notebook everything fits and the layout is never tested.
