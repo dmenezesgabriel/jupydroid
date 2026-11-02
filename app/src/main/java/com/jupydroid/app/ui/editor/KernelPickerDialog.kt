@@ -63,7 +63,7 @@ internal fun KernelPickerDialog(
       // The whole body is one lazy list, label included. The cap matters, not just laziness:
       // a list whose content fits its own measure reports no scroll range, and items landing
       // past the dialog's text-slot clip were rendered yet invisible to accessibility and
-      // unreachable by drag (p8g-kernel-picker tablet run). Bounded below the slot, the list
+      // unreachable by drag (kernel-picker-tablet tablet run). Bounded below the slot, the list
       // scrolls for real and every row reaches the viewport.
       LazyColumn(modifier = Modifier.heightIn(max = DIALOG_LIST_MAX).testTag(KERNEL_PICKER_LIST_TAG)) {
         // `Select kernel for: "<name>"` - the label above the `<select>` (`:1873`).
@@ -103,7 +103,7 @@ internal fun KernelPickerDialog(
  * `heightIn(min = 48.dp)` is the fix for a real defect, not decoration: `selectable` pads a
  * shorter row's *semantics* bounds to the 48dp touch minimum without growing its layout, and
  * for the last row that padded tail crossed the list's clip - the row drew fully yet was
- * flagged invisible, unreachable to a11y and Maestro (p8g-kernel-picker tablet run). A row
+ * flagged invisible, unreachable to a11y and Maestro (kernel-picker-tablet tablet run). A row
  * whose real height already meets the touch target has nothing to inflate.
  */
 @Composable

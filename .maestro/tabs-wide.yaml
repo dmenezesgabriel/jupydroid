@@ -1,0 +1,120 @@
+appId: com.jupydroid.app
+---
+# P8e, two panes: the same strip over the detail pane with the browser beside it. The launcher
+# fill is itself a tab here (the strip's own answer to "Launcher/Settings/Terminal/Console are
+# tabs too"), so three documents on top of it make four.
+#
+# `autosaveEnabled: false` is seeded by the driver - see the narrow flow's note.
+#
+# Runs no cell, so an emulator at >=840dp would be evidence; the tablet is where it runs.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+# The launcher fill arrives as a tab of its own before any document opens.
+- extendedWaitUntil:
+    visible: "Tab: Launcher"
+    timeout: 10000
+- takeScreenshot: 01-launcher-fill-is-a-tab
+# ---- three documents beside the launcher ----
+- scrollUntilVisible:
+    element:
+      text: "tabs-first.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "tabs-first.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: tabs-first.ipynb"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "tabs-second.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "tabs-second.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: tabs-second.ipynb"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "tabs-notes.txt"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "tabs-notes.txt"
+- extendedWaitUntil:
+    visible: "Tab: tabs-notes.txt"
+    timeout: 30000
+- assertVisible: "Tab: Launcher"
+- assertVisible: "Tab: tabs-first.ipynb"
+- assertVisible: "Tab: tabs-second.ipynb"
+- takeScreenshot: 02-launcher-plus-three-documents
+# ---- a tab tap reveals its document ----
+- tapOn: "Tab: tabs-first.ipynb"
+- extendedWaitUntil:
+    visible: ".*p8e_marker_first.*"
+    timeout: 10000
+- takeScreenshot: 03-tab-tap-reveals
+# ---- closing one tab leaves the rest ----
+- tapOn: "Close tab: tabs-second.ipynb"
+- extendedWaitUntil:
+    notVisible: "Tab: tabs-second.ipynb"
+    timeout: 10000
+- assertVisible: "Tab: tabs-first.ipynb"
+- assertVisible: "Tab: tabs-notes.txt"
+- takeScreenshot: 04-close-leaves-the-rest
+# ---- a dirty tab closes through Save/Discard/Cancel ----
+- tapOn: "Tab: tabs-notes.txt"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- tapOn: ".*the file editor.*"
+- tapOn:
+    point: "95%,25%"
+- pressKey: Enter
+- inputText: "p8e_dirty_probe"
+- assertVisible: "(?s).*p8e_dirty_probe.*"
+- extendedWaitUntil:
+    visible: "Unsaved changes"
+    timeout: 10000
+- takeScreenshot: 05-dirty-tab-dot
+- tapOn: "Close tab: tabs-notes.txt"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- takeScreenshot: 06-dirty-close-gate
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Tab: tabs-notes.txt"
+    timeout: 5000
+- assertVisible: "Unsaved changes"
+- tapOn: "Close tab: tabs-notes.txt"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- tapOn: "Discard"
+- extendedWaitUntil:
+    notVisible: "Tab: tabs-notes.txt"
+    timeout: 10000
+- assertVisible: "Tab: tabs-first.ipynb"
+- takeScreenshot: 07-discard-closes-first-stays
+# ---- rename is the tab's own act (`docmanager:rename` on the title node) ----
+# A long press is a touch screen's right-click, and the tab node is what the reference binds the
+# command to - the dialog is the shared RenameFileDialog, the move is `context.rename`'s.
+- longPressOn: "Tab: tabs-first.ipynb"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- takeScreenshot: 08-tab-long-press-opens-rename
+# Stem selected on open (`titleStemEnd`), so typing replaces it and `.ipynb` survives - no tap
+# into the field, which would collapse the selection (`explorer-rename.yaml`'s own lesson).
+- inputText: "p8e-renamed"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Tab: p8e-renamed.ipynb"
+    timeout: 10000
+# The tab kept its place and its document: the same cell source is still on screen, which only
+# holds if the entry and its ViewModel were never replaced (`Context._updatePath`, not a reopen).
+- assertVisible: ".*p8e_marker_first.*"
+- assertVisible: "Tab: Launcher"
+- takeScreenshot: 09-renamed-in-place

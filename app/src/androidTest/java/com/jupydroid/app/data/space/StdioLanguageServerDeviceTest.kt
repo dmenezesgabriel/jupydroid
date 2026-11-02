@@ -219,7 +219,7 @@ class StdioLanguageServerDeviceTest {
    * `textDocument/rangeFormatting` over a sloppily-spaced document makes the real
    * `pylsp` answer through autopep8, whose `pylsp_format_range` answers ONE whole-document
    * `TextEdit` even for a range ask
-   * (the p5e6-format flow's `lsp.answer edits:1`). The cell-scoped slicing that makes a
+   * (the format-cell flow's `lsp.answer edits:1`). The cell-scoped slicing that makes a
    * whole-document edit safe for one cell is `NotebookVirtualDocument`'s job and its own
    * tests; what a scripted server cannot fake is autopep8 rewriting `x=1` to `x = 1` at all.
    */

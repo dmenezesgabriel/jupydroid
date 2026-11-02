@@ -1,0 +1,54 @@
+appId: com.jupydroid.app
+---
+# P6a-7b's own gate, the debugger's first behaviour-visible flow: a breakpoint armed on a cell's
+# second line pauses a real kernel before that line runs. `x = 41` runs; `print(x + 1)` does not,
+# because nothing in this app sends `continue` yet - that is P6a-9's own job, so the run is left
+# genuinely, permanently paused rather than resumed. Seeded by
+# scripts/debugger-stop-driver.sh.
+#
+# What is asserted: `[*]:` never becomes `[1]:` and `42` never appears - the cell would show both
+# within seconds of a real, uninterrupted run (FakeKernelGateway's own echo shows results
+# instantly). What is not asserted, because it has no semantics node - the same "assert the
+# effect, not the canvas" limit `LineNumberGutterTest`/`BreakpointGutterTapTest` already carry -
+# is the breakpoint dot turning from grey (unverified) to red (verified,
+# `EditorPalette.breakpointVerified`) and the stopped line's own wash
+# (`EditorPalette.debugStoppedLine`). Both are in the screenshots for a human to look at.
+#
+# TABLET ONLY (SM-X216B). On the x86_64 emulator MainActivity falls back to FakeKernelDebugger,
+# whose attach/setBreakpoints/configurationDone are no-ops that arm nothing real - the cell would
+# run straight through to `42`, which this flow's own central assertion refuses to see.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Debugger Stop.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Debugger Stop.ipynb"
+# The whole cell is one semantics node, `"x = 41\nprint(x + 1)"`, and Maestro's `visible` matches
+# a node's **whole** text against the pattern rather than searching within it - confirmed on
+# device: the plain substring failed here until wrapped `(?s).*…*` the way file-editor.yaml's own
+# multi-line assertion already does. Parens and `+` are escaped too - unescaped, `(x + 1)` reads
+# as a capture group needing "x", one-or-more spaces, then "1", which the literal text is not.
+- assertVisible: "(?s).*print\\(x \\+ 1\\).*"
+- takeScreenshot: 01-before-running
+# The gutter draws on a canvas and carries no semantics node, so this is a point tap rather than a
+# text one, the same limit BreakpointGutterTapTest works around - measured on this tablet's own
+# 1920x1200 layout: the second line's row, inside the reserved number column, short of the code.
+- tapOn:
+    point: "39%,30%"
+- takeScreenshot: 02-breakpoint-armed-unverified
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run installs the Space if needed, starts jupyter_server and starts the
+# kernel - the same cold path run-cell-real-kernel.yaml waits 120s for.
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- takeScreenshot: 03-running
+# The handshake and the breakpoint hit happen here, off screen - see
+# scripts/debugger-stop-driver.sh for why this flow ends without waiting for them and
+# what waits in its place.

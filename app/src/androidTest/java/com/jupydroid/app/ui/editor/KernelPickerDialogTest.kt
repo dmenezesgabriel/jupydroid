@@ -108,7 +108,7 @@ class KernelPickerDialogTest {
   }
 
   /**
-   * Regression (p8g-kernel-picker tablet run): a fixed-height scroll Column clipped its last
+   * Regression (kernel-picker-tablet tablet run): a fixed-height scroll Column clipped its last
    * row against the dialog's text slot - the running-kernel row rendered on screen but was
    * flagged invisible, so neither touch drags nor a11y scrolls could reach it. The list must
    * be a lazy list whose scroll actions bring any option into the viewport.

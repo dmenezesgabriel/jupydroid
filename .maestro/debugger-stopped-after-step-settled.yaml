@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# Part 2, run after a real `sleep` rather than a Maestro wait - see
+# debugger-stopped-at-breakpoint-settled.yaml, which this mirrors, for the measurement behind that.
+#
+# TABLET ONLY (SM-X216B) - see debugger-arms-and-runs.yaml, which this continues.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
+- assertVisible: "\\[\\*\\]:"
+- assertNotVisible: "42"
+- takeScreenshot: 04-stopped-at-line-2

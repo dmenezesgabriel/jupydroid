@@ -37,7 +37,7 @@ appId: com.jupydroid.app
     timeout: 60000
 - waitForAnimationToEnd:
     timeout: 10000
-# A tap on the field settles the IME's connection before typing - `p7e-1-space-python.yaml`.
+# A tap on the field settles the IME's connection before typing - `space-python.yaml`.
 - tapOn:
     id: "terminal-input"
 # OSC 0, the title a shell reports - what `term.onTitleChange` hears.

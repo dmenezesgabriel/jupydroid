@@ -1,0 +1,62 @@
+appId: com.jupydroid.app
+---
+# P5e-4: typing `(` inside a cell asks `textDocument/signatureHelp` at the caret's virtual position
+# and the card draws the signature pylsp answers - VS Code's parameter-hints widget.
+#
+# The trigger is real typing, not a menu row: `inputText` drives the IME, so `(` first runs
+# `PythonTypingRules`' autoclose and lands the caret inside `os.path.join()` - the exact
+# keystroke `onTypeHint` opens on. The answer must be jedi's own signature: the probe
+# (`evidence/p5e-0-lsp-surface/`) measured `join(path: LiteralString, /, *paths:
+# LiteralString) -> LiteralString`, so `join(path` is what the screenshot has to show.
+#
+# Same scaffold as `hover.yaml`: the warmup cell runs first because the ask is
+# session-gated - no kernel session, no language-server asks - and this must be the tablet:
+# the emulator's `FakeKernelGateway` never opens a Space, so no `pylsp` runs there to answer.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Signature Help.ipynb"
+- extendedWaitUntil:
+    visible: ".*lsp_warmup.*"
+    timeout: 15000
+- tapOn: "Run cell"
+# `ran in` - the run's job is the open session the ask is gated on.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-session-open
+
+- tapOn: ".*# seed.*"
+- eraseText
+- inputText: "import os"
+- pressKey: Enter
+# `(` autocloses to `()` and the caret lands between the pair - inside the call, where the
+# measured `(` trigger char asks.
+- inputText: "os.path.join("
+- extendedWaitUntil:
+    visible: "Signature help"
+    timeout: 60000
+# jedi's signature for `os.path.join` - the `(path` is what the bare `os.path.join()` cell
+# text can never already show.
+- assertVisible: ".*join\\(path.*"
+- takeScreenshot: 02-signature-card-answers
+
+# While the card is up every change inside the call re-asks - `onModelContentChange`.
+- inputText: "a,"
+- extendedWaitUntil:
+    visible: "Signature help"
+    timeout: 30000
+- takeScreenshot: 03-reasked-inside-the-call
+
+# `)` steps over the auto-closed partner, landing the caret outside the call -
+# `insideUnclosedParen` says no and the card is `cancel()`'d the way the model does it.
+- inputText: ")"
+- extendedWaitUntil:
+    notVisible: "Signature help"
+    timeout: 10000
+- assertNotVisible: "Signature help"
+- takeScreenshot: 04-closing-the-call-clears
+
+# The card never stole typing: every char it floated over still landed in the cell.
+- assertVisible: "(?s)import os\nos\\.path\\.join\\(a,\\)"

@@ -1,0 +1,63 @@
+appId: com.jupydroid.app
+---
+# P8d: the multi-document model. Two notebooks open at once keep two live kernel sessions - the
+# thing the single-detail stack made impossible. The driver counts `kernel.session.opened` lines
+# with distinct session ids in the promoted logcat; this flow is the on-screen half.
+#
+# TABLET ONLY: two panes, so the Files rail stays beside the editor for the second tap. On the
+# x86_64 emulator FakeKernelGateway echoes - there is no Space whose sessions can persist.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 10000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "multi-document-first.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "multi-document-first.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      # The kernel's answer, not the cell's source: `print('p8d-alpha')` puts the same text
+      # in the editor field, so the wait is scoped to the output it produced.
+      text: "p8d-alpha"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 01-first-ran
+
+# The second document opens *beside* the first - the Files row is on screen because the side
+# pane never leaves at this width.
+- scrollUntilVisible:
+    element:
+      text: "multi-document-second.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "multi-document-second.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "p8d-beta"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- takeScreenshot: 02-second-ran
+
+# Reveal: tapping the first document again brings it forward with its *output already there* -
+# a fresh entry would show an unrun cell, so the surviving `p8d-alpha` is the whole assertion.
+- tapOn: "multi-document-first.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "p8d-alpha"
+      childOf: {text: "Cell output"}
+    timeout: 30000
+- takeScreenshot: 03-first-revealed

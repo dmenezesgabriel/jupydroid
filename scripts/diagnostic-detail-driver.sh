@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# A tap on a diagnosed line's gutter mark shows its findings in a floating card - The
+# gate: VS Code's `markerHoverParticipant` content performed as a tap.
+#
+# TABLET ONLY (SM-X216B), for the reason `diagnostics-driver.sh` states: the emulator's
+# `FakeKernelGateway` means no kernel session ever opens - the sync gate stays shut and no
+# real `pylsp` runs to push a diagnostic.
+#
+# Three pieces of evidence:
+#
+#   1. `Diagnostic detail` + the severity line + `pyflakes` in view after the mark's own pixel
+#      is tapped - the hover's content, performed with a finger.
+#   2. The same text gone after an outside tap on empty notebook space - dismissal.
+#   3. `02-marks-up.png` against `03-mark-tap-shows-the-findings.png`: the square is what the
+#      finger aimed at, and the card is what answered.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FIXTURE="$ROOT/.maestro/fixtures/diagnostics.ipynb"
+FLOW="$ROOT/.maestro/diagnostic-detail.yaml"
+OUT="$ROOT/evidence/diagnostic-detail"
+
+# shellcheck source=scripts/java-home.sh
+. "$ROOT/scripts/java-home.sh"
+# shellcheck source=scripts/maestro-run.sh
+. "$ROOT/scripts/maestro-run.sh"
+
+MODEL="$("$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell getprop ro.product.model | tr -d '\r')"
+case "$MODEL" in
+  SM_X216B|SM-X216B) ;;
+  *) echo "refused: this driver must run on the tablet (SM-X216B); this is '$MODEL'"; exit 1 ;;
+esac
+
+mkdir -p "$OUT"
+echo "=== diagnostic mark tap -> findings card, on $MODEL ==="
+
+# Cleared so the check below reads only what this flow did.
+"$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} logcat -c
+
+reset_notebooks
+seed_notebook "$FIXTURE" "Diagnostics"
+run_flow "$FLOW" "$OUT"
+
+"$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} logcat -d -s 'JupydroidSpace:*' 2>/dev/null |
+  grep '"stage":"lsp\.' | tail -20 > "$OUT/lsp-lifecycle.log"
+echo "--- lsp lifecycle during the flow ---"; cat "$OUT/lsp-lifecycle.log"
+
+fail=0
+if grep -q '"stage":"lsp\.start"' "$OUT/lsp-lifecycle.log"; then
+  echo "PASS: pylsp spawned during the flow - the findings came down the real port"
+else
+  echo "FAIL: no lsp.start during the flow - the LSP path never ran"; fail=1;
+fi
+if grep -q "Diagnostic detail" "$OUT/maestro.log"; then
+  echo "PASS: the mark's tap raised the findings card"
+else
+  echo "FAIL: the mark's tap never raised the card"; fail=1;
+fi
+exit "$fail"

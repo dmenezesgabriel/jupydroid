@@ -2,7 +2,7 @@
 # The terminal receives exactly what is typed.
 #
 # TABLET ONLY (SM-X216B). The emulator ships no rootfs, so its terminal has no shell and a green
-# run there would prove nothing - `p7e-1-space-python-driver.sh`'s own rule.
+# run there would prove nothing - `space-python-driver.sh`'s own rule.
 #
 # **The flow is not the oracle.** The terminal draws to a `Canvas`, so no Maestro assertion can
 # read a character off it. The flow redirects what the shell *parsed* into two files; this driver

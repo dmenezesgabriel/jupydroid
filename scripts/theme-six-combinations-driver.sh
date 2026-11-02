@@ -67,7 +67,7 @@ run_device_mode() { # run_device_mode <no|yes>
   "${adb[@]}" shell cmd uimode night "$1" >/dev/null
   reset_notebooks
   seed_file "$ROOT/.maestro/fixtures/jd-031-notes.py" "$FILE"
-  seed_notebook "$ROOT/.maestro/fixtures/p8e-first.ipynb" "$NOTEBOOK"
+  seed_notebook "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$NOTEBOOK"
   run_flow "$FLOWS-part1-open.yaml" "$EVIDENCE/device-night-$1/opened" || exit 1
   for theme in System Light Dark; do
     export MAESTRO_THEME="$theme"

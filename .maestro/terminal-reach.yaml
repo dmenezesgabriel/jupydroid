@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# P6d-6: the terminal reach moved atomically - the FilesBar's provisional "New terminal" icon is
+# gone, and `terminal:create-new` is reached from the modal rail behind the bottom bar's More at one
+# pane (ADR-0109) and the auto-filled launcher's Terminal card at two.
+#
+# Runs on both devices - the reach differs by width and both halves are the gate. The
+# `when:`-guarded taps are `close-gate-dialog`'s and `reveal-the-symbol-row-arrows`'s own idiom.
+- launchApp
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+# The negative half: beside two panes no "New terminal" node exists at all - the FilesBar icon is
+# gone and the rail carries none, which is exactly what the card's presence must not shadow.
+- runFlow:
+    when:
+      notVisible: "More"
+    commands:
+      - assertVisible:
+          id: "launcher-card-NEW_TERMINAL"
+      - takeScreenshot: 01-two-panes-launcher-card
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      # Not on the bar any more: it gave its slot up to More.
+      - assertNotVisible: "New terminal"
+      - tapOn: "More"
+      - takeScreenshot: 01-one-pane-more-rail
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 30000
+- takeScreenshot: 02-terminal-open

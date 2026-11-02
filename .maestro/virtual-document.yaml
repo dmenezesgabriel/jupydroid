@@ -1,0 +1,68 @@
+appId: com.jupydroid.app
+---
+# P5d-1: one virtual document stands for the notebook under the language server - the reference's
+# `VirtualDocument` shape (`packages/lsp/src/virtual/document.ts`), cells joined with two blank
+# lines between them.
+#
+# The assertion that discriminates it is `Completion cross_cell_name_for_lsp`: that name is
+# defined in a cell that is NEVER RUN, so the kernel's namespace does not hold it - the kernel
+# fallback cannot answer it - and under P5c's per-cell documents the asked cell's own text
+# (`cross_cell_na`) defines nothing either. Only a document the cells share can complete it.
+#
+# The first cell still runs first, for the reason `language-completion.yaml` states:
+# `NotebookCompletion.at` gates every ask on an already-open session - typing alone boots no
+# runtime - so the popup can only appear once the kernel is up.
+#
+# `os.path.jo` rides along as the second proof: `import os` lives in cell 1 while the ask
+# lands in cell 3, and an attribute answer (`join`) is one the asked cell could never earn
+# from its own text. (The kernel could also answer this one - the namespace has os.path - so
+# it is the name ask above that carries the discriminating weight.)
+#
+# TABLET ONLY, for the same reason `code-size.yaml` states: on the x86_64 emulator
+# `MainActivity` falls back to `FakeKernelGateway`, so a run there proves nothing about the
+# Space's real language-server path.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Virtual Document.ipynb"
+- extendedWaitUntil:
+    visible: ".*import os.*"
+    timeout: 15000
+- tapOn: "Run cell"
+# `ran in` rather than an output value - the run's job is the open session, per the header.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-session-open
+
+# The attribute ask: `os.path.jo` in cell 3, `import os` two cells up.
+- tapOn: ".*# ask os.path.*"
+- eraseText
+- inputText: "os.path.jo"
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 60000
+- assertVisible: "Completion join"
+- takeScreenshot: 02-attribute-completion-across-cells
+
+# The discriminating ask: a name only the shared document knows - never run, so the kernel
+# cannot offer it, and not in this cell's own text, so a per-cell document could not either.
+# The keyboard is covering it, so hide that first, then scroll the cell into view.
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      # The scroll positions the cell for the tap below; its own source text is the anchor,
+      # not an observation - what is asserted after is the popup's row.
+      # matches-source: as above
+      text: ".*# ask name.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: ".*# ask name.*"
+- eraseText
+- inputText: "cross_cell_na"
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 60000
+- assertVisible: "Completion cross_cell_name_for_lsp"
+- takeScreenshot: 03-name-only-the-virtual-document-knows

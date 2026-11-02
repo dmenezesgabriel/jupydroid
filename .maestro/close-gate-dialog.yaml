@@ -1,0 +1,87 @@
+appId: com.jupydroid.app
+---
+# P6c-8c: `saveBeforeClose` (`docmanager/src/dialogs.ts:155`) on the plain file editor, every way
+# out - the dismiss on its bar and system Back - and all three answers.
+#
+# `autosaveEnabled: false` is seeded by the driver, so `dirty` survives long enough to be observed:
+# with the debounce live the document would be clean 500 ms after the last keystroke and the ask
+# would be a race rather than a state.
+#
+# One flow deliberately: `maestro test`'s `launchApp` force-stops the process, which would throw
+# the dirty document away between flows. Cancel, Back and Discard share the first dirty document;
+# Save is proven on a second edit of the same file, and the driver cats the disk after - the file
+# must hold `dialog_saved` and *not* `unsaved_line`, which is both halves of the contract in one
+# read (the Discard wrote nothing; the Save wrote before it closed).
+#
+# Nothing runs a cell, so the emulator is enough; sharded across both devices anyway.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- tapOn: "close_gate.py"
+- assertVisible: "Back to files|Close tab: close_gate.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- takeScreenshot: 01-file-editor-clean
+- tapOn: ".*the file editor.*"
+- tapOn:
+    point: "95%,25%"
+- pressKey: Enter
+- inputText: "unsaved_line"
+- assertVisible: "(?s).*unsaved_line.*"
+- takeScreenshot: 02-edited-and-dirty
+# The document's own dismiss - the gate's first exit.
+- tapOn: "Back to files|Close tab: close_gate.py"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- assertVisible: 'Save changes in "close_gate.py" before closing?'
+- assertVisible: "Cancel"
+- assertVisible: "Discard"
+- assertVisible: "Save"
+- takeScreenshot: 03-the-save-before-close-dialog
+# Cancel keeps the document, its edit included.
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Save your work"
+    timeout: 5000
+- assertVisible: "(?s).*unsaved_line.*"
+- takeScreenshot: 04-cancel-kept-the-document
+# System Back asks the same question - the second exit. The first press is the IME's while the
+# keyboard is up, so press until the ask is on screen rather than once and hope.
+- back
+- runFlow:
+    when:
+      notVisible: "Save your work"
+    file: close-gate-back.yaml
+- assertVisible: "Save your work"
+- takeScreenshot: 05-system-back-asks-the-same
+# Discard leaves through the dialog, writing nothing.
+- tapOn: "Discard"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 5000
+- takeScreenshot: 06-discarded-back-to-files
+# And the Save arm: a second dirty document, the same ask, Save writes before the close.
+- tapOn: "close_gate.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- tapOn: ".*the file editor.*"
+- tapOn:
+    point: "95%,25%"
+- pressKey: Enter
+- inputText: "dialog_saved"
+- assertVisible: "(?s).*dialog_saved.*"
+- takeScreenshot: 07-edited-a-second-time
+- tapOn: "Back to files|Close tab: close_gate.py"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 5000
+- takeScreenshot: 08-saved-then-closed

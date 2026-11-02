@@ -1,0 +1,57 @@
+appId: com.jupydroid.app
+---
+# P5c: the completion popup is answered by the Space's language server (`pylsp` over stdio), not by
+# the kernel's `complete_request` - same popup, better source.
+#
+# The first cell is RUN first, and that is not scene-setting: completion deliberately never
+# starts a runtime (`NotebookCompletion.at`'s own `session.opened ?: return NONE` guard, the
+# rule `code-completion.yaml` is written around), so the popup can only appear once a
+# kernel session is already open. With the Space up, the first keystroke's ask is what lazily
+# spawns `pylsp` - the `lsp.start` stage the driver's logcat check exists to read.
+#
+# The cell is EMPTIED with `eraseText` rather than typed around: `eraseText` clears the whole
+# focused field regardless of where a tap landed the caret, which is the one thing the query
+# gate cares about - `completionQueryAt` needs the chars before the caret to end in an
+# identifier and the char after it to not be one. A seeded cell tapped mid-text satisfies
+# neither reliably.
+#
+# `os.path.jo` and not `pri`: `join` is the answer only a server that parsed `import os` gives -
+# a cell-local, static analysis result, which is the point of the swap (P5a measured the same
+# `initialize`-shaped exchange against the shipped `pylsp` directly).
+#
+# TABLET ONLY, for the same reason `code-size.yaml` states: on the x86_64 emulator
+# `MainActivity` falls back to `FakeKernelGateway`, so a run there proves nothing about the
+# Space's real completion path.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Language Completion.ipynb"
+- extendedWaitUntil:
+    visible: ".*lsp_warmup.*"
+    timeout: 15000
+- tapOn: "Run cell"
+# `ran in` rather than an output value - the run's job is the open session, per the header.
+# 180s: starting the base Space takes seconds on first use - rootfs, jupyter_server, then a
+# kernel - `completion-popup.yaml`'s own budget for the identical first run.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-session-open
+
+# The second cell, emptied then filled: `import os` is what makes `join` an answer the language
+# server earns rather than one any namespace would have.
+- tapOn: ".*# seed.*"
+- eraseText
+- inputText: "import os"
+- pressKey: Enter
+- inputText: "os.path.jo"
+# 60s is `code-size.yaml`'s own budget for the popup, and this ask can carry the pylsp
+# spawn on top: the port starts the process on first use.
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 60000
+# Matched by contentDescription, never by the bare word - `completion-popup.yaml`'s own reason:
+# the Samsung keyboard offers the same word in its own suggestion bar.
+- assertVisible: "Completion join"
+- takeScreenshot: 02-completion-from-the-language-server

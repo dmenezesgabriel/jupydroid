@@ -1,0 +1,1 @@
+Tabs notes fixture - a plain text document the file editor opens.

@@ -13,8 +13,8 @@
 #      `am instrument`, not `connectedDebugAndroidTest`, which uninstalls the app the flows need.
 #   3. What the test left on disk is pulled: space-1's tree, its run/ dir, its server log and the
 #      kernel's own JSON account of where it is.
-#   4. p8b's pip install re-runs with space-1 beside base: the package lands in base/pkgs only.
-#   5. p7e-1 re-runs: base's kernel and terminal still work through the generalised runtime.
+#   4. space-packages's pip install re-runs with space-1 beside base: the package lands in base/pkgs only.
+#   5. space-python re-runs: base's kernel and terminal still work through the generalised runtime.
 #
 #   ANDROID_SERIAL=<tablet> scripts/jd-001-per-space-runtime-driver.sh
 set -euo pipefail
@@ -62,8 +62,8 @@ in_app "cat $SPACE_ONE/home/jupydroid/kernel-env.out" > "$OUT/kernel-env.out"
 echo "--- kernel-env.out ---"; cat "$OUT/kernel-env.out"; echo
 
 # 4 and 5. The two base flows, re-run under this item's name with space-1 on disk beside base.
-EVIDENCE_ROOT="$ROOT/evidence/jd-001-p8b-space-packages" "$ROOT/scripts/p8b-space-packages-driver.sh"
-EVIDENCE_ROOT="$ROOT/evidence/jd-001-p7e-1-space-python" "$ROOT/scripts/p7e-1-space-python-driver.sh"
+EVIDENCE_ROOT="$ROOT/evidence/jd-001-p8b-space-packages" "$ROOT/scripts/space-packages-driver.sh"
+EVIDENCE_ROOT="$ROOT/evidence/jd-001-p7e-1-space-python" "$ROOT/scripts/space-python-driver.sh"
 in_app "find $SPACE_ONE/pkgs -name \"tabulate*\"" > "$OUT/space-1-tabulate.txt"
 
 fail=0

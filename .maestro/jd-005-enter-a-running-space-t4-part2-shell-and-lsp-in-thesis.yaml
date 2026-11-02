@@ -36,11 +36,11 @@ appId: com.jupydroid.app
     timeout: 300000
 - waitForAnimationToEnd:
     timeout: 15000
-# A tap on the field settles the IME's connection before typing - `p7e-1-space-python.yaml`.
+# A tap on the field settles the IME's connection before typing - `space-python.yaml`.
 - tapOn:
     id: "terminal-input"
 # No punctuation straight after a word: one character can drop out of a long `inputText`
-# (`p7e-1-space-python.yaml`).
+# (`space-python.yaml`).
 - inputText: "ls ~ > ~/terminal-saw"
 - pressKey: Enter
 - waitForAnimationToEnd:

@@ -57,13 +57,13 @@ record_pid() { # record_pid <when>
 # Step 1: an empty workspace, autosave off, the three documents seeded, landscape.
 cold_start() {
   reset_notebooks
-  # Autosave off, base64 for `p6c-8-close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
+  # Autosave off, base64 for `close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
   local payload
   payload="$(printf '%s' '{"autosaveEnabled":false}' | base64 -w0)"
   "${adb[@]}" shell "run-as $APP sh -c 'mkdir -p files && echo $payload | base64 -d > $EDITOR_SETTINGS_STORE'"
   seed_file "$ROOT/.maestro/fixtures/jd-030-first.py" "$FIRST"
   seed_file "$ROOT/.maestro/fixtures/jd-030-second.py" "$SECOND"
-  seed_notebook "$ROOT/.maestro/fixtures/p8e-first.ipynb" "$NOTEBOOK"
+  seed_notebook "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$NOTEBOOK"
   rotate_to 1
 }
 

@@ -310,7 +310,7 @@ private fun RunningRow(
 ) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
-    // A clickable row names its act, not just its label - "p8f-kernel.ipynb" alone is also the
+    // A clickable row names its act, not just its label - "running-panel-kernel.ipynb" alone is also the
     // tab's text and the browser's, so the section-qualified name is what a screen reader (and a
     // flow) can address without ambiguity.
     modifier = Modifier

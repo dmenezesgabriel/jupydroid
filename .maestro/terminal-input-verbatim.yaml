@@ -13,7 +13,7 @@ appId: com.jupydroid.app
 # **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell to prove
 # what arrived. The terminal draws to a `Canvas`, so nothing here is asserted by Maestro text -
 # the flow writes what the shell parsed to files and the driver reads them back off the device,
-# the same oracle `evidence/p7e-1-space-python/the-link.txt` is.
+# the same oracle `evidence/space-python/the-link.txt` is.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

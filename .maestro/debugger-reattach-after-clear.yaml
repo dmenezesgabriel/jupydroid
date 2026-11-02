@@ -1,0 +1,73 @@
+appId: com.jupydroid.app
+---
+# P6a-10's own gate: debugpy keeps a debug session, and any breakpoint set through it, alive for
+# the life of the **kernel process** - not this app's own session object. Before this fix,
+# RealKernelDebugger.attach() unconditionally re-sent `initialize`/`attach` on every run of a cell
+# that had ever carried a breakpoint, and debugpy rejects both once already done
+# ("Invalid message: Session is already started"/"already initialized") - and disarming a
+# breakpoint skipped the handshake entirely, leaving debugpy's own copy of it armed forever, so a
+# later "plain" run of that cell paused on an unobserved `stopped` event with nothing in this app
+# ever noticing. Reproduced live on the tablet before this fix, with both failure shapes.
+#
+# This flow drives the exact regression: arm a breakpoint, stop on it, Continue past it, disarm
+# it, then run the same cell a **third** time (a second re-attach, past the first tolerance
+# check alone) and require it to finish cleanly with the kernel's own real output - not an
+# uncaught `DebugRequestFailedException`, not a permanent `[*]:`.
+#
+# TABLET ONLY (SM-X216B). On the x86_64 emulator MainActivity falls back to FakeKernelDebugger,
+# whose attach/setBreakpoints are no-ops - there is no real debugpy session to re-attach to, so
+# this flow's own central claim (a *second* kernel-side re-attach) would be untested by it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Debugger Step.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Debugger Step.ipynb"
+- assertVisible: "(?s).*y = x \\+ 1.*"
+- takeScreenshot: 01-before-first-run
+# The same gutter tap point debugger-stop-driver.sh and debugger-step-continue-driver.sh already measured on this tablet's own layout.
+- tapOn:
+    point: "39%,30%"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+- takeScreenshot: 02-stopped-first-time
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 20000
+- takeScreenshot: 03-continued-first-run
+# Disarms the same line - the breakpoint dot toggles off in this app's own state, but debugpy's
+# own copy is untouched until the next run's handshake clears it.
+- tapOn:
+    point: "39%,30%"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[2\\]:"
+    timeout: 20000
+- assertNotVisible: "DebugRequestFailedException"
+- assertVisible: "42"
+- takeScreenshot: 04-disarmed-run-succeeds
+# A third run - past the very first re-attach the fix's own first tolerance covers - proving the
+# fix holds for a kernel that has now been re-attached to twice, not merely once.
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[3\\]:"
+    timeout: 20000
+- assertNotVisible: "DebugRequestFailedException"
+- assertVisible: "42"
+- takeScreenshot: 05-third-run-still-succeeds

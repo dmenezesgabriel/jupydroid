@@ -3,7 +3,7 @@ appId: com.jupydroid.app
 # A relaunch stops Thesis, so its Settings is open again. The script becomes one that prints a line
 # and exits 3; Run then fails: the row stays Stopped and the home shows the status and the line.
 # Two lines typed with Enter between them rather than `;` straight after a word, which can drop a
-# character out of a long `inputText` (`p7e-1-space-python.yaml`).
+# character out of a long `inputText` (`space-python.yaml`).
 - launchApp
 - extendedWaitUntil:
     visible: "Settings Thesis \\(space-1\\)"

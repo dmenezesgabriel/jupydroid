@@ -1,0 +1,66 @@
+appId: com.jupydroid.app
+---
+# P8a: the cold path, measured rather than asserted. One real cell and one real terminal, so the
+# logcat timeline carries every stage boundary on the way to both.
+#
+# TABLET ONLY: on the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes
+# the cell's source - there is no Space to time, and a `42` it could produce would be the source.
+#
+# Driven by scripts/cold-path-driver.sh, which owns the cold/warm split itself: cold clears the
+# package (`pm clear` - the rootfs extraction is part of what is measured), warm force-stops only.
+# It clears logcat before this flow starts and promotes the device log beside the screenshots, so
+# the JupydroidSpace stage lines - `installing base Space` … `kernel.execute.complete`,
+# `terminal.ready` - are the measurement.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 10000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Cold Path.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cold Path.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous on purpose: a cold run is extracting the rootfs before the kernel can answer, and the
+# point of the run is that the logcat says how long that took.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 180000
+- takeScreenshot: 01-first-cell-answered
+
+# The terminal half, by the width's own reach (terminal-reach.yaml's rule): the modal rail behind the bar's More
+# at one pane (ADR-0109), the rail's launcher and its Terminal card at two.
+- runFlow:
+    when:
+      notVisible: "More"
+    commands:
+      - tapOn: "New Launcher"
+      - extendedWaitUntil:
+          visible:
+            id: "launcher-card-NEW_TERMINAL"
+          timeout: 30000
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+# The canvas is its own input (P4j-1), and the tap is the deterministic focus move that keeps a
+# first inputText from racing the IME's connection setup - terminal-tablet's measured finding.
+- tapOn:
+    id: "terminal-input"
+- inputText: "echo coldpath-ready > cp-term.txt"
+- pressKey: Enter
+# A bound so the driver-side workspace read proves the shell executed, not merely attached.
+- takeScreenshot: 02-terminal-open

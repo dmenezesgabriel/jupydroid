@@ -2,7 +2,7 @@
 """Whether a captured frame draws the shell's parts the way the resolved reference does.
 
 `read_chrome_parts.py` says what a frame *is* drawn in; this says whether
-that is right, so `p7a-chrome-parts-driver.sh` fails on a regression instead of printing bands for
+that is right, so `chrome-parts-driver.sh` fails on a regression instead of printing bands for
 a human to compare.
 
 **Position, not presence, and the distinction is the whole point.** `EditorPalette.cellBackground`

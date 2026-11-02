@@ -18,7 +18,7 @@ appId: com.jupydroid.app
 # draws to a canvas, so nothing in it is assertable by text (`architecture/cross-cutting.md`
 # §8.6) - the `jd8-*.rc`/`*.out` files are the oracle and the frames are the record. Typed lines
 # stay short for the measured dropped-character defect in terminal inputText
-# (p7e-1's header names it).
+# (space-python-driver.sh's header names it).
 #
 # --- 1. cold start: the home lists Base, open it ------------------------------------------------
 - launchApp
@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 # --- 2. a terminal: `apk add jq` succeeds, and `jq` answers ---------------------------------------
 - runFlow: open-base-space.yaml
 # The launcher card beside two panes, the modal rail behind the bar's More at one (ADR-0109) -
-# p8b's two branches. On this cold start base's rootfs is still extracting while the workspace
+# space-packages's two branches. On this cold start base's rootfs is still extracting while the workspace
 # first draws, so every wait carries the slack for it.
 - runFlow:
     when:
@@ -58,7 +58,7 @@ appId: com.jupydroid.app
       id: "terminal-input"
     timeout: 180000
 # A tap is a user's own focus move, and the one that settles the IME connection before typing
-# starts - autofocus alone raced the first inputText once (p7e-1).
+# starts - autofocus alone raced the first inputText once (space-python.yaml).
 - tapOn:
     id: "terminal-input"
 - inputText: "apk add jq > jd8-apk.log 2>&1; echo rc=$? > jd8-apk.rc"
@@ -99,7 +99,7 @@ appId: com.jupydroid.app
 
 # --- 4. back home: creating "Thesis" copies the image, progress showing -----------------------------
 # The user's own way out of a document is its tab's close - one per open tab - and then the
-# workspace is the lone launcher, where one Back leaves for the home (p7d, jd-002).
+# workspace is the lone launcher, where one Back leaves for the home (back-at-one-pane.yaml, jd-002).
 - tapOn: "Close tab: Apk Space\\.ipynb"
 - tapOn: "Close tab: Terminal .*"
 - extendedWaitUntil:

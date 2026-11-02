@@ -46,7 +46,7 @@ expect_both_saved() { # expect_both_saved <when>
 mkdir -p "$EVIDENCE"
 rm -f "$EVIDENCE/disk.txt"
 reset_notebooks
-# Autosave off, base64 for `p6c-8-close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
+# Autosave off, base64 for `close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
 payload="$(printf '%s' '{"autosaveEnabled":false}' | base64 -w0)"
 "${adb[@]}" shell "run-as $APP sh -c 'mkdir -p files && echo $payload | base64 -d > $EDITOR_SETTINGS_STORE'"
 seed_file "$ROOT/.maestro/fixtures/jd-038-notes.py" notes.py

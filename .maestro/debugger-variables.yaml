@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# P6a-8's own gate: once a breakpoint has genuinely paused a real kernel (debugger-stops-at-breakpoint.yaml
+# + debugger-stopped-at-breakpoint-settled.yaml, which this continues), the debugger's side panel shows
+# the real call stack and the real top-frame variables a live `debug_reply` answered - not a
+# placeholder and not FakeKernelDebugger's own hardcoded single frame/variable.
+#
+# WIDE WINDOW: the rail this taps is only drawn where there is room for two panes
+# (`toc-side-panel.yaml`'s own reasoning) - which this device's window already is, since
+# TABLET ONLY is what got a real kernel to pause in the first place.
+#
+# TABLET ONLY (SM-X216B) - see debugger-stops-at-breakpoint.yaml, which this continues.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible: "Open Base \\(base\\)"
+    file: open-base-space.yaml
+- assertVisible: "\\[\\*\\]:"
+- takeScreenshot: 05-before-opening-the-debugger-panel
+- tapOn: "Debugger"
+# `x = 41` already ran before the breakpoint on line 2 paused the kernel, so the top frame's own
+# scope already binds it - a real `debug_reply`'s own value, not FakeKernelDebugger's hardcoded
+# "x: int = 1". The frame name and line are debugpy's own `<module>` and the armed line, exactly
+# what evidence/p6a-7b/jupyter_server.log already showed `stackTrace` answering for this fixture.
+- assertVisible: "<module> — line 2"
+- assertVisible: "x: int = 41"
+- takeScreenshot: 06-the-real-frame-and-variable

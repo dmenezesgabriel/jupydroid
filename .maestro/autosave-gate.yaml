@@ -1,0 +1,46 @@
+appId: com.jupydroid.app
+---
+# P6c-8b: with `autosaveEnabled: false` seeded into files/editor-settings.json, typing in the file
+# editor stays on screen but never reaches disk - the debounce is gated, not merely slower - and
+# leaving the screen flushes the dirty document once: the "never lose work" close path.
+#
+# The disk proof is deliberately split in two *flows*: this one ends with the editor still open so
+# the driver can `run-as cat` the file and see the typed line is NOT there; the `-flush` flow then
+# types and dismisses within one session so its disk write can only have come from the close-time
+# flush. Splitting the chain would not work - `maestro test`'s `launchApp` force-stops the process,
+# so nothing survives between flows (a kill also runs no `onCleared`, which is the honest
+# process-death semantics a flush cannot cover).
+#
+# Nothing here runs a cell, so the emulator - and its FakeKernelGateway - is enough; sharded
+# across both devices anyway, per the suite rule for a pure document-save row. The interval poll
+# itself is not observable on disk (its write and the debounce's write land in the same place),
+# which is why `DocumentAutosaveTest` carries it on the test scheduler instead.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# The workspace opens on its browser - there is no "Browse files" to tap.
+- assertVisible: "Files"
+- tapOn: "autosave_gate.py"
+# Two-pane draws the tab's ✕ where one-pane draws the strip's labelled arrow -
+# `MainAreaTabStrip` owns the fork and the `|` pattern is `word-wrap.yaml`'s own.
+- assertVisible: "Back to files|Close tab: autosave_gate.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- takeScreenshot: 01-file-in-the-plain-editor
+# The field fills the width, so tapping the node would put the cursor mid-string; a point-tap
+# past the last character keeps Enter on a fresh line - `file-editor.yaml`'s own finding.
+- tapOn: ".*the file editor.*"
+- tapOn:
+    point: "95%,25%"
+- pressKey: Enter
+- inputText: "print("
+- inputText: "'"
+- inputText: "gate_kept"
+- inputText: "'"
+- inputText: ")"
+- assertVisible: "(?s).*print\\(\"the file editor\"\\)\nprint\\('gate_kept'\\)"
+- takeScreenshot: 02-typed-not-yet-on-disk
+# The flow stops here on purpose: the driver proves the gate on disk (cat -> absent), then backs
+# out itself and proves the close flush (cat -> present).

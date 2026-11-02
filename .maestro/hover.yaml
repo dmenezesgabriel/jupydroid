@@ -1,0 +1,86 @@
+appId: com.jupydroid.app
+---
+# P5e-3: "Symbol info" asks `textDocument/hover` at the caret's virtual position and draws the
+# markdown it answers.
+#
+# The affordance is a cell-menu row, not a long-press: a long press fights text selection, and
+# the gesture VS Code uses for hover (a mouse) does not exist here. The ask uses the caret the
+# row is tapped from, so the flow first lands a real finger tap *inside* the name - the cell
+# holds just `compute_total`, so the tap's center lands mid-word, the same inside-the-name
+# position the device probe asked at (`StdioLanguageServerDeviceTest`, line 3 character 4).
+#
+# The answer must read as markdown, not a raw dump: jedi sends a fenced signature block, so
+# `compute_total(values)` drawn from the fence is what the screenshot has to show.
+#
+# Same scaffold as `completion-fidelity.yaml`: the warmup cell runs first because the ask
+# is session-gated - no kernel session, no language-server asks - and this must be the tablet:
+# the emulator's `FakeKernelGateway` never opens a Space, so no `pylsp` runs there to answer.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Symbol Info.ipynb"
+- extendedWaitUntil:
+    visible: ".*lsp_warmup.*"
+    timeout: 15000
+- tapOn: "Run cell"
+# `ran in` - the run's job is the open session the menu row's availability is gated on.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-session-open
+
+- tapOn: ".*# seed.*"
+- eraseText
+- inputText: "compute_total"
+# A finger tap on the word itself - which lands the caret inside it, where a real "what is
+# this" asks from (the point lands mid-name; `pressKey` has no arrow keys to nudge one in,
+# `completion-popup.yaml`'s header notes). Only two cells are on screen by now - the warmup
+# has scrolled off - so the ask cell's `Cell actions` is the second match.
+- tapOn:
+    point: "46%,41%"
+- tapOn:
+    text: "Cell actions"
+    index: 1
+# The inspect row leads the menu under "Select cells" - the ask rows sit above every row that
+# edits, the same place VS Code's context menu puts its info commands.
+- tapOn: "Cell menu Symbol info"
+# jedi's markdown carries the signature in a fenced block; `values` is what distinguishes it
+# from the bare name the cell itself already shows.
+- extendedWaitUntil:
+    visible: ".*compute_total\\(values.*"
+    timeout: 60000
+- assertVisible: ".*compute_total\\(values.*"
+- takeScreenshot: 02-symbol-info-answers
+
+# An outside tap dismisses it - `PopupProperties(focusable = true)` is what routes the outside
+# touch to `onDismissRequest` (the finding `diagnostic-detail.yaml` records).
+- tapOn:
+    point: "50%,90%"
+- extendedWaitUntil:
+    notVisible: "Symbol info"
+    timeout: 10000
+- assertNotVisible: "Symbol info"
+- takeScreenshot: 03-outside-tap-dismissed
+
+# An ask where nothing is defined answers nothing and draws no card: pylsp's own reply there
+# is `{"contents": ""}` (its hover.py's `if not definition`), which the wire reads as null -
+# the empty gray card it used to pop is the bug this guards (`StdioLanguageServerDeviceTest`'s
+# `nothing == null` asserts the same through the port). The comment keeps jedi honest: a
+# position inside `# nothing` has no symbol to describe.
+- tapOn:
+    point: "46%,41%"
+- eraseText
+- inputText: "# nothing"
+- tapOn:
+    point: "46%,41%"
+- tapOn:
+    text: "Cell actions"
+    index: 1
+- tapOn: "Cell menu Symbol info"
+# Animations settle first so the assert cannot pass on a reply still in flight - a card that
+# would wrongly appear has its full round-trip plus render time to show before the check.
+- waitForAnimationToEnd:
+    timeout: 15000
+- assertNotVisible: "Symbol info"
+- takeScreenshot: 04-off-symbol-no-card

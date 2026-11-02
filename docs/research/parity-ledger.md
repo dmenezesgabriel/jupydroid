@@ -3526,7 +3526,7 @@ inside `documentAndLanguageRoots`, and `GAP-008`'s source set compiles — `comp
 rides the `unit-tests` hook's one Gradle call and the documented local command. Produced: **16**
 pre-commit hook ids; **13** gates — `check-file-line-length.sh` plus twelve `check_*.py`, of which
 ten are hook-wired and two are driver-bound because a device frame is their input
-(`check_chrome_parts` inside `scripts/p7a-chrome-parts-driver.sh`, `check_node_fill` inside the
+(`check_chrome_parts` inside `scripts/chrome-parts-driver.sh`, `check_node_fill` inside the
 `p7a-1b-*` drivers); **12** measures (`read_*` and `resolve_vscode_theme`); **3** comment scanners
 (`kotlin_source`, `script_source`, `xml_source`); and **34** `*_test.py` suites the
 `maestro-gate-tests` hook runs `always_run`. The flows the evidence gates watch are produced too —
@@ -3685,7 +3685,7 @@ where the friendly message lives, not where the coverage lives. **No defect.**
 | `check_palette_consumers.py` | `_test.py` incl. real-tree run | its suite | `palette-consumers` hook `always_run` | — |
 | `check_doc_citations.py` | `_test.py`; the hook run itself is the sweep | its suite | `doc-citations` hook `always_run` | reads every file under `app/src`+`tools` and *fails* on a type with no scanner — the one gate whose absence of a scanner is itself an offence; `scripts/` is deliberately outside it (the quoting question, `backlog.md` "not scheduled") |
 | `check_retired_doc_citations.py` | `_test.py` incl. the `git ls-files` sweep | its suite | `retired-doc-citations` hook on staged `types: [text]` | the suite is the whole-tree arm |
-| `check_chrome_parts.py` | `_test.py` over this repo's committed frames | its suite | `p7a-chrome-parts-driver.sh` | driver-bound: a device frame is its input, so no commit hook could hold it — the wire is the flow itself |
+| `check_chrome_parts.py` | `_test.py` over this repo's committed frames | its suite | `chrome-parts-driver.sh` | driver-bound: a device frame is its input, so no commit hook could hold it — the wire is the flow itself |
 | `check_node_fill.py` | `_test.py` over a committed frame | its suite | the `p7a-1b-*` drivers | same |
 | `ArchitectureGuardTest` | a planted violation, watched fail, reverted — `f18e2dc1`'s commit body | it *is* the suite | `unit-tests` hook (`testDebugUnitTest`) | asserts the real tree rather than fixtures, so its red-proof lives in git log — the `layersChecker.test.ts` idea at repo scale |
 | ktlint, detekt, `lintDebug` | the build | — | `ktlint-check`, `detekt`, `android-lint` hooks `always_run`, tasks named per `ADR-0016` | detekt `NestedBlockDepth` unset — default allows 4 against the stated 2 |

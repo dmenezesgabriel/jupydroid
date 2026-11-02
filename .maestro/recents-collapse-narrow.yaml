@@ -1,0 +1,89 @@
+appId: com.jupydroid.app
+---
+# P7c: the Recents section collapses from its own heading, and Clear moved behind a `…`.
+#
+# The reference's view pane is what this follows: `setExpanded(!isExpanded())` bound to a click
+# **or a tap** anywhere in the header (`paneview.ts:285-292`), a chevron that is `chevronDown` open
+# and `chevronRight` shut (`viewPane.ts:85-86`), and secondary actions in a toolbar overflow
+# (`viewPane.ts:693`) that is drawn only while the pane is expanded (`paneview.css:79-82`).
+#
+# ONE PANE (<840dp): the browser is the window, so every string on screen belongs to it. The
+# two-pane half is `recents-collapse-wide`, where the section shares the window with a
+# document.
+#
+# Runs no cell: two plain files are opened, so `FakeKernelGateway` is never asked anything and the
+# emulator is evidence rather than a stand-in.
+# Plain `launchApp`: the driver's own `reset_notebooks` is what isolates this run, and
+# `clearState` would delete the workspace it just seeded along with the recents store.
+- launchApp
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+# Nothing opened yet, so there is no section at all - and no heading to collapse.
+- assertNotVisible: "Recent"
+- takeScreenshot: 01-no-recents-before-anything-was-opened
+
+# Two documents, one of them inside a folder, so the section has more than one row to hide.
+- tapOn: "file_editor.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 15000
+- tapOn: "Back to files"
+- tapOn: "reports"
+- tapOn: "data.csv"
+- extendedWaitUntil:
+    visible: ".*region,amount.*"
+    timeout: 15000
+- tapOn: "Back to files"
+# The section is not drawn inside a folder, so the root is where it can be collapsed.
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Recent"
+    timeout: 5000
+# It arrives shut (`ExplorerSettings.recentsCollapsed`'s default): the heading and nothing under it.
+- assertNotVisible: "reports/data.csv"
+- assertNotVisible: "Recent actions"
+- takeScreenshot: 02a-the-section-arrives-shut
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 5000
+- assertVisible: "file_editor.py"
+- takeScreenshot: 02b-the-section-open-with-its-actions
+
+# The heading is the collapse. Tapped on the label, which is the middle of the row rather than the
+# chevron - the reference binds the whole header, and this is what says so on a touch screen.
+- tapOn: "Recent"
+# `reports/data.csv` is the marker and `file_editor.py` cannot be: a recent carries its whole path,
+# so a root file is on screen twice - once as a recent, once as the listing row that is still there
+# when the section shuts.
+- extendedWaitUntil:
+    notVisible: "reports/data.csv"
+    timeout: 5000
+# The heading survives its own collapse; the overflow does not, which is the reference's rule
+# rather than a simplification (`paneview.css:79-82`).
+- assertVisible: "Recent"
+- assertNotVisible: "Recent actions"
+- takeScreenshot: 03-collapsed-heading-only-and-no-actions
+
+# `setExpanded(!isExpanded())`: the same row brings it back, rows and actions together.
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 5000
+- assertVisible: "Recent actions"
+- takeScreenshot: 04-expanded-again
+
+# Clearing is still reachable, one level deeper than it was: `docmanager:clear-recents` under the
+# `…` rather than beside the heading.
+- tapOn: "Recent actions"
+- assertVisible: "Clear Recent Documents"
+- takeScreenshot: 05-clear-is-in-the-overflow
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+# The files themselves are untouched - a section is a record of opening, not the tree.
+- assertVisible: "file_editor.py"
+- takeScreenshot: 06-cleared-and-the-tree-is-untouched

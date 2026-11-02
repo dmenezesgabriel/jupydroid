@@ -112,7 +112,7 @@ capture "metadata of $THESIS_HOME/Untitled.ipynb" metadata_of "$THESIS_HOME/Unti
 # Into Thesis's home alone: the marker is what the cell and the shell look for, and base's home
 # lacks it. A seed force-stops the app, which is why part 3 runs Thesis rather than part 2.
 NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/thesis-home-marker.ipynb" "Thesis Kernel"
-NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/p5d2-diagnostics.ipynb" "Diagnostics"
+NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/diagnostics.ipynb" "Diagnostics"
 NOTEBOOK_DIR="$THESIS_HOME" seed_file "$ROOT/.maestro/fixtures/thesis-only.txt" "thesis-only.txt"
 ! "$ADB" shell run-as "$APP" test -e "$BASE_HOME/thesis-only.txt" ||
   { echo "base's home holds the marker; the cell would prove nothing" >&2; exit 1; }

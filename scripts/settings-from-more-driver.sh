@@ -32,7 +32,7 @@ run_flow "$ROOT/.maestro/settings-from-more-part2-from-every-panel.yaml" "$OUT/f
 
 # Both arms of the shared reaches every other flow now goes through (`open-new-terminal.yaml`,
 # `open-settings.yaml`): the terminal at one pane and at two, and Settings from the rail at two.
-run_flow "$ROOT/.maestro/p6d-6-terminal-reach.yaml" "$OUT/terminal-reach-one-pane" || exit 1
+run_flow "$ROOT/.maestro/terminal-reach.yaml" "$OUT/terminal-reach-one-pane" || exit 1
 rotate_to 1
-run_flow "$ROOT/.maestro/p6d-6-terminal-reach.yaml" "$OUT/terminal-reach-two-panes" || exit 1
-run_flow "$ROOT/.maestro/p6c-1-settings-screen.yaml" "$OUT/settings-two-panes" || exit 1
+run_flow "$ROOT/.maestro/terminal-reach.yaml" "$OUT/terminal-reach-two-panes" || exit 1
+run_flow "$ROOT/.maestro/settings-screen.yaml" "$OUT/settings-two-panes" || exit 1

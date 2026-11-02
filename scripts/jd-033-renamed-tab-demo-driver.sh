@@ -56,7 +56,7 @@ require_gone() { # require_gone <old name> <reading>
 cold_start() {
   reset_notebooks
   seed_file "$ROOT/.maestro/fixtures/jd-030-second.py" "$FILE"
-  seed_notebook "$ROOT/.maestro/fixtures/p8e-first.ipynb" "$NOTEBOOK"
+  seed_notebook "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$NOTEBOOK"
   rotate_to 1
 }
 

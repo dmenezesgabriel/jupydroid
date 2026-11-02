@@ -9,7 +9,7 @@ feeling about one.
 **A measurement, not a gate.** It reports what a run cost and exits 0; the verdict lives in the
 evidence README these tables get pasted into.
 
-    python3 scripts/cold_path_report.py evidence/p8a-cold-path/warm-*/logcat.txt
+    python3 scripts/cold_path_report.py evidence/cold-path/warm-*/logcat.txt
 
 Each argument is a logcat capture (maestro's `device-logcat.txt`, promoted to `logcat.txt` by
 `run_flow`). One file prints one table; several print one table per file and then a median row so

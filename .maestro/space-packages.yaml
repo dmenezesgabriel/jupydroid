@@ -1,0 +1,78 @@
+appId: com.jupydroid.app
+---
+# P8b: `pip install` grounds in the Space's own user base, unflagged - the user's report made
+# end to end. The terminal is the path the complaint named, the kernel cell is the proof the
+# install is reachable, and the driver-side reads are the proof of *where* it landed.
+#
+# TABLET ONLY: no Space runs on the x86_64 emulator, so there is no pip to measure - and the
+# kernel cell would be answered by FakeKernelGateway echoing the source.
+#
+# Driven by scripts/space-packages-driver.sh, which rm -rf's pkgs/ first so "Requirement
+# already satisfied" can never fake the pass.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 10000
+- runFlow: open-base-space.yaml
+# Terminal first - the install happens before the kernel exists, which is also the order a
+# user hits this in: "let me install the thing my notebook needs."
+- runFlow:
+    when:
+      notVisible: "More"
+    commands:
+      - tapOn: "New Launcher"
+      - extendedWaitUntil:
+          visible:
+            id: "launcher-card-NEW_TERMINAL"
+          timeout: 30000
+      - tapOn:
+          id: "launcher-card-NEW_TERMINAL"
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+      - tapOn: "New terminal"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+# The title composes while the socket is still attaching - on this ordering nothing ran a kernel
+# first, so jupyter_server may still be booting. terminal-input only exists once attach lands.
+- extendedWaitUntil:
+    visible:
+      id: "terminal-input"
+    timeout: 120000
+- tapOn:
+    id: "terminal-input"
+# The log file is the driver's oracle: the canvas's own Text column reads "" on this device
+# (`architecture/cross-cutting.md` §8.6), so the shell writes its answer where run-as can read it.
+- inputText: "pip install tabulate > p8b-install.log 2>&1; echo rc=$? > p8b-pip.rc"
+- pressKey: Enter
+- takeScreenshot: 01-pip-install-running
+# p8b-pip.rc exists only after pip exits, and the Files rail re-lists on its 10 s poll - the
+# same refresh JupyterLab's FileBrowserModel runs - so this row appearing IS "pip is done".
+- extendedWaitUntil:
+    visible: "p8b-pip.rc"
+    timeout: 120000
+- tapOn: "Cold Path.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- takeScreenshot: 02-install-finished-in-terminal
+- tapOn:
+    text: "Run cell"
+    index: 0
+# The kernel-computed answer: 0.10.0 is the version the wheel declares, and the __file__ line
+# is sys.path saying the user base won - scoped to the output subtree per the output gate. The
+# [\s\S]* tails are load-bearing, not noise: both prints land in ONE stdout Text node, and
+# Maestro's text is a whole-string regex, so a bare "0.10.0" never matches.
+- extendedWaitUntil:
+    visible:
+      text: "0\\.10\\.0[\\s\\S]*"
+      childOf: {text: "Cell output"}
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "[\\s\\S]*pkgs/lib/python3\\.12/site-packages/tabulate/__init__\\.py"
+      childOf: {text: "Cell output"}
+    timeout: 30000
+- takeScreenshot: 03-kernel-imports-from-user-base

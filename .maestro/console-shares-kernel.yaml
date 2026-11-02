@@ -1,0 +1,74 @@
+appId: com.jupydroid.app
+---
+# P6b-9d: a Console shares the notebook's own kernel, against a real one.
+#
+# The claim P6b-9b/9c's tests could only make against FakeKernelGateway: `shared` is defined in
+# the notebook's own cell and read back from the Console with `+ 1`, so `43` can only appear if
+# the two are the same running kernel - two independent ones would raise NameError, the same
+# distinguishing move P1d's own `shutdown` flow makes for "gone" vs "never seen".
+#
+# TABLET ONLY (SM-X216B): the emulator's MainActivity falls back to FakeKernelGateway, which
+# holds no session and would echo `shared + 1` back as text rather than evaluate it.
+#
+# Seeded by scripts/console-shares-kernel-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Console Kernel Share.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Console Kernel Share.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*shared = 21 \\* 2.*"
+    timeout: 30000
+- takeScreenshot: 01-notebook-open
+- tapOn: "Run cell"
+# Generous: the first run installs the Space and starts jupyter_server.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 180000
+- takeScreenshot: 02-kernel-answering-in-the-notebook
+
+- tapOn: "Kernel actions"
+- assertVisible: "New Console for Notebook"
+- takeScreenshot: 03-kernel-menu
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible: "Console Kernel Share.ipynb"
+    timeout: 10000
+- takeScreenshot: 04-console-open
+
+- tapOn:
+    id: "console-input-field"
+- inputText: "shared + 1"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible: "43"
+    timeout: 30000
+- takeScreenshot: 05-console-shares-the-kernel
+
+# P6b-10: Interrupt Kernel is real now, reachable from the same overflow Clear already sat in -
+# disabled here since nothing is running, matching NotebookBar's own Interrupt.
+- tapOn: "Console actions"
+- assertVisible: "Interrupt Kernel"
+- assertVisible: "Clear Console Cells"
+- takeScreenshot: 05b-console-actions-menu
+- tapOn: "Clear Console Cells"
+
+# Dismissing returns to the notebook this Console was opened from - P6b-0's fix, on a live kernel
+# now rather than FakeKernelGateway. `42` is still on screen because a Console never disturbs the
+# notebook's own output. The tab's ✕, not a pane button: since P8f closing is the strip's alone,
+# and this device's landscape rotation is past `MainNavigation`'s two-pane width threshold. Two
+# tabs read identically - a foreign console's `title.label` is its `sessionContext.name`, the
+# notebook's own path (`console/src/panel.ts:364`) - so `index: 1` picks the second matching ✕,
+# the console's; the notebook's was opened first.
+- tapOn:
+    text: "Close tab: Console Kernel Share.ipynb"
+    index: 1
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 10000
+- takeScreenshot: 06-back-to-the-notebook

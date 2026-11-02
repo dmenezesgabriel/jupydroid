@@ -1,0 +1,80 @@
+appId: com.jupydroid.app
+---
+# P5e-6: "Format cell" asks `textDocument/rangeFormatting` for the cell's whole virtual block and
+# lands the formatter's answer on that cell alone - VS Code's `notebook.formatCell`, which puts the
+# label in the context menu's modification group.
+#
+# The shipped pylsp answers through autopep8, whose `pylsp_format_range` returns ONE
+# whole-document TextEdit even for a range ask - so the proof is three cells: the asked one
+# is rewritten (`x=1` -> `x = 1`), the code cell after it stays byte-identical
+# (`untouched=1` keeps its own missing-whitespace, so the formatter's answer reached no
+# further), and the raw cell offers no row at all.
+#
+# TABLET ONLY (SM-X216B), the reason `hover.yaml` states: the ask is session-gated and
+# the emulator's `FakeKernelGateway` never opens a Space, so no `pylsp` runs there.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Format Cell.ipynb"
+- extendedWaitUntil:
+    visible: ".*lsp_warmup.*"
+    timeout: 15000
+- tapOn: "Run cell"
+# `ran in` - the run's job is the open session the ask rows' availability is gated on.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-session-open
+
+# The raw cell's menu first, while every cell is on screen: the virtual document maps code
+# cells only, so a non-code cell's row would be one the ask could never answer - and offering
+# it would tell the user something works that cannot.
+- tapOn:
+    text: "Cell actions"
+    below:
+      text: ".*untouched=1.*"
+    above:
+      text: ".*raw text.*"
+- assertNotVisible: "Cell menu Format cell"
+- assertNotVisible: "Cell menu Go to definition"
+- takeScreenshot: 02-raw-cell-has-no-format-row
+- back
+
+# Focus the messy cell so its ⋮ is the one the next tap finds - every header carries the same
+# "Cell actions" description and `tapOn` takes the first match (`definition.yaml`'s
+# pad-10 lesson), so the button is pinned from both sides: below the warmup cell's `ran in`
+# timing row and above this cell's own source.
+- tapOn:
+    text: ".*x=1.*"
+- tapOn:
+    text: "Cell actions"
+    below:
+      text: ".*ran in.*"
+    above:
+      text: ".*x=1.*"
+- tapOn: "Cell menu Format cell"
+
+# matches-source: the assertion *is* the source - autopep8's E225 fix landed on the asked
+# cell, which is exactly what the row promises.
+- extendedWaitUntil:
+    visible: ".*x = 1.*"
+    timeout: 30000
+# The field tap left the IME open, and it covers the cells below the one it serves - the
+# first run of this flow found `untouched=1` pushed under the keyboard, unchanged but
+# invisible. Hidden first, so the assertion below reads the notebook and not the IME.
+- hideKeyboard
+# The suffix guard's proof: the next cell keeps its own missing-whitespace - the formatter's
+# answer reached no further than the asked range.
+# matches-source: the next cell's own source is the assertion.
+- assertVisible: ".*untouched=1.*"
+- takeScreenshot: 03-formatted
+
+# Undo is one operation, which is what `recording` made it - the reference's Ctrl-Z after
+# `editor.action.format`. The wait is for the cell's own text back on screen, verbatim.
+- tapOn: "Undo cell operation"
+- extendedWaitUntil:
+    # matches-source: the cell's own restored source is what the wait observes.
+    visible: ".*x=1.*"
+    timeout: 15000
+- takeScreenshot: 04-undone

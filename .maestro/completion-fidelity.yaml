@@ -1,0 +1,54 @@
+appId: com.jupydroid.app
+---
+# P5e-2: what the row *says* versus what accepting it *writes*.
+#
+# pylsp signature-resolves its labels (`resolve_at_most`), so `os.path.jo` is offered under the
+# label `join(path, paths)` while `insertText` stays `join`. The row must render the label -
+# the signature is what teaches the call, VS Code's suggest widget does the same - and a tap
+# must still splice only the insert text: `os.path.join`, never `os.path.join(path, paths)`.
+#
+# Same scaffold as `language-completion.yaml`: the warmup cell runs first because
+# completion never starts a runtime on its own, and the second cell is EMPTIED before typing
+# so the query gate reads an unambiguous tail (`os.path.jo` at end of field).
+#
+# TABLET ONLY - `language-completion.yaml`'s header states the reason: the emulator's `FakeKernelGateway` never
+# opens a Space, so no `pylsp` runs there to answer with a signature-bearing label.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Completion Fidelity.ipynb"
+- extendedWaitUntil:
+    visible: ".*lsp_warmup.*"
+    timeout: 15000
+- tapOn: "Run cell"
+# `ran in` - the run's job is the open session the first keystroke's ask needs.
+- extendedWaitUntil:
+    visible: ".*ran in.*"
+    timeout: 180000
+- takeScreenshot: 01-kernel-session-open
+
+- tapOn: ".*# seed.*"
+- eraseText
+- inputText: "import os"
+- pressKey: Enter
+- inputText: "os.path.jo"
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 60000
+# The label, parens and all - matched by contentDescription, the same reason `language-completion.yaml` names.
+- assertVisible: "Completion join\\(path, paths\\)"
+- takeScreenshot: 02-label-and-glyph
+
+# Accepting splices `insertText` - the field reads `os.path.join`, and the signature stays on
+# the row it was shown under rather than in the code.
+- tapOn: "Completion join\\(path, paths\\)"
+- extendedWaitUntil:
+    notVisible: "Completions"
+    timeout: 10000
+# The field's whole text, full-match: `os.path.join` and nothing more - which is what proves
+# the splice wrote `insertText`, since a label splice would read `os.path.join(path, paths)`.
+# (Global `notVisible` on the label would race: a fresh ask for the new `join` tail may
+# legitimately reopen the popup the way re-typing does.)
+- assertVisible: "(?s)import os\nos\\.path\\.join"
+- takeScreenshot: 03-accepted-writes-the-insert

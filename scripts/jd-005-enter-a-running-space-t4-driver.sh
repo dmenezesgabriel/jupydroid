@@ -66,7 +66,7 @@ run_flow "$ROOT/.maestro/jd-005-enter-a-running-space-t3-part1-create-thesis.yam
 
 # Into Thesis's home alone: the marker is what the shell must list, and base's home lacks it. A
 # seed force-stops the app, which is why part 2 runs Thesis rather than part 1.
-NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/p5d2-diagnostics.ipynb" "Diagnostics"
+NOTEBOOK_DIR="$THESIS_HOME" seed_notebook "$ROOT/.maestro/fixtures/diagnostics.ipynb" "Diagnostics"
 NOTEBOOK_DIR="$THESIS_HOME" seed_file "$ROOT/.maestro/fixtures/thesis-only.txt" "thesis-only.txt"
 ! "$ADB" shell run-as "$APP" test -e "$BASE_HOME/thesis-only.txt" ||
   { echo "base's home holds the marker; the shell's listing would prove nothing" >&2; exit 1; }

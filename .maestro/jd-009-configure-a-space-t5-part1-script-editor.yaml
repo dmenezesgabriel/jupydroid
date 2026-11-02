@@ -2,7 +2,7 @@ appId: com.jupydroid.app
 ---
 # Base's Settings: the startup script is a code cell's own field. Three lines are typed - a comment,
 # an export of an expansion, an echo of a quoted one - Enter between them rather than one long
-# `inputText`, which can drop a character after `;` (`p7e-1-space-python.yaml`). The screenshot is
+# `inputText`, which can drop a character after `;` (`space-python.yaml`). The screenshot is
 # the claim, since the gutter's digits and the colours are drawn, not composed: line numbers 1-3,
 # the comment, `export` and `echo` as keyword and command, `DATA`/`$HOME`/`$DATA` as variables.
 - launchApp
