@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """What the two bare-`clickable` rows reserve, read out of a `uiautomator dump`.
 
-P2l-4. Compose expands the *hit area* of any clickable out to 48dp at the input layer, so a row
+Compose expands the *hit area* of any clickable out to 48dp at the input layer, so a row
 that reserves 32dp and a row that reserves 48dp are indistinguishable to `touchBoundsInRoot` -
 and the expanded half is the half a neighbour's direct hit takes away
 (`NodeCoordinator.outOfBoundsHit`). The layout bound is what tells them apart, and the

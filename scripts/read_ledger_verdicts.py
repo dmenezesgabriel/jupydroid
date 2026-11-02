@@ -13,11 +13,11 @@ are done has to be kept in step with the ledger.
 
 **A verdict table is any table whose header has a `Verdict` column**, read for the
 `notebook:*` ids in its first column. Bounded by the header rather than by a heading, so each
-slice's section is read by the same rule - and AUD-001's wire table, whose entries are message
+slice's section is read by the same rule - and the harness slice's wire table, whose entries are message
 types, contributes nothing.
 
 **A measurement, not a gate**, on `read_ledger_partition.py`'s footing: nothing in the build fails
-on its output, and the cross-check skips where `reference/` is absent.
+on its output, and the cross-check skips where the gitignored `reference` directory is absent.
 
 ```sh
 python3 scripts/read_ledger_verdicts.py            # every id and its verdict
@@ -70,7 +70,7 @@ def unverdicted_ids(owned: dict[str, str], verdicts: dict[str, str]) -> list[str
     """Ids an examined task owns without a verdict, and verdicts on ids nobody owns.
 
     ```
-    unverdicted_ids({"notebook:undo": "AUD-002 T2b", "notebook:redo": "AUD-002 T2b"},
+    unverdicted_ids({"notebook:undo": "<slice> T2b", "notebook:redo": "<slice> T2b"},
                     {"notebook:undo": "present"})   # ['notebook:redo']
     ```
     """

@@ -8,7 +8,7 @@ import unittest
 from read_named_bounds import named_rows, settings_count
 
 #: The modal rail open at one pane on SM-X216B (240 dpi), cut down from
-#: `evidence/settings-from-more/rail-open/window.xml`: a text and a content-desc node, an unnamed one,
+#: a dump of the open rail: a text and a content-desc node, an unnamed one,
 #: and the same name twice at one place, as Compose's merged and unmerged trees both report it.
 RAIL_OPEN = """<hierarchy>
   <node text="" content-desc="" bounds="[0,0][1200,1920]"/>

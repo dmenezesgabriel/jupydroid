@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Where each cell header's leading mark starts, read out of a `uiautomator dump`.
 
-P2n. `CellHeader` used to draw a kind label - the words "markdown" and "raw", this app's own - in
+`CellHeader` used to draw a kind label - the words "markdown" and "raw", this app's own - in
 front of the heading collapser, so the label's x was a function of what the cell happened to carry:
-in `git show 0dd10c9:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - that flow
-was renamed to `toc-side-panel` in P2o-2, so the frame is in git history rather than in
-the tree - a prose cell's label and a heading
+in a capture of the table-of-contents pane a prose cell's label and a heading
 cell's start 48dp apart in the same frame. The reference gives a non-code cell no prompt at all
 (`_setPrompt`'s single caller is `CodeCell._updatePrompt`, `packages/cells/src/widget.ts:1693-1700`)
 and its collapser costs no width, being an absolutely positioned child of the prompt
@@ -34,8 +32,8 @@ import sys
 import xml.etree.ElementTree as ElementTree
 
 #: Jupyter's prompt notation. The colon is optional so that a dump taken on the build *before*
-#: P2n still parses - the reference's own `[${value || ' '}]:` (`packages/cells/src/inputarea.ts:283-290`)
-#: is what the trailing one is.
+#: the kind labels were removed still parses - the reference's own `[${value || ' '}]:`
+#: (`packages/cells/src/inputarea.ts:283-290`) is what the trailing one is.
 PROMPT = re.compile(r"^\[(?: |\*|-|\d+)\]:?$")
 #: The two words this app used to draw where the reference draws nothing. Matched on purpose: they
 #: are what makes the `before` half of the pair ragged, and a reader that skipped them would report
@@ -96,7 +94,7 @@ def _texts(xml_text: str) -> list[str]:
 def effective_density(wm_density: str) -> int:
     """The density the window is actually laid out at, from one `adb shell wm density`.
 
-    The override wins; reading the first number instead is the mistake P2l-4 made once and
+    The override wins; reading the first number instead is the mistake an earlier version of this tool made and
     `read_touch_target_bounds.effective_density` documents in full.
 
     ```

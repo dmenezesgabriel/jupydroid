@@ -85,15 +85,15 @@ class LedgerVerdictTest(unittest.TestCase):
         self.assertEqual({"notebook:undo": "present"}, found)
 
     def test_a_row_naming_no_command_id_is_not_a_verdict_on_one(self) -> None:
-        """AUD-001's wire table has the same header, and its entries are message types."""
+        """The harness slice's wire table has the same header, and its entries are message types."""
         found = ledger_verdicts(_ledger(_TABLE_HEAD + "| `execute_request` | ours | present | — |\n"))
         self.assertEqual({}, found)
 
     def test_a_verdict_reaches_past_the_notebook_family(self) -> None:
         """Verdicts and partition share the one id pattern: `documentsearch:`/`toc:`,
-        AUD-005's `filebrowser:`/`docmanager:`, AUD-006's `console:`/`running:` plus the
-        menu delegates, AUD-007's `terminal:`, AUD-008's eight rendering families, and
-        AUD-009's twenty chrome families - menu shells and the hyphenated `workspace-ui:`/
+        the files slice's `filebrowser:`/`docmanager:`, the console slice's `console:`/`running:` plus the
+        menu delegates, the terminal slice's `terminal:`, the rendering slice's eight families, and
+        the chrome slice's twenty families - menu shells and the hyphenated `workspace-ui:`/
         `property-inspector:` included - are collected while a family no slice has claimed
         stays unread."""
         found = ledger_verdicts(
@@ -179,7 +179,7 @@ class VerdictedSurfaceTest(unittest.TestCase):
     """Every id an examined task owns carries exactly one verdict, against the real ledger.
 
     PartitionedSurfaceTest's shape one level up: that one refuses an id nobody owns, this one an id
-    a task owns and left unjudged. Skipped where `reference/` is absent, because the partition it
+    a task owns and left unjudged. Skipped where the gitignored `reference` directory is absent, because the partition it
     reads is only checked against the reference there.
     """
 

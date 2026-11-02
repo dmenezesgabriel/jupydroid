@@ -14,7 +14,8 @@ Classes (each a count of a different thing, named in the report line):
 - home path in blobs: commits whose diff adds or removes the host's `/home/<name>` (`git log -S`);
 - home path in messages: message lines carrying it (`--replace-text` leaves messages alone);
 - home path in file names: distinct paths ever carrying the account name;
-- paths under evidence/: distinct paths ever tracked there, since evidence is local and no commit may carry it;
+- paths under the local evidence directory: distinct paths ever tracked there, since evidence is local and
+  no commit may carry it;
 - commits adding a credential: commits with an added line holding a Jupyter server credential anywhere in the
   tree, read with `TOKEN_CARRIERS` from `check_device_secrets.py`, so the two cannot drift.
 
@@ -83,7 +84,7 @@ def _history_paths(root: Path) -> set[str]:
 
 
 def evidence_paths(root: Path) -> int:
-    """Distinct paths under `evidence/` across all history; evidence is local, so any is a miss."""
+    """Distinct paths under the local evidence directory across all history; evidence is local, so any is a miss."""
     return sum(name.startswith("evidence/") for name in _history_paths(root))
 
 

@@ -1,4 +1,4 @@
-"""What `read_search_box_width` reads out of a dump - P2x-3d, and the replace box at P2x-5e."""
+"""What `read_search_box_width` reads out of a dump - the query box and the replace box."""
 
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ class ReadSearchBoxWidthTest(unittest.TestCase):
 
 
 class ReadReplaceBoxWidthTest(unittest.TestCase):
-    """P2x-5e: the replace box, whose row starts with a chevron and ends with one toggle."""
+    """The replace box, whose row starts with a chevron and ends with one toggle."""
 
     #: The same pane with the replace row open: a 48dp chevron leading, then the box to the edge.
     DUMP = """<?xml version='1.0' encoding='UTF-8'?>

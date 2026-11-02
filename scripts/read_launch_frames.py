@@ -17,7 +17,7 @@ window, a splash or a pane is the majority of the frame, and text never is.
 A measurement, not a gate: the caller says which colour the theme should have drawn.
 
     adb exec-out screenrecord --output-format=frames --size 960x600 - \\
-      | python3 -I scripts/read_launch_frames.py evidence/<step>/first-frame/app-Dark
+      | python3 -I scripts/read_launch_frames.py <dir>/first-frame/app-Dark
 
 Tests in read_launch_frames_test.py.
 """

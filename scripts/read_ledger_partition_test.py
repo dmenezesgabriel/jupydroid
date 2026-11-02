@@ -100,12 +100,12 @@ class LedgerPartitionTest(unittest.TestCase):
         )
 
     def test_the_families_the_partition_has_reached_are_read(self) -> None:
-        """`notebook:` alone misses AUD-004's own ids - `documentsearch:` is camelCase.
+        """`notebook:` alone misses the search slice's own ids - `documentsearch:` is camelCase.
 
         The prefix list is closed on purpose: an open `x:y` pattern would read a verdict-table
-        first cell like `inspector:open` (AUD-003's caller table) as an id the partition owns
-        nowhere, so a family enters the pattern only when a slice has claimed it. AUD-009's
-        chrome brings the menu shells and the hyphenated `workspace-ui:`/`property-inspector:`
+        first cell like `inspector:open` (the editor-language-features slice's caller table) as an id the partition owns
+        nowhere, so a family enters the pattern only when a slice has claimed it. the
+        chrome slice brings the menu shells and the hyphenated `workspace-ui:`/`property-inspector:`
         families - a prefix may contain a dash, a suffix may not.
         """
         found = ledger_partition(
@@ -192,16 +192,16 @@ class LedgerPartitionTest(unittest.TestCase):
         )
 
     def test_an_unreached_family_is_not_read(self) -> None:
-        """`inspector:open` is a real id verdicted in AUD-003's caller table - and unclaimed,
+        """`inspector:open` is a real id verdicted in the editor-language-features slice's caller table - and unclaimed,
         because no slice owns the inspector-extension family yet. Unread rather than wrongly
         claimed."""
         found = ledger_partition(_ledger(_TABLE_HEAD + "| `inspector:open` | `AUD-003` | only a verdict cell |\n"))
         self.assertEqual({}, found)
 
     def test_declared_ids_cover_whole_packages_and_carried_ones(self) -> None:
-        """`documentsearch-extension`, `toc-extension`, AUD-005's three, AUD-006's two,
-        AUD-007's one, AUD-008's seven and AUD-009's eleven enter whole - `mainmenu-extension`
-        among them, so even the ids earlier slices carried out of it are declared by the
+        """`documentsearch-extension`, `toc-extension`, the files slice's three, the console slice's two,
+        the terminal slice's one, the rendering slice's seven and the chrome slice's eleven enter whole -
+        `mainmenu-extension` among them, so even the ids earlier slices carried out of it are declared by the
         partition now. From the packages a later slice owns, only the carried ids do -
         `fileeditor:undo` waits with the file editor's slice. `htmlviewer-extension` declares
         in `index.tsx`, so the fixture writes one there."""
@@ -326,12 +326,12 @@ class LedgerPartitionTest(unittest.TestCase):
 class PartitionedSurfaceTest(unittest.TestCase):
     """Every id the partition has reached is owned by exactly one slice.
 
-    The claim `docs/prd/AUD-002-*.md` makes in prose - *"an id assigned to no slice is how an area
+    The claim `docs/research/parity-ledger.md` makes in prose - *"an id assigned to no slice is how an area
     silently stays unexamined"* - asserted rather than hoped for. A bumped pin that adds a command
     fails here instead of leaving it owned by nobody. `declared_ids` names which packages the
     partition covers, and why a package can enter it one id at a time.
 
-    Skipped where `reference/` is absent, which is every fresh clone - PinnedSurfaceTest's shape.
+    Skipped where the `reference` directory is absent, which is every fresh clone - PinnedSurfaceTest's shape.
     """
 
     @classmethod

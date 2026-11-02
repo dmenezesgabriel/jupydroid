@@ -5,7 +5,7 @@ Two colours moved when the chrome palette was re-sourced: the explorer's open ro
 `list.inactiveSelectionBackground` - translucent in 2026 Light, so it paints `#E7E7E8` over the
 side bar rather than the `#DADADA` the ramp used to hand it - and the search toggles' on-wash
 becomes `inputOption.activeBackground`, the id they always cited. **Neither is something a Maestro
-assertion can read**, which is exactly how P7a-1's own defect survived a green suite
+assertion can read**, which is exactly how a wrong fill survived a green suite
 (`scripts/read_chrome_parts.py`, and ADR-0058).
 
 **Why not `read_chrome_parts.py`.** That one reads *columns*, because a part spans the window's

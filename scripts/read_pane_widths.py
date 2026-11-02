@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """What each column of the shell actually gets, read out of a `uiautomator dump`.
 
-P2o-3. The two-pane threshold is 840dp because of an arithmetic that predates the activity bar:
+The two-pane threshold is 840dp because of an arithmetic that predates the activity bar:
 360dp of list pane plus a divider left the notebook more than the width the single-pane layout was
 designed for. A rail takes width off the *window* before either pane sees it, so the arithmetic has
 to be redone against a measured rail rather than an assumed one.
@@ -25,7 +25,7 @@ import xml.etree.ElementTree as ElementTree
 BOUNDS = re.compile(r"\[(\d+),(\d+)]\[(\d+),(\d+)]")
 #: `wm density` prints `Physical density: N` and, when one is set, `Override density: N` after it.
 #: The override is the one in force, so the *last* match wins - reading the first is what made a
-#: phone's 126dp rows report as 126dp in P2l-4.
+#: phone-shaped run read the wrong density, as `read_touch_target_bounds.effective_density` records.
 DENSITY = re.compile(r"^\s*(?:Physical|Override) density:\s*(\d+)", re.MULTILINE)
 #: Material's baseline density, at which one dp is one pixel.
 BASELINE_DPI = 160.0

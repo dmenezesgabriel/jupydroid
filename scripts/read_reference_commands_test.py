@@ -348,7 +348,7 @@ class CloneHeadTest(unittest.TestCase):
 
 class ReferenceDirTest(unittest.TestCase):
     def test_an_absent_clone_names_the_path_and_the_command_that_makes_it(self) -> None:
-        """`reference/` is gitignored, so this is the normal state of a fresh clone."""
+        """The `reference` directory is gitignored, so this is the normal state of a fresh clone."""
         with self.assertRaises(FileNotFoundError) as raised:
             reference_dir("jupyterlab", root=Path(tempfile.mkdtemp()))
         message = str(raised.exception)
@@ -373,7 +373,7 @@ class PinnedSurfaceTest(unittest.TestCase):
     is checked rather than trusted: bumping a pin fails this test instead of leaving the
     specification silently wrong.
 
-    Skipped where `reference/` is absent, which is every fresh clone.
+    Skipped where the `reference` directory is absent, which is every fresh clone.
     """
 
     @classmethod

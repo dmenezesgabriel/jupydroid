@@ -74,6 +74,9 @@ SCANNED_FILES = (
     ".editorconfig",
     ".gitignore",
     ".pre-commit-config.yaml",
+    # `scripts/` joins one family at a time: widened whole it reports 781 hits at once, and nothing
+    # would keep a cleaned family clean. The globs collapse into SCANNED_TREES when the last joins.
+    "scripts/read_*.py",
 )
 
 #: Each pattern with the reason it is banned, which the failure message prints.
@@ -103,8 +106,7 @@ BANNED: tuple[tuple[re.Pattern[str], str], ...] = (
         "a deleted planning document",
     ),
     (re.compile(r"\bdocs/backlog\.md"), "the backlog is ephemeral; cite an ADR or state the fact"),
-    (re.compile(r"\bJD-\d+\b"), "a backlog id - ephemeral, and the PRD is deleted when it ships"),
-    (re.compile(r"\bOPS-\d+\b"), "a backlog id - ephemeral, and the PRD is deleted when it ships"),
+    (re.compile(r"\b(?:JD|AUD|OPS)-\d+\b"), "a backlog id - ephemeral, and the PRD is deleted when it ships"),
     (re.compile(r"\bevidence/"), "an evidence directory - restate the measurement in an ADR"),
     # Not preceded by a path or URL character, because `https://docs.python.org/3.14/reference/` is
     # the Python Language Reference - a published spec URL, which is the first thing this gate

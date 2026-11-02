@@ -32,7 +32,7 @@ class ReadNotebookOutputsTest(unittest.TestCase):
         self.assertIn("OSError: [Errno 8] Exec format error", text)
 
     def test_a_cell_that_printed_nothing_says_so(self) -> None:
-        """Silence and an unread output must not look alike; P7e-3 is written from these strings."""
+        """Silence and an unread output must not look alike; the probes are written from these strings."""
         self.assertIn("<no output>", self.read(self.cell("x = 1", [])))
 
     def test_an_output_type_it_does_not_know_is_reported_rather_than_dropped(self) -> None:

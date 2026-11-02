@@ -8,7 +8,7 @@ import unittest
 from read_pane_widths import _density_from, detail_width_at, shell_columns
 
 #: A shell with an activity bar and two panes, at density 240 - the tablet's own numbers, taken
-#: from `evidence/p2o-3-two-pane-threshold/tablet-1280dp/hierarchy.xml`.
+#: from a dump of a 1280dp-wide window.
 TWO_PANES = """<hierarchy>
   <node bounds="[0,0][1920,1200]" class="android.widget.FrameLayout"/>
   <node bounds="[0,0][120,1200]" class="android.view.View"/>
@@ -63,7 +63,7 @@ class DetailWidthTest(unittest.TestCase):
 
 
 class DensityTest(unittest.TestCase):
-    """The override is the density in force, and reading the first line is the P2l-4 defect."""
+    """The override is the density in force; reading the first line made a phone-shaped run misread it."""
 
     def test_the_physical_density_is_read_when_nothing_overrides_it(self) -> None:
         self.assertEqual(240, _density_from("Physical density: 240\n"))

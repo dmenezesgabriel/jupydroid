@@ -100,6 +100,11 @@ class CitationsInTest(unittest.TestCase):
         """An OPS item's PRD is deleted when it ships, as a JD item's is (ADR-0122)."""
         self.assertEqual(["OPS-006"], [t for _, t, _ in citations_in("// OPS-006 wires it\n")])
 
+    def test_an_audit_id_is_banned(self):
+        """An audit item's PRD is deleted when it ships, as a JD item's is (ADR-0067)."""
+        found = citations_in("# AUD-012's scan read it\n", hash_comments)
+        self.assertEqual(["AUD-012"], [t for _, t, _ in found])
+
     def test_a_possessive_step_code_is_banned(self):
         """`P6b-0's own fix` hid 199 citations from this gate until the boundary was widened."""
         self.assertEqual(["P6b-0"], [t for _, t, _ in citations_in("// P6b-0's own fix\n")])
@@ -194,6 +199,17 @@ class ScannedFilesTest(unittest.TestCase):
             with self.subTest(script=script):
                 self.assertIn(script, found)
         self.assertEqual([], [path for path in found if "/build/" in path])
+
+    def test_the_measurement_tools_and_their_tests_are_discovered(self):
+        """`scripts/read_*.py` is read, so a measurement tool cannot cite an item id again.
+
+        `scripts/` joins the gate one family at a time, each with the glob that names it, because a
+        whole-tree read reports 781 hits at once and nothing could keep a cleaned family clean.
+        """
+        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
+        for path in ("scripts/read_ledger_partition.py", "scripts/read_ledger_partition_test.py"):
+            with self.subTest(path=path):
+                self.assertIn(path, found)
 
     def test_a_package_narrows_to_that_package(self):
         found = scanned_files("domain")

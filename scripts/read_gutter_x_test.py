@@ -7,8 +7,8 @@ import unittest
 
 from read_gutter_x import effective_density, leading_marks, report
 
-#: One `uiautomator dump` from the build *before* P2n, trimmed to the three headers it is about:
-#: this app's invented `markdown` label, pushed 48px right on the heading cell by the collapser
+#: One `uiautomator dump` from the build *before* the kind labels were removed, trimmed to the three
+#: headers it is about: this app's invented `markdown` label, pushed 48px right on the heading cell by the collapser
 #: sitting in front of it, and a code prompt with no colon.
 BEFORE = """<?xml version='1.0' encoding='UTF-8'?>
 <hierarchy rotation="0">
@@ -23,7 +23,7 @@ BEFORE = """<?xml version='1.0' encoding='UTF-8'?>
 """
 #: The same frame after it: no kind labels at all, the collapser leading its own header, and the
 #: prompt carrying the reference's colon. Bounds are the real ones from
-#: `evidence/cell-header-prompts/after/hierarchy.xml`.
+#: a dump taken after the change.
 AFTER = """<?xml version='1.0' encoding='UTF-8'?>
 <hierarchy rotation="0">
   <node index="0" text="" bounds="[0,0][320,640]">

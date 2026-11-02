@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """How much of the search panel's two boxes is left to type in, read off a `uiautomator dump`.
 
-P2x-3d. The reference draws the three option toggles **inside** the input, at its trailing edge
+The reference draws the three option toggles **inside** the input, at its trailing edge
 (`findInput.ts:196`), and its input is a workbench sidebar's width on a desktop. Ours is a 360dp
 list pane, so whether a magnifier plus three 48dp targets still leave a readable query is a question
 about this device and not about the reference - and the answer decides whether the toggles stay in
 the box or move to a row beneath it.
 
-P2x-5e asks the same question of the **replace** box, which carries one toggle rather than three
+The same question is asked of the **replace** box, which carries one toggle rather than three
 and is disclosed by a chevron in a column of its own - so what it has left is a different number,
 and the chevron's cost to the row is what the placement decision turns on.
 
@@ -34,7 +34,7 @@ DENSITY = re.compile(r"^\s*(?:Physical|Override) density:\s*(\d+)", re.MULTILINE
 BASELINE_DPI = 160.0
 #: What the box answers to - `SEARCH_WORKSPACE_BOX`, which is deliberately not the panel's title.
 BOX_LABEL = "Search the workspace"
-#: `REPLACE_IN_WORKSPACE_BOX` - named apart from the find bar's for the same reason (P2x-5e).
+#: `REPLACE_IN_WORKSPACE_BOX` - named apart from the find bar's for the same reason.
 REPLACE_BOX_LABEL = "Replace across the workspace"
 #: Both names of each toggle, because a toggle here says what a **tap will do** rather than what is
 #: currently true (ADR-0036 on the labels that do not flip) - so an enabled Match Case is on screen
@@ -49,8 +49,8 @@ TOGGLE_LABELS = (
 )
 #: The replace box carries one toggle, and it flips its own name too - `ReplaceInput`'s preserve case.
 REPLACE_TOGGLE_LABELS = ("Preserve case", "Replace verbatim")
-#: The chevron that discloses the replace row, whose column is what P2x-5e departed from the
-#: reference to avoid taking off the query box - so what it costs *this* row is worth reading.
+#: The chevron that discloses the replace row, whose column is where this app departs from the
+#: reference to avoid taking width off the query box - so what it costs *this* row is worth reading.
 REPLACE_CHEVRON_LABELS = ("Show replace", "Hide replace")
 
 
@@ -149,7 +149,7 @@ def main() -> int:
     density = _density_from(sys.stdin.read())
     _report("query", xml_text, density, BOX_LABEL, TOGGLE_LABELS)
     # The chevron is drawn whether or not the row is open, so it is read on its own: what it costs
-    # this row is the number P2x-5e's departure is answerable to.
+    # this row is the number that departure is answerable to.
     for name, left, right in toggle_spans(xml_text, density, REPLACE_CHEVRON_LABELS):
         print(f"chevron  x {left:7.1f} .. {right:7.1f}dp   width {right - left:7.1f}dp   {name}")
     _report("replace", xml_text, density, REPLACE_BOX_LABEL, REPLACE_TOGGLE_LABELS)

@@ -82,8 +82,8 @@ class PartSeamsTest(unittest.TestCase):
     def test_an_antialiased_seam_reports_every_column_of_it(self) -> None:
         """A 1dp divider lands off the pixel grid, so the border is one solid column and one blend.
 
-        Measured, not supposed: `evidence/p7a-2-part-borders/before-the-fix/two-pane/dark/`
-        reads `#2A2B2C` at x=120 and `#1E1E20` at x=121.
+        Measured, not supposed: a frame of the dark two-pane layout, captured before the border
+        was drawn, reads `#2A2B2C` at x=120 and `#1E1E20` at x=121.
         """
         frame = _painted([(120, RAIL), (1, SEAM), (1, (0x1E, 0x1E, 0x20)), (300, PAGE)])
         self.assertEqual([("#2A2B2C", "#1E1E20")], [seam.colours for seam in part_seams(frame)])

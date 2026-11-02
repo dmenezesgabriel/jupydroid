@@ -7,7 +7,7 @@ import unittest
 
 from read_touch_target_bounds import effective_density, report, reserved_px
 
-#: One `uiautomator dump`, trimmed to the two nodes P2l-4 is about, at the sizes they shipped as.
+#: One `uiautomator dump`, trimmed to the two nodes the tool reads, at the sizes they shipped as.
 BEFORE = """<?xml version='1.0' encoding='UTF-8'?>
 <hierarchy rotation="0">
   <node index="0" content-desc="" bounds="[0,0][320,640]">

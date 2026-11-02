@@ -10,7 +10,7 @@ so a bumped pin that adds a command fails a test instead of leaving it owned by 
 
 **A measurement, not a gate**, on the same footing as `read_reference_commands.py` and
 `read_port_surface.py`: nothing in the build fails on its output, and the cross-check skips where
-`reference/` is absent, which is every fresh clone.
+the gitignored `reference` directory is absent, which is every fresh clone.
 
 **It stores no count and produces none.** The ledger names the entry and the owner; a reader who
 wants a total runs this.
@@ -43,8 +43,8 @@ PARTITION_HEADING = "### Who owns which id"
 
 #: A reference command id as the ledger's first column writes it, backticked. **The prefix list
 #: is closed on purpose**: a family enters it only when a slice has claimed it - an open `x:y`
-#: pattern would sweep first cells like `inspector:open` (a real id verdicted in AUD-003's caller
-#: table, whose family no slice owns) into "owned by nobody" reports. `documentsearch:` and
+#: pattern would sweep first cells like `inspector:open` (a real id verdicted in the editor-language-features
+#: slice's caller table, whose family no slice owns) into "owned by nobody" reports. `documentsearch:` and
 #: `kernelmenu:` carry camelCase suffixes; `workspace-ui:` and `property-inspector:` carry a dash
 #: in the *prefix*; the rest are lowercase.
 COMMAND_IN_CELL = re.compile(
@@ -64,11 +64,11 @@ COMMAND_IN_CELL = re.compile(
 #: `console-extension` declares the console's completer pair too (`completer:invoke-console`,
 #: `completer:select-console`), which is why `completer:` is in the pattern above while the
 #: completer's own package waits for its slice. `terminal-extension`'s eleven `terminal:*` ids
-#: are AUD-007's whole package — no other package declares a `terminal:` id, so nothing is
-#: carried. AUD-008's seven enter whole: `rendermime-extension`'s one id is its family's only
+#: are the terminal slice's whole package — no other package declares a `terminal:` id, so nothing is
+#: carried. The rendering slice's seven enter whole: `rendermime-extension`'s one id is its family's only
 #: declaration, `csvviewer-extension` carries two families at once (`csv:` and `tsv:`), and
 #: `htmlviewer-extension` declares its one id in `index.tsx`, which only
-#: `read_reference_commands.py`'s `*.tsx` half of the scan reaches. AUD-009's eleven chrome
+#: `read_reference_commands.py`'s `*.tsx` half of the scan reaches. The chrome slice's eleven
 #: packages enter whole too: `mainmenu-extension` moves out of `CARRIED_PACKAGES`, so the ten
 #: ids earlier slices claimed out of it are now declared by the partition rather than picked;
 #: `application-extension` declares `sidebar:switch` and two ids in foreign families
@@ -107,9 +107,9 @@ PARTITIONED_PACKAGES = (
 )
 
 #: Ids a slice owns though the package declaring them belongs to a later slice: `fileeditor:find`
-#: is AUD-004's while the rest of `fileeditor-extension` waits for the file-editor slice, and
-#: `fileeditor:create-new` plus `fileeditor:create-new-markdown-file` are AUD-005's because they
-#: create files rather than edit one. `mainmenu-extension` is carried no longer - AUD-009 owns it
+#: belongs to the search slice while the rest of `fileeditor-extension` waits for the file-editor slice, and
+#: `fileeditor:create-new` plus `fileeditor:create-new-markdown-file` belong to the files slice because they
+#: create files rather than edit one. `mainmenu-extension` is carried no longer - the chrome slice owns it
 #: whole, so the ten ids earlier slices took out of it are declared by the partition above.
 #: `notebook-extension` stays carried, for one id: `toc:run-cells` is declared there under the
 #: `toc:` prefix (`index.ts:351`) for a ToC row's context menu, so the `notebook:` filter over
@@ -141,9 +141,10 @@ def declared_ids(packages: Path) -> list[str]:
     )
 
 
-#: A slice, and optionally the task inside it: `AUD-002` `T2b`. The task is kept because it is what
-#: makes the remaining work pickable - "this slice's editing half" is a different answer from "this
-#: slice", and the second is the one that leaves a reader guessing.
+#: A slice, and optionally the task inside it: the ledger writes a slice id and then a task such as `T2b`.
+#: The task is kept because it is what makes the remaining work pickable - "this slice's editing
+#: half" is a different answer from "this slice", and the second is the one that leaves a reader
+#: guessing.
 OWNER_IN_CELL = re.compile(r"`(AUD-\d{3}|T\d+[a-z]?)`")
 
 
@@ -154,7 +155,7 @@ def ledger_partition(ledger: Path = LEDGER) -> dict[str, str]:
     examined it is the same hole as nobody claiming it at all.
 
     ```
-    ledger_partition()["notebook:split-cell-at-cursor"]   # 'AUD-002 T2b'
+    ledger_partition()["notebook:split-cell-at-cursor"]   # '<slice id> T2b'
     ```
     """
     owners: dict[str, str] = {}
@@ -177,7 +178,7 @@ def unassigned_ids(declared: list[str], owned: dict[str, str]) -> tuple[list[str
     nobody will examine, the second a row still naming a command the reference has since renamed.
 
     ```
-    unassigned_ids(["notebook:trust"], {"notebook:undo": "AUD-002 T2b"})
+    unassigned_ids(["notebook:trust"], {"notebook:undo": "<slice id> T2b"})
     # (['notebook:trust'], ['notebook:undo'])
     ```
     """

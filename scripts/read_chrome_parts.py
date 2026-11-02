@@ -18,7 +18,7 @@ minority of any column it appears in, so the mode is the part behind it.
 border - the thing that *separates* parts - and reporting it as a third one would make the
 oracle's own output depend on whether a border happened to be drawn.
 
-**And what is dropped there is read by [part_seams], because P7a-2 is about exactly it.** VS Code
+**And what is dropped there is read by [part_seams], because the missing side-bar border is exactly it.** VS Code
 gives every part its own border id - `activityBar.border` *"separating to the side bar"* and
 `sideBar.border` *"on the side separating to the editor"* (`workbench/common/theme.ts:417,623`),
 both `#2A2B2C` / `#F0F1F2` in the 2026 themes. This app drew the first and not the second, and

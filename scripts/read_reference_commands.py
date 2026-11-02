@@ -8,7 +8,7 @@ the SHAs `docs/README.md` pins - so that bumping a pin re-measures rather than q
 prose, the way a stored test count drifted before `count-tests.sh` (ADR-0001).
 
 **A measurement, not a gate**, on the same footing as `resolve_vscode_theme.py` and
-`read_pane_widths.py`: nothing in the build fails on its output. It reads `reference/`, which is
+`read_pane_widths.py`: nothing in the build fails on its output. It reads the `reference` directory, which is
 gitignored and travels with no clone, so an absent clone is reported with the command that makes it
 rather than treated as an error in the tree.
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Every native library in an APK or AAR, and the RELRO state of each.
 
-**Why this exists.** AUD-012's MobSF scan read `libzstd-jni-1.5.7-9.so` with no RELRO on
-arm64-v8a and partial on the other three ABIs - the only `.so` in the APK below Full
-(`evidence/aud-012-code-scans/mobsf-native-libs.tsv`). MobSF's native-libs table is itself a
+**Why this exists.** A MobSF scan read `libzstd-jni-1.5.7-9.so` with no RELRO on
+arm64-v8a and partial on the other three ABIs - the only `.so` in the APK below Full.
+MobSF's native-libs table is itself a
 `readelf` reading; this produces the same fact without the container, so the claim "every
 native library has full RELRO" is re-runnable on any build.
 
