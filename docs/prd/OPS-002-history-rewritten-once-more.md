@@ -97,7 +97,7 @@ Reproduce from the repository root:
 | decision | `docs/adr/0133-*`; ADR-0015's status line points to it |
 | ledger | `docs/backlog.md` |
 
-Comments under `app/` lose their ids at T8, nothing else there changes. Rehearsal numbers go in commit bodies,
+Rehearsal numbers go in commit bodies,
 written with `$HOME`, never the literal. `.sensitive-strings.local` is input only: never printed, quoted or
 committed.
 
@@ -210,9 +210,32 @@ One TDD unit each, one conventional commit each.
     resolves to a tracked file. Left to T8: item ids in comments (`JD-069's demo`, `jd-023's flow`, the
     `jd-046`/`jd-058` helper headers), the item-coded evidence directories (`jd-032`, `jd-062`, `jd-063`, `jd-064`) that
     drivers no slice renamed still write to, `chat-server`'s device file `t2.chat`, and the `part N failed` messages.
-- [ ] T8 — ids out of code: `check_doc_citations.py` loses its driver and flow exemption and learns
-  `AUD-NNN`; the 141 id matches in code and tests and whatever the wider scope surfaces are restated.
-  Red test first for each new rule.
+- T8 — ids out of code: `check_doc_citations.py` loses its driver and flow exemption and learns
+  `AUD-NNN`; every plan-step label, item id and `evidence/<dir>` a comment cites is restated so it stands
+  alone. Red test first for each new rule. The gate passes today only because it never reads `scripts/` or
+  `.maestro/`: widened, it reports 781 comment hits in 369 files (172 in `*-driver.sh`, 426 in
+  `.maestro/*.yaml`, 73 in `check_*.py`, 68 in `read_*.py`, 42 in the other `scripts/` files). `app/`,
+  `extensions/` and `tools/` already carry none. So each slice adds its own glob to `SCANNED_FILES` and
+  cleans that family, which the commit hook then keeps clean; the last slice collapses the globs into
+  `SCANNED_TREES`. A prefix label is dropped; a sentence that leans on an id is rewritten to state the
+  fact. The gate's own docstrings and tests describe a banned pattern in words and keep their examples in
+  string literals, which no scanner reads.
+  - [ ] T8a — the gate learns `AUD-NNN` (the `JD` and `OPS` entries become one pattern), and
+    `scripts/read_*.py` joins its scope: 68 hits in 23 files.
+  - [ ] T8b — `scripts/check_*.py` and the other `scripts/*.py` and `*.sh` (115 hits), with the gate's own
+    "Out of scope on purpose" paragraph.
+  - [ ] T8c — `scripts/*-driver.sh` from `a` to `l`, with the item-coded `OUT=` evidence directories
+    (`jd-062-…`, `x2a-…`, `p6a-18`) and the device file names they create (`t2.chat`).
+  - [ ] T8d — `scripts/*-driver.sh` from `m` to `z`, the same way.
+  - [ ] T8e — `.maestro/[a-m]*.yaml` (201 hits) and the names those flows type on the device.
+  - [ ] T8f — `.maestro/[n-z]*.yaml` (225 hits), the same way. Either of T8e and T8f is split again when
+    opened if its first count says so.
+  - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
+    names, kernelspec names). No gate reads a string literal, so the commit body names the `git grep` that
+    measured it.
+  - [ ] T8h — the globs collapse into `scripts` and `.maestro` in `SCANNED_TREES`; `.ipynb`, `.txt`, `.csv`,
+    `.chat` and the extensionless `gradlew-jbr` get a scanner or join `NO_PROSE`; `AGENTS.md`'s tooling row
+    and `docs/README.md` follow. Demo step 6 is run.
 - [ ] T9 — `scripts/remap_cited_shas.py`: from a `commit-map`, rewrite every 7 to 12 hex token in tracked
   text that prefixes exactly one old commit; refuse an ambiguous prefix with its value; `--dry-run` prints
   counts. Red tests first, on a fixture map.
