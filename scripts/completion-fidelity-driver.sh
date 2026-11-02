@@ -13,7 +13,7 @@
 #   2. The cell reads `os.path.join` after a tap and `join(path, paths)` is nowhere - the
 #      splice took `insertText`, which is what keeps `${1:}` payload text out while
 #      `snippetSupport` stays undeclared.
-#   3. logcat's `lsp.start` during the flow - the answer came down the P5b adapter.
+#   3. logcat's `lsp.start` during the flow - the answer came down the language-server adapter.
 #      The buffer is cleared first, so an `lsp.start` older than this run cannot satisfy it.
 set -euo pipefail
 

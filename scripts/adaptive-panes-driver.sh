@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Runs the adaptive-panes flow that matches the width the device it is given actually has.
 #
-# **Two devices, not one device wearing a costume**, for the reason U5b's driver records at
-# length: forcing a width with `wm density` produced windows no phone has and assertions had to
-# be weakened to survive them.
+# **Two devices, not one device wearing a costume**, for the reason
+# `action-presentation-driver.sh` records at length: forcing a width with `wm density` produced
+# windows no phone has and assertions had to be weakened to survive them.
 #
 #   ANDROID_SERIAL=TABLET_SERIAL   scripts/adaptive-panes-driver.sh   # 1280dp -> two panes
 #   ANDROID_SERIAL=emulator-5554 scripts/adaptive-panes-driver.sh   #  320dp -> one pane

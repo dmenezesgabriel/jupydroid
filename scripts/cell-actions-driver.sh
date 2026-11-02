@@ -5,7 +5,7 @@
 #
 # The screenshots show what happened; the *saved file*, printed at the end, is what proves it.
 # Change-type and merge both rewrite the notebook's structure, and a menu that appeared to work
-# while writing the wrong thing to disk is exactly the failure Step 4b's cell menu had to be
+# while writing the wrong thing to disk is exactly the failure the cell menu had to be
 # checked for by reading the file back.
 set -euo pipefail
 

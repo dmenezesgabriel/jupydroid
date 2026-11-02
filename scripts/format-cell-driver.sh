@@ -15,7 +15,8 @@
 #   3. The raw cell's menu has no row - the virtual document maps code cells only, so a
 #      non-code cell's ask could never resolve.
 #   4. logcat's `lsp.start` and `rangeFormatting` during the flow - the answer came down the
-#      P5b adapter. The buffer is cleared first, so an older `lsp.start` cannot satisfy it.
+#      language-server adapter. The buffer is cleared first, so an older `lsp.start` cannot
+#      satisfy it.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

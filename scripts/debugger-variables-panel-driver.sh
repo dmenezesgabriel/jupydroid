@@ -2,10 +2,9 @@
 # The gate: once a breakpoint has genuinely paused a real kernel, the debugger's side
 # panel shows the real call stack and the real top-frame variables a live `debug_reply` answered.
 #
-# Reuses P6a-7b's own two flows to reach that paused state - the breakpoint arm/run and the real
-# `sleep` settle its own driver measured necessary (`debugger-stop-driver.sh`) - rather than
-# duplicating either, then runs this row's own flow against the same fixture and evidence
-# directory.
+# Reuses `debugger-stop-driver.sh`'s own two flows to reach that paused state - the breakpoint
+# arm/run and the real `sleep` settle it measured necessary - rather than duplicating either,
+# then runs this row's own flow against the same fixture and evidence directory.
 set -euo pipefail
 
 # TABLET ONLY (SM-X216B). On the x86_64 emulator MainActivity falls back to FakeKernelDebugger,

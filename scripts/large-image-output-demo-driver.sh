@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, seeded: a notebook whose first cell displays a 12800 x 3200 PNG, past the canvas
+# The demo, seeded: a notebook whose first cell displays a 12800 x 3200 PNG, past the canvas
 # limit, and whose second displays a 300 x 60000 one. Run, the first draws across the column at 4:1
 # above the kernel's 42 and the second 300 dp wide under its 48; a Console on the same kernel draws
 # the first across its entry; and after a kill and a relaunch, with No Kernel, both draw again from

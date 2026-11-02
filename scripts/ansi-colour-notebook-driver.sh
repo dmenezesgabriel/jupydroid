@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-OUT="${EVIDENCE_ROOT:-$ROOT/evidence/ansi-colour}/t1-notebook"
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/ansi-colour}/notebook"
 
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/ansi-colour.ipynb" "Ansi Colour"

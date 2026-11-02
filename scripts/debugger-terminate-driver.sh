@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The gate: Terminate is the escape hatch Interrupt cannot be for a kernel paused under
-# the debugger - P6a-10's own investigation found eleven repeated interrupts over two minutes
+# the debugger - an earlier investigation found eleven repeated interrupts over two minutes
 # never freed a genuinely stopped session on this same tablet.
 set -euo pipefail
 

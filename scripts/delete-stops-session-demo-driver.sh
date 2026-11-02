@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: deleting a notebook stops the kernel session it was running. From a cold start,
+# The demo: deleting a notebook stops the kernel session it was running. From a cold start,
 # `a.ipynb` is created, runs a cell and is deleted with its tab open; `b.ipynb` the same with its tab
 # closed; `c.ipynb` is replaced by `d.ipynb` renamed over it. Each time the Running panel's kernel
 # row leaves with the file. Then `e.ipynb` is deleted beside `keep.ipynb`, whose row stays and

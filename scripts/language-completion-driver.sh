@@ -10,7 +10,8 @@
 #   1. The popup itself: `Completion join` appears over `import os` + `os.path.jo` - the
 #      answer a static parser gives, typed into a real cell on a real device.
 #   2. logcat's `lsp.start` stage *during the flow*: the port spawned `pylsp` on the first
-#      keystroke's ask, so the popup's answer came down the P5b adapter - not the kernel.
+#      keystroke's ask, so the popup's answer came down the language-server adapter - not the
+#      kernel.
 #      The buffer is cleared first, so an `lsp.start` older than this run cannot satisfy it.
 set -euo pipefail
 

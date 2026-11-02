@@ -5,13 +5,12 @@
 # status glyph beside "Python 3" wants about 110dp, so 320dp is the width that decides it; the
 # tablet has 567dp free and would draw the name whatever the rule said.
 #
-# **Not NARROW WINDOW**, which this driver declared until P2z and which means <840dp - so it also
-# admits the tablet in portrait at **800dp**, a *medium* window where `kernelNameOnBar` is true and
-# `assertNotVisible: "Python 3"` is false by design. P2w-2's own rule is that the name goes *below
-# 600dp*, so the boundary this flow asserts is the medium one and never 840dp. It passed for as long
-# as it did only because the sharder had no <840dp device but the emulator to give it; P2z's portrait
-# pass gave it one and it went red immediately
-# (`evidence/p2z-suite-sweep/portrait-800dp/RED-p2w-2-kernel-indicator-narrow.log`).
+# **Not NARROW WINDOW**, which this driver declared until the 800dp sweep found otherwise, and
+# which means <840dp - so it also admits the tablet in portrait at **800dp**, a *medium* window
+# where `kernelNameOnBar` is true and `assertNotVisible: "Python 3"` is false by design. The rule
+# is that the name goes *below 600dp*, so the boundary this flow asserts is the medium one and
+# never 840dp. It passed for as long as it did only because the sharder had no <840dp device but
+# the emulator to give it; the sweep's portrait pass gave it one and it went red immediately.
 #
 # `cell-type-in-the-overflow-driver.sh` had already written this reasoning down for the sibling
 # control on the same row - "a window where the bar *does* carry the control and this flow's first

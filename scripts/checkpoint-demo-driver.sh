@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# The PRD's demo: a document reverts to its checkpoint. The T1 driver runs as it stands, then the
-# app is killed and relaunched: notes.py still reverts to its saved line and the reverted
+# The demo: a document reverts to its checkpoint. `checkpoint-revert-driver.sh` runs as it stands,
+# then the app is killed and relaunched: notes.py still reverts to its saved line and the reverted
 # target.ipynb runs. A checkpoint removed by hand from under an open tab answers No checkpoints.
-# The T2 driver then runs as it stands: a rename carries the checkpoint, and a folder holding only
-# .ipynb_checkpoints deletes.
+# `checkpoint-follows-file-driver.sh` then runs as it stands: a rename carries the checkpoint, and
+# a folder holding only .ipynb_checkpoints deletes.
 #
 #   scripts/checkpoint-demo-driver.sh
 #
@@ -49,7 +49,8 @@ notes="$(read_on_disk notes.py)"
 record "after the kill and relaunch, notes.py on disk: $notes"
 [[ "$notes" == *typed_a* && "$notes" != *typed_c* ]] || fail "expected notes.py to hold the save, found: $notes"
 
-# Nothing after the relaunch needs what T1 left, so parts 5 and 6 start from a reset of their own.
+# Nothing after the relaunch needs what the revert flow left, so parts 5 and 6 start from a
+# reset of their own.
 reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/notes.py" handmade/plain.py
 run_flow "$ROOT/.maestro/checkpoint-demo-open.yaml" "$EVIDENCE/part5-open"

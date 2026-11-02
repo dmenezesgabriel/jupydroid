@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: a display updated from a later cell redraws in place,
+# The demo, typed into a new notebook: a display updated from a later cell redraws in place,
 # an image keeps `width=100`, a Console redraws across its entries, and after a kill and a relaunch
 # cell 1 still shows the last frame alone and the saved file holds the image's metadata and no
 # `transient`.

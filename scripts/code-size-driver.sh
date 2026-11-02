@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Seeds a one-line code cell that prints, then captures the three surfaces that draw code.
 #
-# **The evidence is one frame with all three in it, and a pair around it.** P2l-3a puts the cell's
-# source, its output and the completion popup on one size and one line height; each of those was a
-# different size before, so a screenshot of any one of them says nothing. Run once on the build
-# before the change and once after, into `before/` and `after/`.
+# **The evidence is one frame with all three in it, and a pair around it.** The cell's
+# source, its output and the completion popup are on one size and one line height; each of those
+# was a different size before, so a screenshot of any one of them says nothing. Run once on the
+# build before the change and once after, into `before/` and `after/`.
 #
 # TABLET ONLY (SM-X216B). Completions come from the kernel's `complete_request`; the fake has none.
 # On the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's

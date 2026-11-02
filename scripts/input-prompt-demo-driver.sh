@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: input() and getpass() prompt under the cell and carry
+# The demo, typed into a new notebook: input() and getpass() prompt under the cell and carry
 # on with the answer, Stop closes an unanswered prompt, a Console entry prompts the same way, and
 # after a kill and a relaunch the echo is still drawn and still saved as `stdin`.
 #

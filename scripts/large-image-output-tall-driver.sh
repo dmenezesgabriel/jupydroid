@@ -17,7 +17,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/image-nodes.sh
 . "$ROOT/scripts/image-nodes.sh"
 
-EVIDENCE="$ROOT/evidence/large-image-output/t2"
+EVIDENCE="$ROOT/evidence/large-image-output/tall"
 NOTEBOOK="Tall Image"
 OWN_WIDTH_DP=300
 

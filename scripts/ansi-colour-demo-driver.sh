@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: a coloured print, a repr that colours itself and a
+# The demo, typed into a new notebook: a coloured print, a repr that colours itself and a
 # traceback draw in their colours in the notebook and the Console, first in the system's dark theme
 # and then in the app's Light, and after a kill and a relaunch they are still coloured and saved
 # with their escapes.

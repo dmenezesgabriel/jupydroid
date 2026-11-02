@@ -141,7 +141,7 @@ same_app "after part 4"
 capture after-reopen
 
 # --- and the one thing no code can cover: Android killing the app outright. Measured rather
-# than assumed, because "app-death backstop" is what P1c is called.
+# than assumed, because "app-death backstop" is what this gate is called.
 "$ADB" shell am force-stop "$APP"
 sleep 2
 {

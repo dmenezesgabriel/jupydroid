@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: an open document follows its file. A cell in writer.ipynb rewrites notes.py and
+# The demo: an open document follows its file. A cell in writer.ipynb rewrites notes.py and
 # target.ipynb while both are open, and each tab shows the cell's version with no Reload tapped; a
 # typed edit survives the cell's second write, and Reload still asks about it. Then, with autosave
 # turned on, a typed edit is saved by the debounce and the tab keeps its text and caret.

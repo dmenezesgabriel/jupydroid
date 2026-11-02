@@ -4,7 +4,7 @@
 # the chat reopened in portrait, Claude and OpenCode picked again, and landscape again. Each window's named
 # bounds are dumped so a chip's width is read, not eyeballed.
 #
-#   nice -n 10 timeout 1800 scripts/chat-chips-full-width-driver.sh <evidence subdirectory, e.g. t1/after>
+#   nice -n 10 timeout 1800 scripts/chat-chips-full-width-driver.sh <evidence subdirectory, e.g. first-run>
 #
 # Run on an install where base holds opencode and Claude's ACP adapter, both signed in, as
 # scripts/agent-pick-driver.sh requires. Nothing is asked, so no agent's quota is spent.
@@ -21,7 +21,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/rotation-reads.sh
 . "$ROOT/scripts/rotation-reads.sh"
 
-EVIDENCE="$ROOT/evidence/jd-063-chat-chips/${1:?which evidence subdirectory, e.g. t1/after}"
+EVIDENCE="$ROOT/evidence/chat-chips-full-width/${1:?which evidence subdirectory, e.g. first-run}"
 FLOWS="$ROOT/.maestro/chat-chips-full-width"
 
 mapfile -t DEVICE_ADB < <(device_adb)

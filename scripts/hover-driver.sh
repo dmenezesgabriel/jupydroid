@@ -12,7 +12,7 @@
 #      signature's `(values` being what the bare cell text cannot already show.
 #   2. An outside tap makes the popup leave - dismissal through `onDismissRequest`, the same
 #      focusable-Popup path the diagnostic card proved.
-#   3. logcat's `lsp.start` during the flow - the answer came down the P5b adapter.
+#   3. logcat's `lsp.start` during the flow - the answer came down the language-server adapter.
 #      The buffer is cleared first, so an `lsp.start` older than this run cannot satisfy it.
 set -euo pipefail
 

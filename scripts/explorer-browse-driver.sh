@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Seeds a workspace with a folder in it and runs the X2a browse flow.
+# Seeds a workspace with a folder in it and runs the explorer-browse flow.
 #
 # The emulator is enough: nothing here runs a cell, so `FakeKernelGateway` never gets asked
 # anything. It is also the better device for this one - at 320dp it is the narrowest window the
@@ -19,4 +19,4 @@ reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/explorer-root.ipynb" "At Root"
 seed_notebook "$ROOT/.maestro/fixtures/explorer-nested.ipynb" "reports/Nested"
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
-run_flow "$ROOT/.maestro/explorer-browse.yaml" "$ROOT/evidence/x2a-explorer-browse"
+run_flow "$ROOT/.maestro/explorer-browse.yaml" "$ROOT/evidence/explorer-browse"

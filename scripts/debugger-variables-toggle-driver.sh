@@ -40,7 +40,7 @@ trap restore_rotation EXIT
 
 reset_notebooks
 seed_notebook "$FIXTURE" "Debugger Step"
-rotate_to 0 # portrait: 800dp, one pane - see evidence/p6a-18/portrait/window-size.txt
+rotate_to 0 # portrait: 800dp, one pane
 
 flow_status=0
 run_flow "$ROOT/.maestro/debugger-variables-toggle-one-pane.yaml" "$EVIDENCE" || flow_status=$?

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# X2c Step 1 evidence: a .py opens in the plain editor, typing is saved by the debounced write.
+# Evidence: a .py opens in the plain editor, typing is saved by the debounced write.
 #
 # The emulator is enough: nothing here runs a cell, so `FakeKernelGateway` is never consulted. The
 # file lands at the *workspace root*, because the folder cases are explorer-browse's job; this
@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/file-editor.py" "file_editor.py"
-run_flow "$ROOT/.maestro/file-editor.yaml" "$ROOT/evidence/x2c-file-editor"
+run_flow "$ROOT/.maestro/file-editor.yaml" "$ROOT/evidence/file-editor"
 
 # The flow's assertions only prove the text is *on screen*; the debounced write must be proven on
 # disk, or a save path that renders but never persists would look green.

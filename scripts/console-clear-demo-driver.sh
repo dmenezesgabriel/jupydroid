@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: a cell starts the kernel, and a Console on it clears
+# The demo, typed into a new notebook: a cell starts the kernel, and a Console on it clears
 # entry 1 at once and entry 2 when its next output arrives, leaving entry 1 as it was.
 #
 #   scripts/console-clear-demo-driver.sh

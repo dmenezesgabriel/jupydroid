@@ -13,8 +13,8 @@
 #   2. logcat's `lsp.*` stages - lazy start on first use, clean stop - the lifecycle claim the
 #      instrumentation's OK alone does not show.
 #   3. The Maestro flow: on the build carrying the adapter, a real terminal still drives pylsp
-#      by name and over stdio. The port has no user-visible surface yet (P5c plugs the popup
-#      in), so the flow's claim is the one wiring could have broken.
+#      by name and over stdio. The port has no user-visible surface yet (the completion popup plugs
+#      it in), so the flow's claim is the one wiring could have broken.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -46,7 +46,7 @@ echo "=== LanguageServerPort's stdio adapter against real pylsp, on $MODEL ==="
   grep '"stage":"lsp\.' | tail -20 > "$OUT/lsp-lifecycle.log"
 echo "--- lsp lifecycle ---"; cat "$OUT/lsp-lifecycle.log"
 
-# 3. The terminal session on the wired build - the file-readback oracle, per P4j-3b.
+# 3. The terminal session on the wired build - the file-readback oracle.
 reset_notebooks
 run_flow "$ROOT/.maestro/language-server.yaml" "$OUT"
 

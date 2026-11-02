@@ -8,7 +8,7 @@
 # over seven sightings, so a single green flow was never evidence either way - that is exactly how
 # it survived three investigations. This is what makes "it stopped happening" a measurement.
 #
-# It reports three outcomes, not two. Since P0b an unanswered greeting restarts the kernel and
+# It reports three outcomes, not two. An unanswered greeting restarts the kernel and
 # greets the new one, so a stall now ends in a *passing* run - and a driver that only counted
 # pass/fail could not tell "no stall occurred" from "a stall occurred and was recovered from",
 # which are the two readings this instrument exists to separate. `R` is the second.
@@ -34,7 +34,8 @@ recovered=0
 
 # Everything the kernel and the server said during one run, kept beside each other.
 #
-# Pulled for a *pass* as well as a failure, which a driver written before P0b did not need to do.
+# Pulled for a *pass* as well as a failure, which a driver written before the recovery did not
+# need to do.
 # The recovery restarts the kernel on an unanswered greeting, so a stall that used to be a failed
 # run is now a passed one - and capturing only failures would throw away the very run that shows
 # the fix working. "Passed" and "passed after recovering" are different results.
@@ -42,8 +43,8 @@ capture_run() {
   local run="$1" why="$2"
   grep -oE '\{"stage":"kernel[^}]*\}' "$(newest_run_dir completion-popup)/logs/device-logcat.txt" \
     > "$ROOT/build/flow-logs/repeat-$run-$why-kernel.jsonl" || true
-  # The server's half, which is the one no sighting before the seventh ever had, and which since
-  # P0a carries the kernel's own `*** MESSAGE TYPE:...***` per shell dispatch - so a stall says
+  # The server's half, which is the one no sighting before the seventh ever had, and which carries
+  # the kernel's own `*** MESSAGE TYPE:...***` per shell dispatch - so a stall says
   # whether the request reached the kernel at all.
   "$ADB" shell run-as "$APP" cat files/spaces/base/run/jupyter_server.log \
     > "$ROOT/build/flow-logs/repeat-$run-$why-server.log" 2>/dev/null || true

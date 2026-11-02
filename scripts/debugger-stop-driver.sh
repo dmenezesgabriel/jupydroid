@@ -28,7 +28,7 @@ SERVER_LOG="files/spaces/base/run/jupyter_server.log"
 # against a 1000ms vs a 14000ms timeout, wall clock differed by ~7.6s rather than the ~13s a
 # faithful wait would cost, and two on-device runs at 20000ms and 60000ms both still caught the
 # breakpoint grey and the line unhighlighted. So the wait is a real one, in bash, between two
-# flows - the same shape P1c's own driver uses for its 45s idle-grace wait.
+# flows - the same shape `app-death-backstop-driver.sh` uses for its 45s idle-grace wait.
 SETTLE_WAIT=20
 
 reset_notebooks

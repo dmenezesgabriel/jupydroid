@@ -230,6 +230,21 @@ class ScannedFilesTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(path, found)
 
+    def test_the_first_half_of_the_drivers_is_discovered(self):
+        """`scripts/[a-l]*-driver.sh` is read, so a driver cannot cite an item id again.
+
+        The `m`-`z` half joins in the slice that follows; a range glob rather than one name per
+        file keeps a driver added later inside the gate from the day it is written.
+        """
+        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
+        for path in (
+            "scripts/adaptive-panes-driver.sh",
+            "scripts/chat-server-driver.sh",
+            "scripts/list-selection-driver.sh",
+        ):
+            with self.subTest(path=path):
+                self.assertIn(path, found)
+
     def test_a_package_narrows_to_that_package(self):
         found = scanned_files("domain")
         self.assertTrue(found)

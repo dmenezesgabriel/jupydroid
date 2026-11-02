@@ -4,7 +4,7 @@
 #
 #   ANDROID_SERIAL=TABLET_SERIAL scripts/list-selection-driver.sh
 #
-# P7a-1b's first half. `list.inactiveSelectionBackground` is **translucent in 2026 Light**
+# `list.inactiveSelectionBackground` is **translucent in 2026 Light**
 # (`#DADADA99`) and the ramp held it opaque, because the row was drawn from `secondaryContainer` -
 # a role that also served the search toggles' on-wash and two contextual top bars, none of them a
 # list. The row now takes the side bar's own field and paints the wash the reference draws.
@@ -13,12 +13,12 @@
 # `openDocumentPath` with `.takeIf { twoPane }`, so below two panes no row is ever marked and there
 # is nothing here to measure. One device can only prove the half it can draw.
 #
-# **Two themes rather than one, for the reason U1 records**: a single-theme capture cannot tell a
+# **Two themes rather than one**: a single-theme capture cannot tell a
 # working palette from one that has collapsed onto a value that happens to read in that theme. It
 # is also the only theme in which the alpha is visible at all - dark's value is opaque.
 #
 # **The measurement is the gate, not the screenshot.** A Maestro assertion cannot read a colour,
-# which is exactly how P7a-1's defect survived a green suite.
+# which is exactly how the defect survived a green suite.
 #
 # No cell is run, so this needs no Space runtime.
 set -euo pipefail

@@ -14,14 +14,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-OUT="${EVIDENCE_ROOT:-$ROOT/evidence/ansi-colour}/t3-reopen"
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/ansi-colour}/reopen"
 NOTEBOOK="Ansi Colour.ipynb"
 SAVED="$OUT/saved-notebook.json"
 
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/ansi-colour.ipynb" "Ansi Colour"
 
-# Part 1 is T1's flow as it stands: run both cells and see them coloured.
+# The first part is the notebook flow as it stands: run both cells and see them coloured.
 run_flow "$ROOT/.maestro/ansi-colour-notebook.yaml" "$OUT/part1-runs" || exit 1
 # The save is asynchronous; a force-stop before it lands would reopen the unrun fixture.
 wait_for_workspace_text "$NOTEBOOK" "ZeroDivisionError" 30

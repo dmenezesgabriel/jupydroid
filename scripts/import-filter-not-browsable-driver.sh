@@ -5,8 +5,8 @@
 #   A. Chrome downloads `Shared analysis.ipynb` - a .ipynb is bytes it cannot render - and a
 #      tap on its chrome://downloads entry fires the VIEW the browser makes (DEFAULT, read
 #      grant), the chooser draws, and the notebook opens with its own cells.
-#   B. My Files opens the same fixture verbatim through jd-023's flow - the regression half
-#      of the door staying open for the caller it exists for.
+#   B. My Files opens the same fixture verbatim through the shared-notebook flow - the regression
+#      half of the door staying open for the caller it exists for.
 #   C. A page's `intent:` link names the fixture's media URI. Chrome resolves it against
 #      `BROWSABLE` activities only, the filter carries none, so Chrome shows the link's own
 #      fallback; `resumed_package` stays com.android.chrome and no second copy reaches the
@@ -142,8 +142,8 @@ write_pages
 
 # Leg B - My Files. The workspace resets so the second import lands under the same name and
 # the same opened assertions hold; the pushed fixture and its media row are untouched.
-# jd-023's flow is not reusable verbatim here: an earlier select-then-confirm pick on this
-# device left a preferred-activity record for octet-stream VIEWs (dumpsys package shows it at
+# The shared-notebook flow is not reusable verbatim here: an earlier select-then-confirm pick on
+# this device left a preferred-activity record for octet-stream VIEWs (dumpsys package shows it at
 # mAlways=false), and no shell path clears it - measured against
 # `pm clear-package-preferred-activities`, `pm clear`, suspend and uninstall, all of which
 # leave the record - so My Files' tap resolves straight to the app and the "Open with" it

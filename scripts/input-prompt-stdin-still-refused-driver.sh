@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-OUT="${EVIDENCE_ROOT:-$ROOT/evidence/input-prompt}/t2-stdin-still-refused"
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/input-prompt}/stdin-still-refused"
 
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/stdin-refused.ipynb" "Stdin Refused"

@@ -5,10 +5,10 @@
 # The tablet's window (>= 840dp) is what makes two panes exist, so this refuses to run anywhere
 # narrower - a green run on the 320dp emulator would prove nothing about panes.
 #
-# The flow ends at the browser alone (step 06). Before that it has already proved the two panes:
+# The flow ends at the browser alone. Before that it has already proved the two panes:
 # Explorer|Editor and Explorer|FileEditor, with the browser's back arrow hidden while it is the
 # list pane. The driver then reads the app's own accessibility tree and asserts the browser is
-# NOT paired with Recents - the mirror of x2b-panes-repro's PRESENT check. Scoped to
+# NOT paired with Recents - the mirror of the two-pane reproduction's PRESENT check. Scoped to
 # com.jupydroid.app because maestro's "Recents" matcher sees a system element on this device.
 set -euo pipefail
 

@@ -21,9 +21,9 @@ DCS reply is a `P`, a digit and `+r`, not a plan step. The rest are assertion an
 which are prose a human reads; telling those two apart needs to know which argument of `assertTrue`
 is the message, and that is the backlog's row, not this gate's.
 
-**Not yet scanned:** `scripts/*-driver.sh` and `.maestro/*.yaml`, the families whose comments join
-in the slices that follow this one. The local evidence tree is never read at all - nothing under
-it is tracked.
+**Not yet scanned:** `scripts/[m-z]*-driver.sh` and `.maestro/*.yaml`, the families whose comments
+join in the slices that follow this one. The local evidence tree is never read at all - nothing
+under it is tracked.
 
 **Every file under a scanned tree is read, and an unknown type is a failure rather than a pass.**
 This gate has now shipped the same defect three times, each time by looking at less than it claimed:
@@ -93,6 +93,8 @@ SCANNED_FILES = (
     "scripts/run-all-flows.sh",
     "scripts/run-flows-sharded.sh",
     "scripts/space-server.sh",
+    # The `a`-`l` half of the drivers; the `m`-`z` half joins in the slice after this one.
+    "scripts/[a-l]*-driver.sh",
 )
 
 #: Each pattern with the reason it is banned, which the failure message prints.

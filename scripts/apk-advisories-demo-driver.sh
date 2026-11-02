@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JD-069's demo: the two bumped jars working inside the app a user installs. The APK is
+# The demo: the two bumped jars working inside the app a user installs. The APK is
 # installed over the one on the tablet (adb install -r), a Space is created - the ~14 s
 # image copy is SpaceImageInstaller -> TarZstdExtractor, commons-compress's
 # TarArchiveInputStream and ZstdCompressorInputStream, which is the jar that carries
@@ -68,7 +68,7 @@ capture "the lockfile's two fixed versions" grep -E '^(org\.jsoup:jsoup|org\.apa
 
 "${DEVICE_ADB[@]}" shell am force-stop "$APP"
 "${DEVICE_ADB[@]}" install -r "$APK" 2>&1 | tr -d '\r' >"$EVIDENCE/install.txt"
-# A Space left by an earlier run - this driver's or jd-002's - makes the create land as
+# A Space left by an earlier run - this driver's or another demo's - makes the create land as
 # space-2, which the flows do not wait on.
 in_app "rm -rf files/spaces/space-*"
 reset_notebooks

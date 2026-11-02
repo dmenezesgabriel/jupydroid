@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# X2d evidence: the Files bar's New drop-down creates a notebook, a Python file and a folder
+# Evidence: the Files bar's New drop-down creates a notebook, a Python file and a folder
 # through the real app, and each lands on disk where the browsed directory says it should.
 #
 # The emulator is enough: nothing here runs a cell, so `FakeKernelGateway` is never consulted.
@@ -19,7 +19,7 @@ reset_notebooks
 # The folder to browse into is seeded, so "create at the browsed directory" creates where a
 # *user* navigated - not only at the root the flow happened to start from.
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
-run_flow "$ROOT/.maestro/explorer-create.yaml" "$ROOT/evidence/x2d-explorer-create"
+run_flow "$ROOT/.maestro/explorer-create.yaml" "$ROOT/evidence/explorer-create"
 
 # A creation may land a little after the row shows, so poll rather than assert once.
 on_disk() { "$ADB" shell run-as "$APP" "test -e \"$NOTEBOOK_DIR/$1\""; }

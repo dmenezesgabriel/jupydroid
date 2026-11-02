@@ -3,8 +3,8 @@
 # document, and the workspace search that had no route at this width before it.
 #
 # NARROW WINDOW, which the sharder reads as < 840dp - exactly the windows this app draws as one
-# pane. P2o-3 measured that this is two real widths and not one: the 320dp emulator *and* the tablet
-# in portrait at 800dp, which the plan's own row had left with neither rail nor bar.
+# pane. Measured: this is two real widths and not one: the 320dp emulator *and* the tablet
+# in portrait at 800dp, which had been left with neither rail nor bar.
 #
 #   ANDROID_SERIAL=emulator-5554 scripts/bottom-navigation-driver.sh   # 320dp
 #   ANDROID_SERIAL=TABLET_SERIAL   scripts/bottom-navigation-driver.sh   # 800dp, rotated

@@ -32,9 +32,9 @@ run_flow "$FLOW" "$EVIDENCE"
 # Taken after the flow rather than inside it: maestro leaves the app where the last step put it,
 # and the last step is the frame holding all three headers.
 mapfile -t adb < <(device_adb)
-"${adb[@]}" shell uiautomator dump /sdcard/p2n.xml >/dev/null
-"${adb[@]}" pull /sdcard/p2n.xml "$EVIDENCE/hierarchy.xml" >/dev/null
-"${adb[@]}" shell rm -f /sdcard/p2n.xml
+"${adb[@]}" shell uiautomator dump /sdcard/hierarchy.xml >/dev/null
+"${adb[@]}" pull /sdcard/hierarchy.xml "$EVIDENCE/hierarchy.xml" >/dev/null
+"${adb[@]}" shell rm -f /sdcard/hierarchy.xml
 
 # Whole, not sed'd to one number: a device with an override reports two densities and the first
 # one is the one not in use - `effective_density` is where that is decided, and tested.

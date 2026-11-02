@@ -21,7 +21,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/space-server.sh"
 
 EVIDENCE="$ROOT/evidence/chat-server"
-CHAT="t2.chat"
+CHAT="chat-server.chat"
 
 mapfile -t DEVICE_ADB < <(device_adb)
 

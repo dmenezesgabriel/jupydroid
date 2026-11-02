@@ -21,19 +21,20 @@
 # per-row text proved unreliable independent of anything `TerminalCanvas` draws, reproduced against
 # an untouched build. A direct pixel-crop comparison (`terminal_content_extent.py`'s
 # `terminal_top_strip_differs`) is what that entry names as the pattern the next terminal-content
-# gate should follow - used here for *sameness* rather than difference (P4j-3d-3's own use of it),
-# which needs neither a filter nor a bound either, and so is not thrown off by
-# `terminal_content_bottom_y`'s own thin-glyph-stroke assumption: that oracle is tuned to `vi`'s
-# isolated `~` fill lines, and this flow's own wrapped echo output instead stacks several rows with
-# no vertical gap between them, which is a plain digit row's own shape that file already documents
-# as taller than its filter allows.
+# gate should follow - used here for *sameness* rather than difference
+# (`terminal-scrollback-driver.sh`'s own use of it), which needs neither a filter nor a bound
+# either, and so is not thrown off by `terminal_content_bottom_y`'s own thin-glyph-stroke
+# assumption: that oracle is tuned to `vi`'s isolated `~` fill lines, and this flow's own wrapped
+# echo output instead stacks several rows with no vertical gap between them, which is a plain
+# digit row's own shape that file already documents as taller than its filter allows.
 #
 # Portrait, forced - `terminal-resize-driver.sh`'s own `rotate_to`, for a measured reason: a
 # device left in landscape puts `Terminal` behind `ListDetailSceneStrategy`'s two-pane layout, and
 # every pixel bound below is measured against the single-pane, full-width shape portrait guarantees.
 #
-# The wait is a fixed sleep, not an observed condition - unlike P1c's cell, which persists an answer
-# to disk the driver can poll for, nothing else here changes state while backgrounded to wait on.
+# The wait is a fixed sleep, not an observed condition - unlike the cell gate, which persists an
+# answer to disk the driver can poll for, nothing else here changes state while backgrounded to
+# wait on.
 # the gate text calls for 60s; `IDLE_STOP_GRACE` in `AppContainer` is 30s, so this clears it with
 # margin rather than racing it.
 set -euo pipefail
@@ -63,7 +64,7 @@ EVIDENCE="$ROOT/evidence/idle-stopper-terminal"
 mkdir -p "$EVIDENCE"
 SERVER_LOG_PATH="files/spaces/base/run/jupyter_server.log"
 # 30 s grace, and the gate's own wording ("background 60 s") rather than the grace plus slack -
-# more margin than P1c's cell gate needed, on purpose: this step has no persisted-answer poll to
+# more margin than the cell gate needed, on purpose: this step has no persisted-answer poll to
 # fall back on if the timing were ever close.
 IDLE_WAIT=60
 
@@ -78,7 +79,7 @@ server_pids() {
 app_pid() { "$ADB" shell pidof "$APP" 2>/dev/null | tr -d '\r'; }
 
 # Fails loudly if the app was restarted - a new pid would make the `ps` check meaningless, exactly
-# as it would for P1c's own gate.
+# as it would for the cell gate.
 same_app() {
   local now
   now="$(app_pid)"

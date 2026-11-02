@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Evidence: `autosave: false` gates every write while the document is open, and closing it
 # still flushes what is owed - JupyterLab's SaveHandler never started, plus the close path that
-# replaces saveBeforeClose until P6c-8c asks.
+# replaces saveBeforeClose when the setting is off.
 #
 # Both halves are disk facts, not screen facts, so this driver measures the file itself around the
 # flow's edges: the flow types and ends with the editor still open, this script cats (must be the

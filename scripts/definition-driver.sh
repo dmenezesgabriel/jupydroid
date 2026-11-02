@@ -13,7 +13,7 @@
 #      cell that was off-screen and scrolled to it, the cross-cell half of the claim.
 #   2. `No definition found` on a comment cell - the miss says so once, the way VS Code's
 #      `MessageController.showMessage` does, and no jump happens.
-#   3. logcat's `lsp.start` during the flow - the answers came down the P5b adapter.
+#   3. logcat's `lsp.start` during the flow - the answers came down the language-server adapter.
 #      The buffer is cleared first, so an `lsp.start` older than this run cannot satisfy it.
 set -euo pipefail
 

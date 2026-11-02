@@ -103,7 +103,7 @@ reset_notebooks
 : >"$CAPTURES"
 capture "the device's cores" "$ADB" shell nproc
 
-# Step 1 is T1's own flow: Thesis created, both Stopped with Settings, base run and its held.
+# The settings-follow-stopped flow: Thesis created, both Stopped with Settings, base run and its held.
 run_flow "$ROOT/.maestro/configure-a-space-settings-follow-stopped.yaml" \
   "$EVIDENCE/part1-settings-follow-stopped" || exit 1
 
@@ -132,7 +132,7 @@ expect_server_env space-1 'OMP_NUM_THREADS=1'
 # The derived set is still the one written: HOME is the Space's own, whatever the dialog was given.
 expect_server_env space-1 'HOME=/home/jupydroid'
 
-# Step 7 is T2's own flow: `printenv GREETING | tee greeting-env.txt` in a terminal.
+# The terminal-sees-it flow: `printenv GREETING | tee greeting-env.txt` in a terminal.
 run_flow "$ROOT/.maestro/configure-a-space-terminal-sees-it.yaml" \
   "$EVIDENCE/part5-terminal-sees-it" || exit 1
 NOTEBOOK_DIR="$THESIS_HOME" wait_for_workspace_text greeting-env.txt hello
@@ -147,7 +147,7 @@ capture "base's server timers then" timers_of base
 [ -z "$(timers_of space-1)" ] || { echo "Thesis's server is still up" >&2; exit 1; }
 expect_timers base 300
 
-# Step 6's other half is T3's own flow, after a relaunch: base, uncapped, starts its own workers.
+# The other half, after a relaunch: base, uncapped, starts its own workers.
 run_flow "$ROOT/.maestro/configure-a-space-base-uncapped.yaml" \
   "$EVIDENCE/part7-base-uncapped" || exit 1
 PID=$(kernel_pid)
@@ -155,7 +155,7 @@ capture "base's kernel: the cap's names (none expected)" kernel_caps "$PID"
 capture "base's kernel: threads after import numpy" kernel_threads "$PID"
 [ "$(kernel_caps "$PID")" = none ] || { echo "base's kernel carries a cap it was never given" >&2; exit 1; }
 
-# Step 9 is T4's own flow: the script becomes `echo nope` / `exit 3`, and Run is refused.
+# The failing-script flow: the script becomes `echo nope` / `exit 3`, and Run is refused.
 run_flow "$ROOT/.maestro/configure-a-space-failing-script.yaml" \
   "$EVIDENCE/part8-failing-script" || exit 1
 capture "the failed script's run/startup.log" thesis_file run/startup.log

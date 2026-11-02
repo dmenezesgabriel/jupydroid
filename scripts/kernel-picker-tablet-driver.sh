@@ -2,12 +2,12 @@
 # Kernel choice - the picker driven against two real kernelspecs.
 #
 # TABLET ONLY (SM-X216B). The flow's whole claim is that a *different* kernel answers after the
-# pick: `marker_echo` is an env var only the `p8g-echo` kernel.json sets, and `shared_7` is a
+# pick: `marker_echo` is an env var only the echo kernelspec's kernel.json sets, and `shared_7` is a
 # variable only the provider's kernel already holds. On the x86_64 emulator `MainActivity` falls
 # back to FakeKernelGateway, which echoes source and shares nothing - the flow would go green
 # against a kernel that does not exist. The picker's shape is kernel-picker-emulator-driver.sh.
 #
-# There is no plant step here, deliberately: the provider's first cell writes `p8g-echo`'s
+# There is no plant step here, deliberately: the provider's first cell writes the echo kernelspec's
 # kernel.json itself, which is both the honest mechanism (what `ipykernel install --user` does)
 # and the only ordering that keeps the provider's kernel alive - a force-stop to plant first
 # would leave the flow no running kernel to attach to.

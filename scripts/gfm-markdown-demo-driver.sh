@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: a markdown cell draws a pipe table as a grid, struck
+# The demo, typed into a new notebook: a markdown cell draws a pipe table as a grid, struck
 # text and a bare URL as a link; a code cell's display(Markdown(...)) draws a second table above the
 # kernel's 42; a Console on the same kernel draws that table the same; and after a kill and a
 # relaunch, with No Kernel, both are read back from the saved file. Each part's hierarchy is kept

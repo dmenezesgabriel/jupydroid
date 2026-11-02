@@ -98,7 +98,8 @@ capture "cold: no server" servers
 capture "cold: no pylsp" language_servers
 expect_servers base 0
 
-# Thesis is created exactly as T3 created it, so the flow is T3's own.
+# Thesis is created exactly as `enter-a-running-space-kernel-binds-driver.sh` created it, so the
+# flow is that driver's own.
 run_flow "$ROOT/.maestro/enter-a-running-space-create-thesis.yaml" "$EVIDENCE/part1-create-thesis" ||
   exit 1
 

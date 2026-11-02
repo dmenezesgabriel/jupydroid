@@ -74,7 +74,7 @@ clean_save() {
 
 mkdir -p "$EVIDENCE"
 rm -f "$EVIDENCE/trials.txt"
-build_notes "$LARGE" "${JD026_LARGE_LINES:-300000}"
+build_notes "$LARGE" "${LARGE_LINES:-300000}"
 build_notes "$SMALL" 4000
 for n in $(seq 1 "$TRIALS"); do mkdir -p "$EVIDENCE/trial-$n"; run_trial "$n"; done
 clean_save

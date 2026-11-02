@@ -30,9 +30,9 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 # the row stale, and a stale row sorts to the bottom of a list ordered by recency. At 64
 # notebooks the flow's `scrollUntilVisible` stopped reaching it.
 reset_notebooks
-# The last driver that still seeded by hand, and the last to be bitten by it: X1b made the file
-# name the notebook's title, so the path is `Updated At.ipynb` and the unquoted redirect split it
-# into a file called `Updated`. The helper quotes; backdating is the only step this driver ever
+# The last driver that still seeded by hand, and the last to be bitten by it: the file
+# name is the notebook's title, so the path is `Updated At.ipynb` and the unquoted redirect split
+# it into a file called `Updated`. The helper quotes; backdating is the only step this driver ever
 # needed of its own.
 seed_notebook "$FIXTURE" "Updated At"
 "$ADB" shell "run-as $APP touch -t 202001010000 \"$REMOTE\""

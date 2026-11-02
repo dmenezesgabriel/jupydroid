@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-OUT="${EVIDENCE_ROOT:-$ROOT/evidence/input-prompt}/t1-stdin-echo-round-trips"
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/input-prompt}/stdin-echo-round-trips"
 SAVED="$OUT/saved-notebook.json"
 
 reset_notebooks

@@ -10,9 +10,9 @@
 #   ANDROID_SERIAL=emulator-5554 scripts/app-chrome-driver.sh before
 #   ANDROID_SERIAL=TABLET_SERIAL   scripts/app-chrome-driver.sh before-tablet
 #
-# **Two themes rather than one, for the reason U1 records**: a single-theme capture cannot tell a
-# working palette from one that has collapsed onto a value that happens to read in that theme.
-# Audit A4 was exactly that - black source that read on light and was invisible on dark.
+# **Two themes rather than one**: a single-theme capture cannot tell a working palette from one
+# that has collapsed onto a value that happens to read in that theme. An audit found exactly that
+# - black source that read on light and was invisible on dark.
 #
 # **Both devices, because the step's gate asks for both** and they disagree about width: the
 # emulator is 320dp, the tablet 1280dp, and the two-pane shell only exists on the second. A palette
@@ -42,7 +42,8 @@ run_in_theme() {
   "${adb[@]}" shell cmd uimode night "$night"
   reset_notebooks
   # A folder, a notebook inside it and a file that is neither: the three row kinds the explorer's
-  # chrome has to tell apart, reusing X2a's own fixtures rather than minting near-copies.
+  # chrome has to tell apart, reusing `explorer-browse-driver.sh`'s own fixtures rather than
+  # minting near-copies.
   seed_notebook "$ROOT/.maestro/fixtures/app-chrome.ipynb" "Chrome Check"
   seed_notebook "$ROOT/.maestro/fixtures/explorer-nested.ipynb" "reports/Nested"
   seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"

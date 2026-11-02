@@ -13,8 +13,9 @@
 #                         disk while the process that will close the notebook is already running
 #   2 close-shuts-down    run `carried = 42`, dismiss, server holds 0 sessions and `ps` holds no
 #                         kernel - the close itself ended it, not a menu command
-#   3 reopen-forgot       the same increment p1d asserts: `.*NameError.*`, a kernel that never
-#                         saw the assignment - where `notebook-session-reattaches` prints 44
+#   3 reopen-forgot       the same increment `shutdown-kernel-driver.sh` asserts: `.*NameError.*`,
+#                         a kernel that never saw the assignment - where
+#                         `notebook-session-reattaches` prints 44
 #   4 setting-off         the row toggled off in the same process, then the reattach arm: the
 #                         second visit's increment prints 44, which only a kernel that survived
 #                         the close can compute

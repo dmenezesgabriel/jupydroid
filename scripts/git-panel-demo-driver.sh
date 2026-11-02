@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: the Source Control panel, contributed by the Git extension, reads the branch and
+# The demo: the Source Control panel, contributed by the Git extension, reads the branch and
 # the changed files of the directory the explorer shows, through jupyterlab-git's handler in base's
 # `jupyter_server`. It reads `master` with `a.txt` modified and `c.txt` untracked, then `feature`
 # once reopened after a checkout, says the workspace root is not a repository, and reads the same

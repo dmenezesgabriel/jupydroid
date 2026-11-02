@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/image-formats/t2-widths"
+EVIDENCE="$ROOT/evidence/image-formats/widths"
 NOTEBOOK="Image Widths"
 mapfile -t DEVICE < <(device_adb)
 

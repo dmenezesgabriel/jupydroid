@@ -20,7 +20,7 @@
 # The fixture is built to break the exporters that can break: a markdown cell for the pandoc
 # filters, and a stored `image/png` output so `resources['outputs']` is non-empty and `respond_zip`
 # (`jupyter_server/nbconvert/handlers.py:38-65`) answers with a **zip** named `<stem>.zip` rather
-# than the plain artifact. That last one is why P2j-3's adapter reads the headers instead of
+# than the plain artifact. That last one is why the export adapter reads the headers instead of
 # assuming an extension.
 #
 # The gate half is [WORKING]: every format named there must convert, or this driver fails. It

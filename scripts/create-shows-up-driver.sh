@@ -25,7 +25,7 @@ reset_notebooks
 "$ADB" shell run-as "$APP" mkdir -p "$NOTEBOOK_DIR"
 for i in $(seq 1 "$CROWD"); do
   # Distinct, old timestamps so the ordering is deterministic and anything created now is first.
-  # No title in the JSON any more: X1b made the file's name the notebook's name, so the crowd is
+  # No title in the JSON any more: the file's name is the notebook's name, so the crowd is
   # named by its files. The old timestamps stay - they are what makes the ordering deterministic.
   BODY="{\"metadata\":{\"kernelspec\":{\"name\":\"python3\",\"display_name\":\"Python 3\"}}}"
   PAYLOAD="$(printf '%s' "$BODY" | base64 -w0)"

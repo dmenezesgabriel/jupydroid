@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: JPEG, GIF, WebP and BMP draw; a PNG with width=100 draws
+# The demo, typed into a new notebook: JPEG, GIF, WebP and BMP draw; a PNG with width=100 draws
 # 100 dp and one with no width 96 dp, at the column's start; a Console on the same kernel draws the
 # second one the same width; and after a kill and a relaunch the widths are the same, read back from
 # the saved file. Each part's hierarchy is kept for the bounds its images draw at (ADR-0086).

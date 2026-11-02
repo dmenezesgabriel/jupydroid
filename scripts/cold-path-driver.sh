@@ -6,8 +6,8 @@
 #   scripts/cold-path-driver.sh cold r1   # `pm clear` first: the rootfs extract is in the path
 #   scripts/cold-path-driver.sh warm r1   # force-stop only: install is the stamp-check no-op
 #
-# The label is the run's name, so a mode's repetitions land beside each other in evidence/ and
-# never overwrite: `evidence/cold-path/<mode>-<label>/`.
+# The label is the run's name, so a mode's repetitions land beside each other and never
+# overwrite: `<mode>-<label>/` under the cold-path evidence root.
 #
 # TABLET ONLY: the emulator's FakeKernelGateway answers without a Space, so its "timings" would be
 # of a path that cannot exist on that device at all (`SpaceAbi` - arm64 only, and deliberately).
@@ -32,9 +32,8 @@ esac
 [ -n "$LABEL" ] || { echo "usage: cold-path-driver.sh $MODE <label>" >&2; exit 2; }
 
 # The evidence root is a knob rather than a constant so the same harness re-measures a
-# repaired stage under its own step's directory (P8c-1 reran this under
-# evidence/p8c-1-extraction/).
-EVIDENCE="${P8A_EVIDENCE_ROOT:-$ROOT/evidence/cold-path}/$MODE-$LABEL"
+# repaired stage under its own directory (an extraction repair reran this one under its own).
+EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/cold-path}/$MODE-$LABEL"
 mkdir -p "$EVIDENCE"
 
 mapfile -t DEVICE_ADB < <(device_adb)

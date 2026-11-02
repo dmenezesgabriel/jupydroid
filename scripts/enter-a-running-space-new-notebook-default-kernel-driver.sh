@@ -70,7 +70,8 @@ sleep 2
 MEDIA_ID="$(import_media_id)"
 [ -n "$MEDIA_ID" ] || { echo "media id for the import fixture not found" >&2; exit 1; }
 
-# Thesis is created exactly as T3 created it, so the flow is T3's own.
+# Thesis is created exactly as `enter-a-running-space-kernel-binds-driver.sh` created it, so the
+# flow is that driver's own.
 run_flow "$ROOT/.maestro/enter-a-running-space-create-thesis.yaml" "$EVIDENCE/part1-create-thesis" ||
   exit 1
 run_flow "$FLOWS-new-notebooks-in-thesis.yaml" "$EVIDENCE/part2-new-notebooks-in-thesis" || exit 1

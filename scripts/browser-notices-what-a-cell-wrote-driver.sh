@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The browser re-reads the directory it is showing, so a file a *cell* wrote appears without
-# anyone touching the screen. This is X1a's promise finally observable from the UI.
+# anyone touching the screen. This is that promise finally observable from the UI.
 #
 # Two rules at once, and each is declared on its own line because that is what selects one - see
 # scripts/driver-rules.sh.

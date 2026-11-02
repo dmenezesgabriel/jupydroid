@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# X2g: deleting the document that is open beside the browser, which only two panes can reach.
+# Deleting the document that is open beside the browser, which only two panes can reach.
 # WIDE WINDOW (>= 840dp): the driver checks its own width before running.
 #
 # What this proves, and what it does not. It proves the pane closes with the row and that the file
@@ -16,10 +16,10 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # Overridable, so a step that only needs this flow *green again* can capture under its own name
-# rather than overwriting frames captured on another device. P7c needed exactly that: it moved
-# Clear behind the section's overflow, so this flow's two taps changed and its committed
-# tablet frames must not be replaced by an emulator's (`EVIDENCE_ROOT=…` -> P7a-3's precedent).
-OUT="${EVIDENCE_ROOT:-$ROOT/evidence/x2g-explorer-delete}/open-document"
+# rather than overwriting frames captured on another device. A later fix needed exactly that: it
+# moved Clear behind the section's overflow, so this flow's two taps changed and its committed
+# tablet frames must not be replaced by an emulator's (`EVIDENCE_ROOT=…` is the precedent).
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/explorer-delete}/open-document"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"

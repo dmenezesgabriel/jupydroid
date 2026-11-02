@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# X2f evidence: the explorer's row menu renames a file and a folder through the real app, and the
+# Evidence: the explorer's row menu renames a file and a folder through the real app, and the
 # rename is a *move* on disk - the old path is gone, not merely hidden.
 #
 # The emulator is enough: nothing here runs a cell, so `FakeKernelGateway` is never consulted.
@@ -21,7 +21,7 @@ seed_file "$ROOT/.maestro/fixtures/file-editor.py" "notes.txt"
 seed_file "$ROOT/.maestro/fixtures/file-editor.py" "taken.txt"
 # A folder with something in it, so "the contents came along" is a claim the flow can make.
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
-run_flow "$ROOT/.maestro/explorer-rename.yaml" "$ROOT/evidence/x2f-explorer-rename"
+run_flow "$ROOT/.maestro/explorer-rename.yaml" "$ROOT/evidence/explorer-rename"
 
 on_disk() { "$ADB" shell run-as "$APP" "test -e \"$NOTEBOOK_DIR/$1\""; }
 

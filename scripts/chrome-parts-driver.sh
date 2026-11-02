@@ -5,12 +5,12 @@
 #   ANDROID_SERIAL=TABLET_SERIAL   scripts/chrome-parts-driver.sh            # two panes: rail too
 #   ANDROID_SERIAL=emulator-5554 scripts/chrome-parts-driver.sh one-pane   # no rail at 320dp
 #
-# **Two themes rather than one, for the reason U1 records**: a single-theme capture cannot tell a
-# working palette from one that has collapsed onto a value that happens to read in that theme.
+# **Two themes rather than one**: a single-theme capture cannot tell a working palette from one
+# that has collapsed onto a value that happens to read in that theme.
 #
-# **The measurement is the gate, not the screenshot.** P7a's claim is that the activity bar and the
-# side panel are drawn a step off the page, and a Maestro assertion cannot read a colour - which is
-# exactly how the defect survived P2u-1 with every flow green. `read_chrome_parts.py` reports the
+# **The measurement is the gate, not the screenshot.** The activity bar and the side panel are
+# drawn a step off the page, and a Maestro assertion cannot read a colour - which is exactly how
+# the defect survived with every flow green. `read_chrome_parts.py` reports the
 # frame's own vertical colour bands and this script checks them against the values
 # `resolve_vscode_theme.py` resolves out of the reference, so a regression fails here.
 #
@@ -35,7 +35,7 @@ mapfile -t adb < <(device_adb)
 declare -A PART_COLOUR=([dark]="#191A1B" [light]="#FAFAFD")
 declare -A PAGE_COLOUR=([dark]="#121314" [light]="#FFFFFF")
 # `activityBar.border` and `sideBar.border`, which the 2026 themes state at the same hex - two ids
-# for two seams, one value. P7a-2 is what draws the second of them.
+# for two seams, one value. Both seams draw it.
 declare -A BORDER_COLOUR=([dark]="#2A2B2C" [light]="#F0F1F2")
 
 run_in_theme() {
@@ -58,9 +58,10 @@ run_in_theme() {
 # What is checked instead is that the **leftmost** band is the part - the rail beside two panes, the
 # side panel where there is one - and never the document.
 #
-# **And the seams between them, since P7a-2.** `read_chrome_parts.py` drops a 1-2px band on purpose,
-# so until this step nothing here could report a border that was never drawn - which is how the side
-# panel came to abut the document with no `sideBar.border` between them, through P7a-1 green.
+# **And the seams between them.** `read_chrome_parts.py` drops a 1-2px band on purpose,
+# so until the seam check nothing here could report a border that was never drawn - which is how
+# the side panel came to abut the document with no `sideBar.border` between them, through a green
+# suite.
 read_the_frames() {
   local theme="$1"
   local frames=("$EVIDENCE/$theme"/*.png)

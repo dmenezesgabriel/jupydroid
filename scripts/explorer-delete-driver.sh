@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# X2g evidence: the explorer's row menu deletes what it names - and only after asking.
+# Evidence: the explorer's row menu deletes what it names - and only after asking.
 #
 # The emulator is enough: nothing here runs a cell, so `FakeKernelGateway` is never consulted.
 #
@@ -20,7 +20,7 @@ seed_file "$ROOT/.maestro/fixtures/file-editor.py" "notes.txt"
 seed_file "$ROOT/.maestro/fixtures/file-editor.py" "keep.txt"
 # A folder with something in it, so the refusal has something to refuse - and something to empty.
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
-run_flow "$ROOT/.maestro/explorer-delete.yaml" "$ROOT/evidence/x2g-explorer-delete"
+run_flow "$ROOT/.maestro/explorer-delete.yaml" "$ROOT/evidence/explorer-delete"
 
 on_disk() { "$ADB" shell run-as "$APP" "test -e \"$NOTEBOOK_DIR/$1\""; }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a save cut short never leaves half a document. From a cold start, one workspace
+# The demo: a save cut short never leaves half a document. From a cold start, one workspace
 # holds a ~31 MiB notebook and a ~30 MiB notes.txt beside it. The app is stopped mid-save of each -
 # the notebook's autosave after a markdown edit, then Replace All on the text file - and each opens
 # afterwards whole. A clean save of the notebook, and of an executable notes.txt in the file editor,
@@ -43,8 +43,7 @@ report() { echo "$1" | tee -a "$EVIDENCE/demo.txt"; }
 
 listing() { "$ADB" shell "run-as $APP ls -la \"$NOTEBOOK_DIR\"" | tr -d '\r' >"$EVIDENCE/$1"; }
 
-# Steps 1-2 of the demo: both documents seeded, the notebook opened and stopped mid-save, then
-# opened again.
+# Both documents seeded, the notebook opened and stopped mid-save, then opened again.
 kill_the_notebook_save() {
   local seen reopened
   kill_on_write "$NOTEBOOK_REMOTE" "$NOTEBOOK_TEMP" >"$EVIDENCE/notebook.watch" &
@@ -60,7 +59,7 @@ kill_the_notebook_save() {
   report "notebook $reopened"
 }
 
-# Step 4: Replace All on the text file stopped mid-write, and its last line searched for after.
+# Replace All on the text file, stopped mid-write, and its last line searched for after.
 kill_the_replace_all() {
   local seen found
   kill_on_write "$FILE_REMOTE" "$FILE_TEMP" >"$EVIDENCE/notes.watch" &
@@ -76,7 +75,7 @@ kill_the_replace_all() {
   report "notes.txt last line $found"
 }
 
-# Step 5, the notebook: one edit with nothing to stop its save, and the markdown source it left.
+# The notebook: one edit with nothing to stop its save, and the markdown source it left.
 clean_notebook_save() {
   local before after source
   before="$(inode_and_mode "$NOTEBOOK_REMOTE")"
@@ -89,7 +88,7 @@ clean_notebook_save() {
   run_flow "$ROOT/.maestro/atomic-save-demo-reopen.yaml" "$EVIDENCE/part7-reopen-after-the-clean-save"
 }
 
-# Step 5, the text file: the 30 MiB one swapped for one the editor opens, made executable.
+# The text file: the 30 MiB one swapped for one the editor opens, made executable.
 clean_file_save() {
   local before after
   "$ADB" shell am force-stop "$APP"
