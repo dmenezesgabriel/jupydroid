@@ -4,16 +4,19 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 
+from check_device_secrets import TOKEN_CARRIERS
+from check_device_secrets_test import CARRIER_CASES
 from read_history_markers import count_markers
 from rewrite_history import (
-    CARRIER_RULES_FILE,
     IDENTITY,
+    carrier_rule,
     filter_repo_argv,
     mailmap_text,
     old_emails,
@@ -28,7 +31,7 @@ TOKEN_LINE = "--IdentityProvider.token=" + "a1" * 24
 #: `git commit` exports GIT_AUTHOR_* to its pre-commit hook, and inside the hook those override the fixture's
 #: `user.email`: the real address would sign the fixture's commits and this suite would count it.
 _ENV_WITHOUT_GIT = {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
-CARRIER_RULE = r"regex:--IdentityProvider\.token=[0-9a-f]{48,64}==>--IdentityProvider.token=<token>"
+CARRIER_RULES = [carrier_rule(carrier.pattern.pattern) for carrier in TOKEN_CARRIERS]
 
 
 class FixtureRepo:
@@ -94,25 +97,52 @@ class FakeRunner:
             raise RuntimeError("filter-repo refused")
 
 
+def _apply_rule(rule: str, text: str) -> str:
+    """[text] after one `regex:` line of a `--replace-text` file, applied as `git filter-repo` does: `re.sub`."""
+    pattern, _, replacement = rule.removeprefix("regex:").partition("==>")
+    return re.sub(pattern, replacement, text)
+
+
+class CarrierRuleTest(unittest.TestCase):
+    """The rewrite must replace exactly the credential each carrier names, as the tree scrubber does."""
+
+    def test_every_carrier_shape_keeps_its_carrier_and_loses_only_its_credential(self) -> None:
+        for name, text in CARRIER_CASES.items():
+            with self.subTest(carrier=name):
+                match = next(m for c in TOKEN_CARRIERS if (m := c.pattern.search(text)))
+                expected = text[: match.start(1)] + "<token>" + text[match.end(1) :]
+                rewritten = text
+                for rule in CARRIER_RULES:
+                    rewritten = _apply_rule(rule, rewritten)
+                self.assertEqual(rewritten, expected)
+
+    def test_brackets_and_escaped_parens_do_not_hide_group_one(self) -> None:
+        rule = carrier_rule(r"\((?:a|b)[()]x(\d+)\)")
+        self.assertEqual(rule, r"regex:(\((?:a|b)[()]x)(\d+)(\))==>\1<token>\3")
+
+    def test_a_pattern_without_a_capturing_group_is_refused_with_its_value(self) -> None:
+        with self.assertRaisesRegex(ValueError, r"\(\?:abc\)"):
+            carrier_rule("(?:abc)")
+
+
 class RulesTextTest(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.repo = FixtureRepo(Path(self._tmp.name))
-        self.repo.write({CARRIER_RULES_FILE: CARRIER_RULE + "\n"})
 
     def lines(self, home: Path = HOME) -> list[str]:
         return rules_text(self.repo.root, home).splitlines()
 
     def test_carriers_then_the_home_rule_when_no_local_file_exists(self) -> None:
-        self.assertEqual(self.lines(), [CARRIER_RULE, "/home/ana==>/home/user"])
+        self.assertEqual(self.lines(), [*CARRIER_RULES, "/home/ana==>/home/user"])
 
     def test_the_local_rules_sit_between_the_carriers_and_the_home(self) -> None:
         self.repo.write({".sensitive-strings.local": "R9XX000==>TABLET_SERIAL\n"})
-        self.assertEqual(self.lines(), [CARRIER_RULE, "R9XX000==>TABLET_SERIAL", "/home/ana==>/home/user"])
+        self.assertEqual(self.lines(), [*CARRIER_RULES, "R9XX000==>TABLET_SERIAL", "/home/ana==>/home/user"])
 
     def test_a_home_naming_no_account_adds_no_rule(self) -> None:
-        self.assertEqual(self.lines(Path("/root")), [CARRIER_RULE])
+        self.assertEqual(self.lines(Path("/root")), CARRIER_RULES)
 
     def test_a_glob_line_is_refused_naming_the_line(self) -> None:
         self.repo.write({".sensitive-strings.local": "glob:*.txt==>X\n"})
@@ -144,9 +174,10 @@ class FilterRepoArgvTest(unittest.TestCase):
         argv = filter_repo_argv(Path("/t/rules"), Path("/t/mail"), force=False)
         self.assertEqual(argv[argv.index("--prune-empty") + 1], "never")
 
-    def test_bytecode_is_dropped_from_history(self) -> None:
+    def test_bytecode_and_evidence_are_dropped_from_history(self) -> None:
         argv = filter_repo_argv(Path("/t/rules"), Path("/t/mail"), force=False)
-        self.assertEqual(argv[argv.index("--path-glob") + 1], "*.pyc")
+        globs = [argv[i + 1] for i, flag in enumerate(argv) if flag == "--path-glob"]
+        self.assertEqual(globs, ["*.pyc", "evidence/*"])
         self.assertIn("--invert-paths", argv)
 
     def test_force_is_passed_only_when_asked(self) -> None:
@@ -159,7 +190,7 @@ class RewriteTest(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.repo = FixtureRepo(Path(self._tmp.name))
-        self.repo.commit({CARRIER_RULES_FILE: CARRIER_RULE + "\n"})
+        self.repo.commit({"a.txt": "x"})
 
     def test_the_runner_sees_both_files_and_the_repository(self) -> None:
         runner = FakeRunner()
@@ -197,14 +228,14 @@ class EndToEndTest(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.repo = FixtureRepo(Path(self._tmp.name))
-        self.repo.commit({CARRIER_RULES_FILE: CARRIER_RULE + "\n"}, "seed the rules")
+        self.repo.commit({"evidence/run/shot.txt": "a screenshot"}, "keep a run's evidence")
         self.repo.commit({"ps.txt": TOKEN_LINE, "run.sh": f"cd {HOME}/work"}, f"ran in {HOME}")
         self.repo.tag("archive")
 
     def test_every_class_counts_zero_and_one_identity_remains(self) -> None:
         before = self.repo.commit_count()
         rewrite(self.repo.root, HOME, IDENTITY_FOR_TEST, force=True)
-        counts = count_markers(self.repo.root, HOME, ["ps.txt"])
+        counts = count_markers(self.repo.root, HOME)
         self.assertEqual(counts, dict.fromkeys(counts, 0))
         self.assertEqual(self.repo.commit_count(), before)
         who = "Ana <1+ana@users.noreply.example.org>"
@@ -217,7 +248,7 @@ class EndToEndTest(unittest.TestCase):
         self.repo.commit_binary(pyc, bytecode, "track the gate's bytecode")
         self.repo.remove(pyc, "keep the gate's bytecode out of git")
         rewrite(self.repo.root, HOME, IDENTITY_FOR_TEST, force=True)
-        counts = count_markers(self.repo.root, HOME, [])
+        counts = count_markers(self.repo.root, HOME)
         self.assertEqual(counts, dict.fromkeys(counts, 0))
 
     def test_the_tagger_address_is_rewritten_too(self) -> None:

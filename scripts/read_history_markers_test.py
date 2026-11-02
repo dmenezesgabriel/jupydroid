@@ -11,8 +11,6 @@ from pathlib import Path
 from read_history_markers import CLASS_NAMES, count_markers, main, report
 
 HOME = Path("/home/ana")
-#: `main` reads the listed carrier paths from the repository it measures, as it does here.
-EMPTY_CARRIER_LIST = {"evidence/aud-013-scrub-list/token-carrier-paths.txt": ""}
 #: Built here, not written out: a 48-hex literal in a test file is what the token gate refuses.
 TOKEN_LINE = "--IdentityProvider.token=" + "a1" * 24
 
@@ -43,8 +41,8 @@ class CountMarkersTest(unittest.TestCase):
         self.addCleanup(self._tmp.cleanup)
         self.repo = FixtureRepo(Path(self._tmp.name))
 
-    def counts(self, carrier_paths: list[str] | None = None) -> dict[str, int]:
-        return count_markers(self.repo.root, HOME, carrier_paths or [])
+    def counts(self) -> dict[str, int]:
+        return count_markers(self.repo.root, HOME)
 
     def test_a_clean_history_counts_zero_in_every_class(self) -> None:
         self.repo.commit({"a.txt": "nothing here"})
@@ -64,25 +62,34 @@ class CountMarkersTest(unittest.TestCase):
         self.repo.commit({"logs/ana.txt": "two"})
         self.assertEqual(self.counts()["home path in file names"], 1)
 
-    def test_a_carrier_path_counts_only_when_a_commit_added_a_token_to_it(self) -> None:
-        self.repo.commit({"ps.txt": TOKEN_LINE, "other.txt": "no token"})
-        counts = self.counts(["ps.txt", "other.txt"])
-        self.assertEqual(counts["token carrier paths"], 1)
+    def test_an_evidence_path_is_counted_once_across_commits(self) -> None:
+        self.repo.commit({"evidence/run/shot.txt": "one", "evidence.md": "not under it"})
+        self.repo.commit({"evidence/run/shot.txt": "two"})
+        self.assertEqual(self.counts()["paths under evidence/"], 1)
 
-    def test_a_scrubbed_carrier_path_counts_zero(self) -> None:
+    def test_a_commit_adding_a_token_is_counted_wherever_the_file_lives(self) -> None:
+        self.repo.commit({"deep/in/the/tree/ps.txt": TOKEN_LINE, "other.txt": "no token"})
+        self.assertEqual(self.counts()["commits adding a credential"], 1)
+
+    def test_the_commit_that_scrubs_a_token_adds_none_and_is_not_counted(self) -> None:
+        self.repo.commit({"ps.txt": TOKEN_LINE})
+        self.repo.commit({"ps.txt": "--IdentityProvider.token=<token>"}, "scrub")
+        self.assertEqual(self.counts()["commits adding a credential"], 1)
+
+    def test_a_placeholder_is_no_credential(self) -> None:
         self.repo.commit({"ps.txt": "--IdentityProvider.token=<token>"})
-        self.assertEqual(self.counts(["ps.txt"])["token carrier paths"], 0)
+        self.assertEqual(self.counts()["commits adding a credential"], 0)
 
     def test_a_home_naming_no_account_counts_zero_home_markers(self) -> None:
         self.repo.commit({"a.log": "/home/user/x"}, "path /home/user/x")
-        counts = count_markers(self.repo.root, Path("/home/user"), [])
+        counts = count_markers(self.repo.root, Path("/home/user"))
         self.assertEqual(counts["home path in blobs"], 0)
 
 
 class ReportTest(unittest.TestCase):
     def test_one_line_per_class_in_the_order_given(self) -> None:
-        lines = report({"home path in blobs": 3, "token carrier paths": 0}).splitlines()
-        self.assertEqual(lines, ["home path in blobs: 3", "token carrier paths: 0"])
+        lines = report({"home path in blobs": 3, "paths under evidence/": 0}).splitlines()
+        self.assertEqual(lines, ["home path in blobs: 3", "paths under evidence/: 0"])
 
 
 class MainTest(unittest.TestCase):
@@ -92,11 +99,11 @@ class MainTest(unittest.TestCase):
         self.repo = FixtureRepo(Path(self._tmp.name))
 
     def test_exits_zero_on_a_clean_history(self) -> None:
-        self.repo.commit({"a.txt": "clean", **EMPTY_CARRIER_LIST})
+        self.repo.commit({"a.txt": "clean"})
         self.assertEqual(main(self.repo.root, HOME), 0)
 
     def test_exits_one_when_any_class_has_a_hit(self) -> None:
-        self.repo.commit({"a.txt": "clean", **EMPTY_CARRIER_LIST}, f"pasted {HOME}/x")
+        self.repo.commit({"a.txt": "clean"}, f"pasted {HOME}/x")
         self.assertEqual(main(self.repo.root, HOME), 1)
 
 

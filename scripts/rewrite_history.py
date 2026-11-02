@@ -11,10 +11,10 @@ and the mailmap holds the address being removed. Both are written to a temporary
 repository and deleted when the run ends, so the script carries the shape of the rewrite and none of
 what it removes.
 
-The rules, in order: the token carriers (`evidence/aud-013-scrub-list/token-carriers.txt`), the
-gitignored `.sensitive-strings.local`, and the host's own `/home/<name>`
-(`read_personal_data.scrub_rules`). Empty commits are kept, so every branch has the commit count it
-had; bytecode is removed from every commit, since a binary blob is not scrubbed (see `filter_repo_argv`).
+The rules, in order: one per token carrier, derived from `check_device_secrets.TOKEN_CARRIERS` so the
+rewrite and the gate cannot drift (see `carrier_rule`), the gitignored `.sensitive-strings.local`, and the
+host's own `/home/<name>` (`read_personal_data.scrub_rules`). Empty commits are kept, so every branch has
+the commit count it had; bytecode and `evidence/` are removed from every commit (see `filter_repo_argv`).
 `--force` is needed on a repository that `git filter-repo` has already rewritten once
 (`.git/filter-repo/already_ran`), and on any that is not a fresh clone.
 
@@ -31,14 +31,13 @@ import argparse
 import subprocess
 import sys
 import tempfile
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
-from check_device_secrets import LOCAL_LITERALS, local_rules_from
+from check_device_secrets import LOCAL_LITERALS, TOKEN_CARRIERS, local_rules_from
 from read_personal_data import scrub_rules
 
 REPO = Path(__file__).resolve().parent.parent
-CARRIER_RULES_FILE = "evidence/aud-013-scrub-list/token-carriers.txt"
 #: The GitHub noreply address of the repository's owner; the name is kept because the docs and ADRs carry it.
 IDENTITY = "Gabriel Menezes <50274255+dmenezesgabriel@users.noreply.github.com>"
 
@@ -57,6 +56,46 @@ def _git_lines(root: Path, *args: str) -> list[str]:
     return done.stdout.splitlines()
 
 
+def _structural_chars(pattern: str) -> Iterator[tuple[int, str]]:
+    """Each character of [pattern] that is regex syntax: escaped ones and those inside `[...]` are skipped."""
+    escaped = in_class = False
+    for index, char in enumerate(pattern):
+        if escaped or char == "\\":
+            escaped = not escaped
+        elif in_class or char == "[":
+            in_class = char != "]" if in_class else True
+        else:
+            yield index, char
+
+
+def _group_one_span(pattern: str) -> tuple[int, int]:
+    """Where the first capturing group of [pattern] starts and ends, `)` included, in the pattern's text."""
+    start, depth = -1, 0
+    for index, char in _structural_chars(pattern):
+        if start < 0 and char == "(" and not pattern.startswith("(?", index):
+            start = index
+        if start < 0:
+            continue
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        if depth == 0:
+            return start, index + 1
+    raise ValueError(f"carrier pattern: expected a capturing group around the credential; got {pattern!r}")
+
+
+def carrier_rule(pattern: str) -> str:
+    """The `--replace-text` line that rewrites [pattern]'s group 1, the credential, to `<token>`.
+
+    `git filter-repo` takes a replacement string, not a function, so the text around the credential is
+    captured and put back by backreference; `scrub_device_secrets` makes the same edit to the tree.
+
+    ```
+    carrier_rule(r'"key": "([0-9a-f]{48,64})"')  # -> 'regex:("key": ")([0-9a-f]{48,64})(")==>\\1<token>\\3'
+    ```
+    """
+    start, end = _group_one_span(pattern)
+    return f"regex:({pattern[:start]}){pattern[start:end]}({pattern[end:]})==>\\1<token>\\3"
+
+
 def rules_text(root: Path, home: Path) -> str:
     """The `--replace-text` file: carriers, then `.sensitive-strings.local`, then [home]'s account.
 
@@ -70,8 +109,9 @@ def rules_text(root: Path, home: Path) -> str:
     local = root / LOCAL_LITERALS
     local_text = local.read_text() if local.is_file() else ""
     local_rules_from(local_text)
-    lines = (root / CARRIER_RULES_FILE).read_text().splitlines() + local_text.splitlines()
-    return "\n".join([*(line for line in lines if line.strip()), *_home_lines(home)]) + "\n"
+    carriers = [carrier_rule(carrier.pattern.pattern) for carrier in TOKEN_CARRIERS]
+    local_lines = [line for line in local_text.splitlines() if line.strip()]
+    return "\n".join([*carriers, *local_lines, *_home_lines(home)]) + "\n"
 
 
 def _home_lines(home: Path) -> list[str]:
@@ -104,10 +144,12 @@ def filter_repo_argv(rules: Path, mailmap: Path, force: bool) -> list[str]:
 
     `--replace-text` skips a blob with a NUL byte in its first 8 KiB (`git_filter_repo.py`, `_tweak_blob`), and
     CPython bytecode embeds the build path and has them, so `*.pyc` is dropped from history rather than scrubbed:
-    rewriting bytes inside length-prefixed bytecode would only corrupt it.
+    rewriting bytes inside length-prefixed bytecode would only corrupt it. `evidence/` is dropped because evidence is
+    kept on the machine that ran it and never published; the repeated `--path-glob` values are OR-ed.
     """
     argv = ["git", "filter-repo", "--replace-text", str(rules), "--replace-message", str(rules)]
-    argv += ["--mailmap", str(mailmap), "--prune-empty", "never", "--path-glob", "*.pyc", "--invert-paths"]
+    argv += ["--mailmap", str(mailmap), "--prune-empty", "never"]
+    argv += ["--path-glob", "*.pyc", "--path-glob", "evidence/*", "--invert-paths"]
     return [*argv, "--force"] if force else argv
 
 

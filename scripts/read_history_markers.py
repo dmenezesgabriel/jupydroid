@@ -7,15 +7,16 @@ is gone. This counts the history itself, so the same command gives the baseline 
 the verdict on its rehearsal, and the verdict on the fresh clone of the new remote.
 
 **A measurement, not a gate.** It exits 1 on any hit so a run can be chained, but it is not wired into
-pre-commit: `git log --all -p` over the carrier paths reads about ten megabytes.
+pre-commit: `git log --all -p` reads the patch of every commit, about 57 MB here.
 
 Classes (each a count of a different thing, named in the report line):
 
 - home path in blobs: commits whose diff adds or removes the host's `/home/<name>` (`git log -S`);
 - home path in messages: message lines carrying it (`--replace-text` leaves messages alone);
 - home path in file names: distinct paths ever carrying the account name;
-- token carrier paths: listed paths with a commit that added a Jupyter server credential, read with
-  `TOKEN_CARRIERS` from `check_device_secrets.py`, so the two cannot drift.
+- paths under evidence/: distinct paths ever tracked there, since evidence is local and no commit may carry it;
+- commits adding a credential: commits with an added line holding a Jupyter server credential anywhere in the
+  tree, read with `TOKEN_CARRIERS` from `check_device_secrets.py`, so the two cannot drift.
 
 The commit identity is not a class: after the rewrite exactly one is expected, which is not a zero.
 Read it with `git log --all --format='%an <%ae>|%cn <%ce>' | sort | uniq -c`.
@@ -36,14 +37,17 @@ from pathlib import Path
 from check_device_secrets import TOKEN_CARRIERS, home_rule
 
 REPO = Path(__file__).resolve().parent.parent
-CARRIER_PATHS_FILE = "evidence/aud-013-scrub-list/token-carrier-paths.txt"
 CLASS_NAMES = (
     "home path in blobs",
     "home path in messages",
     "home path in file names",
-    "token carrier paths",
+    "paths under evidence/",
+    "commits adding a credential",
 )
-ADDED_FILE_HEADER = "+++ b/"
+#: Starts each commit in the `git log -p` output; a diff line never begins with a NUL. An argv cannot carry
+#: one, so git is asked for it by its `%x00` escape.
+COMMIT_START = "\0"
+COMMIT_FORMAT = "--format=%x00%H"
 
 
 def _git_lines(root: Path, *args: str) -> list[str]:
@@ -70,49 +74,56 @@ def home_file_names(root: Path, home: Path) -> int:
     """Distinct paths, across all history, that contain the account name of [home]."""
     if home_rule(home) is None:
         return 0
-    names = set(_git_lines(root, "log", "--all", "--name-only", "--format="))
-    return sum(home.name in name for name in names)
+    return sum(home.name in name for name in _history_paths(root))
 
 
-def _added_lines_by_path(root: Path, paths: list[str]) -> dict[str, list[str]]:
-    """Every line a commit added, grouped by the file it was added to, over [paths] only."""
-    added: dict[str, list[str]] = {}
-    current = ""
-    for line in _git_lines(root, "log", "--all", "-p", "-U0", "--no-color", "--format=", "--", *paths):
-        if line.startswith(ADDED_FILE_HEADER):
-            current = line.removeprefix(ADDED_FILE_HEADER).rstrip("\t")
-        elif line.startswith("+") and current:
-            added.setdefault(current, []).append(line[1:])
-    return added
+def _history_paths(root: Path) -> set[str]:
+    """Every distinct path that any commit reachable from any ref touched."""
+    return set(_git_lines(root, "log", "--all", "--name-only", "--format="))
 
 
-def token_carrier_paths(root: Path, paths: list[str]) -> int:
-    """How many of [paths] had a credential added to them by some commit.
+def evidence_paths(root: Path) -> int:
+    """Distinct paths under `evidence/` across all history; evidence is local, so any is a miss."""
+    return sum(name.startswith("evidence/") for name in _history_paths(root))
+
+
+def _adds_credential(line: str) -> bool:
+    """Whether a `git log -p` line is an added line holding a credential; `+++ ` is a file header."""
+    if not line.startswith("+") or line.startswith("+++ "):
+        return False
+    return any(carrier.pattern.search(line) for carrier in TOKEN_CARRIERS)
+
+
+def credential_commits(root: Path) -> int:
+    """Commits that added a Jupyter server credential to any file.
 
     ```
-    token_carrier_paths(Path("."), ["evidence/x/server.log"])  # -> 1 while history holds a token there
+    credential_commits(Path("."))  # -> 0 once the rewrite has scrubbed every carrier
     ```
     """
-    if not paths:
-        return 0
-    added = _added_lines_by_path(root, paths)
-    return sum(
-        any(carrier.pattern.search(line) for carrier in TOKEN_CARRIERS for line in lines) for lines in added.values()
-    )
+    flagged: set[str] = set()
+    commit = ""
+    for line in _git_lines(root, "log", "--all", "-p", "-U0", "--no-color", COMMIT_FORMAT):
+        if line.startswith(COMMIT_START):
+            commit = line
+        elif _adds_credential(line):
+            flagged.add(commit)
+    return len(flagged)
 
 
-def count_markers(root: Path, home: Path, carrier_paths: list[str]) -> dict[str, int]:
+def count_markers(root: Path, home: Path) -> dict[str, int]:
     """One count per class in CLASS_NAMES, over every commit reachable from any ref.
 
     ```
-    count_markers(Path("."), Path("/home/ana"), [])["home path in messages"]  # -> 0 on a clean history
+    count_markers(Path("."), Path("/home/ana"))["home path in messages"]  # -> 0 on a clean history
     ```
     """
     return {
         "home path in blobs": home_blob_commits(root, home),
         "home path in messages": home_message_lines(root, home),
         "home path in file names": home_file_names(root, home),
-        "token carrier paths": token_carrier_paths(root, carrier_paths),
+        "paths under evidence/": evidence_paths(root),
+        "commits adding a credential": credential_commits(root),
     }
 
 
@@ -123,8 +134,7 @@ def report(counts: dict[str, int]) -> str:
 
 def main(root: Path = REPO, home: Path | None = None) -> int:
     """Print the counts of [root]'s history; 1 when any class is above zero, else 0."""
-    listed = (root / CARRIER_PATHS_FILE).read_text().split()
-    counts = count_markers(root, Path.home() if home is None else home, listed)
+    counts = count_markers(root, Path.home() if home is None else home)
     print(report(counts))
     return int(any(counts.values()))
 

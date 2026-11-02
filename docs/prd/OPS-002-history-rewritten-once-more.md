@@ -118,7 +118,7 @@ One TDD unit each, one conventional commit each.
   count unchanged, tag present, SHA remap dry-run. All four classes read 0 on `9529c361`, deterministic
   across two runs, 219 cited SHAs unambiguous. **Superseded by T10**, which rehearses the argv T4 and T5
   change; its README goes with `evidence/`.
-- [ ] T4 — the rewrite's inputs leave `evidence/`: `rewrite_history.py` builds the carrier rules from
+- [x] T4 — the rewrite's inputs leave `evidence/`: `rewrite_history.py` builds the carrier rules from
   `TOKEN_CARRIERS` instead of `token-carriers.txt`, and adds `--path-glob 'evidence/*'` beside `*.pyc`;
   `read_history_markers.py` replaces the paths-file class with two that need no list, "paths under
   `evidence/`" and "commits adding a credential anywhere". Red tests first.

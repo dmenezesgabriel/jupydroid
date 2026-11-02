@@ -13,7 +13,7 @@ import subprocess
 import tempfile
 import unittest
 
-from check_device_secrets import TOKEN_CARRIERS, home_rule, local_rules_from, main, offences_in
+from check_device_secrets import home_rule, local_rules_from, main, offences_in
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 
@@ -42,10 +42,6 @@ CARRIER_CASES = {
     "Authorization header": "Authorization: token " + FAKE_HEX,
     "Bearer": "Authorization: Bearer " + FAKE_HEX,
 }
-#: The committable half of AUD-013's scrub list, seeded by OPS-015: `git filter-repo
-#: --replace-text` input like `.sensitive-strings.local`, except tracked - a fresh clone
-#: rebuilds the rewrite's input from it.
-SEED_CARRIERS = REPO / "evidence" / "aud-013-scrub-list" / "token-carriers.txt"
 
 
 class OffencesInTest(unittest.TestCase):
@@ -165,31 +161,6 @@ class HomeRuleTest(unittest.TestCase):
         """/root would flag the shipped rootfs's own paths, and /home/user is the placeholder itself."""
         for home in ("/root", "/", "/home/user", "/home/ana/sub", "/Users/ana"):
             self.assertIsNone(home_rule(pathlib.Path(home)), home)
-
-
-class SeededScrubListTest(unittest.TestCase):
-    """The seeded carriers file must cover every shape TOKEN_CARRIERS refuses, or the rewrite's
-    input and the gate drift apart - a carrier added to one and not the other is a live token
-    scrubbed from history but still committable, or refused but left in it."""
-
-    def test_only_regex_lines_are_seeded(self) -> None:
-        """A literal cannot be committed - in a tracked file it would be the secret it names."""
-        rules = local_rules_from(SEED_CARRIERS.read_text())
-        self.assertEqual(len(TOKEN_CARRIERS), len(rules))
-        for rule, _ in rules:
-            self.assertIsInstance(rule, re.Pattern)
-
-    def test_every_carrier_shape_the_gate_refuses_is_covered(self) -> None:
-        rules = [rule for rule, _ in local_rules_from(SEED_CARRIERS.read_text())]
-        for name, text in CARRIER_CASES.items():
-            with self.subTest(carrier=name):
-                self.assertTrue(any(rule.search(text) for rule in rules), name)
-
-    def test_every_seeded_rule_catches_a_carrier_shape(self) -> None:
-        """A line that catches nothing TOKEN_CARRIERS refuses is drift the other way."""
-        rules = [rule for rule, _ in local_rules_from(SEED_CARRIERS.read_text())]
-        for rule in rules:
-            self.assertTrue(any(rule.search(text) for text in CARRIER_CASES.values()), rule.pattern)
 
 
 class MainTest(unittest.TestCase):
