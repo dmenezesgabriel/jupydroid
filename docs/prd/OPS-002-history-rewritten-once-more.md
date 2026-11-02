@@ -220,8 +220,12 @@ One TDD unit each, one conventional commit each.
   `SCANNED_TREES`. A prefix label is dropped; a sentence that leans on an id is rewritten to state the
   fact. The gate's own docstrings and tests describe a banned pattern in words and keep their examples in
   string literals, which no scanner reads.
-  - [ ] T8a — the gate learns `AUD-NNN` (the `JD` and `OPS` entries become one pattern), and
-    `scripts/read_*.py` joins its scope: 68 hits in 23 files.
+  - [x] T8a — the gate learns `AUD-NNN` (the `JD` and `OPS` entries become one pattern), and
+    `scripts/read_*.py` joins its scope: 68 hits in 23 files, now 0. An audit slice is named by what it
+    examined ("the terminal slice") rather than by id; a pointer into `evidence/` or into a dropped commit
+    states the fact; `reference/` became "the gitignored `reference` directory", since a trailing slash
+    is what the pattern matches. The ledger tools keep `AUD-NNN` in string literals, which they parse
+    and no scanner reads. T8b rewrites the gate's own docstring, which names `reference/` and `evidence/`.
   - [ ] T8b — `scripts/check_*.py` and the other `scripts/*.py` and `*.sh` (115 hits), with the gate's own
     "Out of scope on purpose" paragraph.
   - [ ] T8c — `scripts/*-driver.sh` from `a` to `l`, with the item-coded `OUT=` evidence directories
