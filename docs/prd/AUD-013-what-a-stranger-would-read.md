@@ -66,7 +66,7 @@ git grep -hoE "[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}" | sort | uniq -c | s
 - [x] T4 — the tree scrubbed: evidence through `scripts/scrub_device_secrets.py`; `scripts/java-home.sh`
   uses `$HOME` (`scripts/java_home_test.py`); the `AGENTS.md` machine note made generic - no local
   file, since the script derives the path the note held and nothing would read one.
-- [ ] T5 — the gate refuses the host's home in `main`; the whole-tree sweep stays green.
+- [x] T5 — the gate refuses the host's home in `main`; the whole-tree sweep stays green.
 - [ ] T6 — close: backlog row edited, this PRD deleted.
 
 ## Out of scope

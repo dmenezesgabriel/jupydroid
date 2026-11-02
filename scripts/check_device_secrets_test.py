@@ -204,6 +204,26 @@ class MainTest(unittest.TestCase):
         (root / "run.txt").write_text(FAKE_TOKEN)
         self.assertEqual(1, main(["run.txt"], root))
 
+    def test_a_file_naming_the_hosts_home_is_refused(self) -> None:
+        root = pathlib.Path(tempfile.mkdtemp())
+        (root / "maestro.log").write_text("classpath /home/ana/Android/Sdk\n")
+        self.assertEqual(1, main(["maestro.log"], root, home=pathlib.Path("/home/ana")))
+
+    def test_a_path_naming_the_hosts_home_is_refused(self) -> None:
+        root = pathlib.Path(tempfile.mkdtemp())
+        (root / "home-ana-notes.txt").write_text("nothing\n")
+        self.assertEqual(1, main(["/home/ana/notes.txt"], root, home=pathlib.Path("/home/ana")))
+
+    def test_the_placeholder_home_passes(self) -> None:
+        root = pathlib.Path(tempfile.mkdtemp())
+        (root / "maestro.log").write_text("classpath /home/user/Android/Sdk\n")
+        self.assertEqual(0, main(["maestro.log"], root, home=pathlib.Path("/home/ana")))
+
+    def test_a_home_that_is_no_account_adds_no_rule(self) -> None:
+        root = pathlib.Path(tempfile.mkdtemp())
+        (root / "rootfs.txt").write_text("HOME=/root\n")
+        self.assertEqual(0, main(["rootfs.txt"], root, home=pathlib.Path("/root")))
+
     def test_a_binary_file_is_judged_by_its_path_only(self) -> None:
         root = pathlib.Path(tempfile.mkdtemp())
         (root / "frame.png").write_bytes(b"\x89PNG\x00\x00" + FAKE_TOKEN.encode())

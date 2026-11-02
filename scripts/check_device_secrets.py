@@ -8,7 +8,7 @@ databases), Samsung's FCM push tokens, and every other app's activity. Before th
 remote, history was rewritten once to take them out (ADR-0015); this gate is what keeps
 the next dump from undoing that.
 
-**Four kinds of refusal**, because each covers what the others cannot:
+**Five kinds of refusal**, because each covers what the others cannot:
 
   1. **A dump's path**, whatever it holds - `.gitignore` already skips these, and this catches the
      `git add -f` past it.
@@ -26,6 +26,9 @@ the next dump from undoing that.
      file drove the rewrite, so the gate refuses exactly what was scrubbed. It holds the tablet's
      serial, which cannot be a built-in rule without committing the serial. A clone without the
      file runs the built-in rules only.
+  5. **The host's own `/home/<name>`** - every `maestro.log` lists it in its classpath, and it names the
+     account on the machine. Built from the running account at run time (`home_rule`), never stored:
+     a committed rule would be the path it removes. `scrub_device_secrets` rewrites the same class.
 
 **Binary files are judged by path only.** A frame is pixels; reading its bytes as text finds
 nothing true and costs the commit hook the whole screenshot set.
@@ -152,8 +155,10 @@ def _hits(rule: LocalRule, path: str, text: str) -> bool:
     return rule.search(path) is not None or rule.search(text) is not None
 
 
-def offences_in(path: str, text: str, rules: list[LocalRule]) -> list[str]:
+def offences_in(path: str, text: str, rules: list[LocalRule], home: re.Pattern[str] | None = None) -> list[str]:
     """Every reason [path] with contents [text] must not be committed; empty when it may be.
+
+    [home] is the host's account pattern from `home_rule`; the offence names the class, never the match.
 
     ```
     offences_in("evidence/p1/logcat.txt", "", [])  # -> ["evidence/p1/logcat.txt: a full-device dump ..."]
@@ -169,6 +174,8 @@ def offences_in(path: str, text: str, rules: list[LocalRule]) -> list[str]:
         found = {f"{carrier.name} ({match.group(1)[:8]}…)" for match in carrier.pattern.finditer(text)}
         offences.extend(f"{path}: a Jupyter server credential in {form}" for form in sorted(found))
     offences.extend(f"{path}: local rule from {LOCAL_LITERALS}" for rule in rules if _hits(rule, path, text))
+    if home is not None and _hits(home, path, text):
+        offences.append(f"{path}: the host's home path; write /home/{HOME_PLACEHOLDER} (or $HOME) instead")
     return offences
 
 
@@ -178,14 +185,19 @@ def text_of(file: pathlib.Path) -> str:
     return "" if b"\x00" in head[:8192] else head.decode("utf-8", errors="replace")
 
 
-def main(paths: list[str], root: pathlib.Path = pathlib.Path()) -> int:
-    """Returns 0 when none of [paths], relative to [root], carries device data."""
+def main(paths: list[str], root: pathlib.Path = pathlib.Path(), home: pathlib.Path | None = None) -> int:
+    """Returns 0 when none of [paths], relative to [root], carries device data or [home]'s account.
+
+    [home] is the running account's unless given - the one `scrub_device_secrets` removes.
+    """
     local = root / LOCAL_LITERALS
     rules = [rule for rule, _ in local_rules_from(local.read_text())] if local.is_file() else []
+    home_pair = home_rule(home or pathlib.Path.home())
     offences: list[str] = []
     for path in paths:
         file = root / path
-        offences.extend(offences_in(path, text_of(file) if file.is_file() else "", rules))
+        text = text_of(file) if file.is_file() else ""
+        offences.extend(offences_in(path, text, rules, home_pair[0] if home_pair else None))
     for offence in offences:
         print(offence, file=sys.stderr)
     return 1 if offences else 0
