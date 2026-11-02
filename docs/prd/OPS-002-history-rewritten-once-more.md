@@ -169,7 +169,16 @@ One TDD unit each, one conventional commit each.
     the substring check over the final set prints nothing. Evidence directories take the driver's name, the two
     tabs drivers sharing `tabs`. Left to T8 as in T7c: plan-step prose in bodies, names a flow types on the
     device (`p8d-alpha`, `p8f-second.ipynb`, `p7e2-pip.txt`) and kernelspec names (`p8g-echo`, `p8g` in Kotlin tests).
-  - [ ] T7e — `jd-001` to `jd-019`.
+  - [x] T7e — `jd-001` to `jd-019` (210 files: 25 fixtures, 129 flows, 56 drivers). Named by hand where the
+    strip collided or said nothing: a `tN` driver takes what its header shows, not the task number; the
+    whole-demo driver of `jd-003`, `jd-005` and `jd-009` became `*-demo`, and `console-clear` and
+    `markdown-output` were qualified, all for the substring rule (the check over the final stems finds no
+    pair with a T7e name inside another). Three flow pairs that differ in content are named by what each
+    asserts, and seven fixtures that said nothing alone take their driver's name. A driver that builds a
+    flow name from a prefix (`$FLOWS-part2-x.yaml`) is beyond the stem rewrite: its prefix was re-pointed
+    and `run_part` expands `${1#part*-}`, and each driver was checked to resolve the flows its old self
+    did. Left to T8: item ids in flow header comments and driver bodies (`JD-002 demo, step 5`) and the
+    names a flow types on the device.
   - [ ] T7f — `jd-020` to `jd-039`.
   - [ ] T7g — `jd-040` to `jd-074` (563 `jd` files in total).
 - [ ] T8 — ids out of code: `check_doc_citations.py` loses its driver and flow exemption and learns
