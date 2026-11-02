@@ -73,9 +73,10 @@ Nothing under `app/`. `.sensitive-strings.local` is input only: never printed, q
 
 One TDD unit each, one conventional commit each.
 
-- [ ] T1 — `scripts/read_history_markers.py`: per-class counts over all history (home path in blobs, in
-  messages and in file names; each path of `token-carrier-paths.txt` via `-S`; distinct identities). Exits
-  non-zero on any hit. Red test first, on a fixture repo built in a tmp dir. Baseline run on this repo.
+- [x] T1 — `scripts/read_history_markers.py`: per-class counts over all history (home path in blobs, in
+  messages and in file names; the paths of `token-carrier-paths.txt` that ever had a credential added).
+  Exits non-zero on any hit. The identity is not a class: one is expected afterwards, which is not a
+  zero, so Demo step 3 reads it with `git log`. Red test first, on a fixture repo built in a tmp dir.
 - [ ] T2 — `scripts/rewrite_history.py`: the rules file (`token-carriers.txt`, `.sensitive-strings.local`,
   `read_personal_data.py --scrub-rules`), the run-time mailmap, and the `git filter-repo` argv. One rules
   file feeds both `--replace-text` and `--replace-message`; `--prune-empty never`. Builders unit tested, one
