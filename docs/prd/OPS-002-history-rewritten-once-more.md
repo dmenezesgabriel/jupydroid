@@ -150,7 +150,16 @@ One TDD unit each, one conventional commit each.
     `editor-renders-seeded-cells`, `bracket-match-highlight`, `completion-popup` and
     `gutter-wrapped-line`; the step 2 and 3 flows became what they show. The theme driver's evidence
     directory takes the driver's name. Plan-step prose inside flow bodies is left to T8.
-  - [ ] T7c — `p1*` to `p4*`.
+  - [x] T7c — `p1*` to `p4*` (255 files, 12 of them past the tool's collisions). Named by hand where the
+    strip collided or said nothing: the `partN` sub-flows of `p1b`, `p1c`, `p1d`, `p1g` and `p4k` take their
+    driver's name, as in T7a, and so do the two halves of the terminal resize, IME resize and Ctrl-C gates; the
+    two `search-options` became `find-options` and `workspace-search-options`. A driver stem that is a
+    substring of another driver's (`replace` inside `replace-all`, `rotation` inside the later
+    `jd-030-rotation-*`) was qualified, and the substring check over the final set prints nothing.
+    Hand edits the tool does not make: the plan-step id in the driver header lines, `echo` lines and
+    evidence directory names, and the partial stems in comments (`p1d-part2`, `p2f-2's`, `p2b-split`).
+    Plan-step prose inside driver and flow bodies, and the file names a flow types on the device (`p4k-marker-*`,
+    `p2j-5-share`), are left to T8.
   - [ ] T7d — `p5*` to `p8*` (418 `p` files in total, `p4b2` and `p5e1` shapes included).
   - [ ] T7e — `jd-001` to `jd-019`.
   - [ ] T7f — `jd-020` to `jd-039`.
