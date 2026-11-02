@@ -26,7 +26,8 @@ The closing run, from a cold start on a fresh clone of the recreated remote:
 4. `git ls-remote origin` lists `HEAD`, `refs/heads/main` and the `archive/p2v-declined-attempt` tag.
 5. `git log --all --name-only --format= | grep -c '^evidence/'` prints `0`.
 6. `python3 scripts/check_doc_citations.py` passes with drivers and flows in scope, and
-   `git ls-files scripts .maestro | grep -cE '/(jd|aud|ops|p[0-9]|x[0-9]|u[0-9])[-_]'` prints `0`.
+   `git ls-files scripts .maestro | grep -cE '/((jd|aud|ops)-[0-9]{3}|[a-z]{1,4}[0-9]+[a-z]*)[-_][^/]*$'`
+   prints `0`.
 
 The item is not `shipped` until this has been run and its output named in the commit body.
 
@@ -45,7 +46,7 @@ Reproduce from the repository root:
 | tracked evidence | `git ls-files evidence \| wc -l`; on disk `du -sh evidence` | 7388 files, 52 MB; 2.3 GB on disk |
 | home-path commits outside `evidence/` | `git log --all -S"$HOME" --oneline -- . ':!evidence' \| wc -l` | 7 (of 462) |
 | carrier paths outside `evidence/` | `grep -vc '^evidence/' <carrier paths file>` | 0 (of 105) |
-| step-coded script and flow names | `git ls-files scripts .maestro \| grep -cE '/(jd\|aud\|ops\|p[0-9]\|x[0-9]\|u[0-9])[-_]'` | measured at the rename task |
+| step-coded script, flow and fixture names | basenames of `git ls-files scripts .maestro` matching `^((jd\|aud\|ops)-[0-9]{3}\|[a-z]{1,4}[0-9]+[a-z]*)[-_]` | 1,064 (jd 563, p 388, step 47, u 29, a 18, aud 10, x 9); about 1,900 references; 8 collide once stripped |
 | ids in code and tests | `git grep -cE '\b(JD\|AUD\|OPS)-[0-9]{3}\b' -- app extension-api extensions tools scripts` | 141 in 35 files |
 
 ## Decisions
@@ -132,9 +133,19 @@ One TDD unit each, one conventional commit each.
 - [x] T6 — docs cite no evidence path: the 60 lines in `docs/`, the ADRs, `AGENTS.md`, `README.md` and
   `pyproject.toml` restate the fact or name the script that reproduces it; a gate keeps a tracked
   Markdown file from naming `evidence/<dir>/`.
-- [ ] T7 — drivers and flows renamed for what they demonstrate (339 `scripts/*-driver.sh`, the step-coded
-  `.maestro/*.yaml`), every caller and cross-reference updated, exact duplicates merged, header comments and
-  echo lines without ids. Split by prefix family at the start if it does not fit one commit.
+- T7 — drivers, flows and fixtures renamed for what they demonstrate: the leading code and any `-t<n>` or
+  `-part<n>` segment stripped, a collision or a name left meaningless named by hand, every caller and
+  cross-reference updated, exact duplicates merged, the renamed drivers' header lines, `echo` lines and
+  `OUT=` directory without ids. 1,064 files and about 1,900 references, so split by prefix family:
+  - [ ] T7a — `scripts/rename_tracked_files.py` (+ `_test.py`): `propose` prints the old→new mapping and
+    refuses a collision with both values, `apply` runs `git mv` and rewrites references longest name first
+    on a name boundary. Red tests first. Applied to the `aud`, `x`, `u` and `a` families (66 files).
+  - [ ] T7b — `step*` (47 files).
+  - [ ] T7c — `p1*` to `p4*`.
+  - [ ] T7d — `p5*` to `p8*` (388 `p` files in total).
+  - [ ] T7e — `jd-001` to `jd-019`.
+  - [ ] T7f — `jd-020` to `jd-039`.
+  - [ ] T7g — `jd-040` to `jd-074` (563 `jd` files in total).
 - [ ] T8 — ids out of code: `check_doc_citations.py` loses its driver and flow exemption and learns
   `AUD-NNN`; the 141 id matches in code and tests and whatever the wider scope surfaces are restated.
   Red test first for each new rule.
