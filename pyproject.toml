@@ -57,6 +57,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/read_history_markers_test.py" = ["S603", "S607"]
 "scripts/rewrite_history.py" = ["S603", "S607"]
 "scripts/rewrite_history_test.py" = ["S603", "S607"]
+"scripts/rename_tracked_files.py" = ["S603", "S607"]
+"scripts/rename_tracked_files_test.py" = ["S603", "S607"]
 # The test sources java-home.sh with `sh` and a fixture HOME; the argv is literal.
 "scripts/java_home_test.py" = ["S603", "S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]

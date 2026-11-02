@@ -1,0 +1,28 @@
+appId: com.jupydroid.app
+---
+# The text half of the cell commands, measured rather than read: what a cell's own field does,
+# since nothing in `ui/editor/` adds a text command of its own. Part 1 of 4, each run by
+# scripts/text-history-driver.sh, which types and presses Ctrl+Z / Ctrl+Shift+Z between
+# parts - a key *combination* is the one input Maestro cannot send.
+#
+# Runs no cell, so nothing here waits on a kernel. Seeded by the driver; clearState would delete
+# the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Text History.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Text History.ipynb"
+- extendedWaitUntil:
+    visible: "kept = 1"
+    timeout: 30000
+# The caret has to be in the field: Ctrl+Z is a key event, and it reaches the focused field or
+# nothing.
+- tapOn: "kept = 1"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-caret-in-the-cell

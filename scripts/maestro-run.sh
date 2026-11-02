@@ -69,9 +69,9 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 # so a mistyped path removes nothing rather than the wrong thing.
 #
 # Flows were not independent, and it took a whole-suite sweep to show it. Every run leaves
-# notebooks behind - `a3-create-shows-up` seeds a crowd of 25 on purpose, and every flow that
+# notebooks behind - `create-shows-up` seeds a crowd of 25 on purpose, and every flow that
 # taps the FAB adds a UUID that nothing ever removes - so Home grows by a couple of rows per
-# sweep, forever. `a6-edit-updates-recents` is the one that breaks first: it backdates its
+# sweep, forever. `edit-updates-recents` is the one that breaks first: it backdates its
 # fixture to 2020 precisely so the row is stale, which pins it to the *bottom* of a list sorted
 # by recency, and at 64 notebooks a 20-second `scrollUntilVisible` no longer reaches it.
 reset_notebooks() {
@@ -226,7 +226,7 @@ record_device() {
 # exits after the first line and the still-writing `ls` upstream takes SIGPIPE, which under
 # `set -o pipefail` fails the driver with 141. It is a *race*, so it was invisible until the
 # directory grew - at 629 runs `ls` finally wrote more than a pipe buffer before `head` left,
-# and `a4-markdown-contrast` began failing after every flow in it had passed. `sed` reads its
+# and `markdown-contrast` began failing after every flow in it had passed. `sed` reads its
 # input to the end, so there is nothing to race.
 newest_run_dir() {
   local flow_name="$1"

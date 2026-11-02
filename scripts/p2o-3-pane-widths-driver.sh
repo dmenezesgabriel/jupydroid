@@ -17,7 +17,7 @@
 #   ANDROID_SERIAL=emulator-5554 scripts/p2o-3-pane-widths-driver.sh   #  320dp,          one pane
 #
 # The evidence directory is named from the *measured* width, so a run cannot be mislabelled - the
-# rule `u7-adaptive-driver.sh` established for the same reason.
+# rule `adaptive-panes-driver.sh` established for the same reason.
 #
 # Runs no cell, so it needs no Space runtime.
 set -euo pipefail

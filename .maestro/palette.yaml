@@ -1,0 +1,48 @@
+appId: com.jupydroid.app
+---
+# U1: the editor palette reaches the screen, in both system themes.
+#
+# Seeded by scripts/palette-driver.sh, which sets the system night mode and then runs this
+# flow once per theme from its own output directory; clearState would delete the fixture.
+#
+# Colour is judged from the screenshots by a human - a flow cannot see a hex value. What it
+# asserts is that both cells rendered, because a palette that never reached the composition
+# would fail here before any screenshot was worth looking at.
+- launchApp
+- runFlow: open-base-space.yaml
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Palette Check.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Palette Check.ipynb"
+# The rendered markdown cell is the resting state, so this is what an opened notebook shows:
+# the rich-text inline styles and the code cell's syntax spans in one frame.
+- extendedWaitUntil:
+    visible: "Rendered markdown"
+    timeout: 30000
+- assertVisible: ".*def area.*"
+- takeScreenshot: 01-code-and-rendered-markdown
+# Tap the markdown into its editor. This is the only view where HEADING, MARKER, QUOTE, CODE
+# and LINK are coloured at all - the rendered view above shows none of those spans.
+#
+# What to look for in 02, since P2u-2b gave three of them values of their own: the quote marker,
+# the list bullets and the backticked span are three *different* colours, where until P2u-2b the
+# first two folded onto the string and keyword colours. The link is the one that shares - it takes
+# the string colour on purpose, and its underline is what tells them apart.
+- tapOn: "Rendered markdown"
+- extendedWaitUntil:
+    visible: "(?s).*# Palette check.*"
+    timeout: 10000
+# The tap raises the keyboard, and the insets animate. Without this the screenshot catches a
+# mid-animation frame in which the app bar has not yet settled under the status bar - which
+# looked exactly like an inset defect and was not one.
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-markdown-source-spans

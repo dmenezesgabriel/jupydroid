@@ -17,7 +17,7 @@ appId: com.jupydroid.app
       id: "space-startup-script-field"
     direction: DOWN
     timeout: 5000
-# Replaced through Select all, as `aud-002-4-text-clipboard.yaml` selects: a tap leaves the caret
+# Replaced through Select all, as `text-history-clipboard.yaml` selects: a tap leaves the caret
 # mid-text and `eraseText`, bare or counted, deletes only behind it - it once left `startup.txt`
 # to be saved as `exit 3startup.txt`. Typing over the selection replaces all of it.
 - longPressOn:

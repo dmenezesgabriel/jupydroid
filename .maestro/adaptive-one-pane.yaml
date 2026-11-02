@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# U7, below 840dp: one pane, exactly as before the step.
+#
+# The negative half of the pair, and the half worth having. A scene strategy that returned a
+# scene unconditionally would pass adaptive-two-panes.yaml on any device, and the only thing that
+# catches it is asserting that a narrow window does *not* get the second pane.
+#
+# Seeded by scripts/adaptive-panes-driver.sh, which chooses between the two by measured width.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Switch Alpha.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Switch Alpha.ipynb"
+- extendedWaitUntil:
+    visible: "first_only = 111"
+    timeout: 30000
+# The editor has the window to itself: nothing of the list is left on screen.
+- assertNotVisible: "Switch Beta.ipynb"
+- takeScreenshot: 01-notebook-has-the-window

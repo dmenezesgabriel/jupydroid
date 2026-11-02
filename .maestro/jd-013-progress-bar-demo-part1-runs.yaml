@@ -51,7 +51,7 @@ appId: com.jupydroid.app
 # The Console, on the notebook's own kernel, with the same source typed the same way. The cell
 # still has focus after Run, and a notebook in edit mode draws the symbol row along its bottom
 # instead of the kernel bar (`editorBottomBar`). The keyboard is already down, so one `back` is
-# edit mode's own exit to command mode, as in u2-cell-mode.yaml.
+# edit mode's own exit to command mode, as in cell-mode.yaml.
 - back
 - tapOn: "Kernel actions"
 - tapOn: "New Console for Notebook"

@@ -22,7 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EVIDENCE="$ROOT/evidence/jd-030-rotation/t3"
 FLOWS="$ROOT/.maestro/jd-030-rotation-t3"
 
-# `auto` afterwards, as `u1-palette-driver.sh` restores it: a theme left forced would decide the
+# `auto` afterwards, as `palette-driver.sh` restores it: a theme left forced would decide the
 # look of every flow that runs after this one.
 restore_device() {
   restore_rotation

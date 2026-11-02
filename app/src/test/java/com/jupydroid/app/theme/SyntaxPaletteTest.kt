@@ -162,7 +162,7 @@ class SyntaxPaletteTest {
 
   /**
    * The three are distinct from each other too, since a markdown cell shows all three at once -
-   * which the `u1-palette` fixture is built to put in one frame.
+   * which the `palette` fixture is built to put in one frame.
    */
   @Test
   fun theMarkdownOnlyKindsAreMutuallyDistinct() {

@@ -37,7 +37,7 @@ reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/p2h-2-table-of-contents.ipynb" "Heading Sections"
 # A2's own fixture: no `cells` key at all, so it opens on the one default cell `toEditorUiState`
 # gives an empty file - a code cell, and so a notebook with no headings at all.
-seed_notebook "$ROOT/.maestro/fixtures/a2-empty-notebook.ipynb" "Empty Notebook"
+seed_notebook "$ROOT/.maestro/fixtures/empty-notebook.ipynb" "Empty Notebook"
 
 run_flow "$ROOT/.maestro/p2h-2-table-of-contents.yaml" \
   "$ROOT/evidence/p2h-2-table-of-contents/${WIDTH_DP}dp"

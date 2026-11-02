@@ -7,7 +7,7 @@ appId: com.jupydroid.app
 #
 # Runs no cell, so any device will do - sharded across both anyway,
 # `p6c-5-word-wrap.yaml`'s own precedent for a pure UI-rendering row. Entering edit mode is a
-# single tap on the cell's own source, `u5d-symbol-row.yaml`'s own precedent.
+# single tap on the cell's own source, `symbol-row.yaml`'s own precedent.
 #
 # **Matched by `id: "symbol_row"`, not by "Tab"'s own text.** The row's first key is labelled
 # "Tab", and on the physical tablet's real IME (Gboard) the *keyboard's own* Tab key carries the

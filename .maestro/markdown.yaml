@@ -1,0 +1,52 @@
+appId: com.jupydroid.app
+---
+# Audit finding A1: markdown cells were read-only, so an existing one could not be edited and
+# an inserted one was a bare header with nothing under it. Seeded by scripts/markdown-driver.sh.
+- launchApp
+- runFlow: open-base-space.yaml
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Markdown Edit.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Markdown Edit.ipynb"
+- extendedWaitUntil:
+    visible: "Markdown cell here"
+    timeout: 30000
+- takeScreenshot: 01-markdown-cell
+# It is a field now, so it takes typing.
+- tapOn: "Markdown cell here"
+- inputText: " EDITED"
+- assertVisible: ".*Markdown cell here EDITED.*"
+- takeScreenshot: 02-markdown-edited
+# An inserted markdown cell must be visible and fillable, not an empty row.
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Insert markdown below"
+- assertVisible: "Write markdown…"
+- takeScreenshot: 03-inserted-markdown-has-a-placeholder
+# The debounce is 500 ms; stopping the app is the harder case - it must already be on disk.
+- stopApp
+- launchApp
+- runFlow: open-base-space.yaml
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Markdown Edit.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Markdown Edit.ipynb"
+- extendedWaitUntil:
+    visible: ".*Markdown cell here EDITED.*"
+    timeout: 30000
+- takeScreenshot: 04-edit-survived-restart

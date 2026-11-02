@@ -91,7 +91,7 @@ fun MarkdownCellField(
   // A tap on the rendered cell takes the caret with it: without this the tap left an unfocused
   // field and the next keystroke went nowhere - a tap that opens an editor you must tap again is
   // half a tap. Invisible to the Compose tests, whose `performTextInput` focuses the node itself;
-  // `a1-markdown` caught it.
+  // `markdown` caught it.
   //
   // **Conditional**, because this field has a second way to appear. `changeCellType`
   // unrenders every cell it visits (`actions.tsx:3308-3312`) and ends in command mode, so a run

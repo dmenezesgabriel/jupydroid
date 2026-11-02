@@ -40,7 +40,7 @@ appId: com.jupydroid.app
     id: "terminal-input"
 - waitForAnimationToEnd:
     timeout: 3000
-# Scoped to the platform's floating toolbar, `aud-002-4-text-clipboard.yaml`'s id for its items.
+# Scoped to the platform's floating toolbar, `text-history-clipboard.yaml`'s id for its items.
 - assertVisible:
     text: "Copy"
     id: "android:id/floating_toolbar_menu_item_text"

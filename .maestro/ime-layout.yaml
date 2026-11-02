@@ -1,0 +1,61 @@
+appId: com.jupydroid.app
+---
+# U6: the cell you are typing into has to still be on screen once the keyboard is up.
+#
+# Eight cells, so the last one is well below the fold on a 320x640dp phone - which is the only
+# way to ask the question. With a short notebook everything fits and the layout is never tested.
+#
+# **This is a screenshot gate, by necessity.** The soft keyboard is a separate window: a node
+# underneath it is still "visible" in the view hierarchy, so no `assertVisible` can tell covered
+# from uncovered. What the assertions below *can* do is pin the state the screenshot was taken
+# in - edit mode, keyboard up, caret in the last cell - so the picture is of the right thing.
+#
+# Seeded by scripts/ime-layout-driver.sh. Runs no cell: this is a layout question.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Ime Layout.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Ime Layout.ipynb"
+- extendedWaitUntil:
+    visible: "alpha = 1"
+    timeout: 30000
+- takeScreenshot: 01-no-keyboard
+- scrollUntilVisible:
+    element:
+      text: "the_last_line = 8"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "the_last_line = 8"
+# `Tab` is the symbol row's first key and the row is shown only in EDIT mode, so this is the
+# assertion that the tap really opened an editor rather than merely selecting the cell.
+- extendedWaitUntil:
+    visible: "Tab"
+    timeout: 10000
+# The symbol row appears on the *mode* change, which happens the instant focus lands - well
+# before the keyboard has finished animating in. Without this settle the screenshot caught a
+# focused cell and no keyboard at all, which is a picture of nothing: the whole question is what
+# the layout does once the keyboard is there.
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-last-cell-focused-keyboard-up
+# Now the case a short cell cannot ask: the cell grows *under* the keyboard as it is typed.
+# Compose brings the caret into view, not the field, so a field taller than the room left over
+# is exactly where that can come apart - and typing at the bottom of a notebook is the ordinary
+# way to get there. Six lines is more than the gap between the last cell and the symbol row.
+#
+# Driven by typing rather than by a tall fixture because Maestro addresses a whole
+# `BasicTextField` as one node: a 13-line cell can never be 100% visible, so `scrollUntilVisible`
+# can neither reach nor assert a line inside it.
+- repeat:
+    times: 6
+    commands:
+      - inputText: "grown"
+      - pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 03-caret-still-visible-after-growing

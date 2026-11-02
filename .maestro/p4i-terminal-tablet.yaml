@@ -14,7 +14,7 @@ appId: com.jupydroid.app
 #
 # Not `clearState: true`: the driver's own `reset_notebooks` + `seed_file` already put a clean
 # workspace and the marker file in place, and `clearState` would wipe both **and** the already
-# installed Space, forcing a full rootfs reinstall this flow does not need - `a2-empty-notebook`'s
+# installed Space, forcing a full rootfs reinstall this flow does not need - `empty-notebook`'s
 # own precedent, a bare `launchApp` after the driver's cleanup.
 - launchApp
 - runFlow: open-base-space.yaml

@@ -7,9 +7,9 @@ talking about the same thing.
 Every driver that puts a notebook on the device has to clear the ones already there first, or
 the suite is not repeatable - it is a function of how many times it has been run.
 
-That is not hypothetical. `a3-create-shows-up` seeds a crowd of 25 on purpose and removes none
+That is not hypothetical. `create-shows-up` seeds a crowd of 25 on purpose and removes none
 of them; every flow that taps the FAB leaves a UUID behind. Home grew a couple of rows per
-sweep until the device held 64 notebooks, and `a6-edit-updates-recents` - which backdates its
+sweep until the device held 64 notebooks, and `edit-updates-recents` - which backdates its
 fixture to 2020 so that the row reads as stale, and so sorts to the *bottom* of a list ordered
 by recency - could no longer be reached by a 20-second `scrollUntilVisible`. It passed one
 sweep and failed the next with nothing in the app having changed.

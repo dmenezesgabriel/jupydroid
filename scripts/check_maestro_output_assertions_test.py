@@ -75,7 +75,7 @@ class MaestroGateTest(unittest.TestCase):
         A driver whose fixture the gate cannot find loses rule 1 *silently*: `seeded_sources`
         returns "" and every assertion then looks incapable of matching the source. Adding the
         helper without teaching the gate about it is exactly how that would have happened, and
-        it did - `u4-execution-status` was unchecked until this case existed.
+        it did - `execution-status` was unchecked until this case existed.
         """
         offences = self.flow('- tapOn: "Run all cells"\n- assertVisible: "omega"\n', names_fixture="helper")
 

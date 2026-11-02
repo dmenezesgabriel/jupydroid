@@ -42,7 +42,7 @@ appId: com.jupydroid.app
     text: "Run cell"
     index: 0
 # Deliberately *not* scoped with `childOf: {text: "Cell output"}`, for the reason
-# `u4-execution-status` already records: this notebook puts **three** output containers on screen -
+# `execution-status` already records: this notebook puts **three** output containers on screen -
 # this one, the carried PNG and the carried table - and Maestro resolves the scope against the
 # first of them. It needs no scope to be honest anyway: 243 is in no cell's source, which is what
 # the output gate checks.

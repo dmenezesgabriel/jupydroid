@@ -30,7 +30,7 @@ seed_notebook "$FIXTURE" "Themed Cell"
 # `run_flow` rather than `maestro_test`, so the frames land in evidence/ and get committed.
 # This driver predates the helper and left its artefacts in ~/.maestro/tests/<timestamp>/, which
 # is why evidence/step5.5/ still held Step 5's originals while every re-run since went nowhere.
-# The optional sub-directory is the same shape u1-palette-driver.sh takes, for the same reason.
+# The optional sub-directory is the same shape palette-driver.sh takes, for the same reason.
 run_flow "$ROOT/.maestro/step5-theme-and-run.yaml" "$ROOT/evidence/step5.5${1:+/$1}"
 
 # Mod-Enter is deliberately NOT driven here. Maestro has no modifier chord, and

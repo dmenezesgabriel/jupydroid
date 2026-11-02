@@ -37,7 +37,7 @@ appId: com.jupydroid.app
 # The empty cell's field has no text to press by and the editor gives it no tag, so it is pressed at
 # a point inside it: in landscape with the explorer open, SM-X216B puts the field at
 # [805,319][1884,391] (`maestro hierarchy`). The Paste is the platform's floating toolbar's, scoped
-# to it as aud-002-4-text-clipboard.yaml does.
+# to it as text-history-clipboard.yaml does.
 - longPressOn:
     point: "1300,354"
 - waitForAnimationToEnd:

@@ -130,7 +130,7 @@ run_at() { # run_at <0=portrait|1=landscape> <out-dir>
   reset_notebooks
   if [ "$TARGET" = terminal ]; then terminal_target "$2"; return; fi
   if [ "$TARGET" = chat ]; then chat_target "$2"; return; fi
-  seed_notebook "$ROOT/.maestro/fixtures/u5d-symbol-row.ipynb" "Symbol Row"
+  seed_notebook "$ROOT/.maestro/fixtures/symbol-row.ipynb" "Symbol Row"
   if [ "$TARGET" = cell ]; then
     flow_then_reads window-key-row.yaml "$2" "Symbol Row.ipynb" saved.ipynb
     return
@@ -152,7 +152,7 @@ demo_seed() {
   reset_notebooks
   local stem
   for stem in "Symbol Row" "Symbol Row Upright" "Symbol Row Relaunched"; do
-    seed_notebook "$ROOT/.maestro/fixtures/u5d-symbol-row.ipynb" "$stem"
+    seed_notebook "$ROOT/.maestro/fixtures/symbol-row.ipynb" "$stem"
   done
   seed_file "$ROOT/.maestro/fixtures/window-key-row.py" "window_key_row.py"
 }

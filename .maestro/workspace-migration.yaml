@@ -1,0 +1,31 @@
+appId: com.jupydroid.app
+---
+# X1a: a notebook from the old private folder arrives in the workspace the kernel can see.
+#
+# Seeded by scripts/workspace-migration-driver.sh, which puts the fixture in the *old* place -
+# `files/notebooks` - and deletes the stamp, so the launch below is a first launch after an
+# upgrade. That is the only way to drive this: the migration is one-shot by design.
+#
+# The driver runs the whole thing twice and prints the workspace listing after each, because the
+# second run is the one this project has been burned by (every install-time path needs a second
+# install to be tested at all). A migration that ran again would suffix the notebook, and only the
+# listing shows that.
+#
+# Runs no cell: where the file is, is not a kernel question.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# The notebook is on Home at all, which means the repository found it at the new root.
+- scrollUntilVisible:
+    element:
+      text: "Moved Notebook.ipynb"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 01-migrated-notebook-on-home
+- tapOn: "Moved Notebook.ipynb"
+# Its contents survived the move, not just its name.
+- extendedWaitUntil:
+    visible: "moved = 'intact'"
+    timeout: 30000
+- takeScreenshot: 02-contents-intact

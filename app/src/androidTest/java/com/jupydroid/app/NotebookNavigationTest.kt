@@ -83,7 +83,7 @@ class NotebookNavigationTest {
    * it passed against no guard at all: the composition settles between them, Recents is gone by
    * the second, and the title it matched was the *editor's* app bar. Holding the clock keeps
    * Recents on screen for both taps, which is the real gesture - a second tap landing during the
-   * transition, the same window that made `a2-empty-notebook` flake once in thirty runs.
+   * transition, the same window that made `empty-notebook` flake once in thirty runs.
    */
   @Test
   fun tappingTheSameNotebookTwiceOpensOneEditor() {

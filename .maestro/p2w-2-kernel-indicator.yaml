@@ -47,7 +47,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 02-starting-while-the-kernel-comes-up
 
 # **Busy for as long as the cell sleeps.** Six seconds is chosen so the state is reachable by a
-# poll rather than by luck - the same reason `u4-execution-status` sleeps in its first cell.
+# poll rather than by luck - the same reason `execution-status` sleeps in its first cell.
 - extendedWaitUntil:
     visible: "Kernel Python 3: Busy"
     timeout: 120000

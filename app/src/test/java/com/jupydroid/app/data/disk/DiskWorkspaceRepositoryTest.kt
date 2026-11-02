@@ -60,7 +60,7 @@ class DiskWorkspaceRepositoryTest : WorkspaceRepositoryContract() {
    * (`filemanager.py:285`), which is what makes an edit, a run and a rename all count without
    * anything having to remember to say so. The contract can only assert that a freshly written
    * file reads as recent - a backdated one is what tells the two apart, and it is exactly the
-   * fixture `a6-edit-updates-recents` backdates to 2020 for the same reason.
+   * fixture `edit-updates-recents` backdates to 2020 for the same reason.
    */
   @Test
   fun updatedAtIsTheFilesOwnMtimeRatherThanTheTimeItWasListed() = runTest {

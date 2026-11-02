@@ -117,7 +117,7 @@ class MarkdownCellTest {
   /**
    * Asking for the editor is not the same as being able to type in it. The tap used to leave an
    * unfocused field, so the next keystroke went nowhere - invisible to every test here, because
-   * `performTextInput` focuses the node itself, and caught only by `a1-markdown` on the tablet.
+   * `performTextInput` focuses the node itself, and caught only by `markdown` on the tablet.
    *
    * The tap flips both flags, which is what `withMarkdownEditorOpened` does: it opens the editor
    * **and** asks for the caret, and only a tap does the second.

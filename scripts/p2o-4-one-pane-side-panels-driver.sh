@@ -9,7 +9,7 @@
 #   ANDROID_SERIAL=TABLET_SERIAL   scripts/p2o-4-one-pane-side-panels-driver.sh   # 800dp, rotated
 #
 # The evidence directory is named from the *measured* width, so a run cannot be mislabelled - the
-# rule `u7-adaptive-driver.sh` established for the same reason.
+# rule `adaptive-panes-driver.sh` established for the same reason.
 #
 # No cell is run, so this needs the width rather than the arm64 kernel.
 set -euo pipefail

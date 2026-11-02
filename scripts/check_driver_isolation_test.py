@@ -3,7 +3,7 @@
 
 The gate exists because the suite lost the *independent* in F.I.R.S.T. without anyone
 noticing for months: drivers left notebooks on the device, Home grew a couple of rows per
-sweep, and `a6-edit-updates-recents` - which backdates its fixture so the row sorts last -
+sweep, and `edit-updates-recents` - which backdates its fixture so the row sorts last -
 eventually could not be scrolled to. A gate that quietly stops catching that would put the
 suite straight back where it was, so it has tests of its own.
 

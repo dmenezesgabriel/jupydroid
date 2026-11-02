@@ -1,0 +1,75 @@
+appId: com.jupydroid.app
+---
+# X2b, fixed: the file browser is one pane on its own; when it opens a document, Explorer pairs
+# with it (Explorer|Editor, Explorer|FileEditor) - the split JupyterLab makes between the
+# filebrowser and the dock. Which pane is drawn is then double-checked by the driver FROM THE
+# APP'S OWN TREE (see explorer-beside-the-document-driver.sh).
+#
+# **Since X2h the browser has no back arrow in any state**, because it is the first screen: what
+# used to tell "one pane" from "list pane" was that arrow, and the crumb now has to do it alone.
+# "Workspace" is only ever the browser's, so it appearing beside a document's text *is* the pair,
+# and the driver's tree check is what says nothing else is drawn.
+#
+# Seeded by the driver: two notebooks and one plain file at the root. The tablet's window
+# (>= 840dp) is what makes the panes exist, so the driver refuses to run anywhere narrower.
+#
+# Runs no cell: what is on screen is a layout question, and layout needs no kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+# The browser alone, which is what the app opens on: one pane, however wide the window, because
+# `calculateScene` declines a single entry.
+- assertVisible: "Workspace"
+- assertNotVisible: "first_only = 111"
+- takeScreenshot: 01-the-file-browser-alone
+
+# Opening a notebook makes the pair Explorer|Editor. "Workspace" is only the browser's crumb, so
+# it still being visible beside the notebook's cell *is* the two panes.
+- tapOn: "Switch Alpha.ipynb"
+- extendedWaitUntil:
+    visible: "first_only = 111"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Workspace"
+- assertVisible: "first_only = 111"
+- takeScreenshot: 02-the-notebook-beside-the-browser
+# Tapping the other notebook from the list swaps the detail rather than stacking a pane.
+- tapOn: "Switch Beta.ipynb"
+- extendedWaitUntil:
+    visible: "second_only = 222"
+    timeout: 10000
+- assertNotVisible: "first_only = 111"
+- assertVisible: "Workspace"
+- takeScreenshot: 03-detail-swapped-browser-kept
+
+# Back leaves the pair, one pop, and the browser is full width again - the notebook's own text is
+# what has to be gone, since the crumb was on screen either way.
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "second_only = 222"
+- assertVisible: "Switch Alpha.ipynb"
+- takeScreenshot: 04-back-to-the-browser-alone
+
+# A file that is not a notebook pairs the same way: Explorer|FileEditor.
+- tapOn: "script.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 10000
+- assertVisible: "Workspace"
+- takeScreenshot: 05-the-plain-file-beside-the-browser
+
+# One more back: the browser alone again - the state the driver then checks.
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: ".*the file editor.*"
+- assertVisible: "Workspace"
+- takeScreenshot: 06-back-to-the-browser-alone
