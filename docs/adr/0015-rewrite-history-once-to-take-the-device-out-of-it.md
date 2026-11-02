@@ -43,8 +43,8 @@ those replacements changed. Afterwards `git log --all -S` finds none of the mark
 
 Nothing was lost. The original history is a bundle outside the repository, the dumps are back on
 disk as ignored files, and `.git/filter-repo/commit-map` maps every old SHA to its new one. SHAs
-quoted in files were remapped with it, except `evidence/rollback-to-91b2ae3/`, which is a directory
-name.
+quoted in files were remapped with it, except one directory under `evidence/` that was named for a
+SHA.
 
 **`logcat` is captured but never committed.** `scripts/check_device_secrets.py` enforces it as a
 pre-commit gate, reading its local literals from the gitignored `.sensitive-strings.local`. A README

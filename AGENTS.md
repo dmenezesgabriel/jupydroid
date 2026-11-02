@@ -56,8 +56,8 @@ agreement rather than two that drift.
     adapter.
   - **Composition root** (`di/AppContainer`): the only place that builds implementations,
     constructed once per *process*, in `JupydroidApplication` - the activity is relaunched on
-    every rotation, and a container per activity was a `jupyter_server` per activity
-    (`evidence/p1g-one-container-per-process/`). Work that must outlive a screen goes on its
+    every rotation, and a container per activity started one `jupyter_server` per activity,
+    a new server on every rotation. Work that must outlive a screen goes on its
     `applicationScope`, never `viewModelScope`.
   - **Document and language logic** (`syntax/`, `markdown/`, `html/`, `import/`): parsers
     and formats. Not domain — they model documents and languages, not this app's domain —
@@ -224,6 +224,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
 | doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/`+each extension module's `src/` read, an unknown type fails |
 | retired-doc gate | no file names a document ADR-0001 deleted | `scripts/check_retired_doc_citations.py` (+ `_test.py`); the three names, and the eight files whose job is to hold them |
+| evidence-citations gate | no tracked Markdown names a directory under the local `evidence/`; a placeholder or glob passes | `scripts/check_evidence_citations.py` (+ `_test.py`) |
 | comment scanners | one prose reader per comment syntax, shared by the gates | `scripts/kotlin_source.py` (`//`, `/* */`), `script_source.py` (`#`, docstrings), `xml_source.py` (`<!-- -->`) (+ `_test.py` each) |
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
 | palette-consumers gate | a palette states colours something draws | `scripts/check_palette_consumers.py` (+ `_test.py`) |

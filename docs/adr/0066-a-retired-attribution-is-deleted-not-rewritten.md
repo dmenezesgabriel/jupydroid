@@ -62,7 +62,7 @@ citations have no SHA to be rewritten to, so a uniform rewrite would have to inv
 **`evidence/` rots too, and is measured.** It is committed — 2,562 files in 264 directories — so a
 path does resolve in a fresh clone, which was the argument for exempting device tests. But
 directories are renamed and deleted as phases are re-lettered: 20 of 264 (7.6%) have been, and 2 of
-the 38 currently cited paths (`evidence/p5e-1`, `evidence/p1-lifecycle`) already point at nothing.
+the 38 currently cited paths, both named for a phase code, already point at nothing.
 
 ```sh
 git log --all --diff-filter=DR --name-status --format='' -- evidence |

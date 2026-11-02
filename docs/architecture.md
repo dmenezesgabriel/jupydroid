@@ -96,8 +96,8 @@ A remote-server mode is not deferred — it is refused. It would make every cons
 
 - Study material lives in `reference/`, which is **gitignored**. No durable document and no code
   comment may depend on it ([ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).
-- Every step closes with Maestro flows on a real device, with screenshots and logs committed under
-  `evidence/<step>/`.
+- Every step closes with Maestro flows on a real device, with screenshots and logs kept locally in
+  `evidence/<step>/`, never committed (ADR-0132).
 
 ### Tooling and gates
 

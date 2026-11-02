@@ -7,8 +7,7 @@ as `GAP-007` in [`../architecture.md` §11](../architecture.md).
 costs about 1.4 s and a replaced kernel instead of hanging forever. What remains is that it
 invalidates any timing measured above it, and that its cause is unknown.
 
-Measured over 50 tablet runs: 50 passed, 0 failed, 1 was a real stall recovered in 1.4 s
-(`evidence/kernel-observability/recovery-fifty-runs/`).
+Measured over 50 tablet runs: 50 passed, 0 failed, 1 was a real stall recovered in 1.4 s.
 
 ## Symptom
 
@@ -16,8 +15,8 @@ One defect, nine sightings across four distinct flows, every one passing on an i
 the same build.
 
 On a stalled connection the socket connects, **iopub delivers**, and the shell channel answers
-nothing — not the app's `kernel_info_request`, and not 120 asks over 60 s
-(`evidence/kernel-observability/seventh-sighting/`). Three `status` frames arrive carrying parent ids
+nothing — not the app's `kernel_info_request`, and not 120 asks over 60 s.
+Three `status` frames arrive carrying parent ids
 the app never sent (`<sessionId>_<pid>_<n>`, minted by the server's `Session`), then silence.
 
 ## Why the server cannot notice it
@@ -46,12 +45,12 @@ Two consequences:
 
 Both are confirmed on device rather than only read out of source. With the kernel at DEBUG, a healthy
 run logs `Nudge: attempt 1`, then a shell dispatch **and** a `Control received:` for a second request,
-then `Nudge: shell info reply received` (`evidence/kernel-observability/shell-dispatch-logged/`).
+then `Nudge: shell info reply received`.
 
 ## What the eighth sighting settled
 
-Read with both halves of the trail for the first time
-(`evidence/kernel-observability/eighth-sighting/`). Nine milliseconds after the kernel dispatched the
+Read with both halves of the trail for the first time.
+Nine milliseconds after the kernel dispatched the
 server's shell nudge and replied to it, the app's `kernel_info_request` produced **no dispatch line at
 all** — then three seconds in which neither process logged anything, ended by the app's restart. The
 same kernel handled a `shutdown_request` on **control** immediately afterwards, so the process was

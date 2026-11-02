@@ -19,7 +19,7 @@ is what killed `import numpy`.
 The kernel has *already* made the refused call return `-ENOSYS` by the time the signal is
 delivered. Install a handler that reports and **returns**, and the call simply returns ENOSYS as
 it already did. numpy imports. numpy and scipy then compute correct answers, under threads and
-BLAS, exit 0 across the board (`evidence/step8.7/sigsys-syscall-named.txt`):
+BLAS, exit 0 across the board, as `tools/rootfs/sigsys_report.c` reports them:
 
 ```
 numpy import:     exit=0  SIGSYS seccomp-refused syscall=235 arch=0xc00000b7  ->  2.5.1
@@ -56,7 +56,7 @@ ordinary Linux behaviour.
 
 | Component | Failure | Cause | Status |
 |---|---|---|---|
-| glibc (any binary) | SIGSYS at libc startup | `set_robust_list` refused (`__NR_set_robust_list 99`) | **musl instead of glibc**, `evidence/step8.3/` |
+| glibc (any binary) | SIGSYS at libc startup | `set_robust_list` refused (`__NR_set_robust_list 99`) | **musl instead of glibc**, [ADR-0003](../adr/0003-musl-not-glibc-and-arm64-only-at-runtime.md) |
 | numpy import | SIGSYS | `mbind` refused and unhandled | **fixed** by §1 — the syscall is not needed |
 | `psutil.net_if_addrs` | SIGSEGV | `getifaddrs()` EACCES, return unchecked | bounded: one function, reachable only from a user's own notebook |
 | libzmq TCP bind | SIGABRT | same EACCES, `errno_assert` | `jupydroid_kernel.py` selects `IOPubThread(pipe=False)` |

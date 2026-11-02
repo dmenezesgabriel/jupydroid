@@ -2,7 +2,7 @@
 
 **This file is the entry point for a work session.** It is forward-looking: one line per item, no
 prose blocks, no shipped narrative. What is settled and why is [`adr/`](adr/); how work is done is
-`AGENTS.md`; how each item was reached is `git log` and `evidence/`.
+`AGENTS.md`; how each item was reached is `git log`.
 
 Find the next item with:
 

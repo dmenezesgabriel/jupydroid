@@ -99,7 +99,7 @@ carries the measurements behind that, including why device tests get no exemptio
 
 **A second, narrower gate covers every tracked file.** `scripts/check_retired_doc_citations.py`
 refuses the three documents [ADR-0001](adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)
-deleted, wherever they are named - flows, drivers and `evidence/` write-ups included, which the rule
+deleted, wherever they are named - flows and drivers included, which the rule
 above exempts for step codes but not for a path that resolves nowhere. 233 such citations survived
 the first sweep because it was scoped to shipped code. Eight files may still name them, because
 recording the retirement is their job: ADR-0001, [ADR-0066](adr/0066-a-retired-attribution-is-deleted-not-rewritten.md),

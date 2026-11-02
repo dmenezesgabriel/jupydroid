@@ -40,7 +40,7 @@ Reproduce from the repository root:
 | message lines carrying it | `git log --all --format=%B \| grep -c "$HOME"` | 5 |
 | commits | `git rev-list --all --count` | 1488 |
 | identities | `git log --all --format='%an <%ae>\|%cn <%ce>' \| sort \| uniq -c` | one, on every commit |
-| token carriers | `evidence/aud-013-scrub-list/token-carriers.txt` | 8 rules, 105 carrier paths |
+| token carriers | `TOKEN_CARRIERS` in `scripts/check_device_secrets.py` | 8 rules, 105 carrier paths |
 | remote | `gh repo view dmenezesgabriel/jupydroid --json visibility,forkCount` | private, no forks, no PRs |
 | tracked evidence | `git ls-files evidence \| wc -l`; on disk `du -sh evidence` | 7388 files, 52 MB; 2.3 GB on disk |
 | home-path commits outside `evidence/` | `git log --all -S"$HOME" --oneline -- . ':!evidence' \| wc -l` | 7 (of 462) |
@@ -129,7 +129,7 @@ One TDD unit each, one conventional commit each.
   build their own fixtures and read nothing from the real directory. Three did, `check_chrome_parts`,
   `read_chrome_parts` and `read_node_fill`, so their frames moved to `scripts/testdata/` (owner's choice).
   The ADR is ADR-0132, and the rewrite's ADR becomes ADR-0133.
-- [ ] T6 — docs cite no evidence path: the 60 lines in `docs/`, the ADRs, `AGENTS.md`, `README.md` and
+- [x] T6 — docs cite no evidence path: the 60 lines in `docs/`, the ADRs, `AGENTS.md`, `README.md` and
   `pyproject.toml` restate the fact or name the script that reproduces it; a gate keeps a tracked
   Markdown file from naming `evidence/<dir>/`.
 - [ ] T7 — drivers and flows renamed for what they demonstrate (339 `scripts/*-driver.sh`, the step-coded

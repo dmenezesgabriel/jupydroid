@@ -92,7 +92,7 @@ measured.
 ## 4. What the tablet answers
 
 `SpaceIsolationProbeDeviceTest`, on SM-X216B, inside the app's own process and seccomp filter.
-The numbers and output are in `evidence/space-isolation-probe/`.
+Rerunning that test reproduces the numbers below.
 
 | Question | Answer |
 |---|---|
@@ -127,7 +127,7 @@ The numbers and output are in `evidence/space-isolation-probe/`.
 
 `jupyter_server`, a kernel and `import numpy` run under proot, covering ZMQ over the ipc transport,
 the SIGSYS handler preload inside the translated root and the idle cull
-(`ProotRuntimeProbeDeviceTest`; the numbers are in `evidence/proot-runtime-probe/`). The server
+(`ProotRuntimeProbeDeviceTest` reproduces it). The server
 needs `--allow-root`, because `-0` makes every process see uid 0.
 
 **Not yet measured:**

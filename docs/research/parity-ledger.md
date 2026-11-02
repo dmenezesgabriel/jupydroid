@@ -432,8 +432,8 @@ grep -rn "languageServer\." app/src/main/java
 ```
 
 **And the server ours speaks to was probed, not assumed.** `LspSurfaceProbeTest` drove a raw
-`JsonRpcChannel` against the shipped `pylsp 1.15.0` on the arm64 tablet
-(`evidence/p5e-0-lsp-surface/`): it advertises completion, `completionItem/resolve`, hover,
+`JsonRpcChannel` against the shipped `pylsp 1.15.0` on the arm64 tablet:
+it advertises completion, `completionItem/resolve`, hover,
 signatureHelp (triggers `(`, `,`, `=`), definition, references, documentHighlight,
 documentSymbol, foldingRange, formatting, rename and codeAction; it answers `codeAction` with
 `[]` for pyflakes diagnostics; and it takes ~620ms for a completion and ~540–630ms from
@@ -3594,7 +3594,7 @@ nothing gates the answer), or **convention** (nothing keeps it true):
 | hooks gate every commit | AGENTS.md r.7 | `.pre-commit-config.yaml` | enforced where installed — `pre-commit install` is opt-in and there is no CI backstop; a design fact, recorded |
 | every `check_*`/`read_*`/scanner carries `_test.py` | AGENTS.md tooling table | `maestro-gate-tests`, `always_run` | enforced — 34 suites, milliseconds |
 | comments cite what resolves | `docs/README.md` | `check_doc_citations.py` + `check_retired_doc_citations.py` | enforced |
-| evidence names the app, not the house | AGENTS.md r.2 | `check_device_secrets.py` + `.gitignore`'s `evidence/**/*logcat*.txt` | enforced |
+| evidence names the app, not the house | AGENTS.md r.2 | `check_device_secrets.py` + `.gitignore`'s `/evidence/` | enforced |
 | flows observe kernel output | AGENTS.md | `check_maestro_output_assertions.py` | enforced |
 | a gap has a name / one monospace home / palette entries draw / flows start seeded / seccomp / shebang-exec / chrome parts / node fill | AGENTS.md tooling table | the eight `check_*` | enforced — six hook-wired; `check_chrome_parts`/`check_node_fill` are driver-bound and live inside the flows whose frames they read |
 | a `Fake…` per port, 1:1 | §5.3 | the `diff` below | produced, ungated — empty today |
@@ -3848,16 +3848,13 @@ without a fix are `sqlite-libs`. Two facts are carried to the verdicts:
 token is the one barrier loopback leaves. Re-resolving `requirements.lock` against PyPI fails on
 `aiofile==3.12.3` against a declared `<3.10`.
 
-```sh
-E=evidence/aud-012-dependency-scans     # the commands, image digests and DB date: $E/README.md
-cut -f3,4 $E/osv-findings.tsv | tail -n +2 | sort -u | wc -l                 # 28 vulnerable versions
-for p in $(cut -f3,4 $E/osv-findings.tsv | tail -n +2 | tr '\t' : | sort -u); do
-  grep -h "^$p=" app/gradle.lockfile | grep -q releaseRuntimeClasspath && echo "$p"
-done                                                                          # the 2 the APK ships
-cut -f1 $E/rootfs-packages.tsv | tail -n +2 | sort | uniq -c                 # 51 apk, 182 pypi
-cut -f1 $E/grype-matches.tsv | tail -n +2 | sort | uniq -c                   # by severity
-awk -F'\t' '($1=="Critical"||$1=="High") && $7!="fixed"' $E/grype-matches.tsv  # the 3 with no fix
-```
+Run on 2026-10-27 from a clean tree at `4534ec88`: osv-scanner 2.7.0
+(`ghcr.io/google/osv-scanner@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0`, `scan source
+--no-resolve` over the lockfiles), syft 1.55.0
+(`anchore/syft@sha256:4cc92b64ca74ffca4c94d4c8fcc01f217731375300be14d0b6eeb2e82eaa110a`) and grype 0.121.0
+(`anchore/grype@sha256:621d56d1d68106b787022c81546f7e0a36202a25d1239f0c20195fab8c16f7ea`, DB schema v6.1.10 built
+2026-10-27T06:30:41Z) over the extracted `rootfs-arm64-v8a.tzst`. A rerun reads a newer advisory
+database, so its counts are the next audit's, not a check on these.
 
 **The source, the APK, the history and lint, produced.** Android Lint's `Security` category finds
 **1** issue across the four modules: `DataExtractionRules` on `android:allowBackup`
@@ -3874,18 +3871,15 @@ cleartext permitted to `127.0.0.1` and `localhost`. Two of the warnings are acti
 the debug-only `ui-test-manifest` and `ui-tooling`. Of the native libraries, `libproot.so` and
 `libproot-loader.so` have no stack canary, and `libzstd-jni` lacks full RELRO.
 
-```sh
-E=evidence/aud-012-code-scans           # the commands, versions and image digests: $E/README.md
-tail -n +2 $E/lint-security.tsv | cut -f2,3 | sort | uniq -c                 # 1 DataExtractionRules
-tail -n +2 $E/semgrep-findings.tsv | awk -F'\t' '{split($3,p,"/src/"); print p[2]~/^main/?"main":"androidTest"}' \
-  | sort | uniq -c                                                            # 23 androidTest, 3 main
-tail -n +2 $E/gitleaks-findings.tsv | cut -f2 | sort -u | wc -l              # 80 files
-tail -n +2 $E/mobsf-findings.tsv | cut -f1,3 | sort | uniq -c                # by section and severity
-awk -F'\t' 'NR>1 && ($4!="true" || $5!="Full RELRO")' $E/mobsf-native-libs.tsv  # proot, zstd-jni
-```
+Run on 2026-10-27 from a clean tree at `de8118dc`: `lintDebug` of the four modules with no
+baseline, semgrep 1.178.0 with `p/kotlin` and `p/mobsfscan`, gitleaks v8.30.1
+(`zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f`, default ruleset), and
+MobSF 4.6.2
+(`opensecurity/mobile-security-framework-mobsf@sha256:d1351313e278a0f1e8cf4142328e24bd4ce182173ebb8a6df8a49ea00f7994d9`)
+over the debug APK.
 
 **The call stack, read.** Each boundary was read down to where it is enforced, then measured on the
-tablet with adb ([the readings](../../evidence/aud-012-call-stack/README.md)). The release manifest
+tablet with adb, using the commands below. The release manifest
 exports **1** component of ours, `MainActivity`, plus `ProfileInstallReceiver` behind `DUMP`. Debug
 adds the two androidx test and tooling activities MobSF counted, and both builds use the same
 `network_security_config`. There is no WebView, so the WebView row has nothing under it.
@@ -3934,7 +3928,6 @@ adds the two androidx test and tooling activities MobSF counted, and both builds
   and symlinks, so neither the rootfs nor `run/` goes.
 
 ```sh
-E=evidence/aud-012-call-stack           # every device command and its output: $E/README.md
 JAVA_HOME=<jdk> devjob ./gradlew :app:processDebugMainManifest :app:processReleaseMainManifest
 grep -c 'exported="true"' app/build/intermediates/merged_manifest/release/*/AndroidManifest.xml   # 2
 grep -rn "android.webkit\|addJavascriptInterface" app/src extensions extension-api                # none

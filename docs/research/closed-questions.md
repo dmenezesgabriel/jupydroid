@@ -36,8 +36,7 @@ With the ordering correct, 24 of 50 runs still stalled — so the race existed a
 ### CLOSED-004 — Does retrying `kernel_info_request` on the server's own 0.5 s cadence fix the execution stall?
 
 **No.** Measured over 80 tablet runs: 120 asks over 60 s, not one reply, while iopub delivered
-throughout. Reverted to the reference's shape. The measurement is in
-`evidence/kernel-observability/seventh-sighting/`.
+throughout. Reverted to the reference's shape.
 
 ### CLOSED-005 — Will the server's own DEBUG log explain the execution stall?
 

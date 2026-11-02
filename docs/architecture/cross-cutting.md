@@ -234,5 +234,5 @@ output. `logcat` is captured as evidence but **never committed** — it is the w
 | **composition root** | `di/AppContainer` — the only place that constructs implementations, built once per *process* |
 | **console script** | a `#!`-headed executable the image ships in `usr/bin`/`usr/local/bin` (and pip installs into `pkgs/bin`), exec'd through its own shebang line under proot |
 | **nbformat** | the notebook file format. An **open** format: unknown fields ride on the domain type as `PreservedJson` and are written back verbatim |
-| **flow** | a Maestro script in `.maestro/`, driven by a `scripts/*-driver.sh`, with its output in `evidence/<step>/` |
+| **flow** | a Maestro script in `.maestro/`, driven by a `scripts/*-driver.sh`, with its output in the local `evidence/<step>/` |
 | **alternate screen** | the VT buffer `vi`, `less` and `htop` switch to; it has no scrollback |

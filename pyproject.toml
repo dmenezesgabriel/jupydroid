@@ -31,7 +31,7 @@ dev = [
 [tool.ruff]
 line-length = 120
 target-version = "py314"
-# evidence/ holds captured runs, not source: a harness copy there is a record, so it is neither linted
+# evidence/ holds local captured runs, not source (ADR-0132): a harness copy there is a record, so it is neither linted
 # nor reformatted. The hooks pass --force-exclude because pre-commit hands ruff the staged filenames, and
 # a named file ignores an exclude without it.
 extend-exclude = ["evidence"]
@@ -60,6 +60,7 @@ select = ["E", "F", "I", "B", "UP", "S"]
 # The test sources java-home.sh with `sh` and a fixture HOME; the argv is literal.
 "scripts/java_home_test.py" = ["S603", "S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]
+"scripts/check_evidence_citations_test.py" = ["S607"]
 "scripts/quince_mcp_fixture_test.py" = ["S603"]
 # S314: these parse `adb uiautomator dump` of our own app on our own device, not untrusted XML.
 "scripts/read_gutter_x.py" = ["S314"]
