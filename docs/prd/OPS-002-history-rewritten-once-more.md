@@ -160,7 +160,15 @@ One TDD unit each, one conventional commit each.
     evidence directory names, and the partial stems in comments (`p1d-part2`, `p2f-2's`, `p2b-split`).
     Plan-step prose inside driver and flow bodies, and the file names a flow types on the device (`p4k-marker-*`,
     `p2j-5-share`), are left to T8.
-  - [ ] T7d — `p5*` to `p8*` (418 `p` files in total, `p4b2` and `p5e1` shapes included).
+  - [x] T7d — `p5*` to `p8*` (163 files: 31 fixtures, 71 flows, 61 drivers; 418 `p` files in total across
+    T7c and T7d). Named by hand where the strip collided or said nothing: the two debugger `stopped-settled`
+    flows (their files differ) say which stop they settle, the `p8d`/`p8e` first/second fixtures take their
+    flow's name, and bare `stop`, `step`, `kernel`, `marker`, `back` took the driver's. Every driver stem inside
+    another's, or inside a `jd-*` name T7e to T7g will strip, was qualified (`format-cell`, `rename-symbol`,
+    `launcher-from-chrome`, `kernel-picker-tablet`, `running-panel-wide`, `symbol-toggle-setting` and others);
+    the substring check over the final set prints nothing. Evidence directories take the driver's name, the two
+    tabs drivers sharing `tabs`. Left to T8 as in T7c: plan-step prose in bodies, names a flow types on the
+    device (`p8d-alpha`, `p8f-second.ipynb`, `p7e2-pip.txt`) and kernelspec names (`p8g-echo`, `p8g` in Kotlin tests).
   - [ ] T7e — `jd-001` to `jd-019`.
   - [ ] T7f — `jd-020` to `jd-039`.
   - [ ] T7g — `jd-040` to `jd-074` (563 `jd` files in total).
