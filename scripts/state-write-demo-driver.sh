@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a setting, a recent and a Space's config and kernel are each replaced whole when
+# The demo: a setting, a recent and a Space's config and kernel are each replaced whole when
 # they are written, not rewritten where they sit (ADR-0089), and all four survive a relaunch. From a
 # cold start the theme is changed and a notebook opened, Thesis is created and given a venv that is
 # registered as a kernel, and Thesis is renamed to Dissertation. Each file's inode, mode and content,
@@ -62,7 +62,7 @@ report_kept() {
   if "$ADB" shell "run-as $APP grep -q '$needle' $file"; then report "$file kept $needle"; else report "$file LOST $needle"; fi
 }
 
-# Step 1: no user Space, no base rename, no notebook and no store from an earlier run.
+# No user Space, no base rename, no notebook and no store from an earlier run.
 cold_start() {
   require_installed_app
   "$ADB" shell am force-stop "$APP"
@@ -70,7 +70,7 @@ cold_start() {
   reset_notebooks
 }
 
-# Steps 2-3: the theme store and the recents, seeded so each has an inode before the flow.
+# The theme store and the recents, seeded so each has an inode before the flow.
 change_theme_and_recent() {
   local theme_before recents_before
   seed_notebook "$ROOT/.maestro/fixtures/explorer-root.ipynb" "$NOTEBOOK"
@@ -88,7 +88,7 @@ change_theme_and_recent() {
   report_replaced "$RECENTS_STORE" "$recents_before"
 }
 
-# Step 4: Thesis, a venv with ipykernel in its terminal, and that venv registered as a kernel.
+# Thesis, a venv with ipykernel in its terminal, and that venv registered as a kernel.
 register_a_kernel() {
   run_part "$FLOWS/python-environments-in-a-space-create-thesis.yaml" part2-create-thesis
   # Seeded before the venv because seeding force-stops the app, which would take Thesis's server.
@@ -101,7 +101,7 @@ register_a_kernel() {
   record registered "$STATS_SPEC"
 }
 
-# Step 5: Thesis renamed to Dissertation from the home.
+# Thesis renamed to Dissertation from the home.
 rename_the_space() {
   local before
   before="$(inode_and_mode "$CONFIG")"
@@ -111,7 +111,7 @@ rename_the_space() {
   report_replaced "$CONFIG" "$before"
 }
 
-# Step 6: force-stop and relaunch. Dissertation is still named and its kernel runs a cell, then the
+# Force-stop and relaunch. Dissertation is still named and its kernel runs a cell, then the
 # notebook is still recent and Dark still chosen. The base spec is written again on every launch.
 relaunch() {
   local before

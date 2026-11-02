@@ -77,7 +77,7 @@ run_part() { run_flow "$FLOWS-${1#part*-}.yaml" "$EVIDENCE/$1" || exit 1; }
 
 require_installed_app
 "$ADB" shell am force-stop "$APP"
-# base's user site too: a tabulate left in it by an earlier run would let step 9's import pass
+# base's user site too: a tabulate left in it by an earlier run would let the import step pass
 # against nothing the demo installed.
 "$ADB" shell "run-as $APP sh -c 'rm -rf files/spaces/space-* files/spaces/base/config.json files/spaces/base/pkgs'"
 reset_notebooks

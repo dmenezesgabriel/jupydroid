@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a save never silently overwrites a change made on disk. From a cold start a cell
+# The demo: a save never silently overwrites a change made on disk. From a cold start a cell
 # rewrites the notebook it lives in and the save asks: Revert shows the cell the kernel added, a
 # second run and Overwrite keep the editor's cells instead, and an edit with nobody else writing is
 # saved without a question. Then the Space's own shell rewrites an open notes.txt, the next
@@ -48,7 +48,7 @@ expect_on_disk() {
 # What disk.txt recorded for [label], without the label.
 recorded() { grep "^$1: " "$EVIDENCE/disk.txt" | cut -d: -f2-; }
 
-# Step 1: an empty workspace, then everything seeded at once, since seeding force-stops the app.
+# An empty workspace, then everything seeded at once, since seeding force-stops the app.
 cold_start() {
   reset_notebooks
   seed_notebook "$FIXTURES.ipynb" "$NOTEBOOK"
@@ -58,7 +58,7 @@ cold_start() {
   record_notes_disk "notes seeded"
 }
 
-# Steps 2-5: the cell rewrites its notebook and Revert keeps the kernel's cell, the second run's
+# The cell rewrites its notebook and Revert keeps the kernel's cell, the second run's
 # question is answered with Overwrite, and a plain edit asks nothing.
 answer_for_the_notebook() {
   run_part "$FLOWS-notebook-revert.yaml" part1-revert
@@ -71,7 +71,7 @@ answer_for_the_notebook() {
   record_notebook_disk "notebook after a plain edit"
 }
 
-# Step 6: the shell rewrites the open text file, and Revert keeps the shell's line.
+# The shell rewrites the open text file, and Revert keeps the shell's line.
 answer_for_the_text_file() {
   run_part "$FLOWS-file-terminal-writes.yaml" part4-terminal-writes
   wait_for_workspace_text "$NOTES" "changed on disk"
@@ -80,7 +80,7 @@ answer_for_the_text_file() {
   record_notes_disk "notes after Revert"
 }
 
-# Step 7: force-stop and relaunch, and both documents open as they were left.
+# Force-stop and relaunch, and both documents open as they were left.
 relaunch() {
   run_part "$FLOWS-demo-relaunch.yaml" part6-relaunch
   record_notebook_disk "notebook after the relaunch"

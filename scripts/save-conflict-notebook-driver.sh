@@ -20,7 +20,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/save-conflict-reads.sh
 . "$ROOT/scripts/save-conflict-reads.sh"
 
-EVIDENCE="$ROOT/evidence/save-conflict/t1"
+EVIDENCE="$ROOT/evidence/save-conflict/notebook"
 NOTEBOOK="save-conflict"
 export MAESTRO_NOTEBOOK="$NOTEBOOK"
 

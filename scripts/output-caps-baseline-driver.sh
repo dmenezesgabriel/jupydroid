@@ -19,6 +19,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/output-caps}/baseline"
 # The flow that runs the cell and reads the result; a task's driver names its own.
 RUN_FLOW="${RUN_FLOW:-$ROOT/.maestro/output-caps-baseline-run.yaml}"
+# The profile simpleperf writes on the device: one fixed name, so a run replaces the last one.
+SAMPLE=/data/local/tmp/output-caps.data
 mapfile -t DEVICE < <(device_adb)
 
 # Where the app's CPU goes, [PROFILE_AFTER] seconds into the run: an 8 s simpleperf sample, which a
@@ -27,12 +29,12 @@ mapfile -t DEVICE < <(device_adb)
 profile_app() {
   local out="$1"
   sleep "$PROFILE_AFTER"
-  "${DEVICE[@]}" shell "simpleperf record --app $APP --duration 8 -f 1000 -g -o /data/local/tmp/jd015.data" >/dev/null 2>&1
+  "${DEVICE[@]}" shell "simpleperf record --app $APP --duration 8 -f 1000 -g -o $SAMPLE" >/dev/null 2>&1
   {
     echo "== by symbol, self"
-    "${DEVICE[@]}" shell "simpleperf report -i /data/local/tmp/jd015.data --sort symbol -n --percent-limit 1"
+    "${DEVICE[@]}" shell "simpleperf report -i $SAMPLE --sort symbol -n --percent-limit 1"
     echo "== app frames, inclusive"
-    "${DEVICE[@]}" shell "simpleperf report -i /data/local/tmp/jd015.data --children --sort symbol --percent-limit 0.5" |
+    "${DEVICE[@]}" shell "simpleperf report -i $SAMPLE --children --sort symbol --percent-limit 0.5" |
       grep -E "com\.jupydroid|Children" || echo "(no app frame at or above 0.5%)"
   } >"$out/profile.txt" 2>&1
 }

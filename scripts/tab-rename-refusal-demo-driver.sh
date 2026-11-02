@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a rename refused from a document's tab says why. From a cold start with nothing
+# The demo: a rename refused from a document's tab says why. From a cold start with nothing
 # seeded, `a.py`, a folder `full.py` holding `untitled.py`, and `b.py` are made from the explorer;
 # `a.py`'s tab is renamed over the folder and `b.py`'s after the Space's shell removed it, and each
 # draws "Rename Error" with the disk's reason.

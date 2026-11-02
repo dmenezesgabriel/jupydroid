@@ -4,8 +4,8 @@
 #
 # **What the screenshots are for is a height, not a look.** The explorer's rows and its breadcrumb
 # carried `vertical = 14.dp` - off Material's 4dp grid - and take `Spacing.lg` now. The before half
-# of the pair is already committed: `evidence/p2l-1-typography/after/01-file-rows.png` is the same
-# emulator listing a seeded notebook through the same steps, one commit earlier.
+# of the pair is the same emulator listing a seeded notebook through the same steps, captured one
+# commit earlier.
 #
 # Emulator or tablet: this flow runs no cell, so it needs no Space runtime.
 set -euo pipefail

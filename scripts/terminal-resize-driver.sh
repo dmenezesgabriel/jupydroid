@@ -8,9 +8,9 @@
 # lines` pair across the rotation is `set_size` observed at the pty, not a redraw inferred. `vi`
 # stays open across the rotation so the screenshots still carry the same full-screen-program reflow
 # as visual evidence - read by eye, where the fill-line count's own accessibility-tree oracle went
-# away: P4j-3b's own entry records this device's per-row `Text` nodes reporting `text=""`
-# run-to-run, and by P6d-6 they report nothing at all on this build - which is why the count is gone
-# rather than wrapped in yet another wait.
+# away: `terminal-ime-resize-driver.sh`'s own entry records this device's per-row `Text` nodes
+# reporting `text=""` run-to-run, and later they report nothing at all on this build - which is why
+# the count is gone rather than wrapped in yet another wait.
 #
 # TABLET ONLY (SM-X216B). NOT A SUITE FLOW: it rotates the device, which every flow running after it
 # on the same device would inherit.
@@ -35,9 +35,10 @@ rotate_to() { # rotate_to <0=portrait|1=landscape>
 restore_rotation() { "$ADB" shell settings put system accelerometer_rotation 1; }
 trap restore_rotation EXIT
 
-# The pty's own reported size, off the workspace file the flow's `tee` wrote - `p4k`'s own
-# `marker_text` shape. Polled rather than read once: the flow's own settle covers the echo, and
-# the write itself is the thing a slow shell could still be mid-way through.
+# The pty's own reported size, off the workspace file the flow's `tee` wrote - the
+# `idle-stopper-terminal-driver.sh` `marker_text` shape. Polled rather than read once: the
+# flow's own settle covers the echo, and the write itself is the thing a slow shell could still
+# be mid-way through.
 size_report() { # size_report <file> -> "cols lines" once non-empty, or exit 1 after ~30s
   local out="" tries=0
   while [ "$tries" -lt 30 ]; do

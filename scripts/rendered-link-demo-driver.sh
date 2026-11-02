@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: one markdown paragraph holds a web link and a workspace
+# The demo, typed into a new notebook: one markdown paragraph holds a web link and a workspace
 # link; a tap on the web link opens the browser and back returns to the cell still rendered, a tap
 # beside the links opens the cell's editor, and a tap on the workspace link opens `notes.md`. A
 # code cell's display(Markdown(...)) link and a Console's on the same kernel open the browser; after

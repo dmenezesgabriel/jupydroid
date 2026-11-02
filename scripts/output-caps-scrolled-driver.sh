@@ -3,7 +3,7 @@
 # baseline was - so the two are comparable number for number. Run once before the scrolled box had
 # a cut of its own and once after, each into its own EVIDENCE_ROOT.
 #
-#   EVIDENCE_ROOT=$PWD/evidence/output-caps/scrolled/before scripts/output-caps-scrolled-driver.sh
+#   EVIDENCE_ROOT=$PWD/<a directory of your own> scripts/output-caps-scrolled-driver.sh
 #   PROFILE_AFTER=90 scripts/output-caps-scrolled-driver.sh   # plus a CPU profile
 #
 # Runs a cell, so it needs the arm64 tablet: on x86_64 FakeKernelGateway echoes the source.

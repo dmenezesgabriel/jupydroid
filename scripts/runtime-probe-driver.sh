@@ -8,7 +8,7 @@
 #
 # **The flow is not the oracle here; the saved notebook is.** Outputs are pulled off the device
 # after the run and committed verbatim, because a screenshot of a traceback is a picture of the
-# answer and P7e-3 is written from the answer itself.
+# answer, and `network-trust-driver.sh`'s claims are written from the answer itself.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -45,8 +45,8 @@ echo "--- what the Space answered ---"
 cat "$OUT/probe-output.txt"
 
 # The shell's half, into the same directory: two surfaces, one measurement. It runs second because
-# it opens a terminal, and a terminal keeps the server alive (P4k) - which would change what the
-# notebook half is measuring if it ran first.
+# it opens a terminal, and a terminal keeps the server alive (`idle-stopper-terminal-driver.sh`) -
+# which would change what the notebook half is measuring if it ran first.
 TERMINAL_STATUS=0
 run_flow "$ROOT/.maestro/terminal-probe.yaml" "$OUT" || TERMINAL_STATUS=$?
 

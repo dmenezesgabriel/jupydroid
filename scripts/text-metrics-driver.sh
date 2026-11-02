@@ -2,7 +2,7 @@
 # Seeds a notebook of prose over ten short code lines, then captures the three surfaces
 # `bodyLarge` reaches.
 #
-# **The evidence for this step is a pair, not a screenshot.** P2l-1 changes no size and no colour;
+# **The evidence is a pair, not a screenshot.** The change moves no size and no colour;
 # it restores the vertical metrics Material builds every other role with - `includeFontPadding =
 # false` and `DefaultLineHeightStyle` - to the one role that was hand-built without them. Nothing
 # about a single frame can show that, so the driver is run once on the build before the change and

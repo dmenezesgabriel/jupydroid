@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JD-070's demo: the bumped zstd-jni .so working inside the app a user installs. The APK is
+# The demo: the bumped zstd-jni .so working inside the app a user installs. The APK is
 # installed over the one on the tablet (adb install -r), a Space is created - the ~14 s
 # image copy is SpaceImageInstaller -> TarZstdExtractor -> commons-compress's
 # ZstdCompressorInputStream -> com.github.luben.zstd, which is the arm64-v8a
@@ -74,8 +74,8 @@ awk 'NR == 1 { next } { rows++; if ($2 != "full") bad = 1 } END { exit (rows == 
 
 "${DEVICE_ADB[@]}" shell am force-stop "$APP"
 "${DEVICE_ADB[@]}" install -r "$APK" 2>&1 | tr -d '\r' >"$EVIDENCE/install.txt"
-# A Space left by an earlier run - this driver's or jd-002's - makes the create land as
-# space-2, which the flows do not wait on.
+# A Space left by an earlier run - this driver's or `manage-spaces-driver.sh`'s - makes the create
+# land as space-2, which the flows do not wait on.
 in_app "rm -rf files/spaces/space-*"
 capture "files/spaces before the create" in_app "ls files/spaces"
 

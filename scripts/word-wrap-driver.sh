@@ -9,8 +9,9 @@
 # `StateFlow` before it writes the file, so a store that never landed would still show the
 # flipped row after a relaunch as long as the process happened to survive. The flow leaves the
 # setting off (`codeWrapEnabled`'s non-default value, so kotlinx.serialization actually writes
-# it - `EditorSettings`'s own `encodeDefaults` omission, the same one P2k-3 found) before the
-# relaunch, and this driver greps the real file for it.
+# it - `EditorSettings`'s own `encodeDefaults` omission, the same one
+# `kernel-history-setting-driver.sh` found) before the relaunch, and this driver greps the real
+# file for it.
 #
 # Sharded across both devices, `editor-code-font-size.yaml`'s own reason: a notebook cell's
 # own layout differs between the emulator's one pane and the tablet's two.

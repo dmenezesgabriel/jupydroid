@@ -13,8 +13,8 @@
 #   2. One undo restores both - `recording` made the rename a single undoable transaction.
 #   3. `x = 42` + the row answers "No result." - the caret's literal is the reference's
 #      `resolveRenameLocation` miss, and the surface says so instead of asking anyway.
-#   4. logcat's `lsp.start` and `rename` during the flow - the answer came down the P5b
-#      adapter. The buffer is cleared first, so an older `lsp.start` cannot satisfy it.
+#   4. logcat's `lsp.start` and `rename` during the flow - the answer came down the language
+#      server's adapter. The buffer is cleared first, so an older `lsp.start` cannot satisfy it.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

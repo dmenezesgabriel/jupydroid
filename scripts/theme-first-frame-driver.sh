@@ -6,7 +6,7 @@
 # device's theme before Compose draws is a line in frames.txt, not something to catch by eye. The
 # settled home is then read for its parts and the seams between them (read_chrome_parts.py).
 #
-#   scripts/theme-first-frame-driver.sh evidence/jd-032-theme/t4/first-frame
+#   scripts/theme-first-frame-driver.sh <evidence directory, relative to the repo>
 #
 # The theme is picked inside the real Space, so this goes on the arm64 tablet.
 set -euo pipefail

@@ -6,11 +6,11 @@
 # 320dp it is also the narrowest window the app supports, which is where the explorer's rows have
 # the least room.
 #
-# **The disk check is the point of this driver.** X2h-1 changes nothing on screen - Home still
-# renders the old list until X2h-2 swaps the surface - so the flow proves the route and this proves
-# the write. A recents list that looked right and was never persisted would pass a screen-only
-# assertion, which is the same trap `home-new-python-file` avoids by asserting its file is not
-# nbformat.
+# **The disk check is the point of this driver.** Recording changes nothing on screen - the list
+# still renders the old contents until the surface is swapped - so the flow proves the route and
+# this proves the write. A recents list that looked right and was never persisted would pass a
+# screen-only assertion, which is the same trap `home-new-python-file` avoids by asserting its file
+# is not nbformat.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,7 +24,7 @@ EVIDENCE="$ROOT/evidence/recents-records-what-was-opened"
 
 reset_notebooks
 # A notebook at the root, one inside a folder, and a file that is neither. The nested pair is the
-# defect: before X2h neither could reach Recents at all.
+# defect: neither could reach Recents at all until a path with a folder in it was recorded.
 seed_notebook "$ROOT/.maestro/fixtures/explorer-root.ipynb" "At Root"
 seed_notebook "$ROOT/.maestro/fixtures/explorer-nested.ipynb" "reports/Nested"
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
@@ -43,14 +43,14 @@ STORE="$EVIDENCE/recents-store.json"
 "$ADB" shell "run-as $APP sh -c 'cat \"$RECENTS_STORE\"'" > "$STORE"
 echo "recents store:"; cat "$STORE"
 
-# The notebook inside the folder, which is the defect X2b recorded.
+# The notebook inside the folder: a path carrying a folder was the defect.
 grep -q '"path":"reports/Nested.ipynb"' "$STORE" ||
   { echo "FAIL: the notebook opened from a folder is not in Recents" >&2; exit 1; }
 # The folder it was opened from, recorded as a folder - the reference records the containing
 # directory alongside the document (`docmanager/src/widgetmanager.ts:418-422`).
 grep -q '"path":"reports","directory":true' "$STORE" ||
   { echo "FAIL: the containing folder was not recorded as a directory" >&2; exit 1; }
-# A plain file is a document too, since X2c gave it an editor.
+# A plain file is a document too, now that a file that is not a notebook opens in the editor.
 grep -q '"path":"reports/data.csv"' "$STORE" ||
   { echo "FAIL: the plain file opened is not in Recents" >&2; exit 1; }
 # Never opened, so it must not be listed: this is what separates "a record of what was opened"

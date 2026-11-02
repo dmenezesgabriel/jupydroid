@@ -38,7 +38,8 @@ run_flow "$FLOWS-before.yaml" "$EVIDENCE/before"
 before_pid="$(app_pid)"
 before_order="$(tab_order)"
 rotate_to 0
-# The middle of the turn is the same one-pane frame T1 took; its flow names nothing of T1's.
+# The middle of the turn is the same one-pane frame `rotation-dirty-tab-driver.sh` takes; its flow
+# names nothing of that driver's.
 run_flow "$ROOT/.maestro/rotation-dirty-tab-portrait.yaml" "$EVIDENCE/portrait"
 rotate_to 1
 run_flow "$FLOWS-after.yaml" "$EVIDENCE/after"

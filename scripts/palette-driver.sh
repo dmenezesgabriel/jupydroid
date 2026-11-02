@@ -2,10 +2,10 @@
 # Seeds a notebook that exercises every coloured syntax kind, then runs the palette flow
 # once per system theme.
 #
-# Two runs rather than one, and that is the whole point of the step: the palette used to come
-# from `MaterialTheme.colorScheme`, so a single-theme screenshot could not tell a working
-# palette from one that had quietly collapsed onto the wallpaper's colours. Audit A4 was
-# exactly that failure - black source that read fine on light and was invisible on dark.
+# Two runs rather than one, and that is the whole point: the palette used to come from
+# `MaterialTheme.colorScheme`, so a single-theme screenshot could not tell a working palette from
+# one that had quietly collapsed onto the wallpaper's colours. The palette audit found exactly that
+# failure - black source that read fine on light and was invisible on dark.
 #
 # Emulator or tablet: this flow runs no cell, so it needs no Space runtime. Run it on both, and
 # give the second one a sub-directory:
@@ -18,9 +18,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/palette.ipynb"
 FLOW="$ROOT/.maestro/palette.yaml"
 # An optional sub-directory, so a second device does not overwrite the first device's frames -
-# which is what happened the first time P2u-2 ran this on the tablet after the emulator. With no
-# argument the frames land where U1 first put them; `palette-driver.sh tablet` writes
-# evidence/palette/tablet/{dark,light}. Same shape as app-chrome-driver.sh.
+# which is what happened the first time this ran on the tablet after the emulator. With no argument
+# the frames land in the root; `palette-driver.sh tablet` writes `tablet/{dark,light}` beneath it.
+# Same shape as app-chrome-driver.sh.
 EVIDENCE="$ROOT/evidence/palette${1:+/$1}"
 
 # shellcheck source=scripts/java-home.sh

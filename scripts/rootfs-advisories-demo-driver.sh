@@ -22,7 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/jd-064-rootfs-advisories/demo"
+EVIDENCE="$ROOT/evidence/rootfs-advisories-demo/demo"
 FLOWS="$ROOT/.maestro/rootfs-advisories-demo"
 APK="$ROOT/app/build/outputs/apk/debug/app-debug.apk"
 CAPTURES="$EVIDENCE/captures.txt"

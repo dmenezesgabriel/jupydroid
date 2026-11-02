@@ -12,7 +12,7 @@
 #      drew jedi's signature rather than anything the cell already says.
 #   2. `)` makes the card leave - the caret stepping outside the call is `cancel()`'s
 #      closing-the-parens half.
-#   3. logcat's `lsp.start` during the flow - the answer came down the P5b adapter.
+#   3. logcat's `lsp.start` during the flow - the answer came down the language server's adapter.
 #      The buffer is cleared first, so an `lsp.start` older than this run cannot satisfy it.
 set -euo pipefail
 

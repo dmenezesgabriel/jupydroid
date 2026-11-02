@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# The PRD's demo: every open document is saved from Open Tabs. The T1 flows run as they stand: with
-# autosave off, one tap on Save All writes an edited file and notebook, and a refused save brings
-# notes.py up asking File Changed while target.ipynb keeps its edit until Save All is pressed again.
-# Then the app is killed and relaunched, and both files open with what Save All wrote.
+# The demo: every open document is saved from Open Tabs. `save-all-open-tabs-driver.sh`'s flows run
+# as they stand: with autosave off, one tap on Save All writes an edited file and notebook, and a
+# refused save brings notes.py up asking File Changed while target.ipynb keeps its edit until Save
+# All is pressed again. Then the app is killed and relaunched, and both files open with what Save
+# All wrote.
 #
 #   scripts/save-all-demo-driver.sh
 #

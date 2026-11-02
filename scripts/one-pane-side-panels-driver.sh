@@ -2,8 +2,8 @@
 # Both of the shell's side panels are reachable where there is no side area to put them in.
 #
 # NARROW WINDOW, which the sharder reads as < 840dp - exactly the windows this app draws as one
-# pane. P2o-3 measured that this is two real widths and not one: the 320dp emulator *and* the
-# tablet in portrait at 800dp, which has no activity bar either.
+# pane. `pane-widths-driver.sh` measured that this is two real widths and not one: the 320dp
+# emulator *and* the tablet in portrait at 800dp, which has no activity bar either.
 #
 #   ANDROID_SERIAL=emulator-5554 scripts/one-pane-side-panels-driver.sh   # 320dp
 #   ANDROID_SERIAL=TABLET_SERIAL   scripts/one-pane-side-panels-driver.sh   # 800dp, rotated

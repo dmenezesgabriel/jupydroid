@@ -5,16 +5,16 @@
 #   ANDROID_SERIAL=TABLET_SERIAL   scripts/toggle-wash-driver.sh two-pane
 #   ANDROID_SERIAL=emulator-5554 scripts/toggle-wash-driver.sh one-pane
 #
-# P7a-1b's second half. `SearchOptionToggles` has always cited `inputOption.activeBackground` and
-# has always been handed `secondaryContainer`, which was `list.inactiveSelectionBackground` - two
-# reference ids folded onto one role because they measured 4/255 apart. P7a-1b unfolds them, and
-# this is where the toggle's half is held to its own id.
+# `SearchOptionToggles` has always cited `inputOption.activeBackground` and has always been handed
+# `secondaryContainer`, which was `list.inactiveSelectionBackground` - two reference ids folded onto
+# one role because they measured 4/255 apart. Unfolded, this is where the toggle's half is held to
+# its own id.
 #
-# **Two themes rather than one, for the reason U1 records**: a single-theme capture cannot tell a
-# working palette from one that has collapsed onto a value that happens to read in that theme.
+# **Two themes rather than one**: a single-theme capture cannot tell a working palette from one
+# that has collapsed onto a value that happens to read in that theme.
 #
 # **The measurement is the gate, not the screenshot.** A Maestro assertion cannot read a colour,
-# which is exactly how P7a-1's defect survived a green suite. The hierarchy is dumped after the
+# which is exactly how the defect survived a green suite. The hierarchy is dumped after the
 # flow - maestro leaves the app on the last frame - and `check_node_fill.py` holds the *on* toggle's
 # own fill to the value `resolve_vscode_theme.py` resolves out of the reference.
 #
@@ -27,10 +27,10 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FLOW="$ROOT/.maestro/toggle-wash.yaml"
 LAYOUT="${1:-two-pane}"
-# Overridable, so a later step can re-run this oracle without overwriting P7a-1b's own
-# committed frames. P7a-3 needed exactly that: it moves this toggle's radius onto a named
+# Overridable, so a later run can re-run this oracle without overwriting this driver's own
+# frames. A radius change needed exactly that: it moves this toggle's radius onto a named
 # scale and changes no pixel, so the proof it owes is *this* check still green, captured
-# under its own name (`EVIDENCE_ROOT=… evidence/p7a-3-corner-radius`).
+# under its own name by pointing `EVIDENCE_ROOT` at another directory.
 EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/toggle-wash}/$LAYOUT"
 
 # shellcheck source=scripts/java-home.sh

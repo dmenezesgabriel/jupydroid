@@ -5,7 +5,7 @@
 # parts and the seams between them (read_chrome_parts.py), and the status bar's ground and the ink
 # drawn on it. One measurement, run before a repair and after it, into the directory it is named.
 #
-#   scripts/theme-six-combinations-driver.sh evidence/jd-032-theme/t2
+#   scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo>
 #
 # The terminal is the Space's real shell, so this goes on the arm64 tablet.
 set -euo pipefail

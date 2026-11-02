@@ -22,9 +22,10 @@ WIDTH_DP="$(window_width_dp)"
 echo "=== the file editor's breadcrumb at ${WIDTH_DP}dp ==="
 
 reset_notebooks
-# P2w-1's own workspace, one file heavier. A **file** at the root with no ancestry to draw - the
-# notebook fixture cannot play that part, since it opens the other editor - one inside a folder
-# that has some, and a notebook beside it so the folder is not a one-file special case.
+# `notebook-breadcrumb-trail-driver.sh`'s own workspace, one file heavier. A **file** at the root
+# with no ancestry to draw - the notebook fixture cannot play that part, since it opens the other
+# editor - one inside a folder that has some, and a notebook beside it so the folder is not a
+# one-file special case.
 seed_file "$ROOT/.maestro/fixtures/file-editor.py" "file_editor.py"
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
 seed_notebook "$ROOT/.maestro/fixtures/explorer-nested.ipynb" "reports/Nested"

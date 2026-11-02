@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a notebook's kernel session follows its rename. From a cold start, `a.ipynb` is
+# The demo: a notebook's kernel session follows its rename. From a cold start, `a.ipynb` is
 # created, runs `x = 41` and is renamed to `b.ipynb` from the strip; the Running panel's kernel row
 # reads `b.ipynb`, reveals the renamed tab, and `x + 1` prints `42` there. Then a notebook created
 # inside a folder `f` runs a cell, `f` is renamed to `g` from the explorer, and its row reveals the

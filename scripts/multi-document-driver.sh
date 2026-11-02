@@ -4,7 +4,7 @@
 # and taps the first again; this driver then counts the distinct session ids the promoted logcat
 # reports on `kernel.session.opened` - two, not one swapped and not a third minted on reveal.
 #
-#   scripts/multi-document-driver.sh <label>   # evidence/multi-document/<label>/
+#   scripts/multi-document-driver.sh <label>   # <label>/ under the multi-document evidence root
 #
 # TABLET ONLY: on the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes
 # the cell's source - there are no real sessions to count (`SpaceAbi` - arm64 only).

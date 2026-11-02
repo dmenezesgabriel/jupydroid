@@ -4,7 +4,7 @@
 # the setting persists and the stepper clamps (`TerminalSettingsRepositoryContract`,
 # `TerminalPaneViewModelTest`, `TerminalActionsMenuTest`).
 #
-# `vi`'s own full-screen `~` fill is the same oracle idea P4i-3a/P4j-3b already use for a resize,
+# `vi`'s own full-screen `~` fill is the same oracle idea the resize driver already uses,
 # read differently again: `terminal_row_spacing_px` measures the pixel gap between consecutive
 # `~` rows in the screenshot - `codeTextStyle`'s cell height rendered - rather than
 # `terminal_content_bottom_y`, which would not discriminate here: a bigger font still fills the
@@ -16,7 +16,7 @@
 # two-pane list-detail layout (`ListDetailSceneStrategy`), which puts the terminal's own content
 # to the right of the Files pane rather than at the screen's left edge - `_BACKGROUND_SAMPLE_X`
 # and every oracle's own `x_range` default are tuned against a single-pane capture
-# (`evidence/p4j-3b-terminal-ime-resize/`'s own `w800dp-h1280dp`), and sampled the *Files* pane's
+# (the IME resize run's own `w800dp-h1280dp`), and sampled the *Files* pane's
 # background instead, which measured no reflow at all across three real font-size changes -
 # a device-measured false negative, not a defect in the setting itself (confirmed by inspecting
 # the raw pixels: the terminal's own cursor and glyphs sat at x~716-730, not x=0-60). Portrait

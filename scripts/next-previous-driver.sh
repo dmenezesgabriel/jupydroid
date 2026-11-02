@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 reset_notebooks
 # Its own fixture: two matches with a collapsed heading between them is exactly the shape the
-# reveal needs, and P2i-3's has no folded section at all.
+# reveal needs, and `notebook-find-driver.sh`'s has no folded section at all.
 seed_notebook "$ROOT/.maestro/fixtures/next-previous.ipynb" "Folded Matches"
 
 run_flow "$ROOT/.maestro/next-previous.yaml" "$ROOT/evidence/next-previous"

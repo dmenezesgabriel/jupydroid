@@ -16,7 +16,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/image-nodes.sh
 . "$ROOT/scripts/image-nodes.sh"
 
-EVIDENCE="$ROOT/evidence/markdown-images/t3-web-images"
+EVIDENCE="$ROOT/evidence/markdown-images/web-images"
 NOTEBOOK="Web Images"
 REFUSED=("logo over http" "starry night over the cap" "no such image")
 mapfile -t DEVICE < <(device_adb)

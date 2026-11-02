@@ -21,7 +21,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 OUT="$ROOT/evidence/workspace-undo-a-replace-all"
 
-# The same two fixtures P2x-5h replaces across, so the counts the flow asserts are these files'.
+# The same two fixtures `workspace-replace-all-driver.sh` replaces across, so the counts the flow
+# asserts are these files'.
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/notebook-search.ipynb" "analysis"
 seed_file "$ROOT/.maestro/fixtures/search.py" "notes.py"

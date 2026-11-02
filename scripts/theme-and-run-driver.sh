@@ -27,14 +27,15 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 reset_notebooks
 seed_notebook "$FIXTURE" "Themed Cell"
 
-# `run_flow` rather than `maestro_test`, so the frames land in evidence/ (local, ADR-0132).
-# This driver predates the helper and left its artefacts in ~/.maestro/tests/<timestamp>/, which
-# is why evidence/theme-and-run/ held the first run's frames while every re-run since went nowhere.
+# `run_flow` rather than `maestro_test`, so the frames land in the evidence directory (local,
+# ADR-0132). This driver predates the helper and left its artefacts in ~/.maestro/tests/<timestamp>/,
+# which is why the first run's frames were kept while every re-run since went nowhere.
 # The optional sub-directory is the same shape palette-driver.sh takes, for the same reason.
 run_flow "$ROOT/.maestro/theme-and-run.yaml" "$ROOT/evidence/theme-and-run${1:+/$1}"
 
 # Mod-Enter is deliberately NOT driven here. Maestro has no modifier chord, and
 # `adb shell input keycombination KEYCODE_CTRL_LEFT KEYCODE_ENTER` does not carry the
 # modifier through the soft keyboard into a WebView - it arrives as a plain Enter and
-# inserts a newline, which then gets saved. The frame it produced is evidence/theme-and-run/02-mod-enter-not-verifiable.png.
+# inserts a newline, which then gets saved. The frame it produced is `02-mod-enter-not-verifiable.png`
+# in the evidence directory.
 # Verifying it needs a physical keyboard on the tablet.

@@ -16,7 +16,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-EVIDENCE="$ROOT/evidence/rendered-link/t1-web-link"
+EVIDENCE="$ROOT/evidence/rendered-link/web-link"
 NOTEBOOK="Rendered Link"
 
 reset_notebooks

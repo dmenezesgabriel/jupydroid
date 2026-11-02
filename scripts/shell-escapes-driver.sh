@@ -37,13 +37,13 @@ run_flow "$ROOT/.maestro/shell-escapes.yaml" "$EVIDENCE" || flow_status=$?
 "$ADB" shell run-as "$APP" cat "$SIGSYS_LOG" >"$EVIDENCE/sigsys.log" 2>/dev/null || true
 
 # A refusal the SIGSYS handler swallowed leaves the cell looking fine and the log non-empty, so
-# the log is read on a passing run too - the same rule P4a wrote down. busybox carries no handler
+# the log is read on a passing run too - the rule this check exists for. busybox carries no handler
 # of its own, so a refusal *there* is fatal rather than logged; this covers the interpreter side.
 #
-# 235 is `mbind`, which numpy issues on import and which this runtime has tolerated since step 8.7
-# (`research/android-sandbox-fidelity.md`, the `syscall=235` rows). It is named rather than the
-# check being dropped, so a *different* refusal still fails here instead of being lost in a log
-# nobody greps.
+# 235 is `mbind`, which numpy issues on import and which this runtime has tolerated since numpy
+# first ran in it (`research/android-sandbox-fidelity.md`, the `syscall=235` rows). It is named
+# rather than the check being dropped, so a *different* refusal still fails here instead of being
+# lost in a log nobody greps.
 if grep -v "syscall=235" "$EVIDENCE/sigsys.log" 2>/dev/null | grep -q "seccomp-refused"; then
   echo "seccomp refused a syscall other than mbind while the escapes ran:"
   grep -v "syscall=235" "$EVIDENCE/sigsys.log"

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # A workspace search finds a match **inside a notebook's cells**, and the row says which.
 #
-# The skip P2x-1d put in is gone (P2x-4b), so `analysis.ipynb` is walked as the cells it is rather
-# than as the JSON it is stored in. Two things this proves that no JVM test can: that a notebook
+# A notebook is walked as the cells it is rather than as the JSON it is stored in, so
+# `analysis.ipynb` reaches the panel. Two things this proves that no JVM test can: that a notebook
 # reaches the panel at all, and that two rows a tap apart answer to two different strings - which
 # is the whole reason the cell is in the label (`search.showLineNumbers` is false, so every row in
 # a notebook would otherwise be "line 1").

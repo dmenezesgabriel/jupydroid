@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, seeded: one notebook whose markdown cells hold an attachment, a file beside the
+# The demo, seeded: one notebook whose markdown cells hold an attachment, a file beside the
 # notebook, a web image, an HTML <img> and an image naming no file. The four draw and the fifth
 # draws its alt; a markdown cell edited and run renders again with its image; a code cell's
 # HTML('<img …>') draws the file in its output beside the kernel's 42; and after a kill and a

@@ -19,8 +19,8 @@
 # TABLET ONLY (SM-X216B): portrait and landscape give one pane and two on one device, and the
 # console flow runs on the kernel, and the terminal flow on a real shell. Installs the APK that `./gradlew :app:assembleDebug` last built,
 # through adb rather than Gradle, and restores auto-rotate on exit. [out-dir] defaults to
-# evidence/window-key-row-<target> (evidence/window-key-row for `cell`), and is how a build from
-# before the change is measured somewhere else.
+# `<target>/` under the window-key-row evidence root, and is how a build from before the change is
+# measured somewhere else.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

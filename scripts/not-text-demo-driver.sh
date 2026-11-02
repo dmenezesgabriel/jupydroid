@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a file that is not UTF-8 text is never opened as editable text. From a cold start
+# The demo: a file that is not UTF-8 text is never opened as editable text. From a cold start
 # `plot.png` is tapped in the explorer and its document says why it is not shown, with no field;
 # its tab is closed; `notes.txt` beside it opens in the field and its edit reaches the disk; and
 # after a force-stop and a relaunch the image says the same thing. The image's sha256 is read back
@@ -31,7 +31,7 @@ export MAESTRO_IMAGE="$IMAGE" MAESTRO_FILE="$NOTES"
 
 run_part() { run_flow "$1" "$EVIDENCE/$2" || exit 1; }
 
-# Step 1: an empty workspace, then both files seeded, since seeding force-stops the app.
+# An empty workspace, then both files seeded, since seeding force-stops the app.
 cold_start() {
   reset_notebooks
   seed_file "$FIXTURE" "$IMAGE"
@@ -39,7 +39,7 @@ cold_start() {
   record_image_disk seeded
 }
 
-# Steps 2-3: the image says why it is not shown, and its tab is closed.
+# The image says why it is not shown, and its tab is closed.
 open_and_close_the_image() {
   run_part "$FLOWS-image-refused.yaml" part1-image-refused
   record_image_disk "after the image was opened and typed at"
@@ -47,14 +47,14 @@ open_and_close_the_image() {
   record_image_disk "after its tab was closed"
 }
 
-# Step 4: the control, a text file beside it still takes an edit.
+# The control: a text file beside it still takes an edit.
 edit_the_text_file() {
   run_part "$FLOWS-text-still-edits.yaml" part3-text-still-edits
   wait_for_workspace_text "$NOTES" "still"
   record_image_disk "after a text file was edited beside it"
 }
 
-# Step 5: force-stop and relaunch, and the image says the same thing.
+# Force-stop and relaunch, and the image says the same thing.
 relaunch() {
   run_part "$FLOWS-demo-relaunch.yaml" part4-relaunch
   wait_for_workspace_text "$NOTES" "still"

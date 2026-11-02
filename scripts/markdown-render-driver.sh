@@ -34,9 +34,9 @@ seed_notebook "$FIXTURE" "Markdown Render"
 "$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
 "$ADB" shell settings put secure stylus_handwriting 0 || true
 
-# `run_flow` rather than `maestro_test`, so the frames land in evidence/ and get committed. This
-# driver, like theme-and-run-driver.sh before P2u-2a, left its artefacts in ~/.maestro/tests/ - so
-# evidence/audit-a1c-markdown-render/ kept the audit's originals while every re-run went nowhere.
+# `run_flow` rather than `maestro_test`, so the frames land in the evidence directory rather than
+# in `~/.maestro/tests/`. This driver, like `theme-and-run-driver.sh`, once left its artefacts
+# there, so the audit kept its originals while every re-run went nowhere.
 # The optional sub-directory keeps a second device from overwriting the first's frames.
 run_flow "$ROOT/.maestro/markdown-render.yaml" \
   "$ROOT/evidence/markdown-render${1:+/$1}"

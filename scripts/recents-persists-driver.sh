@@ -20,10 +20,10 @@ if [ "$WIDTH_DP" -ge 840 ]; then
 fi
 echo "=== the collapse survives a relaunch at ${WIDTH_DP}dp ==="
 
-# `reset_notebooks` clears `explorer-settings.json` as well since P7c, so this run starts from the
+# `reset_notebooks` clears `explorer-settings.json` as well, so this run starts from the
 # default (shut, `ExplorerSettings.recentsCollapsed`) rather than from whatever the last flow left.
 reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/file-editor.py" "file_editor.py"
 seed_file "$ROOT/.maestro/fixtures/explorer-data.csv" "reports/data.csv"
 run_flow "$ROOT/.maestro/recents-persists.yaml" \
-  "$ROOT/evidence/jd-062-recents-arrives-collapsed/${WIDTH_DP}dp"
+  "$ROOT/evidence/recents-persists/${WIDTH_DP}dp"

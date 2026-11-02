@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: a `\r` progress loop draws one line and the prints
+# The demo, typed into a new notebook: a `\r` progress loop draws one line and the prints
 # after it join it, the Console does the same, and after a kill and a relaunch the one block is
 # still drawn and saved as one `stream` holding the processed text.
 #

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: what is open survives the activity's relaunch. From a cold start with autosave
+# The demo: what is open survives the activity's relaunch. From a cold start with autosave
 # off, `first.py`, `second.py` and a notebook are opened and `second.py` is typed into and left
 # beneath the top. The device is then turned to portrait and back three times, each turn
 # relaunching the activity twice in the same process, and between the turns: the strip keeps its
@@ -54,7 +54,7 @@ record_pid() { # record_pid <when>
   [ "$now" = "$started_pid" ] || fail "the process was restarted; the turn measured nothing"
 }
 
-# Step 1: an empty workspace, autosave off, the three documents seeded, landscape.
+# An empty workspace, autosave off, the three documents seeded, landscape.
 cold_start() {
   reset_notebooks
   # Autosave off, base64 for `close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
@@ -67,7 +67,7 @@ cold_start() {
   rotate_to 1
 }
 
-# Steps 2-4: three tabs, a dirty one beneath the top; a turn; the same order, and its close asks.
+# Three tabs, a dirty one beneath the top; a turn; the same order, and its close asks.
 order_and_dirt_survive() {
   local before after
   run_part part1-open
@@ -83,7 +83,7 @@ order_and_dirt_survive() {
   record_pid "after the first turn"
 }
 
-# Step 5: the replace reaches the open editor. Autosave is off, so the editor owes the save and the
+# The replace reaches the open editor. Autosave is off, so the editor owes the save and the
 # file must still read as seeded; a replace that missed the registry would have written the file.
 replace_reaches_the_open_editor() {
   local held
@@ -93,7 +93,7 @@ replace_reaches_the_open_editor() {
   [ "$held" = 'first = "kept open"' ] || fail "the replace wrote the file behind the open editor"
 }
 
-# Steps 6-7: a renamed tab keeps its name over a turn, and a Console its prompt over another.
+# A renamed tab keeps its name over a turn, and a Console its prompt over another.
 rename_and_console_survive() {
   run_part part4-rename
   turn turn2-portrait
@@ -102,7 +102,7 @@ rename_and_console_survive() {
   turn turn3-portrait
 }
 
-# Step 8: the line typed before the first turn is saved on the way out.
+# The line typed before the first turn is saved on the way out.
 close_with_save() {
   local held
   run_part part6-console-then-save

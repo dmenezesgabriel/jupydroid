@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook from a cold launch, with `mod.py` beside it. A printed
+# The demo, typed into a new notebook from a cold launch, with `mod.py` beside it. A printed
 # URL opens the browser and a tap beside it stays; a ValueError's URL opens the browser; IPython's
 # traceback for `mod.f()` opens `mod.py`; a Console on the kernel prints the URL and opens the
 # browser too. After a kill and a relaunch, with No Kernel, the saved error's path and the saved

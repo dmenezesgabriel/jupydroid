@@ -32,7 +32,7 @@ seed_notebook "$ROOT/.maestro/fixtures/rename-in-editor.ipynb" "Rename Me Here"
 maestro_test "$ROOT/.maestro/rename-in-editor.yaml"
 
 echo "--- the notebook as saved after the rename ---"
-# The *renamed* file: X1b makes a rename move it, so `$REMOTE` names nothing afterwards. That the
+# The *renamed* file: a rename moves it, so `$REMOTE` names nothing afterwards. That the
 # old path is gone and the new one holds the cells is the whole claim of this flow now.
 RENAMED="$NOTEBOOK_DIR/Renamed From Editor.ipynb"
 "$ADB" shell "run-as $APP cat \"$RENAMED\""

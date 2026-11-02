@@ -4,7 +4,7 @@
 # copy arrives carrying them. Runs no cell on purpose: the results are seeded into the fixture,
 # which makes the paste the only thing under test and needs no kernel.
 #
-# run_flow rather than maestro_test, so the frames land in evidence/ and get committed.
+# run_flow rather than maestro_test, so the frames land in the evidence directory.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: a 200k-line print and 300 display() calls draw cut,
+# The demo, typed into a new notebook: a 200k-line print and 300 display() calls draw cut,
 # each with a row that draws the rest, in the notebook and the Console; after a kill and a relaunch
 # both are cut again and the saved file holds every line and every output; and stepping onto a
 # search hit in the hidden lines draws them.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a document is saved when the user asks. From a cold start with autosave off,
+# The demo: a document is saved when the user asks. From a cold start with autosave off,
 # `notes.py` is opened - the strip's save icon greyed - and typed into, and one tap on the icon
 # writes it while its tab stays open. The same on a notebook's cell. A second line is typed into
 # `notes.py`, the file is rewritten beneath the editor, and the tap asks which version to keep
@@ -12,7 +12,8 @@
 # process changes before the kill, the rewrite is written over before the question is answered, or
 # Overwrite leaves the rewrite on disk.
 #
-# No cell runs, so any device will do; it is run on the tablet the rest of M5's evidence is from.
+# No cell runs, so any device will do; it is run on the tablet the rest of the durability evidence
+# is from.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -58,7 +59,7 @@ rewrite_beneath() { # rewrite_beneath <fixture> <path>
   "${adb[@]}" shell "run-as $APP sh -c 'echo $payload | base64 -d > \"$NOTEBOOK_DIR/$2\"'"
 }
 
-# Step 1: an empty workspace, autosave off, a file and a notebook seeded, landscape.
+# An empty workspace, autosave off, a file and a notebook seeded, landscape.
 cold_start() {
   reset_notebooks
   # Autosave off, base64 for `close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
@@ -70,7 +71,7 @@ cold_start() {
   rotate_to 1
 }
 
-# Steps 2-3: the icon greyed on a clean file, live once typed into, and one tap writes the file.
+# The icon greyed on a clean file, live once typed into, and one tap writes the file.
 file_saved_on_demand() {
   run_part demo-part1-typed
   started_pid="$(app_pid)"
@@ -82,14 +83,14 @@ file_saved_on_demand() {
   require_same_pid "after the file's save"
 }
 
-# Step 4: the same act on a notebook's cell.
+# The same act on a notebook's cell.
 notebook_saved_on_demand() {
   run_flow "$FLOWS-notebook.yaml" "$EVIDENCE/part3-notebook" || exit 1
   holds "$NOTEBOOK.ipynb" "p8e_marker_first = 10" || fail "the save icon did not write the notebook's cell"
   record "$NOTEBOOK.ipynb after the tap: holds p8e_marker_first = 10"
 }
 
-# Step 5: a second line, a rewrite beneath it, and the tap asks rather than writing over the disk.
+# A second line, a rewrite beneath it, and the tap asks rather than writing over the disk.
 save_asks_then_overwrites() {
   run_part demo-part4-typed-again
   rewrite_beneath "$ROOT/.maestro/fixtures/rewritten.py" "$FILE"
@@ -104,7 +105,7 @@ save_asks_then_overwrites() {
   require_same_pid "after Overwrite"
 }
 
-# Step 6: a kill, and the file opens holding what the answer kept.
+# A kill, and the file opens holding what the answer kept.
 relaunched() {
   "${adb[@]}" shell am force-stop "$APP"
   run_part demo-part7-relaunched

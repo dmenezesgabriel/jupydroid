@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# The PRD's demo: a document is saved under a new name. The T1 flows run as they stand: with
-# autosave off, an edited notes.py is saved as notes-copy.py, a Save As into a missing folder says
-# why, and an edited target.ipynb is saved over the taken other.ipynb after Overwrite. Then the app
-# is killed and relaunched, both copies open with what Save As wrote, and the notebook's copy runs.
+# The demo: a document is saved under a new name. `save-as-new-name-driver.sh`'s flows run as they
+# stand: with autosave off, an edited notes.py is saved as notes-copy.py, a Save As into a missing
+# folder says why, and an edited target.ipynb is saved over the taken other.ipynb after Overwrite.
+# Then the app is killed and relaunched, both copies open with what Save As wrote, and the notebook's
+# copy runs.
 #
 #   scripts/save-as-demo-driver.sh
 #

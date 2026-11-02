@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Replace All across the workspace, over a notebook and a plain file in one action.
 #
-# The flow's own header carries the citations. What this driver adds is the **read-back**: the same
-# two fixtures P2x-4c seeds, so the counts the flow asserts are the counts these two files hold, and
-# a `run-as cat` of each after the run - because "the editor shows dog" is a redraw and "the file on
-# disk says dog" is a write, and only the second is what a replace promised.
+# The flow's own header carries the citations. What this driver adds is the **read-back**: the two
+# fixtures below are the ones the flow asserts over, so the counts are the counts these two files
+# hold, and a `run-as cat` of each after the run - because "the editor shows dog" is a redraw and
+# "the file on disk says dog" is a write, and only the second is what a replace promised.
 #
 # `analysis.ipynb` is the half that cannot be taken on trust: it goes through `NotebookRepository`
 # cell by cell, and a replace written into a `.ipynb` as text would put `dog` into the JSON keys as

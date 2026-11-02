@@ -4,8 +4,8 @@
 # `sidePanel` is `rememberSaveable`, so it survives the activity relaunch a rotation causes; the
 # rail is drawn only where there are two panes. Between them, a tablet rotated to portrait - 1280dp
 # landscape is two panes, 800dp portrait is one - used to draw the panel it had with no rail to
-# switch away from it, and the browser could not be reached again without killing the app. P2x-2
-# widened that from two panels to three, which is why it is fixed rather than recorded.
+# switch away from it, and the browser could not be reached again without killing the app. A third
+# panel on the rail widened that from two to three, which is why it is fixed rather than recorded.
 #
 # TABLET ONLY: the emulator's window is one pane in both orientations, so there is no narrowing to
 # perform there. And the rotation is a real configuration change rather than a resize - which is

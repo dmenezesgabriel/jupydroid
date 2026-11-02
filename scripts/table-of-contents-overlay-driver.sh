@@ -22,12 +22,12 @@ WIDTH_DP="$(window_width_dp)"
 echo "=== the table of contents at ${WIDTH_DP}dp ==="
 
 reset_notebooks
-# **A fixture of its own since P2z, and the tablet in portrait is why.** This reused `collapse-all-headings`'s, on
+# **A fixture of its own, and the tablet in portrait is why.** This reused `collapse-all-headings`'s, on
 # the grounds that "the notebook is already known not to fit one screen" - and that was measured on
 # the 320dp emulator, 640dp tall. NARROW WINDOW also admits the tablet in portrait, 800x1280, where
 # all seven of `collapse-all-headings`'s cells fit with 350px to spare: `scrollUntilVisible` found "Chapter two"
 # without scrolling at all, so there was no movement for the jump to undo and the flow's whole claim
-# was unassertable (`evidence/p2z-suite-sweep/portrait-800dp/RED-p2h-2-table-of-contents.log`).
+# was unassertable - the portrait run recorded no movement to assert on.
 #
 # Same three headings at the same depths and the same texts the flow addresses; eight `filler_N`
 # code cells between them, which is `open-at-the-cell.ipynb`'s own idiom for a document that
@@ -35,7 +35,7 @@ reset_notebooks
 # off screen long before the last heading is reached - at *both* widths, which is the property the
 # old fixture had at only one.
 seed_notebook "$ROOT/.maestro/fixtures/table-of-contents-overlay.ipynb" "Heading Sections"
-# A2's own fixture: no `cells` key at all, so it opens on the one default cell `toEditorUiState`
+# The empty-notebook fixture: no `cells` key at all, so it opens on the one default cell `toEditorUiState`
 # gives an empty file - a code cell, and so a notebook with no headings at all.
 seed_notebook "$ROOT/.maestro/fixtures/empty-notebook.ipynb" "Empty Notebook"
 

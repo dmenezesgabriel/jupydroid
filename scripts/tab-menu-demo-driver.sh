@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# The PRD's demo: a document is deleted or duplicated from its tab. The T1 driver runs as it
-# stands - a dirty file and a notebook beneath another tab deleted from their tabs - then the T2
-# driver - other.py copied to other-Copy1.py and other-Copy2.py, a copy of a copy named
-# other-Copy3.py, and a notebook's copy that runs. On the copies T2 left, other-Copy2.py is deleted
-# from its tab, and after a kill and relaunch it stays gone while the other copies open with their
-# content and the notebook's copy runs.
+# The demo: a document is deleted or duplicated from its tab. `tab-delete-driver.sh` runs as it
+# stands - a dirty file and a notebook beneath another tab deleted from their tabs - then
+# `tab-duplicate-driver.sh` - other.py copied to other-Copy1.py and other-Copy2.py, a copy of a copy
+# named other-Copy3.py, and a notebook's copy that runs. On the copies the duplicate left,
+# other-Copy2.py is deleted from its tab, and after a kill and relaunch it stays gone while the
+# other copies open with their content and the notebook's copy runs.
 #
 #   scripts/tab-menu-demo-driver.sh
 #
@@ -43,7 +43,7 @@ rm -f "$EVIDENCE/disk.txt"
 EVIDENCE="$EVIDENCE/delete" "$ROOT/scripts/tab-delete-driver.sh"
 EVIDENCE="$EVIDENCE/duplicate" "$ROOT/scripts/tab-duplicate-driver.sh"
 
-# Part 3 acts on the copies T2 left, so it resets nothing.
+# Part 3 acts on the copies the duplicate left, so it resets nothing.
 rotate_to 1
 run_flow "$ROOT/.maestro/tab-menu-demo-relaunch.yaml" "$EVIDENCE/part3-relaunch"
 on_disk other-Copy2.py && fail "expected other-Copy2.py gone from the workspace"

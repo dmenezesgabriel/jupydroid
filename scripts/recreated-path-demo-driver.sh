@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a document created at the name an open tab was renamed away from opens in a tab
+# The demo: a document created at the name an open tab was renamed away from opens in a tab
 # of its own. From a cold start with autosave off, `a.ipynb` is created, typed into and renamed to
 # `b.ipynb` from the strip; a new `a.ipynb` is created and opened beside it. The same with `a.py`
 # and `b.py` in the file editor. Then `b.ipynb`'s row reveals the renamed tab rather than opening a
@@ -52,7 +52,7 @@ require_same_pid() {
   [ "$(app_pid)" = "$started_pid" ] || fail "the process was restarted; the tabs measured nothing"
 }
 
-# Step 1: an empty workspace, autosave off, landscape.
+# An empty workspace, autosave off, landscape.
 cold_start() {
   reset_notebooks
   # Autosave off, base64 for `close-gate-driver.sh`'s reason: `adb shell` eats the quotes.

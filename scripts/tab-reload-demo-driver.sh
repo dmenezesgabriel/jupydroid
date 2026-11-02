@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: an open document reloads from disk. From a cold start with nothing seeded but
+# The demo: an open document reloads from disk. From a cold start with nothing seeded but
 # autosave off, `a.ipynb` and `b.ipynb` are made from the explorer and `notes.txt` by the Space's
 # shell; a cell in `a.ipynb` rewrites `notes.txt`, then `b.ipynb`, and each tab shows the disk's
 # version only once the strip's reload icon is tapped - asking first while `notes.txt` is dirty.

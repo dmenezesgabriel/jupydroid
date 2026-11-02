@@ -7,8 +7,8 @@
 #
 # **The narrow-window half of this sub-step is `cell-selection` on the emulator, not here.** A third
 # icon on the contextual bar is a width question and this device is 1280dp, where four would fit;
-# 320dp is where P2c measured the count wrapping to three lines, and that flow already puts the bar
-# on screen there with no kernel involved.
+# 320dp is where `cell-selection-driver.sh` measured the count wrapping to three lines, and that
+# flow already puts the bar on screen there with no kernel involved.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

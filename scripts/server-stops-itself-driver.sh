@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # The server stops itself. A notebook is opened, a cell runs against the real
 # kernel, and the notebook is closed again - leaving a live server and an idle kernel whose
-# session was never deleted (that is P1d). The server's own machinery must then tear both
-# down: MappingKernelManager culls the idle kernel after cull_idle_timeout (300 s, polled
-# every cull_interval=60 s), and once no kernels exist the server stops after
-# shutdown_no_activity_timeout (300 s, checked every 60 s). The driver waits through the
-# whole thing, asserts the process is gone, and then reopens the notebook and runs a cell
-# again - a cold server, a fresh kernel, the same answer.
+# session was never deleted (that is `shutdown-kernel-driver.sh`). The server's own machinery must
+# then tear both down: MappingKernelManager culls the idle kernel after cull_idle_timeout (300 s,
+# polled every cull_interval=60 s), and once no kernels exist the server stops after
+# shutdown_no_activity_timeout (300 s, checked every 60 s). The driver waits through the whole
+# thing, asserts the process is gone, and then reopens the notebook and runs a cell again - a cold
+# server, a fresh kernel, the same answer.
 #
-# Evidence is the server's own account (evidence/p1b-server-stops-itself/jupyter_server.log):
-# a "Culling ... kernel" warning and a "No kernels for N seconds; shutting down" info line.
-# On a passing run both must be present; without them the process could have died for any
-# reason and the gate would be green for the wrong one.
+# Evidence is the server's own account, in its own log: a "Culling ... kernel" warning and a
+# "No kernels for N seconds; shutting down" info line. On a passing run both must be present;
+# without them the process could have died for any reason and the gate would be green for the wrong
+# one.
 set -euo pipefail
 
 # TABLET ONLY (SM-X216B). Both flows assert `42`, which only a real kernel produces - on the

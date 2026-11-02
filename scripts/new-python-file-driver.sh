@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# X2e evidence, as X2h leaves it: "New Python file" creates a plain file, opening it gets the file
+# What the creation leaves: "New Python file" creates a plain file, opening it gets the file
 # editor, and typing lands on disk - the creation is a file, not a notebook that looks like one.
 #
-# The menu is the explorer's "+" since X2h, because Home is gone and its FAB was the same three
-# items. The creation no longer opens what it made - `_createNew` creates and renames in place -
-# so the flow taps the row, which is the reference's shape rather than a behaviour lost.
+# The menu is the explorer's "+", because Home is gone and its FAB was the same three items. The
+# creation no longer opens what it made - `_createNew` creates and renames in place - so the flow
+# taps the row, which is the reference's shape rather than a behaviour lost.
 #
 # The emulator is enough: nothing here runs a cell, so `FakeKernelGateway` is never consulted.
 set -euo pipefail
@@ -17,7 +17,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 
 reset_notebooks
-run_flow "$ROOT/.maestro/new-python-file.yaml" "$ROOT/evidence/x2e-home-new-python-file"
+run_flow "$ROOT/.maestro/new-python-file.yaml" "$ROOT/evidence/new-python-file"
 
 # The flow proves the editor opened on `untitled.py`; these prove what the creation actually
 # wrote. The debounced save flushes before the back-navigation screenshot, so the file holds the

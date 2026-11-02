@@ -43,9 +43,9 @@ run_flow "$ROOT/.maestro/pane-widths.yaml" "$OUT"
 
 # The hierarchy is taken *after* the flow, with the notebook open, which is the state the split is
 # about. `uiautomator dump` writes to the device, so it is read back rather than piped.
-"$ADB" -s "$MAESTRO_DEVICE" shell uiautomator dump /sdcard/p2o3-hierarchy.xml > /dev/null
-"$ADB" -s "$MAESTRO_DEVICE" shell cat /sdcard/p2o3-hierarchy.xml > "$OUT/hierarchy.xml"
-"$ADB" -s "$MAESTRO_DEVICE" shell rm -f /sdcard/p2o3-hierarchy.xml
+"$ADB" -s "$MAESTRO_DEVICE" shell uiautomator dump /sdcard/pane-widths-hierarchy.xml > /dev/null
+"$ADB" -s "$MAESTRO_DEVICE" shell cat /sdcard/pane-widths-hierarchy.xml > "$OUT/hierarchy.xml"
+"$ADB" -s "$MAESTRO_DEVICE" shell rm -f /sdcard/pane-widths-hierarchy.xml
 
 "$ADB" -s "$MAESTRO_DEVICE" shell wm density |
   python3 "$ROOT/scripts/read_pane_widths.py" "$OUT/hierarchy.xml" "$WIDTH_DP" | tee "$OUT/columns.txt"

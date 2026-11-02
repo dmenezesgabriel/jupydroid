@@ -6,7 +6,7 @@
 #
 # **The flow is not the oracle.** The terminal draws to a `Canvas`, so no Maestro assertion can
 # read a character off it. The flow redirects what the shell *parsed* into two files; this driver
-# reads them back with `run-as` and asserts, the way P7e-1 reads `the-link.txt`.
+# reads them back with `run-as` and asserts, the way `space-python-driver.sh` reads `the-link.txt`.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

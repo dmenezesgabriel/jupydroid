@@ -14,7 +14,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-OUT="${EVIDENCE_ROOT:-$ROOT/evidence/progress-bar}/t2-console"
+OUT="${EVIDENCE_ROOT:-$ROOT/evidence/progress-bar}/console"
 
 reset_notebooks
 seed_notebook "$ROOT/.maestro/fixtures/progress-bar-console.ipynb" "Progress Console"

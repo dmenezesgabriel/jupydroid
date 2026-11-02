@@ -3,8 +3,8 @@
 # rotation (`terminal-resize-driver.sh`'s gate).
 #
 # `vi`'s own full-screen redraw is the same *idea* reused - its fill lines run to the bottom of
-# whatever the pty was told its screen was - but not the same *reading* of it. P4i-3a's own oracle
-# (`grep -c 'text="~"'` over a `uiautomator dump`) proved unreliable on this device, independent of
+# whatever the pty was told its screen was - but not the same *reading* of it. The first oracle,
+# a `grep -c 'text="~"'` over a `uiautomator dump`, proved unreliable on this device, independent of
 # anything `TerminalCanvas` draws: a real run found it reporting zero fill lines against a
 # screenshot showing dozens, reproduced with and without this phase's own code
 # (`architecture/cross-cutting.md` §8.6). `terminal_content_extent.py` reads the screenshot's own

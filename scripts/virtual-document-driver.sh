@@ -14,8 +14,9 @@
 #   2. logcat's `lsp.start` stage *during the flow*: the answer came down the port.
 #   3. `Completion cross_cell_name_for_lsp`: the name lives in a cell that is NEVER RUN, so
 #      the kernel's namespace cannot offer it, and it is not in the asked cell's own text, so
-#      P5c's per-cell documents could not offer it either. It completes only if the language
-#      server holds every code cell as one document - the virtual-document claim itself.
+#      the per-cell documents a completion is built from could not offer it either. It completes
+#      only if the language server holds every code cell as one document - the virtual-document
+#      claim itself.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

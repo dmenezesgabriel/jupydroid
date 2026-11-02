@@ -24,7 +24,7 @@ seed_file "$ROOT/.maestro/fixtures/search.py" "notes.py"
 # row draws where the file lives under its name.
 seed_file "$ROOT/.maestro/fixtures/search-nested.py" "reports/analysis.py"
 
-# Overridable, so a step that only needs this flow *green again* captures under its own name
-# rather than replacing frames captured on another device - P7a-3's precedent, and P7c needed
-# it because the fold chevron on this panel moved into `ui/Twistie.kt`.
+# Overridable, so a run that only needs this flow *green again* captures under its own name
+# rather than replacing frames captured on another device - the toggle-wash driver's precedent.
+# The fold chevron on this panel moved into `ui/Twistie.kt`, which needed exactly that.
 run_flow "$ROOT/.maestro/workspace-search-results.yaml" "${EVIDENCE_ROOT:-$ROOT/evidence/workspace-search-results}"

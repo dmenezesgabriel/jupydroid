@@ -4,14 +4,13 @@
 # A rotation relaunches `MainActivity` - the window manager says so in as many words,
 # `not-handles={CONFIG_ORIENTATION}` - and while the container hung off the activity, each
 # relaunch built another one with another `ServerLauncher`. Reopening a notebook then started a
-# **second `jupyter_server`** beside the first, both children of the app
-# (`evidence/p1g-one-container-per-process/`).
+# **second `jupyter_server`** beside the first, both children of the app - two pids in `ps`.
 #
 # So the assertion is about processes, not pixels: **the same server pid, before and after**, and
 # exactly one of them. A flow cannot see that, which is why the driver reads `ps` and the flows
 # only prove a kernel really answered.
 #
-# The last check is the one that says the fix is not merely cosmetic: P1c's backstop must still
+# The last check is the one that says the fix is not merely cosmetic: the idle backstop must still
 # stop the server after a rotation. It used to - by accident, because the leaked per-activity
 # observer happened to hold the launcher that owned the running process.
 set -euo pipefail
@@ -70,7 +69,7 @@ AFTER="$(server_pids)"
 }
 echo "same single server after the rotation and a reopened notebook"
 
-# P1c still holds on the other side of a relaunch.
+# The idle backstop still holds on the other side of a relaunch.
 "$ADB" shell input keyevent KEYCODE_HOME
 echo "waiting ${IDLE_WAIT}s for the backstop, now that the observer is the process's own..."
 sleep "$IDLE_WAIT"

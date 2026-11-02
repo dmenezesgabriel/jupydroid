@@ -21,7 +21,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/save-conflict-reads.sh
 . "$ROOT/scripts/save-conflict-reads.sh"
 
-EVIDENCE="$ROOT/evidence/save-conflict/t2"
+EVIDENCE="$ROOT/evidence/save-conflict/file"
 NOTES="notes.txt"
 FLOWS="$ROOT/.maestro/save-conflict-file"
 export MAESTRO_FILE="$NOTES"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo, typed into a new notebook: a cell's display(Markdown(...)) draws a heading, bold,
+# The demo, typed into a new notebook: a cell's display(Markdown(...)) draws a heading, bold,
 # code and a list item above the kernel's 42; the table of contents lists the heading; a Console on
 # the same kernel draws the same markdown; and after a kill and a relaunch, with No Kernel, the
 # output and its entry are read back from the saved file. Each part's hierarchy is kept for the

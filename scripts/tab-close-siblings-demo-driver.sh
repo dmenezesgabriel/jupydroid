@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a tab's menu closes the tabs beside it. With autosave off, a.py, a terminal,
+# The demo: a tab's menu closes the tabs beside it. With autosave off, a.py, a terminal,
 # b.py (edited) and c.ipynb are opened in that order. The terminal's Close Tabs to Right closes
 # c.ipynb while dirty b.py asks and Cancel keeps it; a.py's Close All Other Tabs asks again, and
 # Discard leaves a.py alone. After a kill and relaunch b.py opens with its seed, and the disk

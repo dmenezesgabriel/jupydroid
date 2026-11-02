@@ -44,7 +44,8 @@ trap reset_window EXIT
 # **Portrait, locked, and the tablet is why.** `wm size` sets the *natural* orientation's
 # resolution, so on a device auto-rotated to landscape the override came out 2400x1080 - a
 # two-pane shell with the notebook in a narrow column, which is not the layout this frame is
-# about and not the one the emulator drew. p1g's own rotation lock, for the same reason.
+# about and not the one the emulator drew. The one-container driver's own rotation lock, for the
+# same reason.
 "${adb[@]}" shell settings put system accelerometer_rotation 0 >/dev/null
 "${adb[@]}" shell settings put system user_rotation 0 >/dev/null
 "${adb[@]}" shell wm size 1080x2400 >/dev/null

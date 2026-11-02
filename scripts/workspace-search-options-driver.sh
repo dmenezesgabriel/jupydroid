@@ -33,9 +33,9 @@ seed_file "$ROOT/.maestro/fixtures/search-nested.py" "reports/analysis.py"
 run_flow "$ROOT/.maestro/workspace-search-options.yaml" "$OUT"
 
 # The box measured with the panel still up, which is the state the placement question is about.
-"$ADB" -s "$MAESTRO_DEVICE" shell uiautomator dump /sdcard/p2x3d-hierarchy.xml > /dev/null
-"$ADB" -s "$MAESTRO_DEVICE" shell cat /sdcard/p2x3d-hierarchy.xml > "$OUT/hierarchy-with-toggles.xml"
-"$ADB" -s "$MAESTRO_DEVICE" shell rm -f /sdcard/p2x3d-hierarchy.xml
+"$ADB" -s "$MAESTRO_DEVICE" shell uiautomator dump /sdcard/search-options.xml > /dev/null
+"$ADB" -s "$MAESTRO_DEVICE" shell cat /sdcard/search-options.xml > "$OUT/hierarchy-with-toggles.xml"
+"$ADB" -s "$MAESTRO_DEVICE" shell rm -f /sdcard/search-options.xml
 
 "$ADB" -s "$MAESTRO_DEVICE" shell wm density |
   python3 "$ROOT/scripts/read_search_box_width.py" "$OUT/hierarchy-with-toggles.xml" | tee "$OUT/box.txt"

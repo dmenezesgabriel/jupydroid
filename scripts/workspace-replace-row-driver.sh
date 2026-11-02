@@ -21,8 +21,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 OUT="$ROOT/evidence/workspace-replace-row"
 
-# The same two files the other P2x-3 flows seed: a search reads *everything*, so a workspace this
-# flow did not lay down is a count it cannot predict.
+# The same two files the other workspace-search flows seed: a search reads *everything*, so a
+# workspace this flow did not lay down is a count it cannot predict.
 reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/search.py" "notes.py"
 seed_file "$ROOT/.maestro/fixtures/search-nested.py" "reports/analysis.py"
@@ -31,9 +31,9 @@ run_flow "$ROOT/.maestro/workspace-replace-row.yaml" "$OUT"
 
 # The flow ends with the row **open**, on purpose, so this reads the state the placement question is
 # about - a collapsed row is a `LookupError` rather than a zero (`read_search_box_width.py`).
-"$ADB" -s "$MAESTRO_DEVICE" shell uiautomator dump /sdcard/p2x5e-hierarchy.xml > /dev/null
-"$ADB" -s "$MAESTRO_DEVICE" shell cat /sdcard/p2x5e-hierarchy.xml > "$OUT/hierarchy-with-the-row-open.xml"
-"$ADB" -s "$MAESTRO_DEVICE" shell rm -f /sdcard/p2x5e-hierarchy.xml
+"$ADB" -s "$MAESTRO_DEVICE" shell uiautomator dump /sdcard/replace-row.xml > /dev/null
+"$ADB" -s "$MAESTRO_DEVICE" shell cat /sdcard/replace-row.xml > "$OUT/hierarchy-with-the-row-open.xml"
+"$ADB" -s "$MAESTRO_DEVICE" shell rm -f /sdcard/replace-row.xml
 
 "$ADB" -s "$MAESTRO_DEVICE" shell wm density |
   python3 "$ROOT/scripts/read_search_box_width.py" "$OUT/hierarchy-with-the-row-open.xml" | tee "$OUT/boxes.txt"

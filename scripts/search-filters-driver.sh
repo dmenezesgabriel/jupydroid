@@ -2,8 +2,7 @@
 # The `output` and `selection` filters, both off by default as the reference's are.
 #
 # **No kernel**, and that is a reading rather than a shortcut: nbformat stores a cell's outputs, so
-# the fixture carries the printed line the filter is asserted against - the same thing that made
-# P2h-6 device-free. Nothing here runs a cell.
+# the fixture carries the printed line the filter is asserted against. Nothing here runs a cell.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

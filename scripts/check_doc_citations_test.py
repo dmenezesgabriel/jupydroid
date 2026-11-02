@@ -233,14 +233,29 @@ class ScannedFilesTest(unittest.TestCase):
     def test_the_first_half_of_the_drivers_is_discovered(self):
         """`scripts/[a-l]*-driver.sh` is read, so a driver cannot cite an item id again.
 
-        The `m`-`z` half joins in the slice that follows; a range glob rather than one name per
-        file keeps a driver added later inside the gate from the day it is written.
+        A range glob rather than one name per file keeps a driver added later inside the gate
+        from the day it is written.
         """
         found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
         for path in (
             "scripts/adaptive-panes-driver.sh",
             "scripts/chat-server-driver.sh",
             "scripts/list-selection-driver.sh",
+        ):
+            with self.subTest(path=path):
+                self.assertIn(path, found)
+
+    def test_the_second_half_of_the_drivers_is_discovered(self):
+        """`scripts/[m-z]*-driver.sh` is read, so the other half cannot cite an item id either.
+
+        The two halves are two globs rather than one because each joined in its own slice, and
+        every driver is now read: a driver added later falls in one half or the other.
+        """
+        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
+        for path in (
+            "scripts/markdown-render-driver.sh",
+            "scripts/toggle-wash-driver.sh",
+            "scripts/workspace-undo-a-replace-all-driver.sh",
         ):
             with self.subTest(path=path):
                 self.assertIn(path, found)

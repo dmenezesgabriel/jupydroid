@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The PRD's demo: a file or a notebook renamed while its tab sits beneath a terminal takes its new
+# The demo: a file or a notebook renamed while its tab sits beneath a terminal takes its new
 # name. `second.py` is renamed from its own tab and `second.ipynb` from the explorer's row, each
 # beneath a terminal; the strip, Open Tabs and the disk read the new names. The renamed file's tab
 # opens on the moved file and an edit saves to the new path only. After a force-stop - which
@@ -52,7 +52,7 @@ require_gone() { # require_gone <old name> <reading>
   [[ " $2 " != *" $1"[,\ ]* ]] || fail "'$1' is still there: $2"
 }
 
-# Step 1: a fresh workspace with a file and a notebook, landscape.
+# A fresh workspace with a file and a notebook, landscape.
 cold_start() {
   reset_notebooks
   seed_file "$ROOT/.maestro/fixtures/second.py" "$FILE"
@@ -60,7 +60,7 @@ cold_start() {
   rotate_to 1
 }
 
-# Steps 2-3: the file renamed from its tab beneath the terminal.
+# The file renamed from its tab beneath the terminal.
 file_renamed_beneath() {
   run_part part1-file
   started_pid="$(app_pid)"
@@ -69,7 +69,7 @@ file_renamed_beneath() {
   require_gone "$FILE" "$(listing)"
 }
 
-# Step 4: the notebook renamed from the explorer's row beneath the terminal.
+# The notebook renamed from the explorer's row beneath the terminal.
 notebook_renamed_beneath() {
   run_part part2-notebook
   record_reads "after the notebook's rename"
@@ -77,7 +77,7 @@ notebook_renamed_beneath() {
   require_gone "$NOTEBOOK.ipynb" "$(listing)"
 }
 
-# Step 5: the renamed tab opens on the moved file, and an edit lands at the new path only.
+# The renamed tab opens on the moved file, and an edit lands at the new path only.
 edit_saves_to_new_path() {
   run_part part3-edit
   wait_for_workspace_text "$RENAMED_FILE" "$TYPED" || fail "the edit never reached $RENAMED_FILE"
@@ -85,10 +85,10 @@ edit_saves_to_new_path() {
   record "$RENAMED_FILE after the edit: $(on_disk "$RENAMED_FILE")"
   record "workspace on disk after the edit: $(listing)"
   [ "$(app_pid)" = "$started_pid" ] || fail "the process was restarted; the renames measured nothing"
-  record "app pid through steps 2-5: $started_pid"
+  record "app pid through the turn: $started_pid"
 }
 
-# Step 6: a force-stop, and the file and its reopened tab carry the new name.
+# A force-stop, and the file and its reopened tab carry the new name.
 relaunched() {
   "${adb[@]}" shell am force-stop "$APP"
   run_part part4-relaunched

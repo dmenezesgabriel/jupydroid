@@ -6,8 +6,8 @@
 # So it passed while that driver had run recently and failed the moment anything cleared state -
 # a flow whose result depends on what ran before it is not evidence of anything.
 #
-# Same fixture as a1c on purpose: the cell it needs is the same markdown-heavy one, and a second
-# copy would be two things to keep in step.
+# Same fixture as `markdown-render-driver.sh` on purpose: the cell it needs is the same
+# markdown-heavy one, and a second copy would be two things to keep in step.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
