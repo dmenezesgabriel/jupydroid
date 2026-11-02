@@ -80,8 +80,9 @@ One TDD unit each, one conventional commit each.
 - [x] T2 — `scripts/rewrite_history.py`: the rules file (`token-carriers.txt`, `.sensitive-strings.local`,
   `read_personal_data.py --scrub-rules`), the run-time mailmap, and the `git filter-repo` argv. One rules
   file feeds both `--replace-text` and `--replace-message`; `--prune-empty never`. Builders unit tested, one
-  fixture-repo test runs it end to end.
-- [ ] T3 — rehearsal: `git bundle create` outside the repo on a disk filesystem, `git bundle verify`,
+  fixture-repo test runs it end to end. The rehearsal found that `--replace-text` skips binary blobs, so
+  `*.pyc` is dropped from history (`--path-glob '*.pyc' --invert-paths`).
+- [x] T3 — rehearsal: `git bundle create` outside the repo on a disk filesystem, `git bundle verify`,
   clone it, run T2, run T1 (all zero), diff the old and new tip trees (only scrubbed paths differ), commit
   count unchanged, tag present, SHA remap dry-run. Numbers in `evidence/ops-002-rehearsal/README.md`.
 - [ ] T4 — the real rewrite, in place (`--force`, since `.git/filter-repo/already_ran` exists; in place so
