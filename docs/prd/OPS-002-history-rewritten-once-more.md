@@ -195,7 +195,21 @@ One TDD unit each, one conventional commit each.
     (`jd-023's flow`, the theme drivers' usage lines) and the names a flow types on the device. T7g must
     qualify `jd-043-tab-demo`, since `chat-in-tab-demo` already contains `tab-demo`, and `notes.py`,
     `target.ipynb` and `counter.ipynb` are now taken fixture names.
-  - [ ] T7g — `jd-040` to `jd-074` (563 `jd` files in total).
+  - [x] T7g — `jd-040` to `jd-074` (127 files: 17 fixtures, 69 flows, 39 drivers, 2 sourced helpers; 563 `jd`
+    files across T7e to T7g, none left tracked). Named by hand where the strip collided: `checkpoint-revert`
+    and `checkpoint-follows-file`, `git-panel-branch` and `git-panel-changed-files`, the `ai-chat-explore`
+    flows by orientation (`-landscape`, `-portrait`), the `ai-chat-keeps-server` flows by what each does
+    (`-opened`, `-still-open`, `-idle-restored`), and the two `other.py` and `notes.md` fixtures by their first
+    user (`checkpoint-other.py`, `tab-copy-other.py`, `kept-notes.md`). Qualified for the substring rule:
+    `ai-chat-streamed-answer`, `save-all-open-tabs`, `save-as-new-name`, `tab-close-siblings-dirty` and
+    `tab-menu-demo` (not `tab-delete-…`, which would contain the `tab-delete` driver); the check over the final
+    stems finds no T7g name inside another. Hand edits as in T7c to T7f: each driver's evidence directory takes
+    its own name (the stem rewrite had pointed every `ai-chat` driver at the renamed base one), the `t3`/`t4d`
+    argument defaults became `run`, the `FLOWS` prefixes of four drivers and the `ai-chat-keeps-server`
+    `run_part` were re-pointed, and the device temp files lost their ids; every path a changed file names
+    resolves to a tracked file. Left to T8: item ids in comments (`JD-069's demo`, `jd-023's flow`, the
+    `jd-046`/`jd-058` helper headers), the item-coded evidence directories (`jd-032`, `jd-062`, `jd-063`, `jd-064`) that
+    drivers no slice renamed still write to, `chat-server`'s device file `t2.chat`, and the `part N failed` messages.
 - [ ] T8 — ids out of code: `check_doc_citations.py` loses its driver and flow exemption and learns
   `AUD-NNN`; the 141 id matches in code and tests and whatever the wider scope surfaces are restated.
   Red test first for each new rule.
