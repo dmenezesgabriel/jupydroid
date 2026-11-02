@@ -261,9 +261,14 @@ One TDD unit each, one conventional commit each.
     the device (`p5a-version.txt`, `p8f-second.ipynb`, `p4j2-after.txt`, `p8b-install.log`) stay for
     T8e/T8f, which own the flows that type them, as T8c left them. `scripts/[m-z]*-driver.sh` is the
     glob.
-  - [ ] T8e1 — `.maestro/[a-c]*.yaml` (94 hits in 49 flows, plus 21 ids no gate pattern matches in 19
-    flows, 12 of those not among the 49, and the four device names two of them type:
-    `jd050-probe.sh`/`jd050-probe.txt` and `p7e2-pip.txt`, `p7e2-jupyter.txt`).
+  - [x] T8e1 — `.maestro/[a-c]*.yaml` (192 of the 690 flows, 94 hits in 49 of them, plus 21 ids no
+    gate pattern matches in 19 flows, 12 of those not among the 49), now 0. A header prefix is
+    dropped; a reference to an earlier step states its fact or names the sibling flow or driver
+    (`checkpoint-revert-driver.sh`, `configure-a-space-startup-script-runs.yaml`); an `evidence/`
+    pointer becomes the measurement it carried. The four device names say what they are:
+    `jd050-probe.sh`/`.txt` -> `acp-probe.sh`/`.txt` (beside the `claude-acp-probe.sh` fixture), and
+    `p7e2-pip.txt`/`p7e2-jupyter.txt` -> `pip-version.txt`/`jupyter-version.txt`, each holding that
+    script's version and rc. Both flows ran on the tablet with the new names.
     `.maestro/[a-c]*.yaml` is the glob.
   - [ ] T8e2 — `.maestro/[d-m]*.yaml` (107 hits in 64 flows, plus 29 ids no gate pattern matches in 22
     flows, 11 of those not among the 64, and the device names those flows type:
