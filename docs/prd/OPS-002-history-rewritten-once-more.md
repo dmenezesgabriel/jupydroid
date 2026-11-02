@@ -261,8 +261,15 @@ One TDD unit each, one conventional commit each.
     the device (`p5a-version.txt`, `p8f-second.ipynb`, `p4j2-after.txt`, `p8b-install.log`) stay for
     T8e/T8f, which own the flows that type them, as T8c left them. `scripts/[m-z]*-driver.sh` is the
     glob.
-  - [ ] T8e — `.maestro/[a-m]*.yaml` (201 hits) and the names those flows type on the device.
-  - [ ] T8f — `.maestro/[n-z]*.yaml` (225 hits), the same way. Either of T8e and T8f is split again when
+  - [ ] T8e1 — `.maestro/[a-c]*.yaml` (94 hits in 49 flows, plus 21 ids no gate pattern matches in 19
+    flows, 12 of those not among the 49, and the four device names two of them type:
+    `jd050-probe.sh`/`jd050-probe.txt` and `p7e2-pip.txt`, `p7e2-jupyter.txt`).
+    `.maestro/[a-c]*.yaml` is the glob.
+  - [ ] T8e2 — `.maestro/[d-m]*.yaml` (107 hits in 64 flows, plus 29 ids no gate pattern matches in 22
+    flows, 11 of those not among the 64, and the device names those flows type:
+    `jd046-importtime-*`, `jd058-opencode-version.txt`, `p5b-*`, `p8d-*`, `p8g-*`).
+    `.maestro/[d-m]*.yaml` is the glob.
+  - [ ] T8f — `.maestro/[n-z]*.yaml` (225 hits in 115 flows), the same way, and split again when
     opened if its first count says so.
   - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
     names, kernelspec names). No gate reads a string literal, so the commit body names the `git grep` that
