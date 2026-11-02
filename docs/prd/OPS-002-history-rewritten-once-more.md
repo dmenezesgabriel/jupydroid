@@ -226,8 +226,17 @@ One TDD unit each, one conventional commit each.
     states the fact; `reference/` became "the gitignored `reference` directory", since a trailing slash
     is what the pattern matches. The ledger tools keep `AUD-NNN` in string literals, which they parse
     and no scanner reads. T8b rewrites the gate's own docstring, which names `reference/` and `evidence/`.
-  - [ ] T8b — `scripts/check_*.py` and the other `scripts/*.py` and `*.sh` (115 hits), with the gate's own
-    "Out of scope on purpose" paragraph.
+  - [x] T8b — `scripts/check_*.py` and the other `scripts/*.py` and `*.sh` (117 hits: 115 banned
+    tokens plus two unknown-ADR mentions in the gate's own docstring), now 0, and the gate's "Out of
+    scope on purpose" paragraph rewritten as "Not yet scanned". `scripts/*.py` is the glob; the
+    non-driver `.sh` name themselves where a prefix glob would match a `*-driver.sh` (`atomic-`,
+    `run-`). A step code's fact is stated in words ("the busybox the app first shipped", "the
+    notebooks path moved once"); a pointer into `evidence/` names the class ("an evidence
+    directory", "the evidence tree"); a docstring example that would hold a banned literal shows the
+    clean case and names the test that holds the failing one (`CitationsInTest`, `UnknownAdrsTest`,
+    `CitesRetiredTest`). Two names no pattern matches went with it: `t1-pty-gate` in a test
+    docstring became `cold-path-driver.sh`, and the `u5 step4` usage example became real driver
+    substrings.
   - [ ] T8c — `scripts/*-driver.sh` from `a` to `l`, with the item-coded `OUT=` evidence directories
     (`jd-062-…`, `x2a-…`, `p6a-18`) and the device file names they create (`t2.chat`).
   - [ ] T8d — `scripts/*-driver.sh` from `m` to `z`, the same way.
