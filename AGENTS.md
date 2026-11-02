@@ -105,11 +105,14 @@ is skipped "for speed". A step is only finished when all of them hold.
   kernel and can go green while the kernel has never started. The emulator is fine
   for anything that does not run a cell.
 - Capture **screenshots, snapshots and logs** of every flow into
-  `evidence/<step>/` and commit them. `maestro.log` (and `logcat` where the step
-  touches a process or the runtime) counts as evidence, not just PNGs.
-- **`logcat` is captured but never committed.** It is the whole device's log - home
-  Wi-Fi BSSID/SSID, push tokens, other apps - so `.gitignore` keeps it local and the
-  `device-secrets` gate refuses it. A README quotes the lines it cites.
+  `evidence/<step>/`. `maestro.log` (and `logcat` where the step touches a process
+  or the runtime) counts as evidence, not just PNGs.
+- **Evidence is local and never committed**
+  ([ADR-0132](docs/adr/0132-evidence-is-local-and-reproduction-is-a-tested-script.md)).
+  `.gitignore` keeps all of `evidence/` on the disk that ran it, since `logcat` alone is the
+  whole device's log: home Wi-Fi BSSID/SSID, push tokens, other apps. The commit body names the
+  flow and quotes the lines it relies on. A result someone must rerun ships as a tested script,
+  and a frame a test asserts on is a fixture in `scripts/testdata/`.
 - **Look at the screenshots.** More than one flow in this repo's history has gone
   green against the wrong thing; a green log is only half the evidence.
 - Unit tests alone are never sufficient to close a step.
@@ -132,10 +135,10 @@ is skipped "for speed". A step is only finished when all of them hold.
 ### 3. Evidence-gated progression
 - A step is NOT complete — and the next step does NOT start — until:
   1. Unit + instrumented tests are green (`red → green → refactor`).
-  2. Maestro flow passes on the device rule 2 names, with screenshots/snapshots in
-     `evidence/<step>/`.
+  2. Maestro flow passes on the device rule 2 names, and its screenshots/snapshots
+     have been looked at.
   3. `./gradlew :app:assembleDebug` builds green.
-  4. Evidence committed.
+  4. The commit body names the gate results and the command or flow that reproduces them.
 - No proceeding on faith or "it looked right in code".
 
 ### 4. No overengineering, no workarounds
@@ -184,7 +187,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 3. **TDD.** Failing test first, then the minimal implementation, then refactor
    (rule 1).
 4. **Interact with the real app.** Maestro flows on the device rule 2 names:
-   screenshots, snapshots and logs into `evidence/<step>/`.
+   screenshots, snapshots and logs into the local `evidence/<step>/` (ADR-0132).
 5. **Commit semantically and atomically.** One coherent change per commit,
    conventional-commit subject. No complex git, no reverts, no rewriting
    history (the one exception, before the first push, is `docs/adr/0015-*`).
@@ -217,7 +220,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | duplication gate | no Kotlin block of 150+ tokens is copied, tests included; PMD CPD, which Gradle's PMD plugin does not run | `:app:cpd` in `app/build.gradle.kts` (`cpdTool`, `libs.versions.toml` `pmd`) |
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
-| device-secrets gate | evidence proves the app, not the house it ran in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |
+| device-secrets gate | no staged file, test fixtures included, describes the house a device run happened in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |
 | monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
 | doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/`+each extension module's `src/` read, an unknown type fails |
 | retired-doc gate | no file names a document ADR-0001 deleted | `scripts/check_retired_doc_citations.py` (+ `_test.py`); the three names, and the eight files whose job is to hold them |

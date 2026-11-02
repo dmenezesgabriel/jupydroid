@@ -91,9 +91,9 @@ Reproduce from the repository root:
 | measurement | `scripts/read_history_markers.py` (+ `_test.py`) |
 | rewrite | `scripts/rewrite_history.py` (+ `_test.py`) |
 | SHA remap | `scripts/remap_cited_shas.py` (+ `_test.py`) |
-| evidence policy | `.gitignore`, `AGENTS.md`, `prompt-execution.md`, `docs/README.md`, a new ADR |
+| evidence policy | `.gitignore`, `AGENTS.md`, `prompt-execution.md`, `docs/README.md`, `docs/adr/0132-*`, `scripts/testdata/` |
 | renames | `scripts/*-driver.sh`, `.maestro/*.yaml`, `scripts/check_doc_citations.py` |
-| decision | `docs/adr/0132-*`; ADR-0015's status line points to it |
+| decision | `docs/adr/0133-*`; ADR-0015's status line points to it |
 | ledger | `docs/backlog.md` |
 
 Comments under `app/` lose their ids at T8, nothing else there changes. Rehearsal numbers go in commit bodies,
@@ -122,11 +122,13 @@ One TDD unit each, one conventional commit each.
   `TOKEN_CARRIERS` instead of `token-carriers.txt`, and adds `--path-glob 'evidence/*'` beside `*.pyc`;
   `read_history_markers.py` replaces the paths-file class with two that need no list, "paths under
   `evidence/`" and "commits adding a credential anywhere". Red tests first.
-- [ ] T5 — evidence local-only: `/evidence/` in `.gitignore`, `git rm -r --cached evidence` (files stay on
+- [x] T5 — evidence local-only: `/evidence/` in `.gitignore`, `git rm -r --cached evidence` (files stay on
   disk), and a new ADR that evidence is local and reproduction is a tested script, which `AGENTS.md`
   (rules 2 and 3, the procedure, the tooling rows), `prompt-execution.md` and `docs/README.md` follow.
   ADR-0001's and ADR-0015's status lines point to it. Check the ten `_test.py` files that name `evidence/`
-  build their own fixtures and read nothing from the real directory.
+  build their own fixtures and read nothing from the real directory. Three did, `check_chrome_parts`,
+  `read_chrome_parts` and `read_node_fill`, so their frames moved to `scripts/testdata/` (owner's choice).
+  The ADR is ADR-0132, and the rewrite's ADR becomes ADR-0133.
 - [ ] T6 — docs cite no evidence path: the 60 lines in `docs/`, the ADRs, `AGENTS.md`, `README.md` and
   `pyproject.toml` restate the fact or name the script that reproduces it; a gate keeps a tracked
   Markdown file from naming `evidence/<dir>/`.
@@ -148,7 +150,7 @@ One TDD unit each, one conventional commit each.
   address, `origin` is re-added, T1 prints zero, the full gate is green.
 - [ ] T12 — remote: the owner deletes and recreates the repository and turns on GitHub's "Block command
   line pushes that expose my email"; the agent pushes `main` and the tag; the Demo above is run.
-- [ ] T13 — close: ADR-0132, ADR-0015's status line, the backlog row edited to `shipped` with the marker
+- [ ] T13 — close: ADR-0133, ADR-0015's status line, the backlog row edited to `shipped` with the marker
   moved to `OPS-003`, this PRD deleted.
 
 ## Out of scope

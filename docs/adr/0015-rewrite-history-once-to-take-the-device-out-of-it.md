@@ -1,6 +1,6 @@
 # ADR-0015 — Rewrite history once, before the first push, to take the device out of it
 
-Status: accepted
+Status: accepted; amended by [ADR-0132](0132-evidence-is-local-and-reproduction-is-a-tested-script.md), which keeps all of `evidence/` local
 Date: 2026-09-16
 
 ## Context

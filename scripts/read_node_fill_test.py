@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the node-fill oracle, including one run over this repository's own committed frame."""
+"""Tests for the node-fill oracle, including one run over real device frames in `testdata/`."""
 
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ from read_node_fill import node_fill
 WASH = (0xDA, 0xDA, 0xDA)
 PANEL = (0xFA, 0xFA, 0xFD)
 INK = (0x20, 0x20, 0x20)
+#: Frames and dumps captured on the tablet, tracked so the run below holds in any clone (ADR-0132).
+TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata"
 
 
 def _dump(
@@ -120,20 +122,19 @@ class NodeFillTest(unittest.TestCase):
 
 
 class ThisRepositoryTest(unittest.TestCase):
-    """The defect P7a-1b exists to close, read off the frames it is visible in.
+    """The wash defect, read off the frames it is visible in.
 
-    **An oracle that cannot see the bug cannot be trusted to see the fix.** These two pairs were
-    captured at `b4a81e47`, the commit before this step, and are committed rather than overwritten
-    by the run that proves the fix - `evidence/p7a-1b-toggle-wash/before-the-fix/README.md` says so
-    in as many words. What they hold is a search toggle drawing its *on* wash from
-    `list.inactiveSelectionBackground`, the id that belongs to the explorer's row, rather than from
-    the `inputOption.activeBackground` its own KDoc has always cited.
+    **An oracle that cannot see the bug cannot be trusted to see the fix.** These pairs were
+    captured at `b4a81e47`, the commit before the fix, and are kept as fixtures rather than
+    overwritten by the run that proves the fix. What they hold is a search toggle drawing its *on*
+    wash from `list.inactiveSelectionBackground`, the id that belongs to the explorer's row, rather
+    than from the `inputOption.activeBackground` its own KDoc has always cited.
     """
 
     #: `content-desc` of the toggle in its *on* state - what a tap would do, which is this app's
     #: own state readout (ADR-0036, and the flow's note on why not "Match case").
     ON_TOGGLE = "Ignore case"
-    BEFORE = pathlib.Path("evidence/p7a-1b-toggle-wash/before-the-fix")
+    BEFORE = TESTDATA / "toggle-wash-from-the-list-colour"
 
     def _read(self, theme: str) -> str:
         directory = self.BEFORE / theme
@@ -154,7 +155,7 @@ class ThisRepositoryTest(unittest.TestCase):
         Dark is deliberately not here: its own value is opaque in the reference, so before and
         after are the same colour and a frame of it would prove nothing.
         """
-        directory = pathlib.Path("evidence/p7a-1b-list-selection/before-the-fix/light")
+        directory = TESTDATA / "list-selection-alpha-flattened/light"
         dump = (directory / "hierarchy.xml").read_text(encoding="utf-8")
         frame = str(directory / "02-the-open-row-is-washed.png")
         self.assertEqual("#DADADA", node_fill(dump, "checked", "true", frame))

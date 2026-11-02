@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the chrome-parts oracle, including one run over this repository's own frames."""
+"""Tests for the chrome-parts oracle, including one run over real device frames in `testdata/`."""
 
 from __future__ import annotations
 
@@ -13,6 +13,8 @@ from read_chrome_parts import chrome_bands, part_seams
 RAIL = (0x19, 0x1A, 0x1B)
 PAGE = (0x12, 0x13, 0x14)
 SEAM = (0x2A, 0x2B, 0x2C)
+#: Frames captured on the tablet, tracked so the run below holds in any clone (ADR-0132).
+TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata"
 
 
 def _painted(bands: list[tuple[int, tuple[int, int, int]]], height: int = 200) -> str:
@@ -92,28 +94,26 @@ class PartSeamsTest(unittest.TestCase):
 
 
 class ThisRepositoryTest(unittest.TestCase):
-    """The defect P7a exists to close, read off the frame that showed it.
+    """The chrome defects, read off the frames that showed them.
 
-    `evidence/p2u-1-chrome/after-tablet/` is the shipped chrome *before* P7a-1. Asserting the
-    defect here rather than only in prose is what makes the after-frames' own assertion mean
-    something: an oracle that cannot see the bug cannot see the fix either.
+    `chrome-before-the-rail-colour/` is the shipped chrome from before the rail and side panel had
+    colours of their own. Asserting the defect here rather than only in prose is what makes the
+    after-frames' own assertion mean something: an oracle that cannot see the bug cannot see the fix either.
     """
 
     def test_the_committed_before_frame_has_one_field_where_it_should_have_two(self) -> None:
-        root = pathlib.Path(__file__).resolve().parent.parent
-        frame = root / "evidence/p2u-1-chrome/after-tablet/dark/01-the-explorer.png"
+        frame = TESTDATA / "chrome-before-the-rail-colour/dark/01-the-explorer.png"
         bands = chrome_bands(str(frame))
         self.assertEqual({"#121314"}, {band.colour for band in bands})
 
     def test_the_committed_before_frame_draws_one_of_its_two_seams(self) -> None:
-        """P7a-2's own defect, read off the frame P7a-1 shipped.
+        """The part-border defect, read off the frame shipped before the borders.
 
         The rail is separated from the side panel and the side panel is **not** separated from the
         document: `sideBar.border` is stated in both 2026 themes and nothing in this app drew it.
         Asserting it here is what makes the after-frames' green mean something.
         """
-        root = pathlib.Path(__file__).resolve().parent.parent
-        before = root / "evidence/p7a-2-part-borders/before-the-fix/two-pane"
+        before = TESTDATA / "chrome-before-part-borders"
         for theme, border in (("dark", "#2A2B2C"), ("light", "#F0F1F2")):
             with self.subTest(theme):
                 rail_to_panel, panel_to_document = part_seams(str(before / theme / "01-the-file-browser.png"))

@@ -65,8 +65,9 @@ memory. Follow these steps in order.
   is half the evidence. Before writing a flow, read `cross-cutting.md` §8.6 *What a test here cannot do* —
   every row in it passed against the wrong thing once.
 - Measure; don't eyeball. For any layout you touch, record the numbers before and after.
-- Screenshots, snapshots and `maestro.log` into `evidence/<step>/`, committed. `logcat` is captured and
-  **never committed** ([ADR-0015](docs/adr/0015-rewrite-history-once-to-take-the-device-out-of-it.md)).
+- Screenshots, snapshots, `maestro.log` and `logcat` go into `evidence/<step>/`, which is local and
+  **never committed** ([ADR-0132](docs/adr/0132-evidence-is-local-and-reproduction-is-a-tested-script.md)).
+  The commit body names the flow and what it showed. A result that must be rerun ships as a tested script.
 - **An `AUD-NNN` task runs no flow, because nothing on screen changed.** What stands in for the
   device is the command that reproduces its measurement, in the commit body — and if the task did
   touch a screen, it owes the flow like any other.

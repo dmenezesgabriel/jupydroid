@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the chrome-parts check, including one run over the frames P7a captured."""
+"""Tests for the chrome-parts check, including one run over real device frames in `testdata/`."""
 
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ SEAM = (0x2A, 0x2B, 0x2C)
 PART_HEX = "#191A1B"
 PAGE_HEX = "#121314"
 BORDER_HEX = "#2A2B2C"
+#: Frames captured on the tablet, tracked so the run below holds in any clone (ADR-0132).
+TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata"
 
 
 def _painted(bands: list[tuple[int, tuple[int, int, int]]], name: str) -> str:
@@ -115,27 +117,25 @@ class FrameFailuresTest(unittest.TestCase):
 
 
 class ThisRepositoryTest(unittest.TestCase):
-    """The gate run over this repository's own frames, in both directions.
+    """The gate run over real two-pane frames from the tablet, in both directions.
 
-    The captured frames must pass and the pre-fix frames must fail. Only the pair says anything:
-    a gate that cannot see the bug cannot be trusted to see the fix.
+    The frames drawn with part borders must pass and the frames from before them must fail. Only the
+    pair says anything: a gate that cannot see the bug cannot be trusted to see the fix.
     """
 
     def test_the_captured_two_pane_frames_hold(self) -> None:
-        root = pathlib.Path(__file__).resolve().parent.parent
-        captured = sorted((root / "evidence/p7a-chrome-parts/two-pane/dark").glob("*.png"))
-        self.assertNotEqual([], captured, "P7a's own frames are missing")
+        captured = sorted((TESTDATA / "chrome-after-part-borders/dark").glob("*.png"))
+        self.assertNotEqual([], captured, "the after-part-borders frames are missing")
         for frame in captured:
             self.assertEqual([], frame_failures(str(frame), PART_HEX, PAGE_HEX, BORDER_HEX, "two-pane"))
 
     def test_the_pre_fix_frames_fail_on_the_seam_the_side_bar_never_drew(self) -> None:
-        """Non-vacuity, from the other side: the gate has to fail the frames P7a-1 shipped.
+        """Non-vacuity, from the other side: the gate has to fail the frames shipped before the borders.
 
-        `evidence/p7a-2-part-borders/before-the-fix/` is kept for exactly this - a gate that cannot
-        see the bug cannot be trusted to see the fix.
+        Those frames are kept as fixtures for exactly this. A gate that cannot see the bug cannot be
+        trusted to see the fix.
         """
-        root = pathlib.Path(__file__).resolve().parent.parent
-        before = root / "evidence/p7a-2-part-borders/before-the-fix/two-pane"
+        before = TESTDATA / "chrome-before-part-borders"
         for theme, part, page, border in (
             ("dark", "#191A1B", "#121314", "#2A2B2C"),
             ("light", "#FAFAFD", "#FFFFFF", "#F0F1F2"),

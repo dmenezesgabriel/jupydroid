@@ -1,6 +1,6 @@
 # ADR-0001 — Separate documents by lifetime, not by topic
 
-Status: accepted
+Status: accepted; its tracked `evidence/<step>/` is amended by [ADR-0132](0132-evidence-is-local-and-reproduction-is-a-tested-script.md), which keeps evidence local
 Date: 2026-09-29
 
 ## Context
