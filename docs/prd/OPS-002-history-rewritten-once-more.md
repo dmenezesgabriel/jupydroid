@@ -237,8 +237,19 @@ One TDD unit each, one conventional commit each.
     `CitesRetiredTest`). Two names no pattern matches went with it: `t1-pty-gate` in a test
     docstring became `cold-path-driver.sh`, and the `u5 step4` usage example became real driver
     substrings.
-  - [ ] T8c — `scripts/*-driver.sh` from `a` to `l`, with the item-coded `OUT=` evidence directories
-    (`jd-062-…`, `x2a-…`, `p6a-18`) and the device file names they create (`t2.chat`).
+  - [x] T8c — `scripts/*-driver.sh` from `a` to `l` (202 files, 72 hits in 39), now 0, with the
+    functional names those drivers carry: 6 item-coded evidence roots take the driver's name
+    (`x2a-explorer-browse` -> `explorer-browse`, `jd-063-chat-chips` -> `chat-chips-full-width`),
+    13 `tN` evidence subdirectories take the run's (`t1-table` -> `table`, `t2` -> `tall`), and
+    `t2.chat`, `/sdcard/p2n.xml`, `P8A_EVIDENCE_ROOT` and `JD026_LARGE_LINES` lose their codes.
+    The `tN` rename is the owner's decision: a task ordinal in an evidence subdirectory is a run
+    label, not a step code, so T8d follows it for the `p*` to `z*` drivers. 17 more files lose the
+    lowercase and undashed ids no gate pattern matches (the "PRD's demo" headers, `T1`/`T3`,
+    `jd-002`, `jd-023`, `p1d`, `p8g`, `x2b`, "Audit A4", "Step N"), and a sentence that leaned on
+    one names the sibling driver instead. Names a flow types on the device (`jd046-probe.sh`,
+    `p4k-marker-*`, `p5b-*`, `P8g …`, `p8g-echo`) are left to T8e/T8f, which own the flows that
+    type them (owner's decision). `scripts/[a-l]*-driver.sh` is the glob; the `m`-`z` half follows
+    in T8d.
   - [ ] T8d — `scripts/*-driver.sh` from `m` to `z`, the same way.
   - [ ] T8e — `.maestro/[a-m]*.yaml` (201 hits) and the names those flows type on the device.
   - [ ] T8f — `.maestro/[n-z]*.yaml` (225 hits), the same way. Either of T8e and T8f is split again when
