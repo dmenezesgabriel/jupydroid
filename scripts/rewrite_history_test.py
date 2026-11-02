@@ -56,6 +56,16 @@ class FixtureRepo:
         self.git("add", "-A")
         self.git("commit", "-q", "-m", message)
 
+    def commit_binary(self, name: str, content: bytes, message: str) -> None:
+        (self.root / name).parent.mkdir(parents=True, exist_ok=True)
+        (self.root / name).write_bytes(content)
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", message)
+
+    def remove(self, name: str, message: str) -> None:
+        self.git("rm", "-q", name)
+        self.git("commit", "-q", "-m", message)
+
     def tag(self, name: str) -> None:
         self.git("tag", "-a", name, "-m", "an annotated tag")
 
@@ -134,6 +144,11 @@ class FilterRepoArgvTest(unittest.TestCase):
         argv = filter_repo_argv(Path("/t/rules"), Path("/t/mail"), force=False)
         self.assertEqual(argv[argv.index("--prune-empty") + 1], "never")
 
+    def test_bytecode_is_dropped_from_history(self) -> None:
+        argv = filter_repo_argv(Path("/t/rules"), Path("/t/mail"), force=False)
+        self.assertEqual(argv[argv.index("--path-glob") + 1], "*.pyc")
+        self.assertIn("--invert-paths", argv)
+
     def test_force_is_passed_only_when_asked(self) -> None:
         self.assertNotIn("--force", filter_repo_argv(Path("/r"), Path("/m"), force=False))
         self.assertIn("--force", filter_repo_argv(Path("/r"), Path("/m"), force=True))
@@ -194,6 +209,16 @@ class EndToEndTest(unittest.TestCase):
         self.assertEqual(self.repo.commit_count(), before)
         who = "Ana <1+ana@users.noreply.example.org>"
         self.assertEqual(self.repo.identities(), [f"{who}|{who}"])
+
+    def test_bytecode_carrying_the_home_path_is_gone_from_history(self) -> None:
+        """`--replace-text` skips a blob with a NUL byte in its first 8 KiB, and bytecode has them."""
+        bytecode = b"\x00\x01" + f"{HOME}/scripts/gate.py".encode() + b"\x00"
+        pyc = "scripts/__pycache__/gate.cpython-314.pyc"
+        self.repo.commit_binary(pyc, bytecode, "track the gate's bytecode")
+        self.repo.remove(pyc, "keep the gate's bytecode out of git")
+        rewrite(self.repo.root, HOME, IDENTITY_FOR_TEST, force=True)
+        counts = count_markers(self.repo.root, HOME, [])
+        self.assertEqual(counts, dict.fromkeys(counts, 0))
 
     def test_the_tagger_address_is_rewritten_too(self) -> None:
         rewrite(self.repo.root, HOME, IDENTITY_FOR_TEST, force=True)

@@ -14,7 +14,8 @@ what it removes.
 The rules, in order: the token carriers (`evidence/aud-013-scrub-list/token-carriers.txt`), the
 gitignored `.sensitive-strings.local`, and the host's own `/home/<name>`
 (`read_personal_data.scrub_rules`). Empty commits are kept, so every branch has the commit count it
-had. `--force` is needed on a repository that `git filter-repo` has already rewritten once
+had; bytecode is removed from every commit, since a binary blob is not scrubbed (see `filter_repo_argv`).
+`--force` is needed on a repository that `git filter-repo` has already rewritten once
 (`.git/filter-repo/already_ran`), and on any that is not a fresh clone.
 
 ```sh
@@ -99,9 +100,14 @@ def mailmap_text(emails: list[str], identity: str) -> str:
 
 
 def filter_repo_argv(rules: Path, mailmap: Path, force: bool) -> list[str]:
-    """The `git filter-repo` command: one rules file for blobs and messages, empty commits kept."""
+    """The `git filter-repo` command: one rules file for blobs and messages, empty commits kept.
+
+    `--replace-text` skips a blob with a NUL byte in its first 8 KiB (`git_filter_repo.py`, `_tweak_blob`), and
+    CPython bytecode embeds the build path and has them, so `*.pyc` is dropped from history rather than scrubbed:
+    rewriting bytes inside length-prefixed bytecode would only corrupt it.
+    """
     argv = ["git", "filter-repo", "--replace-text", str(rules), "--replace-message", str(rules)]
-    argv += ["--mailmap", str(mailmap), "--prune-empty", "never"]
+    argv += ["--mailmap", str(mailmap), "--prune-empty", "never", "--path-glob", "*.pyc", "--invert-paths"]
     return [*argv, "--force"] if force else argv
 
 
