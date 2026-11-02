@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2r-2: at the one width whose bar cannot carry it, the cell-type control is in the overflow.
+# At the one width whose bar cannot carry it, the cell-type control is in the overflow.
 #
 # **This is the reference's own behaviour, not an adaptation.** JupyterLab's notebook toolbar is a
 # `ReactiveToolbar` (`packages/apputils/src/mainareawidget.ts:51`), which *moves* an item too wide
@@ -8,7 +8,7 @@ appId: com.jupydroid.app
 # (`packages/ui-components/src/components/toolbar.tsx:570-700`). This app's popup opener is the
 # notebook's `⋮`.
 #
-# Measured: the action row has 72dp free at 320dp (`evidence/p2o-3-two-pane-threshold/320dp/`) and
+# Measured: the action row has 72dp free at 320dp and
 # the widest label the control draws wants 73.3dp before its caret, so the phone is the width that
 # cannot have it. The wide half is `cell-type-on-the-bar`.
 #

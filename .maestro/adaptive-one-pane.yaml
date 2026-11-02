@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U7, below 840dp: one pane, exactly as before the step.
+# Below 840dp: one pane, exactly as before.
 #
 # The negative half of the pair, and the half worth having. A scene strategy that returned a
 # scene unconditionally would pass adaptive-two-panes.yaml on any device, and the only thing that

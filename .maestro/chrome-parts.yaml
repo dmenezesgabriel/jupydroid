@@ -1,16 +1,15 @@
 appId: com.jupydroid.app
 ---
-# P7a: the shell drawn as *parts*, a step apart, the way the reference draws them.
+# The shell drawn as *parts*, a step apart, the way the reference draws them.
 #
 # **What this flow is for is a colour, and no assertion can read one** - so the deliverable is the
 # frames, and `scripts/read_chrome_parts.py` is what turns them into something that can fail. The
 # driver reads each frame's own vertical colour bands and compares them against the values
 # `resolve_vscode_theme.py` resolves; this file's job is only to put the parts on screen.
 #
-# The defect it closes, measured off the frame P2u-1 shipped: at 1920x1200 along y=900, the
+# The defect it closes, measured off the shipped frame: at 1920x1200 along y=900, the
 # activity rail (x 0-119) and the file explorer (x 122-699) were both `#121314` -
-# `editor.background` - so three parts were one field with a 1px seam drawn across it
-# (`evidence/app-chrome/after-tablet/dark/01-the-explorer.png`).
+# `editor.background` - so three parts were one field with a 1px seam drawn across it.
 #
 # Seeded by scripts/chrome-parts-driver.sh, which sets the system night mode and runs this
 # flow once per theme into its own directory; clearState would delete the fixture.

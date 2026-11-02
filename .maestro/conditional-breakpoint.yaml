@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6a-16's own gate: a condition attached to a breakpoint actually gates whether it stops the
+# The gate: a condition attached to a breakpoint actually gates whether it stops the
 # kernel - a plain breakpoint on this fixture's own loop would stop at the first iteration
 # (i == 0); this flow proves debugpy skips i == 0, 1, 2 and only stops once "i == 3" is true.
 #

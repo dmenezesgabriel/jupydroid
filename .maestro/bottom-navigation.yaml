@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# P2y: the activity bar where the shell draws **one pane**, and what it is *not* drawn over.
+# The activity bar where the shell draws **one pane**, and what it is *not* drawn over.
 #
-# This reverses P2o-4, which declined a navigation bar when the shell had two side panels and both
-# were already reachable. P2x-2 added a third - **workspace search** - and it had no route at this
+# A navigation bar was declined while the shell had two side panels and both were already
+# reachable. A third - **workspace search** - then had no route at this
 # width at all: the rail is the only control that selects a panel and the rail is drawn only beside
 # two panes, so a phone, and the tablet in portrait at 800dp, could not reach search by any path.
 # The table of contents was never in that position; `toc:show-panel` opens it as an overlay from the
@@ -17,7 +17,7 @@ appId: com.jupydroid.app
 # Five claims:
 #   1. a one-pane window draws the bar under the panel, and **the bar is not drawn over a document**
 #      - which is the decision this flow exists to show in a picture, since an 80dp bar is 20% of
-#      the 400.0dp cell list P2o-4 measured at 320dp;
+#      the 400.0dp cell list measured at 320dp;
 #   2. it reaches search, which is the thing that had no route here;
 #   3. a result still opens its document, and the panel is still on Search when the document is
 #      left - the bar is navigation, not a one-way door;
@@ -26,14 +26,14 @@ appId: com.jupydroid.app
 #   5. and with a list too long for the pane, the bar is still drawn under it - the panel's
 #      content is clipped by the bar rather than stopping short of it, which is what
 #      `ShellSidePane.panelInsets` consuming the navigation inset once buys. Frame `09` carried
-#      that claim from P2y-d without a step behind it; a screenshot no flow re-takes is evidence
-#      the next sweep cannot check, so it is a step now.
+#      that claim from a screenshot no flow re-takes; one the next sweep cannot check is not
+#      evidence, so it is a step now.
 #
 # **The two labels are addressed from the screen where each is unique**, and that is a property
 # rather than luck: the browser titles itself "Files" and the search panel titles itself "Search",
 # so on the browser only the bar says "Search" and on the search panel only the bar says "Files".
 # The bar's items carry no visible text at all - the name is on the item for a screen reader and for
-# this flow, which is the rule a flow cost this project in P2b.
+# this flow, which is the rule a flow cost this project once.
 #
 # NARROW WINDOW, which the sharder reads as < 840dp - exactly the windows this app draws as one
 # pane, and exactly where the bar is drawn.
@@ -82,7 +82,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "notes.py, 3 matches found"
     timeout: 15000
-# The keyboard away before the rows are read, for the reason P2x-3's own first run recorded: with
+# The keyboard away before the rows are read, for the reason a first run recorded: with
 # the IME up a tap at a lower row's coordinates lands on the space bar and edits the query instead.
 # Here it also puts the **bar** back on screen, which is what the next screenshot has to show.
 - hideKeyboard
@@ -120,7 +120,7 @@ appId: com.jupydroid.app
     direction: DOWN
     timeout: 20000
 # The bar under a *full* list, not under blank space: both items still answer while a row is at
-# the pane's foot. The bounds this frame is read for are in `evidence/…/measurement.txt`.
+# the pane's foot, and the frame is what the bar's bounds are measured from.
 - assertVisible:
     text: "^Search$"
 - takeScreenshot: 09-a-full-list-runs-up-to-the-bar

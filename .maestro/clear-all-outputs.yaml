@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2d-4: `notebook:clear-all-cell-outputs`, and the unfold that comes with it.
+# `notebook:clear-all-cell-outputs`, and the unfold that comes with it.
 #
 # Runs no cell, so the emulator is real evidence rather than a stand-in and this goes on both
 # devices. The outputs are seeded into the fixture, so nothing here needs a kernel to have produced

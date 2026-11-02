@@ -1,14 +1,15 @@
 appId: com.jupydroid.app
 ---
-# P7d's other half, and it is not decoration: a width rule proved on one width is proved by half.
+# The other half of the one-pane rule, and it is not decoration: a width rule proved on one width is
+# proved by half.
 #
 # Below two panes the document *is* the window, so leaving it goes back to what was underneath and
-# the arrow stays - on the **tab strip** now, since P8f (`MainAreaTabStrip`'s leading affordance),
-# where IntelliJ keeps its own navigation arrows on the tab row (`EditorTabbedContainer`). It is
-# named for the entry actually beneath - "Back to files" over the browser - never bare "Back",
-# because the system navigation bar answers to that string too (`evidence/u-flow-sweep/`).
+# the arrow stays - on the **tab strip** (`MainAreaTabStrip`'s leading affordance), where IntelliJ
+# keeps its own navigation arrows on the tab row (`EditorTabbedContainer`). It is named for the
+# entry actually beneath - "Back to files" over the browser - never bare "Back", because the system
+# navigation bar answers to that string too.
 #
-# `^Close$` is anchored on purpose since P8f: the tab strip's ✕ reads "Close tab: <title>", which an
+# `^Close$` is anchored on purpose: the tab strip's ✕ reads "Close tab: <title>", which an
 # unanchored "Close" would match - the claim is that no *pane-level* close exists, and a bare
 # "Close" is exactly what that affordance was.
 #

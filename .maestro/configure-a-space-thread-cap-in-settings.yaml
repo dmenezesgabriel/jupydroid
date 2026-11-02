@@ -1,9 +1,11 @@
 appId: com.jupydroid.app
 ---
-# Thesis is created as T1's part 1 creates it. In its Settings the thread cap is set to 1, and a
+# Thesis is created as `configure-a-space-startup-script-runs.yaml` creates it. In its Settings the
+# thread cap is set to 1, and a
 # variable row naming one of the cap's own names is refused **as the cap's**, with Save held; the
 # row is removed and the cap saved. A held control is proven by pressing it - the dialog stays
-# open - because the node Maestro finds reports enabled whatever the button's state (t1 part 1).
+# open - because the node Maestro finds reports enabled whatever the button's state (the first
+# part).
 - launchApp
 - extendedWaitUntil:
     visible: "Open Base \\(base\\)"

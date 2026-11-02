@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U7, expanded width (>= 840dp): the notebook list and the open notebook side by side.
+# Expanded width (>= 840dp): the notebook list and the open notebook side by side.
 #
 # Seeded by scripts/adaptive-panes-driver.sh, which picks this flow or adaptive-one-pane.yaml from the
 # width `am get-config` reports - so a run cannot assert two panes against a window that has room

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2f-2: Collapse All Headings folds every section at once, and Expand All brings them all back.
+# Collapse All Headings folds every section at once, and Expand All brings them all back.
 #
 # `collapseAllHeadings` walks every widget and sets the ones that are headings
 # (`packages/notebook/src/actions.tsx:2221-2232`); the cells between them go because they are *in* a

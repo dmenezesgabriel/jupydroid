@@ -1,16 +1,14 @@
 appId: com.jupydroid.app
 ---
-# P7e-2: `pip`, `jupyter` and 29 other console scripts run by name in the Space's shell.
+# `pip`, `jupyter` and 29 other console scripts run by name in the Space's shell.
 #
-# Before this step `pip --version` answered *Permission denied*, rc 126
-# (`evidence/space-python/04-what-the-console-script-still-does.png`) - a `#!` script cannot
+# `pip --version` once answered *Permission denied*, rc 126 - a `#!` script cannot
 # be `execve`'d out of `filesDir`. Under proot `usr/bin/pip` is the image's own `#!` file and
 # execs through its shebang line inside the translated root.
 #
 # **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell. The
 # terminal draws to a `Canvas`, so nothing here is asserted by Maestro text - the flow redirects
-# what each script printed to a file and the driver reads it back, the oracle
-# `evidence/space-python/the-link.txt` is.
+# what each script printed to a file and the driver reads it back.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
@@ -30,21 +28,21 @@ appId: com.jupydroid.app
 # is a user's own focus move, and the one that settles the connection before typing starts.
 - tapOn:
     id: "terminal-input"
-- inputText: "pip --version > p7e2-pip.txt 2>&1"
+- inputText: "pip --version > pip-version.txt 2>&1"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 20000
-- inputText: "echo rc=$? >> p7e2-pip.txt"
+- inputText: "echo rc=$? >> pip-version.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 8000
 - takeScreenshot: 02-pip-by-name
 
-- inputText: "jupyter --version > p7e2-jupyter.txt 2>&1"
+- inputText: "jupyter --version > jupyter-version.txt 2>&1"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 20000
-- inputText: "echo rc=$? >> p7e2-jupyter.txt"
+- inputText: "echo rc=$? >> jupyter-version.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 8000

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U5a: the cell actions the reference has and this app did not.
+# The cell actions the reference has and this app did not.
 #
 # Runs no cell, so the emulator is enough. What it drives is the two actions whose *result* is
 # structural rather than cosmetic - change type, and merge - because those are the ones where a
@@ -42,7 +42,7 @@ appId: com.jupydroid.app
 # satisfied by the wrong one.
 #
 # **And it is showing its source rather than rendered prose**, which is where this assertion
-# changed at P2e-3. It read `assertVisible: "Rendered markdown"`, and that was the app's behaviour
+# changed. It read `assertVisible: "Rendered markdown"`, and that was the app's behaviour
 # and not the reference's: `changeCellType` ends by fetching the new widget and unrendering it
 # (`packages/notebook/src/actions.tsx:3308-3312`), so a cell you have just converted shows the text
 # you converted rather than hiding it behind prose. The flow was asserting the defect.
@@ -62,7 +62,7 @@ appId: com.jupydroid.app
 # **Scrolled to, not tapped straight at.** This flow carries no device rule, so the shard runner
 # can place it on either device - and on a 320dp sheet `Merge with above` sits below the fold where
 # on the tablet's dropdown it does not. It passed for as long as the balance happened to send it to
-# the tablet, and P2h's five new flows changed that balance rather than the app. The subflow is the
+# the tablet, and five more flows changed that balance rather than the app. The subflow is the
 # one the other five reach deep rows with; see its own header for why `scrollUntilVisible` is not.
 - runFlow: scroll-the-cell-menu-to-its-end.yaml
 - tapOn: "Cell menu Merge with above"
@@ -76,7 +76,7 @@ appId: com.jupydroid.app
 #
 # **Rendered, even though the cell it was invoked from was open for editing** - a merge mints a new
 # id (`actions.tsx` inserts a model with no `id` field), and being-edited is keyed by id, so what
-# comes out is a cell nobody has opened. Which is why the assertions below survived P2e-3 unchanged.
+# comes out is a cell nobody has opened. Which is why the assertions below survived unchanged.
 - assertVisible: "alpha = 1"
 - assertVisible: "beta = 2"
 # And no code cell is left: `[ ]` is the bracket only a code cell draws, and the first cell had

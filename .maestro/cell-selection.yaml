@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2c: marking a run of cells - `notebook:select-all`, `notebook:deselect-all` and the four
+# Marking a run of cells - `notebook:select-all`, `notebook:deselect-all` and the four
 # `notebook:extend-marked-cells-*`.
 #
 # Runs no cell, so the emulator is enough and this is evidence on both devices.
@@ -13,7 +13,7 @@ appId: com.jupydroid.app
 #
 # **One step ends the mode on purpose and it is not a bug.** Extending back onto the anchor drops
 # the selection outright rather than leaving that one cell marked - *"Collapse the selection if it
-# is only the active cell"*, `packages/notebook/src/widget.ts:2245-2249`. Step 6 reaches for the
+# is only the active cell"*, `packages/notebook/src/widget.ts:2245-2249`. This flow reaches for the
 # top while the anchor is already the first cell, so the run collapses and the notebook's own bar
 # comes back. Anyone reading this flow should expect that, which is why it is called out here and
 # asserted rather than worked around.
@@ -56,9 +56,9 @@ appId: com.jupydroid.app
 # screen whose top bar is asking which cells to act on, is exactly the "a control on screen for a
 # state it does not serve" this repo keeps finding.
 - assertNotVisible: "Tab"
-# **And the kernel bar is gone as well, which P2d-3 changed.** This read `assertVisible: "Run all
+# **And the kernel bar is gone as well.** This read `assertVisible: "Run all
 # cells"` while the marked run had nothing to run it with - a stand-in for "the symbol row went",
-# not a claim worth making on its own. P2d-3 put a `PlayArrow` on the selection bar, and two bare
+# not a claim worth making on its own. A `PlayArrow` sits on the selection bar, and two bare
 # triangles on one 320dp screen meaning different things is one too many, so the notebook's bottom
 # bar now goes with its top one (`editorBottomBar`).
 - assertNotVisible: "Run all cells"
@@ -85,7 +85,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 03-three-cells-marked-and-tinted
 # The four reaches are overflow rows, not buttons on the bar: with four arrows up there the count
 # wrapped to three lines at 360dp, reading `3 / select / ed`. Measured, not guessed - the
-# screenshot is in `evidence/multi-select/x86_64/` from the run before this.
+# screenshot from the run before this shows it.
 - tapOn: "Selected cell actions"
 - waitForAnimationToEnd:
     timeout: 5000
@@ -128,7 +128,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 07-two-cells-marked
 # System back leaves the *mode*, not the notebook - the contextual bar's close under another name,
 # and the thing that would go wrong silently: with both panes expanded, back out of a notebook once
-# popped the whole stack and left the app (`evidence/p1e-list-detail-scene/`).
+# popped the whole stack and left the app.
 - back
 - waitForAnimationToEnd:
     timeout: 5000

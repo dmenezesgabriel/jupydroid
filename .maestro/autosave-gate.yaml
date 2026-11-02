@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-8b: with `autosaveEnabled: false` seeded into files/editor-settings.json, typing in the file
+# With `autosaveEnabled: false` seeded into files/editor-settings.json, typing in the file
 # editor stays on screen but never reaches disk - the debounce is gated, not merely slower - and
 # leaving the screen flushes the dirty document once: the "never lose work" close path.
 #

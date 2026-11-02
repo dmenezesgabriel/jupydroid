@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Collapse (Step 4b's last piece): a cell's source folds to its first line, and the fold
+# Collapse: a cell's source folds to its first line, and the fold
 # survives the app being killed - because it is written into the cell's nbformat metadata,
 # not held in memory. Seeded by the driver.
 #

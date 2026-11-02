@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-9b, part 2 of 4: with `kernelShutdown` on, *leaving* the notebook ends its kernel - the
+# Part 2 of 4: with `kernelShutdown` on, *leaving* the notebook ends its kernel - the
 # ordinary dismiss, not the ⋮ menu's "Shut Down Kernel". `SessionContext.dispose()`'s own
 # shutdownOnDispose branch (`packages/apputils/src/sessioncontext.tsx:690-698`), reachable by
 # toggle instead of by menu.
@@ -31,7 +31,7 @@ appId: com.jupydroid.app
     timeout: 120000
 - takeScreenshot: 03-carried-defined-on-a-live-kernel
 # A clean close: the run's own autosave persist left nothing dirty, so no save-before-close
-# dialog stands between the dismiss and the kernel ending (P6c-8c's gate asks only for dirty).
+# dialog stands between the dismiss and the kernel ending (the close gate asks only for dirty).
 - tapOn: "Back to files|Close tab: Kernel Shutdown.ipynb"
 - extendedWaitUntil:
     visible: "Kernel Shutdown.ipynb"

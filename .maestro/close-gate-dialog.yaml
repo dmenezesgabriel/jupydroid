@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-8c: `saveBeforeClose` (`docmanager/src/dialogs.ts:155`) on the plain file editor, every way
+# `saveBeforeClose` (`docmanager/src/dialogs.ts:155`) on the plain file editor, every way
 # out - the dismiss on its bar and system Back - and all three answers.
 #
 # `autosaveEnabled: false` is seeded by the driver, so `dirty` survives long enough to be observed:

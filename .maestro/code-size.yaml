@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2l-3a: a cell's source, the output under it and the completion popup over it, in one frame -
+# A cell's source, the output under it and the completion popup over it, in one frame -
 # because the claim is that all three are now one size, and no single surface can show that.
 #
 # Seeded by scripts/code-size-driver.sh; clearState would delete the fixture.

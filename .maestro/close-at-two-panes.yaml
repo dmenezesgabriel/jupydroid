@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P7d, re-pointed at the tab strip for P8f: beside a browser a document is **closed from its tab**,
+# Beside a browser a document is **closed from its tab**,
 # and only from its tab.
 #
 # There is nothing to go back *to* here - the browser is already on screen - and closing the
@@ -78,7 +78,7 @@ appId: com.jupydroid.app
 - tapOn: "Close tab: Terminal .*"
 # **The tab strip's terminal entry going is the oracle, not the shell's title.** The bar used to be
 # that oracle, but the bar survives the close in the launcher's refill - what cannot survive is the
-# document's own tab. And since P6d-4 the emptied area refills with the Launcher, so "Terminal"
+# document's own tab. The emptied area refills with the Launcher, so "Terminal"
 # *text* is on screen the whole time as the launcher's own card label.
 - extendedWaitUntil:
     notVisible: "Close tab: Terminal .*"

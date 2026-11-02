@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P5e-2: what the row *says* versus what accepting it *writes*.
+# What the row *says* versus what accepting it *writes*.
 #
 # pylsp signature-resolves its labels (`resolve_at_most`), so `os.path.jo` is offered under the
 # label `join(path, paths)` while `insertText` stays `join`. The row must render the label -

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U3: the stripe down each cell, and what it says.
+# The stripe down each cell, and what it says.
 #
 # TABLET ONLY - this flow runs cells. On the x86_64 emulator MainActivity falls back to
 # FakeKernelGateway, which echoes the source back as output, so the failing cell would not fail

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Continues the T1 driver after a kill. Driven by scripts/checkpoint-demo-driver.sh.
+# Continues `checkpoint-revert-driver.sh` after a kill. Driven by scripts/checkpoint-demo-driver.sh.
 #
 # `launchApp` stops the process first, and the open tabs live in the process's `AppContainer`
 # (ADR-0092), so nothing is held in memory: the checkpoint `notes.py` reverts to here is the one on

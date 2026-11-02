@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-8d: the Settings screen's "Autosave documents" switch and "Autosave interval" stepper write
+# The Settings screen's "Autosave documents" switch and "Autosave interval" stepper write
 # docmanager's own pair (`packages/docmanager-extension/schema/plugin.json:113-124`) to disk, and
 # the choices survive a relaunch - not only `SettingsScreenTest`'s instrumented proof that the
 # rows read and write the repository.

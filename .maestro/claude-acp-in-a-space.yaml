@@ -24,7 +24,7 @@ appId: com.jupydroid.app
     timeout: 15000
 - tapOn:
     id: "terminal-input"
-- inputText: "sh jd050-probe.sh; cat jd050-probe.txt"
+- inputText: "sh acp-probe.sh; cat acp-probe.txt"
 - pressKey: Enter
 - hideKeyboard
 - takeScreenshot: 01-probe-started

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P1c part 1: background the app while a cell is still running.
+# Part 1: background the app while a cell is still running.
 #
 # The cell sleeps 30 s, so it is *in flight* when the Home press lands. The app-death
 # backstop must not touch the server while a cell runs: the cell completes in the

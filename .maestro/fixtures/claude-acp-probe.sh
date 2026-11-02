@@ -8,9 +8,9 @@
 # the name the persona's message still gives, to @agentclientprotocol/claude-agent-acp, which needs
 # Node >= 22 (https://registry.npmjs.org/@agentclientprotocol/claude-agent-acp).
 #
-# Every answer, failed or not, lands in jd050-probe.txt beside this script, and the last line is
+# Every answer, failed or not, lands in acp-probe.txt beside this script, and the last line is
 # always `probe-done`, so the driver can tell a finished probe from a hung one.
-OUT="$PWD/jd050-probe.txt"
+OUT="$PWD/acp-probe.txt"
 ADAPTER=@agentclientprotocol/claude-agent-acp@0.97.0
 : >"$OUT"
 

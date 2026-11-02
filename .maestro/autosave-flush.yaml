@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-8b, second half, as P6c-8c left it: `autosave: false` is still seeded, and the document's
+# Second half: `autosave: false` is still seeded, and the document's
 # own dismiss now meets the `saveBeforeClose` ask rather than leaving directly. The only writer
 # that can put `close_flushed` on disk is the dialog's Save - `saveNow`'s flush before the close -
 # which is the same owed-write-on-close contract, now answered instead of silent. Type, dismiss,

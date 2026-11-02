@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2c: a cell operation applies to the whole marked run, and one undo takes all of it back.
+# A cell operation applies to the whole marked run, and one undo takes all of it back.
 #
 # Runs no cell, so the emulator is enough and this is evidence on both devices.
 #
@@ -39,7 +39,7 @@ appId: com.jupydroid.app
 - assertVisible: "\\[7\\]:"
 - takeScreenshot: 01-four-cells-one-with-a-result
 # **Scrolled to, where this used to assert it outright.** Four cells no longer fit above the fold
-# at 320dp: P2q gave the document's name a row of its own, which is the reference's single-document
+# at 320dp: the document's name has a row of its own, which is the reference's single-document
 # arrangement (`packages/application/src/shell.ts:690-705`), and that row costs 48dp until the
 # reader scrolls and `titleCollapseFraction` hands it back. The claim is unchanged - the fourth
 # cell is in the document - and scrolling is how a reader reaches it.

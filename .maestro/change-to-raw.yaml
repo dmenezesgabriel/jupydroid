@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2e-2: `notebook:change-cell-to-raw` (`packages/notebook-extension/src/index.ts:214`, labelled
+# `notebook:change-cell-to-raw` (`packages/notebook-extension/src/index.ts:214`, labelled
 # *"Change to Raw Cell Type"* at `:3454`).
 #
 # The reference's `changeCellType` is one function over `nbformat.CellType`: it deletes the cell

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded: a cell starts the kernel, and a
+# The demo, typed into a new notebook rather than seeded: a cell starts the kernel, and a
 # Console on it runs two entries. Entry 1 prints, clears and prints again, and shows only its second
 # print. Entry 2 prints, asks to clear when its next output arrives and sleeps: its first print stays
 # while it sleeps, its second replaces it, and entry 1 is untouched. Run by

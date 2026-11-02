@@ -1,11 +1,11 @@
 appId: com.jupydroid.app
 ---
-# Audit A3: the created notebook was added but landed above the fold, so the list looked unchanged
+# The created notebook was added but landed above the fold, so the list looked unchanged
 # until the app was restarted. Needs a list long enough to scroll - a short one has nothing to
 # anchor to, which is why every create-then-appear test passed while the bug was live. Seeded with
 # a crowd by its driver.
 #
-# **The surface changed in X2h and the claim did not**: creating from the browser's "+" must put
+# **The surface changed and the claim did not**: creating from the browser's "+" must put
 # the thing on screen without a restart. Where it lands differs - the browser orders directories
 # first then naturally by name (`Private.sort`), where Home prepended by recency - so this asserts
 # the row itself rather than a timestamp at the top.

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U2: back in edit mode returns to command mode instead of leaving the notebook.
+# Back in edit mode returns to command mode instead of leaving the notebook.
 #
 # The assertion that matters is the *negative* one - after back, the notebook is still open.
 # Before this step there was no BackHandler at all, so back popped straight to Recents and a
@@ -49,6 +49,6 @@ appId: com.jupydroid.app
     timeout: 5000
 - takeScreenshot: 05-back-still-leaves
 # The browser: its crumb is there and the cell's source is not. (Home's FAB marked this until
-# X2h; the browser has no FAB, and "Workspace" is the thing only it draws.)
+# the browser took over; it has no FAB, and "Workspace" is the thing only it draws.)
 - assertVisible: "Workspace"
 - assertNotVisible: "answer = 42"

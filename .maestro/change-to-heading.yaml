@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P2f-3: a cell becomes a heading, and a heading is given a different level.
+# A cell becomes a heading, and a heading is given a different level.
 #
 # `setMarkdownHeader` *is* `changeCellType(notebook, 'markdown', { headingLevel })`
 # (`packages/notebook/src/actions.tsx:2197-2214`), so this is the change of type plus one rewrite of
-# the first line - and it inherits P2e-3's two rules: the cell is left showing its source, and the
+# the first line - and it inherits two rules: the cell is left showing its source, and the
 # notebook stays in **command** mode.
 #
 # Six commands behind one row, because the cell menu is eighteen rows already. The picker replaces
@@ -42,7 +42,7 @@ appId: com.jupydroid.app
 # The rewrite: `^#+\s*` or, failing that, `^\s*` replaced by the marker - so a cell with no header
 # gets one and keeps everything after it.
 - assertVisible: "(?s).*## title = 'Results'.*"
-# Left showing its source and holding no caret, which is P2e-3's pair of rules inherited whole: the
+# Left showing its source and holding no caret, which is that pair of rules inherited whole: the
 # symbol row's first key is `Tab`, and it is not on screen because nobody is typing.
 - assertNotVisible: "Tab"
 # The output and the execution count went with the type, which is what makes this a change of type

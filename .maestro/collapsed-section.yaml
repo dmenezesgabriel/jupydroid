@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2f-5: a collapsed heading *is* its section, so deleting one takes the cells it is hiding.
+# A collapsed heading *is* its section, so deleting one takes the cells it is hiding.
 #
 # `deleteCells` marks a collapsed heading's children for deletion alongside it
 # (`packages/notebook/src/actions.tsx:3340-3365`), and `Private.selectedCells` does the same for

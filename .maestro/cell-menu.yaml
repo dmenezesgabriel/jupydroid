@@ -4,7 +4,7 @@ appId: com.jupydroid.app
 #
 # Menu items are matched by contentDescription ("Cell menu Delete"), never by their label: a
 # soft keyboard and the app's own text both offer competing matches for words like "Delete",
-# and step 5.5b showed what a flow that matches the wrong node looks like — green.
+# and a flow that matches the wrong node looks green.
 - launchApp
 - runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
@@ -49,8 +49,9 @@ appId: com.jupydroid.app
 - tapOn:
     text: "Cell actions"
     index: 0
-# Delete is the last of fourteen rows since P2b added Split cell, so it starts below the fold on
-# both surfaces. Why a plain `scrollUntilVisible` cannot reach it is written down once, in the
+# Delete is the last of fourteen rows since Split cell joined the menu, so it starts below the
+# fold on both surfaces. Why a plain `scrollUntilVisible` cannot reach it is written down once, in
+# the
 # subflow.
 - runFlow: scroll-the-cell-menu-to-its-end.yaml
 - assertVisible: "Cell menu Delete"

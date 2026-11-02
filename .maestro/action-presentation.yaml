@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U5b: the same cell actions, on the surface the window has room for.
+# The same cell actions, on the surface the window has room for.
 #
 # Runs no cell, so any device will do - and that is the point: the driver is run once per device,
 # a phone emulator and a tablet, and the screenshots show which surface each width produced. The

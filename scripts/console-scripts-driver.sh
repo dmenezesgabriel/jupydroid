@@ -35,8 +35,8 @@ read_ws() {
   "$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell \
     "run-as $APP sh -c 'test -f \"$WS/$1\" && cat \"$WS/$1\" || echo \"<absent>\"'" | tr -d '\r'
 }
-pip="$(read_ws p7e2-pip.txt)"
-jup="$(read_ws p7e2-jupyter.txt)"
+pip="$(read_ws pip-version.txt)"
+jup="$(read_ws jupyter-version.txt)"
 {
   echo "pip --version:"; echo "$pip"; echo
   echo "jupyter --version:"; echo "$jup"

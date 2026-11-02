@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P1c part 3: background the app when it is idle.
+# Part 3: background the app when it is idle.
 #
 # Part 2 resumed inside the grace, so the server survived the mid-run background. Now nothing
 # is running: a Home press starts the countdown with no cell to wait for, and the stopper stops

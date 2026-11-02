@@ -1,12 +1,13 @@
 appId: com.jupydroid.app
 ---
-# P2r-1: the notebook's bar names the **active cell's type**, and changes it in one gesture.
+# The notebook's bar names the **active cell's type**, and changes it in one gesture.
 #
 # `cellType` is an item on the reference's notebook toolbar at rank 40
 # (`packages/notebook-extension/schema/panel.json`), rendered as a select whose value is
 # `notebook.activeCell.model.type` (`packages/notebook/src/default-toolbar.tsx:376-397`). This app
-# had no surface that named the type at all after P2n took away the invented `markdown` / `raw`
-# prompt words - the reference draws no prompt on a non-code cell (`packages/cells/src/widget.ts:1693-1700`).
+# had no surface that named the type at all once the invented `markdown` / `raw` prompt words
+# went away - the reference draws no prompt on a non-code cell
+# (`packages/cells/src/widget.ts:1693-1700`).
 #
 # Three claims, and the fixture is chosen so each needs a different cell:
 #   1. The bar names the cell that is active - Code on the notebook just opened.
@@ -62,7 +63,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Cell type Markdown"
     timeout: 10000
-# The converted cell is left showing its **source**, which is P2e-3's rule and the reference's:
+# The converted cell is left showing its **source**, which is the reference's rule:
 # `changeCellType` ends `(child as MarkdownCell).rendered = false`
 # (`packages/notebook/src/actions.tsx:3308-3312`). So the equation is still readable as text.
 - assertVisible: "(?s).*E = mc\\^2.*"

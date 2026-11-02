@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P2g-3: `notebook:toggle-autoclosing-brackets`, universal - `fileeditor:toggle-autoclosing-brackets-universal`
-# on the reference, one setting reaching notebook cells and the plain file editor alike since both
-# already share `PythonTypingRules`.
+# `notebook:toggle-autoclosing-brackets`, universal -
+# `fileeditor:toggle-autoclosing-brackets-universal` on the reference, one setting reaching
+# notebook cells and the plain file editor alike since both already share `PythonTypingRules`.
 #
 # **WIDE WINDOW** (>= 600dp), for `bracket-match-highlight`'s reason and not a new one: a tap on a
 # one-line cell has to land past the end of its text for the caret to be where this flow assumes

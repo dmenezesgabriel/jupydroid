@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-008 T4: creating a Space copies the bundled image into it. The progress bar is now
+# Creating a Space copies the bundled image into it. The progress bar is now
 # assertable mid-act - the copy is ~14 s, where the record-only create of
 # manage-spaces-create ended before Maestro could capture it. Runs no cell; the
 # tablet is required anyway, because only arm64 ships a rootfs - on x86_64 a create refuses.

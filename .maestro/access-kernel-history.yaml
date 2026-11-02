@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2k-4: `notebook:access-previous-history-entry` and `notebook:access-next-history-entry`, from
+# `notebook:access-previous-history-entry` and `notebook:access-next-history-entry`, from
 # the two keys the symbol row grows once `accessKernelHistory` is on.
 #
 # **The shape of this flow is the whole point.** History is only worth having because it reaches

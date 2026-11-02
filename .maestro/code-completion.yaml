@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-6: the Settings screen's "Code completion" toggle actually stops the editor asking the
+# The Settings screen's "Code completion" toggle actually stops the editor asking the
 # kernel for completions, and the choice survives a relaunch - not only the unit/instrumented
 # proof that the field persists and the gate stops the pipeline before it starts
 # (`EditorSettingsRepositoryContract`, `SettingsScreenTest`, `CellCompletionsGateTest`).

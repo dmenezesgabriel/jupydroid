@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2e-3: a cell that becomes markdown is left showing its source.
+# A cell that becomes markdown is left showing its source.
 #
 # `changeCellType` ends with *"Fetch the new widget and unrender it"* -
 # `(child as MarkdownCell).rendered = false` (`packages/notebook/src/actions.tsx:3308-3312`) - and

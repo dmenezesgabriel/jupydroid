@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Types the PRD's coloured print into whichever field has focus. Shared by the notebook and the
+# Types the demo's coloured print into whichever field has focus. Shared by the notebook and the
 # Console halves of ansi-colour-demo-dark.yaml, so both run the same line.
 #
 # PythonTypingRules closes the `(` and the `"` and steps over them when they are typed again, and

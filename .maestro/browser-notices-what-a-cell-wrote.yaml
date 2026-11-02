@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# X2h: the browser re-reads the directory it is showing, so a file a *cell* wrote appears without
+# The browser re-reads the directory it is showing, so a file a *cell* wrote appears without
 # anyone touching the screen.
 #
-# This is X1a's promise finally observable from the UI: the workspace is the kernel's `HOME`, so a
-# notebook can `open()` a file the user can see. Until now the browser only listed once and nothing
+# The workspace is the kernel's `HOME`, so a notebook can `open()` a file the user can see, and the
+# browser must show it. Until now the browser only listed once and nothing
 # told it otherwise, so the file existed on disk and not on screen.
 #
 # The reference answers this with a poll and not with a signal, and the distinction is the whole

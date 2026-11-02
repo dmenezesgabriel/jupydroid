@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P1c part 2: come back to the app after the cell completed in the background.
+# Part 2: come back to the app after the cell completed in the background.
 #
 # **`stopApp: false` is the test, not a detail.** Maestro's `launchApp` force-stops the app
 # first, and a force-stop takes the process, its `ProcessLifecycleOwner` and the pending stop

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-8c, the notebook arm: the same `saveBeforeClose` gate, reached by system Back while a cell
+# The notebook arm: the same `saveBeforeClose` gate, reached by system Back while a cell
 # holds the caret - which is also the live proof of the gate's stand-down order: the first Back is
 # the IME's, the next leaves edit mode (`Escape`'s analogue), and only the one after that reaches
 # the ask. `close-gate-back.yaml` retries under `notVisible` so the number of presses is the device's

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-069 demo, parts 1-3: the bumped APK installed over the app already on the tablet
+# The demo, parts 1-3: the bumped APK installed over the app already on the tablet
 # (`adb install -r`), a Space is created - the ~14 s image copy is SpaceImageInstaller ->
 # TarZstdExtractor, commons-compress's TarArchiveInputStream and ZstdCompressorInputStream,
 # which is the jar that carries commons-lang3 - and a cell in base emits

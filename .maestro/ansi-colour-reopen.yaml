@@ -1,10 +1,11 @@
 appId: com.jupydroid.app
 ---
-# The driver ran the T1 flow, waited for the save, and force-stopped the app. Relaunched and
+# The driver ran `ansi-colour-demo-dark.yaml`, waited for the save, and force-stopped the app.
+# Relaunched and
 # reopened, the notebook still shows the coloured print, repr and traceback, read back off the
 # disk: no cell runs in this part, and every value asserted (`42`, `56`, `81`, `12`,
 # `division by zero`) was computed by the kernel in part 1, so the unrun fixture cannot satisfy it.
-# The colours are measured off the screenshot (evidence README).
+# The colours are measured off the screenshot.
 #
 # TABLET ONLY (SM-X216B): part 1 runs cells.
 #

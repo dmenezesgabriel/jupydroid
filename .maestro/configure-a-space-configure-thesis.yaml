@@ -3,7 +3,7 @@ appId: com.jupydroid.app
 # Thesis -> Settings, every field in one sitting: idle shutdown 2, thread cap 1, GREETING=hello,
 # a HOME row refused **by name** with Save held, the refused row removed, and a startup script.
 # A held Save is proven by pressing it - the dialog stays open - because the node Maestro finds
-# reports enabled whatever the button's state (t1 part 1's finding).
+# reports enabled whatever the button's state (the first part's finding).
 - launchApp:
     stopApp: false
 - tapOn: "Settings Thesis \\(space-1\\)"

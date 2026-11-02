@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P1c part 4: run again after the idle background stopped the server.
+# Part 4: run again after the idle background stopped the server.
 #
 # `stopApp: false` for the reason part 2 gives, and here it is the harder case: the app process
 # survives holding a session whose server and kernel are gone. Running must bring a fresh server

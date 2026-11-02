@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-069 demo, part 4: after a force-stop, the relaunch keeps the Space the first part
+# The demo, part 4: after a force-stop, the relaunch keeps the Space the first part
 # created, and the same cell renders the same again. The driver re-seeds
 # `Apk Advisories.ipynb` before this, so no output saved by the first part can satisfy
 # the wait.

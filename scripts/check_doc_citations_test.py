@@ -260,6 +260,21 @@ class ScannedFilesTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(path, found)
 
+    def test_the_first_half_of_the_flows_is_discovered(self):
+        """`.maestro/[a-c]*.yaml` is read, so a flow cannot cite a plan step or an item id again.
+
+        The flows join by letter range as the drivers did, and a range glob rather than one name
+        per file keeps a flow added later inside the gate from the day it is written.
+        """
+        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
+        for path in (
+            ".maestro/access-kernel-history.yaml",
+            ".maestro/bottom-navigation.yaml",
+            ".maestro/console-shares-kernel.yaml",
+        ):
+            with self.subTest(path=path):
+                self.assertIn(path, found)
+
     def test_a_package_narrows_to_that_package(self):
         found = scanned_files("domain")
         self.assertTrue(found)

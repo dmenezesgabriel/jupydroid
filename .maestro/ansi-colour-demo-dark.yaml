@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded, with the system in dark mode and
+# The demo, typed into a new notebook rather than seeded, with the system in dark mode and
 # the app's theme left on System (reset_notebooks clears the override): a coloured print, a repr
 # that colours itself and `1/0` draw in VS Code's dark ANSI ramp, and so does the print run again
-# from the Console on the notebook's kernel. The colours are measured off the screenshots (evidence
-# README). Run by scripts/ansi-colour-demo-driver.sh, which turns the system light after
+# from the Console on the notebook's kernel. The colours are measured off the screenshots. Run by
+# scripts/ansi-colour-demo-driver.sh, which turns the system light after
 # this part.
 #
 # TABLET ONLY (SM-X216B): the flow runs cells.

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2d-5: the two restarts that are a restart *and* something else.
+# The two restarts that are a restart *and* something else.
 #
 # `notebook:restart-and-run-to-selected` and `notebook:restart-clear-output` are each an awaited
 # restart followed by one more thing (`packages/notebook-extension/src/index.ts:3245-3345`). Both
@@ -63,7 +63,7 @@ appId: com.jupydroid.app
 
 # The head goes on cell 2. Focus is what selects a cell in this app, so this takes the keyboard and
 # gives it back - `hideKeyboard` is a system BACK that the IME takes, and the second one reaches the
-# notebook's own BackHandler and drops the caret (`evidence/p2d-2-ranged-runs/`).
+# notebook's own BackHandler and drops the caret.
 - tapOn: "print\\(alpha \\+ 79\\)"
 - waitForAnimationToEnd:
     timeout: 5000

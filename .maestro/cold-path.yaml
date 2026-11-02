@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8a: the cold path, measured rather than asserted. One real cell and one real terminal, so the
+# The cold path, measured rather than asserted. One real cell and one real terminal, so the
 # logcat timeline carries every stage boundary on the way to both.
 #
 # TABLET ONLY: on the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes
@@ -56,7 +56,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Tab: Terminal .*"
     timeout: 120000
-# The canvas is its own input (P4j-1), and the tap is the deterministic focus move that keeps a
+# The canvas is its own input, and the tap is the deterministic focus move that keeps a
 # first inputText from racing the IME's connection setup - terminal-tablet's measured finding.
 - tapOn:
     id: "terminal-input"

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Thesis is created as T1's part 1 creates it. Its Settings takes a startup script that writes
+# Thesis is created here, and its Settings takes a startup script that writes
 # `~/startup.txt`; Run then runs it before the server, so once Thesis is open the explorer lists
 # the file the script made. The driver reads the file's text and the Space's config.json back.
 - launchApp

@@ -27,15 +27,15 @@ mapfile -t DEVICE_ADB < <(device_adb)
 require_installed_app
 # The workspace starts empty, so the probe's answers are this run's and no earlier run's.
 reset_notebooks
-seed_file "$ROOT/.maestro/fixtures/claude-acp-probe.sh" "jd050-probe.sh"
+seed_file "$ROOT/.maestro/fixtures/claude-acp-probe.sh" "acp-probe.sh"
 
 run_flow "$ROOT/.maestro/claude-acp-in-a-space.yaml" "$EVIDENCE" || exit 1
 # The adapter's native Claude Code package alone is 284 MB unpacked
 # (https://registry.npmjs.org/@anthropic-ai/claude-agent-sdk-linux-arm64-musl), over the tablet's own
 # network, and an npm install under proot is unmeasured, so the bound is generous.
 finished=0
-wait_for_workspace_text jd050-probe.txt probe-done 1800 || finished=$?
-"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/jd050-probe.txt\"" | tr -d '\r' >"$EVIDENCE/probe.txt"
+wait_for_workspace_text acp-probe.txt probe-done 1800 || finished=$?
+"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/acp-probe.txt\"" | tr -d '\r' >"$EVIDENCE/probe.txt"
 "${DEVICE_ADB[@]}" exec-out screencap -p >"$EVIDENCE/02-probe-answered.png"
 [ "$finished" = 0 ] || exit 1
 
