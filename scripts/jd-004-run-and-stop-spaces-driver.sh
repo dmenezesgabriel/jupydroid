@@ -71,7 +71,7 @@ require_installed_app
 "$ADB" shell am force-stop "$APP"
 "$ADB" shell "run-as $APP sh -c 'rm -rf files/spaces/space-*'"
 reset_notebooks
-seed_notebook "$ROOT/.maestro/fixtures/step10-real-kernel.ipynb" "Real Kernel"
+seed_notebook "$ROOT/.maestro/fixtures/real-kernel.ipynb" "Real Kernel"
 : >"$CAPTURES"
 capture "cold: no server" servers
 expect_servers base 0

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Delivers the Step 2.4 VIEW intent (an .ipynb opened from a file manager)
+# Delivers the VIEW intent (an .ipynb opened from a file manager)
 # and then runs the Maestro evidence flow. The import must land in a process
 # the Maestro flow then observes without relaunching (in-memory fake repo).
 set -euo pipefail
@@ -32,4 +32,4 @@ MEDIA_ID="$("$ADB" shell content query --uri content://media/external/file \
 "$ADB" shell "am start -a android.intent.action.VIEW -d 'content://media/external/file/$MEDIA_ID' -t '*/*' -f 0x1 $APP" >/dev/null
 sleep 3
 
-maestro_test "$ROOT/.maestro/step2-import.yaml"
+maestro_test "$ROOT/.maestro/import-view-intent.yaml"

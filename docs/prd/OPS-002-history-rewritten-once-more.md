@@ -144,7 +144,12 @@ One TDD unit each, one conventional commit each.
     an evidence directory named after a step (`audit-a4-…`) is left to the driver's hand edit. Sub-flows
     that a bare strip leaves meaningless take their driver's name (`text-history-typed.yaml`,
     `adaptive-one-pane.yaml`).
-  - [ ] T7b — `step*` (47 files).
+  - [x] T7b — `step*` (47 files). Named by hand where a bare strip said nothing or would clash: a driver
+    stem is matched as a substring of a typed argument (`run-all-flows.sh`), so `editor`, `brackets`,
+    `completion` and `line-numbers` each sit inside a name a later slice produces and became
+    `editor-renders-seeded-cells`, `bracket-match-highlight`, `completion-popup` and
+    `gutter-wrapped-line`; the step 2 and 3 flows became what they show. The theme driver's evidence
+    directory takes the driver's name. Plan-step prose inside flow bodies is left to T8.
   - [ ] T7c — `p1*` to `p4*`.
   - [ ] T7d — `p5*` to `p8*` (418 `p` files in total, `p4b2` and `p5e1` shapes included).
   - [ ] T7e — `jd-001` to `jd-019`.

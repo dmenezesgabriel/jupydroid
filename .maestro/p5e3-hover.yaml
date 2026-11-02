@@ -35,7 +35,7 @@ appId: com.jupydroid.app
 - inputText: "compute_total"
 # A finger tap on the word itself - which lands the caret inside it, where a real "what is
 # this" asks from (the point lands mid-name; `pressKey` has no arrow keys to nudge one in,
-# `step5-completion.yaml`'s header notes). Only two cells are on screen by now - the warmup
+# `completion-popup.yaml`'s header notes). Only two cells are on screen by now - the warmup
 # has scrolled off - so the ask cell's `Cell actions` is the second match.
 - tapOn:
     point: "46%,41%"

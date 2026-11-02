@@ -10,7 +10,7 @@ anywhere on screen, source fields included. That has bitten three times:
 
   collapse-outputs  printed "second line 120" from a line reading print("second line 120")
   mime-shapes       waited for "line two" from a cell containing "line one\\nline two"
-  step7-html-output waited for "Quarterly report" from a cell containing <h3>Quarterly report</h3>
+  html-output waited for "Quarterly report" from a cell containing <h3>Quarterly report</h3>
 
 Only the second failed loudly. The first failed for the right reason by luck of wording, and
 the third passed while the file on disk was untouched. The fix is structural rather than
@@ -22,7 +22,7 @@ deliberate one with `# matches-source: <why>` on the line above.
 **2. Waiting for the output container instead of for a result.** `Cell output` wraps every
 output kind, so it appears the moment *anything* renders - and `FakeKernelGateway`, which
 every x86_64 device falls back to, renders the cell's own source as stdout on every run. So
-the wait is satisfied without a Space. `step4b-run-cell` did exactly this and was green for
+the wait is satisfied without a Space. a flow that ran a bare assignment did exactly this and was green for
 months while proving nothing. Assert a value
 the kernel had to compute. Waive with `# container-only: <why>` on the line above.
 

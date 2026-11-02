@@ -44,7 +44,7 @@ appId: com.jupydroid.app
     text: "Run cell"
     index: 0
 # Generous: the first run installs the Space if needed, starts jupyter_server and starts the
-# kernel - the same cold path step10-run-cell-real-kernel.yaml waits 120s for.
+# kernel - the same cold path run-cell-real-kernel.yaml waits 120s for.
 - extendedWaitUntil:
     visible: "\\[\\*\\]:"
     timeout: 120000

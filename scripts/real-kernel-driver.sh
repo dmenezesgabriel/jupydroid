@@ -16,7 +16,7 @@ set -euo pipefail
 # the flow rather than failing it there.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FIXTURE="$ROOT/.maestro/fixtures/step10-real-kernel.ipynb"
+FIXTURE="$ROOT/.maestro/fixtures/real-kernel.ipynb"
 
 # shellcheck source=scripts/java-home.sh
 . "$ROOT/scripts/java-home.sh"   # maestro is a JVM tool and needs JAVA_HOME too
@@ -36,7 +36,7 @@ reset_notebooks
 seed_notebook "$FIXTURE" "Real Kernel"
 
 flow_status=0
-run_flow "$ROOT/.maestro/step10-run-cell-real-kernel.yaml" "$EVIDENCE" || flow_status=$?
+run_flow "$ROOT/.maestro/run-cell-real-kernel.yaml" "$EVIDENCE" || flow_status=$?
 
 # Pulled whether or not the flow passed, because a stalled run is exactly when this file is the
 # evidence: the kernel inherits the server's stderr (jupyter_client/launcher.py:68-76 leaves it

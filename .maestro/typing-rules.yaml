@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Seeded by scripts/step5-typing-driver.sh; clearState would delete the fixture.
+# Seeded by scripts/typing-rules-driver.sh; clearState would delete the fixture.
 #
 # The flow types strictly fewer characters than the cell ends up holding: no indent is ever
 # typed, and `)` `'` only ever arrive on top of a partner that is already there. So the final

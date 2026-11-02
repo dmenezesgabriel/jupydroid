@@ -33,7 +33,7 @@ appId: com.jupydroid.app
 - tapOn: "Run cell"
 # `ran in` rather than an output value - the run's job is the open session, per the header.
 # 180s: starting the base Space takes seconds on first use - rootfs, jupyter_server, then a
-# kernel - `step5-completion.yaml`'s own budget for the identical first run.
+# kernel - `completion-popup.yaml`'s own budget for the identical first run.
 - extendedWaitUntil:
     visible: ".*ran in.*"
     timeout: 180000
@@ -51,7 +51,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Completions"
     timeout: 60000
-# Matched by contentDescription, never by the bare word - `step5-completion.yaml`'s own reason:
+# Matched by contentDescription, never by the bare word - `completion-popup.yaml`'s own reason:
 # the Samsung keyboard offers the same word in its own suggestion bar.
 - assertVisible: "Completion join"
 - takeScreenshot: 02-completion-from-the-language-server

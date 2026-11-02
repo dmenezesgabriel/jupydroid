@@ -36,7 +36,7 @@ appId: com.jupydroid.app
 # the longest in the suite. **`PROBE-1` exists only in an output**: the fixture builds every marker
 # with `"PROBE" + "-1"`, so no wait or scroll below can be satisfied by the cell that asks the
 # question. This probe's own third defect was exactly that - a frame named `03-dns` showing three
-# unexecuted cells, because the scroll had matched the source. `step4b-run-all-and-stop` records the
+# unexecuted cells, because the scroll had matched the source. `run-all-and-stop` records the
 # same trap from the other side.
 - extendedWaitUntil:
     visible: ".*PROBE-1 prefix:.*"

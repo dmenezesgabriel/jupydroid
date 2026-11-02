@@ -42,12 +42,12 @@ class CitationsInTest(unittest.TestCase):
                 self.assertEqual([phrase], [text for _, text, _ in found])
 
     def test_a_maestro_flow_name_is_not_a_step_reference(self):
-        """`.maestro/step5-line-numbers.yaml` is a file that exists, and a flow is a test name.
+        """`.maestro/gutter-wrapped-line.yaml` is a file that exists, and a flow is a test name.
 
         ADR-0001 kept flow, driver and evidence names in lockstep on purpose, so the hyphenated
         form must stay legal while the spaced one does not - 20 comments cite a live flow this way.
         """
-        for name in ("step5-line-numbers", "step2-import", "step4b-run-all-and-stop"):
+        for name in ("gutter-wrapped-line", "import-view-intent", "run-all-and-stop"):
             with self.subTest(name=name):
                 self.assertEqual([], citations_in(f"// the `{name}` flow taps it\n"))
 

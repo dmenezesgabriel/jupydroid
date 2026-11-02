@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# The single gate for "tap Run on a code cell and the kernel answers". `step4b-run-cell` used to sit
-# beside it and is now deleted: its cell was `answer = 42`, an assignment that produces no output at
-# all, and it waited on the bare `Cell output` container - which FakeKernelGateway's echo always
+# The single gate for "tap Run on a code cell and the kernel answers". A sibling flow used to sit
+# beside it and is now deleted: its cell was `answer = 42`, an assignment that produces no output
+# at all, and it waited on the bare `Cell output` container - which FakeKernelGateway's echo always
 # satisfied and a real kernel never did. This asserts computed values instead, which no echo can
 # fabricate.
 - launchApp

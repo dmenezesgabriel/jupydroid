@@ -1,13 +1,18 @@
 #!/usr/bin/env bash
-# Seeds a notebook that actually has cells, then runs the Step 5.4 height sync flow.
+# Seeds a notebook that actually has cells, then runs the rich output flow.
 # A notebook created from the FAB has no cells (DiskNotebookRepository.createNotebook),
 # so it would only ever prove the "No cells yet" branch. The seeded file lands in the
 # app's own storage via run-as (the debug build is debuggable; no root needed), and
 # DiskNotebookRepository scans rootDir in its init block, so a fresh launch picks it up.
 set -euo pipefail
 
+# TABLET ONLY (SM-X216B). The flow asserts a real traceback and an image the fake never emits. On
+# the x86_64 emulator MainActivity falls back to FakeKernelGateway, which echoes the cell's source
+# back as stdout, so the run proves nothing. scripts/run-all-flows.sh reads this marker and skips
+# the flow rather than failing it there.
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FIXTURE="$ROOT/.maestro/fixtures/step5-tall-cell.ipynb"
+FIXTURE="$ROOT/.maestro/fixtures/rich-output.ipynb"
 APP="com.jupydroid.app"
 
 # shellcheck source=scripts/java-home.sh
@@ -22,6 +27,6 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$FIXTURE" "Tall Cell"
+seed_notebook "$FIXTURE" "Rich Output"
 
-maestro_test "$ROOT/.maestro/step5-height-sync.yaml"
+maestro_test "$ROOT/.maestro/rich-output.yaml"

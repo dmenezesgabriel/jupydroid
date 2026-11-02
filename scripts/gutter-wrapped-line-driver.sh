@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Seeds a notebook that actually has cells, then runs the Step 5.3 edit-a-cell flow.
+# Seeds a multi-line cell with one line long enough to wrap, then runs the line-number gutter flow.
 # A notebook created from the FAB has no cells (DiskNotebookRepository.createNotebook),
 # so it would only ever prove the "No cells yet" branch. The seeded file lands in the
 # app's own storage via run-as (the debug build is debuggable; no root needed), and
 # DiskNotebookRepository scans rootDir in its init block, so a fresh launch picks it up.
+#
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FIXTURE="$ROOT/.maestro/fixtures/step4-cells.ipynb"
+FIXTURE="$ROOT/.maestro/fixtures/gutter-wrapped-line.ipynb"
 APP="com.jupydroid.app"
 
 # shellcheck source=scripts/java-home.sh
@@ -22,6 +23,11 @@ MAESTRO="${MAESTRO:-$HOME/.maestro/bin/maestro}"
 [ -x "$MAESTRO" ] || { echo "maestro not found at $MAESTRO"; exit 1; }
 
 reset_notebooks
-seed_notebook "$FIXTURE" "Two Cells"
+seed_notebook "$FIXTURE" "Line Numbers"
 
-maestro_test "$ROOT/.maestro/step5-edit-cell.yaml"
+# The handwriting IME steals focus from text fields and swallows inputText; this flow is
+# nothing but typing, so it cannot run with it enabled.
+"$ADB" shell settings put secure stylus_handwriting_enabled 0 || true
+"$ADB" shell settings put secure stylus_handwriting 0 || true
+
+maestro_test "$ROOT/.maestro/gutter-wrapped-line.yaml"

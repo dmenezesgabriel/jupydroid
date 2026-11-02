@@ -46,7 +46,7 @@ failed=()
 for driver in "$ROOT"/scripts/*-driver.sh; do
   name="$(basename "$driver" -driver.sh)"
   # Exact names when FLOW_NAMES is set, substring when a human types arguments. The sharded
-  # runner needs exact: `step5-completion-repeat` as an argument also matched `step5-completion`,
+  # runner needs exact: `completion-popup-repeat` as an argument also matched `completion-popup`,
   # so a shard asked for one driver and got two.
   if [ -n "${FLOW_NAMES:-}" ]; then
     # shellcheck disable=SC2086 # FLOW_NAMES is a space-separated list, split on purpose
@@ -55,7 +55,7 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
     continue
   fi
 
-  # A driver can be a tool rather than a check - `step5-completion-repeat` runs one flow twenty
+  # A driver can be a tool rather than a check - `completion-popup-repeat` runs one flow twenty
   # times to measure a rare defect. Running it here would add twenty launches to every sweep.
   if driver_declares "$driver" "NOT A SUITE FLOW"; then continue; fi
 

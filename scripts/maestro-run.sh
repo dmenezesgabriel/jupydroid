@@ -282,7 +282,7 @@ back_to_app() {
 
 # A flow drives whatever is on the screen, and a locked device shows a lock screen.
 #
-# **This has already cost a measurement.** A fifty-run sweep of `step5-completion` on the tablet
+# **This has already cost a measurement.** A fifty-run sweep of `completion-popup` on the tablet
 # passed 31 and then failed 19 in a row; the app was blameless - `stay_on_while_plugged_in` is 0
 # on this device, the screen went off, and every run after that drove the lock screen. The
 # screen-hierarchy captures are the proof: at the failing step they hold the clock digits
@@ -365,7 +365,7 @@ fresh_install() {
 #
 # `adb` honours `ANDROID_SERIAL`; **maestro does not**. With two devices attached it picks one of
 # its own accord, so a driver that seeds through `adb` and then runs `maestro test` bare drives
-# the other device - which `step2-import` and `step4-editor` did, and the first whole-suite run
+# the other device - which `import-view-intent` and `editor-renders-seeded-cells` did, and the first whole-suite run
 # on the emulator ran their flows against the tablet against a Home that had never been seeded.
 #
 # Twenty-five drivers carried this same six-line if/else by hand. `scripts/check_driver_isolation.py`

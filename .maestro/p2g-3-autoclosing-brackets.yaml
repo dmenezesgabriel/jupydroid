@@ -4,7 +4,7 @@ appId: com.jupydroid.app
 # on the reference, one setting reaching notebook cells and the plain file editor alike since both
 # already share `PythonTypingRules`.
 #
-# **WIDE WINDOW** (>= 600dp), for `step5-brackets`'s reason and not a new one: a tap on a
+# **WIDE WINDOW** (>= 600dp), for `bracket-match-highlight`'s reason and not a new one: a tap on a
 # one-line cell has to land past the end of its text for the caret to be where this flow assumes
 # it is, which holds only while the field is wider than the line - at 320dp the tap lands inside
 # the text instead. `scripts/run-all-flows.sh` reads the marker and skips the flow elsewhere.
@@ -24,7 +24,7 @@ appId: com.jupydroid.app
     visible: "value = "
     timeout: 30000
 - takeScreenshot: 01-on-by-default
-# Past the end of the short line, the same trick step5-brackets uses.
+# Past the end of the short line, the same trick bracket-match-highlight uses.
 - tapOn: "value = "
 - inputText: "("
 # On by default: the app's own resting state, a departure from the reference's own `default: false`,

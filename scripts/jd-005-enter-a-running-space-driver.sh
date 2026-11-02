@@ -92,7 +92,7 @@ require_installed_app
 "$ADB" shell "run-as $APP rm -f $BASE_HOME/terminal-saw"
 reset_notebooks
 # Base's own notebook: Thesis's workspace must not list it, and base must list it back.
-seed_notebook "$ROOT/.maestro/fixtures/step10-real-kernel.ipynb" "Real Kernel"
+seed_notebook "$ROOT/.maestro/fixtures/real-kernel.ipynb" "Real Kernel"
 : >"$CAPTURES"
 capture "cold: no server" servers
 capture "cold: no pylsp" language_servers

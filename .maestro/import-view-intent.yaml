@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Launched by scripts/step2-import-driver.sh (VIEW intent on a MediaStore .ipynb);
+# Launched by scripts/import-view-intent-driver.sh (VIEW intent on a MediaStore .ipynb);
 # no launchApp here: the import must land in the process the intent started.
 #
 # **Since X2h the intent opens the notebook** rather than only adding a row. ACTION_VIEW asks to

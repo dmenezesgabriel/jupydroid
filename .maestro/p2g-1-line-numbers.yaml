@@ -6,7 +6,7 @@ appId: com.jupydroid.app
 #
 # **The numbers themselves cannot be asserted, and that is by design.** They are drawn on a canvas
 # rather than laid out as text, so they carry no accessibility node - a line number must never be
-# selectable or copyable with the code. `step5-line-numbers` has said so since Step 5. So the
+# selectable or copyable with the code. `gutter-wrapped-line` has said so since Step 5. So the
 # screenshots are the evidence for the gutter, and what the *flow* asserts is the thing the
 # accessibility tree can see: the View row names the state by naming what tapping will do, so a row
 # reading "Show line numbers" is the app telling us the gutter is off. That is why the labels flip

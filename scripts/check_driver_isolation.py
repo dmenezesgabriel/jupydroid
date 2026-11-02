@@ -24,7 +24,7 @@ the same as opening Home.
 **And the flow has to run where the fixture went.** `adb` honours `ANDROID_SERIAL`; **maestro does
 not**. With two devices attached it picks one of its own accord, so a driver that seeds through
 `adb` and then runs `maestro test` bare can drive the other device entirely - which is exactly
-what `step2-import` and `step4-editor` did, and the first whole-suite run on the emulator drove
+what `import-view-intent` and `editor-renders-seeded-cells` did, and the first whole-suite run on the emulator drove
 their flows against the tablet. Passing `--device` is not optional; go through `maestro_test` or
 `run_flow` and it is not possible to forget.
 """

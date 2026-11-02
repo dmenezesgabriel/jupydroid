@@ -16,7 +16,7 @@ import java.io.File
  * both claim to know where a notebook is.
  *
  * The argument list is asserted rather than the server's behaviour: starting a real jupyter_server
- * needs a Space, which is a tablet gate (`step10-run-cell-real-kernel`), and what a JVM test can own is
+ * needs a Space, which is a tablet gate (`run-cell-real-kernel`), and what a JVM test can own is
  * that the flag is there and points where [SpaceRuntime] puts `HOME`, both named inside the Space's
  * root because that is the only filesystem the server sees under proot (ADR-0073).
  */

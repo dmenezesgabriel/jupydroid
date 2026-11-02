@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Seeded by scripts/step5-theme-driver.sh; clearState would delete the fixture.
+# Seeded by scripts/theme-and-run-driver.sh; clearState would delete the fixture.
 # Mod-Enter is not driven here: Maestro has no modifier chord, so the driver script sends it
 # with `adb shell input keycombination` once this flow has focused the cell.
 - launchApp

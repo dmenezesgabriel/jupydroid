@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Seeded by scripts/step4b-run-all-driver.sh; clearState would delete the fixture.
+# Seeded by scripts/run-all-driver.sh; clearState would delete the fixture.
 - launchApp
 - runFlow: open-base-space.yaml
 # Home's list is populated by a disk scan, and a scroll started before it has rendered ends
@@ -22,7 +22,7 @@ appId: com.jupydroid.app
 # *output*. They used to be printed as literals, which meant these waits were satisfied by the
 # cells' own source - on screen the whole time - and this flow never checked Run All's results.
 #
-# Scoping with `childOf: Cell output` would be the other way, and is what step7-html-output
+# Scoping with `childOf: Cell output` would be the other way, and is what html-output
 # does. It is no good here: two code cells are on screen, so there are two `Cell output` nodes
 # and Maestro resolves the scope against the first of them.
 - extendedWaitUntil:

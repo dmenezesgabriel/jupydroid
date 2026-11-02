@@ -13,7 +13,7 @@
 # pass/fail could not tell "no stall occurred" from "a stall occurred and was recovered from",
 # which are the two readings this instrument exists to separate. `R` is the second.
 #
-#   ANDROID_SERIAL=TABLET_SERIAL scripts/step5-completion-repeat-driver.sh 30
+#   ANDROID_SERIAL=TABLET_SERIAL scripts/completion-popup-repeat-driver.sh 30
 #
 # Every run is a fresh launch with a fresh kernel, which is the state all four sightings were in.
 # NOT A SUITE FLOW. `scripts/run-all-flows.sh` skips this: it is a measuring instrument, not a
@@ -40,7 +40,7 @@ recovered=0
 # the fix working. "Passed" and "passed after recovering" are different results.
 capture_run() {
   local run="$1" why="$2"
-  grep -oE '\{"stage":"kernel[^}]*\}' "$(newest_run_dir step5-completion)/logs/device-logcat.txt" \
+  grep -oE '\{"stage":"kernel[^}]*\}' "$(newest_run_dir completion-popup)/logs/device-logcat.txt" \
     > "$ROOT/build/flow-logs/repeat-$run-$why-kernel.jsonl" || true
   # The server's half, which is the one no sighting before the seventh ever had, and which since
   # P0a carries the kernel's own `*** MESSAGE TYPE:...***` per shell dispatch - so a stall says
@@ -51,11 +51,11 @@ capture_run() {
 
 for run in $(seq 1 "$RUNS"); do
   reset_notebooks
-  seed_notebook "$ROOT/.maestro/fixtures/step5-completion.ipynb" "Completion"
-  if maestro_test "$ROOT/.maestro/step5-completion.yaml" >"$ROOT/build/flow-logs/repeat-$run.log" 2>&1; then
+  seed_notebook "$ROOT/.maestro/fixtures/completion-popup.ipynb" "Completion"
+  if maestro_test "$ROOT/.maestro/completion-popup.yaml" >"$ROOT/build/flow-logs/repeat-$run.log" 2>&1; then
     # `R` rather than `.`: the run passed *because* the kernel was replaced, which is the stall
     # happening and being recovered from. Counting it as a plain pass would hide the rate.
-    if grep -q 'kernel.greet.restarting' "$(newest_run_dir step5-completion)/logs/device-logcat.txt"; then
+    if grep -q 'kernel.greet.restarting' "$(newest_run_dir completion-popup)/logs/device-logcat.txt"; then
       recovered=$((recovered + 1))
       printf 'R'
       capture_run "$run" recovered

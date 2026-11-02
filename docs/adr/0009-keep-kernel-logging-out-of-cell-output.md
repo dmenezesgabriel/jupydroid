@@ -36,7 +36,7 @@ and nothing on screen.
 ## Decision
 
 Kernel logging may be raised freely. Because the no-leak property is **upstream behaviour rather
-than ours**, the `step10-run-cell-real-kernel` flow asserts it — `assertNotVisible: ".*MESSAGE
+than ours**, the `run-cell-real-kernel` flow asserts it — `assertNotVisible: ".*MESSAGE
 TYPE.*"` after a run — instead of trusting that an ipykernel upgrade will keep it.
 
 ## Consequences

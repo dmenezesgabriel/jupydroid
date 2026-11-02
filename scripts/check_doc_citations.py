@@ -86,7 +86,7 @@ BANNED: tuple[tuple[re.Pattern[str], str], ...] = (
         "a plan step code - retired, and its numbering was never stable",
     ),
     # Case-insensitive, and the space is what makes it a citation rather than a filename:
-    # `.maestro/step5-line-numbers.yaml` is a flow that exists and 20 comments name one that way,
+    # `.maestro/gutter-wrapped-line.yaml` is a flow that exists and 20 comments name one that way,
     # while `step 8.7` and `sub-step 2/3` point at a plan nothing resolves any more.
     (
         re.compile(r"\b(?:sub-)?step \d+(?:\.\d+)?[a-z]?\b", re.IGNORECASE),

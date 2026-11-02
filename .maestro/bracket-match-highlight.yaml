@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Seeded by scripts/step5-brackets-driver.sh; clearState would delete the fixture.
+# Seeded by scripts/bracket-match-highlight-driver.sh; clearState would delete the fixture.
 #
 # The match is a colour, so the screenshots are the evidence. They are taken in an order that
 # rules out the two ways this could be faked: 01 is the same text with nothing lit, and 03 is a

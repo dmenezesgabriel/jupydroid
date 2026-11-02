@@ -43,7 +43,7 @@ if [ "$flow_status" -eq 0 ]; then
   run_flow "$ROOT/.maestro/p6a-7b-debugger-stopped-settled.yaml" "$EVIDENCE" || flow_status=$?
 fi
 
-# Pulled whether or not the flow passed, for the same reason step10-real-kernel-driver.sh pulls
+# Pulled whether or not the flow passed, for the same reason real-kernel-driver.sh pulls
 # it: a stalled or crashed run is exactly when this file is the evidence, and it is redirected
 # here rather than surfacing as cell output (JupyterServerLauncher).
 "$ADB" shell run-as "$APP" cat "$SERVER_LOG" >"$EVIDENCE/jupyter_server.log" 2>/dev/null || true

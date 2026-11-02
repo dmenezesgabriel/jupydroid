@@ -7,7 +7,7 @@ appId: com.jupydroid.app
 #
 # The cell is RUN first, and that is not scene-setting: completion deliberately never starts a
 # kernel (`NotebookKernel.completionsAt`'s own `session.opened ?: return NONE` guard), so the
-# popup can only appear at all once a kernel session is already open - `step5-completion.yaml`'s
+# popup can only appear at all once a kernel session is already open - `completion-popup.yaml`'s
 # own precedent. `FakeKernelGateway.complete()` answers from a real BUILTINS list
 # (`data/fake/FakeKernelGateway.kt:82`, includes "print"), so this reaches a real (if fake)
 # completion path on the emulator too.
@@ -24,7 +24,7 @@ appId: com.jupydroid.app
 # source back as its output ("1 + 1", not "2"), so a real kernel and the fake one only agree on
 # the execution status label, not on what the cell printed. 180s: starting the base Space takes
 # seconds on first use on a real device - rootfs, jupyter_server, then a kernel -
-# `step5-completion.yaml`'s own budget for the identical first run.
+# `completion-popup.yaml`'s own budget for the identical first run.
 - extendedWaitUntil:
     visible: ".*ran in.*"
     timeout: 180000
@@ -106,7 +106,7 @@ appId: com.jupydroid.app
     index: 0
 - pressKey: Enter
 - inputText: "pri"
-# Matched by contentDescription, never by the bare word - `step5-completion.yaml`'s own reason:
+# Matched by contentDescription, never by the bare word - `completion-popup.yaml`'s own reason:
 # the Samsung keyboard offers "print" in its own suggestion bar too.
 - extendedWaitUntil:
     visible: "Completions"

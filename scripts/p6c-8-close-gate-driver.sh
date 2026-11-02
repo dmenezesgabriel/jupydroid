@@ -39,7 +39,7 @@ seeded="$("${adb[@]}" shell "run-as $APP cat '$EDITOR_SETTINGS_STORE'" | tr -d '
   { echo "the seeded settings read back wrong: $seeded"; exit 1; }
 
 seed_file "$ROOT/.maestro/fixtures/file-editor.py" "close_gate.py"
-seed_notebook "$ROOT/.maestro/fixtures/step4-cells.ipynb" "Close Gate"
+seed_notebook "$ROOT/.maestro/fixtures/two-cells.ipynb" "Close Gate"
 
 # The plain file editor: dismiss asks, Cancel keeps, system Back asks, Discard writes nothing,
 # Save writes before closing - all within one flow because launchApp force-stops between them.

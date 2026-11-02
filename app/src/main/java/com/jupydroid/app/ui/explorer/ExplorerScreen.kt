@@ -295,7 +295,7 @@ fun ExplorerScreen(
  * phone that kept polling in the background would spend a wakeup every ten seconds on a listing
  * nobody is looking at. `repeatOnLifecycle` cancels the loop at `ON_PAUSE` and starts a fresh one
  * at `ON_RESUME`, so coming back also refreshes immediately - which is the case `a6` and
- * `step2-import` needed and the reason this replaced a resume-only effect rather than joining it.
+ * `import-view-intent` needed and the reason this replaced a resume-only effect rather than joining it.
  *
  * **Not adapted: the reference's `backoff: true, max: 300000`.** That backs off a failing *HTTP*
  * poll against a server that may be down. Ours is a `listFiles` on this app's own storage; the one

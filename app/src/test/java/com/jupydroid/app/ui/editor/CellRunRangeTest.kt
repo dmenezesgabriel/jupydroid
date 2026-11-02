@@ -31,7 +31,7 @@ class CellRunRangeTest {
    * **And with nothing selected at all**, which is not what the reference does - `runAll` bails on
    * a notebook with no `activeCell` (`actions.tsx:946`). Ours cannot: Run All is a button on the
    * notebook's own bar and is reachable before any cell has been touched, and refusing there would
-   * be a control that lights up and does nothing. `.maestro/step4b-run-all-and-stop.yaml` taps it
+   * be a control that lights up and does nothing. `.maestro/run-all-and-stop.yaml` taps it
    * on a freshly opened notebook.
    */
   @Test

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Seeded by scripts/step5-line-numbers-driver.sh; clearState would delete the fixture.
+# Seeded by scripts/gutter-wrapped-line-driver.sh; clearState would delete the fixture.
 #
 # The numbers are drawn on a canvas, not laid out as text, so they carry no accessibility node
 # and Maestro cannot assert them - deliberately, since a line number must never be selectable
