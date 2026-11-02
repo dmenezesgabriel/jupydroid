@@ -1,0 +1,36 @@
+appId: com.sec.android.app.myfiles
+---
+# Opens `Too large.ipynb`, one byte over the import bound, the way a person does: from Samsung's My
+# Files through the "Open with" chooser, as shared-notebook-open-from-my-files.yaml does for
+# the small fixture (taps scoped by resource id for the same reasons, "Just once" for the same one).
+# Shaped for a device that has chosen before, as my-files-open.yaml is: the chooser is picked
+# from only if it drew, since a recorded preferred activity sends the tap straight to the app.
+# The refusal is a snackbar that lasts a few seconds, so it is waited for here, in the flow that
+# causes it, and not in a later one; the first wait is what asserts it when no chooser draws.
+# Run by scripts/import-too-large-driver.sh.
+#
+# TABLET ONLY (SM-X216B): My Files is Samsung's.
+- launchApp
+- tapOn:
+    id: "com.sec.android.app.myfiles:id/menu_search"
+- inputText: "Too large"
+- tapOn:
+    text: "Too large\\.ipynb"
+    id: "com.sec.android.app.myfiles:id/main_text"
+- extendedWaitUntil:
+    visible: "Open with|Too large\\.ipynb is over the 15 MiB limit for an import"
+    timeout: 60000
+# Taken before anything else runs: the snackbar is up for ten seconds, not for the rest of the flow.
+- takeScreenshot: 00-after-the-tap
+- runFlow:
+    when:
+      visible: "Open with"
+    commands:
+      - tapOn:
+          text: "JupyterDroid"
+          id: "android:id/text1"
+      - tapOn: "Just once"
+      - extendedWaitUntil:
+          visible: "Too large\\.ipynb is over the 15 MiB limit for an import"
+          timeout: 60000
+- takeScreenshot: 01-refused-with-its-limit

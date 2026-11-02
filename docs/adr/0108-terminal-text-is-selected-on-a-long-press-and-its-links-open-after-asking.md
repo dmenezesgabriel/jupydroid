@@ -67,7 +67,7 @@ after an "Open Link?" dialog, http and https only (`Private.activateLink`, `ALLO
 
 ## What a program prints
 
-`opencode auth login` (opencode 1.19.3, the version `jd-046-opencode-probe.sh` installs) prints its
+`opencode auth login` (opencode 1.19.3, the version `opencode-probe.sh` installs) prints its
 sign-in address as **plain text**. The GitHub Copilot device flow writes `Go to:
 https://github.com/login/device` through clack's `log.info`
 (anomalyco/opencode@e3c4eb24 `packages/opencode/src/cli/cmd/providers.ts`). On SM-X216B its bytes,

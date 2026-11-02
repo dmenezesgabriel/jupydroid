@@ -1,0 +1,23 @@
+appId: com.android.chrome
+---
+# The app is force-stopped and Chrome is on the driver's `import.html`: a page like any on the
+# web, whose one link is an `intent:` URL naming the fixture's own
+# `content://media/external/file/<id>` - a web page trying to start the import only an
+# installed app should be able to start. The flow after this one taps the link.
+# Run by scripts/import-filter-not-browsable-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the tap goes through Chrome's `intent:` handling, the code path
+# ADR-0124 cites; the emulator carries no Chrome.
+# A force-stop does not reset Chrome's window state - an overflow menu left open on the last
+# session is still open over the page here, and while it is, the web content is hidden from the
+# hierarchy. "New Incognito tab" exists only inside that menu; Back dismisses a drawn menu and
+# is skipped entirely when the page is already bare.
+- runFlow:
+    when:
+      visible: "New Incognito tab"
+    commands:
+      - pressKey: Back
+- extendedWaitUntil:
+    visible: "open the shared notebook"
+    timeout: 30000
+- takeScreenshot: 02-intent-link-page

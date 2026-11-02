@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/checkpoint-demo-driver.sh with `handmade/plain.py`.
+#
+# Opening makes its checkpoint, which the driver then removes by hand while the tab stays open, so
+# part 6 asks for a checkpoint that is gone.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "handmade"
+- extendedWaitUntil:
+    visible: "plain.py"
+    timeout: 10000
+- tapOn: "plain.py"
+- extendedWaitUntil:
+    visible: "Tab: plain.py"
+    timeout: 10000
+- takeScreenshot: 01-opened-so-it-has-a-checkpoint

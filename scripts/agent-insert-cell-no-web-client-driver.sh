@@ -6,7 +6,7 @@
 #
 #   nice -n 10 timeout 2400 scripts/agent-insert-cell-no-web-client-driver.sh
 #
-# Needs opencode installed in base (scripts/jd-046-opencode-in-a-space-driver.sh) and signed in by a
+# Needs opencode installed in base (scripts/opencode-in-a-space-driver.sh) and signed in by a
 # person from base's terminal (`opencode console login`) - their own credential, which no script
 # types.
 #
@@ -48,7 +48,7 @@ fail() { echo "$1" >&2; exit 1; }
 
 require_installed_app
 "${DEVICE_ADB[@]}" shell "run-as $APP test -x files/spaces/base/usr/local/bin/opencode" ||
-  fail "opencode is not installed in base: run scripts/jd-046-opencode-in-a-space-driver.sh first"
+  fail "opencode is not installed in base: run scripts/opencode-in-a-space-driver.sh first"
 # The dot directories stay, and opencode's sign-in with them (`~/.local/share/opencode`).
 reset_notebooks
 # A settings file would add its servers beside the built-in one.

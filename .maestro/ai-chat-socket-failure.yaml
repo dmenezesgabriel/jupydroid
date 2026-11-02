@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base. Driven by scripts/ai-chat-socket-failure-driver.sh, which
+# stops base's server once the Chat's socket is open, as the server's idle shutdown once did.
+#
+# A server that exits drops the socket, and the panel says what failed: before, it said "null".
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- takeScreenshot: 01-chat-opened
+# Either ending the socket can have: dropped, or closed with a frame. The driver's README says which
+# one the tablet showed; neither may read "null".
+- extendedWaitUntil:
+    visible: "the chat's socket (failed|was closed): .*"
+    timeout: 120000
+- takeScreenshot: 02-the-socket-ended
+- assertNotVisible: ".*: null"

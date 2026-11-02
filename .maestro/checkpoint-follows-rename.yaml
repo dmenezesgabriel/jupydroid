@@ -1,0 +1,75 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/checkpoint-follows-file-driver.sh with autosave off and
+# `notes.py`.
+#
+# Opening makes the checkpoint and the strip's Save moves it. The tab is then renamed to
+# `renamed.py`, and the checkpoint goes with it, as `ContentsManager.rename` carries it with
+# `rename_all_checkpoints` (`usr/lib/python3.12/site-packages/jupyter_server/services/contents/manager.py`).
+# A second edit is reverted under the new name, back to the save. The driver reads the disk.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "notes = \"seeded\"\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_a"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Save tab: notes.py"
+- extendedWaitUntil:
+    visible:
+      text: "Save tab: notes.py"
+      enabled: false
+    timeout: 10000
+
+# ---- renamed from its tab ----
+- longPressOn: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "renamed"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Tab: renamed.py"
+    timeout: 10000
+- takeScreenshot: 01-renamed-from-its-tab
+
+# ---- edited again, reverted under the new name ----
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_b"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: renamed.py"
+    enabled: true
+- longPressOn: "Tab: renamed.py"
+- extendedWaitUntil:
+    visible: "Revert to Checkpoint…"
+    timeout: 5000
+- tapOn: "Revert to Checkpoint…"
+- extendedWaitUntil:
+    visible: "Revert File to checkpoint"
+    timeout: 5000
+- assertVisible: "The checkpoint was last updated at: .*"
+- takeScreenshot: 02-the-renamed-file-still-has-its-checkpoint
+- tapOn: "Revert"
+- extendedWaitUntil:
+    notVisible: ".*typed_b.*"
+    timeout: 10000
+- assertVisible: ".*typed_a.*"
+- assertVisible:
+    text: "Save tab: renamed.py"
+    enabled: false
+- takeScreenshot: 03-reverted-to-the-save-clean

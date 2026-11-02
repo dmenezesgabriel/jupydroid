@@ -1,0 +1,71 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/save-all-open-tabs-driver.sh with autosave off, so an
+# edit stays unsaved until something writes it.
+#
+# `docmanager:save-all`, drawn where VS Code's Open Editors draws it - beside Close All
+# (vscode@3f3380c `contrib/files/browser/views/openEditorsView.ts`). A file and a notebook are each
+# edited, and one tap on the Running panel's Save All writes both, the one beneath the top included.
+# The driver reads both files from the disk afterwards.
+#
+# Save All's greyed state is read from the screenshots, not asserted: uiautomator reports every
+# section toolbar button enabled, Shut Down All over an empty section included, though Compose's own
+# semantics carry the disabled state (`RunningSidePanelTest.saveAllIsDisabledWhileNoTabOwesAWrite`).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "notes = \"seeded\"\\s*"
+    timeout: 10000
+- tapOn: "target.ipynb"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 1"
+    timeout: 30000
+- tapOn: "writer.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: writer.ipynb"
+    timeout: 30000
+
+# ---- a file and a notebook each owe a write ----
+- tapOn: "Tab: notes.py"
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_a"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: true
+- tapOn: "Tab: target.ipynb"
+- tapOn: "target_as_seeded = 1"
+- inputText: "0"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Unsaved changes"
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open Tabs"
+    timeout: 10000
+- takeScreenshot: 01-a-file-and-a-notebook-owe-a-write
+
+# ---- one tap writes both; the file beneath the top is clean when it comes up ----
+- tapOn: "Save All: Open Tabs"
+- extendedWaitUntil:
+    notVisible: "Unsaved changes"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: target.ipynb"
+    enabled: false
+- takeScreenshot: 02-save-all-wrote-both
+- tapOn: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: ".*typed_a.*"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: false
+- takeScreenshot: 03-the-file-beneath-was-written-too

@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider.
+# Driven by scripts/ai-chat-tool-call-driver.sh.
+#
+# The question has opencode use its read tool, which the persona's config lets run unasked (only
+# `edit` and `bash` ask). jupyter-ai's ACP client puts a tool call in a message of its own whose
+# body stays empty (`usr/lib/python3.12/site-packages/jupyter_ai_acp_client/tool_call_manager.py` in
+# the shipped rootfs). This flow waits only for the answer; the call's row is
+# chat-tool-calls-row.yaml's.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- tapOn: "Ask the agent"
+- inputText: "Use your read tool on probe.txt, then answer with only the word in it."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "Use your read tool.*"
+    timeout: 30000
+# probe.txt holds one word the question does not, so only the answer can match it.
+- extendedWaitUntil:
+    visible: "(?i)\\W*kumquat\\W*"
+    timeout: 300000
+- takeScreenshot: 01-the-answer-after-a-tool-call

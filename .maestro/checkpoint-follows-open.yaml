@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/checkpoint-follows-file-driver.sh with `old/gone.py`.
+#
+# Opening it makes its checkpoint in `old/.ipynb_checkpoints`, which the driver then reads, so the
+# delete that follows has one to remove.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "old"
+- extendedWaitUntil:
+    visible: "gone.py"
+    timeout: 10000
+- tapOn: "gone.py"
+- extendedWaitUntil:
+    visible: "Tab: gone.py"
+    timeout: 10000
+- takeScreenshot: 01-opened-so-it-has-a-checkpoint

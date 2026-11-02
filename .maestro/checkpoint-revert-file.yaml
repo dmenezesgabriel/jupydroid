@@ -1,0 +1,67 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/checkpoint-revert-driver.sh with autosave off and
+# `notes.py`, so an edit stays unsaved until something writes it.
+#
+# Opening makes the checkpoint and the strip's Save moves it, as `_maybeCheckpoint(false)` and
+# `docmanager:save`'s `createCheckpoint()` do (jupyterlab@7f0e690
+# `packages/docregistry/src/context.ts`, `packages/docmanager-extension/src/index.tsx`). A second
+# edit is then reverted from the tab's long-press menu: asked first, and the tab comes back clean
+# with the saved edit and without the second. The driver reads the file and the checkpoint.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "notes = \"seeded\"\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_a"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Save tab: notes.py"
+- extendedWaitUntil:
+    visible:
+      text: "Save tab: notes.py"
+      enabled: false
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed_b"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: true
+- takeScreenshot: 01-saved-then-edited-again
+
+# ---- the tab's menu ----
+- longPressOn: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: "Revert to Checkpoint…"
+    timeout: 5000
+- assertVisible: "Rename…"
+- assertVisible: "Save As…"
+- takeScreenshot: 02-the-tab-menu-offers-revert-to-checkpoint
+- tapOn: "Revert to Checkpoint…"
+- extendedWaitUntil:
+    visible: "Revert File to checkpoint"
+    timeout: 5000
+- assertVisible: "This cannot be undone."
+- assertVisible: "The checkpoint was last updated at: .*"
+- takeScreenshot: 03-asked-first-with-the-checkpoints-time
+- tapOn: "Revert"
+
+# ---- back to the save, clean ----
+- extendedWaitUntil:
+    notVisible: ".*typed_b.*"
+    timeout: 10000
+- assertVisible: ".*typed_a.*"
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: false
+- takeScreenshot: 04-reverted-to-the-save-clean

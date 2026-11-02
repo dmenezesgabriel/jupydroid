@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# Runs the seeded probe in base's own terminal, so opencode is fetched, installed and started inside
+# the Space under proot, as a user's install would be. Driven by
+# scripts/opencode-in-a-space-driver.sh, which reads the probe's answers back from the
+# workspace: the terminal canvas is not readable by an assertion (cross-cutting.md §8.6).
+#
+# TABLET ONLY: on the x86_64 emulator no Space runs.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+- tapOn:
+    id: "terminal-input"
+- inputText: "sh jd046-probe.sh; cat jd046-probe.txt"
+- pressKey: Enter
+- hideKeyboard
+- takeScreenshot: 01-probe-started

@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# Continues the T1 flows after a kill. Driven by scripts/save-as-demo-driver.sh.
+#
+# `launchApp` stops the process first, and the open tabs live in the process's `AppContainer`
+# (ADR-0092), so nothing is held in memory: both copies are opened again from the explorer, and what
+# they show is what Save As wrote to the disk. Each comes up clean. Then the notebook's copy is run:
+# the copied cell assigns and prints nothing, so a print is appended that only a kernel which ran
+# the copy's own `target_as_seeded = 10` can answer 70 to.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes-copy.py"
+- extendedWaitUntil:
+    visible: ".*typed_a.*"
+    timeout: 10000
+- assertVisible:
+    text: "Save tab: notes-copy.py"
+    enabled: false
+- takeScreenshot: 06-after-a-kill-the-file-copy-holds-the-edit
+- tapOn: "other.ipynb"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 10"
+    timeout: 30000
+- assertNotVisible: "Unsaved changes"
+- takeScreenshot: 07-after-a-kill-the-notebook-copy-holds-the-edit
+
+# ---- the notebook's copy runs ----
+- tapOn: "target_as_seeded = 10"
+- inputText: "; print(target_as_seeded * 7)"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible:
+      text: "70[\\s\\S]*"
+      childOf:
+        text: "Cell output"
+    timeout: 120000
+- takeScreenshot: 08-the-notebook-copy-runs

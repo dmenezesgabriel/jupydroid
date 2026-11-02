@@ -1,0 +1,46 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/save-as-new-name-driver.sh with autosave off,
+# `target.ipynb` and `other.ipynb`.
+#
+# A notebook saved as a name already taken: `_maybeOverWrite` asks before anything is replaced
+# (jupyterlab@7f0e690 `packages/docregistry/src/context.ts`), and Overwrite writes the edited cells
+# over `other.ipynb`, which opens with them. The driver reads both notebooks afterwards.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "target.ipynb"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 1"
+    timeout: 30000
+- tapOn: "target_as_seeded = 1"
+- inputText: "0"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "Unsaved changes"
+- longPressOn: "Tab: target.ipynb"
+- extendedWaitUntil:
+    visible: "Save As…"
+    timeout: 5000
+- tapOn: "Save As…"
+- extendedWaitUntil:
+    visible: "Save File As…"
+    timeout: 5000
+- inputText: "other"
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Overwrite file\\?"
+    timeout: 10000
+- takeScreenshot: 01-a-taken-name-asks-first
+- tapOn: "Overwrite"
+- extendedWaitUntil:
+    visible: "Tab: other.ipynb"
+    timeout: 30000
+- assertNotVisible: "Tab: target.ipynb"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 10"
+    timeout: 30000
+- assertNotVisible: "Unsaved changes"
+- takeScreenshot: 02-the-copy-opens-over-the-taken-name

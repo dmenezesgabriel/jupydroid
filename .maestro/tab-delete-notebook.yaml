@@ -1,0 +1,66 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/tab-delete-driver.sh with `kernel.ipynb` and
+# `other.py`.
+#
+# kernel.ipynb runs its cell, then other.py opens on top of it, and kernel.ipynb is deleted from
+# its tab *beneath*: the tab closes, other.py stays on top, and the kernel row leaves the Running
+# panel, as `deleteFile`'s `stopIfNeeded` stops it (jupyterlab@7f0e690
+# `packages/docmanager/src/manager.ts`).
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "kernel.ipynb"
+- extendedWaitUntil:
+    visible: "print\\(6 \\* 7\\)"
+    timeout: 30000
+- tapOn: "print\\(6 \\* 7\\)"
+- hideKeyboard
+- tapOn: "Run cell"
+# Generous: the first run on a fresh install starts the Space's kernel.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf:
+        text: "Cell output"
+    timeout: 180000
+# Out of edit mode, so the keyboard does not come back over the menu.
+- back
+- tapOn: "other.py"
+- extendedWaitUntil:
+    visible: "Tab: other.py"
+    timeout: 10000
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Open kernel session: kernel.ipynb"
+    timeout: 15000
+- takeScreenshot: 01-kernel-ran-beneath-other-py
+
+# ---- deleted from its tab beneath the top ----
+- longPressOn: "Tab: kernel.ipynb"
+- extendedWaitUntil:
+    visible: "Delete…"
+    timeout: 5000
+- tapOn: "Delete…"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: kernel.ipynb?"
+    timeout: 5000
+- takeScreenshot: 02-asked-first
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "Tab: kernel.ipynb"
+    timeout: 10000
+- assertVisible: "Tab: other.py"
+- assertVisible: "other = \"seeded\"\\s*"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 15000
+- extendedWaitUntil:
+    notVisible: "Open kernel session: kernel.ipynb"
+    timeout: 15000
+- takeScreenshot: 03-tab-closed-top-kept-kernel-row-gone

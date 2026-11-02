@@ -1,0 +1,81 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/tab-delete-driver.sh with autosave off and
+# `notes.py`, so an edit stays unsaved until something writes it.
+#
+# Delete from the tab's long-press menu, `docmanager:delete` bound to the tab with rename
+# (jupyterlab@7f0e690 `packages/docmanager-extension/schema/plugin.json`): asked in the browser's
+# words, Cancel keeps the tab and its unsaved edit, and Delete closes the tab without asking about
+# that edit, as `deleteWidgets` disposes it. The driver reads the disk.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "notes.py"
+- extendedWaitUntil:
+    visible: "notes = \"seeded\"\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # typed"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: true
+
+# ---- the tab's menu ----
+- longPressOn: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: "Delete…"
+    timeout: 5000
+- assertVisible: "Rename…"
+- assertVisible: "Save As…"
+- assertVisible: "Revert to Checkpoint…"
+- takeScreenshot: 01-the-tab-menu-offers-delete
+- tapOn: "Delete…"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: notes.py?"
+    timeout: 5000
+- takeScreenshot: 02-asked-first
+
+# ---- Cancel keeps the tab and its edit ----
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Are you sure you want to permanently delete: notes.py?"
+    timeout: 5000
+- assertVisible: "Tab: notes.py"
+- assertVisible: ".*# typed.*"
+- assertVisible:
+    text: "Save tab: notes.py"
+    enabled: true
+- takeScreenshot: 03-cancel-kept-the-tab-dirty
+
+# ---- Delete closes it, unasked about the edit ----
+# Recents cleared first, for the reason explorer-rename-open-document.yaml gives: an opened file is
+# listed twice, and the absence below must be the listing's.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- longPressOn: "Tab: notes.py"
+- extendedWaitUntil:
+    visible: "Delete…"
+    timeout: 5000
+- tapOn: "Delete…"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: notes.py?"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "Tab: notes.py"
+    timeout: 10000
+- assertNotVisible: "Save your work"
+- extendedWaitUntil:
+    notVisible: "notes.py"
+    timeout: 15000
+- takeScreenshot: 04-deleted-tab-closed-and-file-gone

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The demo's terminal, which jd-046-opencode-in-a-space.yaml opened after a fresh install and left
+# The demo's terminal, which opencode-in-a-space.yaml opened after a fresh install and left
 # at the prompt once opencode was installed: a long press on `jupydroid-select` selects it, and the
 # platform's floating text toolbar over it offers Copy and Paste. Run by
 # scripts/terminal-demo-driver.sh.

@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Brings base's `jupyter_server` up so the driver can open jupyterlab-chat's WebSocket on it.
+#
+# The flow's whole job is the side effect: entering a Space runs its server, and the server is what
+# the driver then talks to over `adb forward`. Nothing on screen changes in this step, since no
+# panel opens a chat yet.
+#
+# TABLET ONLY: on the x86_64 emulator no Space runs and no server is started.
+#
+# Driven by scripts/chat-server-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- takeScreenshot: 01-base-entered

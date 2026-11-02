@@ -8,7 +8,7 @@
 #   nice -n 10 timeout 2400 scripts/chat-several-demo-driver.sh
 #
 # Run from a fresh install, the app's state wiped first: `fresh_install` (scripts/maestro-run.sh),
-# then scripts/jd-046-opencode-in-a-space-driver.sh, then a person signs opencode in from base's
+# then scripts/opencode-in-a-space-driver.sh, then a person signs opencode in from base's
 # terminal - their own credential, which no script types, and which opencode keeps in its database
 # rather than in a file a driver could wait for.
 #
@@ -38,7 +38,7 @@ fail() { echo "$1" >&2; exit 1; }
 
 require_installed_app
 "${DEVICE_ADB[@]}" shell "run-as $APP test -x files/spaces/base/usr/local/bin/opencode" ||
-  fail "opencode is not installed in base: run scripts/jd-046-opencode-in-a-space-driver.sh first"
+  fail "opencode is not installed in base: run scripts/opencode-in-a-space-driver.sh first"
 # The dot directories stay, and opencode's sign-in with them (`~/.local/share/opencode`).
 reset_notebooks
 rotate_to 1

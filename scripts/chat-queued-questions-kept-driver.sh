@@ -11,7 +11,7 @@
 # it holds it afterwards asked once and answered 4.
 #
 # TABLET ONLY (SM-X216B): the chat is answered in a running Space's server, which only arm64 ships.
-# Needs opencode installed in base (scripts/jd-046-opencode-in-a-space-driver.sh).
+# Needs opencode installed in base (scripts/opencode-in-a-space-driver.sh).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -42,7 +42,7 @@ read_chat() { "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/untitled
 
 require_installed_app
 "${DEVICE_ADB[@]}" shell "run-as $APP test -x files/spaces/base/usr/local/bin/opencode" ||
-  fail "opencode is not installed in base: run scripts/jd-046-opencode-in-a-space-driver.sh first"
+  fail "opencode is not installed in base: run scripts/opencode-in-a-space-driver.sh first"
 # The dot directories stay, and opencode's sign-in with them (`~/.local/share/opencode`).
 reset_notebooks
 "${DEVICE_ADB[@]}" shell "run-as $APP rm -f $KEPT $SPACE_RUN_DIR/jupyter_server.log"

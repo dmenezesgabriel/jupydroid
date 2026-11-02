@@ -1,0 +1,57 @@
+appId: com.android.chrome
+---
+# Chrome has just downloaded `Shared analysis.ipynb` - the driver sent it an `http://localhost`
+# URL it cannot render - and this flow opens chrome://downloads itself, since which tab the
+# download leaves in front is Chrome's to choose. The entry the tap names is this run's own:
+# its caption carries the driver's ephemeral port (${MAESTRO_PORT}), which no earlier run's
+# stale row shares, and "Just now" is the date group only a download this minute gets. The
+# tap fires the VIEW the browser makes: a `content://` URI from Chrome's own FileProvider,
+# under `DEFAULT`, with a read grant - the caller ADR-0124 keeps the door for. Run by
+# scripts/import-filter-not-browsable-driver.sh.
+#
+# TABLET ONLY (SM-X216B): Chrome is the browser ADR-0124 names; the emulator carries none.
+# An overflow menu left drawn on an earlier session outlives force-stop and hides the url
+# bar behind itself; "New Incognito tab" exists only inside that menu, so Back is a
+# conditional dismiss - skipped when the page is already bare.
+- runFlow:
+    when:
+      visible: "New Incognito tab"
+    commands:
+      - pressKey: Back
+- extendedWaitUntil:
+    visible:
+      id: "com.android.chrome:id/url_bar"
+    timeout: 30000
+- tapOn:
+    id: "com.android.chrome:id/url_bar"
+- inputText: "chrome://downloads"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      text: "Just now"
+      id: "com.android.chrome:id/date"
+    timeout: 30000
+- assertVisible:
+    text: "Shared analysis\\.ipynb"
+    id: "com.android.chrome:id/title"
+- assertVisible:
+    text: ".*localhost:${MAESTRO_PORT}.*"
+    id: "com.android.chrome:id/caption"
+- takeScreenshot: 00-downloaded-in-chrome
+- tapOn:
+    text: ".*localhost:${MAESTRO_PORT}.*"
+    id: "com.android.chrome:id/caption"
+- extendedWaitUntil:
+    visible: "Open with"
+    timeout: 10000
+- takeScreenshot: 01-open-with-from-downloads
+- tapOn:
+    text: "JupyterDroid"
+    id: "android:id/text1"
+# This resolver is not My Files': its row tap both selects and fires, so "Just once" is
+# already gone - tapped only when the select-then-confirm half is the one that drew.
+- runFlow:
+    when:
+      visible: "Just once"
+    commands:
+      - tapOn: "Just once"

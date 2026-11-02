@@ -30,4 +30,4 @@ silent.
 
 The size named is the limit, not the file's own: the loop stops at the bound and never learns more.
 A refused import leaves nothing in the workspace, on the device, after a relaunch
-(`scripts/jd-073-import-too-large-driver.sh`).
+(`scripts/import-too-large-driver.sh`).

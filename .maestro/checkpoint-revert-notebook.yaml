@@ -1,0 +1,48 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/checkpoint-revert-driver.sh with autosave off and
+# `target.ipynb`.
+#
+# A notebook reverts as a file does: saved from the strip, edited again, and Revert to Checkpoint
+# puts back the saved cell, with the notebook's own words, and no unsaved changes left.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "target.ipynb"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 1"
+    timeout: 30000
+- tapOn: "target_as_seeded = 1"
+- inputText: "0"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Save tab: target.ipynb"
+- extendedWaitUntil:
+    notVisible: "Unsaved changes"
+    timeout: 10000
+- tapOn: "target_as_seeded = 10"
+- inputText: "0"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible: "target_as_seeded = 100"
+- assertVisible: "Unsaved changes"
+- takeScreenshot: 01-saved-then-edited-again
+- longPressOn: "Tab: target.ipynb"
+- extendedWaitUntil:
+    visible: "Revert to Checkpoint…"
+    timeout: 5000
+- tapOn: "Revert to Checkpoint…"
+- extendedWaitUntil:
+    visible: "Revert Notebook to checkpoint"
+    timeout: 5000
+- takeScreenshot: 02-asked-first
+- tapOn: "Revert"
+- extendedWaitUntil:
+    visible: "target_as_seeded = 10"
+    timeout: 30000
+- assertNotVisible: "target_as_seeded = 100"
+- assertNotVisible: "Unsaved changes"
+- takeScreenshot: 03-reverted-to-the-save-clean

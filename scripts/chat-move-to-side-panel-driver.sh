@@ -41,7 +41,7 @@ completed_turns() { grep -c "prompt_and_reply: completed" "$1" || true; }
 
 require_installed_app
 "${DEVICE_ADB[@]}" shell "run-as $APP test -x files/spaces/base/usr/local/bin/opencode" ||
-  fail "opencode is not installed in base: run scripts/jd-046-opencode-in-a-space-driver.sh first"
+  fail "opencode is not installed in base: run scripts/opencode-in-a-space-driver.sh first"
 # The provider's name only: the key itself never leaves the device.
 "${DEVICE_ADB[@]}" shell "run-as $APP grep -q '\"openrouter\"' $OPENCODE_AUTH" ||
   fail "base holds no OpenRouter key in $OPENCODE_AUTH: a person puts their own there"

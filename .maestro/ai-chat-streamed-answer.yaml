@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base, with opencode installed in base and signed in to a provider.
+# Driven by scripts/ai-chat-streamed-answer-driver.sh.
+#
+# The Chat panel is the AI extension's (ADR-0104). It sends the question to opencode's persona,
+# which appends each of the agent's chunks to one chat message by id (`_handle_agent_message_chunk`,
+# `usr/lib/python3.12/site-packages/jupyter_ai_acp_client/default_acp_client.py` in the shipped
+# rootfs). The question asks for no tool, so no permission request stands between it and the answer.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+- takeScreenshot: 01-chat-opened
+- tapOn: "Ask the agent"
+- inputText: "Count from 1 to 40, one number per line, and nothing else."
+- hideKeyboard
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: "Count from 1 to 40.*"
+    timeout: 30000
+- takeScreenshot: 02-question-sent
+# The first message spawns `opencode acp` under proot and the model answers over the network, so
+# the bound is generous. Any start of the count is enough here: this frame is taken while the answer
+# may still be growing.
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3.*"
+    timeout: 300000
+- takeScreenshot: 03-the-answer-arrives
+- extendedWaitUntil:
+    visible: "1\\s+2\\s+3.*\\b40\\s*"
+    timeout: 120000
+- takeScreenshot: 04-the-answer-whole

@@ -1,0 +1,53 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/tab-duplicate-driver.sh with `kernel.ipynb`.
+#
+# A notebook duplicated from its tab is named with the suffix last, `kernel-Copy1.ipynb`, as
+# `increment_filename` reads a notebook's suffix from the right (`services/contents/manager.py`).
+# The copy is a notebook in its own right: it opens and its cell runs.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "kernel.ipynb"
+- extendedWaitUntil:
+    visible: "print\\(6 \\* 7\\)"
+    timeout: 30000
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+- longPressOn: "Tab: kernel.ipynb"
+- extendedWaitUntil:
+    visible: "Duplicate"
+    timeout: 5000
+- tapOn: "Duplicate"
+- extendedWaitUntil:
+    visible: "kernel-Copy1.ipynb"
+    timeout: 15000
+- assertVisible: "Tab: kernel.ipynb"
+- takeScreenshot: 01-notebook-copy-listed-tab-stays
+
+# ---- the copy opens and runs ----
+- tapOn: "kernel-Copy1.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: kernel-Copy1.ipynb"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "print\\(6 \\* 7\\)"
+    timeout: 30000
+- tapOn: "print\\(6 \\* 7\\)"
+- hideKeyboard
+- tapOn: "Run cell"
+# Generous: the first run on a fresh install starts the Space's kernel.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf:
+        text: "Cell output"
+    timeout: 180000
+- back
+- takeScreenshot: 02-the-copy-ran-its-cell

@@ -7,7 +7,7 @@
 #   nice -n 10 timeout 3600 scripts/chat-queued-questions-demo-driver.sh
 #
 # Run from a fresh install, the app's state wiped first: `fresh_install` (scripts/maestro-run.sh),
-# then scripts/jd-046-opencode-in-a-space-driver.sh, then a person signs opencode in from base's
+# then scripts/opencode-in-a-space-driver.sh, then a person signs opencode in from base's
 # terminal - their own credential, which no script types.
 #
 # Exits non-zero if a flow fails; if the server logged a cancel, or anything but three turns each
@@ -47,7 +47,7 @@ read_chat() { "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/untitled
 
 require_installed_app
 "${DEVICE_ADB[@]}" shell "run-as $APP test -x files/spaces/base/usr/local/bin/opencode" ||
-  fail "opencode is not installed in base: run scripts/jd-046-opencode-in-a-space-driver.sh first"
+  fail "opencode is not installed in base: run scripts/opencode-in-a-space-driver.sh first"
 # The dot directories stay, and opencode's sign-in with them (`~/.local/share/opencode`).
 reset_notebooks
 "${DEVICE_ADB[@]}" shell "run-as $APP rm -f $KEPT $SPACE_RUN_DIR/jupyter_server.log"

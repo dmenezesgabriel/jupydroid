@@ -1845,7 +1845,7 @@ recomposes.
 
 ### GAP-181 — A Space stops under an open, idle terminal, and the tab it leaves drops what is typed
 
-On SM-X216B on 2026-10-24, after a fresh install, `scripts/jd-046-opencode-in-a-space-driver.sh` ran
+On SM-X216B on 2026-10-24, after a fresh install, `scripts/opencode-in-a-space-driver.sh` ran
 its probe in base's terminal. The probe ended at about 14:16, and the app stayed in front with that
 terminal tab open and idle. At 14:25, `ps -A` held only `com.jupydroid.app` for the app's uid: no
 `libproot.so`, no `jupyter_server`, no `sh`. The app's process was the same one started at 14:14:42

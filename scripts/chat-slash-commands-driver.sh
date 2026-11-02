@@ -41,7 +41,7 @@ dump_hierarchy() { # dump_hierarchy <dest>
 
 require_installed_app
 "${DEVICE_ADB[@]}" shell "run-as $APP test -x files/spaces/base/usr/local/bin/opencode" ||
-  fail "opencode is not installed in base: run scripts/jd-046-opencode-in-a-space-driver.sh first"
+  fail "opencode is not installed in base: run scripts/opencode-in-a-space-driver.sh first"
 # The dot directories stay, and opencode's sign-in with them (`~/.local/share/opencode`).
 reset_notebooks
 rotate_to 0

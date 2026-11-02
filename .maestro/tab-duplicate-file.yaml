@@ -1,0 +1,74 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/tab-duplicate-driver.sh with `other.py`.
+#
+# Duplicate from the tab's long-press menu, `docmanager:duplicate`, ranked just before delete on
+# the tab (jupyterlab@7f0e690 `packages/docmanager-extension/schema/plugin.json`): the file is
+# copied beside itself under jupyter_server's `-Copy<n>` name, nothing opens, and the tab stays.
+# A copy of a copy counts from the original's name, as the server strips `-Copy\d*.` first
+# (`services/contents/manager.py`, `copy`). The explorer lists a copy at its next poll, at most
+# 10 s later. The driver compares each copy with `other.py` on disk.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "other.py"
+- extendedWaitUntil:
+    visible: "other = \"seeded\"\\s*"
+    timeout: 10000
+# Recents cleared, for the reason explorer-rename-open-document.yaml gives: an opened file is
+# listed twice, and each name waited for below must be the listing's.
+- tapOn: "Recent actions"
+- tapOn: "Clear Recent Documents"
+- extendedWaitUntil:
+    notVisible: "Recent"
+    timeout: 5000
+
+# ---- the tab's menu ----
+- longPressOn: "Tab: other.py"
+- extendedWaitUntil:
+    visible: "Duplicate"
+    timeout: 5000
+- assertVisible: "Revert to Checkpoint…"
+- assertVisible: "Delete…"
+- takeScreenshot: 01-the-tab-menu-offers-duplicate-above-delete
+
+# ---- the first copy, and the tab stays ----
+- tapOn: "Duplicate"
+- extendedWaitUntil:
+    visible: "other-Copy1.py"
+    timeout: 15000
+- assertVisible: "Tab: other.py"
+- assertNotVisible: "Tab: other-Copy1.py"
+- assertVisible: "other = \"seeded\"\\s*"
+- takeScreenshot: 02-copy1-listed-tab-stays
+
+# ---- the second counts on ----
+- longPressOn: "Tab: other.py"
+- extendedWaitUntil:
+    visible: "Duplicate"
+    timeout: 5000
+- tapOn: "Duplicate"
+- extendedWaitUntil:
+    visible: "other-Copy2.py"
+    timeout: 15000
+- assertVisible: "Tab: other.py"
+- takeScreenshot: 03-copy2-listed
+
+# ---- a copy of a copy counts from the original's name ----
+- tapOn: "other-Copy1.py"
+- extendedWaitUntil:
+    visible: "Tab: other-Copy1.py"
+    timeout: 10000
+- assertVisible: "other = \"seeded\"\\s*"
+- longPressOn: "Tab: other-Copy1.py"
+- extendedWaitUntil:
+    visible: "Duplicate"
+    timeout: 5000
+- tapOn: "Duplicate"
+- extendedWaitUntil:
+    visible: "other-Copy3.py"
+    timeout: 15000
+- assertVisible: "Tab: other-Copy1.py"
+- assertNotVisible: "other-Copy1-Copy1.py"
+- takeScreenshot: 04-copy-of-copy1-is-copy3
