@@ -270,12 +270,24 @@ One TDD unit each, one conventional commit each.
     `p7e2-pip.txt`/`p7e2-jupyter.txt` -> `pip-version.txt`/`jupyter-version.txt`, each holding that
     script's version and rc. Both flows ran on the tablet with the new names.
     `.maestro/[a-c]*.yaml` is the glob.
-  - [ ] T8e2 — `.maestro/[d-m]*.yaml` (107 hits in 64 flows, plus 29 ids no gate pattern matches in 22
-    flows, 11 of those not among the 64, and the device names those flows type:
-    `jd046-importtime-*`, `jd058-opencode-version.txt`, `p5b-*`, `p8d-*`, `p8g-*`).
-    `.maestro/[d-m]*.yaml` is the glob.
+  - [x] T8e2 — `.maestro/[d-m]*.yaml` (152 of the 690 flows, 107 hits in 64 of them, plus ids no gate
+    pattern matches in about 23 more), now 0, 77 flows touched. The same rules as T8e1. The device
+    names say what they are: `jd046-importtime-*` -> `acp-importtime-*` (not plain `importtime.txt`,
+    which `git-panel-branch.yaml` already writes into the same workspace), `jd058-opencode-version.txt`
+    -> `opencode-version.txt`, `p5b-*` -> `pylsp-*`, `p8d-alpha`/`-beta` -> `document-alpha`/`-beta`,
+    and the kernel picker's `P8g Provider|Consumer|Emulator` -> `Kernel Picker …`, `p8g-echo` ->
+    `echo-kernel`, `p8g_shared` -> `provider_shared`. `P8G_KERNEL` -> `PICKER_KERNEL` is a literal no
+    gate pattern matches; it surfaced only in a device frame, so a rename the gate cannot see is
+    checked by a case-insensitive `git grep` of the old stem and a look at the frame. `.maestro/[d-m]*.yaml`
+    is the glob.
   - [ ] T8f — `.maestro/[n-z]*.yaml` (225 hits in 115 flows), the same way, and split again when
-    opened if its first count says so.
+    opened if its first count says so. It also owns the two device names T8e2 left because their flows
+    are all in this range: `jd046-probe.sh`/`.txt` (`.maestro/fixtures/opencode-probe.sh`, typed by
+    `opencode-in-a-space.yaml` and `reinstall-demo-after.yaml`, read by `opencode-in-a-space-driver.sh`,
+    `keep-app-data-driver.sh`, `reinstall-demo-driver.sh` and `terminal-demo-driver.sh`) and
+    `jd058-console*` (`.maestro/fixtures/console-accounts.sh`, typed by `reinstall-demo-*.yaml`, read
+    by `reinstall-demo-driver.sh`), plus the `P5b` in `pylsp.yaml:51` and `P8g`-style upper-case
+    literals the gate's patterns skip. Rename each with every reader in one commit.
   - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
     names, kernelspec names). No gate reads a string literal, so the commit body names the `git grep` that
     measured it.
