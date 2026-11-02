@@ -55,6 +55,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 # The tests run `git ls-files` and the fixture with this interpreter, from literal argv.
 "scripts/check_device_secrets_test.py" = ["S607"]
 "scripts/read_history_markers_test.py" = ["S603", "S607"]
+"scripts/rewrite_history.py" = ["S603", "S607"]
+"scripts/rewrite_history_test.py" = ["S603", "S607"]
 # The test sources java-home.sh with `sh` and a fixture HOME; the argv is literal.
 "scripts/java_home_test.py" = ["S603", "S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]

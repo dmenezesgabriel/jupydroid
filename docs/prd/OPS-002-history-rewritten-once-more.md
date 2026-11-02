@@ -77,7 +77,7 @@ One TDD unit each, one conventional commit each.
   messages and in file names; the paths of `token-carrier-paths.txt` that ever had a credential added).
   Exits non-zero on any hit. The identity is not a class: one is expected afterwards, which is not a
   zero, so Demo step 3 reads it with `git log`. Red test first, on a fixture repo built in a tmp dir.
-- [ ] T2 — `scripts/rewrite_history.py`: the rules file (`token-carriers.txt`, `.sensitive-strings.local`,
+- [x] T2 — `scripts/rewrite_history.py`: the rules file (`token-carriers.txt`, `.sensitive-strings.local`,
   `read_personal_data.py --scrub-rules`), the run-time mailmap, and the `git filter-repo` argv. One rules
   file feeds both `--replace-text` and `--replace-message`; `--prune-empty never`. Builders unit tested, one
   fixture-repo test runs it end to end.
