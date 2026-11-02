@@ -1,0 +1,76 @@
+appId: com.jupydroid.app
+---
+# P2g-3: `notebook:toggle-autoclosing-brackets`, universal - `fileeditor:toggle-autoclosing-brackets-universal`
+# on the reference, one setting reaching notebook cells and the plain file editor alike since both
+# already share `PythonTypingRules`.
+#
+# **WIDE WINDOW** (>= 600dp), for `bracket-match-highlight`'s reason and not a new one: a tap on a
+# one-line cell has to land past the end of its text for the caret to be where this flow assumes
+# it is, which holds only while the field is wider than the line - at 320dp the tap lands inside
+# the text instead. `scripts/run-all-flows.sh` reads the marker and skips the flow elsewhere.
+#
+# Seeded by scripts/autoclosing-brackets-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Autoclose Brackets.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Autoclose Brackets.ipynb"
+- extendedWaitUntil:
+    visible: "value = "
+    timeout: 30000
+- takeScreenshot: 01-on-by-default
+# Past the end of the short line, the same trick bracket-match-highlight uses.
+- tapOn: "value = "
+- inputText: "("
+# On by default: the app's own resting state, a departure from the reference's own `default: false`,
+# kept as the reference's (ADR-0036).
+- assertVisible: "value = \\(\\)"
+- takeScreenshot: 02-typing-a-paren-closes-it
+- tapOn: "Notebook actions"
+- assertVisible: "Disable auto-closing brackets"
+- tapOn: "Disable auto-closing brackets"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "value = \\(\\)"
+- inputText: "("
+# No closing paren was added - a lone `(` past the pair already there.
+- assertVisible: "value = \\(\\)\\("
+- assertNotVisible: "value = \\(\\)\\(\\)"
+- takeScreenshot: 03-off-the-typed-paren-stays-alone
+- tapOn: "Notebook actions"
+- assertVisible: "Enable auto-closing brackets"
+- takeScreenshot: 04-the-view-menu-now-offers-to-enable
+# Dismiss rather than re-tap the button: it opened the menu and is now behind it, so the popup is
+# what has to close first, not what gets tapped again.
+- back
+# Never mind the toggle itself: the write is what has to survive the app dying, not the debounce
+# a cell edit needs - `editorSettingsRepository.update` runs the moment the row is tapped.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Autoclose Brackets.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Autoclose Brackets.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*value = .*"
+    timeout: 30000
+- tapOn: "Notebook actions"
+# Still off after the app died and came back - the whole point of the port, not session state.
+- assertVisible: "Enable auto-closing brackets"
+- takeScreenshot: 05-still-off-after-the-app-died
+# Left as the app's own default, so no flow run after this one on the same device is typing
+# against a setting nobody chose for it - reset_notebooks clears it too, but a flow should not
+# depend on running after this one for that.
+- tapOn: "Enable auto-closing brackets"
+- waitForAnimationToEnd:
+    timeout: 5000

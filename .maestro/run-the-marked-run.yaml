@@ -1,0 +1,65 @@
+appId: com.jupydroid.app
+---
+# P2d-3: a marked run is something you can *run*, and running it lets it go.
+#
+# P2c made the operand of every cell command the marked run and deliberately stopped there, so its
+# flows could stay off the kernel. This is the half that was left: `Private.runSelected` filters
+# `isSelectedOrActive` like every one of those commands (`packages/notebook/src/actions.tsx:3009`),
+# then moves the head to the last cell of the run and `deselectAll()`s before running it.
+#
+# Three cells printing 15, 24 and 63 - no product appears in the source that makes it.
+#
+#   1. **The operand is the run.** Two marked, one tap, two results.
+#   2. **And only the run.** The third cell stays un-run, which is what says the command is not a
+#      Run All under another name.
+#   3. **Running lets the selection go**, so the contextual bar is replaced by the notebook's own
+#      while the cells are still going.
+#
+# Seeded by scripts/run-the-marked-run-driver.sh; clearState would delete the fixture.
+- launchApp
+- runFlow: open-base-space.yaml
+# Home's list is populated by a disk scan, and a scroll started before it has rendered ends
+# rather than retrying - so let the launch settle first.
+- waitForAnimationToEnd:
+    timeout: 5000
+# Scrolled to rather than asserted on: Home is sorted by recency, so a seeded notebook
+# sinks below the fold as soon as anything else is saved.
+- scrollUntilVisible:
+    element:
+      text: "Run The Marked Run.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Run The Marked Run.ipynb"
+- extendedWaitUntil:
+    visible: "print\\(3 \\* 5\\)"
+    timeout: 30000
+- takeScreenshot: 01-three-cells-nothing-run
+
+# The touch way into multi-select: a row in the cell's own menu, because a long press is
+# BasicTextField's text selection and is not available to us.
+- tapOn:
+    text: "Cell actions"
+    index: 0
+- tapOn: "Cell menu Select cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "1 cell selected"
+# A tick on a cell is the extend gesture here - the touch analogue of a shift-click.
+- tapOn: "Select cell 2"
+- assertVisible: "2 selected"
+- takeScreenshot: 02-two-cells-marked
+
+- tapOn: "Run selected cells"
+# Generous: the first run of the session installs the Space if needed and starts jupyter_server.
+- extendedWaitUntil:
+    visible: "15"
+    timeout: 120000
+- assertVisible: "24"
+# The cell outside the run was not touched, which is what makes this a *ranged* run and not Run All.
+- assertNotVisible: "63"
+# `runSelected` deselects before it runs, so the contextual bar is gone and the notebook's own is
+# back. Named by a control only that bar has - a count assertion alone would pass on a bar that had
+# simply changed its number.
+- assertVisible: "Back to files"
+- assertNotVisible: "2 selected"
+- takeScreenshot: 03-the-run-ran-and-the-selection-went

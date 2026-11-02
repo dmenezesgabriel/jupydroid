@@ -1,0 +1,64 @@
+appId: com.jupydroid.app
+---
+# P2k-3: `accessKernelHistory`, the setting the two `notebook:access-*-history-entry` commands are
+# gated on - off until asked for, which is the reference's own default and its own instruction to
+# the user (`docs/source/user/notebook.md:191`).
+#
+# Runs no cell, so any device will do: what is asserted is a menu row and a file, not a kernel.
+#
+# Seeded by scripts/kernel-history-setting-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Kernel History Setting.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Kernel History Setting.ipynb"
+- extendedWaitUntil:
+    visible: "gamma = 7"
+    timeout: 30000
+- tapOn: "Notebook actions"
+# Off out of the box, so the row offers to turn it on - the one setting in this app that keeps the
+# reference's own default rather than departing from it.
+- assertVisible: "Enable kernel history access"
+- assertNotVisible: "Disable kernel history access"
+- takeScreenshot: 01-off-by-default
+- tapOn: "Enable kernel history access"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Notebook actions"
+# The label names what tapping will do, so it flips with the state - a check mark is a state no flow
+# can read.
+- assertVisible: "Disable kernel history access"
+- takeScreenshot: 02-on-and-the-row-flipped
+# Dismiss rather than re-tap the button: it opened the menu and is now behind it, so the popup is
+# what has to close first, not what gets tapped again.
+- back
+# The write is what has to survive the app dying. `editorSettingsRepository.update` runs the moment
+# the row is tapped - there is no debounce here, unlike a cell edit.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Kernel History Setting.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Kernel History Setting.ipynb"
+- extendedWaitUntil:
+    visible: "gamma = 7"
+    timeout: 30000
+- tapOn: "Notebook actions"
+# Still on after the app died and came back, which is the port's whole point: `EditorSettings` is
+# written whole, so a new field that failed to serialise would read back as its default here.
+- assertVisible: "Disable kernel history access"
+- takeScreenshot: 03-still-on-after-the-app-died
+# The flow deliberately ends with the setting **on**, unlike `autoclosing-brackets`, which taps its own row back.
+# The driver's next step reads `editor-settings.json` off the device, and a last tap here would
+# have overwritten the very value that check exists to see; restoring the default is the driver's
+# job instead, and it does it by deleting the store rather than by tapping.

@@ -18,7 +18,7 @@ appId: com.jupydroid.app
 # a pane that is not there. There is no one-pane half of this to capture.
 #
 # The flow ends on that frame on purpose: maestro leaves the app where the last step put it, and
-# the driver's `uiautomator dump` is taken there (`scripts/p2n-gutter-driver.sh`'s own pattern).
+# the driver's `uiautomator dump` is taken there (`scripts/cell-header-prompts-driver.sh`'s own pattern).
 #
 # Seeded by scripts/p7a-1b-list-selection-driver.sh; clearState would delete the fixture. No cell is
 # run, so this needs the width and not the arm64 kernel.

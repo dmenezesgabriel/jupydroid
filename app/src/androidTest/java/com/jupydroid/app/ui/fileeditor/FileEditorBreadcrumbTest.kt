@@ -152,7 +152,7 @@ class FileEditorBreadcrumbTest {
 /** `ROOT_LABEL` - the crumb whose path is the empty string, since a blank target is not tappable. */
 private const val ROOT = "Workspace"
 
-/** The same folder `p2w-1-breadcrumb`'s fixtures use, so the two trails are read the same way. */
+/** The same folder `notebook-breadcrumb-trail`'s fixtures use, so the two trails are read the same way. */
 private const val FOLDER = "reports"
 
 /** Any dismiss control's label - the strip's destination-named arrows all begin with it. */

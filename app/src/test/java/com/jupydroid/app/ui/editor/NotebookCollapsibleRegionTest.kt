@@ -10,8 +10,8 @@ import org.junit.Test
  * its toolbar in single-document mode (`packages/application/style/titlepanel.css:10-37`,
  * `packages/application/src/shell.ts:690-705`) - and on a phone it costs what the reference's 28px
  * strip does not. Measured: 48dp of notebook at 320dp, which put a fourth cell's source under the
- * bottom bar and was caught by four flows at once (`p2b-split`, `p2c-batch-delete`,
- * `p2f-4-insert-heading`, `p2i-4-next-previous`).
+ * bottom bar and was caught by four flows at once (`split-code-cell`, `batch-delete`,
+ * `insert-heading`, `next-previous`).
  *
  * Material's answer to a two-row bar is that the second row is not free and does not pretend to
  * be: it collapses as the content scrolls. The name is there when you are at the top of the

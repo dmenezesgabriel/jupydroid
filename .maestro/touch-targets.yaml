@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# P2l-4: the two rows in this app built from a bare `clickable`, in one frame.
+#
+# Seeded by scripts/touch-targets-driver.sh; clearState would delete the fixture.
+#
+# **The claim this exists to let a reader check is a height, and it is a pair.** Neither row
+# reserved Material's 48dp minimum: `CollapsedCell` measured 32dp (its own 8dp padding around one
+# `bodySmall` line) and `HiddenCellsRow` 40dp (8 + a 24dp icon + 8). Compose expands the *hit area*
+# of any clickable out to 48dp on its own, which is why every assertion in the suite was green -
+# but that expansion loses to a neighbour's direct hit, and both rows sit in a `LazyColumn` between
+# an editor and a header. So the fix reserves the space rather than borrowing it.
+#
+# **The flow's job is to put both rows on screen; the driver's is to measure them.** It ends here
+# rather than tapping them, because what a tap does to each is already driven, on the tablet, by
+# `collapse-source` and `collapsed-section` - and a second copy of that would be two flows
+# to keep in step.
+#
+# Emulator or tablet: this flow runs no cell, so it needs no Space runtime. Driven on the emulator,
+# which is at density 160 - so a bound in `uiautomator dump` is a dp with no arithmetic between.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Touch Targets.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Touch Targets.ipynb"
+# The folded cell's placeholder: its first non-empty line, which is what names the fold.
+- extendedWaitUntil:
+    visible: "folded = 'this cell is collapsed'"
+    timeout: 30000
+# The folded heading's row, and the proof the section really is folded away.
+- assertVisible: "2 cells hidden"
+- assertNotVisible: "one = 1"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-both-bare-clickable-rows

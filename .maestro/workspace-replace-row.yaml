@@ -1,0 +1,67 @@
+appId: com.jupydroid.app
+---
+# P2x-5e: the replace row on the search panel - the chevron that discloses it, the box behind it,
+# and the preserve-case toggle inside the box.
+#
+# `.replace-container.disabled` until `onToggleReplaceButton` opens it (`searchWidget.ts:553`,
+# `:600-616`); the placeholder is *"Replace"* (`:559`) and `ReplaceInput` carries exactly one
+# toggle, `Codicon.preserveCase` (`replaceInput.ts:119-124`). VS Code answers both halves of this
+# panel: JupyterLab registers no workspace search at all.
+#
+# **The chevron has a column of its own on this row, where the reference spans it across both
+# inputs, and that is a measurement** - the query box is 336dp here and three 48dp toggles already
+# leave it 192dp (`evidence/workspace-search-options/box.txt`). This flow therefore **ends with the row
+# open**, so the driver's `uiautomator dump` reads the state the decision is about.
+#
+# **Nothing is replaced here.** Replace All arrives with the action behind it (P2x-5f); a control
+# that does nothing when tapped is one this app does not draw.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
+# this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+- tapOn:
+    text: "^Search$"
+# --- closed is where the row starts, and the chevron is what says so ---------------------------
+- assertVisible: "Show replace"
+- assertNotVisible: "Replace across the workspace"
+- assertNotVisible: "Preserve case"
+- takeScreenshot: 01-the-chevron-with-the-row-closed
+# --- the chevron opens it, and flips its own name ----------------------------------------------
+- tapOn: "Show replace"
+- assertVisible: "Hide replace"
+- assertNotVisible: "Show replace"
+- assertVisible: "Replace across the workspace"
+- assertVisible: "Preserve case"
+- takeScreenshot: 02-the-replace-row-open
+# --- and closes it again, which is the half that makes it a disclosure ------------------------
+- tapOn: "Hide replace"
+- assertNotVisible: "Replace across the workspace"
+- assertVisible: "Show replace"
+- takeScreenshot: 03-the-row-closed-again
+- tapOn: "Show replace"
+# --- the box holds what is typed into it, and changes nothing that was found -------------------
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- hideKeyboard
+- tapOn: "Replace across the workspace"
+- inputText: "dog"
+- hideKeyboard
+# The walk's own answer is untouched: a replacement is not part of the query.
+- assertVisible: "5 results in 2 files"
+- takeScreenshot: 04-a-replacement-typed-and-the-results-unchanged
+# --- preserve case is a toggle on the box, and it names what a tap will do ---------------------
+- tapOn: "Preserve case"
+- assertVisible: "Replace verbatim"
+- assertNotVisible: "Preserve case"
+- takeScreenshot: 05-preserve-case-on
+- tapOn: "Replace verbatim"
+- assertVisible: "Preserve case"
+# Left open on purpose - see the header: the driver measures this row where it stands.
+- takeScreenshot: 06-the-row-the-driver-measures

@@ -19,7 +19,7 @@ appId: com.jupydroid.app
 # a cell-local, static analysis result, which is the point of the swap (P5a measured the same
 # `initialize`-shaped exchange against the shipped `pylsp` directly).
 #
-# TABLET ONLY, for the same reason `p2l-3a-code-size.yaml` states: on the x86_64 emulator
+# TABLET ONLY, for the same reason `code-size.yaml` states: on the x86_64 emulator
 # `MainActivity` falls back to `FakeKernelGateway`, so a run there proves nothing about the
 # Space's real completion path.
 - launchApp
@@ -46,7 +46,7 @@ appId: com.jupydroid.app
 - inputText: "import os"
 - pressKey: Enter
 - inputText: "os.path.jo"
-# 60s is `p2l-3a-code-size.yaml`'s own budget for the popup, and this ask can carry the pylsp
+# 60s is `code-size.yaml`'s own budget for the popup, and this ask can carry the pylsp
 # spawn on top: the port starts the process on first use.
 - extendedWaitUntil:
     visible: "Completions"

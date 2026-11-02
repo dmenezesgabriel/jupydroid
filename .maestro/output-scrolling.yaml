@@ -1,0 +1,95 @@
+appId: com.jupydroid.app
+---
+# P2g-2b: `notebook:enable/disable-output-scrolling`, from the cell menu's marked-run overflow.
+#
+# Two notebooks, both with the same two saved results and no cell run - neither state a save can
+# leave `scrolled` in needs a kernel to reach it. Seeded by
+# scripts/output-scrolling-driver.sh; clearState would delete the fixtures.
+#
+# **One row, and its label never changes**, which is the reference's own choice for this exact
+# surface: `toggleOutputScrolling`'s label is fixed at "Enable Scrolling for Outputs" whenever
+# `args['isMenu']` is set (`notebook-extension/src/index.ts:4963-4967`, `tracker.json:328-335`),
+# not this app's usual flip-with-state wording. A tap on it can *disable* an already-scrolled run
+# even though it still reads "Enable" - the second notebook here is exactly that case.
+#
+# **The saved file is the assertion, not the screen.** P2g-2a already proved what a scrolled
+# output looks like; a one-line result is nowhere near the 24-line bound, so there is nothing to
+# see differently here. What the flow proves is that tapping the row from the *marked run* writes
+# `scrolled` into **both** cells' metadata - the driver dumps each file afterwards.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Turn Scrolling On.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Turn Scrolling On.ipynb"
+- extendedWaitUntil:
+    visible: "result a"
+    timeout: 30000
+- assertVisible: "result b"
+- takeScreenshot: 01-two-results-neither-scrolled
+- tapOn: "Cell actions"
+- tapOn: "Cell menu Select cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Select cell 2"
+- assertVisible: "2 selected"
+- takeScreenshot: 02-both-cells-marked
+- tapOn: "Selected cell actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Enable output scrolling"
+- waitForAnimationToEnd:
+    timeout: 5000
+# A fold keeps the run - none of the three has a `deselectAll()` - so the bar is still up.
+- assertVisible: "2 selected"
+- takeScreenshot: 03-enabled-on-both
+# Deselect before leaving: the notebook's own bar - and the "Back to files" control on it - is
+# gone while a run is marked, which is the same surface split `cell-selection` records.
+- tapOn: "Deselect all cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Leave the document before anything that could kill the app: writes are held for 500 ms
+# (`NotebookSaveDebounce`) and only flushed from `onCleared`, not from a `stopApp`.
+- tapOn: "Back to files"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+- scrollUntilVisible:
+    element:
+      text: "Turn Scrolling Off.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Turn Scrolling Off.ipynb"
+- extendedWaitUntil:
+    visible: "result a"
+    timeout: 30000
+- assertVisible: "result b"
+- takeScreenshot: 04-two-results-both-already-scrolled
+- tapOn: "Cell actions"
+- tapOn: "Cell menu Select cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Select cell 2"
+- assertVisible: "2 selected"
+- tapOn: "Selected cell actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+# The same label as before - the row does not say "Disable" - and it disables both, because the
+# run was already all scrolled.
+- tapOn: "Cell menu Enable output scrolling"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "2 selected"
+- takeScreenshot: 05-disabled-on-both
+- tapOn: "Deselect all cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Back to files"
+- waitForAnimationToEnd:
+    timeout: 5000

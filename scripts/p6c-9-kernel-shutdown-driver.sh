@@ -4,7 +4,7 @@
 # (`packages/apputils/src/sessioncontext.tsx:690-698`), reachable by a Settings row instead of
 # the ⋮ menu alone.
 #
-# Four parts on **one app process**, `p1d-shutdown-kernel-driver.sh`'s own shape and for its own
+# Four parts on **one app process**, `shutdown-kernel-driver.sh`'s own shape and for its own
 # reason: the claim is about a server that stays up while the kernel under it dies or survives by
 # the setting, so between parts this driver pins the app pid and asks the running
 # `jupyter_server` what sessions it has.
@@ -89,7 +89,7 @@ app_pid() { "${DEVICE_ADB[@]}" shell pidof "$APP" 2>/dev/null | tr -d '\r'; }
 
 # `run_flow` writes one `logcat.txt`, and four parts would overwrite it three times - leaving an
 # evidence directory whose only log covers the last minute of a four-part gate, and reads as if it
-# covered all of it. One per part instead, `p1d-shutdown-kernel-driver.sh`'s own fix.
+# covered all of it. One per part instead, `shutdown-kernel-driver.sh`'s own fix.
 keep_logcat() { mv "$EVIDENCE/logcat.txt" "$EVIDENCE/logcat-$1.txt"; }
 
 # Everything after part 1 is about one process surviving, so a new pid does not mean "the check

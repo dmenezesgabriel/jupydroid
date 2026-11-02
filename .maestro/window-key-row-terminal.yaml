@@ -7,7 +7,7 @@ appId: com.jupydroid.app
 # row's bounds against the window's after each run, and proves both interrupts by file:
 # `cross-cutting.md` §8.6 forbids gating on the terminal canvas's text. Each `sleep 30` writes its
 # file only if it ran the full half-minute, and each `echo` after an interrupt reaches the shell at
-# once only if the sleep died, `p4j-3a-terminal-extra-keys.yaml`'s proof.
+# once only if the sleep died, `terminal-extra-keys-tablet.yaml`'s proof.
 #
 # Ctrl is matched inside `id: "terminal_extra_keys"`, as the symbol row's keys are inside theirs:
 # Gboard carries keys of its own with the same text.
@@ -23,7 +23,7 @@ appId: com.jupydroid.app
     timeout: 120000
 - waitForAnimationToEnd:
     timeout: 15000
-# A tap settles the IME connection before typing, `p4j-3a-terminal-extra-keys.yaml`'s reason.
+# A tap settles the IME connection before typing, `terminal-extra-keys-tablet.yaml`'s reason.
 - tapOn:
     id: "terminal-input"
 - assertVisible:

@@ -42,7 +42,7 @@ appId: com.jupydroid.app
 - tapOn: "Run all cells"
 # `spec_planted` is the first output, which `childOf` can name; `provider_armed` is the second
 # cell's, and `childOf` resolves to the *first* "Cell output" on screen - the limitation
-# p2j-2-export-formats records - so it is asserted unscoped. It is computed text (`"provider_" +
+# export-formats records - so it is asserted unscoped. It is computed text (`"provider_" +
 # "armed"`), which is what makes an unscoped assert an honest one. The plant cell is tall enough
 # that both outputs start below the fold, so the wait is a scroll, not an assert.
 - scrollUntilVisible:
@@ -81,7 +81,7 @@ appId: com.jupydroid.app
     timeout: 120000
 # `shared_unset` - the second cell's own output container, which `childOf` cannot name: Maestro
 # resolves the scope against the *first* "Cell output" node, the same limitation
-# p2j-2-export-formats records. The text is in no cell's source, which is what the gate checks.
+# export-formats records. The text is in no cell's source, which is what the gate checks.
 - assertVisible: "shared_unset"
 - takeScreenshot: 02-consumer-on-python3
 

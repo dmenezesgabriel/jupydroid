@@ -24,7 +24,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 15000
 # A tap settles the IME's connection before typing - the first keystrokes can race it otherwise
-# (p4i-terminal-tablet measured `ech` of `echo` eaten).
+# (terminal-tablet measured `ech` of `echo` eaten).
 - tapOn:
     id: "terminal-input"
 - inputText: "printenv GREETING | tee greeting-env.txt"

@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 15000
 # A tap settles the IME's connection before typing - the first keystrokes can race it otherwise
-# (p4i-terminal-tablet measured `ech` of `echo` eaten).
+# (terminal-tablet measured `ech` of `echo` eaten).
 - tapOn:
     id: "terminal-input"
 - inputText: "python3 -m venv ~/envs/stats && ~/envs/stats/bin/pip install ipykernel tabulate >venv-pip.txt 2>&1; echo install-rc=$? >>venv-pip.txt; ~/envs/stats/bin/pip --version >>venv-pip.txt 2>&1; echo version-rc=$? >>venv-pip.txt; tail -3 venv-pip.txt"

@@ -20,7 +20,7 @@ FLOW="$ROOT/.maestro/palette.yaml"
 # An optional sub-directory, so a second device does not overwrite the first device's frames -
 # which is what happened the first time P2u-2 ran this on the tablet after the emulator. With no
 # argument the frames land where U1 first put them; `palette-driver.sh tablet` writes
-# evidence/palette/tablet/{dark,light}. Same shape as p2u-1-chrome-driver.sh.
+# evidence/palette/tablet/{dark,light}. Same shape as app-chrome-driver.sh.
 EVIDENCE="$ROOT/evidence/palette${1:+/$1}"
 
 # shellcheck source=scripts/java-home.sh

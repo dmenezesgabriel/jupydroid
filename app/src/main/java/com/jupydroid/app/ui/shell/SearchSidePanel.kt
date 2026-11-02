@@ -79,7 +79,7 @@ fun SearchSidePanel(
   ) { padding ->
     // **`imePadding`, and a screenshot is what asked for it.** Typing into the box raises the
     // keyboard, and the results are drawn under whatever is left - the first run of
-    // `p2x-3-workspace-search` on the tablet found `notes.py`'s three matches below the fold with
+    // `workspace-search-results` on the tablet found `notes.py`'s three matches below the fold with
     // no way to reach them, and Maestro's tap at their coordinates landed on the space bar.
     // The reference has no soft keyboard to inset for; every
     // editor screen in this app already does this, and a panel whose whole point is a text field

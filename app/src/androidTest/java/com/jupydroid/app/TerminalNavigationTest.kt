@@ -59,7 +59,7 @@ class TerminalNavigationTest {
     // test host's own window, and the semantics tree reports every node's bounds relative to the
     // window's pre-resize frame, which reads as "off-screen" no matter where the node actually
     // draws (checked: `Terminal`'s own app-bar title carries the identical offset). The device
-    // proof that this genuinely renders on screen is Maestro's `p4i-terminal-tablet` flow, whose
+    // proof that this genuinely renders on screen is Maestro's `terminal-tablet` flow, whose
     // screenshots are of the real thing rather than a claim about it.
     waitForText("ls")
   }

@@ -5,7 +5,7 @@ appId: com.jupydroid.app
 # The cell reads `def area:    `, which Python refuses, so the kernel answers with a SyntaxError.
 # That word is in no cell's source, so FakeKernelGateway, which echoes the source, cannot pass
 # this: the run proves the row's `:` reached a real kernel. `.*SyntaxError.*` and not
-# `SyntaxError`, because a traceback is one node (`p1d-part3-a-fresh-kernel-forgot.yaml`).
+# `SyntaxError`, because a traceback is one node (`shutdown-kernel-fresh-kernel-forgot.yaml`).
 #
 # TABLET ONLY (SM-X216B): the cell runs on the kernel.
 - tapOn: "Run cell"

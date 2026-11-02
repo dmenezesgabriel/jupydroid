@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # P5c: the cell completion popup answered by `pylsp`, on the wired build.
 #
-# TABLET ONLY (SM-X216B), for the reason `p2l-3a-code-size-driver.sh` states: the emulator's
+# TABLET ONLY (SM-X216B), for the reason `code-size-driver.sh` states: the emulator's
 # `FakeKernelGateway` makes both halves of this comparison meaningless - no Space, no real
 # `complete_request`, no `pylsp`.
 #

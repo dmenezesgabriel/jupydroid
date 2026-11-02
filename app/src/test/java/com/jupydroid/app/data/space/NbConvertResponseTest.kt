@@ -11,17 +11,17 @@ import org.junit.Test
 class NbConvertResponseTest {
   @Test
   fun fileName_readsTheRfc5987FormTheServerActuallySends() {
-    val header = "attachment; filename*=utf-8''p2j-2-export-formats.html"
+    val header = "attachment; filename*=utf-8''export-formats.html"
 
-    assertEquals("p2j-2-export-formats.html", NbConvertResponse.fileName(header))
+    assertEquals("export-formats.html", NbConvertResponse.fileName(header))
   }
 
   /** `slides` is `<stem>.slides.html`, so the extension is not the last dot's worth. */
   @Test
   fun fileName_keepsATwoPartExtension() {
-    val header = "attachment; filename*=utf-8''p2j-2-export-formats.slides.html"
+    val header = "attachment; filename*=utf-8''export-formats.slides.html"
 
-    assertEquals("p2j-2-export-formats.slides.html", NbConvertResponse.fileName(header))
+    assertEquals("export-formats.slides.html", NbConvertResponse.fileName(header))
   }
 
   /** A notebook's title is its file name, and titles have spaces in them. */

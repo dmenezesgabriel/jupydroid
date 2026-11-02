@@ -1,0 +1,67 @@
+appId: com.jupydroid.app
+---
+# P2x-4d: a tap on a notebook result lands the notebook **on the cell**, revealing it.
+#
+# `searchView.open` opens the notebook and then `showMatch` reveals the cell range
+# (`searchView.ts:2273-2295`, `notebookSearchModel.ts:234-242`). Before this, the panel handed up
+# the path and a notebook opened at the top like any other.
+#
+# **The fixture is the whole design of this flow.** The marker is in the *fifteenth* cell, so a
+# notebook that opened at the top would not be showing it; and it is under a **collapsed heading**,
+# so a notebook that merely scrolled would not be showing it either. `withMatchRevealed` is what
+# undoes the second, and it is the half a scroll alone cannot fake.
+#
+# **A notebook can be asserted where a plain file could not.** `open-at-the-match` says in its
+# own header that no assertion there can see where the editor is scrolled to, because the file
+# editor is one node carrying every line. A notebook is a `LazyColumn` of cells, so a cell below the
+# fold is genuinely absent from the hierarchy and `assertVisible` means what it says. The screenshot
+# is still read.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
+# this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+# --- what the notebook looks like when nothing has revealed anything -----------------------------
+# Scrolled to, because the heading is the fourteenth cell and nothing about *this* half is on
+# screen at the top. What it establishes is that the marker is unreachable by scrolling alone.
+- tapOn: "log.ipynb"
+- extendedWaitUntil:
+    visible: "filler_1 = 1"
+    timeout: 15000
+- scrollUntilVisible:
+    element: "1 cell hidden"
+    timeout: 20000
+- assertNotVisible: "MARKER = \"the cat is under a collapsed heading\""
+- takeScreenshot: 01-the-marker-is-under-a-collapsed-heading
+- back
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 10000
+# --- the search, and the tap ---------------------------------------------------------------------
+- tapOn:
+    text: "^Search$"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "1 result in 1 file"
+    timeout: 15000
+- hideKeyboard
+- assertVisible: "log.ipynb, 1 match found"
+- takeScreenshot: 02-one-match-in-the-fifteenth-cell
+- tapOn: "Cell 15, line 1, MARKER = \"the cat is under a collapsed heading\""
+- extendedWaitUntil:
+    visible: "MARKER = \"the cat is under a collapsed heading\""
+    timeout: 15000
+# **The assertion above alone cannot see where the notebook is scrolled to, and it was measured
+# saying so.** It went green against a notebook sitting on cell one with the marker far below the
+# fold - a composed-but-clipped `LazyColumn` item is still in the semantics tree. The defect was a
+# `LaunchedEffect` keyed on the very cells the landing changes, so Compose cancelled
+# `animateScrollToItem` mid-flight (`LandingOnAMatch`), and **only the screenshot said so**.
+#
+# What *can* see it is the other end of the notebook: `filler_1` is the second cell, on screen
+# exactly when the landing did not happen. This is the line that fails on that defect.
+- assertNotVisible: "filler_1 = 1"
+- takeScreenshot: 03-the-notebook-landed-on-the-cell

@@ -1,0 +1,133 @@
+appId: com.jupydroid.app
+---
+# P2k-4: `notebook:access-previous-history-entry` and `notebook:access-next-history-entry`, from
+# the two keys the symbol row grows once `accessKernelHistory` is on.
+#
+# **The shape of this flow is the whole point.** History is only worth having because it reaches
+# code the *document* no longer holds - a cell that was deleted, a sitting that has ended. An
+# assertion made while the source is still on screen would be satisfied by the cell that ran it and
+# would prove nothing, which is the trap `scripts/check_maestro_output_assertions.py` exists for.
+# So both cells that ran are **deleted** before a single key is pressed, and their absence is
+# asserted first. What comes back after that can only have come from the kernel.
+#
+# It also shows `setFilter`'s least obvious rule on device (`packages/notebook/src/history.ts:363`):
+# `draft = 0` was run too, so it is the newest entry in the kernel's history - and it is dropped
+# from the list precisely because it is what the cell already holds. Without that rule the first
+# tap would replace `draft = 0` with `draft = 0` and look like a dead key.
+#
+# TABLET ONLY (SM-X216B) - see the driver.
+#
+# Seeded by scripts/access-kernel-history-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Kernel History.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Kernel History.ipynb"
+- extendedWaitUntil:
+    visible: "alpha = 41"
+    timeout: 30000
+
+# Off out of the box, so the keys are absent - and that is asserted before turning it on, because
+# "the control appeared" is only a claim if it was ever missing.
+- tapOn: "draft = 0"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Tab"
+- assertNotVisible: "Previous kernel history entry"
+- assertNotVisible: "Next kernel history entry"
+- takeScreenshot: 01-no-history-keys-while-the-setting-is-off
+- hideKeyboard
+- back
+- tapOn: "Notebook actions"
+- tapOn: "Enable kernel history access"
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Run everything, so the kernel has a history to be asked about. 42 is a product no source
+# contains, and it is scoped to the output subtree so no field can satisfy it.
+- tapOn: "Run all cells"
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf:
+        text: "Cell output"
+    timeout: 180000
+- takeScreenshot: 02-three-cells-run
+
+# Both cells that ran are removed. `Cell actions` index 0 is the top cell each time, so this
+# deletes `alpha = 41` and then `alpha + 1`.
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          text: "Cell actions"
+          index: 0
+      - runFlow: scroll-the-cell-menu-to-its-end.yaml
+      - tapOn: "Cell menu Delete"
+      - waitForAnimationToEnd:
+          timeout: 5000
+# The absence of the seeded source is the claim here, and it is what makes every assertion below
+# mean something: after this, nothing on screen holds either line.
+# matches-source: asserting the seeded source is *gone* is the opposite of the mistake this gate catches.
+- assertNotVisible: "alpha = 41"
+- assertNotVisible: "alpha \\+ 1"
+- assertNotVisible:
+    text: "42"
+    childOf:
+      text: "Cell output"
+# matches-source: the cell holding this line is the one the flow is about to type history into.
+- assertVisible: "draft = 0"
+- takeScreenshot: 03-both-ran-cells-deleted
+
+# One cell left, and it is the one that never ran anything worth recalling.
+- tapOn: "draft = 0"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Previous kernel history entry"
+- takeScreenshot: 04-the-history-keys-are-on-the-row
+
+# The newest entry is `draft = 0`, which is what the cell holds - so it is filtered out and the
+# first tap reaches past it to `alpha + 1`. Nothing on screen holds that text.
+# `alpha + 1` was deleted six steps above and asserted absent; it can only be back because the
+# kernel was asked what it had run.
+- tapOn: "Previous kernel history entry"
+- extendedWaitUntil:
+    visible: "alpha \\+ 1"
+    timeout: 30000
+# matches-source: the placeholder was replaced, so the seeded line is what must now be absent.
+- assertNotVisible: "draft = 0"
+- takeScreenshot: 05-back-reached-a-deleted-cells-code
+
+- tapOn: "Previous kernel history entry"
+# matches-source: a deleted cell's source arriving from the kernel is exactly what is being proved.
+- extendedWaitUntil:
+    visible: "alpha = 41"
+    timeout: 30000
+- assertNotVisible: "alpha \\+ 1"
+- takeScreenshot: 06-back-again-reached-the-one-before-it
+
+# Forward walks the same list the other way.
+- tapOn: "Next kernel history entry"
+- extendedWaitUntil:
+    visible: "alpha \\+ 1"
+    timeout: 30000
+# matches-source: the walk moved on, so the deleted cell's line must be gone from the field again.
+- assertNotVisible: "alpha = 41"
+- takeScreenshot: 07-forward-came-back
+
+# And off the end of the list is what was in the cell to begin with - `setFilter` pushes the
+# placeholder on as the last entry precisely so there is a way back out of the walk.
+- tapOn: "Next kernel history entry"
+# matches-source: restoring the seeded line is the claim - `setFilter` pushes the placeholder last.
+- extendedWaitUntil:
+    visible: "draft = 0"
+    timeout: 30000
+- assertNotVisible: "alpha \\+ 1"
+# matches-source: gone again, which says the restore replaced the entry rather than appending to it.
+- assertNotVisible: "alpha = 41"
+- takeScreenshot: 08-forward-off-the-end-restored-the-cell

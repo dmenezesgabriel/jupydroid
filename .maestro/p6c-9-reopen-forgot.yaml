@@ -2,13 +2,13 @@ appId: com.jupydroid.app
 ---
 # P6c-9b, part 3 of 4: the reopened notebook runs on a kernel that never saw `carried`.
 #
-# **`.*NameError.*` is the whole assertion**, `p1d-part3`'s own reasoning verbatim: three outcomes
+# **`.*NameError.*` is the whole assertion**, `shutdown-kernel-fresh-kernel-forgot`'s own reasoning verbatim: three outcomes
 # are distinguishable - 44 means the same kernel is still there (the close did nothing),
 # NameError means a kernel that never saw the assignment (what a close-time shutdown leaves), and
 # nothing means the notebook cannot run at all, which would be its own defect. And the regex form
 # is measured: a traceback is one node, so the bare word can never match it.
 #
-# `stopApp: false`, `p1d-part2`'s own rule. TABLET ONLY: see part 2.
+# `stopApp: false`, `shutdown-kernel-shut-it-down`'s own rule. TABLET ONLY: see part 2.
 - launchApp:
     stopApp: false
 - waitForAnimationToEnd:

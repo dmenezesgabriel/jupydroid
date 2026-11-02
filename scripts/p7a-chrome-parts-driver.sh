@@ -45,7 +45,7 @@ run_in_theme() {
   # opened notebook.
   "${adb[@]}" shell cmd uimode night "$night"
   reset_notebooks
-  seed_notebook "$ROOT/.maestro/fixtures/p2u-1-chrome.ipynb" "Chrome Check"
+  seed_notebook "$ROOT/.maestro/fixtures/app-chrome.ipynb" "Chrome Check"
   run_flow "$FLOW" "$EVIDENCE/$theme"
 }
 

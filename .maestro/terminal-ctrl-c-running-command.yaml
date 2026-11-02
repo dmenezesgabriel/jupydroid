@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# P4j-2's own closing half of the P4j gate: "send Ctrl-C to a running one." A real shell (TABLET
+# ONLY), not `FakeTerminalGateway`'s echo - Ctrl-C needs a real line discipline to answer to. `sleep
+# 30`, not `yes`: `yes`'s own screen-filling output makes two screenshots of it indistinguishable
+# whether or not it was actually interrupted - measured, not assumed, a first attempt against `yes`
+# produced pixel-identical frames either way. `sleep` prints nothing on its own, so the only way
+# `^C` or a fresh prompt can appear is a real interrupt byte reaching it - the rule in
+# `architecture/cross-cutting.md` §8.6 that an assertion must name something that cannot appear in
+# the prompt or the command line's own echo.
+#
+# Not `clearState` - `terminal-tablet.yaml`'s own reason: wipes the already-installed Space.
+- launchApp
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+
+- waitForAnimationToEnd:
+    timeout: 15000
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
+# `&& echo survived` runs only if the sleep lasts the full half-minute - the driver's absence check
+# on `p4j2-survived.txt` is half of the interrupt proof (`architecture/cross-cutting.md` §8.6
+# forbids gating on this canvas's `visible:` `Text` column, so the `^C` echo it used to assert is a
+# screenshot, not a gate).
+- inputText: "sleep 30 && echo survived > p4j2-survived.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-sleep-running

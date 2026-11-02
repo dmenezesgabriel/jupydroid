@@ -10,7 +10,7 @@ appId: com.jupydroid.app
 # The defect it closes, measured off the frame P2u-1 shipped: at 1920x1200 along y=900, the
 # activity rail (x 0-119) and the file explorer (x 122-699) were both `#121314` -
 # `editor.background` - so three parts were one field with a 1px seam drawn across it
-# (`evidence/p2u-1-chrome/after-tablet/dark/01-the-explorer.png`).
+# (`evidence/app-chrome/after-tablet/dark/01-the-explorer.png`).
 #
 # Seeded by scripts/p7a-chrome-parts-driver.sh, which sets the system night mode and runs this
 # flow once per theme into its own directory; clearState would delete the fixture.

@@ -23,7 +23,7 @@ BEFORE = """<?xml version='1.0' encoding='UTF-8'?>
 """
 #: The same frame after it: no kind labels at all, the collapser leading its own header, and the
 #: prompt carrying the reference's colon. Bounds are the real ones from
-#: `evidence/p2n-gutter/after/hierarchy.xml`.
+#: `evidence/cell-header-prompts/after/hierarchy.xml`.
 AFTER = """<?xml version='1.0' encoding='UTF-8'?>
 <hierarchy rotation="0">
   <node index="0" text="" bounds="[0,0][320,640]">

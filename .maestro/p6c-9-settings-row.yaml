@@ -5,7 +5,7 @@ appId: com.jupydroid.app
 # "...when closing a notebook", schema/tracker.json:741-746), one label here because this
 # screen's rows carry no description line.
 #
-# Bare `launchApp`: this part starts the process every later part pins, `p1d-part2`'s own shape.
+# Bare `launchApp`: this part starts the process every later part pins, `shutdown-kernel-shut-it-down`'s own shape.
 # TABLET ONLY - the row itself needs no kernel, but the gate it feeds does, and there is no point
 # in a two-device sweep of one flow's head.
 - launchApp

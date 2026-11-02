@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# P2l-2: the surfaces whose padding moved onto `Spacing`.
+#
+# Seeded by scripts/spacing-driver.sh; clearState would delete the fixture.
+#
+# **The claim this exists to let a reader check is a height.** The explorer's rows carried
+# `vertical = 14.dp`, which is off Material's 4dp grid; on the scale they take `Spacing.lg`, and a
+# two-line row then measures 72dp - which is `ListItemDefaults`' own two-line height rather than a
+# number this app picked. The breadcrumb moved the same 2dp and had the tighter constraint: at
+# `Spacing.md` it would have been 44dp, under the 48dp minimum, so it takes `lg` as well.
+#
+# The notebook half covers the paddings inside a cell, the folded-cell pill and the hidden-cells
+# row - the last two being bare `clickable` rows, which is the shape `CellTouchTargetTest` says it
+# exists to watch.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# A folder, so the breadcrumb has two crumbs and a separator to draw.
+- assertVisible: "reports"
+- takeScreenshot: 01-rows-and-recents
+- tapOn: "reports"
+- extendedWaitUntil:
+    visible: "data.csv"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 3000
+# Two crumbs: the crumb row is the control with the tightest height budget on this screen.
+- takeScreenshot: 02-breadcrumb
+- back
+- extendedWaitUntil:
+    visible: "Spacing.ipynb"
+    timeout: 10000
+- tapOn: "Spacing.ipynb"
+- extendedWaitUntil:
+    visible: ".*visible = .*"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+# A folded cell's pill and an ordinary cell's padding in one frame.
+- takeScreenshot: 03-cell-padding-and-folded-cell

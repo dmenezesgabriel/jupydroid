@@ -1,0 +1,84 @@
+appId: com.jupydroid.app
+---
+# P2x-3: the search panel actually searches - the box, and what it found grouped by file.
+#
+# VS Code answers for both halves of this panel. JupyterLab registers no workspace search at all,
+# its `documentsearch` being scoped to `currentWidget`
+# (`documentsearch-extension/src/index.ts:227`), which is the find bar P2i shipped - so
+# `search/browser/searchView.ts` is the reference for behaviour here as well as for presentation
+# (ADR-0062).
+#
+# Four claims:
+#   1. the panel has a box, and it is **not** spelled the way the panel's title is - the reference's
+#      `search.placeHolder` is the word "Search", which is also `SidePanel.SEARCH.label` eight dp
+#      above it. Measured red: `SearchSidePanelTest.thePanelNamesItself` failed with "Expected at
+#      most 1 node but found 2". The magnifier took the placeholder's job;
+#   2. `search.searchOnType` is on, so **typing is what searches** - no submit button is tapped
+#      below, and the results arrive on the reference's own 300 ms
+#      (`search.common.contribution.ts:29-32`);
+#   3. results are grouped by the file they were found in, each with the reference's own count
+#      (`FileMatchRenderer`'s `CountBadge`, `searchResultsView.ts:357-359`), and the walk's order is
+#      the browser's - directories first, so `reports/` comes before the root's own file;
+#   4. `buildResultCountMessage` above the tree (`searchView.ts:2184-2195`), and a tap on a match
+#      opens the file it is in.
+#
+# **The cap is not here**: drawing it needs a file with more matches than `search.maxResults`, and
+# `result-cap` is the flow that seeds one. Split so a walk of twenty thousand matches cannot
+# make this flow's timing its problem.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes. The emulator's 320dp
+# window has no side area at all, and `one-pane-side-panels` is what covers it there.
+#
+# No cell is run, so this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# The browser is what the shell opens on - `filebrowser` is the lowest rank and VS Code's
+# `isDefault: true`. `Workspace` is the breadcrumb only the browser draws.
+- assertVisible: "Workspace"
+# --- 1. the panel, and its box ------------------------------------------------------------------
+- tapOn:
+    text: "^Search$"
+- assertVisible: "Search the workspace"
+- takeScreenshot: 01-the-panel-has-a-query-box
+# --- 2. typing is what searches ------------------------------------------------------------------
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "5 results in 2 files"
+    timeout: 15000
+- takeScreenshot: 02-typing-alone-searched-the-workspace
+# **The keyboard goes away before the results are read, and that is a repair rather than a
+# convenience.** The first run of this flow tapped a result row with the IME up: the panel had no
+# `imePadding`, the lower rows were drawn *under* the keyboard, and Maestro's tap at their
+# coordinates landed on the **space bar** - which turned the query into "cat " and quietly took the
+# count from 5 to 3 before the assertion that failed. The panel insets for the keyboard now
+# (`evidence/workspace-search-results/`), and putting it away is what a reader does before browsing.
+- hideKeyboard
+# --- 3. grouped by file, each with its count, in the browser's own order --------------------------
+- assertVisible: "reports/analysis.py, 2 matches found"
+- assertVisible: "notes.py, 3 matches found"
+# The line itself, addressed by the label a row carries rather than by the text it draws: a row is
+# one line ellipsised to the panel's width, and what is *visible* there depends on the device.
+# `search.showLineNumbers` is false by default, so the number is on the label and not on screen.
+- assertVisible: "Line 1, CAT_REPORT_TITLE = \"quarterly cat report\""
+- assertVisible: "Line 4, def feed_the_cat(name):"
+- takeScreenshot: 03-results-grouped-by-file-with-their-counts
+# --- 4. a tap opens the file the match is in -----------------------------------------------------
+- tapOn: "Line 4, def feed_the_cat(name):"
+- extendedWaitUntil:
+    visible: "Back to files"
+    timeout: 10000
+# **`import os` and not the matched line**, which is the difference between this flow proving
+# something and proving nothing: the panel is still up in the list pane and its own result row
+# draws `def feed_the_cat(name):` too, so asserting the matched line would be answered by the row
+# that was just tapped. Line 1 of the file holds no match, so only the editor can be showing it.
+#
+# Wrapped in `(?s).*…*` because Maestro matches a node's **whole** text, and the editor is a single
+# node carrying the whole file - measured: the hierarchy dump of the run that failed on a bare
+# `import os` shows one node reading `import os\n\n\ndef feed_the_cat(name):\n…`
+# (`evidence/workspace-search-results/`). The same shape every other editor assertion in `.maestro/`
+# already uses (`file-editor.yaml:32`, `new-python-file.yaml:47`).
+- assertVisible: "(?s).*import os.*"
+- takeScreenshot: 04-the-match-opened-its-file

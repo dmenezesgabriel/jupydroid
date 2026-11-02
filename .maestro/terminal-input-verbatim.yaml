@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# P4m: the terminal receives exactly what is typed.
+#
+# Before this step, an IME that "helps" - Gboard's automatic quote-completion on this repo's
+# Samsung tablet - inserted a `'` the user never typed into `python3 -c 'import json, sys'`, and
+# `sendTerminalDiff` forwarded it verbatim, so the shell saw a syntax error and `python3` never ran
+# (`evidence/terminal-input-verbatim/edit-pairs.md`). The fix is `KeyboardType.Password` on the hidden
+# input field - the Compose lever for the inputType the reference uses for a terminal
+# (`termux-app` `TerminalView.java:307-334`) - plus a general delete-and-retype diff as the
+# backstop for any edit that still is not a clean append.
+#
+# **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell to prove
+# what arrived. The terminal draws to a `Canvas`, so nothing here is asserted by Maestro text -
+# the flow writes what the shell parsed to files and the driver reads them back off the device,
+# the same oracle `evidence/p7e-1-space-python/the-link.txt` is.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 300000
+- waitForAnimationToEnd:
+    timeout: 15000
+- takeScreenshot: 01-a-shell
+
+# The exact line P7e-1's frames caught being corrupted: an apostrophe opens a quote, a comma is
+# typed later, and the IME used to close the quote in between - which broke the shell's own
+# tokenising, so `python3` never ran. Line 2 records the exit status as its own command, so the
+# driver can tell "ran and printed its prefix" from "the shell refused the line".
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
+- inputText: "python3 -c 'import json, sys; print(sys.prefix)' > p4m-python.txt 2>&1"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 20000
+- inputText: "echo rc=$? > p4m-rc.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: 02-the-quoted-python-line
+
+# A plain line with punctuation pressed against words, no quoting: the driver asserts the file
+# holds it byte-for-byte.
+- inputText: "echo A-json:B C-json.D E-sys:F G-sys.H > p4m-echo.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 03-the-punctuation-line

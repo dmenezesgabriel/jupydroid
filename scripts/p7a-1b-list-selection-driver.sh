@@ -25,7 +25,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FLOW="$ROOT/.maestro/p7a-1b-list-selection.yaml"
-FIXTURE="$ROOT/.maestro/fixtures/p2u-1-chrome.ipynb"
+FIXTURE="$ROOT/.maestro/fixtures/app-chrome.ipynb"
 EVIDENCE="$ROOT/evidence/p7a-1b-list-selection"
 
 # shellcheck source=scripts/java-home.sh

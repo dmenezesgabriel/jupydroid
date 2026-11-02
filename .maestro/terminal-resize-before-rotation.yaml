@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# P4i-3a's own gate: `gateway.resize` reaches the real pty on a real size change (rotation), not
+# only the app's own redraw. The oracle is `os.get_terminal_size()` written to the workspace by
+# `tee` - CPython's own `TIOCGWINSZ` on fd 1, the live answer `stty size` could not give (this
+# busybox build answers a fixed `25 80` regardless of the real winsize,
+# `research/closed-questions.md` CLOSED-006) and the one the fill-line count it replaced was only
+# ever a proxy for: a changed `columns lines` pair is `set_size` itself observed at the pty, not a
+# program's redraw inferred. `vi` stays as the on-screen witness a `~`-filled screenshot records -
+# the same real-program reflow, read by eye rather than by a gate.
+#
+# TABLET ONLY (SM_X216B): a real shell, not `FakeTerminalGateway`'s echo.
+# NOT A SUITE FLOW: the driver rotates the device, which every flow running after it would inherit.
+- launchApp
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- runFlow: open-new-terminal.yaml
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
+# The live `TIOCGWINSZ` answer at landscape, to disk for the driver and to the screen for the
+# capture both at once - `tee` rather than `>` precisely so the screenshot shows it. The fd is
+# `0`, not the default `1`: under the pipe stdout is the *pipe*, not the pty, and an ioctl on it
+# raises `ENOTTY` with no env to fall back to - stdin is the one that stays the terminal.
+- inputText: "python3 -c 'import os;print(*os.get_terminal_size(0))' | tee size-1.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- inputText: "vi"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-vi-before-rotation

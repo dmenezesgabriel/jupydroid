@@ -4,7 +4,7 @@
 `run_flow` copies a flow's screenshots into `evidence/<step>/` and, until P2z-h, never removed
 anything. So renaming a `takeScreenshot` left its predecessor in the directory and in the commit
 for good: `evidence/x2e-home-new-python-file/` carried four frames of a launch screen X2h retired,
-and `evidence/p2o-4-one-pane-side-panels/800dp/` a browser with no bottom bar beside the frame
+and `evidence/one-pane-side-panels/800dp/` a browser with no bottom bar beside the frame
 whose whole point is that the bar is there (`evidence/p2z-suite-sweep/frames.md`).
 
 Deleting whatever a run did not write would be wrong: five drivers run **several** flows into one
@@ -16,7 +16,7 @@ flow* wrote before and has now stopped writing.
 Example:
 
 ```sh
-python3 scripts/prune_stale_frames.py evidence/p2h-2-table-of-contents/800dp p2h-2-table-of-contents \
+python3 scripts/prune_stale_frames.py evidence/table-of-contents-overlay/800dp table-of-contents-overlay \
   01-notebook-open-at-the-top 02-scrolled-away-from-chapter-one
 ```
 """

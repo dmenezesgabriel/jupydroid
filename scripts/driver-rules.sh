@@ -11,7 +11,7 @@
 #     # NARROW WINDOW (<840dp): the emulator at 320dp.
 #
 # A bare `grep -q "WIDE WINDOW"` also matched prose *about* another rule, and that is not
-# hypothetical: `p2j-4-export-menu` declares NARROW WINDOW on line 4 and says "the mirror of
+# hypothetical: `export-menu` declares NARROW WINDOW on line 4 and says "the mirror of
 # `WIDE WINDOW`" on line 7, so it was placed on the 1280dp tablet and skipped there. The whole
 # sweep read `passed 87 · failed 0 · skipped 1` with a flow that had never run.
 #

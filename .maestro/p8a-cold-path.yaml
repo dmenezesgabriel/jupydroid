@@ -57,7 +57,7 @@ appId: com.jupydroid.app
     visible: "Tab: Terminal .*"
     timeout: 120000
 # The canvas is its own input (P4j-1), and the tap is the deterministic focus move that keeps a
-# first inputText from racing the IME's connection setup - p4i-terminal-tablet's measured finding.
+# first inputText from racing the IME's connection setup - terminal-tablet's measured finding.
 - tapOn:
     id: "terminal-input"
 - inputText: "echo coldpath-ready > cp-term.txt"

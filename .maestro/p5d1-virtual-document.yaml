@@ -18,7 +18,7 @@ appId: com.jupydroid.app
 # from its own text. (The kernel could also answer this one - the namespace has os.path - so
 # it is the name ask above that carries the discriminating weight.)
 #
-# TABLET ONLY, for the same reason `p2l-3a-code-size.yaml` states: on the x86_64 emulator
+# TABLET ONLY, for the same reason `code-size.yaml` states: on the x86_64 emulator
 # `MainActivity` falls back to `FakeKernelGateway`, so a run there proves nothing about the
 # Space's real language-server path.
 - launchApp

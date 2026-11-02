@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# P1d part 1: get a kernel, and put something in it that only that kernel knows.
+#
+# The two cells are `notebook-session-reattaches`' - the first defines a variable and prints it,
+# the second increments it - and they are here for the mirror image of that flow's reason. There,
+# `44` after a reopen proves the kernel survived being left. Here, part 3 asks for the same
+# increment after a shutdown and must get a **NameError**, which only a kernel that never saw the
+# assignment can produce.
+#
+# 42 and 43 are computed; neither appears in any cell's source, so `FakeKernelGateway`'s echo
+# cannot produce them.
+#
+# TABLET ONLY: on the x86_64 emulator MainActivity falls back to FakeKernelGateway, which holds no
+# session at all - there would be nothing for `GET /api/sessions` to show, before or after.
+#
+# Driven by scripts/shutdown-kernel-driver.sh, which reads the server's session list between
+# every part. The parts run on **one app process**: only this one launches it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Shutdown.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Shutdown.ipynb"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-notebook-open
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run installs the Space and starts jupyter_server.
+- extendedWaitUntil:
+    visible: "42"
+    timeout: 120000
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: "43"
+    timeout: 60000
+- takeScreenshot: 02-kernel-holds-the-variable

@@ -2,7 +2,7 @@
 # P5d-2b: `publishDiagnostics` drawn as severity marks in the cell gutter - the editor half of The
 # P5d-2 gate (P5d-2a shipped the port stream itself).
 #
-# TABLET ONLY (SM-X216B), for the reason `p2l-3a-code-size-driver.sh` states: the emulator's
+# TABLET ONLY (SM-X216B), for the reason `code-size-driver.sh` states: the emulator's
 # `FakeKernelGateway` means no kernel session ever opens - the sync gate stays shut and no
 # real `pylsp` runs to push anything.
 #

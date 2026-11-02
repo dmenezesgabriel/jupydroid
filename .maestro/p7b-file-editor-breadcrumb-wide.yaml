@@ -3,7 +3,7 @@ appId: com.jupydroid.app
 # P7b, the half only two panes can reach: a crumb tapped in the file editor has to reach a browser
 # that is a *different* `NavEntry` - and that is not enough on its own, because the side area may
 # be drawing the table of contents instead. `goToFolder` shows Files again before it navigates,
-# and this is the flow that proves it for the plain editor, as `p2w-1-breadcrumb-wide` does for the
+# and this is the flow that proves it for the plain editor, as `notebook-breadcrumb-two-pane` does for the
 # notebook. Both take the same lambda since P7b, so this is also what says the hoist is wired.
 #
 # Driving it with the outline up is also what makes the assertions unambiguous. In two panes the

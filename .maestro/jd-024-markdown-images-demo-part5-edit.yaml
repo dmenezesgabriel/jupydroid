@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
 # A markdown cell edited and run renders again with its image. A tap on its prose opens the source,
-# as p2d-run-renders-markdown.yaml does; the typed words and the image are both read back from the
+# as run-renders-markdown.yaml does; the typed words and the image are both read back from the
 # rendered cell. Run by scripts/jd-024-markdown-images-demo-driver.sh after part 4.
 #
 # Runs no code cell, so any device draws it; the demo's later parts run cells on the tablet.

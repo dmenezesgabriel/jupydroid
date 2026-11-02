@@ -45,6 +45,9 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/read_apk_native_libs_test.py" = ["E501"]  # captured readelf section lists
 "scripts/read_ledger_verdicts_test.py" = ["E501"]  # ledger table rows
 
+# F401: workspace-search-results.yaml asserts that a result row shows this fixture's `import os` line.
+".maestro/fixtures/search.py" = ["F401"]
+
 # S603/S607: argv is a list (never a shell) of PATH-resolved SDK tools (adb, git, readelf) built from our own
 # arguments, so there is no string from outside to inject.
 "scripts/clear_system_anr.py" = ["S603"]

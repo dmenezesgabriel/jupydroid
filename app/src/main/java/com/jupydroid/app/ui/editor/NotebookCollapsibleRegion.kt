@@ -8,7 +8,7 @@ package com.jupydroid.app.ui.editor
  * single-document mode - and is the breadcrumb row now that the tab carries the name.
  * Either way the arithmetic is the same: a 48dp row under the bar is 48dp of notebook, and at
  * 320dp that was measured to be enough to put a fourth cell's source under the bottom bar
- * (`p2b-split`, `p2c-batch-delete`, `p2f-4-insert-heading`, `p2i-4-next-previous`).
+ * (`split-code-cell`, `batch-delete`, `insert-heading`, `next-previous`).
  *
  * Material's own answer for a two-row bar is that the second row collapses with the content,
  * which is what `MediumTopAppBar` does for a title below the actions.

@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# P2x-3: **the result cap is drawn rather than silent.**
+#
+# This is the thing the sub-step exists for. `DiskWorkspaceSearcher` stops at `search.maxResults`'
+# registered 20000 (`search.contribution.ts:202-205`) and until P2x-3a nothing could *tell* that it
+# had - the walk reported files and never said it had stopped, which is the silent truncation a
+# result cap must not become. The reference draws a warning above the tree when
+# `ISearchComplete.limitHit` comes back true (`searchView.ts:1897-1899`), and so does this.
+#
+# **A separate flow from `workspace-search-results`, and on purpose.** The only way to make a real
+# cap is a real file with more matches than the cap, so the driver seeds one with 20001 matching
+# lines. `SearchSidePanelTest.aWalkThatStoppedEarlySaysSoAboveTheTree` covers the same message
+# against a *fake* walk that simply claims `limitHit`; what this adds is the half a fake cannot -
+# the actual adapter walking an actual file and spending an actual budget.
+#
+# Two claims:
+#   1. the count is the cap exactly - 20000 of 20001, so the walk stopped where the setting says;
+#   2. the reference's own warning is on screen, word for word.
+#
+# **WIDE WINDOW**: the panel is drawn only where there is room for two panes.
+#
+# No cell is run, so this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+- tapOn:
+    text: "^Search$"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+# Generous, and it is a walk of 20001 lines on a tablet rather than a UI that might not settle.
+- extendedWaitUntil:
+    visible: "20000 results in 1 file"
+    timeout: 60000
+- takeScreenshot: 01-the-walk-stopped-at-the-registered-cap
+# `searchMaxResultsWarning`, word for word (`searchView.ts:1898`).
+- assertVisible: "The result set only contains a subset of all matches. Be more specific in your search to narrow down the results."
+- takeScreenshot: 02-and-the-panel-says-the-results-are-a-subset

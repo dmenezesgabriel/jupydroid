@@ -1,0 +1,51 @@
+appId: com.jupydroid.app
+---
+# P2j-5: the exported file leaves the app.
+#
+# The report that says a file was written carries the one thing left to do with it. Tapping
+# **Share** puts Android's chooser up over the app, with a `content://` URI from this app's
+# FileProvider - never a `file://` one, which has thrown `FileUriExposedException` since Android 7.
+#
+# **What the screen can say and what it cannot.** That a chooser appeared is visible; that it was
+# handed a readable URI for the right file is not. The driver asks the platform - `dumpsys activity
+# activities` for a resolver on top, and `content read` through the provider's own authority - and
+# that is where the claim lives.
+#
+# TABLET ONLY: the file being shared has to be a real conversion, and on x86_64 the exporter is
+# `FakeNotebookExporter`. The chooser itself is not device-specific.
+#
+# Driven by scripts/share-export-driver.sh.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "p2j-5-share.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "p2j-5-share.ipynb"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "Notebook actions"
+- tapOn:
+    text: "Save and Export Notebook As…"
+# Generous: this is where the Space is installed and jupyter_server started.
+- extendedWaitUntil:
+    visible: "HTML"
+    timeout: 180000
+- tapOn:
+    text: "HTML"
+- extendedWaitUntil:
+    visible: "Exported to p2j-5-share.html"
+    timeout: 120000
+- takeScreenshot: 01-the-report-offers-to-share
+# On the report rather than in a menu: the moment a file is written is the moment somebody wants
+# to send it.
+- assertVisible: "Share"
+- tapOn:
+    text: "Share"
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 02-the-chooser

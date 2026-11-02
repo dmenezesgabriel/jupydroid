@@ -1,0 +1,93 @@
+appId: com.jupydroid.app
+---
+# P2c: a cell operation applies to the whole marked run, and one undo takes all of it back.
+#
+# Runs no cell, so the emulator is enough and this is evidence on both devices.
+#
+# **This is the half that makes multi-select worth having**, and the half that would fail silently
+# without it: a bar reading `3 selected` over a Delete that removes one is a control that lies.
+# What is being proved:
+#
+#   1. **The operand is the run.** Three cells marked, Delete tapped once, three cells gone.
+#   2. **The menu says so.** The row reads `Delete cells`, not `Delete` - the reference's own
+#      `trans._n` pluralisation (`packages/notebook-extension/src/index.ts:3733`).
+#   3. **The batch is one undo entry**, because `applying` is the undoable unit exactly as the
+#      reference's `sharedModel.transact { }` block is. One tap on Undo brings all three back -
+#      **with the output and the `[7]` that one of them had**, which is what says the outputs were
+#      restored and not merely the cells.
+#   4. **A delete clears the run**, as `deleteCells` ends on `deselectAll()` (`actions.tsx:3423`).
+#
+# The saved file is printed by the driver afterwards: an undo that only ever lived in the ViewModel
+# would look identical on screen until the app was killed.
+#
+# Seeded by scripts/batch-delete-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Take Three Back.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Take Three Back.ipynb"
+- extendedWaitUntil:
+    visible: "alpha = 1"
+    timeout: 30000
+# The fixture's saved result, which the undo has to bring back with the cell.
+- assertVisible: "batch output"
+- assertVisible: "\\[7\\]:"
+- takeScreenshot: 01-four-cells-one-with-a-result
+# **Scrolled to, where this used to assert it outright.** Four cells no longer fit above the fold
+# at 320dp: P2q gave the document's name a row of its own, which is the reference's single-document
+# arrangement (`packages/application/src/shell.ts:690-705`), and that row costs 48dp until the
+# reader scrolls and `titleCollapseFraction` hands it back. The claim is unchanged - the fourth
+# cell is in the document - and scrolling is how a reader reaches it.
+- scrollUntilVisible:
+    element:
+      text: "delta = 4"
+    direction: DOWN
+    timeout: 10000
+# Back to the top, so the taps below address the first cell's controls and not the fourth's.
+- scrollUntilVisible:
+    element:
+      text: "alpha = 1"
+    direction: UP
+    timeout: 10000
+- tapOn: "Cell actions"
+- tapOn: "Cell menu Select cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Select cell 3"
+- assertVisible: "3 selected"
+- takeScreenshot: 02-three-marked
+- tapOn: "Selected cell actions"
+- waitForAnimationToEnd:
+    timeout: 5000
+# Plural, and that is the assertion: the same row reads `Delete` when one cell is marked.
+- runFlow: scroll-the-cell-menu-to-its-end.yaml
+- tapOn: "Cell menu Delete cells"
+- waitForAnimationToEnd:
+    timeout: 5000
+# One cell left, and it is the one that was never marked.
+- assertVisible: "delta = 4"
+- assertNotVisible: "alpha = 1"
+- assertNotVisible: "gamma = 3"
+- assertNotVisible: "batch output"
+# The run is gone with the cells, so the notebook's own bar is back - `deleteCells` ends on
+# `deselectAll()` there too.
+- assertVisible: "Back to files"
+- assertNotVisible: "3 selected"
+- takeScreenshot: 03-three-gone-in-one-tap
+# One entry, not three: the batch is one `applying` call, which is the undoable unit.
+- tapOn: "Undo cell operation"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "alpha = 1"
+- assertVisible: "gamma = 3"
+- assertVisible: "delta = 4"
+# The output and the count came back with the cell that had them, which is what says the entry
+# carried the results and not only the sources.
+- assertVisible: "batch output"
+- assertVisible: "\\[7\\]:"
+- takeScreenshot: 04-one-undo-brought-all-three-back

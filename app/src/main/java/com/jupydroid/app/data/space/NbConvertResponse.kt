@@ -17,7 +17,7 @@ internal object NbConvertResponse {
    * six formats that converted:
    *
    * ```
-   * Content-Disposition: attachment; filename*=utf-8''p2j-2-export-formats.slides.html
+   * Content-Disposition: attachment; filename*=utf-8''export-formats.slides.html
    * ```
    *
    * `set_attachment_header` is tornado's, and it emits `filename*=` whenever the name is not

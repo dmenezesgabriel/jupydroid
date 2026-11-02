@@ -25,7 +25,7 @@ appId: com.jupydroid.app
 
 # Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
 # inputText's leading keystrokes can still race the IME's own connection setup on this device
-# (measured: `ech` of `echo` eaten, `p4i-terminal-tablet.yaml`'s own comment). A tap on the field
+# (measured: `ech` of `echo` eaten, `terminal-tablet.yaml`'s own comment). A tap on the field
 # is a user's own focus move, and the one that settles the connection before typing starts.
 # The wait first: on a first-launch run the v7 rootfs is still extracting while the "Terminal"
 # title draws, and the field's semantics node lands after it - a bare tap raced it once already.

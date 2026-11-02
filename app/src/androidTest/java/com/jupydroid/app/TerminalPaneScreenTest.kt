@@ -56,7 +56,7 @@ class TerminalPaneScreenTest {
     var cell by mutableStateOf<IntSize?>(null)
 
     // Pinned rather than left to whatever the physical device was last rotated to - the tablet's
-    // own landscape default has already cost `p4i-terminal-resize`/`p4j-3c-terminal-font-size`
+    // own landscape default has already cost `terminal-resize`/`terminal-font-size`
     // a false start apiece, and here it swung the "without ime" baseline between
     // 12 and 29 rows depending on which way an earlier test run happened to leave the device.
     compose.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT

@@ -1,0 +1,47 @@
+appId: com.jupydroid.app
+---
+# P2n: three cells whose headers carry different things, in one frame.
+#
+# Seeded by scripts/cell-header-prompts-driver.sh; clearState would delete the fixture.
+#
+# **The claim this exists to let a reader check is an x, and it is a pair.** This app used to draw
+# the words "markdown" and "raw" where the reference draws no prompt at all - `_setPrompt` has a
+# single caller, `CodeCell._updatePrompt` (`packages/cells/src/widget.ts:1693-1700`) - and a
+# heading cell's collapser was drawn in front of that word, so two markdown cells in one frame
+# started 48dp apart. Visible in
+# `git show 0dd10c9:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - P2o-2 renamed that
+# flow to `toc-side-panel`, so the frame is in git history rather than in the tree - and
+# invisible to every assertion in the suite: the labels read the right words in the right cells.
+#
+# **The flow's job is to put all three headers on screen; the driver's is to measure them.** It
+# ends here rather than tapping anything: what the collapser does is already driven by
+# `heading-collapse`, and a second copy of that would be two flows to keep in step.
+#
+# Emulator or tablet: this flow runs no cell, so it needs no Space runtime. Driven on the emulator,
+# which is at density 160 - so a bound in `uiautomator dump` is a dp with no arithmetic between.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Gutter.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Gutter.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+# The three headers the measurement is taken from: a prose cell, a heading cell and a code cell.
+- assertVisible: "Results"
+- assertVisible: "answer = 42"
+# The one prompt in the document, carrying the reference's own trailing colon
+# (`packages/cells/src/inputarea.ts:283-290`)...
+- assertVisible:
+    text: "\\[ \\]:"
+# ...and neither word this app used to draw in place of the prompt the reference leaves empty.
+- assertNotVisible: "markdown"
+- assertNotVisible: "raw"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-three-headers-in-one-frame

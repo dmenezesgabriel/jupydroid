@@ -6,7 +6,7 @@ appId: com.jupydroid.app
 # placeholder and not FakeKernelDebugger's own hardcoded single frame/variable.
 #
 # WIDE WINDOW: the rail this taps is only drawn where there is room for two panes
-# (`p2o-2-side-panel.yaml`'s own reasoning) - which this device's window already is, since
+# (`toc-side-panel.yaml`'s own reasoning) - which this device's window already is, since
 # TABLET ONLY is what got a real kernel to pause in the first place.
 #
 # TABLET ONLY (SM-X216B) - see p6a-7b-debugger-stops-at-breakpoint.yaml, which this continues.

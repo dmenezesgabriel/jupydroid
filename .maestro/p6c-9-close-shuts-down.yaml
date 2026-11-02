@@ -5,7 +5,7 @@ appId: com.jupydroid.app
 # shutdownOnDispose branch (`packages/apputils/src/sessioncontext.tsx:690-698`), reachable by
 # toggle instead of by menu.
 #
-# **`stopApp: false` is the test, not a detail** - `p1d-part2`'s own rule: a force-stop would
+# **`stopApp: false` is the test, not a detail** - `shutdown-kernel-shut-it-down`'s own rule: a force-stop would
 # take the kernel with it, and the driver's "the session is gone" check would pass without
 # close() having done anything at all.
 #

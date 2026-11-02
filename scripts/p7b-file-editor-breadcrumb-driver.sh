@@ -2,7 +2,7 @@
 # P7b: the plain file editor's breadcrumb - where a file lives, and the way back to its folder.
 # NARROW WINDOW (<840dp): the 320dp emulator, and the tablet in portrait at 800dp.
 #
-# One window, deliberately, and the same reason `p2w-1-breadcrumb-driver.sh` gives: in one pane the
+# One window, deliberately, and the same reason `notebook-breadcrumb-trail-driver.sh` gives: in one pane the
 # file's trail is the only trail on screen, where two panes put the browser's beside it and every
 # selector would match twice. The two-pane half is `p7b-file-editor-breadcrumb-wide`.
 #

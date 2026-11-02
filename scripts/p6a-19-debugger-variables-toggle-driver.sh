@@ -26,7 +26,7 @@ EVIDENCE="$ROOT/evidence/p6a-19"
 SERVER_LOG="files/spaces/base/run/jupyter_server.log"
 SETTLE_WAIT=20
 
-# The same rotation p1g-one-container-driver.sh established: the accelerometer off first, or the
+# The same rotation one-container-driver.sh established: the accelerometer off first, or the
 # device turns itself back the moment it is set down.
 rotate_to() { # rotate_to <0=portrait|1=landscape>
   "$ADB" shell settings put system accelerometer_rotation 0

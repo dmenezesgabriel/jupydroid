@@ -3,7 +3,7 @@
 
 `vi`'s own fill-line count is the resize oracle, because `stty size` answers from a fixed
 default in this rootfs rather than a live `ioctl` (CLOSED-006). The accessibility-text version
-of that oracle (`grep -c 'text="~"'` over a `uiautomator dump`, `p4i-terminal-resize-driver.
+of that oracle (`grep -c 'text="~"'` over a `uiautomator dump`, `terminal-resize-driver.
 sh`'s own `count_vi_fill_lines`) proved unreliable on this device independent of anything
 `TerminalCanvas` draws - reproduced with and without this phase's own fix
 (`docs/architecture/cross-cutting.md` §8.6). This reads the screenshot's own pixels instead:

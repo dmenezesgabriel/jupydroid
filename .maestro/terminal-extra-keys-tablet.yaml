@@ -1,0 +1,74 @@
+appId: com.jupydroid.app
+---
+# The P4j-3a gate: "tap Ctrl then tap C to interrupt a running one" - a real shell (TABLET ONLY,
+# SM-X216B), not `FakeTerminalGateway`'s echo. `sleep 30`, not `yes` -
+# `terminal-ctrl-c-running-command.yaml`'s own reason: `yes`'s screen-filling output makes two screenshots
+# indistinguishable whether or not it was interrupted; `sleep` prints nothing on its own, so `^C`
+# and a fresh prompt is proof only a real interrupt byte can produce.
+#
+# That proof is a file oracle now, not `extendedWaitUntil: visible:` -
+# `architecture/cross-cutting.md` §8.6 forbids gating on this canvas's per-row `Text` column. `sleep
+# 30 && echo survived` only writes its file if the sleep ran the full half-minute, and the `echo
+# interrupted` typed *after* the Ctrl+C tap only reaches a shell that is back at a prompt - the
+# driver times the first against the second's arrival, so a surviving sleep fails on both counts at
+# once.
+#
+# Esc is proved the same way, against a real `vi` (busybox's own `usr/bin/vi -> /bin/busybox`):
+# if the tap did nothing, `:wq` would be typed as literal buffer text - still in insert mode -
+# and `p4j3a.txt` would never exist at all, let alone hold `zqxvk`. Home/End/PgUp/PgDn/Tab are not
+# repeated here - `TerminalExtraKeysRowTest` already proves each reaches a real device's own
+# semantics tree as the exact bytes `terminalKeystroke` (P4j-2) already sends for a hardware key
+# of the same name, on both the tablet and the emulator; what only a real shell can add is
+# confirmed once, through Esc, not five more times through keys with no new code path of their
+# own. Reaching them without scrolling the row past Esc keeps this flow to the one swipe-free
+# case `reveal-the-symbol-row-arrows.yaml`'s own reason names as safe to skip.
+#
+# Not `clearState` - `terminal-tablet.yaml`'s own reason: wipes the already-installed Space.
+- launchApp
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+
+- waitForAnimationToEnd:
+    timeout: 15000
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
+- inputText: "sleep 30 && echo survived > p4j3a-survived.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 01-sleep-running
+
+- tapOn: "Ctrl"
+- inputText: "c"
+- takeScreenshot: 02-ctrl-tap-interrupted-sleep
+
+# Reaches the shell at once only if Ctrl+C actually killed the sleep; otherwise it sits in the
+# tty's canonical buffer until the sleep ends - which is what makes the driver's 15s poll on
+# this file a real interrupt check and not just proof that a line was typed.
+- inputText: "echo interrupted > p4j3a-after.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+
+- inputText: "vi p4j3a.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- inputText: "i"
+- inputText: "zqxvk"
+- tapOn: "Esc"
+- takeScreenshot: 03-vi-after-esc-tap
+- inputText: ":wq"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 04-esc-tap-left-insert-mode

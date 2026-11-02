@@ -96,7 +96,7 @@ appId: com.jupydroid.app
 - tapOn: "Cell menu Go to definition"
 # A `Short` snackbar outlives a Maestro command by barely a second - the wait *is* the
 # assertion (it only returns once the text is on screen), and a second `assertVisible` just
-# races the auto-dismiss. `p2j-4-export` asserts its snackbar the same way.
+# races the auto-dismiss. `export-lands-in-workspace` asserts its snackbar the same way.
 - extendedWaitUntil:
     visible: "No definition found"
     timeout: 30000

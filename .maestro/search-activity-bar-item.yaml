@@ -1,0 +1,70 @@
+appId: com.jupydroid.app
+---
+# P2x-2: the activity bar grows a **third** item, and a panel behind it.
+#
+# The order takes both references to state, which is the correction this sub-step made:
+#   - the file browser is first in both - rank 100 (`filebrowser-extension/src/index.ts:676`),
+#     `order: 0` (`vscode/…/files/browser/explorerViewlet.ts:265`);
+#   - **Search is second and only VS Code says so** - `order: 1` on the sidebar view container
+#     (`vscode/…/search/browser/search.contribution.ts:59`). JupyterLab registers no search panel
+#     at all; its `documentsearch` is scoped to `currentWidget`, which is the find bar P2i shipped;
+#   - **the table of contents is last and only JupyterLab says so** - rank 400
+#     (`toc-extension/src/index.ts:309`). VS Code's Outline is a view *inside* the explorer's
+#     container (`outline/browser/outline.contribution.ts:26-38`).
+#
+# Three claims:
+#   1. the rail carries all three, and Search swaps the file browser out - one panel at a time,
+#      `SideBarHandler._onCurrentChanged` (`packages/application/src/shell.ts:2630-2643`);
+#   2. picking Search again *collapses* the area, leaving the bar - `collapse()` sets
+#      `currentTitle = null` (`shell.ts:2383-2394`);
+#   3. and the same control brings the browser back, which is `application:toggle-left-area`.
+#
+# The panel is **named and empty on purpose**: P2x-3 draws the query box, the option toggles and
+# the results tree into it. So the title is the assertion - it is what tells the panel apart from
+# the browser, and `Workspace` going is what proves the swap.
+#
+# **`"^Search$"` rather than `"Search"`**: maestro matches a substring, and the notebook's find bar
+# carries `Search options`, `Search cell outputs`, `Search cell source only` and three more. The
+# bar is not up in this flow, and the anchor is what keeps that from being load-bearing.
+#
+# **WIDE WINDOW**: the rail is drawn only where there is room for two panes. The emulator's 320dp
+# window has no side area at all, and `one-pane-side-panels` is what covers it there.
+#
+# No cell is run, so this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# Files is the panel that opens with the shell - `filebrowser` is the lowest rank and VS Code's
+# `isDefault: true`. `Workspace` is the breadcrumb only the browser draws.
+- assertVisible: "Workspace"
+- takeScreenshot: 01-files-is-the-panel-the-shell-opens-with
+# --- 1. three items, and Search swaps the browser out ---------------------------------------
+- assertVisible: "Files"
+- assertVisible:
+    text: "^Search$"
+- assertVisible: "Table of contents"
+- takeScreenshot: 02-the-rail-carries-three-panels
+- tapOn:
+    text: "^Search$"
+# The panel names itself, which is the whole of what P2x-2 draws. **The rail item and the panel
+# title are the same string by design**, so this assertion alone cannot tell them apart - the
+# screenshot below is what shows the titled panel, and `Workspace` going is what shows the swap.
+# `SidePaneNavigationTest.theRailSwapsTheFileBrowserForSearch` is where the two are separated: it
+# queries the title by *text* where the rail item carries only a content description.
+- assertVisible:
+    text: "^Search$"
+- assertNotVisible: "Workspace"
+- takeScreenshot: 03-search-replaced-the-file-browser
+# --- 2. picking it again collapses the area --------------------------------------------------
+- tapOn:
+    text: "^Search$"
+- assertNotVisible: "Workspace"
+# The bar stays where the panel went, so the way back is one tap and not a gesture.
+- assertVisible: "Files"
+- assertVisible: "Table of contents"
+- takeScreenshot: 04-collapsed-to-the-rail-alone
+# --- 3. and the browser comes back ------------------------------------------------------------
+- tapOn: "Files"
+- assertVisible: "Workspace"
+- takeScreenshot: 05-the-file-browser-came-back

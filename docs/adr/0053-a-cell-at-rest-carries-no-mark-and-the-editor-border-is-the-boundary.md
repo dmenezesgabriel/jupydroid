@@ -72,7 +72,7 @@ Removing the stripe removed the only always-on boundary, and the editor border i
 reference's answer and the trade is accepted knowingly.
 
 Because the prompt sets the leading x for every cell type, anything added in front of it re-introduces the
-48dp raggedness. `p2n-gutter` is the flow that measures it.
+48dp raggedness. `cell-header-prompts` is the flow that measures it.
 
 The thing a future reader will be tempted to "fix" is the resting border's contrast, since an audit will
 flag it against 3:1. No border-like colour reaches 3:1 on the cell; the active border is the one held to a

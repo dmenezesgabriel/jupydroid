@@ -138,7 +138,7 @@ seed_file() {
 # terminal canvas's per-row `Text` column - this device reports them as `text=""` run-to-run.
 # A command the flow typed can prove itself to a real shell instead, by writing its answer into
 # the workspace where `run-as` (the same access [seed_file] already uses) can read it back -
-# `p4i-terminal-tablet`'s own shape. On a timeout the file's own contents are dumped so the
+# `terminal-tablet`'s own shape. On a timeout the file's own contents are dumped so the
 # evidence says what the shell *did* write.
 wait_for_workspace_text() {
   local path="$1" needle="$2" timeout="${3:-30}" tries=0

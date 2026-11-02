@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# The driver sent Ctrl-C between the two halves (`input keycombination <KEYCODE_CTRL_LEFT>
+# <KEYCODE_C>` - Maestro's own `pressKey` has no arrow/modifier vocabulary to send it, confirmed
+# reading `maestro.KeyCode`'s enum). No `launchApp` here: unlike a rotation, a key combination does
+# not recreate the activity, so the same Maestro session continues.
+#
+# The interrupt's own proof moved to the driver: `terminal-tablet.yaml`'s `echo interrupted`
+# idiom - this line reaches a shell only once it is back at a prompt, so a 15s poll on the file it
+# writes is a real interrupt check, not just proof that a line was typed (and it sidesteps
+# `architecture/cross-cutting.md` §8.6: the `^C` this half used to `visible:`-assert lives on a
+# canvas `Text` column a11y reads unreliably). The screenshot still captures the `^C` echo.
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-ctrl-c-interrupted-sleep
+- inputText: "echo interrupted > p4j2-after.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000

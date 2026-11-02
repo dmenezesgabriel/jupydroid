@@ -9,7 +9,7 @@ appId: com.jupydroid.app
 # run of the incrementing cell prints **44**, which only a kernel that stayed alive can compute -
 # a fresh kernel would NameError like part 3's did, and a stale saved output would read 43.
 #
-# `stopApp: false` throughout - `p1d-part2`'s own rule. TABLET ONLY: see part 2.
+# `stopApp: false` throughout - `shutdown-kernel-shut-it-down`'s own rule. TABLET ONLY: see part 2.
 - launchApp:
     stopApp: false
 - waitForAnimationToEnd:

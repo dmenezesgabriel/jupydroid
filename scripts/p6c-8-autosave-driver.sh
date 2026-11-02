@@ -15,7 +15,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
 
-# Keyed by window width the way `p2o-3-pane-widths-driver.sh` is: the dismiss the flush flow taps
+# Keyed by window width the way `pane-widths-driver.sh` is: the dismiss the flush flow taps
 # is "Close" on a two-pane window and "Back to files" on a one-pane one, so a sweep on both
 # devices keeps each arm's frames rather than the last writer's.
 OUT="$ROOT/evidence/p6c-8-autosave/$(window_width_dp)dp"

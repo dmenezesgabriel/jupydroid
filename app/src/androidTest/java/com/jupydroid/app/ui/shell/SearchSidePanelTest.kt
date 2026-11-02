@@ -325,7 +325,7 @@ class SearchSidePanelTest {
   /**
    * **One node answers to each heading, and a flow is what found otherwise.** The reference gives
    * the input an `ariaLabel` equal to the `h4` above it (`searchView.ts:542`) - two nodes, one name,
-   * which in a browser is harmless and here is not: `p2x-3-search-scope` tapped *"files to exclude"*
+   * which in a browser is harmless and here is not: `search-scope` tapped *"files to exclude"*
    * and landed on the **label**, so the glob went into the include box and the flow failed one
    * assertion later against a count that was right for what had actually been typed.
    *

@@ -1,0 +1,52 @@
+appId: com.jupydroid.app
+---
+# P2l-3a: a cell's source, the output under it and the completion popup over it, in one frame -
+# because the claim is that all three are now one size, and no single surface can show that.
+#
+# Seeded by scripts/code-size-driver.sh; clearState would delete the fixture.
+#
+# **What was measured before this step, and why the frame is the evidence.** Four sizes for one
+# thing: the source stated none at all and resolved to Compose's `DefaultFontSize` (14sp) with the
+# font's own line height, the output was `bodySmall` (12sp/16sp) and the popup `bodyMedium`
+# (14sp/20sp). The reference has one `--jp-code-font-size` and one `--jp-code-line-height` read by
+# the editor, the input area, `.jp-RenderedText pre` and both completer selectors.
+#
+# TABLET ONLY, and it is the popup that decides: completions come from the kernel's
+# `complete_request`, and on the x86_64 emulator `MainActivity` falls back to `FakeKernelGateway`,
+# which has none. A run there would screenshot a source and an echo and prove nothing about the
+# third surface.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Code Size.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Code Size.ipynb"
+- extendedWaitUntil:
+    visible: "print\\('sized', 6 \\* 7\\)"
+    timeout: 30000
+- takeScreenshot: 01-the-source-alone
+# Starting the base Space takes seconds on first use: rootfs, jupyter_server, then a kernel.
+- tapOn: "Run cell"
+# `sized 42` and not the source echoed back: the product is what the kernel had to compute, so
+# neither the field above nor `FakeKernelGateway`'s echo can satisfy this wait.
+- extendedWaitUntil:
+    visible: "sized 42"
+    timeout: 180000
+# Source and output together: the pair that was 14sp over 12sp.
+- takeScreenshot: 02-source-and-output
+# A fresh line, so what is completed is `pri` and not the end of the print call.
+- tapOn: "print\\('sized', 6 \\* 7\\)"
+- pressKey: Enter
+- inputText: "pri"
+# Matched by contentDescription, never by the bare word: the Samsung keyboard offers "print" in
+# its own suggestion bar, and only this app writes "Completion print".
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 60000
+- assertVisible: "Completion print"
+# All three at once, which is the frame this flow exists for.
+- takeScreenshot: 03-source-output-and-completions

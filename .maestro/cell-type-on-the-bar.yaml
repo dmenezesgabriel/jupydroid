@@ -1,0 +1,69 @@
+appId: com.jupydroid.app
+---
+# P2r-1: the notebook's bar names the **active cell's type**, and changes it in one gesture.
+#
+# `cellType` is an item on the reference's notebook toolbar at rank 40
+# (`packages/notebook-extension/schema/panel.json`), rendered as a select whose value is
+# `notebook.activeCell.model.type` (`packages/notebook/src/default-toolbar.tsx:376-397`). This app
+# had no surface that named the type at all after P2n took away the invented `markdown` / `raw`
+# prompt words - the reference draws no prompt on a non-code cell (`packages/cells/src/widget.ts:1693-1700`).
+#
+# Three claims, and the fixture is chosen so each needs a different cell:
+#   1. The bar names the cell that is active - Code on the notebook just opened.
+#   2. It **follows** the active cell, which is `widget.activeCellChanged.connect(this.update, this)`
+#      (`default-toolbar.tsx:344`) - tapping into the raw cell makes it say Raw.
+#   3. Picking a type changes the cell, and the bar then names what the cell became.
+#
+# **WIDE WINDOW**: measured, the action row has 72dp free at 320dp and the widest label the
+# control draws ("Markdown") wants 73.3dp before its caret - so the phone gets the row in the
+# overflow instead, which is `cell-type-in-the-overflow` and what a `ReactiveToolbar` does
+# with an item that does not fit (`packages/ui-components/src/components/toolbar.tsx:570-700`).
+#
+# No cell is run, so this needs the width and not the arm64 kernel.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Cell Types.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cell Types.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*print\\(6 \\* 42\\).*"
+    timeout: 30000
+# --- 1. the bar names the active cell ------------------------------------------------------
+#
+# The first cell is the active one on a notebook just opened, which is the reference's own
+# `activeCellIndex` clamped to 0 (`packages/notebook/src/widget.ts:1965-1974`).
+- assertVisible: "Cell type Code"
+- takeScreenshot: 01-the-bar-names-the-active-cell
+# --- 2. it follows the active cell ---------------------------------------------------------
+#
+# Tapping into a cell's field focuses it, and focus is what moves the head
+# (`EditorViewModel.cellFocusChanged`). The raw cell is the one no other surface in this app can
+# tell from an unrendered markdown cell, which is why it is the one asserted here. The caret is
+# caret is escaped and the whole thing wrapped in `.*` because a Maestro selector is a regex
+# matched against the *whole* node - and this raw cell's field holds three lines, not one.
+- tapOn: "(?s).*E = mc\\^2.*"
+- extendedWaitUntil:
+    visible: "Cell type Raw"
+    timeout: 10000
+- assertNotVisible: "Cell type Code"
+- takeScreenshot: 02-it-follows-the-active-cell
+# --- 3. picking a type changes the cell -----------------------------------------------------
+- tapOn: "Cell type Raw"
+- assertVisible: "Cell type picker Code"
+- assertVisible: "Cell type picker Markdown"
+- assertVisible: "Cell type picker Raw"
+- takeScreenshot: 03-every-type-is-offered
+- tapOn: "Cell type picker Markdown"
+- extendedWaitUntil:
+    visible: "Cell type Markdown"
+    timeout: 10000
+# The converted cell is left showing its **source**, which is P2e-3's rule and the reference's:
+# `changeCellType` ends `(child as MarkdownCell).rendered = false`
+# (`packages/notebook/src/actions.tsx:3308-3312`). So the equation is still readable as text.
+- assertVisible: "(?s).*E = mc\\^2.*"
+- takeScreenshot: 04-the-cell-changed-and-the-bar-says-so

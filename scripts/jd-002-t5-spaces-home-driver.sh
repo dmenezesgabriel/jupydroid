@@ -4,7 +4,7 @@
 # Two flows because the width is the variable: the tablet is two panes in landscape and one in
 # portrait, and Back leaves the workspace from a different resting state in each - the lone
 # launcher at two panes, the browser at one. The rotation is done here rather than in a flow, the
-# way `p2x-2-rotation-driver.sh` does it, so each flow starts at the width it asserts.
+# way `rotating-search-panel-driver.sh` does it, so each flow starts at the width it asserts.
 #
 # TABLET ONLY: the emulator's window is one pane in both orientations.
 #

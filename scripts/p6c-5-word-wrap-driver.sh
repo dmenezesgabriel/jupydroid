@@ -4,7 +4,7 @@
 # the unit/instrumented proof that the field persists and the mechanism lays out correctly
 # (`EditorSettingsRepositoryContract`, `SettingsScreenTest`, `CodeCellFieldWrapTest`).
 #
-# **The persistence claim is read off disk, not off a label** - `p2k-3-kernel-history-setting-
+# **The persistence claim is read off disk, not off a label** - `kernel-history-setting-
 # driver.sh`'s own reasoning: `DiskEditorSettingsRepository.update` assigns the in-memory
 # `StateFlow` before it writes the file, so a store that never landed would still show the
 # flipped row after a relaunch as long as the process happened to survive. The flow leaves the
@@ -40,6 +40,6 @@ grep -q '"codeWrapEnabled":false' "$EVIDENCE/editor-settings.json" ||
   { echo "the setting never reached disk - the store says otherwise" >&2; exit 1; }
 
 # Back to the app's own default, so no flow run after this one on the same device inherits a
-# setting nobody chose for it - `p2k-3-kernel-history-setting-driver.sh`'s own cleanup.
+# setting nobody chose for it - `kernel-history-setting-driver.sh`'s own cleanup.
 "${DEVICE_ADB[@]}" shell am force-stop "$APP"
 "${DEVICE_ADB[@]}" shell "run-as $APP rm -f files/editor-settings.json"

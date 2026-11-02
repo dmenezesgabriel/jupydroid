@@ -4,7 +4,7 @@
 P2n. `CellHeader` used to draw a kind label - the words "markdown" and "raw", this app's own - in
 front of the heading collapser, so the label's x was a function of what the cell happened to carry:
 in `git show 0dd10c9:evidence/p2h-3-table-of-contents-pane/02-the-pane.png` - that flow
-was renamed to `p2o-2-side-panel` in P2o-2, so the frame is in git history rather than in
+was renamed to `toc-side-panel` in P2o-2, so the frame is in git history rather than in
 the tree - a prose cell's label and a heading
 cell's start 48dp apart in the same frame. The reference gives a non-code cell no prompt at all
 (`_setPrompt`'s single caller is `CodeCell._updatePrompt`, `packages/cells/src/widget.ts:1693-1700`)

@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# P4j-3d-4's own gate: while the alternate screen is live (`vi`), a drag moves the cursor by a
+# real arrow keypress rather than scrolling the screen - Termux's own `doScroll`'s special case
+# for a buffer with no scrollback at all. `vi`'s own full-screen redraw (`~` fill lines) is this
+# phase's own established proof surface (`terminal-vi`) that a real, unmodified program is
+# what is drawn - so the fill lines staying exactly where they are, while the cursor's own cell
+# moves between them, is the whole proof.
+#
+# TABLET ONLY (SM-X216B): a real shell and a real `vi`, not `FakeTerminalGateway`'s echo.
+# NOT A SUITE FLOW: leaves a `vi` session running.
+- launchApp
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- runFlow: open-new-terminal.yaml
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+
+- waitForAnimationToEnd:
+    timeout: 15000
+# Focus is taken, not waited for - `TerminalInputField` autofocuses on composition, but a first
+# inputText's leading keystrokes can still race the IME's own connection setup on this device
+# (measured: `ech` of `echo` eaten, `terminal-tablet.yaml`'s own comment). A tap on the field
+# is a user's own focus move, and the one that settles the connection before typing starts.
+- tapOn:
+    id: "terminal-input"
+- inputText: "vi alt-screen-marker.txt"
+- pressKey: Enter
+# Not `extendedWaitUntil: visible: "~"` - `architecture/cross-cutting.md` §8.6: Maestro's own text
+# reading of this terminal is unreliable independent of anything drawn, and the pixel-based pattern
+# every terminal-content gate since has followed is a fixed wait plus a screenshot the driver's own
+# python oracle reads, not a text assertion.
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-vi-cursor-on-line-one
+
+# An upward drag - `detectTerminalScrollDrag`'s own sign convention sends Down arrows for this
+# direction - moves the cursor down through the file's five lines. `vi` clamps at the last line
+# rather than erroring past it, so this needs no precise calibration against the device's own cell
+# height. Both ends stay above 65% of the screen height
+# - the soft keyboard covers everything below that once it opens, and a swipe starting on it never
+# reaches this app's own gesture handling at all (a device-measured finding, not a guess).
+- swipe:
+    start: 50%, 60%
+    end: 50%, 15%
+    duration: 400
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: 02-vi-cursor-moved-down

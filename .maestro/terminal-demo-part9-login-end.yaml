@@ -10,7 +10,7 @@ appId: com.jupydroid.app
 #
 # The first tap is at 3 % of the field's width, on the first columns, where clack draws only its
 # rails and bullets, so it raises the keyboard and opens nothing; the extra keys' Ctrl then makes the
-# typed `c` a Ctrl-C (`p4j-3a-terminal-extra-keys.yaml`).
+# typed `c` a Ctrl-C (`terminal-extra-keys-tablet.yaml`).
 - assertVisible:
     id: "terminal-input"
 - assertNotVisible: "Open Link\\?"

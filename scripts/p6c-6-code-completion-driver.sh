@@ -4,7 +4,7 @@
 # instrumented proof that the field persists and the gate stops the pipeline before it starts
 # (`EditorSettingsRepositoryContract`, `SettingsScreenTest`, `CellCompletionsGateTest`).
 #
-# **The persistence claim is read off disk, not off a label** - `p2k-3-kernel-history-setting-
+# **The persistence claim is read off disk, not off a label** - `kernel-history-setting-
 # driver.sh`'s own reasoning, reused by `p6c-5-word-wrap-driver.sh`: `DiskEditorSettingsRepository
 # .update` assigns the in-memory `StateFlow` before it writes the file, so a store that never
 # landed would still show the flipped row after a relaunch as long as the process happened to

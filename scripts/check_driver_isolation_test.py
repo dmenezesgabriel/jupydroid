@@ -124,7 +124,7 @@ class DriverIsolationTest(unittest.TestCase):
         NARROW WINDOW is < 840dp, and on this project that is two real devices: the 320dp
         emulator and the tablet rotated to portrait at 800dp. A driver that writes into a fixed
         `evidence/<flow>/` therefore has each width silently overwrite the other. It is not
-        hypothetical - P2z's portrait pass left `p2j-4-export-menu/02-the-picker-at-320dp.png`
+        hypothetical - P2z's portrait pass left `export-menu/02-the-picker-at-320dp.png`
         holding a 1200x1920 capture, a filename asserting a width its own picture does not have.
         """
         found = self.assertOffences(
@@ -135,7 +135,7 @@ class DriverIsolationTest(unittest.TestCase):
         self.assertIn("window_width_dp", found[0])
 
     def test_a_narrow_window_driver_naming_its_width_is_clean(self) -> None:
-        """The shape `p2o-4` established and `p2y` follows."""
+        """The shape `one-pane-side-panels` established and `bottom-navigation` follows."""
         self.assertOffences(
             f"# NARROW WINDOW: it asserts the one-pane adaptation\n{RESETS}\n{SEEDS}\n"
             'WIDTH_DP="$(window_width_dp)"\n'
@@ -146,7 +146,7 @@ class DriverIsolationTest(unittest.TestCase):
     def test_prose_naming_the_narrow_rule_does_not_select_it(self) -> None:
         """A rule counts only where it is declared, which `driver-rules.sh` already defines.
 
-        `p2r-cell-type-in-the-overflow-driver.sh` explains itself by naming the rule it is
+        `cell-type-in-the-overflow-driver.sh` explains itself by naming the rule it is
         *not* - "**Not NARROW WINDOW**, which means <840dp" - and a bare substring match read
         that as a declaration. `driver_declares` (scripts/driver-rules.sh) anchors a rule to
         the start of a comment line for exactly this reason; this rule reads it the same way.
@@ -158,7 +158,7 @@ class DriverIsolationTest(unittest.TestCase):
         )
 
     def test_measuring_the_width_without_putting_it_in_the_path_is_reported(self) -> None:
-        """`p2j-4-export-menu`'s shape: the width is read for a self-skip and then thrown away.
+        """`export-menu`'s shape: the width is read for a self-skip and then thrown away.
 
         Reading the width somewhere in the file proves nothing about the evidence; only the
         directory `run_flow` is handed can tell the two runs apart.
@@ -180,7 +180,7 @@ class DriverIsolationTest(unittest.TestCase):
     def test_a_compact_window_driver_is_not_asked_to_name_a_width(self) -> None:
         """COMPACT WINDOW is < 600dp, which is one device here - so one directory is honest.
 
-        This is what `p2w-2-kernel-indicator-narrow` became in P2z-b.
+        This is what `kernel-indicator-narrow` became in P2z-b.
         """
         self.assertOffences(
             f"# COMPACT WINDOW: it asserts what a bar with no room does\n{RESETS}\n{SEEDS}\n"

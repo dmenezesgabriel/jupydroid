@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-symbol-row-shown-by-default
 
 # One `back` exits edit mode (command mode), a second leaves the notebook for Files - the same
-# two-step `p2f-4-insert-heading.yaml`'s own comment describes for the identical control.
+# two-step `insert-heading.yaml`'s own comment describes for the identical control.
 - hideKeyboard
 - back
 - back

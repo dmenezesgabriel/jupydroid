@@ -1,0 +1,56 @@
+appId: com.jupydroid.app
+---
+# P2g-1: `notebook:toggle-all-cell-line-numbers` from the notebook's View menu.
+#
+# Seeded by scripts/line-numbers-driver.sh; clearState would delete the fixture.
+#
+# **The numbers themselves cannot be asserted, and that is by design.** They are drawn on a canvas
+# rather than laid out as text, so they carry no accessibility node - a line number must never be
+# selectable or copyable with the code. `gutter-wrapped-line` has said so since Step 5. So the
+# screenshots are the evidence for the gutter, and what the *flow* asserts is the thing the
+# accessibility tree can see: the View row names the state by naming what tapping will do, so a row
+# reading "Show line numbers" is the app telling us the gutter is off. That is why the labels flip
+# instead of carrying a check mark - a toggled `DropdownMenuItem`'s state lives on a node Maestro
+# reads as unlabelled.
+#
+# The fixture has a **code** cell and a **raw** cell so one screenshot carries two of the three
+# types with nothing tapped. Markdown's gutter needs the cell opened for editing, which would take
+# the keyboard over the notebook; that the markdown field honours the same flag is
+# `LineNumberGutterTest`, which drives all three.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Gutter.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Gutter.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*import numpy as np.*"
+    timeout: 30000
+- assertVisible: "(?s).*E = mc\\^2.*"
+# Both gutters are on, which is this app's resting state and a departure from the reference's own
+# default (`lineNumbers: false`, `packages/notebook/src/widget.ts:1336-1355`), kept as the
+# reference's (ADR-0036).
+- takeScreenshot: 01-gutters-on-code-and-raw
+- tapOn: "Notebook actions"
+# The row names the *change*, so this is also the assertion that the gutter is currently shown.
+- assertVisible: "Hide line numbers"
+- assertNotVisible: "Show line numbers"
+- takeScreenshot: 02-the-view-menu-offers-to-hide
+- tapOn: "Hide line numbers"
+# The code is still there and has moved left; the screenshot is what shows the second half.
+- assertVisible: "(?s).*import numpy as np.*"
+- assertVisible: "(?s).*E = mc\\^2.*"
+- takeScreenshot: 03-gutters-off
+# One command for all cell types, so re-opening the menu must report the notebook's single state
+# rather than the cell that happens to be active.
+- tapOn: "Notebook actions"
+- assertVisible: "Show line numbers"
+- assertNotVisible: "Hide line numbers"
+- takeScreenshot: 04-the-view-menu-offers-to-show
+- tapOn: "Show line numbers"
+- assertVisible: "(?s).*import numpy as np.*"
+- takeScreenshot: 05-gutters-back

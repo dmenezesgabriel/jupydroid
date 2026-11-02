@@ -74,10 +74,10 @@ DEFINES_THE_FALLBACK = re.compile(r"command -v adb")
 #
 # Not hypothetical. P2z ran the six NARROW WINDOW flows at 800dp for the first time and watched
 # four of them overwrite their own committed 320dp evidence - leaving, among others,
-# `p2j-4-export-menu/02-the-picker-at-320dp.png` holding a 1200x1920 capture: a filename
+# `export-menu/02-the-picker-at-320dp.png` holding a 1200x1920 capture: a filename
 # asserting a width its own picture does not have.
 #
-# `p2o-4-one-pane-side-panels-driver.sh` established the fix and `p2y-bottom-navigation` follows
+# `one-pane-side-panels-driver.sh` established the fix and `bottom-navigation` follows
 # it - read the width off the framework and put it in the path - and ADR-0055's own
 # entry states it as the rule while only two of six drivers obeyed it. This is that rule with a
 # gate under it.
@@ -87,12 +87,12 @@ DEFINES_THE_FALLBACK = re.compile(r"command -v adb")
 #
 # Anchored to the start of a comment line, which is `driver_declares` in scripts/driver-rules.sh -
 # the one reader of these rules - and for the hazard it already documents: prose may *name* a rule,
-# and only a declaration selects one. `p2r-cell-type-in-the-overflow-driver.sh` explains itself by
+# and only a declaration selects one. `cell-type-in-the-overflow-driver.sh` explains itself by
 # naming the rule it is not ("**Not NARROW WINDOW**, which means <840dp"), and a bare substring
 # match read that as a declaration.
 DECLARES_TWO_WIDTHS = re.compile(r"^#\s*NARROW WINDOW", re.MULTILINE)
 # The width has to be in the path `run_flow` is handed, not merely somewhere in the file:
-# `p2j-4-export-menu-driver.sh` reads it for a self-skip above 840dp and then writes the same one
+# `export-menu-driver.sh` reads it for a self-skip above 840dp and then writes the same one
 # directory either way, so a file-wide match let the one driver that mislabelled a *committed*
 # screenshot through.
 MEASURES_ITS_WIDTH = re.compile(r"window_width_dp")
@@ -180,7 +180,7 @@ def unwidthed_evidence(driver: pathlib.Path, statements: list[str]) -> list[str]
     return [
         f"{driver}: declares NARROW WINDOW, which is two widths here (320dp and the tablet's 800dp "
         f"portrait), but writes one evidence directory; take the width from window_width_dp and put "
-        f"it in the path, as p2o-4-one-pane-side-panels-driver.sh does"
+        f"it in the path, as one-pane-side-panels-driver.sh does"
     ]
 
 
