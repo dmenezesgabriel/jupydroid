@@ -248,9 +248,19 @@ One TDD unit each, one conventional commit each.
     `jd-002`, `jd-023`, `p1d`, `p8g`, `x2b`, "Audit A4", "Step N"), and a sentence that leaned on
     one names the sibling driver instead. Names a flow types on the device (`jd046-probe.sh`,
     `p4k-marker-*`, `p5b-*`, `P8g …`, `p8g-echo`) are left to T8e/T8f, which own the flows that
-    type them (owner's decision). `scripts/[a-l]*-driver.sh` is the glob; the `m`-`z` half follows
-    in T8d.
-  - [ ] T8d — `scripts/*-driver.sh` from `m` to `z`, the same way.
+    type them (owner's decision). `scripts/[a-l]*-driver.sh` is the glob.
+  - [x] T8d — `scripts/*-driver.sh` from `m` to `z` (200 files, 100 hits in 50), now 0, with the
+    functional names those drivers carry: 5 item-coded evidence roots take the driver's name
+    (`jd-062-recents-arrives-collapsed` -> `recents-persists`, `jd-064-rootfs-advisories` ->
+    `rootfs-advisories-demo`, `x2e-home-new-python-file` -> `new-python-file`), 15 `tN` evidence
+    subdirectories take the run's (`t1-web-link` -> `web-link`, `t2` -> `file`), and the five device
+    temp files lose their codes (`/sdcard/p2o3-hierarchy.xml` -> `pane-widths-hierarchy.xml`,
+    `/data/local/tmp/jd015.data` -> `output-caps.data`). 37 more files lose the lowercase and
+    undashed ids no gate pattern matches (the "PRD's demo" headers, `T1`/`T2`/`T3`, `A2`, `M5`,
+    `a1c`, `p1g`, `p1b`, `p2l-1`, `p2z`, `p2h-2`, `p4j-3b`, `p4k`, `jd-002`). Names a flow types on
+    the device (`p5a-version.txt`, `p8f-second.ipynb`, `p4j2-after.txt`, `p8b-install.log`) stay for
+    T8e/T8f, which own the flows that type them, as T8c left them. `scripts/[m-z]*-driver.sh` is the
+    glob.
   - [ ] T8e — `.maestro/[a-m]*.yaml` (201 hits) and the names those flows type on the device.
   - [ ] T8f — `.maestro/[n-z]*.yaml` (225 hits), the same way. Either of T8e and T8f is split again when
     opened if its first count says so.
