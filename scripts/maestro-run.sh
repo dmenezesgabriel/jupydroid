@@ -2,12 +2,12 @@
 # Sourced by the U-phase drivers. Not executable on its own.
 #
 # The three things every driver was copying by hand, in one place: seed a notebook into the
-# app's storage, run a flow, and promote maestro's artefacts into evidence/. The older drivers
-# each carry their own copy; new ones do not have to.
+# app's storage, run a flow, and promote maestro's artefacts into an evidence directory. The
+# older drivers each carry their own copy; new ones do not have to.
 #
 #   . "$ROOT/scripts/maestro-run.sh"
 #   seed_notebook "$ROOT/.maestro/fixtures/x.ipynb" x
-#   run_flow "$ROOT/.maestro/x.yaml" "$ROOT/evidence/x"
+#   run_flow "$ROOT/.maestro/x.yaml" "$OUT"
 
 # shellcheck disable=SC2034  # the caller uses these
 ADB="${ADB:-$(command -v adb 2>/dev/null || true)}"
@@ -18,7 +18,7 @@ APP="com.jupydroid.app"
 # This file is sourced, so `$0` is the driver; `BASH_SOURCE` is the one thing that names *this*.
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Where notebooks live on the device, which X1a moved.
+# Where notebooks live on the device, which moved out of `files/notebooks` once.
 #
 # It is the kernel's HOME, so a notebook can now `open()` a file the user can see and the user can
 # see what a notebook wrote (`notebookWorkspaceIn`). Written down once here because twenty-nine
@@ -29,30 +29,30 @@ NOTEBOOK_DIR="files/spaces/base/home/jupydroid"
 # The recents list, which is app state and so deliberately *not* under NOTEBOOK_DIR - the
 # workspace is shared with the kernel, and bookkeeping there would show up in the explorer's own
 # listing (DiskRecentDocumentsRepository). It is cleared by [reset_notebooks] for the same reason
-# the workspace is: since X2h it survives a wipe of the workspace, so a path a previous run opened
+# the workspace is: it survives a wipe of the workspace, so a path a previous run opened
 # and this one re-seeds under the same name would still be listed.
 RECENTS_STORE="files/recent-documents.json"
 
-# The editor preferences (P2g-3) - `notebook:toggle-autoclosing-brackets` today - beside
+# The editor preferences - `notebook:toggle-autoclosing-brackets` today - beside
 # RECENTS_STORE for the same reason: app state, cleared here so a flow that leaves the toggle off
 # does not leave every flow after it on the same device typing against a setting nobody chose for
 # them. `EditorSettingsRepository` reads its default the moment this file is gone.
 EDITOR_SETTINGS_STORE="files/editor-settings.json"
 
-# The explorer preferences (P7c) - whether the Recents section is shut - beside the two above and
+# The explorer preferences - whether the Recents section is shut - beside the two above and
 # cleared for exactly their reason, sharpened: this one is *invisible*. A flow that collapses the
 # section leaves every flow after it on that device looking at a browser with no recent rows in it,
 # and nothing on screen says why. `ExplorerSettingsRepository` reads its default once this is gone.
 EXPLORER_SETTINGS_STORE="files/explorer-settings.json"
 
-# The theme preference (P6c-3) - System/Light/Dark - cleared for the same reason as the two above,
+# The theme preference - System/Light/Dark - cleared for the same reason as the two above,
 # sharpened again: a flow that leaves the device on Dark leaves every screenshot after it on that
 # device dark, and a screenshot oracle tuned against the light palette reads every one of them as
 # a failure with nothing on screen saying why. `ThemeSettingsRepository` reads its default once
 # this is gone.
 THEME_SETTINGS_STORE="files/theme-settings.json"
 
-# The launcher bookkeeping (P6d-4) - whether the launcher has ever presented itself. **Seeded, not
+# The launcher bookkeeping - whether the launcher has ever presented itself. **Seeded, not
 # cleared**, which is the sharpened form of the stores above: the default is "not seen", and a file
 # left absent would make every flow a first run - each one landing on a launcher it did not ask for
 # instead of the browser it seeded. The one flow that wants a first run deletes this itself.
@@ -64,7 +64,7 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 
 # Empties the workspace, so a flow sees the state it seeded and no other.
 #
-# Everything, not just `*.ipynb`: since X2 a driver can seed a folder and a data file too, and a
+# Everything, not just `*.ipynb`: a driver can seed a folder and a data file too, and a
 # `reports/` left behind by the previous run is a row the next flow did not put there. `cd` first
 # so a mistyped path removes nothing rather than the wrong thing.
 #
@@ -124,7 +124,7 @@ seed_file() {
   # endings, and a fixture is small enough to pass as an argument.
   local payload
   payload="$(base64 -w0 "$fixture")"
-  # The path is quoted, because X1b made the file name the notebook's title and titles have
+  # The path is quoted, because the file name is the notebook's title and titles have
   # spaces in them - `Markdown Render.ipynb`. Unquoted, the redirect target was two words and the
   # fixture landed in a file called `Markdown`.
   "$ADB" shell "run-as $APP sh -c 'echo $payload | base64 -d > \"$remote\"'"
@@ -197,10 +197,10 @@ window_width_dp() {
 # Stamps an evidence directory with the device that produced it.
 #
 # An evidence directory that does not say where it came from is a trap. Ten drivers promote
-# artefacts into evidence/ and only three are marked TABLET ONLY, so a sweep run on the emulator
+# artefacts into one and only three are marked TABLET ONLY, so a sweep run on the emulator
 # overwrites tablet captures with x86_64 ones and nothing on disk says so - and the difference
-# matters: on x86_64 `MainActivity` falls back to `FakeKernelGateway`. The width is here for the
-# same reason U5b needed it: a screenshot at one width is a layout with an untested branch.
+# matters: on x86_64 `MainActivity` falls back to `FakeKernelGateway`. The width is here because a
+# screenshot at one width is a layout with an untested branch.
 record_device() {
   local out="$1"
   local adb
@@ -397,9 +397,9 @@ run_flow() {
   mkdir -p "$out"
   # The status is captured rather than allowed to abort, because the evidence for a *failure* is
   # the evidence that matters and this used to throw it away: `set -e` killed the driver at the
-  # failed assertion, before any of the copying below, so `evidence/<step>/` kept the artefacts
-  # of the last run that passed. Chasing the third sighting of the execution stall, the logcat in
-  # evidence/ turned out to be from a different run 84 minutes earlier.
+  # failed assertion, before any of the copying below, so the output directory kept the artefacts
+  # of the last run that passed. Chasing the third sighting of the execution stall, the captured
+  # logcat turned out to be from a different run 84 minutes earlier.
   maestro_test "$flow" 2>&1 | tee "$out/maestro.log" || status=$?
 
   local run_dir
@@ -407,9 +407,9 @@ run_flow() {
   [ -n "$run_dir" ] || { echo "no maestro run directory found for $flow"; exit 1; }
   # A failed flow has fewer screenshots than it planned, and may have none.
   cp "$run_dir/takeScreenshot"/*.png "$out/" 2>/dev/null || true
-  # And a renamed screenshot used to leave its predecessor here for good - `evidence/x2e-…` kept
-  # four frames of a launch screen X2h retired, `evidence/p2o-4-…/800dp` a browser with no bottom
-  # bar beside the frame whose point is the bar (P2z-h, `evidence/p2z-suite-sweep/frames.md`).
+  # And a renamed screenshot used to leave its predecessor here for good - one flow's directory
+  # kept four frames of a retired launch screen, another's `800dp/` a browser with no bottom
+  # bar beside the frame whose point is the bar.
   # Keyed by flow, so the five drivers that run several flows into one directory keep each other's.
   local stems=() png
   for png in "$run_dir/takeScreenshot"/*.png; do

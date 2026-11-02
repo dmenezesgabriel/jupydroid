@@ -41,14 +41,14 @@ def write_repo_tree(root: pathlib.Path, busybox: bytes | None = FIXED_BUSYBOX) -
 
 class DispatchesThroughCheckSuidTest(unittest.TestCase):
     def test_a_binary_carrying_the_fingerprint_is_reported(self) -> None:
-        """Alpine's stock build, which is what P4b shipped and what killed every applet."""
+        """Alpine's stock build, which is what the app first shipped and killed every applet."""
         self.assertTrue(dispatches_through_check_suid(STOCK_BUSYBOX))
 
     def test_a_binary_without_it_is_clean(self) -> None:
         self.assertFalse(dispatches_through_check_suid(FIXED_BUSYBOX))
 
     def test_it_refuses_to_answer_about_a_file_that_is_not_busybox(self) -> None:
-        """A gate that silently passes on the wrong file is how P4b's gate went green."""
+        """A gate that silently passes on the wrong file is how the first gate went green."""
         with self.assertRaises(ValueError) as raised:
             dispatches_through_check_suid(b"\x7fELF" + b"\x00" * 64)
         self.assertIn("expected a busybox binary", str(raised.exception))

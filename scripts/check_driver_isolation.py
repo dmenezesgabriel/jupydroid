@@ -41,13 +41,14 @@ RESET = "reset_notebooks"
 # pre-U drivers used to carry. The second is here so that the gate keeps its grip on a driver
 # mid-migration rather than losing it exactly when the driver is being edited.
 #
-# `seed_file` counts as well as `seed_notebook`: since X2 a driver can put a folder and a data
-# file in the workspace, and the explorer lists those exactly like a notebook.
+# `seed_file` counts as well as `seed_notebook`: a driver can put a folder and a data file in the
+# workspace, and the explorer lists those exactly like a notebook.
 #
 # `mkdir -p`, not the path on its own: `REMOTE="$NOTEBOOK_DIR/x.ipynb"` is a declaration and
 # sits at the top of every driver, above the reset, so matching the bare path reported all
 # twenty-three migrated drivers as resetting too late. Both spellings of the directory, because
-# X1a moved it and a rule that only knew the old one would have silently stopped matching.
+# the notebooks path moved once and a rule that only knew the new one would have silently stopped
+# matching a stale driver.
 SEEDS = (
     re.compile(r"^\s*seed_(notebook|file)\s"),
     re.compile(r'mkdir -p ("?\$NOTEBOOK_DIR"?|files/notebooks)'),
@@ -68,11 +69,11 @@ CALLS_BARE_ADB = re.compile(r"(?:^|[|(;&`]|\$\()\s*adb\s")
 DEFINES_THE_FALLBACK = re.compile(r"command -v adb")
 # **A flow with two legal widths has to say which one it ran at.** `NARROW WINDOW` means
 # < 840dp, and on this project that is two real devices rather than a synonym for the phone:
-# the 320dp emulator, and the tablet rotated to portrait at 800dp. A driver that writes into a
-# fixed `evidence/<flow>/` therefore has one width silently overwrite the other, and nothing in
-# the directory afterwards says which run it holds.
+# the 320dp emulator, and the tablet rotated to portrait at 800dp. A driver that writes into one
+# fixed directory therefore has one width silently overwrite the other, and nothing in the
+# directory afterwards says which run it holds.
 #
-# Not hypothetical. P2z ran the six NARROW WINDOW flows at 800dp for the first time and watched
+# Not hypothetical. The first portrait sweep ran the six NARROW WINDOW flows at 800dp and watched
 # four of them overwrite their own committed 320dp evidence - leaving, among others,
 # `export-menu/02-the-picker-at-320dp.png` holding a 1200x1920 capture: a filename
 # asserting a width its own picture does not have.

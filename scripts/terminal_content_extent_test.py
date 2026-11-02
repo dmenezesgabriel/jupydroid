@@ -65,8 +65,8 @@ class TerminalContentBottomYTest(unittest.TestCase):
         self.assertEqual(93, terminal_content_bottom_y(path, content_top_y=_CONTENT_TOP))
 
     def test_stops_at_a_thicker_band_rather_than_counting_it(self) -> None:
-        """A soft keyboard's own key glyphs are taller than a terminal stroke - the
-        own P4j-3b finding - so the last *thin* row before one is the answer, not the thick one."""
+        """A soft keyboard's own key glyphs are taller than a terminal stroke - a finding made
+        against one - so the last *thin* row before one is the answer, not the thick one."""
         rows = {30: (10, 13), 31: (10, 13)}
         rows.update({y: (10, 13) for y in range(60, 75)})  # a 15px-tall band: keyboard-sized
         path = self._painted_path(rows)

@@ -2,7 +2,7 @@
 """Tests for export_body.py, which reads one nbconvert response for the evidence file.
 
 Each case is a body of the shape the device actually returned, kept short. What the device
-returned in full is `evidence/export-formats/`.
+returned in full is in the local export-formats captures.
 
     python3 -m unittest discover -s scripts -p '*_test.py'
 """

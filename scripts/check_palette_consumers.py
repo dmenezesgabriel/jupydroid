@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """Working Agreement (AGENTS.md): a palette states colours something draws, and nothing else.
 
-`ColorRamp` has carried the rule in prose since P2u-1 - *"A position with no consumer is not here.
-The ramp holds what `Theme.kt` maps a role onto and nothing else; the resolved themes have many
-more greys than these, and carrying the unused ones would be a list nobody could tell was stale."*
-`EditorPalette` had no such gate, and P2u-3 found exactly what the prose predicts: `caretRow` and
-`outputForeground` were declared, given a value in **both** palettes, cited to an IntelliJ
-attribute key, and read by nothing at all.
+`ColorRamp` has carried the rule in prose from its first version - *"A position with no consumer
+is not here. The ramp holds what `Theme.kt` maps a role onto and nothing else; the resolved themes
+have many more greys than these, and carrying the unused ones would be a list nobody could tell
+was stale."* `EditorPalette` had no such gate, and measuring it found exactly what the prose
+predicts: `caretRow` and `outputForeground` were declared, given a value in **both** palettes,
+cited to an IntelliJ attribute key, and read by nothing at all.
 
 That is worse than an unused variable. Each one is two hex values a reader takes for a statement
 about how the app draws, and a re-sourcing step has to look up, measure and transcribe a colour
 for a surface that does not exist. This gate is what stops the next one being added.
 
-**One gate, two palettes since P7a-1.** `ChromePalette` states the activity bar's and the side
+**One gate, two palettes.** `ChromePalette` states the activity bar's and the side
 panels' own surfaces, and a palette this file did not know about would be a palette with no gate -
 `ThisRepositoryTest.test_every_palette_this_app_has_is_held` is what stops the next one being
 added silently.
@@ -28,7 +28,7 @@ palette in this repository documents its fields by naming its neighbours', so an
 mentioned in a KDoc would have passed for good. Comments are stripped before the search by
 `kotlin_source.without_comments`, which is where that scanner lives now that `check_ui_dimensions.py`
 has hit the same defect from the other side - it refused `theme/CornerRadius.kt` over a sentence
-*about* a retired literal (P7a-3). Why a scanner and not a regex is written there.
+*about* a retired literal. Why a scanner and not a regex is written there.
 
 One thing is deliberately outside the rule, and it is here rather than in a comment nobody reads.
 **`SyntaxPalette` is not checked**: its fields are consumed by `styles()`, which lives in the
@@ -36,7 +36,7 @@ declaration file by design, so "outside the palette's own files" is the wrong qu
 them - `EditorPaletteTest.everySyntaxKindButPlainIsStyled` is what holds that set complete.
 
 **`editorBackground` used to be exempt too** - drawn before there is a composition, by a window
-that takes it from `res/values{,-night}/colors.xml` - and P7a-2 retired the exemption by giving it
+that takes it from `res/values{,-night}/colors.xml` - and the exemption was retired by giving it
 Kotlin consumers: the three document `Scaffold`s state the page rather than inheriting it from
 `colorScheme.background`. The `colors.xml` duplication is still real and is still `AppWindowTest`'s
 to keep honest; it is no longer the field's *only* reader.
@@ -78,7 +78,7 @@ class Palette:
 
 #: The document's colours - the page, the cell, the syntax.
 EDITOR = Palette("EditorPalette", "theme/EditorPalette.kt", "theme/EditorPalettes.kt")
-#: The workbench's parts - the activity bar and the side panels (P7a-1).
+#: The workbench's parts - the activity bar and the side panels.
 CHROME = Palette("ChromePalette", "theme/ChromePalette.kt", "theme/ChromePalettes.kt")
 
 PALETTES = (EDITOR, CHROME)

@@ -14,7 +14,7 @@ passes, because the secrets come from two places:
 - the host's own `/home/<name>`, which every `maestro.log` lists in its classpath
   (`check_device_secrets.home_rule`) - built from the running account, so no clone stores it.
 
-    scrub_device_secrets.py evidence/cold-path/cold-r1
+    scrub_device_secrets.py captures/cold-path/cold-r1
 
 Called from `run_flow` after the promotion and from `pull_server_log` after the log
 lands, and runnable standalone for a directory that predates either. A clone without

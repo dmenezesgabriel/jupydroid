@@ -13,7 +13,7 @@ transcribed into `theme/ColorRamp.kt` can be checked against its origin instead 
 and so ADR-0041's contrast measurements can be reproduced.
 
 ```sh
-cd reference/research_repos/vscode/extensions/theme-defaults/themes
+cd <a vscode checkout>/extensions/theme-defaults/themes
 python3 .../resolve_vscode_theme.py 2026-dark.json --role comment
 ```
 """
@@ -27,8 +27,9 @@ from pathlib import Path
 from typing import Any
 
 #: The app's `SyntaxPalette` roles, and the VS Code scopes each is read from, best match first.
-#: Kept here rather than in the caller so the mapping has one home - it is the thing P2u-2
-#: transcribes, and a role that silently resolved to a different scope would be invisible.
+#: Kept here rather than in the caller so the mapping has one home - it is the thing
+#: `SyntaxPalette` transcribes, and a role that silently resolved to a different scope would be
+#: invisible.
 SYNTAX_SCOPES: dict[str, list[str]] = {
     "keyword": ["keyword.control", "keyword"],
     "string": ["string"],

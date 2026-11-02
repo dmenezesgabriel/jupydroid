@@ -161,7 +161,7 @@ def offences_in(path: str, text: str, rules: list[LocalRule], home: re.Pattern[s
     [home] is the host's account pattern from `home_rule`; the offence names the class, never the match.
 
     ```
-    offences_in("evidence/p1/logcat.txt", "", [])  # -> ["evidence/p1/logcat.txt: a full-device dump ..."]
+    offences_in("captures/logcat.txt", "", [])  # -> ["captures/logcat.txt: a full-device dump ..."]
     ```
     """
     offences: list[str] = []

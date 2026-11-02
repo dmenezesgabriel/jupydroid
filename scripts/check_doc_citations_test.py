@@ -31,10 +31,10 @@ class CitationsInTest(unittest.TestCase):
         self.assertEqual(["Step 8"], [t for _, t, _ in citations_in("// lands in Step 8\n")])
 
     def test_a_lowercase_spaced_step_reference_is_banned(self):
-        """`step 8.7` and `sub-step 2/3` are the same citation as `Step 8`, only spelled quieter.
+        """The decimal and the `sub-` spellings are the same citation, only spelled quieter.
 
-        The pattern was case-sensitive, so `SpaceProcessRun` said "tolerated since step 8.7" twice
-        and `TerminalPaneViewModel` said "see sub-step 2/3" with the gate green.
+        The pattern was case-sensitive, so `SpaceProcessRun` said "tolerated since" one twice and
+        `TerminalPaneViewModel` pointed at a `sub-` of it, with the gate green.
         """
         for phrase in ("step 8.7", "sub-step 2", "Step 4b"):
             with self.subTest(phrase=phrase):
@@ -60,7 +60,7 @@ class CitationsInTest(unittest.TestCase):
         self.assertEqual(["docs/PLAN.md"], [t for _, t, _ in citations_in("// docs/PLAN.md says\n")])
 
     def test_the_third_deleted_document_is_banned_too(self):
-        """`docs/environment-fidelity.md` became `docs/research/android-sandbox-fidelity.md`.
+        """The third retired document became `docs/research/android-sandbox-fidelity.md`.
 
         `SpaceProcessRun.kt:46` cited the old path with a line range, and only two of the three
         deleted documents were on this list, so the gate passed it.
@@ -106,7 +106,7 @@ class CitationsInTest(unittest.TestCase):
         self.assertEqual(["AUD-012"], [t for _, t, _ in found])
 
     def test_a_possessive_step_code_is_banned(self):
-        """`P6b-0's own fix` hid 199 citations from this gate until the boundary was widened."""
+        """A possessive step code hid 199 citations from this gate until the boundary was widened."""
         self.assertEqual(["P6b-0"], [t for _, t, _ in citations_in("// P6b-0's own fix\n")])
 
     def test_a_slash_separated_run_of_codes_is_banned(self):
@@ -176,8 +176,8 @@ class ScannedFilesTest(unittest.TestCase):
     def test_repo_root_configuration_is_discovered(self):
         """`.editorconfig` and `.gitignore` carry prose and live in no scanned tree.
 
-        Both cited `docs/DECISIONS.md` - one for why ktlint had been checking nothing, one for why
-        history was rewritten - eight commits after that file was deleted.
+        Both cited the retired decisions document - one for why ktlint had been checking nothing,
+        one for why history was rewritten - eight commits after that file was deleted.
         """
         found = {f.name for f in scanned_files(None)}
         for name in (".editorconfig", ".gitignore", ".pre-commit-config.yaml"):
@@ -208,6 +208,25 @@ class ScannedFilesTest(unittest.TestCase):
         """
         found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
         for path in ("scripts/read_ledger_partition.py", "scripts/read_ledger_partition_test.py"):
+            with self.subTest(path=path):
+                self.assertIn(path, found)
+
+    def test_the_gates_their_helpers_and_the_shell_tools_are_discovered(self):
+        """Every `scripts/*.py` and every non-driver `.sh` is read.
+
+        The drivers join in the slices that follow; a glob rather than one name per file keeps a
+        helper added later inside the gate from the day it is written.
+        """
+        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
+        for path in (
+            "scripts/check_doc_citations.py",
+            "scripts/check_doc_citations_test.py",
+            "scripts/script_source.py",
+            "scripts/maestro-run.sh",
+            "scripts/run-all-flows.sh",
+            "scripts/check-file-line-length.sh",
+            "scripts/rotation-reads.sh",
+        ):
             with self.subTest(path=path):
                 self.assertIn(path, found)
 
@@ -270,7 +289,7 @@ class NotFalsePositivesTest(unittest.TestCase):
         self.assertEqual([], citations_in("// jupyterlab@7f0e6906 packages/lsp/src/x.ts\n"))
 
     def test_a_p_and_digit_inside_a_word_is_not_a_code(self):
-        """Bare `P1`-`P8` *are* phase codes here, so the boundary is what keeps this narrow."""
+        """A bare `P` and a digit *are* a phase code here, so the boundary is what keeps this narrow."""
         self.assertEqual([], citations_in("// the HTTP1 path and CP437\n"))
 
     def test_a_version_number_is_not_a_code(self):

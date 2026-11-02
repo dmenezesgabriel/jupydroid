@@ -8,7 +8,7 @@
 #
 #   ANDROID_SERIAL=TABLET_SERIAL scripts/run-all-flows.sh          # everything
 #   ANDROID_SERIAL=emulator-5554 scripts/run-all-flows.sh        # skips the kernel flows
-#   ANDROID_SERIAL=... scripts/run-all-flows.sh u5 step4         # only drivers matching a name
+#   ANDROID_SERIAL=... scripts/run-all-flows.sh chrome-parts completion   # only matching drivers
 #
 # **The device rule is enforced rather than commented.** A flow that runs a cell proves nothing on
 # an x86_64 device: `MainActivity` falls back to `FakeKernelGateway`, which echoes the cell's
@@ -71,7 +71,7 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
     continue
   fi
 
-  # The exact complement of the rule above, for a boundary that is not 840dp. P2r measured that the
+  # The exact complement of the rule above, for a boundary that is not 840dp. Measured: the
   # notebook's action row cannot carry the cell-type control below the *medium* class, so its
   # narrow-half flow asserts something that is false on the tablet in portrait at 800dp - a window
   # `NARROW WINDOW` below would happily place it on.
@@ -84,7 +84,7 @@ for driver in "$ROOT"/scripts/*-driver.sh; do
   # The mirror of the rule above, and it earns its keep for the same reason: some flows assert a
   # *compact*-width adaptation, and on a wide window the app deliberately does something else. The
   # table of contents is the first - an editor with room draws it as a pane and a narrow one as a
-  # sheet (P2h-3) - so a flow asserting the sheet is not a failure on a tablet, it is the wrong
+  # sheet - so a flow asserting the sheet is not a failure on a tablet, it is the wrong
   # question. 840dp is the editor-width boundary `tocPresentationFor` reads, and the window is the
   # closest thing this script can measure.
   if driver_declares "$driver" "NARROW WINDOW" && [ "${WIDTH_DP:-0}" -ge 840 ]; then

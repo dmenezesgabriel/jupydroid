@@ -8,23 +8,23 @@ a human to compare.
 **Position, not presence, and the distinction is the whole point.** `EditorPalette.cellBackground`
 is `#191A1B` in 2026 Dark - a cell sits a step off the page exactly as the side bar does - so
 "the part colour appears somewhere in this frame" is satisfied by an open notebook's own cells
-whether or not the rail was ever fixed. That check would have passed over the very defect P7a
-exists to close. What is asserted instead is that the **leftmost** band is the part: the activity
-rail beside two panes, the side panel where there is one, and never the document.
+whether or not the rail was ever fixed. That check would have passed over the very defect this
+gate exists to close. What is asserted instead is that the **leftmost** band is the part: the
+activity rail beside two panes, the side panel where there is one, and never the document.
 
 **The browser frame carries the whole claim**, and only at two panes: nothing is open in the
 detail pane there, so no cell can lend the part colour and the three bands must read
 rail / side panel / page exactly.
 
-**And it is the only frame whose seams are held, for the same reason.** P7a-2 gives each part the
+**And it is the only frame whose seams are held, for the same reason.** Each part now carries the
 border id the reference states for it - `activityBar.border` between the rail and the side panel,
 `sideBar.border` between the side panel and the document. Frame 03 has a notebook in it, and a
 cell's own edge is `#191A1B` against `#121314` exactly as a part's is; holding *those* boundaries
 to a border colour would fail correct behaviour. So the seams are checked where the shape is.
 
-    python3 scripts/check_chrome_parts.py '#191A1B' '#121314' '#2A2B2C' two-pane evidence/…/*.png
+    python3 scripts/check_chrome_parts.py '#191A1B' '#121314' '#2A2B2C' two-pane captures/*.png
 
-Tests in check_chrome_parts_test.py, including one over the frames P7a actually captured.
+Tests in check_chrome_parts_test.py, including one over frames a real run captured.
 """
 
 from __future__ import annotations

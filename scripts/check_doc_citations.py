@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """A code comment may not cite something that is going to be deleted.
 
-**Why this gate exists.** `docs/PLAN.md` and `docs/DECISIONS.md` were cited from 788 code comments
-by quoted section heading or by plan-step code, `evidence/<step>/` from 1,046 lines, and
-`reference/…` from 250 - the last of which is **gitignored**, so `git ls-files reference` returns 0
-and every one of those citations is unresolvable in a fresh clone. Several had gone false outright:
+**Why this gate exists.** The two planning monoliths ADR-0001 deleted were cited from 788 code
+comments by quoted section heading or by plan-step code, a per-step evidence directory from 1,046
+lines, and the gitignored `reference` checkouts from 250 - the last of which resolves in no fresh
+clone, so every one of those citations pointed at nothing there. Several had gone false outright:
 `domain/port/ServerLauncher.kt` promised a rootfs launcher that had shipped months earlier.
 ADR-0001 records the full measurement.
 
@@ -14,16 +14,16 @@ at a pinned SHA, a published spec or upstream issue URL, or a test name.
 
 **Only prose is read**, and each language by its own scanner: `kotlin_source.comments_only` for
 Kotlin, C and the ANTLR grammars, `script_source` for shell and Python, `xml_source` for the
-manifest. A path in a *string literal* is a value the program uses, not a citation, and `evidence/`
-in a driver's `OUT=` is functional. That exemption has a measured edge: 32 banned tokens sit outside
-comments in 13 files, and 18 of them are legitimate - `DeviceControlStringTest`'s `${ESC}P1+r` is a
-DCS reply, not a plan step. The rest are assertion and log *messages*, which are prose a human
-reads; telling those two apart needs to know which argument of `assertTrue` is the message, and that
-is `docs/backlog.md`'s row, not this gate's.
+manifest. A path in a *string literal* is a value the program uses, not a citation, and the
+evidence path in a driver's `OUT=` is functional. That exemption has a measured edge: 32 banned
+tokens sit outside comments in 13 files, and 18 of them are legitimate - `DeviceControlStringTest`'s
+DCS reply is a `P`, a digit and `+r`, not a plan step. The rest are assertion and log *messages*,
+which are prose a human reads; telling those two apart needs to know which argument of `assertTrue`
+is the message, and that is the backlog's row, not this gate's.
 
-**Out of scope on purpose:** `scripts/*-driver.sh`, `.maestro/*.yaml` and `evidence/` itself. A
-driver, its flow and its evidence directory are named in lockstep, and the step code is the index
-that ties them together.
+**Not yet scanned:** `scripts/*-driver.sh` and `.maestro/*.yaml`, the families whose comments join
+in the slices that follow this one. The local evidence tree is never read at all - nothing under
+it is tracked.
 
 **Every file under a scanned tree is read, and an unknown type is a failure rather than a pass.**
 This gate has now shipped the same defect three times, each time by looking at less than it claimed:
@@ -56,14 +56,16 @@ from xml_source import xml_comments
 ROOT = Path(__file__).resolve().parent.parent
 ADR_DIR = ROOT / "docs" / "adr"
 
-#: Every file under these is read. `scripts/` is not one of them - `docs/backlog.md` says why.
+#: Every file under these is read. `scripts/` joins through [SCANNED_FILES] one family at a time,
+#: so a cleaned family stays clean.
 #: Globs, so an extension module added under `extensions/` (ADR-0104) is read the day it arrives;
 #: `src` rather than the module, because a module's `build/` holds generated code, not our prose.
 SCANNED_TREES = ("app/src", "tools", "extension-api/src", "extensions/*/src")
 
 #: The build and repo-root configuration files, which carry prose but live in no scanned tree.
-#: `.editorconfig` cited `docs/DECISIONS.md` for why ktlint had checked nothing, and `.gitignore`
-#: cited it for why history was rewritten - both pointing into a file deleted eight commits earlier.
+#: `.editorconfig` cited the retired decisions document for why ktlint had checked nothing, and
+#: `.gitignore` for why history was rewritten - both pointing into a file deleted eight commits
+#: earlier.
 SCANNED_FILES = (
     "app/build.gradle.kts",
     "extension-api/build.gradle.kts",
@@ -76,7 +78,21 @@ SCANNED_FILES = (
     ".pre-commit-config.yaml",
     # `scripts/` joins one family at a time: widened whole it reports 781 hits at once, and nothing
     # would keep a cleaned family clean. The globs collapse into SCANNED_TREES when the last joins.
-    "scripts/read_*.py",
+    "scripts/*.py",
+    # Every non-driver `.sh`: the `*-driver.sh` families join in the slices that follow. The
+    # `atomic-` and `run-` prefixes name drivers too, so their two non-driver members are named.
+    "scripts/check-*.sh",
+    "scripts/*-reads.sh",
+    "scripts/atomic-save-fixtures.sh",
+    "scripts/atomic-save-kill.sh",
+    "scripts/count-tests.sh",
+    "scripts/driver-rules.sh",
+    "scripts/image-nodes.sh",
+    "scripts/java-home.sh",
+    "scripts/maestro-run.sh",
+    "scripts/run-all-flows.sh",
+    "scripts/run-flows-sharded.sh",
+    "scripts/space-server.sh",
 )
 
 #: Each pattern with the reason it is banned, which the failure message prints.
@@ -84,13 +100,14 @@ BANNED: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         # The boundary excludes `-` so a longer code is never matched by its prefix, and excludes
         # word characters so `HTTP1` and `CP437` stay prose. Anything else ends a code: a possessive
-        # `P6b-0's` and a run of `P5e-3/P5e-5` each hid citations from this gate until it read them.
+        # and a slash-separated run each hid citations from this gate until it read them.
         re.compile(r"\bP\d[a-z]?(?:-\d+[a-z]?)*(?![\w-])"),
         "a plan step code - retired, and its numbering was never stable",
     ),
     # Case-insensitive, and the space is what makes it a citation rather than a filename:
     # `.maestro/gutter-wrapped-line.yaml` is a flow that exists and 20 comments name one that way,
-    # while `step 8.7` and `sub-step 2/3` point at a plan nothing resolves any more.
+    # while a spaced `step` plus number, and the `sub-` prefixed form, point at a plan nothing
+    # resolves any more.
     (
         re.compile(r"\b(?:sub-)?step \d+(?:\.\d+)?[a-z]?\b", re.IGNORECASE),
         "a plan step code",
@@ -186,8 +203,10 @@ def citations_in(
     """Every banned citation in the *comments* of one file.
 
     ```
-    citations_in('// lands in Step 8\\n')   # [(1, 'Step 8', 'a plan step code')]
+    citations_in('// see ADR-0002\\n')   # [] - a citation that resolves is allowed
     ```
+
+    `CitationsInTest` holds an example of every banned shape.
 
     Args:
         source: the contents of one source file.
@@ -216,8 +235,10 @@ def unknown_adrs_in(
     bans the old pointers also checks the new ones.
 
     ```
-    unknown_adrs_in('// see ADR-9999\\n', {'0002'})   # [(1, 'ADR-9999')]
+    unknown_adrs_in('// see ADR-0002\\n', {'0002'})   # [] - it resolves
     ```
+
+    `UnknownAdrsTest.test_an_adr_that_does_not_exist_is_reported` shows the failing shape.
 
     Args:
         source: the contents of one source file.

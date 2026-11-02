@@ -14,7 +14,7 @@ what it removes.
 The rules, in order: one per token carrier, derived from `check_device_secrets.TOKEN_CARRIERS` so the
 rewrite and the gate cannot drift (see `carrier_rule`), the gitignored `.sensitive-strings.local`, and the
 host's own `/home/<name>` (`read_personal_data.scrub_rules`). Empty commits are kept, so every branch has
-the commit count it had; bytecode and `evidence/` are removed from every commit (see `filter_repo_argv`).
+the commit count it had; bytecode and the evidence tree are removed from every commit (see `filter_repo_argv`).
 `--force` is needed on a repository that `git filter-repo` has already rewritten once
 (`.git/filter-repo/already_ran`), and on any that is not a fresh clone.
 
@@ -144,8 +144,8 @@ def filter_repo_argv(rules: Path, mailmap: Path, force: bool) -> list[str]:
 
     `--replace-text` skips a blob with a NUL byte in its first 8 KiB (`git_filter_repo.py`, `_tweak_blob`), and
     CPython bytecode embeds the build path and has them, so `*.pyc` is dropped from history rather than scrubbed:
-    rewriting bytes inside length-prefixed bytecode would only corrupt it. `evidence/` is dropped because evidence is
-    kept on the machine that ran it and never published; the repeated `--path-glob` values are OR-ed.
+    rewriting bytes inside length-prefixed bytecode would only corrupt it. The evidence tree is dropped because
+    evidence is kept on the machine that ran it and never published; the repeated `--path-glob` values are OR-ed.
     """
     argv = ["git", "filter-repo", "--replace-text", str(rules), "--replace-message", str(rules)]
     argv += ["--mailmap", str(mailmap), "--prune-empty", "never"]

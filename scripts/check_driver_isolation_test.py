@@ -63,11 +63,11 @@ class DriverIsolationTest(unittest.TestCase):
         self.assertOffences(TOUCHES_STORAGE_BY_HAND, 1)
 
     def test_the_directorys_old_spelling_still_counts(self) -> None:
-        """X1a moved the notebooks; a rule that knew only the new path would miss a stale driver."""
+        """The notebooks path moved once; a rule that knew only the new one would miss a stale driver."""
         self.assertOffences('"$ADB" shell run-as "$APP" mkdir -p files/notebooks', 1)
 
     def test_a_driver_that_touches_no_notebook_is_not_asked_to_reset(self) -> None:
-        """`t1-pty-gate` and its kind measure the runtime and never open Home."""
+        """`cold-path-driver.sh` and its kind measure the runtime and never open Home."""
         self.assertOffences('"$ADB" shell run-as "$APP" ls files/spaces', 0)
 
     def test_resetting_after_seeding_is_reported(self) -> None:
@@ -119,12 +119,12 @@ class DriverIsolationTest(unittest.TestCase):
         self.assertOffences(f'{RESETS}\n{SEEDS}\n"$ADB" shell run-as "$APP" cat x', 0)
 
     def test_a_narrow_window_driver_that_does_not_name_its_width_is_reported(self) -> None:
-        """Two legal widths writing into one directory, which P2z watched happen.
+        """Two legal widths writing into one directory, which a portrait sweep made real.
 
         NARROW WINDOW is < 840dp, and on this project that is two real devices: the 320dp
-        emulator and the tablet rotated to portrait at 800dp. A driver that writes into a fixed
-        `evidence/<flow>/` therefore has each width silently overwrite the other. It is not
-        hypothetical - P2z's portrait pass left `export-menu/02-the-picker-at-320dp.png`
+        emulator and the tablet rotated to portrait at 800dp. A driver that writes into one fixed
+        directory therefore has each width silently overwrite the other. It is not hypothetical -
+        the portrait pass left `export-menu/02-the-picker-at-320dp.png`
         holding a 1200x1920 capture, a filename asserting a width its own picture does not have.
         """
         found = self.assertOffences(

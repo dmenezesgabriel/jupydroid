@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """Removes the frames a flow wrote last time and does not write any more.
 
-`run_flow` copies a flow's screenshots into `evidence/<step>/` and, until P2z-h, never removed
-anything. So renaming a `takeScreenshot` left its predecessor in the directory and in the commit
-for good: `evidence/x2e-home-new-python-file/` carried four frames of a launch screen X2h retired,
-and `evidence/one-pane-side-panels/800dp/` a browser with no bottom bar beside the frame
-whose whole point is that the bar is there (`evidence/p2z-suite-sweep/frames.md`).
+`run_flow` copies a flow's screenshots into its output directory and, until this, never removed
+anything. So renaming a `takeScreenshot` left its predecessor in the directory for good: one
+flow's directory carried four frames of a retired launch screen, and
+`one-pane-side-panels`' `800dp/` a browser with no bottom bar beside the frame whose whole point
+is that the bar is there.
 
 Deleting whatever a run did not write would be wrong: five drivers run **several** flows into one
-directory (`p1b`, `p1c`, `p1d`, `p1g`, `p2x-2`), and a driver may write a frame itself - a
-before-shot of a defect, like `00-the-defect-only-a-screenshot-could-see`. So this keeps a
-manifest, `evidence/<step>/.frames`, of which flow wrote which frame, and removes only what *this
-flow* wrote before and has now stopped writing.
+directory, and a driver may write a frame itself - a before-shot of a defect, like
+`00-the-defect-only-a-screenshot-could-see`. So this keeps a `.frames` manifest in the output
+directory, of which flow wrote which frame, and removes only what *this flow* wrote before and
+has now stopped writing.
 
 Example:
 
 ```sh
-python3 scripts/prune_stale_frames.py evidence/table-of-contents-overlay/800dp table-of-contents-overlay \
+python3 scripts/prune_stale_frames.py captures/table-of-contents-overlay/800dp table-of-contents-overlay \
   01-notebook-open-at-the-top 02-scrolled-away-from-chapter-one
 ```
 """

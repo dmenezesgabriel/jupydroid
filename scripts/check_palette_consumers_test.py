@@ -99,7 +99,7 @@ class UnreadFieldsTest(unittest.TestCase):
         self.assertEqual(["EditorPalette.editorBackground", "ChromePalette.bar"], unread_fields(tree.root))
 
     def test_no_field_is_exempt(self) -> None:
-        """`editorBackground` was, until P7a-2 gave the document panes their own statement of it.
+        """`editorBackground` was, until the document panes got their own statement of it.
 
         The window still takes the same colour from `res/values{,-night}/colors.xml`, which is
         `AppWindowTest`'s to keep honest - but the field is no longer read only from XML, so the
@@ -163,7 +163,7 @@ class ThisRepositoryTest(unittest.TestCase):
     def test_every_palette_this_app_has_is_held(self) -> None:
         """A second palette that nobody added here would be a palette with no gate at all.
 
-        `ChromePalette` (P7a-1) is exactly that case: it states the rail's and the side panels'
+        `ChromePalette` is exactly that case: it states the rail's and the side panels'
         surfaces, and without this the gate would keep passing while reporting on one palette.
         """
         self.assertEqual(["EditorPalette", "ChromePalette"], [palette.name for palette in PALETTES])

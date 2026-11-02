@@ -39,7 +39,7 @@ class FrameFailuresTest(unittest.TestCase):
         self.assertEqual([], frame_failures(frame, PART_HEX, PAGE_HEX, BORDER_HEX, "two-pane"))
 
     def test_the_defect_this_step_closes_is_reported(self) -> None:
-        """P2u-1's own frame: rail, side panel and page all one field."""
+        """The defect's own frame: rail, side panel and page all one field."""
         frame = _painted([(120, PAGE), (2, SEAM), (540, PAGE), (2, SEAM), (700, PAGE)], "01-the-file-browser.png")
         self.assertNotEqual([], frame_failures(frame, PART_HEX, PAGE_HEX, BORDER_HEX, "two-pane"))
 
@@ -71,7 +71,7 @@ class FrameFailuresTest(unittest.TestCase):
         self.assertEqual([], frame_failures(frame, PART_HEX, PAGE_HEX, BORDER_HEX, "one-pane"))
 
     def test_a_part_that_abuts_the_next_one_is_reported(self) -> None:
-        """P7a-2's own defect: `sideBar.border` stated in the theme and drawn by nothing."""
+        """The seam defect's own case: `sideBar.border` stated in the theme and drawn by nothing."""
         frame = _painted([(120, RAIL), (2, SEAM), (540, RAIL), (700, PAGE)], "01-the-file-browser.png")
         self.assertEqual(
             ["01-the-file-browser.png: the seam at x662 is NOT DRAWN, expected #2A2B2C in it"],

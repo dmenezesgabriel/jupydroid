@@ -27,7 +27,7 @@ class CitesEvidenceDirTest(unittest.TestCase):
         self.assertEqual([], cites_evidence_dir("`evidence/` is local (ADR-0132)"))
 
     def test_a_glob_is_not_named(self):
-        """`git filter-repo --path-glob 'evidence/*'` and `.gitignore` patterns name no directory."""
+        """A `--path-glob` over the tree and `.gitignore` patterns name no directory."""
         for glob in ("evidence/*", "evidence/**/*logcat*.txt", "evidence/…"):
             self.assertEqual([], cites_evidence_dir(f"`{glob}`"), glob)
 

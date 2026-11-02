@@ -28,7 +28,7 @@ where they came from, which `CellFrame` and `CellStripe` were already paying bef
 `0.dp` is exempt: it is a sentinel - `if (width <= 0.dp)` - not a spacing decision.
 
 **And a number a comment is talking *about* is not a use of it.** This gate read raw file text
-until P7a-3, when `theme/CornerRadius.kt` arrived with a KDoc explaining which literal it had
+until `theme/CornerRadius.kt` arrived with a KDoc explaining which literal it had
 retired - `` `TOGGLE_CORNER = 8.dp`, a number chosen against nothing `` - and the gate refused
 the file over its own justification. That is the same defect `check_palette_consumers.py` had
 and fixed one step earlier from the other side, so the scanner has one home:

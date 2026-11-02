@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Working Agreement (AGENTS.md): the shell must not ask Android for a syscall it refuses apps.
 
-**P4b-2, and this gate is the defect it closes.** The busybox shipped through P4b was Alpine's
-stock build, which sets `CONFIG_FEATURE_SUID=y`. That compiles in `check_suid()`, which busybox
-calls on *every* applet dispatch (`libbb/appletlib.c:965`) and which ends, for every
-`BB_SUID_DROP` applet, in
+**This gate is the defect it closes.** The busybox the app first shipped was Alpine's stock
+build, which sets `CONFIG_FEATURE_SUID=y`. That compiles in `check_suid()`, which busybox calls on
+*every* applet dispatch (`libbb/appletlib.c:965`) and which ends, for every `BB_SUID_DROP` applet,
+in
 
     setgid(rgid);
     setuid(ruid);            /* busybox's own comment: "Don't check for errors." */
@@ -12,10 +12,10 @@ calls on *every* applet dispatch (`libbb/appletlib.c:965`) and which ends, for e
 Both are on bionic's `libc/SECCOMP_BLOCKLIST_APP.TXT` for lp64. An app process is zygote-spawned
 and carries that filter, so every applet - `sh`, `ls` and `echo` alike - died of SIGSYS about
 seven milliseconds after exec, having printed nothing. Only `busybox` with no applet argument
-survived, because that path never reaches `check_suid`. Measured in
-`evidence/p4-terminal/busybox-under-app-seccomp.md`.
+survived, because that path never reaches `check_suid`. Measured on device under the app's own
+seccomp filter.
 
-**P4b's own gate could not see it**, and that is why this one exists. It ran the shell through
+**The first gate could not see it**, and that is why this one exists. It ran the shell through
 `adb shell run-as`, which is not zygote-spawned and therefore not under the app's seccomp filter:
 the identical binary passes there and dies in the app. A gate that runs in the wrong security
 domain answers a question nobody asked.

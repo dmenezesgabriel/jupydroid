@@ -46,12 +46,12 @@ class HashCommentsTest(unittest.TestCase):
 class PythonProseTest(unittest.TestCase):
     """A docstring is where a script explains itself, so a gate that skips it reads nothing.
 
-    `tools/rootfs/jupydroid_kernel.py` cites four `evidence/` paths from its module docstring and
-    none from a `#` comment, and this gate reported it clean.
+    `tools/rootfs/jupydroid_kernel.py` cites four paths into the evidence tree from its module
+    docstring and none from a `#` comment, and this gate reported it clean.
     """
 
     def test_a_module_docstring_is_prose(self):
-        self.assertIn("evidence/p1", python_prose('"""See evidence/p1."""\nx = 1\n'))
+        self.assertIn("a pointer", python_prose('"""See a pointer."""\nx = 1\n'))
 
     def test_code_outside_a_docstring_is_blanked(self):
         self.assertNotIn("evidence", python_prose('PATH = "evidence/p1"\n'))

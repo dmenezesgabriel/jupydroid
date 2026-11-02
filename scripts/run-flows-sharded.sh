@@ -13,7 +13,7 @@
 # ordinary `run-all-flows.sh` run.
 #
 # **Every driver goes to exactly one device.** That is what makes this safe rather than merely
-# fast: nine drivers write into a fixed `evidence/<step>/` directory, and two devices filling the
+# fast: nine drivers write into a fixed directory each, and two devices filling the
 # same directory at once would interleave two runs' screenshots. It also keeps `newest_run_dir`
 # honest, since it keys on the flow name and no flow runs twice.
 #

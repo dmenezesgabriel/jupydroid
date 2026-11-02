@@ -3,9 +3,9 @@
 
 **A comment is not a point of use, and two gates in this repository have now learned that the hard
 way.** `check_palette_consumers.py` reported a palette field as *read* because a KDoc in
-`terminal/TerminalPalette.kt` named it (P7a-2, fixed there). `check_ui_dimensions.py` then refused
+`terminal/TerminalPalette.kt` named it (fixed there). `check_ui_dimensions.py` then refused
 `theme/CornerRadius.kt` over the sentence *"`TOGGLE_CORNER = 8.dp`, a number chosen against
-nothing"* - prose whose whole job is to explain the rule the gate enforces (P7a-3). Same defect,
+nothing"* - prose whose whole job is to explain the rule the gate enforces. Same defect,
 two gates, so the scanner has one home rather than a copy each.
 
 **A scanner rather than a regex**, for the reason `resolve_vscode_theme.strip_jsonc` is one: a

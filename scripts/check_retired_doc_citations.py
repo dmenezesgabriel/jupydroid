@@ -3,7 +3,7 @@
 
 **Why this exists.** ADR-0001 split `docs/` by lifetime and deleted three monoliths. The sweep that
 followed scoped itself to shipped code, so 233 citations of the deleted files survived in
-`.maestro/` flows, `scripts/` drivers and `evidence/` write-ups - prose a human reads, naming a
+`.maestro/` flows, `scripts/` drivers and the evidence write-ups - prose a human reads, naming a
 path that resolves nowhere. `check_doc_citations.py` could not catch them: it reads comments in
 `app/src/` and `tools/`, and those trees were already clean.
 
@@ -22,7 +22,7 @@ import pathlib
 import re
 import sys
 
-#: Deleted by ADR-0001. Git history still holds them - `git show 718fa5dc^:docs/PLAN.md`.
+#: Deleted by ADR-0001. Git history still holds them - `git show 718fa5dc^:` then a `RETIRED` name.
 RETIRED = ("docs/PLAN.md", "docs/DECISIONS.md", "docs/environment-fidelity.md")
 
 #: Naming a retired document is these files' job: two ADRs record the retirement and the rule for
@@ -49,8 +49,7 @@ FIRST_FEW_BYTES = 8000
 def cites_retired(text: str) -> list[str]:
     """Every retired document named in one file's text, in the order they appear.
 
-    >>> cites_retired("the rule (`docs/DECISIONS.md`)")
-    ['docs/DECISIONS.md']
+    `CitesRetiredTest.test_a_backticked_citation_is_named` shows a hit.
     """
     return NAMES.findall(text)
 

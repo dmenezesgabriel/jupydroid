@@ -30,7 +30,7 @@ def hash_comments(source: str) -> str:
     """The `#` comments of one shell or Python file, with its code blanked to spaces.
 
     ```
-    hash_comments('OUT=evidence/x  # why\\n')   # '            # why\\n'
+    hash_comments('OUT=dest  # why\\n')   # '          # why\\n'
     ```
 
     Args:
