@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# A tap on a workspace link in a rendered markdown cell goes where the link points: `notes.md`
+# opens as a document, `missing.md` - which nothing seeded - says so on a snackbar naming the path
+# it resolved to, and `docs/` is browsed. Opened by output-caps-baseline-open.yaml; seeded
+# by scripts/rendered-workspace-link-driver.sh. Each link is a paragraph of its own, so its text
+# node is the link; the link texts are not file names, so no explorer row answers the tap.
+#
+# TABLET ONLY (SM-X216B): the flow that follows runs a cell.
+- assertVisible: "the notes"
+- assertVisible: "words beside the links"
+- takeScreenshot: 01-markdown-cell-links
+- tapOn: "the notes"
+# The file editor's text node holds the file whole, its final newline included.
+- extendedWaitUntil:
+    visible: "Notes beside the notebook\\.\\s*"
+    timeout: 10000
+- assertVisible: "Tab: notes.md"
+- takeScreenshot: 02-notes-opened
+# Back closes the file's tab, and the notebook under it is still rendered: the link's tap did not
+# open the cell's editor.
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "the notes"
+# The markdown cell's own source, which the code cell's `[the notes, from an output](notes.md)`
+# does not match.
+- assertNotVisible: ".*\\[the notes\\]\\(notes.md\\).*"
+- tapOn: "a missing page"
+- extendedWaitUntil:
+    visible: "No file at missing.md"
+    timeout: 10000
+- takeScreenshot: 03-missing-link-said
+- tapOn: "the docs folder"
+- extendedWaitUntil:
+    visible: "readme.txt"
+    timeout: 10000
+- takeScreenshot: 04-docs-folder-browsed

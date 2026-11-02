@@ -125,7 +125,7 @@ export MAESTRO_PORT="$PORT"
 # import lands under the display name it is handed.
 chrome_navigate "$BASE/Shared%20analysis.ipynb"
 run_flow "$ROOT/.maestro/jd-072-browser-download-open.yaml" "$EVIDENCE/leg-a-downloads"
-run_flow "$ROOT/.maestro/jd-023-shared-notebook-t1-part1-opened.yaml" "$EVIDENCE/leg-a-opened"
+run_flow "$ROOT/.maestro/shared-notebook-opened.yaml" "$EVIDENCE/leg-a-opened"
 wait_for_workspace_text "$NAME" '"shared_from": "another app"' | tee "$EVIDENCE/leg-a-opened/workspace.txt"
 
 # The pushed fixture is what legs B and C share: My Files searches for it, and the intent:
@@ -150,7 +150,7 @@ write_pages
 # asserts never draws. The variant flow takes whichever outcome the device gives.
 reset_notebooks
 run_flow "$ROOT/.maestro/jd-072-my-files-open.yaml" "$EVIDENCE/leg-b-my-files"
-run_flow "$ROOT/.maestro/jd-023-shared-notebook-t1-part1-opened.yaml" "$EVIDENCE/leg-b-opened"
+run_flow "$ROOT/.maestro/shared-notebook-opened.yaml" "$EVIDENCE/leg-b-opened"
 wait_for_workspace_text "$NAME" '"shared_from": "another app"' | tee "$EVIDENCE/leg-b-opened/workspace.txt"
 
 # Leg C - the intent: link. Force-stopped so an open could not hide behind a resumed app.

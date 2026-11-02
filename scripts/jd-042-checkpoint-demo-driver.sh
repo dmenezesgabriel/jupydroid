@@ -18,8 +18,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
-# shellcheck source=scripts/jd-030-rotation-reads.sh
-. "$ROOT/scripts/jd-030-rotation-reads.sh"
+# shellcheck source=scripts/rotation-reads.sh
+. "$ROOT/scripts/rotation-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-042-checkpoint/demo"
 
@@ -51,7 +51,7 @@ record "after the kill and relaunch, notes.py on disk: $notes"
 
 # Nothing after the relaunch needs what T1 left, so parts 5 and 6 start from a reset of their own.
 reset_notebooks
-seed_file "$ROOT/.maestro/fixtures/jd-038-notes.py" handmade/plain.py
+seed_file "$ROOT/.maestro/fixtures/notes.py" handmade/plain.py
 run_flow "$ROOT/.maestro/jd-042-checkpoint-demo-part5-open.yaml" "$EVIDENCE/part5-open"
 in_workspace 'test -f handmade/.ipynb_checkpoints/plain-checkpoint.py' || fail "expected plain.py checkpointed at open"
 in_workspace 'rm handmade/.ipynb_checkpoints/plain-checkpoint.py'

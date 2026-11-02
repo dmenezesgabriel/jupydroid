@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# After the relaunch, the saved outputs: the HTML output's image drawn again from the workspace
+# file, and 42 read back off the disk, with No Kernel in the bar. Run by
+# scripts/markdown-images-demo-driver.sh after parts 3 and 4 ran a second time.
+#
+# TABLET ONLY (SM-X216B): part 6 runs a cell.
+- scrollUntilVisible:
+    element:
+      text: "42"
+    direction: DOWN
+    timeout: 20000
+- assertVisible:
+    text: "output plot"
+    childOf: {text: "Cell output"}
+- assertVisible: "No Kernel"
+- takeScreenshot: 08-relaunched-outputs

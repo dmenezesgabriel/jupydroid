@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 4, once the save held cell 2's run. Relaunched and
+# reopened, the notebook draws cell 1's image again across the column, read back off the disk, with
+# No Kernel in the bar: nothing runs after the relaunch. Run by
+# scripts/large-image-output-demo-driver.sh.
+#
+# TABLET ONLY (SM-X216B): parts 2 and 3 run cells.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Large Image Output.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Large Image Output.ipynb"
+- extendedWaitUntil:
+    visible: "Cell image output"
+    timeout: 60000
+# Cell 1 whole is taller than the list on SM-X216B, so the 42 opens under the fold. Scrolled to it,
+# then dragged back as in part 2, the image and the 42 are both inside the list.
+- scrollUntilVisible:
+    element:
+      text: "42"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 20000
+- swipe:
+    start: "50%,40%"
+    end: "50%,55%"
+    duration: 1500
+- assertVisible:
+    text: "42"
+    childOf: {text: "Cell output"}
+- assertVisible: "No Kernel"
+- takeScreenshot: 05-relaunched-the-wide-image

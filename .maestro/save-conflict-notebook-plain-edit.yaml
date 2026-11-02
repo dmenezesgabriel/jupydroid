@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# Continues save-conflict-notebook-overwrite.yaml: an edit with nothing else writing the file is
+# saved without a question. The debounce writes half a second after the last key, so a refusal
+# would have its dialog up by the frame; the driver then finds the edit in the file, which a
+# refused save never reaches.
+- tapOn: "value = 1"
+- inputText: " + 1"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "File Changed"
+- takeScreenshot: 05-a-plain-edit-saves-without-asking

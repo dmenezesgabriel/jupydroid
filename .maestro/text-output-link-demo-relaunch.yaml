@@ -1,0 +1,56 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app after part 5. Relaunched and reopened, with No Kernel, the
+# outputs read back off the disk still link: the saved traceback's `~/mod.py:1` opens `mod.py`,
+# and the saved stream's URL opens the browser, which the driver reads from the resumed activity.
+# No cell runs in this part, so every output is what the kernel produced in parts 1-4 and the file
+# kept. Run by scripts/text-output-link-demo-driver.sh.
+#
+# The points inside the outputs are part 2's and part 4's, measured there.
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible:
+      text: "see https://jupyter\\.org"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- assertVisible: "No Kernel"
+- takeScreenshot: 01-the-saved-outputs
+- scrollUntilVisible:
+    element:
+      text: "-{20,}.*ZeroDivisionError: division by zero"
+    direction: DOWN
+    centerElement: true
+    timeout: 20000
+- takeScreenshot: 02-the-saved-error-path
+- tapOn:
+    text: "-{20,}.*ZeroDivisionError: division by zero"
+    point: "13%,61%"
+- extendedWaitUntil:
+    visible: "def f\\(\\): 1/0\\s*"
+    timeout: 10000
+- assertVisible: "Tab: mod.py"
+- takeScreenshot: 03-mod-opened-after-a-relaunch
+- back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "Tab: mod.py"
+- scrollUntilVisible:
+    element:
+      text: "see https://jupyter\\.org"
+      childOf: {text: "Cell output"}
+    direction: UP
+    timeout: 20000
+- tapOn:
+    text: "see https://jupyter\\.org"
+    childOf: {text: "Cell output"}
+    point: "60%,50%"
+# No screenshot after the tap: what is on screen then is the browser.
+- waitForAnimationToEnd:
+    timeout: 5000

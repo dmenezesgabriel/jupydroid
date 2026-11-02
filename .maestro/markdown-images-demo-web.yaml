@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# Below the first two cells: a web image. Run by scripts/markdown-images-demo-driver.sh
+# twice, from the top of the notebook: after part 2, and again after the relaunch.
+#
+# Runs no cell, so any device draws it; the demo's later parts run cells on the tablet.
+# The driver waits for the image's node after this: the alt asserted here is on screen before the
+# fetch returns.
+# A short, slow drag rather than `scrollUntilVisible`: the image is half on screen already, and
+# one of that command's swipes carries its whole cell off the top.
+- swipe:
+    start: "68%,70%"
+    end: "68%,45%"
+    duration: 2000
+- assertVisible: "From the web: jupiter logo"
+- takeScreenshot: 02-web-image

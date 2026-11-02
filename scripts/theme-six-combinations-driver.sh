@@ -16,8 +16,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
-# shellcheck source=scripts/jd-030-rotation-reads.sh
-. "$ROOT/scripts/jd-030-rotation-reads.sh"
+# shellcheck source=scripts/rotation-reads.sh
+. "$ROOT/scripts/rotation-reads.sh"
 
 EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo>}"
 FLOWS="$ROOT/.maestro/theme-six-combinations"
@@ -66,7 +66,7 @@ measure() { # measure <dir>
 run_device_mode() { # run_device_mode <no|yes>
   "${adb[@]}" shell cmd uimode night "$1" >/dev/null
   reset_notebooks
-  seed_file "$ROOT/.maestro/fixtures/jd-031-notes.py" "$FILE"
+  seed_file "$ROOT/.maestro/fixtures/notes.py" "$FILE"
   seed_notebook "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$NOTEBOOK"
   run_flow "$FLOWS-part1-open.yaml" "$EVIDENCE/device-night-$1/opened" || exit 1
   for theme in System Light Dark; do

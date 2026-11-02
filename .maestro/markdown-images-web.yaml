@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# A markdown image naming a web address draws in the rendered cell once fetched; an http address,
+# one over the 5 MiB cap and one serving nothing draw their alt text (ADR-0087). Then it scrolls to
+# the photo just under the cap, which is fetched only once its cell is composed.
+# Opened by output-caps-baseline-open.yaml, seeded by
+# scripts/markdown-images-web-driver.sh, which waits for the logo's node before this runs.
+#
+# Runs no cell, so any device draws it; the driver runs it on the tablet the item's demo needs.
+# Each image is its own node, named by its alt. Its line's text holds the alt too, so a fallback
+# would pass these as well: the driver requires the image nodes from the hierarchy.
+- assertVisible: "jupiter logo"
+- assertVisible: "Over http: logo over http"
+- assertNotVisible: "logo over http"
+- assertVisible: "Over the cap: starry night over the cap"
+- assertNotVisible: "starry night over the cap"
+- assertVisible: "Missing: no such image"
+- assertNotVisible: "no such image"
+- takeScreenshot: 01-web-images
+- scrollUntilVisible:
+    element:
+      text: "Under the cap:.*"
+    direction: DOWN
+    timeout: 20000

@@ -1,0 +1,36 @@
+appId: com.jupydroid.app
+---
+# A text file is open in the file editor, and the Space's own shell rewrites it. Seeded by
+# scripts/save-conflict-file-driver.sh as ${MAESTRO_FILE}; the editor is left open on the text
+# it read, which is now not what the file holds.
+#
+# **This flow cannot say the shell wrote anything.** A pty echoes the typed line whether or not a
+# shell ran it, and the terminal is drawn rather than composed. The driver reads the file back
+# through run-as before the next flow starts, and that read is the only proof.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "notes for the conflict test\\s*"
+    timeout: 60000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+- tapOn:
+    id: "terminal-input"
+- inputText: "echo changed on disk > ${MAESTRO_FILE}"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 01-the-shell-rewrote-the-open-file

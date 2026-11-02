@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, from a cold start. Seeded by scripts/rotation-demo-driver.sh with
+# autosave off, so a typed line stays owed rather than racing a debounce. Three documents are
+# opened in an order the strip must keep, and `second.py` is typed into and left beneath the
+# notebook: a dirty tab that is not on top, the case whose screen does not compose.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_FIRST}"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_FIRST}"
+    timeout: 10000
+- tapOn: "${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_SECOND}"
+    timeout: 10000
+- tapOn: "${MAESTRO_NOTEBOOK}"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_NOTEBOOK}"
+    timeout: 30000
+- tapOn: "Tab: ${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "second = \"typed into\"\\s*"
+    timeout: 10000
+- tapOn:
+    point: "95%,25%"
+- inputText: " # unsaved"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+- extendedWaitUntil:
+    notVisible: "second = .*"
+    timeout: 10000
+- takeScreenshot: 01-three-tabs-second-is-dirty-beneath-the-notebook

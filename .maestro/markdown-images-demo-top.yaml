@@ -1,0 +1,11 @@
+appId: com.jupydroid.app
+---
+# The top of the notebook draws a cell's attachment and a file beside the notebook. Run by
+# scripts/markdown-images-demo-driver.sh after part 1 opened it.
+#
+# Runs no cell, so any device draws it; the demo's later parts run cells on the tablet.
+# Each image is its own node, named by its alt. Its line's text holds the alt too, so a fallback
+# would pass these as well: the driver requires the image nodes from the hierarchy.
+- assertVisible: "orange chart"
+- assertVisible: "blue plot"
+- takeScreenshot: 01-attachment-and-file

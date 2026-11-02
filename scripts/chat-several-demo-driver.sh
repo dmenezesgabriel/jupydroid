@@ -24,8 +24,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
-# shellcheck source=scripts/jd-030-rotation-reads.sh
-. "$ROOT/scripts/jd-030-rotation-reads.sh"   # rotate_to, restore_rotation, app_pid
+# shellcheck source=scripts/rotation-reads.sh
+. "$ROOT/scripts/rotation-reads.sh"   # rotate_to, restore_rotation, app_pid
 
 EVIDENCE="$ROOT/evidence/chat-several-demo"
 FLOWS="$ROOT/.maestro/chat-several-demo"

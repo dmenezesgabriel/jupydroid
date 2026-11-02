@@ -19,8 +19,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
-# shellcheck source=scripts/jd-030-rotation-reads.sh
-. "$ROOT/scripts/jd-030-rotation-reads.sh"
+# shellcheck source=scripts/rotation-reads.sh
+. "$ROOT/scripts/rotation-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-041-save-as/demo"
 
@@ -60,8 +60,8 @@ reset_notebooks
 # Autosave off, base64 for `close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
 payload="$(printf '%s' '{"autosaveEnabled":false}' | base64 -w0)"
 "${adb[@]}" shell "run-as $APP sh -c 'mkdir -p files && echo $payload | base64 -d > $EDITOR_SETTINGS_STORE'"
-seed_file "$ROOT/.maestro/fixtures/jd-038-notes.py" notes.py
-seed_notebook "$ROOT/.maestro/fixtures/jd-038-target.ipynb" target
+seed_file "$ROOT/.maestro/fixtures/notes.py" notes.py
+seed_notebook "$ROOT/.maestro/fixtures/target.ipynb" target
 seed_notebook "$ROOT/.maestro/fixtures/jd-040-writer.ipynb" other
 rotate_to 1
 

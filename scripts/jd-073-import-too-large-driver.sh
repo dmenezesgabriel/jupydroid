@@ -81,7 +81,7 @@ publish_to_downloads "$LARGE" "$SCRATCH/$LARGE"
 
 "${adb[@]}" shell am force-stop "$APP"
 run_flow "$FLOWS/jd-072-my-files-open.yaml" "$EVIDENCE/a-small-opens/my-files"
-run_flow "$FLOWS/jd-023-shared-notebook-t1-part1-opened.yaml" "$EVIDENCE/a-small-opens"
+run_flow "$FLOWS/shared-notebook-opened.yaml" "$EVIDENCE/a-small-opens"
 wait_for_workspace_text "$SMALL" '"shared_from": "another app"'
 
 "${adb[@]}" shell am force-stop "$APP"

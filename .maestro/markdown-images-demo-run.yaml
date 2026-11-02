@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Run all: a code cell's HTML('<img src="img/plot.png">') draws the workspace file in its output,
+# and `6 * 7` prints the kernel's 42. Run by scripts/markdown-images-demo-driver.sh after
+# part 5.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+# "output plot" is the output image's alt, which the source splits in two, so FakeKernelGateway's
+# echo never reads it. Its cell is the first code cell on purpose: `childOf` scopes to the first
+# `Cell output` (docs/architecture/cross-cutting.md, 8.6).
+- scrollUntilVisible:
+    element:
+      text: "6 \\* 7"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Run all cells"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "output plot"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+# The HTML output grew above it, so 42 may be under the fold.
+# matches-source: the source reads `6 * 7`, which puts no 42 on screen; `childOf` would reach only
+# the HTML cell's output, the first one
+- scrollUntilVisible:
+    element:
+      text: "42"
+    direction: DOWN
+    timeout: 60000
+- assertVisible:
+    text: "output plot"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 06-html-output-and-the-kernels-42

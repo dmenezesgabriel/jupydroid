@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# Relaunches after the driver stopped the app mid-replace and searches ${MAESTRO_FILE} for its last
+# line: a file the write left whole still ends with it, and half of one does not. Seeded and stopped
+# by scripts/atomic-save-file-driver.sh, which also checks the bytes on disk.
+# scripts/atomic-save-demo-driver.sh runs it too, as part of the PRD's demo.
+#
+# A search, not the editor, for the reason atomic-save-file-replace.yaml gives. The screenshot
+# is taken before the wait, so a file that has lost its end still leaves a frame of what was found.
+#
+# **WIDE WINDOW**: the search panel is drawn only where there is room for two panes.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn:
+    text: "^Search$"
+- tapOn: "Search the workspace"
+- inputText: "the last line of the notes"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 02-the-last-line-searched-for-after-the-kill
+- extendedWaitUntil:
+    visible: "1 result in 1 file"
+    timeout: 60000
+- takeScreenshot: 03-the-last-line-is-there

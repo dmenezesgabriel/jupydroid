@@ -1,0 +1,55 @@
+appId: com.jupydroid.app
+---
+# The PRD's demo, typed into a new notebook from a cold launch. The first cell prints a sentence
+# holding a URL; the URL draws as a link. Then a tap on "see", beside it, which the driver checks
+# left this app in front. Run by scripts/text-output-link-demo-driver.sh.
+#
+# The exact "see https://jupyter.org" is what the kernel printed; FakeKernelGateway would echo the
+# source, `print(...)` and all, which it never matches.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+# The empty cell's field has no text to tap by; SM-X216B puts it at [805,319][1884,391], as in
+# `python-environments-in-a-space-new-notebook-runs-python3.yaml`.
+- tapOn:
+    point: "1300,354"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "print(\"see https://jupyter.org\")"
+- hideKeyboard
+- tapOn: "Run cell"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "see https://jupyter\\.org"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+# The code cell still has focus after Run; `back` is edit mode's exit to command mode.
+- back
+- extendedWaitUntil:
+    visible: "Kernel actions"
+    timeout: 5000
+- takeScreenshot: 01-the-stream-link
+# The line is one text node and "see" its first 3 of 23 monospace characters, so 6% is inside it.
+- tapOn:
+    text: "see https://jupyter\\.org"
+    childOf: {text: "Cell output"}
+    point: "6%,50%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-after-the-tap-beside

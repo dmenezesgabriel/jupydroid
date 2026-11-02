@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# Runs both cells: one prints a sentence holding a URL to stdout, the other a URL alone to stderr.
+# `42` and `43` are computed by the kernel; FakeKernelGateway would echo the source as one node,
+# which the exact texts below never match. Then a tap on "see", beside the URL, which the driver
+# checks left this app in front. Run by scripts/text-output-url-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Run all cells"
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible:
+      text: "see https://jupyter\\.org/42"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- extendedWaitUntil:
+    visible:
+      text: "https://jupyter\\.org/43"
+    timeout: 30000
+- takeScreenshot: 01-both-links
+# The line is one text node and "see" its first 3 of 26 monospace characters, so 3% is on its "s".
+- tapOn:
+    text: "see https://jupyter\\.org/42"
+    childOf: {text: "Cell output"}
+    point: "3%,50%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 02-after-the-tap-beside

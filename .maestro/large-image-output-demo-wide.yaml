@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# Cell 1 displays a 12800 x 3200 PNG, 163 840 000 bytes decoded and past the 150 MiB a canvas draws:
+# it draws shrunk across the column, a quarter as tall, above the kernel's 42 (ADR-0087). The cell
+# builds it from `zlib` and `struct` and `42` is computed from `6 * 7`; FakeKernelGateway would echo
+# the source instead and draw no image. Run by scripts/large-image-output-demo-driver.sh,
+# whose `uiautomator dump` after this part measures the image against the column.
+#
+# TABLET ONLY (SM-X216B): the flow runs a cell.
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run starts the kernel.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 300000
+# `42` is printed after the display, so with it in view the image is drawn above it.
+- scrollUntilVisible:
+    element:
+      text: "42"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 20000
+# Scrolled until the 42 shows, the image's top sat 2 px under the notebook's bar, and a hierarchy's
+# bounds are clipped to what is on screen. Cell 1 whole is taller than the list on SM-X216B, so a
+# scroll back to its prompt clips the image's bottom instead. A slow drag of 15% of the screen, which
+# does not fling, brings both the image and the 42 inside the list; the driver's 4:1 check fails if
+# either edge is still clipped.
+- swipe:
+    start: "50%,40%"
+    end: "50%,55%"
+    duration: 1500
+- assertVisible:
+    text: "42"
+    childOf: {text: "Cell output"}
+- assertVisible: "Cell image output"
+- assertNotVisible:
+    text: "<IPython.core.display.Image object>"
+- takeScreenshot: 02-the-wide-image-across-the-column

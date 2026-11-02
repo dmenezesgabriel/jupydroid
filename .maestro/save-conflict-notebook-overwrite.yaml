@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# Continues save-conflict-notebook-revert.yaml on the open notebook: the cell runs again, adding
+# `ADDED ON DISK 4` to the file, the save asks again, and Overwrite keeps the editor's version.
+# The cell's output says 4 cells were on disk; the editor still shows three and no fourth marker,
+# and the driver reads the file back to see that the editor's three are what it holds now.
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "File Changed"
+    timeout: 120000
+- takeScreenshot: 03-the-save-asks-again
+- tapOn: "Overwrite"
+- extendedWaitUntil:
+    visible:
+      text: "cells on disk: 4"
+      childOf: {text: "Cell output"}
+    timeout: 10000
+- assertNotVisible: "File Changed"
+- assertNotVisible: "ADDED ON DISK 4"
+- takeScreenshot: 04-overwrote-with-the-editors-three-cells

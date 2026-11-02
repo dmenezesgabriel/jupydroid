@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# After the relaunch, cell 2's image draws again at its own width, under the 48 the file kept. Run by
+# scripts/large-image-output-demo-driver.sh after part 5, whose dump after this part requires
+# one image node on screen.
+#
+# TABLET ONLY (SM-X216B): parts 2 and 3 run cells.
+# Unscoped: `childOf` reaches only the first `Cell output`, cell 1's (docs/architecture/cross-cutting.md,
+# 8.6), and the source reads `6 * 8`, which puts no 48 on screen.
+- scrollUntilVisible:
+    element:
+      text: "48"
+    direction: DOWN
+    timeout: 20000
+- scroll
+- assertVisible: "No Kernel"
+- takeScreenshot: 06-relaunched-the-tall-image

@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# A Console on the notebook's kernel runs the same `display(Markdown(...))` and draws the grid the
+# cell's output did. `Markdown` and `display` are names only the cell imported, so a Console that
+# draws the table is on the cell's kernel. Run by scripts/gfm-markdown-demo-driver.sh after
+# part 1, on the screen part 1 left.
+#
+# The Console has one entry, so `childOf: {text: "Cell output"}` reaches it: Maestro resolves that
+# selector to the first such node (docs/architecture/cross-cutting.md, 8.6).
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- tapOn: "Kernel actions"
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+- tapOn:
+    id: "console-input-field"
+- inputText: "display(Markdown(\"| a | b |\\n|:--|--:|\\n| x | 1 |\"))"
+- tapOn: "Run"
+# The soft keyboard covers the transcript's newest entry, so it goes before the wait looks for it.
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      text: "x"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- assertVisible:
+    text: "a"
+    childOf: {text: "Cell output"}
+- assertVisible:
+    text: "1"
+    childOf: {text: "Cell output"}
+- assertNotVisible:
+    text: "(?s).*\\| a \\|.*"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 04-the-console-draws-the-same-grid

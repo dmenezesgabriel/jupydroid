@@ -32,8 +32,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 # shellcheck source=scripts/jd-058-reinstall-reads.sh
 . "$ROOT/scripts/jd-058-reinstall-reads.sh"
-# shellcheck source=scripts/jd-030-rotation-reads.sh
-. "$ROOT/scripts/jd-030-rotation-reads.sh"
+# shellcheck source=scripts/rotation-reads.sh
+. "$ROOT/scripts/rotation-reads.sh"
 
 EVIDENCE="$ROOT/evidence/jd-058-reinstall-demo/${1:-t4}"
 APK="$ROOT/app/build/outputs/apk/debug/app-debug.apk"

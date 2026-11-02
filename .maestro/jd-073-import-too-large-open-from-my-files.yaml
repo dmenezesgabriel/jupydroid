@@ -1,7 +1,7 @@
 appId: com.sec.android.app.myfiles
 ---
 # Opens `Too large.ipynb`, one byte over the import bound, the way a person does: from Samsung's My
-# Files through the "Open with" chooser, as jd-023-shared-notebook-open-from-my-files.yaml does for
+# Files through the "Open with" chooser, as shared-notebook-open-from-my-files.yaml does for
 # the small fixture (taps scoped by resource id for the same reasons, "Just once" for the same one).
 # Shaped for a device that has chosen before, as jd-072-my-files-open.yaml is: the chooser is picked
 # from only if it drew, since a recorded preferred activity sends the tap straight to the app.

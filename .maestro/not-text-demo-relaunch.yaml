@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# Force-stops and relaunches after scripts/not-text-demo-driver.sh has opened the image,
+# closed its tab and edited the text file beside it. The image says the same thing it said before
+# the relaunch, and ${MAESTRO_FILE} opens with the edit it was left with.
+#
+# Nothing is typed here, so the edit can only have come off the disk. The driver reads the image's
+# sha256 after this flow for the half no screen shows.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "${MAESTRO_IMAGE}"
+- extendedWaitUntil:
+    visible: ".*is not UTF-8 text.*"
+    timeout: 60000
+- takeScreenshot: 05-the-image-says-the-same-after-a-relaunch
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "notes that are text\\s*still\\s*"
+    timeout: 60000
+- assertNotVisible: ".*is not UTF-8 text.*"
+- takeScreenshot: 06-the-text-file-opens-with-its-edit

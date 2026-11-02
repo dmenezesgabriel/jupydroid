@@ -1,0 +1,87 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes. Seeded by scripts/tab-rename-refusal-dialog-driver.sh with `a.py`,
+# `b.py`, and a folder `full.py` holding `keep.txt`.
+#
+# The browser's rename answers every refusal but the user's own cancel with
+# `showErrorMessage('Rename Error', error)` (jupyterlab@7f0e690
+# `packages/filebrowser/src/listing.ts`). The tab's rename is refused here two ways the disk
+# decides: an overwrite onto a folder with something in it, and a rename of a file the Space's own
+# shell removed, which the app never heard. Each must say why, and the tab keep its name.
+#
+# The dialog keeps the extension when its stem is typed over, so typing `full` asks for `full.py`.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+
+# ---- an overwrite onto a folder with something in it ----
+- tapOn: "a.py"
+- extendedWaitUntil:
+    visible: "Tab: a.py"
+    timeout: 30000
+- longPressOn: "Tab: a.py"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "full"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Overwrite file\\?"
+    timeout: 10000
+- takeScreenshot: 01-a-renamed-onto-the-folder-asks-to-overwrite
+- tapOn: "Overwrite"
+- extendedWaitUntil:
+    visible: "Rename Error"
+    timeout: 10000
+- assertVisible: "could not replace 'full.py' in the workspace; a folder with anything in it cannot be replaced"
+- takeScreenshot: 02-the-overwrite-refused-says-why
+- tapOn: "OK"
+- extendedWaitUntil:
+    notVisible: "Rename Error"
+    timeout: 5000
+- assertVisible: "Tab: a.py"
+- takeScreenshot: 03-the-tab-keeps-its-name
+
+# ---- a rename of a file the shell removed ----
+- tapOn: "b.py"
+- extendedWaitUntil:
+    visible: "Tab: b.py"
+    timeout: 30000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+- tapOn:
+    id: "terminal-input"
+- inputText: "rm b.py"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- takeScreenshot: 04-the-shell-removed-b
+- tapOn: "Tab: b.py"
+- longPressOn: "Tab: b.py"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "c"
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename Error"
+    timeout: 10000
+- assertVisible: "nothing at 'b.py' in the workspace to rename"
+- takeScreenshot: 05-the-rename-refused-says-why
+- tapOn: "OK"
+- extendedWaitUntil:
+    notVisible: "Rename Error"
+    timeout: 5000
+- assertVisible: "Tab: b.py"
+- takeScreenshot: 06-the-tab-keeps-its-name

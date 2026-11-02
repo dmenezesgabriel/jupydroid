@@ -1,0 +1,16 @@
+appId: com.jupydroid.app
+---
+# A markdown image naming its cell's attachment draws in the rendered cell: a chart at its own
+# width, a banner wider than the column shrunk to it, found under an escaped name, and an image
+# naming no attachment drawing its alt text. Opened by output-caps-baseline-open.yaml,
+# seeded by scripts/markdown-images-attachment-driver.sh.
+#
+# Runs no cell, so any device draws it; the driver runs it on the tablet the item's demo needs.
+# Each image is its own node, named by its alt. Its line's text holds the alt too, so a fallback
+# would pass these as well: the driver requires the image nodes from the hierarchy.
+- assertVisible: "orange chart"
+- assertVisible: "wide banner"
+# No attachment by that name: the alt is drawn as text in its line, and no image carries it.
+- assertVisible: "Missing: no such picture"
+- assertNotVisible: "no such picture"
+- takeScreenshot: 01-attachments

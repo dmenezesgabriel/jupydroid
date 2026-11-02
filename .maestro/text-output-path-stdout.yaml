@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# A path a cell prints to stdout stays text: a tap on it opens nothing. After part 1, run by
+# scripts/text-output-path-driver.sh.
+#
+# TABLET ONLY (SM-X216B): part 1 runs a cell.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn:
+    text: "~/mod\\.py:1"
+    childOf: {text: "Cell output"}
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertNotVisible: "Tab: mod.py"
+- takeScreenshot: 01-after-the-stdout-tap

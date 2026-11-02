@@ -16,8 +16,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
-# shellcheck source=scripts/jd-030-rotation-reads.sh
-. "$ROOT/scripts/jd-030-rotation-reads.sh"
+# shellcheck source=scripts/rotation-reads.sh
+. "$ROOT/scripts/rotation-reads.sh"
 
 EVIDENCE="${EVIDENCE:-$ROOT/evidence/jd-042-checkpoint/t1}"
 
@@ -35,9 +35,9 @@ reset_notebooks
 # Autosave off, base64 for `close-gate-driver.sh`'s reason: `adb shell` eats the quotes.
 payload="$(printf '%s' '{"autosaveEnabled":false}' | base64 -w0)"
 "${adb[@]}" shell "run-as $APP sh -c 'mkdir -p files && echo $payload | base64 -d > $EDITOR_SETTINGS_STORE'"
-seed_file "$ROOT/.maestro/fixtures/jd-038-notes.py" notes.py
-seed_notebook "$ROOT/.maestro/fixtures/jd-038-target.ipynb" target
-seed_file "$ROOT/.maestro/fixtures/jd-038-notes.py" blocked/plain.py
+seed_file "$ROOT/.maestro/fixtures/notes.py" notes.py
+seed_notebook "$ROOT/.maestro/fixtures/target.ipynb" target
+seed_file "$ROOT/.maestro/fixtures/notes.py" blocked/plain.py
 seed_file "$ROOT/.maestro/fixtures/jd-042-not-a-folder.txt" blocked/.ipynb_checkpoints
 rotate_to 1
 

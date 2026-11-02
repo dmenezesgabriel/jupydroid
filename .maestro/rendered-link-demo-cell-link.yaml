@@ -1,0 +1,55 @@
+appId: com.jupydroid.app
+---
+# The PRD's demo, typed into a new notebook from a cold launch. The first cell becomes markdown and
+# holds one paragraph with a web link and a workspace link in it; rendered, it draws "Read Jupyter
+# and notes" and none of its own syntax. Then "Jupyter" is tapped. What that opened is not on this
+# app's screen: scripts/rendered-link-demo-driver.sh reads the device's resumed activity
+# after this part and requires another app's, then presses back and requires this app's.
+#
+# TABLET ONLY (SM-X216B): the parts after this one run a cell.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+
+# The new notebook's one cell, turned markdown from the bar's own type control.
+- tapOn: "Cell type Code"
+- tapOn: "Cell type picker Markdown"
+- extendedWaitUntil:
+    visible: "Cell type Markdown"
+    timeout: 10000
+- tapOn: "Write markdown…"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "Read [Jupyter](https://jupyter.org) and [notes](notes.md)"
+- hideKeyboard
+- assertVisible: "Read \\[Jupyter\\]\\(https://jupyter\\.org\\) and \\[notes\\]\\(notes\\.md\\)"
+- takeScreenshot: 01-the-typed-markdown
+- tapOn: "Run cell"
+- extendedWaitUntil:
+    visible: "Read Jupyter and notes"
+    timeout: 10000
+- assertNotVisible: ".*\\]\\(.*"
+- takeScreenshot: 02-the-rendered-links
+# The paragraph is one text node - a link is not a node of its own - so each word is tapped at a
+# point inside it. Measured from 02's ink inside the node's bounds [720,973] on SM-X216B: "Read"
+# 722-770, "Jupyter" 780-858, "and" 868-903, "notes" 912-970; each tap is at its word's centre.
+- tapOn:
+    text: "Read Jupyter and notes"
+    point: "39%,50%"
+# No screenshot after the tap: what is on screen then is the browser, with the owner's tabs and
+# account in it. The driver's record of the resumed activity is the evidence.
+- waitForAnimationToEnd:
+    timeout: 5000
