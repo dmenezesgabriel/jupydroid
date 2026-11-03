@@ -292,8 +292,17 @@ One TDD unit each, one conventional commit each.
     found by that grep and checked on the device. `reinstall-demo-after.yaml` also carried an
     assertion that had been stale since `.chat` opened in the chat view; the first device run failed
     on it and it now asserts the message text the screen shows. `.maestro/[n-r]*.yaml` is the glob.
-  - [ ] T8f2 — `.maestro/[s-z]*.yaml` (187 flows, 135 hits in 68 of them), the same way, and split
-    again when opened if its first count says so.
+  - [x] T8f2 — `.maestro/s*.yaml` (71 flows, 61 hits in 30 of them, plus ids no gate pattern matches
+    in a few more), now 0. The whole `[s-z]` range was 157 lines in 73 flows, so it split by letter:
+    `[t-z]` is T8f3. The same rules as T8e. The device names say what they are: `p2j-5-share` ->
+    `share-export` (the flow's own name), `p8b-install.log`/`p8b-pip.rc` -> `pip-install.*`, and the
+    Space demo's `jd8-apk.*`, `jd8-jq.*`, `jd8-jq2.*` -> `apk-add.*`, `jq-run.*`, `jq-run-again.*`,
+    with the two fixtures' cell ids. The `p2j-5-*` names in `IntentDocumentSharerTest` are Kotlin
+    string literals and wait for T8g. `space-packages-driver.sh` fails at HEAD and after on the
+    kernel cell (`No module named 'tabulate'`) while every leg that reads the renamed files passes:
+    a defect of its own, not this task's. `.maestro/s*.yaml` is the glob.
+  - [ ] T8f3 — `.maestro/[t-z]*.yaml` (116 flows, 96 hits in 43 of them: `t` 74, `u` 3, `v` 2, `w` 17),
+    the same way.
   - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
     names, kernelspec names). No gate reads a string literal, so the commit body names the `git grep` that
     measured it.
