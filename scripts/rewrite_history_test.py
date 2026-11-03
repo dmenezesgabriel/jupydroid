@@ -87,10 +87,12 @@ class FakeRunner:
         self.argv: list[str] = []
         self.cwd: Path | None = None
         self.seen: dict[str, str] = {}
+        self.previous_run_marker_present = False
         self._fail = fail
 
     def __call__(self, argv: list[str], cwd: Path) -> None:
         self.argv, self.cwd = argv, cwd
+        self.previous_run_marker_present = (cwd / ".git" / "filter-repo" / "already_ran").exists()
         for flag in ("--replace-text", "--mailmap"):
             self.seen[flag] = Path(argv[argv.index(flag) + 1]).read_text()
         if self._fail:
@@ -198,6 +200,20 @@ class RewriteTest(unittest.TestCase):
         self.assertEqual(runner.cwd, self.repo.root)
         self.assertIn("/home/ana==>/home/user", runner.seen["--replace-text"])
         self.assertIn("<old@example.org>", runner.seen["--mailmap"])
+
+    def test_a_previous_runs_marker_is_gone_before_the_runner_starts(self) -> None:
+        """`git filter-repo` prompts on a marker older than a day and silently continues on a younger one."""
+        marker = self.repo.root / ".git" / "filter-repo" / "already_ran"
+        marker.parent.mkdir()
+        marker.write_text("")
+        runner = FakeRunner()
+        rewrite(self.repo.root, HOME, IDENTITY_FOR_TEST, force=True, runner=runner)
+        self.assertFalse(runner.previous_run_marker_present)
+
+    def test_a_repository_never_rewritten_has_no_marker_to_remove(self) -> None:
+        runner = FakeRunner()
+        rewrite(self.repo.root, HOME, IDENTITY_FOR_TEST, force=True, runner=runner)
+        self.assertFalse(runner.previous_run_marker_present)
 
     def test_the_temp_files_are_gone_afterwards(self) -> None:
         runner = FakeRunner()

@@ -153,6 +153,20 @@ def filter_repo_argv(rules: Path, mailmap: Path, force: bool) -> list[str]:
     return [*argv, "--force"] if force else argv
 
 
+def forget_previous_run(root: Path) -> None:
+    """Remove the marker `git filter-repo` leaves, so this rewrite is a fresh run and never a continuation.
+
+    Past a day old the marker makes `git_filter_repo.py` ask on stdin whether to continue the previous run, and
+    answering anything but `y` deletes it; a younger one is continued without asking. A continuation updates
+    refs it already moved instead of starting from the repository as it stands, which is not this rewrite.
+
+    ```
+    forget_previous_run(Path("."))
+    ```
+    """
+    (root / ".git" / "filter-repo" / "already_ran").unlink(missing_ok=True)
+
+
 def rewrite(root: Path, home: Path, identity: str, force: bool, runner: Runner = run_in) -> None:
     """Run the rewrite of [root]'s history; the rules and the mailmap exist only while [runner] runs.
 
@@ -164,6 +178,7 @@ def rewrite(root: Path, home: Path, identity: str, force: bool, runner: Runner =
         rules, mailmap = Path(scratch) / "rules.txt", Path(scratch) / "mailmap.txt"
         rules.write_text(rules_text(root, home))
         mailmap.write_text(mailmap_text(old_emails(root), identity))
+        forget_previous_run(root)
         runner(filter_repo_argv(rules, mailmap, force), root)
 
 
