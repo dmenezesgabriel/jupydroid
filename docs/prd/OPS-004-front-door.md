@@ -134,7 +134,7 @@ No `domain/`, `data/`, `ui/` or `di/` file changes, so there is no port and no `
 
 - [x] T1 — a Markdown link gate: `scripts/check_markdown_links.py` with `_test.py`; every relative link
   in a tracked Markdown file resolves to a tracked file; wired into `.pre-commit-config.yaml`
-- [ ] T2 — `SECURITY.md`: private vulnerability reporting; scope is the loopback server's token, the MCP
+- [x] T2 — `SECURITY.md`: private vulnerability reporting; scope is the loopback server's token, the MCP
   port and the proot sandbox; no released versions yet
 - [ ] T3 — `CODE_OF_CONDUCT.md`: the Contributor Covenant 2.1 with its attribution and a contact placeholder
 - [ ] T4 — `CONTRIBUTING.md`: the working agreement for people, `pre-commit install`, the gate command,
