@@ -37,7 +37,7 @@ class IntentDocumentSharerTest {
 
   @Test
   fun servesAnExportedFileToWhoeverIsHandedItsUri() {
-    val exported = workspaceFile("p2j-5-sharer-test.html", "<html>the export</html>")
+    val exported = workspaceFile("sharer-test.html", "<html>the export</html>")
 
     val read = context.contentResolver.openInputStream(sharer.uriFor(exported.name))
       ?.use { it.readBytes().decodeToString() }
@@ -48,11 +48,11 @@ class IntentDocumentSharerTest {
   /** An export lands beside its notebook, and a notebook can be in a folder. */
   @Test
   fun servesAFileInAFolderInsideTheWorkspace() {
-    File(workspace, "p2j-5-reports").mkdirs()
-    val exported = workspaceFile("p2j-5-reports/deep.html", "<html>deep</html>")
-    written += File(workspace, "p2j-5-reports")
+    File(workspace, "sharer-reports").mkdirs()
+    val exported = workspaceFile("sharer-reports/deep.html", "<html>deep</html>")
+    written += File(workspace, "sharer-reports")
 
-    val uri = sharer.uriFor("p2j-5-reports/deep.html")
+    val uri = sharer.uriFor("sharer-reports/deep.html")
 
     assertEquals(
       "<html>deep</html>",
@@ -66,7 +66,7 @@ class IntentDocumentSharerTest {
   /** The authority the manifest declares, since a mismatch fails only at the moment of sharing. */
   @Test
   fun usesTheAuthorityTheManifestDeclares() {
-    val exported = workspaceFile("p2j-5-authority.html", "x")
+    val exported = workspaceFile("sharer-authority.html", "x")
 
     assertEquals("${context.packageName}.exports", sharer.uriFor(exported.name).authority)
   }

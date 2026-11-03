@@ -317,7 +317,7 @@ class ConsoleViewModelTest {
     ConsoleViewModel(gateway, session, FakeKernelSessions(registry))
     advanceUntilIdle()
 
-    val changed = gateway.changeKernel(minted, KernelChoice.Spec("p8g"))
+    val changed = gateway.changeKernel(minted, KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
     assertEquals("the console now holds the rebound session", changed, session.opened)

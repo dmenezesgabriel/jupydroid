@@ -43,12 +43,12 @@ class NotebookKernelChangeTest {
     advanceUntilIdle()
     val before = viewModel.kernel.attachConsole().opened
 
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
     val after = viewModel.kernel.attachConsole().opened
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.kernelChanges)
-    assertEquals("p8g", after?.kernelName)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.kernelChanges)
+    assertEquals("julia", after?.kernelName)
     assertEquals(before?.serverSessionId, after?.serverSessionId)
     assertEquals(before?.id, after?.id)
   }
@@ -59,11 +59,11 @@ class NotebookKernelChangeTest {
     val gateway = FakeKernelGateway()
     val viewModel = loadedEditor(gateway = gateway, applicationScope = this)
 
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
-    assertEquals("p8g", viewModel.kernel.attachConsole().opened?.kernelName)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.connectsAskedFor)
+    assertEquals("julia", viewModel.kernel.attachConsole().opened?.kernelName)
   }
 
   /**
@@ -86,10 +86,10 @@ class NotebookKernelChangeTest {
     advanceUntilIdle()
     val open = viewModel.kernel.attachConsole().opened!!
 
-    gateway.changeKernel(open, KernelChoice.Spec("p8g"))
+    gateway.changeKernel(open, KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
-    assertEquals("p8g", viewModel.kernel.attachConsole().opened?.kernelName)
+    assertEquals("julia", viewModel.kernel.attachConsole().opened?.kernelName)
   }
 
   /** A rebound about *another* session - a second open document - is not this one's business. */
@@ -106,7 +106,7 @@ class NotebookKernelChangeTest {
     advanceUntilIdle()
     val open = viewModel.kernel.attachConsole().opened!!
 
-    gateway.changeKernel(gateway.connect(BASE_SPACE, "Other.ipynb"), KernelChoice.Spec("p8g"))
+    gateway.changeKernel(gateway.connect(BASE_SPACE, "Other.ipynb"), KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
     assertEquals(open, viewModel.kernel.attachConsole().opened)
@@ -123,7 +123,7 @@ class NotebookKernelChangeTest {
     val gateway = FakeKernelGateway()
     val viewModel = loadedEditor(
       gateway = gateway,
-      notebook = savedWithKernel("p8g"),
+      notebook = savedWithKernel("julia"),
       kernelSpecs = FakeKernelSpecs(CATALOGUE),
       applicationScope = this,
     )
@@ -131,7 +131,7 @@ class NotebookKernelChangeTest {
     viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.connectsAskedFor)
   }
 
   /**
@@ -196,12 +196,12 @@ class NotebookKernelChangeTest {
       applicationScope = this,
     )
 
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
     val kernelspec = repository.readNotebook("nb-1").kernelspecJson()
-    assertEquals("p8g", kernelspec["name"]?.jsonPrimitive?.content)
-    assertEquals("P8g Julia", kernelspec["display_name"]?.jsonPrimitive?.content)
+    assertEquals("julia", kernelspec["name"]?.jsonPrimitive?.content)
+    assertEquals("Julia", kernelspec["display_name"]?.jsonPrimitive?.content)
     assertEquals("julia", kernelspec["language"]?.jsonPrimitive?.content)
   }
 
@@ -210,7 +210,7 @@ class NotebookKernelChangeTest {
   fun reopeningANotebookHonoursTheKernelItWasLastBoundTo() = runTest {
     val repository = FakeNotebookRepository()
     val first = loadedEditor(repository = repository, kernelSpecs = FakeKernelSpecs(CATALOGUE), applicationScope = this)
-    first.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    first.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
     val secondGateway = FakeKernelGateway()
@@ -224,7 +224,7 @@ class NotebookKernelChangeTest {
     second.kernel.runCell(codeCell)
     advanceUntilIdle()
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), secondGateway.connectsAskedFor)
+    assertEquals(listOf(KernelChoice.Spec("julia")), secondGateway.connectsAskedFor)
   }
 
   /**
@@ -244,13 +244,13 @@ class NotebookKernelChangeTest {
     viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
-    assertEquals("P8g Julia", viewModel.uiState.value.kernelDisplayName)
+    assertEquals("Julia", viewModel.uiState.value.kernelDisplayName)
 
     gateway.letItChange()
     advanceUntilIdle()
-    assertEquals("P8g Julia", viewModel.uiState.value.kernelDisplayName)
+    assertEquals("Julia", viewModel.uiState.value.kernelDisplayName)
   }
 
   /**
@@ -263,9 +263,9 @@ class NotebookKernelChangeTest {
     val viewModel = loadedEditor(kernelSpecs = FakeKernelSpecs(CATALOGUE), applicationScope = this)
     assertEquals("No Kernel", viewModel.uiState.value.kernelDisplayName)
 
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
-    assertEquals("P8g Julia", viewModel.uiState.value.kernelDisplayName)
+    assertEquals("Julia", viewModel.uiState.value.kernelDisplayName)
 
     viewModel.kernel.shutdown()
     advanceUntilIdle()
@@ -296,7 +296,7 @@ class NotebookKernelChangeTest {
       default = "python3",
       specs = listOf(
         KernelSpec(name = "python3", displayName = "Python 3", language = "python"),
-        KernelSpec(name = "p8g", displayName = "P8g Julia", language = "julia"),
+        KernelSpec(name = "julia", displayName = "Julia", language = "julia"),
       ),
     )
 

@@ -183,11 +183,11 @@ class BaseSpaceKernelGatewayTest {
     val heard = async { registry.rebound.take(1).toList() }
     advanceUntilIdle()
 
-    val changed = gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+    val changed = gateway.changeKernel(session, KernelChoice.Spec("julia"))
 
     assertEquals(session.id, changed.id)
     assertEquals(session.serverSessionId, changed.serverSessionId)
-    assertEquals("p8g", changed.kernelName)
+    assertEquals("julia", changed.kernelName)
     assertEquals(changed, registry.trackedBy(session.serverSessionId)?.kernelSession)
     assertEquals(listOf(changed), heard.await())
   }
@@ -205,7 +205,7 @@ class BaseSpaceKernelGatewayTest {
       serverSessionId = "ss-9",
     )
 
-    val failure = runCatching { gateway.changeKernel(foreign, KernelChoice.Spec("p8g")) }
+    val failure = runCatching { gateway.changeKernel(foreign, KernelChoice.Spec("julia")) }
 
     assertTrue(
       "expected a stale session to be refused, got ${failure.exceptionOrNull()}",

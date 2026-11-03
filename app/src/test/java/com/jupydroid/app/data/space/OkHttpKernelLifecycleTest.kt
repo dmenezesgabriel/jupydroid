@@ -426,7 +426,7 @@ class OkHttpKernelLifecycleTest {
     assertEquals(
       listOf(
         KernelSpec(name = "python3", displayName = "Python 3", language = "python"),
-        KernelSpec(name = "p8g", displayName = "P8g Python", language = "python"),
+        KernelSpec(name = "pypy3", displayName = "PyPy 3", language = "python"),
       ),
       specs.specs,
     )
@@ -446,10 +446,10 @@ class OkHttpKernelLifecycleTest {
   fun start_asksForTheChosenKernelByName() = runTest {
     serverRule.server.enqueue(MockResponse(code = 201, body = KERNEL_SESSION))
 
-    lifecycle().start("Analysis.ipynb", KernelChoice.Spec("p8g"))
+    lifecycle().start("Analysis.ipynb", KernelChoice.Spec("pypy3"))
 
     assertEquals(
-      """{"path":"Analysis.ipynb","type":"notebook","name":"Analysis.ipynb","kernel":{"name":"p8g"}}""",
+      """{"path":"Analysis.ipynb","type":"notebook","name":"Analysis.ipynb","kernel":{"name":"pypy3"}}""",
       takeRequest().body?.utf8(),
     )
   }
@@ -493,19 +493,19 @@ class OkHttpKernelLifecycleTest {
     serverRule.server.enqueue(
       MockResponse(
         code = 200,
-        body = """{"id":"session-1","kernel":{"id":"kernel-new","name":"p8g"}}""",
+        body = """{"id":"session-1","kernel":{"id":"kernel-new","name":"pypy3"}}""",
       ),
     )
 
-    val changed = lifecycle().changeKernel("session-1", KernelChoice.Spec("p8g"))
+    val changed = lifecycle().changeKernel("session-1", KernelChoice.Spec("pypy3"))
 
     assertEquals("kernel-new", changed.kernelId)
-    assertEquals("p8g", changed.kernelName)
+    assertEquals("pypy3", changed.kernelName)
     assertEquals("session-1", changed.serverSessionId)
     val request = takeRequest()
     assertEquals("PATCH", request.method)
     assertEquals("/api/sessions/session-1", request.target)
-    assertEquals("""{"kernel":{"name":"p8g"}}""", request.body?.utf8())
+    assertEquals("""{"kernel":{"name":"pypy3"}}""", request.body?.utf8())
   }
 
   /**
@@ -588,7 +588,7 @@ class OkHttpKernelLifecycleTest {
       """{"default":"python3","kernelspecs":{""" +
         """"python3":{"name":"python3","spec":{"argv":["python"],"display_name":"Python 3",""" +
         """"language":"python","metadata":{"debugger":true}},"resources":{}},""" +
-        """"p8g":{"name":"p8g","spec":{"argv":["python"],"display_name":"P8g Python",""" +
+        """"pypy3":{"name":"pypy3","spec":{"argv":["python"],"display_name":"PyPy 3",""" +
         """"language":"python"},"resources":{}}}}"""
   }
 }

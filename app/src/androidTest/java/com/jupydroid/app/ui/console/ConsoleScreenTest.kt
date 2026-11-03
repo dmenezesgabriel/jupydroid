@@ -204,7 +204,7 @@ class ConsoleScreenTest {
       serverSessionId = "ss1",
     )
     const val PNG_QUALITY = 100
-    const val EVIDENCE_FILE_NAME = "p6b-9-console-screen.png"
+    const val EVIDENCE_FILE_NAME = "console-screen.png"
     const val TIMEOUT_MILLIS = 5_000L
 
     /** IPython's frame header for a workspace file, alone so the node's centre is on the link. */

@@ -25,7 +25,7 @@ class NotebookKernelSessionTest {
     name = "Base",
     kernels = listOf(
       KernelSpec(name = "python3", displayName = "Python 3", language = "python"),
-      KernelSpec(name = "p8g", displayName = "P8g Julia", language = "julia"),
+      KernelSpec(name = "julia", displayName = "Julia", language = "julia"),
     ),
   )
 
@@ -163,14 +163,14 @@ class NotebookKernelSessionTest {
   @Test
   fun open_startsTheKernelTheNotebookPrefers() = runTest {
     val gateway = FakeKernelGateway()
-    val session = NotebookKernelSession(gateway, catalogued, kernelPreference = KernelPreference(name = "p8g")) {
+    val session = NotebookKernelSession(gateway, catalogued, kernelPreference = KernelPreference(name = "julia")) {
       "nb.ipynb"
     }
 
     val open = session.open()
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
-    assertEquals("p8g", open.kernelName)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.connectsAskedFor)
+    assertEquals("julia", open.kernelName)
   }
 
   /**
@@ -252,10 +252,10 @@ class NotebookKernelSessionTest {
     ) { "nb.ipynb" }
 
     session.open()
-    session.changeKernel(KernelChoice.Spec("p8g"))
+    session.changeKernel(KernelChoice.Spec("julia"))
     session.rebindIfMatches(session.opened!!.copy(kernelId = "k9", kernelName = "r9"))
 
-    assertEquals(listOf("python3", "p8g", "r9"), bound)
+    assertEquals(listOf("python3", "julia", "r9"), bound)
   }
 
   /**
@@ -268,12 +268,12 @@ class NotebookKernelSessionTest {
     val session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
     val open = session.open()
 
-    session.changeKernel(KernelChoice.Spec("p8g"))
+    session.changeKernel(KernelChoice.Spec("julia"))
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.kernelChanges)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.kernelChanges)
     assertEquals(open.id, session.opened?.id)
     assertEquals(open.serverSessionId, session.opened?.serverSessionId)
-    assertEquals("p8g", session.opened?.kernelName)
+    assertEquals("julia", session.opened?.kernelName)
   }
 
   /** Picking a kernel with none running is a *start*, not a patch - `startNew` in the reference. */
@@ -282,10 +282,10 @@ class NotebookKernelSessionTest {
     val gateway = FakeKernelGateway()
     val session = NotebookKernelSession(gateway, space) { "Analysis.ipynb" }
 
-    session.changeKernel(KernelChoice.Spec("p8g"))
+    session.changeKernel(KernelChoice.Spec("julia"))
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
-    assertEquals("p8g", session.opened?.kernelName)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.connectsAskedFor)
+    assertEquals("julia", session.opened?.kernelName)
   }
 
   /**
@@ -300,10 +300,10 @@ class NotebookKernelSessionTest {
     session.open()
     gateway.serverWasReplaced()
 
-    session.changeKernel(KernelChoice.Spec("p8g"))
+    session.changeKernel(KernelChoice.Spec("julia"))
 
-    assertEquals(listOf(null, KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
-    assertEquals("p8g", session.opened?.kernelName)
+    assertEquals(listOf(null, KernelChoice.Spec("julia")), gateway.connectsAskedFor)
+    assertEquals("julia", session.opened?.kernelName)
     assertEquals("session-2", session.opened?.id)
   }
 
@@ -317,12 +317,12 @@ class NotebookKernelSessionTest {
     val gateway = FakeKernelGateway()
     val session = NotebookKernelSession(gateway, catalogued) { "Analysis.ipynb" }
     session.open()
-    session.changeKernel(KernelChoice.Spec("p8g"))
+    session.changeKernel(KernelChoice.Spec("julia"))
     session.forget()
 
     session.open()
 
-    assertEquals(listOf(null, KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
+    assertEquals(listOf(null, KernelChoice.Spec("julia")), gateway.connectsAskedFor)
   }
 
   /**
@@ -335,7 +335,7 @@ class NotebookKernelSessionTest {
   fun rebindIfMatches_swapsTheKernelUnderTheOpenSession() = runTest {
     val session = NotebookKernelSession(FakeKernelGateway(), space) { "Analysis.ipynb" }
     val open = session.open()
-    val rebound = open.copy(kernelId = "k9", kernelName = "p8g")
+    val rebound = open.copy(kernelId = "k9", kernelName = "julia")
 
     session.rebindIfMatches(rebound)
 

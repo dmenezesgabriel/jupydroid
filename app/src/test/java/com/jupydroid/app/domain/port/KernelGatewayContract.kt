@@ -138,9 +138,9 @@ abstract class KernelGatewayContract {
    */
   @Test
   fun connect_startsTheKernelItWasAskedFor() = runTest {
-    val session = gateway().connect(SPACE, "Analysis.ipynb", KernelChoice.Spec("p8g"))
+    val session = gateway().connect(SPACE, "Analysis.ipynb", KernelChoice.Spec("julia"))
 
-    assertEquals("p8g", session.kernelName)
+    assertEquals("julia", session.kernelName)
   }
 
   /**
@@ -153,11 +153,11 @@ abstract class KernelGatewayContract {
     val gateway = gateway()
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
-    val changed = gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+    val changed = gateway.changeKernel(session, KernelChoice.Spec("julia"))
 
     assertEquals(session.id, changed.id)
     assertEquals(session.serverSessionId, changed.serverSessionId)
-    assertEquals("p8g", changed.kernelName)
+    assertEquals("julia", changed.kernelName)
     assertTrue(
       "a *new* kernel, not the old one renamed - '${session.kernelId}' again",
       changed.kernelId != session.kernelId,

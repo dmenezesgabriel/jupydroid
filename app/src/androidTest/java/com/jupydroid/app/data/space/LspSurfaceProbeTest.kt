@@ -132,7 +132,7 @@ class LspSurfaceProbeTest {
   }
 
   private suspend fun measureSyncCost(channel: JsonRpcChannel, pushes: Channel<JsonObject>) {
-    val bigUri = "file:///home/jupydroid/p5e-probe-big.py"
+    val bigUri = "file:///home/jupydroid/surface-probe-big.py"
     val bigText = (1..80).joinToString("\n\n") { "def fn_$it(x):\n    return x + $it" }
     channel.notify("textDocument/didOpen", LspWire.didOpenParams(bigUri, "python", bigText))
     val completion = measureTimedValue {
@@ -223,7 +223,7 @@ class LspSurfaceProbeTest {
   }
 
   private companion object {
-    const val URI = "file:///home/jupydroid/p5e-probe.py"
+    const val URI = "file:///home/jupydroid/surface-probe.py"
 
     /** Every line number a probe cites counts off this source - keep it stable. */
     val PROBE_SOURCE = listOf(

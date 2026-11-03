@@ -160,7 +160,7 @@ class ConsoleTranscriptViewTest {
     private const val PNG_QUALITY = 100
     private const val HUNDRED = 100
     private const val RUNAWAY_OUTPUTS = 300
-    private const val EVIDENCE_FILE_NAME = "p6b-3-console-transcript.png"
+    private const val EVIDENCE_FILE_NAME = "console-transcript.png"
 
     val ENTRIES = listOf(
       ConsoleEntry(

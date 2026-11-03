@@ -153,10 +153,10 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val lifecycle = FakeKernelLifecycle()
     val gateway = RealKernelGateway(KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle))
 
-    val session = gateway.connect(SPACE, "Analysis.ipynb", KernelChoice.Spec("p8g"))
+    val session = gateway.connect(SPACE, "Analysis.ipynb", KernelChoice.Spec("julia"))
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), lifecycle.startedWith)
-    assertEquals("p8g", session.kernelName)
+    assertEquals(listOf(KernelChoice.Spec("julia")), lifecycle.startedWith)
+    assertEquals("julia", session.kernelName)
   }
 
   /**
@@ -171,7 +171,7 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val session = gateway.connect(SPACE, "Analysis.ipynb")
     gateway.execute(session, "cell-1", "2 + 2").toList()
 
-    val changed = gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+    val changed = gateway.changeKernel(session, KernelChoice.Spec("julia"))
     gateway.execute(changed, "cell-2", "3 + 3").toList()
 
     assertEquals(2, opener.openCount)
@@ -186,9 +186,9 @@ class RealKernelGatewayTest : KernelGatewayContract() {
     val gateway = RealKernelGateway(KernelSockets(ScriptedKernelSocketOpener(reply = { emptyList() }), lifecycle))
     val session = gateway.connect(SPACE, "Analysis.ipynb")
 
-    gateway.changeKernel(session, KernelChoice.Spec("p8g"))
+    gateway.changeKernel(session, KernelChoice.Spec("julia"))
 
-    assertEquals(listOf("server-session-9" to KernelChoice.Spec("p8g")), lifecycle.kernelChanges)
+    assertEquals(listOf("server-session-9" to KernelChoice.Spec("julia")), lifecycle.kernelChanges)
   }
 
   /** The session id the server filed, never our own - they address different things. */

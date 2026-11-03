@@ -75,10 +75,10 @@ class NotebookKernelPickerTest {
 
     viewModel.kernel.picker.open()
     advanceUntilIdle()
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.kernelChanges)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.kernelChanges)
     assertEquals(before?.serverSessionId, viewModel.kernel.attachConsole().opened?.serverSessionId)
     assertNull("the picker closed when its answer was taken", viewModel.uiState.value.kernelPicker)
   }
@@ -89,10 +89,10 @@ class NotebookKernelPickerTest {
     val gateway = FakeKernelGateway()
     val viewModel = loadedEditor(gateway = gateway, applicationScope = this)
 
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
 
-    assertEquals(listOf(KernelChoice.Spec("p8g")), gateway.connectsAskedFor)
+    assertEquals(listOf(KernelChoice.Spec("julia")), gateway.connectsAskedFor)
   }
 
   /**
@@ -151,7 +151,7 @@ class NotebookKernelPickerTest {
     viewModel.kernel.runCell(codeCell)
     advanceUntilIdle()
 
-    viewModel.kernel.picker.pick(KernelChoice.Spec("p8g"))
+    viewModel.kernel.picker.pick(KernelChoice.Spec("julia"))
     advanceUntilIdle()
     assertEquals(KernelStatus.STARTING, viewModel.uiState.value.kernelStatus)
 
@@ -194,7 +194,7 @@ class NotebookKernelPickerTest {
     )
     assertEquals(listOf("Python 3"), groups[0].options.map { it.text })
     assertEquals(listOf("No Kernel"), groups[1].options.map { it.text })
-    assertEquals(listOf("P8g Julia"), groups[2].options.map { it.text })
+    assertEquals(listOf("Julia"), groups[2].options.map { it.text })
     assertEquals(listOf("Other.ipynb (fake)"), groups[3].options.map { it.text })
   }
 
@@ -203,7 +203,7 @@ class NotebookKernelPickerTest {
       default = "python3",
       specs = listOf(
         KernelSpec(name = "python3", displayName = "Python 3", language = "python"),
-        KernelSpec(name = "p8g", displayName = "P8g Julia", language = "julia"),
+        KernelSpec(name = "julia", displayName = "Julia", language = "julia"),
       ),
     )
   }

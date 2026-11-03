@@ -64,7 +64,7 @@ class StdioLanguageServerDeviceTest {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue("pylsp must declare completionProvider, or completion has no source", capabilities.completionProvider)
 
-      val uri = "file:///home/jupydroid/p5b-probe.py"
+      val uri = "file:///home/jupydroid/session-probe.py"
       languageServer.openDocument(BASE_SPACE, uri, "python", "import os\nos.path.jo\n")
       val items = languageServer.completion(BASE_SPACE, uri, LanguagePosition(line = 1, character = 10))
 
@@ -92,7 +92,7 @@ class StdioLanguageServerDeviceTest {
   fun publishDiagnosticsFromRealPylsp_arrivesOnThePortStream() = runBlocking {
     val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
-      val uri = "file:///home/jupydroid/p5d2-probe.py"
+      val uri = "file:///home/jupydroid/diagnostics-probe.py"
       val received = async { languageServer.diagnostics.first { it.uri == uri } }
       languageServer.openDocument(BASE_SPACE, uri, "python", "print(never_defined_lsp_name)\n")
 
@@ -117,7 +117,7 @@ class StdioLanguageServerDeviceTest {
   fun hoverOnADefinedName_answersItsMarkdown() = runBlocking {
     val languageServer = baseSpaceLanguageServerPort(context, spaceRepository)!!
     try {
-      val uri = "file:///home/jupydroid/p5e3-probe.py"
+      val uri = "file:///home/jupydroid/hover-probe.py"
       languageServer.openDocument(
         BASE_SPACE,
         uri,
@@ -159,7 +159,7 @@ class StdioLanguageServerDeviceTest {
         capabilities.signatureHelpProvider,
       )
 
-      val uri = "file:///home/jupydroid/p5e4-probe.py"
+      val uri = "file:///home/jupydroid/signature-help-probe.py"
       languageServer.openDocument(BASE_SPACE, uri, "python", "import os\nos.path.join(\"a\", \"b\")\n")
 
       // `os.path.join(` ends at character 13 on line 1; 14 sits the caret inside the call,
@@ -193,7 +193,7 @@ class StdioLanguageServerDeviceTest {
         capabilities.definitionProvider,
       )
 
-      val uri = "file:///home/jupydroid/p5e5-probe.py"
+      val uri = "file:///home/jupydroid/definition-probe.py"
       languageServer.openDocument(
         BASE_SPACE,
         uri,
@@ -233,7 +233,7 @@ class StdioLanguageServerDeviceTest {
         capabilities.documentRangeFormattingProvider,
       )
 
-      val uri = "file:///home/jupydroid/p5e6-probe.py"
+      val uri = "file:///home/jupydroid/range-formatting-probe.py"
       languageServer.openDocument(BASE_SPACE, uri, "python", "x=1\ny=2\n")
 
       val edits = languageServer.rangeFormatting(
@@ -267,7 +267,7 @@ class StdioLanguageServerDeviceTest {
       val capabilities = languageServer.capabilities(BASE_SPACE)
       assertTrue("pylsp must declare renameProvider, or rename has nothing to call", capabilities.renameProvider)
 
-      val uri = "file:///home/jupydroid/p5e7-probe.py"
+      val uri = "file:///home/jupydroid/rename-probe.py"
       languageServer.openDocument(
         BASE_SPACE,
         uri,

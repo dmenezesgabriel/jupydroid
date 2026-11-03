@@ -13,7 +13,7 @@ import org.junit.Test
  * the user picked.
  */
 class NotebookKernelSpecTest {
-  private val spec = KernelSpec(name = "p8g", displayName = "P8g Julia", language = "julia")
+  private val spec = KernelSpec(name = "julia", displayName = "Julia", language = "julia")
 
   private val notebook = Notebook(
     id = "nb-1",
@@ -29,18 +29,18 @@ class NotebookKernelSpecTest {
 
   @Test
   fun withKernelSpec_writesNameDisplayNameAndLanguage() {
-    val written = notebook.withKernelSpec("p8g", spec).kernelspecJson()
+    val written = notebook.withKernelSpec("julia", spec).kernelspecJson()
 
-    assertEquals("p8g", written["name"]?.jsonPrimitive?.content)
-    assertEquals("P8g Julia", written["display_name"]?.jsonPrimitive?.content)
+    assertEquals("julia", written["name"]?.jsonPrimitive?.content)
+    assertEquals("Julia", written["display_name"]?.jsonPrimitive?.content)
     assertEquals("julia", written["language"]?.jsonPrimitive?.content)
-    assertEquals("p8g", notebook.withKernelSpec("p8g", spec).kernelId)
+    assertEquals("julia", notebook.withKernelSpec("julia", spec).kernelId)
   }
 
   /** The other metadata keys are not the kernelspec's, and are left alone. */
   @Test
   fun withKernelSpec_keepsUnrelatedMetadata() {
-    val metadata = notebook.withKernelSpec("p8g", spec).metadataJson()
+    val metadata = notebook.withKernelSpec("julia", spec).metadataJson()
 
     assertEquals(
       specObject("name" to "python", "version" to "3.12.3"),

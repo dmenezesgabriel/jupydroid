@@ -160,7 +160,7 @@ class KernelPickerDialogTest {
       KernelPickGroup("Use No Kernel", listOf(KernelPickOption(text = "No Kernel", choice = null))),
       KernelPickGroup(
         "Start Kernel",
-        listOf(KernelPickOption(text = "P8g Julia", choice = KernelChoice.Spec("p8g"))),
+        listOf(KernelPickOption(text = "Julia", choice = KernelChoice.Spec("julia"))),
       ),
     )
   }

@@ -91,7 +91,7 @@ class KernelSessionRegistryTest {
     registry.register(SESSION, "Analysis.ipynb")
     val heard = async { registry.rebound.take(1).toList() }
     advanceUntilIdle()
-    val rebound = SESSION.copy(kernelId = "k2", kernelName = "p8g")
+    val rebound = SESSION.copy(kernelId = "k2", kernelName = "julia")
 
     registry.rebind(rebound)
 

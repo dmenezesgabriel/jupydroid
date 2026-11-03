@@ -227,6 +227,6 @@ class ConsoleNavigationTest {
     const val NOTEBOOK_SOURCE = "print('hi')"
     const val TIMEOUT_MILLIS = 5_000L
     const val PNG_QUALITY = 100
-    const val EVIDENCE_FILE_NAME = "p6b-9c-console-navigation.png"
+    const val EVIDENCE_FILE_NAME = "console-navigation.png"
   }
 }

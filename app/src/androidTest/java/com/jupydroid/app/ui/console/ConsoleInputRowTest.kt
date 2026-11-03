@@ -263,8 +263,8 @@ class ConsoleInputRowTest {
 
   private companion object {
     private const val PNG_QUALITY = 100
-    private const val EVIDENCE_FILE_NAME = "p6b-4-console-input-row.png"
-    private const val HISTORY_EVIDENCE_FILE_NAME = "p6b-6-console-input-row.png"
+    private const val EVIDENCE_FILE_NAME = "console-input-row.png"
+    private const val HISTORY_EVIDENCE_FILE_NAME = "console-input-row-history.png"
     private const val DEBOUNCE_TIMEOUT_MILLIS = 5_000L
 
     /** Well below any real screen's available width, and well above the empty field's own few dp. */
