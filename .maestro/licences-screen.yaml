@@ -1,0 +1,108 @@
+appId: com.jupydroid.app
+---
+# Settings → Licences lists the five documents the APK ships and each opens as text, from the assets
+# of the installed build - not only `LicencesScreenTest`'s proof that a fake port renders. What a JVM
+# test cannot answer is whether the Gradle `Copy` and the POM bundling really put the files in the
+# APK and whether `THIRD_PARTY.md`'s 245 rows scroll.
+#
+# Every document is asserted by a line only it holds, never by its title: the title is on the list
+# too, so a title match stays green when the reader never opened. `.*` on both sides, since a
+# reader is one text node holding the whole document.
+#
+# Runs no cell, so no device rule names a device this needs. It is run on the arm64 tablet because
+# the source-offer link needs a browser, which the emulator does not carry.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+- scrollUntilVisible:
+    element:
+      text: "Licences"
+    direction: DOWN
+    timeout: 10000
+- takeScreenshot: 01-settings-licences-row
+
+- tapOn: "Licences"
+- assertVisible: "Licence"
+- assertVisible: "Notices"
+- assertVisible: "Gradle libraries"
+- assertVisible: "Third-party software"
+- assertVisible: "Source offer"
+- takeScreenshot: 02-licences-list
+
+- tapOn: "Licence"
+- assertVisible: ".*Apache License.*Version 2.0.*"
+- takeScreenshot: 03-licence-text
+- back
+- assertVisible: "Third-party software"
+
+- tapOn: "Notices"
+- assertVisible: ".*Termux.*"
+- takeScreenshot: 04-notices
+- back
+- assertVisible: "Third-party software"
+
+- tapOn: "Gradle libraries"
+- assertVisible: ".*kotlinx-coroutines-android.*"
+- takeScreenshot: 05-gradle-libraries
+- back
+- assertVisible: "Third-party software"
+
+# The last package of THIRD_PARTY.md sorts after every other row, so reaching it proves the table
+# scrolls to its end rather than stopping at the first screenful.
+- tapOn: "Third-party software"
+- assertVisible: "Third-party software in the rootfs"
+- takeScreenshot: 06-third-party-top
+- scrollUntilVisible:
+    element:
+      text: "zipp"
+    direction: DOWN
+    speed: 90
+    # A swipe costs about 4 s on the tablet, whose hierarchy holds the whole table, and 245 rows
+    # took more than the 15 swipes a 60 s timeout allows.
+    timeout: 180000
+- takeScreenshot: 07-third-party-end
+- back
+- assertVisible: "Source offer"
+
+- tapOn: "Source offer"
+- assertVisible: "Source for the GPL and LGPL parts of the APK"
+- takeScreenshot: 08-source-offer
+
+# A link in the offer opens in the browser rather than inside the app (`ExternalLinkOpener`), and
+# Back returns to the offer. Chrome's address bar is the oracle: the offer itself shows no URL.
+- scrollUntilVisible:
+    element:
+      text: ".*main/talloc at the same aports commit.*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: ".*main/talloc at the same aports commit.*"
+- extendedWaitUntil:
+    visible:
+      id: "com.android.chrome:id/url_bar"
+      text: ".*github.com/alpinelinux/aports.*"
+    timeout: 30000
+- takeScreenshot: 09-source-offer-link-in-chrome
+- back
+- assertVisible: "Source for the GPL and LGPL parts of the APK"
+- back
+- back
+- assertVisible: "Autosave documents"
+
+# The screen opens the same after a relaunch: nothing in it is state the process held.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+- scrollUntilVisible:
+    element:
+      text: "Licences"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Licences"
+- assertVisible: "Source offer"
+- assertVisible: "Gradle libraries"
+- takeScreenshot: 10-licences-after-relaunch

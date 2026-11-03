@@ -126,7 +126,7 @@ None open.
   task and `GradleLibraryLicences`.
 - [x] T3 — `Licences` `NavKey`, `openLicences` and `LicencesScreen`: a list, tap to read.
 - [x] T4 — The Licences row in `SettingsScreen`, the `Navigation.kt` entry, an instrumented test.
-- [ ] T5 — The Maestro flow and its driver on `dev36`; screenshots looked at.
+- [x] T5 — The Maestro flow and its driver on the arm64 tablet (the link needs a browser, which `dev36` lacks); screenshots looked at.
 - [ ] T6 — ADR, `cross-cutting.md` §8.4, the ledger's `GAP-136` row, delete this PRD, backlog to
   `shipped`.
 
