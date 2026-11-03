@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest something Jupydroid should do
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search the existing issues first. A question about how to do something belongs in Discussions.
+  - type: textarea
+    attributes:
+      label: The problem
+      description: What are you trying to do that you cannot do today, and where does it get in the way?
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Proposed behavior
+      description: What you would see or tap, as seen from the screen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Alternatives considered
+      description: Other ways to solve it, including how JupyterLab, VS Code or another notebook app does it.

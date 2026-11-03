@@ -1,0 +1,9 @@
+# Forms only: a report without the device and the steps cannot be acted on.
+blank_issues_enabled: false
+contact_links:
+  - name: Ask a question
+    url: https://github.com/dmenezesgabriel/jupydroid/discussions
+    about: How do I do something, or is this a bug? Ask here before opening an issue.
+  - name: Report a vulnerability
+    url: https://github.com/dmenezesgabriel/jupydroid/security/advisories/new
+    about: Report it privately. Do not open a public issue for a security problem (see SECURITY.md).

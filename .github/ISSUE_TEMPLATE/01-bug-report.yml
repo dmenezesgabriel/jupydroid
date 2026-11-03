@@ -1,0 +1,53 @@
+name: Bug report
+description: Something in Jupydroid does not work the way it should
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search the existing issues first; yours may already be reported.
+
+        **A security problem is not a bug report.** Do not post it here. Report it privately, as
+        [SECURITY.md](https://github.com/dmenezesgabriel/jupydroid/blob/main/SECURITY.md) describes.
+  - type: textarea
+    attributes:
+      label: Problem description
+      description: What went wrong, and what you saw instead. Screenshots and screen recordings help.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: The taps, the cell source and the files needed to see it happen again.
+      placeholder: |
+        1. Open ...
+        2. Run the cell ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: What you thought would happen.
+  - type: textarea
+    attributes:
+      label: System information
+      description: |
+        The device ABI matters. Only arm64 ships a root filesystem; on x86_64 the app falls back to a
+        fake kernel that echoes a cell's source back as its output.
+      value: |
+        * Jupydroid version or commit:
+        * Android version:
+        * Device model:
+        * Device ABI (arm64-v8a or x86_64):
+        * Did the bug involve running a cell? (yes/no):
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Logs
+      description: |
+        Paste only the lines that matter. `logcat` is the whole device's log and can hold Wi-Fi names,
+        push tokens and other apps' output; read what you paste before you post it.
+      render: text

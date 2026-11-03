@@ -139,7 +139,7 @@ No `domain/`, `data/`, `ui/` or `di/` file changes, so there is no port and no `
 - [x] T3 — `CODE_OF_CONDUCT.md`: the Contributor Covenant 2.1 with its attribution and a contact placeholder
 - [x] T4 — `CONTRIBUTING.md`: the working agreement for people, `pre-commit install`, the gate command,
   ids are ephemeral, evidence is local, the device rule stated generically
-- [ ] T5 — `.github/` issue forms, `config.yml` (blank issues off, security routed to advisories) and a
+- [x] T5 — `.github/` issue forms, `config.yml` (blank issues off, security routed to advisories) and a
   pull-request template whose checklist mirrors the commit-body gates
 - [ ] T6 — README screenshots: a tested crop function and a tablet driver; frames under `docs/images/`,
   each looked at and passed through `scripts/check_device_secrets.py`
