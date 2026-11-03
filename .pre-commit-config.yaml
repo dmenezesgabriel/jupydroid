@@ -127,6 +127,14 @@ repos:
         entry: uv run --locked python scripts/check_evidence_citations.py
         language: system
         types: [markdown]
+      # The whole tree on every commit, not the staged files: renaming a target breaks the links
+      # to it in Markdown the commit never touched. The read is milliseconds.
+      - id: markdown-links
+        name: a Markdown link points at a tracked file
+        entry: uv run --locked python scripts/check_markdown_links.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: ktlint-check
         name: ktlint format check
         entry: >-

@@ -132,7 +132,7 @@ No `domain/`, `data/`, `ui/` or `di/` file changes, so there is no port and no `
 
 ## Tasks
 
-- [ ] T1 — a Markdown link gate: `scripts/check_markdown_links.py` with `_test.py`; every relative link
+- [x] T1 — a Markdown link gate: `scripts/check_markdown_links.py` with `_test.py`; every relative link
   in a tracked Markdown file resolves to a tracked file; wired into `.pre-commit-config.yaml`
 - [ ] T2 — `SECURITY.md`: private vulnerability reporting; scope is the loopback server's token, the MCP
   port and the proot sandbox; no released versions yet

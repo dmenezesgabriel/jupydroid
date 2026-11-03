@@ -72,6 +72,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/java_home_test.py" = ["S603", "S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]
 "scripts/check_evidence_citations_test.py" = ["S607"]
+"scripts/check_markdown_links.py" = ["S607"]
+"scripts/check_markdown_links_test.py" = ["S607"]
 "scripts/quince_mcp_fixture_test.py" = ["S603"]
 # S314: these parse `adb uiautomator dump` of our own app on our own device, not untrusted XML.
 "scripts/read_gutter_x.py" = ["S314"]

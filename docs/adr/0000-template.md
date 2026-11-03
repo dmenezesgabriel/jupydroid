@@ -1,6 +1,6 @@
 # ADR-0000 — Title in the imperative
 
-Status: proposed | accepted | superseded by [ADR-NNNN](NNNN-slug.md)
+Status: proposed | accepted | superseded by `[ADR-NNNN](NNNN-slug.md)`
 Date: YYYY-MM-DD
 
 ## Context
