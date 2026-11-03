@@ -70,7 +70,7 @@ We have no licences server, and an APK is a fixed artifact, so we bundle.
 |---|---|---|---|
 | Source of the text | JupyterLab: fetched at runtime; IntelliJ: bundled file | A fetch needs a server and fails offline; a bundle cannot go stale against the APK | **Bundled.** The text must match the binary it came with |
 | Where the files live | copy into `app/src/main/assets`; copy at build time | A committed copy drifts from `LICENSE`/`NOTICE` | **A Gradle `Copy` at build time** into a generated assets dir; the repo files stay the one source |
-| Gradle libraries | none of the seven; Google's `oss-licenses-plugin`; our own task over POMs | A plugin is less code, but is a new locked, hash-verified dependency | **`oss-licenses-plugin`** (official, decided with the user). T2 proves it on AGP 9 or reports back |
+| Gradle libraries | none of the seven; Google's `oss-licenses-plugin`; our own task over POMs | The plugin reads AGP's library-dependencies report, which AGP does not produce for a debug variant, so the debug APK every device flow runs would list nothing | **Our own task over POMs**, per variant: it resolves the runtime classpath and bundles each library's POM and its `<parent>` chain; the device parses them. Decided with the user after reading the plugin's source |
 | Surface | JupyterLab: a main-area widget; IntelliJ: a dialog | A 245-row table does not fit a dialog | **A `NavKey` screen over Settings**, as `Settings` is |
 | Rendering | HTML (IntelliJ), a grid (JupyterLab) | Re-implementing a renderer is new code | **Reuse** `markdown/` and `richtext/` for the three Markdown files; plain monospaced text for `LICENSE` and the Gradle list |
 
@@ -90,15 +90,18 @@ We have no licences server, and an APK is a fixed artifact, so we bundle.
   `jupyter_server` does not, so its command is inert on this stack
   (`docs/research/parity-ledger.md`, the `help:licenses` row). We bundle instead of fetching.
 - No refresh or report-download command: a bundle changes only with a new APK.
+- Google's `oss-licenses-plugin` (0.13.0 is current) is not used: it takes its list from AGP's
+  library-dependencies report, absent for debug variants, so Licences would be empty in the build
+  the demo runs. Fetching each POM as an artifact makes Gradle verify it, so
+  `gradle/verification-metadata.xml` gained 80 `.pom` checksums
+  ([ADR-0123](../adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md)).
+- A multiplatform library's root module (`ui`, `okio`, `kotlinx-coroutines-core`) has no artifact of
+  its own and is not listed; its `-android` or `-jvm` variant, which ships the code, is.
 - No About surface (`GAP-135`); this item adds only the Licences entry.
 
 ## Open decisions
 
-- Whether `oss-licenses-plugin` 0.12.0 works under AGP 9 with STRICT locking and sha256
-  verification ([ADR-0123](../adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md)).
-  T2 is a spike that answers it. If it does not, T2 stops and reports.
-- How the plugin's concatenated raw resource, with its byte-offset metadata, is split into the
-  port's documents. Decided by reading the generated output in T2.
+None open.
 
 ## Surface
 
@@ -106,7 +109,7 @@ We have no licences server, and an APK is a fixed artifact, so we bundle.
 |---|---|
 | `domain/model` | `LicenceDocument` |
 | `domain/port` | `LicenceDocuments` |
-| `data/asset` | `AssetLicenceDocuments` |
+| `data/asset` | `AssetLicenceDocuments`, `GradleLibraryLicences` (parses the bundled POMs) |
 | `data/fake` | `FakeLicenceDocuments` (the `AppContainer` default) |
 | `ui/settings` | `LicencesScreen`, `LicencesViewModel`, a Licences row in `SettingsScreen` |
 | `Settings.kt` beside | `Licences` `NavKey`, `openLicences` |
@@ -119,7 +122,8 @@ We have no licences server, and an APK is a fixed artifact, so we bundle.
 
 - [x] T1 — Bundle the repo's licence files into the APK: `LicenceDocument`, `LicenceDocuments`,
   `FakeLicenceDocuments`, the Gradle `Copy`, `AssetLicenceDocuments`.
-- [ ] T2 — Gradle libraries' licences via `oss-licenses-plugin`, through the same port.
+- [x] T2 — Gradle libraries' licences, through the same port: a per-variant `bundle<Variant>GradleLicences`
+  task and `GradleLibraryLicences`.
 - [ ] T3 — `Licences` `NavKey`, `openLicences` and `LicencesScreen`: a list, tap to read.
 - [ ] T4 — The Licences row in `SettingsScreen`, the `Navigation.kt` entry, an instrumented test.
 - [ ] T5 — The Maestro flow and its driver on `dev36`; screenshots looked at.

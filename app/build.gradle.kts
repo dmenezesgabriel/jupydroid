@@ -1,5 +1,12 @@
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.dsl.DependencyHandler
+import org.gradle.api.artifacts.result.ResolvedArtifactResult
 import org.gradle.api.tasks.JavaExec
+import org.gradle.maven.MavenModule
+import org.gradle.maven.MavenPomArtifact
+import java.io.File
 import javax.inject.Inject
+import javax.xml.parsers.DocumentBuilderFactory
 
 plugins {
     alias(libs.plugins.android.application)
@@ -272,6 +279,79 @@ val bundleLicences by tasks.registering(BundleLicences::class) {
     )
 }
 
+// --- Licences of the Gradle libraries in the APK ---------------------------------------
+//
+// Each library's POM, and the `<parent>` POMs that carry a licence the child leaves out, are copied
+// into the assets, and `GradleLibraryLicences` reads them on the device. Google's oss-licenses-plugin
+// was not used: it reads AGP's library-dependencies report, which AGP does not produce for a debug
+// variant (the plugin writes an empty list there), and the debug APK is the one the device flows run.
+// This resolves the variant's runtime classpath instead, so a debug and a release APK each list what
+// they link. The resolution is a Provider chain that captures only the DependencyHandler, so the
+// configuration cache can serialize it (the technique of the plugin's `OssLicensesPlugin`).
+
+object PomResolution {
+    /** The POMs of [libraries] under `libraries/`, and of every `<parent>` up their chains under `parents/`. */
+    fun bundledPoms(
+        dependencies: DependencyHandler,
+        libraries: Collection<ModuleComponentIdentifier>,
+    ): Map<String, File> {
+        val libraryPoms = poms(dependencies, libraries.map { Triple(it.group, it.module, it.version) })
+        val parentPoms = linkedMapOf<String, File>()
+        var frontier = libraryPoms.values.mapNotNull(::parentOf)
+        while (frontier.isNotEmpty()) {
+            val fetched = poms(dependencies, frontier.filter { pomName(it) !in parentPoms })
+            parentPoms += fetched
+            frontier = fetched.values.mapNotNull(::parentOf)
+        }
+        return libraryPoms.mapKeys { "libraries/${it.key}" } + parentPoms.mapKeys { "parents/${it.key}" }
+    }
+
+    private fun pomName(gav: Triple<String, String, String>) = "${gav.first}_${gav.second}_${gav.third}.pom"
+
+    private fun poms(dependencies: DependencyHandler, gavs: List<Triple<String, String, String>>): Map<String, File> {
+        if (gavs.isEmpty()) return emptyMap()
+        val query = dependencies.createArtifactResolutionQuery()
+        gavs.forEach { (group, module, version) -> query.forModule(group, module, version) }
+        val found = query.withArtifacts(MavenModule::class.java, MavenPomArtifact::class.java)
+            .execute().resolvedComponents.associate { component ->
+                val id = component.id as ModuleComponentIdentifier
+                val pom = component.getArtifacts(MavenPomArtifact::class.java)
+                    .filterIsInstance<ResolvedArtifactResult>().firstOrNull()
+                    ?: error("no POM for ${id.group}:${id.module}:${id.version}; its licence cannot be bundled")
+                "${id.group}_${id.module}_${id.version}.pom" to pom.file
+            }
+        val missing = gavs.map(::pomName) - found.keys
+        check(missing.isEmpty()) { "no POM resolved for $missing; their licences cannot be bundled" }
+        return found
+    }
+
+    /** The `<parent>` coordinates a POM names, or null for a root POM. */
+    private fun parentOf(pom: File): Triple<String, String, String>? {
+        val project = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom).documentElement
+        val parent = (0 until project.childNodes.length).map { project.childNodes.item(it) }
+            .filterIsInstance<org.w3c.dom.Element>().firstOrNull { it.tagName == "parent" } ?: return null
+        fun text(tag: String) = parent.getElementsByTagName(tag).item(0).textContent.trim()
+        return Triple(text("groupId"), text("artifactId"), text("version"))
+    }
+}
+
+abstract class BundleGradleLicences : DefaultTask() {
+    // Keyed by the path under `licences/gradle/`; the values are files of the locked, sha256-verified
+    // dependency cache, so a path names the same bytes every time it resolves.
+    @get:Input
+    abstract val pomsByBundledPath: MapProperty<String, File>
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun bundle() {
+        val root = outputDir.get().asFile.resolve("licences/gradle")
+        root.deleteRecursively()
+        pomsByBundledPath.get().forEach { (path, pom) -> pom.copyTo(root.resolve(path), overwrite = true) }
+    }
+}
+
 androidComponents {
     onVariants { variant ->
         variant.sources.java?.addGeneratedSourceDirectory(
@@ -281,6 +361,29 @@ androidComponents {
         variant.sources.assets?.addGeneratedSourceDirectory(
             bundleLicences,
             BundleLicences::outputDir,
+        )
+        val dependencies = project.dependencies
+        val runtimeLibraries = variant.runtimeConfiguration.incoming
+            .artifactView { componentFilter { it is ModuleComponentIdentifier } }.artifacts.resolvedArtifacts
+        val bundleGradleLicences = tasks.register<BundleGradleLicences>(
+            "bundle${variant.name.replaceFirstChar { it.uppercase() }}GradleLicences",
+        ) {
+            description = "Copies the POMs of the ${variant.name} runtime libraries into the APK's assets."
+            group = "build"
+            pomsByBundledPath.set(
+                runtimeLibraries.map { artifacts ->
+                    PomResolution.bundledPoms(
+                        dependencies,
+                        artifacts.map {
+                            it.id.componentIdentifier as ModuleComponentIdentifier
+                        },
+                    )
+                },
+            )
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(
+            bundleGradleLicences,
+            BundleGradleLicences::outputDir,
         )
     }
 }

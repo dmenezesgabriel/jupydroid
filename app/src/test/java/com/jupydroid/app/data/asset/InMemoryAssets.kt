@@ -12,6 +12,11 @@ class InMemoryAssets(private val files: Map<String, String>) {
   /** Every path asked for, in order. */
   val opened = mutableListOf<String>()
 
+  /** What `AssetManager.list` is: the names directly under [directory], empty where there are none. */
+  fun list(directory: String): List<String> =
+    files.keys.filter { it.startsWith("$directory/") }.map { it.removePrefix("$directory/") }
+      .filterNot { "/" in it }
+
   fun open(path: String): InputStream {
     opened += path
     val text = files[path] ?: throw FileNotFoundException(path)

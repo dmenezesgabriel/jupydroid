@@ -16,11 +16,16 @@ private val BUNDLED_FILES = mapOf(
   "licences/NOTICE" to "Jupydroid notice",
   "licences/THIRD_PARTY.md" to "| Package | Version |",
   "licences/SOURCE_OFFER.md" to "# Source for the GPL and LGPL parts",
+  "licences/gradle/libraries/org.example_lib-a_1.0.pom" to
+    "<project><groupId>org.example</groupId><artifactId>lib-a</artifactId><version>1.0</version>" +
+    "<licenses><license><name>MIT</name><url>https://example.org/mit</url></license></licenses></project>",
 )
+
+private const val RENDERED_GRADLE_LIBRARIES = "lib-a\n  org.example:lib-a:1.0\n  MIT (https://example.org/mit)\n"
 
 class AssetLicenceDocumentsTest : LicenceDocumentsContract() {
   private fun bundled(files: Map<String, String> = BUNDLED_FILES) =
-    AssetLicenceDocuments(InMemoryAssets(files)::open, Dispatchers.Unconfined)
+    InMemoryAssets(files).let { AssetLicenceDocuments(it::open, it::list, Dispatchers.Unconfined) }
 
   override fun documents(): LicenceDocuments = bundled()
 
@@ -32,6 +37,7 @@ class AssetLicenceDocumentsTest : LicenceDocumentsContract() {
       listOf(
         LicenceDocument("Licence", "Apache License 2.0 text"),
         LicenceDocument("Notices", "Jupydroid notice"),
+        LicenceDocument("Gradle libraries", RENDERED_GRADLE_LIBRARIES),
         LicenceDocument("Third-party software", "| Package | Version |"),
         LicenceDocument("Source offer", "# Source for the GPL and LGPL parts"),
       ),
