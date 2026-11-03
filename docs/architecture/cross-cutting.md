@@ -92,14 +92,15 @@ What may be copied is decided per reference, and it is load-bearing rather than 
 | JediTerm | Apache 2.0 at the reader's option | transcribe with attribution |
 | jupyterlab-git, jupyter-ai | BSD-3-Clause | **transcribe** with attribution; their Python server halves are installed into the image, not vendored |
 | colab-vscode | Apache 2.0 | transcribe with attribution |
+| Jupyter Server | BSD-3-Clause | **transcribe** with attribution, credited at its version (no SHA is pinned) |
 | Winlator | LGPL-2.1 | **clean-room only** — techniques studied, no code vendored |
 | sora-editor | LGPL-2.1 | **clean-room only**; a fork would stay LGPL-2.1, which answers the fork question with "no" |
 | Callisto | proprietary | **clean-room only** |
 
 One attribution point per file is the form this repo uses, and a transcribed file names its upstream
-project and **pinned SHA** rather than a `reference/…` path. The app carries no `NOTICE` file because
-it ships no `LICENSE` of its own yet — a gap to close before publication, not a claim that none is
-needed.
+project and **pinned SHA** rather than a `reference/…` path. The repository carries an Apache-2.0
+`LICENSE` and a `NOTICE`; which projects the `NOTICE` names is
+[ADR-0134](../adr/0134-notice-credits-what-was-copied-and-a-person-decides-the-edge.md).
 
 The decision and what it forbids are
 [ADR-0018](../adr/0018-transcribe-under-permissive-licences-clean-room-otherwise.md).

@@ -48,8 +48,8 @@ What may be copied is decided **per reference, by licence**, and nothing is ever
 | Callisto | proprietary | **clean-room only** |
 
 **One attribution point per file** is the form, matching how the rest of the repository cites
-anything. The app carries no `NOTICE` file because it ships no `LICENSE` of its own yet; that is a
-gap to close before publication, not a claim that none is needed.
+anything. The repository carries an Apache-2.0 `LICENSE` and a `NOTICE` that credits what was copied,
+by the rule in [ADR-0134](0134-notice-credits-what-was-copied-and-a-person-decides-the-edge.md).
 
 A transcribed file names its upstream project and the **pinned SHA** rather than a
 `reference/research_repos/…` path, because `reference/` is gitignored and travels with no clone.
