@@ -337,9 +337,15 @@ One TDD unit each, one conventional commit each.
     markdown cells stay unread, as a `.md` does, so the one `"P7e-0 Runtime Probe"` title was retitled
     by hand. The frozen device frames in `scripts/testdata/` keep the old comment text: they are data.
     Demo step 6 is run: the gate exits 0 and the step-code name grep prints 0.
-- [ ] T9 — `scripts/remap_cited_shas.py`: from a `commit-map`, rewrite every 7 to 12 hex token in tracked
+- [x] T9 — `scripts/remap_cited_shas.py`: from a `commit-map`, rewrite every 7 to 12 hex token in tracked
   text that prefixes exactly one old commit; refuse an ambiguous prefix with its value; `--dry-run` prints
-  counts. Red tests first, on a fixture map.
+  counts. Red tests first, on a fixture map. Measured on the current history: 54 of 1066 such tokens
+  prefix a commit (2 at 7, 49 at 8, 3 at 12), none ambiguous, so the filter that matters is "prefixes an old
+  commit", not the hex shape; no tracked text cites an own commit at 13 to 40 hex. A rewritten token keeps
+  its length. The `commit-map` is parsed into a `CommitMap` (a 7-hex bucket index) rather than a bare dict,
+  so the ambiguity check lives with the lookup. Nothing is written until every file has been read.
+  `python3 scripts/remap_cited_shas.py --dry-run` is the command; the map on disk now is the earlier
+  rewrite's, so the T10 rehearsal is the first run against the map that matters.
 - [ ] T10 — rehearsal again on the T4 argv: T3's checks, plus no path under `evidence/` in history, T9's
   dry run, and an in-place run on a copy of the working directory whose ignored `evidence/` must survive.
   Numbers in the commit body.
