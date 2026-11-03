@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2l-3b: code inside *rendered* markdown against code that is not, in one frame.
+# Code inside *rendered* markdown against code that is not, in one frame.
 #
 # Seeded by scripts/rendered-code-driver.sh; clearState would delete the fixture.
 #
@@ -11,7 +11,7 @@ appId: com.jupydroid.app
 # the selector both rules name). Ours drew the fenced block at `bodySmall`, smaller than both.
 #
 # So the cell carries prose, inline code and a fenced block, and the cell under it carries a saved
-# stream output: after this step the fenced block reads at the size of the prose around it, and the
+# stream output: the fenced block reads at the size of the prose around it, and the
 # output at the code size, which happen to coincide today and are a different *rule* either way.
 #
 # No cell is run - a markdown cell renders on open and a saved output is drawn from the file - so

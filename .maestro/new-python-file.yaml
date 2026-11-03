@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# X2e, as X2h leaves it: "New Python file" makes a *plain file* - not a notebook wearing a `.py`
+# "New Python file" makes a *plain file* - not a notebook wearing a `.py`
 # name - and opening it gets the file editor, which is where a new Untitled Python File lands in
 # the reference (`new_untitled({type: "file", ext})` -> the file editor factory).
 #
-# **What changed in X2h, and why.** This used to be Home's FAB, and Home opened the file it had
+# **What changed with the explorer, and why.** This used to be Home's FAB, and Home opened the file it had
 # just made. Home is gone and its menu is the explorer's "+", which lands the creation in the
 # browsed directory and leaves it as a row - `_createNew` creates and renames in place, it does
 # not open (`browser.ts:529-566`). So the open is now a tap, and that is the reference's shape

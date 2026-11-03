@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U1: the editor palette reaches the screen, in both system themes.
+# The editor palette reaches the screen, in both system themes.
 #
 # Seeded by scripts/palette-driver.sh, which sets the system night mode and then runs this
 # flow once per theme from its own output directory; clearState would delete the fixture.
@@ -32,9 +32,9 @@ appId: com.jupydroid.app
 # Tap the markdown into its editor. This is the only view where HEADING, MARKER, QUOTE, CODE
 # and LINK are coloured at all - the rendered view above shows none of those spans.
 #
-# What to look for in 02, since P2u-2b gave three of them values of their own: the quote marker,
-# the list bullets and the backticked span are three *different* colours, where until P2u-2b the
-# first two folded onto the string and keyword colours. The link is the one that shares - it takes
+# What to look for in 02, since three of them have values of their own: the quote marker,
+# the list bullets and the backticked span are three *different* colours, where the
+# first two used to fold onto the string and keyword colours. The link is the one that shares - it takes
 # the string colour on purpose, and its underline is what tells them apart.
 - tapOn: "Rendered markdown"
 - extendedWaitUntil:

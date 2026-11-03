@@ -3,13 +3,13 @@ appId: com.jupydroid.app
 # Leaving a notebook closes its socket; reopening it **reattaches to the same kernel**, so a
 # variable defined before leaving is still defined afterwards.
 #
-# This is the device-observable half of Step 17. Closing the socket is what
+# This is the device-observable half of that teardown. Closing the socket is what
 # `EditorViewModel.onCleared` does, and it is the client-side close JupyterLab's
 # `SessionContext.dispose()` performs - not a kernel shutdown, which it only does when
 # `shutdownOnDispose` is set (packages/apputils/src/sessioncontext.tsx:679-709). The kernel
 # therefore outlives the visit, and `POST /api/sessions` finds it again by path: the server does
 # `exists = session_exists(path)` and returns `get_session(path)` rather than creating a second one
-# (services/sessions/handlers.py). Until Step 17 this flow asserted the opposite - a NameError from
+# (services/sessions/handlers.py). This flow once asserted the opposite - a NameError from
 # a fresh kernel - because `connect()` POSTed `/api/kernels` and got a new one every time.
 #
 # The other half of the teardown - flushing a save still inside its 500 ms debounce - has no
@@ -58,10 +58,10 @@ appId: com.jupydroid.app
     timeout: 60000
 - takeScreenshot: 01-carried-across-cells-in-one-session
 - tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
-                               # and a uiautomator dump carries both (evidence/u-flow-sweep/).
+                               # and a uiautomator dump carries both.
 # The browser's crumb, which the editor has none of: assert it before looking for a row, so a flow
 # still stuck in the editor fails here rather than against the title in the app bar. (This was
-# Home's FAB until X2h; the browser has no FAB, and "Workspace" is the thing only it draws.)
+# Home's FAB before the browser replaced Home; the browser has no FAB, and "Workspace" is the thing only it draws.)
 - extendedWaitUntil:
     visible: "Workspace"
     timeout: 10000
@@ -76,7 +76,7 @@ appId: com.jupydroid.app
 # Run only the second cell, and **44** is the whole assertion. Three outcomes are distinguishable
 # here, which is why the cell increments rather than merely reads:
 #
-#   NameError -> a fresh kernel, which is what this flow asserted before Step 17
+#   NameError -> a fresh kernel, which is what this flow once asserted
 #   43        -> the output saved on the previous visit, still on screen
 #   44        -> `carried` was 43 in a live kernel and this run moved it on
 #

@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# P2d-3: a marked run is something you can *run*, and running it lets it go.
+# A marked run is something you can *run*, and running it lets it go.
 #
-# P2c made the operand of every cell command the marked run and deliberately stopped there, so its
-# flows could stay off the kernel. This is the half that was left: `Private.runSelected` filters
+# The other cell commands take the marked run as their operand and deliberately stop there, so their
+# flows can stay off the kernel. This is the half they leave: `Private.runSelected` filters
 # `isSelectedOrActive` like every one of those commands (`packages/notebook/src/actions.tsx:3009`),
 # then moves the head to the last cell of the run and `deselectAll()`s before running it.
 #

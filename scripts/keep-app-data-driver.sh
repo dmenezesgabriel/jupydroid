@@ -60,13 +60,13 @@ reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/survives.ipynb" "survives.ipynb"
 seed_file "$ROOT/.maestro/fixtures/kept-notes.md" "notes.md"
 seed_file "$ROOT/.maestro/fixtures/talk.chat" "talk.chat"
-seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "jd046-probe.sh"
+seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "opencode-probe.sh"
 mkdir -p "$EVIDENCE"
 
 # opencode goes into base's rootfs exactly as opencode-in-a-space-driver.sh installs it.
 run_flow "$ROOT/.maestro/opencode-in-a-space.yaml" "$EVIDENCE" || exit 1
-wait_for_workspace_text jd046-probe.txt probe-done 900 || exit 1
-"${DEVICE_ADB[@]}" shell "run-as $APP rm -f \"$NOTEBOOK_DIR/jd046-probe.sh\" \"$NOTEBOOK_DIR/jd046-probe.txt\""
+wait_for_workspace_text opencode-probe.txt probe-done 900 || exit 1
+"${DEVICE_ADB[@]}" shell "run-as $APP rm -f \"$NOTEBOOK_DIR/opencode-probe.sh\" \"$NOTEBOOK_DIR/opencode-probe.txt\""
 
 run_flow "$ROOT/.maestro/keep-app-data-before.yaml" "$EVIDENCE" || exit 1
 record_state "$EVIDENCE/state-before.txt"

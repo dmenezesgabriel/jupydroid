@@ -27,8 +27,8 @@ appId: com.jupydroid.app
 - launchApp
 - runFlow: open-base-space.yaml
 # The relaunch needs the same settle and scroll as the first launch, and used to have neither -
-# so it failed here with the row present all along (evidence/relaunch-settles/). Running a cell
-# does now move the notebook up Recents, since `updatedAt` is the file's mtime (audit A6), but
+# so it failed here with the row present all along. Running a cell
+# does now move the notebook up Recents, since `updatedAt` is the file's mtime, but
 # the scroll stays: it costs nothing when the row is already in view, and where the row sits is
 # not something this flow should have to know.
 - waitForAnimationToEnd:

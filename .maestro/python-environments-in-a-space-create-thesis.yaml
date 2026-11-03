@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Thesis is made from the home, as JD-009's flows make it, so the driver can seed a notebook into
+# Thesis is made from the home, as the other Space flows make it, so the driver can seed a notebook into
 # its workspace before anything runs in it.
 - launchApp
 - extendedWaitUntil:

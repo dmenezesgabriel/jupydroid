@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2d-6: a range run renders the markdown cells in it, and does not lose what was being typed.
+# A range run renders the markdown cells in it, and does not lose what was being typed.
 #
 # `Private.runCells` is handed every widget and decides per cell what running one means; for
 # markdown that is `rendered = true` and `inputHidden = false`

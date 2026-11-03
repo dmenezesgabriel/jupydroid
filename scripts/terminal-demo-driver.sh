@@ -52,11 +52,11 @@ PY
 # leaves base's terminal open at the prompt.
 install_opencode() {
   reset_notebooks
-  seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "jd046-probe.sh"
+  seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "opencode-probe.sh"
   seed_file "$ROOT/.maestro/fixtures/terminal-demo-opencode-login.py" "terminal-demo-opencode-login.py"
   run_flow "$ROOT/.maestro/opencode-in-a-space.yaml" "$OUT/opencode-install" || exit 1
-  wait_for_workspace_text jd046-probe.txt probe-done 900 || exit 1
-  "${DEVICE[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/jd046-probe.txt\"" | tr -d '\r' |
+  wait_for_workspace_text opencode-probe.txt probe-done 900 || exit 1
+  "${DEVICE[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/opencode-probe.txt\"" | tr -d '\r' |
     grep -E '^(uname|fetch-rc|install-rc|which|version-rc)=|^[0-9]+[.][0-9]+[.][0-9]+$' >"$OUT/opencode-install/probe.txt"
   grep -qx version-rc=0 "$OUT/opencode-install/probe.txt" ||
     { echo "opencode did not install: $OUT/opencode-install/probe.txt" >&2; exit 1; }

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2h-6: `toc:display-outputs-numbering` - a heading a code cell **printed** is an entry beside the
+# `toc:display-outputs-numbering` - a heading a code cell **printed** is an entry beside the
 # ones its neighbours wrote. `CodeCell.getHeadings` reads the cell's outputs for `<h1>`-`<h6>`
 # (`packages/cells/src/widget.ts:1312-1370`), and the schema has it **on** by default
 # (`packages/toc-extension/schema/registry.json:32-69`), so the flow starts with it listed.
@@ -34,9 +34,9 @@ appId: com.jupydroid.app
 # **The premise the jump rests on**, and the reason this fixture is thirteen cells rather than
 # three: the printed heading's own output has to be off screen *before* the tap, or "it is visible
 # now" is true of a screen nothing moved. Three cells fit any window this flow runs in, so the
-# assertion below could not fail and the frame showed a document that had not moved (P2z-x). Ten
+# assertion below could not fail and the frame showed a document that had not moved. Ten
 # `filler_N` cells between the written heading and the cell that prints one is about twice the
-# 1280x800 viewport - the same fix, and the same idiom, P2z-c gave `table-of-contents-overlay`.
+# 1280x800 viewport - the same fix, and the same idiom, `table-of-contents-overlay` uses.
 - assertNotVisible: "from the kernel"
 - takeScreenshot: 01-a-printed-heading-is-an-entry
 # It jumps like any other entry: the cell it points at is the one that printed it, and it was not

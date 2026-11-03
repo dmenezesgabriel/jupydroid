@@ -103,7 +103,7 @@ capture "uv-env.txt, as the terminal wrote it" on_device "cat $THESIS_HOME/uv-en
 run_flow "$FLOWS-uv-env-missing-package.yaml" "$EVIDENCE/part4-missing-package" || exit 1
 NOTEBOOK_DIR="$THESIS_HOME" wait_for_workspace_text missing.txt missing-rc= 60
 expect_line missing.txt missing-rc=1
-expect_line missing.txt no-such-package-jd003
+expect_line missing.txt no-such-package
 capture "missing.txt, as the terminal wrote it" on_device "cat $THESIS_HOME/missing.txt"
 
 run_part part5-settings-register-default

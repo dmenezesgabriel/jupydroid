@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# AUD-002's paste defect, end to end: the cell clipboard holds the cell's *JSON* - outputs and
+# The paste defect, end to end: the cell clipboard holds the cell's *JSON* - outputs and
 # execution count included (`packages/notebook/src/actions.tsx:1451-1454`) - so a pasted copy
 # shows the results the original was carrying. It used to come out blank: nothing wired the
 # pasted cell into the maps beside `cells`, and the next save wrote it with none.

@@ -1,18 +1,18 @@
 appId: com.jupydroid.app
 ---
-# P7e-0: **measure before a line is written.**
+# **Measure before a line is written.**
 #
 # Six questions, none of them answerable from the tree: what the running kernel says its interpreter
 # is, whether `%pip` can be invoked at all, whether musl can resolve a name, whether OpenSSL can
 # find a trust store, whether one real HTTPS GET completes, and which of the env vars nothing has
 # ever set are set. The last three are explicitly *"a hypothesis, not a measurement"* in that file,
-# and P7e-3 onward is written from what comes back here.
+# and what is built on this is written from what comes back here.
 #
 # **TABLET ONLY (SM-X216B).** Every cell in this notebook runs against the kernel, and on x86_64
 # `MainActivity` falls back to `FakeKernelGateway`, which echoes a cell's source back as its
 # output - so a green run there would "answer" all six questions with the questions themselves.
 #
-# The flow's own assertions are deliberately thin: this step's oracle is not a string being on
+# The flow's own assertions are deliberately thin: its oracle is not a string being on
 # screen, it is the notebook's saved outputs, which the driver pulls off the device and commits
 # verbatim. What the flow has to guarantee is only that every cell really ran.
 - launchApp
@@ -77,7 +77,7 @@ appId: com.jupydroid.app
     direction: DOWN
     timeout: 120000
 - takeScreenshot: 06-the-env-vars-nothing-sets
-# P7e-3e: a real %pip install, over the network, of a package this Space did not already carry.
+# A real %pip install, over the network, of a package this Space did not already carry.
 - scrollUntilVisible:
     element:
       text: ".*PROBE-7 toolz version.*"

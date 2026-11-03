@@ -7,9 +7,9 @@
 # (`acp_personas/opencode.py`). /usr/local/bin is on the Space's PATH
 # (app/src/main/java/com/jupydroid/app/data/space/SpaceRuntime.kt), so that is where it goes.
 #
-# Every answer, failed or not, lands in jd046-probe.txt beside this script, and the last line is
+# Every answer, failed or not, lands in opencode-probe.txt beside this script, and the last line is
 # always `probe-done`, so the driver can tell a finished probe from a hung one.
-OUT="$PWD/jd046-probe.txt"
+OUT="$PWD/opencode-probe.txt"
 VERSION=1.19.3
 TARBALL="https://registry.npmjs.org/opencode-linux-arm64-musl/-/opencode-linux-arm64-musl-$VERSION.tgz"
 : >"$OUT"

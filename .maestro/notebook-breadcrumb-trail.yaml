@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2w-1: the open document's breadcrumb. Where a notebook lives, and the way back to its folder.
+# The open document's breadcrumb. Where a notebook lives, and the way back to its folder.
 #
 # The trail is **ancestors only** - the document's own name is on the title row above it, so the
 # name is never said twice. VS Code ends its trail with the file (`breadcrumbsModel.ts:142`)
@@ -14,7 +14,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-the-workspace
 
 # A notebook at the workspace root has no ancestry, so the row is **absent** rather than blank -
-# 48dp spent saying nothing is what P2v declined the run gutter over. Its title is on screen and
+# 48dp spent saying nothing is why the run gutter was declined. Its title is on screen and
 # nothing below it is.
 - tapOn: "At Root.ipynb"
 - extendedWaitUntil:

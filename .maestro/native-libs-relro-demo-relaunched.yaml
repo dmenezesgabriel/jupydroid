@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-070 demo, part 2: after a force-stop, the relaunch keeps the Space the first part
+# Native-libs RELRO demo, part 2: after a force-stop, the relaunch keeps the Space the first part
 # created. Runs no cell.
 # Driven by scripts/native-libs-relro-demo-driver.sh.
 #

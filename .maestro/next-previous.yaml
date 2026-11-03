@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2i-4: `documentsearch:highlightNext` and `highlightPrevious` - the arrows step through what the
+# `documentsearch:highlightNext` and `highlightPrevious` - the arrows step through what the
 # bar found, wrap at both ends, and **reveal** whatever is hiding the match they land on.
 #
 # The fixture is two matches with a collapsed heading between them, which is what makes the second
@@ -61,7 +61,7 @@ appId: com.jupydroid.app
 - tapOn: "Back to files"
 # **Wait for the explorer before reaching into it.** `tapOn` locates a node and then taps where it
 # was: fired while the document is still on screen it can read the title strip - which carries this
-# same file name since P2q - and tap those coordinates after the explorer has replaced it, landing
+# same file name since the title has a row of its own - and tap those coordinates after the explorer has replaced it, landing
 # on the header and doing nothing. `Workspace` is the section only the explorer draws, so this
 # waits for the destination rather than for a duration.
 - extendedWaitUntil:

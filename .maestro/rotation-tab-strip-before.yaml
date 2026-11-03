@@ -17,8 +17,8 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Tab: ${MAESTRO_SECOND}"
     timeout: 10000
-# Renamed while it is the top tab, as the PRD's demo renames: beneath a terminal the tab keeps the
-# name it left even with no rotation at all, which is GAP-172 and not this flow's question.
+# Renamed while it is the top tab, as `renamed-tab-demo` does: beneath a terminal the tab keeps the
+# name it left even with no rotation at all, which is a separate defect and not this flow's question.
 - longPressOn: "Tab: ${MAESTRO_SECOND}"
 - extendedWaitUntil:
     visible: "Rename file"

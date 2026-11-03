@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P7c: the Recents section collapses from its own heading, and Clear moved behind a `…`.
+# The Recents section collapses from its own heading, and Clear moved behind a `…`.
 #
 # The reference's view pane is what this follows: `setExpanded(!isExpanded())` bound to a click
 # **or a tap** anywhere in the header (`paneview.ts:285-292`), a chevron that is `chevronDown` open

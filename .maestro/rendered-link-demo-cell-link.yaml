@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook from a cold launch. The first cell becomes markdown and
+# The demo, typed into a new notebook from a cold launch. The first cell becomes markdown and
 # holds one paragraph with a web link and a workspace link in it; rendered, it draws "Read Jupyter
 # and notes" and none of its own syntax. Then "Jupyter" is tapped. What that opened is not on this
 # app's screen: scripts/rendered-link-demo-driver.sh reads the device's resumed activity

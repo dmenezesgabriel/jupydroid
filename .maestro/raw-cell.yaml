@@ -1,11 +1,11 @@
 appId: com.jupydroid.app
 ---
-# P2e-1: a notebook holding a raw cell opens, shows it as plain text, and never runs it.
+# A notebook holding a raw cell opens, shows it as plain text, and never runs it.
 #
-# **The headline claim is that the notebook opens at all.** Before this step `CellFile.toDomain`
+# **The headline claim is that the notebook opens at all.** Before raw cells were supported `CellFile.toDomain`
 # threw on `cell_type: "raw"` and `EditorViewModel` turned the throw into a full-screen error
 # message, so a perfectly ordinary nbformat 4 notebook - one JupyterLab opens without comment -
-# was unreadable here. `evidence/p2e-1-raw-cells/before/` is that screen on the build before this.
+# was unreadable here.
 #
 # What the reference settles, and what each assertion is therefore for:
 #

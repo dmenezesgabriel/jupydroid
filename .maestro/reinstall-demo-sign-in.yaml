@@ -9,7 +9,7 @@ appId: com.jupydroid.app
 # TABLET ONLY (SM-X216B): base's terminal runs under proot, and only arm64 ships it.
 - tapOn:
     id: "terminal-input"
-- inputText: "sh jd058-console-accounts.sh signed-out; opencode console login; sh jd058-console-accounts.sh signed-in"
+- inputText: "sh console-accounts.sh signed-out; opencode console login; sh console-accounts.sh signed-in"
 - pressKey: Enter
 - hideKeyboard
 - takeScreenshot: 02-console-login-started

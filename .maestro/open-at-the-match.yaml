@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-3f: a tap on a result lands the editor **on the match**, not at the top of the file.
+# A tap on a result lands the editor **on the match**, not at the top of the file.
 #
 # `searchView.open` hands `openEditor` a `selection` built from the match's own range
 # (`searchView.ts:2240-2256`), so the editor reveals it and shows which characters were found.

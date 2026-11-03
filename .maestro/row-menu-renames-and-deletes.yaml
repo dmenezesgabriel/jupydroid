@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
-# Step 2.3, on the surface X2h left: a row's own menu renames and deletes. Home's rows carried the
-# same two items and went with Home; the browser's row menu is what X2f and X2g gave every entry,
+# A row's own menu renames and deletes. Home's rows carried the
+# same two items and went with Home; the browser's row menu is what every entry has,
 # and it is the reference's right-click context menu adapted to a finger.
 - launchApp:
     clearState: true
@@ -29,9 +29,9 @@ appId: com.jupydroid.app
 - tapOn: "Rename"
 - assertVisible: "Math notes.ipynb"
 - takeScreenshot: 03-renamed
-# Delete asks first, as of X2g - the same question the browser asks, because it is the same
+# Delete asks first - the same question the browser asks, because it is the same
 # destructive act. Both references ask (`DirListing.delete`, Winlator's `ContentDialog.confirm`),
-# and until X2g this row destroyed a notebook on one tap with no way back.
+# and this row used to destroy a notebook on one tap with no way back.
 - longPressOn: "Math notes.ipynb"
 - tapOn: "Delete"
 - extendedWaitUntil:

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2w-1, the half only two panes can reach: a crumb tapped in the notebook has to reach a browser
+# The breadcrumb's half only two panes can reach: a crumb tapped in the notebook has to reach a browser
 # that is a *different* `NavEntry` - and that is not enough on its own, because the side area may
 # be drawing the table of contents instead. `onGoToFolder` shows Files again before it navigates,
 # and this is the flow that proves it: with the outline up there is no browser on screen at all,

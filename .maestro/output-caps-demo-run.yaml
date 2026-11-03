@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded: a 200k-line print draws its head,
+# The demo, typed into a new notebook rather than seeded: a 200k-line print draws its head,
 # a row counting the 199970 lines it hides and its tail; 300 display() calls draw the first 50 and
 # a "Show more outputs" row that draws the rest; the print's row draws every line; and a Console on
 # the notebook's kernel cuts the same print the same way. Run by

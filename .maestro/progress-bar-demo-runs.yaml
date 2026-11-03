@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook rather than seeded: a `\r` progress loop and the prints
+# The demo, typed into a new notebook rather than seeded: a `\r` progress loop and the prints
 # after it land as one output reading `100% done`, `a`, `b`, in the notebook and then in the
 # Console on the same kernel (StreamFold.kt). `100%` is in no source - the loop prints `{i*25}%` -
 # and FakeKernelGateway would echo the whole source instead. Run by

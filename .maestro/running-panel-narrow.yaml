@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8f, one pane: the same "Sessions and Tabs" panel where the window is the pane - reached from
+# One pane: the same "Sessions and Tabs" panel where the window is the pane - reached from
 # the bottom bar's second item (the rail's `running` item moved, `SidePanelBar`'s own job), its
 # rows opening documents *over* it and the Workspace crumb - not Back, which closes - returning
 # beneath them.
@@ -71,9 +71,9 @@ appId: com.jupydroid.app
 - tapOn: "Workspace"
 - tapOn: "Files"
 - tapOn: "reports"
-- tapOn: "p8f-second.ipynb"
+- tapOn: "running-panel-second.ipynb"
 - extendedWaitUntil:
-    visible: "Tab: p8f-second.ipynb"
+    visible: "Tab: running-panel-second.ipynb"
     timeout: 30000
 - tapOn: "Run cell"
 - waitForAnimationToEnd:
@@ -81,7 +81,7 @@ appId: com.jupydroid.app
 - tapOn: "Workspace"
 - tapOn: "Sessions and Tabs"
 - extendedWaitUntil:
-    visible: "Open kernel session: p8f-second.ipynb"
+    visible: "Open kernel session: running-panel-second.ipynb"
     timeout: 10000
 - assertVisible: "Open kernel session: running-panel-kernel.ipynb"
 - takeScreenshot: 04-two-sessions-listed
@@ -94,7 +94,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     notVisible: "Open kernel session: running-panel-kernel.ipynb"
     timeout: 10000
-- assertNotVisible: "Open kernel session: p8f-second.ipynb"
+- assertNotVisible: "Open kernel session: running-panel-second.ipynb"
 
 # ---- `ended` lands on the open document as No Kernel ----
 - tapOn: "Open tab: running-panel-kernel.ipynb"
@@ -158,12 +158,12 @@ appId: com.jupydroid.app
 - takeScreenshot: 11-first-dirty-ask
 - tapOn: "Discard"
 - extendedWaitUntil:
-    visible: "Save changes in \"p8f-second.ipynb\" before closing?"
+    visible: "Save changes in \"running-panel-second.ipynb\" before closing?"
     timeout: 5000
 - takeScreenshot: 12-second-dirty-ask
 - tapOn: "Discard"
 - extendedWaitUntil:
     notVisible: "Open tab: running-panel-kernel.ipynb"
     timeout: 10000
-- assertNotVisible: "Open tab: p8f-second.ipynb"
+- assertNotVisible: "Open tab: running-panel-second.ipynb"
 - takeScreenshot: 13-all-closed

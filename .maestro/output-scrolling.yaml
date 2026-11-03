@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2g-2b: `notebook:enable/disable-output-scrolling`, from the cell menu's marked-run overflow.
+# `notebook:enable/disable-output-scrolling`, from the cell menu's marked-run overflow.
 #
 # Two notebooks, both with the same two saved results and no cell run - neither state a save can
 # leave `scrolled` in needs a kernel to reach it. Seeded by
@@ -12,7 +12,7 @@ appId: com.jupydroid.app
 # not this app's usual flip-with-state wording. A tap on it can *disable* an already-scrolled run
 # even though it still reads "Enable" - the second notebook here is exactly that case.
 #
-# **The saved file is the assertion, not the screen.** P2g-2a already proved what a scrolled
+# **The saved file is the assertion, not the screen.** `scrolled-outputs` already proved what a scrolled
 # output looks like; a one-line result is nowhere near the 24-line bound, so there is nothing to
 # see differently here. What the flow proves is that tapping the row from the *marked run* writes
 # `scrolled` into **both** cells' metadata - the driver dumps each file afterwards.

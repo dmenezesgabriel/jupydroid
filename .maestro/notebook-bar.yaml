@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U5c: the kernel bar, and that Restart really replaces the interpreter.
+# The kernel bar, and that Restart really replaces the interpreter.
 #
 # TABLET ONLY - this runs cells. On the x86_64 emulator MainActivity falls back to
 # FakeKernelGateway, which echoes the source back as stdout: `kept` would never exist, `dir()`

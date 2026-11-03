@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P1g part 2: after the driver rotated the device, MainActivity has been relaunched. Leave the
+# One container, part 2: after the driver rotated the device, MainActivity has been relaunched. Leave the
 # notebook and open it again, which is what builds a fresh editor - and used to reach a fresh
 # container, and so a second jupyter_server.
 #

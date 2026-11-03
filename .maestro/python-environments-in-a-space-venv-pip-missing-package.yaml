@@ -9,5 +9,5 @@ appId: com.jupydroid.app
 - takeScreenshot: 03-venv-pip-installed
 - tapOn:
     id: "terminal-input"
-- inputText: "clear; ~/envs/stats/bin/pip install no-such-package-jd003 >missing.txt 2>&1; echo missing-rc=$? >>missing.txt; tail -3 missing.txt"
+- inputText: "clear; ~/envs/stats/bin/pip install no-such-package >missing.txt 2>&1; echo missing-rc=$? >>missing.txt; tail -3 missing.txt"
 - pressKey: Enter

@@ -1,15 +1,15 @@
 appId: com.jupydroid.app
 ---
-# P5a: `pylsp` runs by name in the Space's shell and answers an LSP `initialize` over stdio.
+# `pylsp` runs by name in the Space's shell and answers an LSP `initialize` over stdio.
 #
-# Route 2 for P5 — LSP is `python-lsp-server` as a direct stdio subprocess, and the rootfs v7 bump
+# LSP is `python-lsp-server` as a direct stdio subprocess, and the rootfs v7 bump
 # is what puts its console script in `usr/bin`. Under proot `usr/bin/pylsp` is the image's own `#!`
-# file and execs through its shebang line, the same route P7e-2 proved for `pip`.
+# file and execs through its shebang line, the same route `pip` takes.
 #
 # **TABLET ONLY (SM-X216B):** the emulator ships no rootfs, so its terminal has no shell. The
 # terminal draws to a `Canvas`, so nothing here is asserted by Maestro text - the flow redirects
-# what pylsp printed to files and the driver reads them back, the oracle
-# `evidence/space-python/the-link.txt` is.
+# what pylsp printed to files and the driver reads them back, which is
+# also how the Space's Python link was measured.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
@@ -35,25 +35,25 @@ appId: com.jupydroid.app
     timeout: 60000
 - tapOn:
     id: "terminal-input"
-- inputText: "pylsp --version > p5a-version.txt 2>&1"
+- inputText: "pylsp --version > pylsp-stdio-version.txt 2>&1"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 20000
-- inputText: "echo rc=$? >> p5a-version.txt"
+- inputText: "echo rc=$? >> pylsp-stdio-version.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 8000
 - takeScreenshot: 02-pylsp-version
 
-# The route-2 premise, typed as one pipeline: a `Content-Length`-framed `initialize` on pylsp's
+# The direct-subprocess premise, typed as one pipeline: a `Content-Length`-framed `initialize` on pylsp's
 # stdin gets a framed reply on its stdout. `timeout` is the safety net - pylsp may hold the pipe
 # open after answering, and the reply is in the file either way. `rc=` records which way it ended:
-# 0 means pylsp exited on stdin EOF, 124 means timeout killed it - P5b's adapter needs to know.
-- inputText: "printf 'Content-Length: 107\\r\\n\\r\\n%s' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"processId\":null,\"rootUri\":null,\"capabilities\":{}}}' | timeout 15 pylsp > p5a-init.out 2>&1"
+# 0 means pylsp exited on stdin EOF, 124 means timeout killed it - the adapter that launches it needs to know.
+- inputText: "printf 'Content-Length: 107\\r\\n\\r\\n%s' '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"processId\":null,\"rootUri\":null,\"capabilities\":{}}}' | timeout 15 pylsp > pylsp-stdio-init.out 2>&1"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 30000
-- inputText: "echo rc=$? >> p5a-init.out"
+- inputText: "echo rc=$? >> pylsp-stdio-init.out"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 8000

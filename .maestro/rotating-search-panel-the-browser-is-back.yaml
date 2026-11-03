@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-2b part 2: after the driver rotated to portrait, `MainActivity` has been relaunched and
+# Rotating the search panel, part 2: after the driver rotated to portrait, `MainActivity` has been relaunched and
 # `sidePanel` came back through `rememberSaveable` still reading SEARCH - while the rail, drawn
 # only where there are two panes, did not.
 #

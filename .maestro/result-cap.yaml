@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# P2x-3: **the result cap is drawn rather than silent.**
+# **The result cap is drawn rather than silent.**
 #
-# This is the thing the sub-step exists for. `DiskWorkspaceSearcher` stops at `search.maxResults`'
-# registered 20000 (`search.contribution.ts:202-205`) and until P2x-3a nothing could *tell* that it
+# This is the thing this flow exists for. `DiskWorkspaceSearcher` stops at `search.maxResults`'
+# registered 20000 (`search.contribution.ts:202-205`) and until the limit was reported nothing could *tell* that it
 # had - the walk reported files and never said it had stopped, which is the silent truncation a
 # result cap must not become. The reference draws a warning above the tree when
 # `ISearchComplete.limitHit` comes back true (`searchView.ts:1897-1899`), and so does this.

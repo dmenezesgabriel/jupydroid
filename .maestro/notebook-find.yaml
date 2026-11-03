@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2i-3: `documentsearch:start` and `documentsearch:end` - the find bar takes the notebook's own
+# `documentsearch:start` and `documentsearch:end` - the find bar takes the notebook's own
 # bar, counts every match in the document, lights them where they are, and gives the bar back.
 #
 # The fixture is built so the count itself carries three claims no screenshot could:
@@ -13,7 +13,7 @@ appId: com.jupydroid.app
 #   (`packages/documentsearch/src/searchmodel.ts:398-406`), so `Velocity = 0` is the fifth match.
 # - **It lands beside the selected cell, and does not move the notebook.** `startQuery` ends with
 #   `highlightNext(true, { from: 'selection-start', scroll: false })` (`:389-401`) - so with cell
-#   one active the count reads 1/5 and nothing scrolls. The arrows are P2i-4.
+#   one active the count reads 1/5 and nothing scrolls. The arrows are `next-previous`.
 #
 # The screenshot is what carries the marks, and what separates them is **weight, not hue**. Both
 # matches take the same teal - `searchMatch` `#27678280` and `currentSearchMatch` `#27678290`

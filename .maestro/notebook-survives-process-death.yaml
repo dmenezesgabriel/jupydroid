@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Step 3: what was created is still there after the process dies - the notebook is a file, and the
+# What was created is still there after the process dies - the notebook is a file, and the
 # listing is read from disk on every launch.
 - launchApp:
     clearState: true

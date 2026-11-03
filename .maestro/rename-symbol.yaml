@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P5e-7: "Rename symbol…" asks `textDocument/rename` at the caret's virtual position and lands
+# "Rename symbol…" asks `textDocument/rename` at the caret's virtual position and lands
 # jedi's whole-document answer on every cell the name touches - VS Code's `editor.action.rename`,
 # which `bulkEditService.apply`s as one undoable unit.
 #

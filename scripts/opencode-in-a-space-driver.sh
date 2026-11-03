@@ -26,14 +26,14 @@ mapfile -t DEVICE_ADB < <(device_adb)
 require_installed_app
 # The workspace starts empty, so the probe's answers are this run's and no earlier run's.
 reset_notebooks
-seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "jd046-probe.sh"
+seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "opencode-probe.sh"
 
 run_flow "$ROOT/.maestro/opencode-in-a-space.yaml" "$EVIDENCE" || exit 1
 # The fetch is 60-odd MB over the tablet's own network, and the first start of a Bun binary under
 # proot is unmeasured, so the bound is generous.
 finished=0
-wait_for_workspace_text jd046-probe.txt probe-done 900 || finished=$?
-"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/jd046-probe.txt\"" | tr -d '\r' >"$EVIDENCE/probe.txt"
+wait_for_workspace_text opencode-probe.txt probe-done 900 || finished=$?
+"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/opencode-probe.txt\"" | tr -d '\r' >"$EVIDENCE/probe.txt"
 "${DEVICE_ADB[@]}" exec-out screencap -p >"$EVIDENCE/02-probe-answered.png"
 [ "$finished" = 0 ] || exit 1
 

@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P2x-4c: a notebook is searched as the **cells** it is, and a result row names the cell.
+# A notebook is searched as the **cells** it is, and a result row names the cell.
 #
 # `INotebookCellMatchNoModel` is `{ index, contentResults, webviewResults }`
 # (`vscode/…/search/common/searchNotebookHelpers.ts:18-22`) - the cell's index and its source
-# matches. Until P2x-4b every `.ipynb` was skipped, because read as JSON a notebook reports
+# matches. Until notebooks were searched by cell every `.ipynb` was skipped, because read as JSON a notebook reports
 # `"cell_type"` and the inside of a base64 image as matches.
 #
 # **What the assertions below are shaped by**: `search.showLineNumbers` is false, so a row draws its
@@ -16,7 +16,7 @@ appId: com.jupydroid.app
 # The notebook's **fourth** cell holds the marker and its **fifth** is a raw cell - both are asserted,
 # because all three `cell_type`s have a source and the reference searches all three.
 #
-# The JSON keys are asserted **absent**, which is the half P2x-1d skipped the whole file over.
+# The JSON keys are asserted **absent**, which is what skipping every `.ipynb` used to avoid.
 #
 # **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so
 # this needs the width and not the arm64 kernel.

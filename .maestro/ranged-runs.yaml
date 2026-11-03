@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2d-2: the two ranged runs, and the asymmetry between them.
+# The two ranged runs, and the asymmetry between them.
 #
 # `notebook:run-all-above` slices `(0, activeCellIndex)` and `notebook:run-all-below` slices
 # `(activeCellIndex)` (`packages/notebook/src/actions.tsx:1005-1090`) - one excludes the head and

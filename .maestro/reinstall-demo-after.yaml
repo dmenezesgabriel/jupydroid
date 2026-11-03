@@ -29,7 +29,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 06-notes-after
 - tapOn: "talk.chat"
 - extendedWaitUntil:
-    visible: ".*\"body\": \"Written before the uninstall\\.\".*"
+    visible: "Written before the uninstall\\."
     timeout: 10000
 - takeScreenshot: 07-chat-after
 - tapOn:
@@ -62,7 +62,7 @@ appId: com.jupydroid.app
     timeout: 15000
 - tapOn:
     id: "terminal-input"
-- inputText: "sh jd046-probe.sh; sh jd058-console-accounts.sh after-restore"
+- inputText: "sh opencode-probe.sh; sh console-accounts.sh after-restore"
 - pressKey: Enter
 - hideKeyboard
 - takeScreenshot: 09-sign-in-asked

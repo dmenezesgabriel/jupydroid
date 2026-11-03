@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P7c at two panes: the section shares the window with an open document, which is the arrangement
+# The Recents collapse at two panes: the section shares the window with an open document, which is the arrangement
 # the reference's side bar is always in.
 #
 # The collapse has no width rule - it is one section's state, not a layout branch - so this is a
@@ -42,7 +42,7 @@ appId: com.jupydroid.app
 - assertVisible: "Recent"
 - assertNotVisible: "Recent actions"
 # The document is untouched by the section shutting - the two are different parts, which is what
-# the seam between them is drawn to say (P7a-2).
+# the seam between them is drawn to say.
 - assertVisible: ".*region,amount.*"
 - takeScreenshot: 02-collapsed-and-the-document-is-untouched
 

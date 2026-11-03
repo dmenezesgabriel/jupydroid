@@ -79,7 +79,7 @@ capture "six is in the venv alone" \
 run_flow "$FLOWS-venv-pip-missing-package.yaml" "$EVIDENCE/part4-missing-package" || exit 1
 answer missing.txt missing-rc=
 expect_line missing.txt missing-rc=1
-expect_line missing.txt no-such-package-jd003
+expect_line missing.txt no-such-package
 
 # uv is measured, not required: each route's status is captured whatever it is.
 run_part part5-uv-from-apk

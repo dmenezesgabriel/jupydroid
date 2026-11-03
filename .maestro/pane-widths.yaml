@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2o-3: opens a notebook and stops, so the driver can dump the hierarchy of the state the two-pane
+# Opens a notebook and stops, so the driver can dump the hierarchy of the state the two-pane
 # split is actually about - the shell showing a panel and a document at once, where it has room for
 # both, and one of them where it does not.
 #

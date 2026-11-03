@@ -35,7 +35,7 @@ payload="$(printf '%s' '{"autosaveEnabled":false}' | base64 -w0)"
 # `reports/`, not the root: a root document draws no crumbs, and at one pane the crumb is the way
 # back to the bar that keeps the tab open (the strip's Up closes it).
 seed_file "$ROOT/.maestro/fixtures/running-panel-kernel.ipynb" "reports/running-panel-kernel.ipynb"
-seed_file "$ROOT/.maestro/fixtures/running-panel-kernel.ipynb" "reports/p8f-second.ipynb"
+seed_file "$ROOT/.maestro/fixtures/running-panel-kernel.ipynb" "reports/running-panel-second.ipynb"
 run_flow "$ROOT/.maestro/running-panel-narrow.yaml" \
   "$ROOT/evidence/running-panel-wide/${WIDTH_DP}dp"
 echo "the bar reached the panel, two sessions shut down by count, and a terminal outlived its tab at ${WIDTH_DP}dp"

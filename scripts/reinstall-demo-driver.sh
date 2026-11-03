@@ -47,11 +47,11 @@ trap 'restore_rotation; "${DEVICE_ADB[@]}" shell bmgr autorestore true' EXIT
 # Whether the console has an account, recorded by the seeded script around the sign-in.
 sign_in_to_console() {
   run_flow "$ROOT/.maestro/reinstall-demo-sign-in.yaml" "$EVIDENCE" || exit 1
-  wait_for_workspace_text jd058-console.txt signed-out=none 120 || exit 1
+  wait_for_workspace_text console-accounts.txt signed-out=none 120 || exit 1
   echo "SIGN IN NOW: approve the device code base's terminal shows on opencode.ai, from another device" \
     "or a pop-up window, so the app stays on screen." >&2
-  wait_for_workspace_text jd058-console.txt signed-in=some "$SIGN_IN_WAIT_SECONDS" || exit 1
-  "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/jd058-console.txt\"" | tr -d '\r' >"$EVIDENCE/console-before.txt"
+  wait_for_workspace_text console-accounts.txt signed-in=some "$SIGN_IN_WAIT_SECONDS" || exit 1
+  "${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/console-accounts.txt\"" | tr -d '\r' >"$EVIDENCE/console-before.txt"
 }
 
 [ -f "$APK" ] || fail "no APK at $APK: build it with ./gradlew :app:assembleDebug"
@@ -78,17 +78,17 @@ reset_notebooks
 seed_file "$ROOT/.maestro/fixtures/survives.ipynb" "survives.ipynb"
 seed_file "$ROOT/.maestro/fixtures/kept-notes.md" "notes.md"
 seed_file "$ROOT/.maestro/fixtures/talk.chat" "talk.chat"
-seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "jd046-probe.sh"
-seed_file "$ROOT/.maestro/fixtures/console-accounts.sh" "jd058-console-accounts.sh"
+seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "opencode-probe.sh"
+seed_file "$ROOT/.maestro/fixtures/console-accounts.sh" "console-accounts.sh"
 record_device "$EVIDENCE"
 
 # opencode goes into base's rootfs exactly as opencode-in-a-space-driver.sh installs it, and
 # the flow leaves base's terminal open for the sign-in.
 run_flow "$ROOT/.maestro/opencode-in-a-space.yaml" "$EVIDENCE" || exit 1
-wait_for_workspace_text jd046-probe.txt probe-done 900 || exit 1
-"${DEVICE_ADB[@]}" shell "run-as $APP rm -f \"$NOTEBOOK_DIR/jd046-probe.sh\" \"$NOTEBOOK_DIR/jd046-probe.txt\""
+wait_for_workspace_text opencode-probe.txt probe-done 900 || exit 1
+"${DEVICE_ADB[@]}" shell "run-as $APP rm -f \"$NOTEBOOK_DIR/opencode-probe.sh\" \"$NOTEBOOK_DIR/opencode-probe.txt\""
 sign_in_to_console
-"${DEVICE_ADB[@]}" shell "run-as $APP rm -f \"$NOTEBOOK_DIR/jd058-console.txt\" \"$NOTEBOOK_DIR/jd058-console-accounts.sh\""
+"${DEVICE_ADB[@]}" shell "run-as $APP rm -f \"$NOTEBOOK_DIR/console-accounts.txt\" \"$NOTEBOOK_DIR/console-accounts.sh\""
 
 run_flow "$ROOT/.maestro/reinstall-demo-before.yaml" "$EVIDENCE" || exit 1
 record_backup_state "$EVIDENCE/state-before.txt"
@@ -101,10 +101,10 @@ diff <(backed_up_files "$EVIDENCE/state-before.txt") <(backed_up_files "$EVIDENC
 
 # Seeded after the restore, so the backup carries only what the user made. The probe installs
 # opencode's binary again, which lives in the rootfs; the sign-in it then finds is the restored home's.
-seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "jd046-probe.sh"
-seed_file "$ROOT/.maestro/fixtures/console-accounts.sh" "jd058-console-accounts.sh"
+seed_file "$ROOT/.maestro/fixtures/opencode-probe.sh" "opencode-probe.sh"
+seed_file "$ROOT/.maestro/fixtures/console-accounts.sh" "console-accounts.sh"
 run_flow "$ROOT/.maestro/reinstall-demo-after.yaml" "$EVIDENCE" || exit 1
-wait_for_workspace_text jd058-console.txt after-restore= 900 || exit 1
-"${DEVICE_ADB[@]}" shell "run-as $APP grep -qx after-restore=some \"$NOTEBOOK_DIR/jd058-console.txt\"" ||
+wait_for_workspace_text console-accounts.txt after-restore= 900 || exit 1
+"${DEVICE_ADB[@]}" shell "run-as $APP grep -qx after-restore=some \"$NOTEBOOK_DIR/console-accounts.txt\"" ||
   fail "opencode installed again finds no console account in the restored home"
-"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/jd058-console.txt\"" | tr -d '\r' >"$EVIDENCE/console-after.txt"
+"${DEVICE_ADB[@]}" shell "run-as $APP cat \"$NOTEBOOK_DIR/console-accounts.txt\"" | tr -d '\r' >"$EVIDENCE/console-after.txt"

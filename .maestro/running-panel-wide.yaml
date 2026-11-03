@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8f, two panes: `jp-running-sessions` - the "Sessions and Tabs" side panel on the rail at the
+# Two panes: `jp-running-sessions` - the "Sessions and Tabs" side panel on the rail at the
 # reference's own rank-200 slot, listing the three things its sections are for: the open main-area
 # tabs (`labShell.widgets('main')`), the kernel sessions the server holds (`GET api/sessions`), and
 # the terminals (`GET api/terminals`). A row's tap opens what it names; a row's ✕ ends it - the tab

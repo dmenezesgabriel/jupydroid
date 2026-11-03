@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P7c's own gate: a section's collapse outlives the process that set it - in both directions, from
+# A section's collapse outlives the process that set it - in both directions, from
 # the shut state it arrives in (`ExplorerSettings.recentsCollapsed`'s default).
 #
 # The reference writes a view's `collapsed` straight through to storage on every change

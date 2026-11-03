@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# X2h-1: opening a document is what puts it in Recents.
+# Opening a document is what puts it in Recents.
 #
-# The defect this closes is X2b's: Recents was a scan of the workspace *root*
+# The defect this closes: Recents was a scan of the workspace *root*
 # (`DiskNotebookRepository.scanSummaries`, `rootDir.listFiles()`), so a notebook inside a folder was
 # reachable through the explorer and absent from the list the app opens on. The list is now a record
 # of what was opened - JupyterLab's `RecentsManager` - so where a document lives has stopped
@@ -36,7 +36,7 @@ appId: com.jupydroid.app
     timeout: 10000
 - takeScreenshot: 04-opened-from-inside-the-folder
 
-# A plain file counts as a document too - X2c gave `.py` an editor, and the reference records
+# A plain file counts as a document too - `.py` has a file editor, and the reference records
 # whatever the document manager opened, not whatever was a notebook.
 - tapOn: "Back to files"
 - assertVisible: "data.csv"

@@ -1,26 +1,26 @@
 appId: com.jupydroid.app
 ---
-# P2o-4: where the shell draws **one pane** there is no side *area*, and the document's two routes
+# Where the shell draws **one pane** there is no side *area*, and the document's two routes
 # out of it still work - the back arrow to the browser, and the table of contents without leaving.
 #
-# **P2y answered the question this header used to end on.** It read "the measurement that decides
-# whether this app grows a navigation bar at all", and the answer is now yes: P2x-2 added a third
+# **The bottom navigation bar answered the question this header used to end on.** It read "the measurement that decides
+# whether this app grows a navigation bar at all", and the answer is now yes: a third
 # panel, workspace search, which had no route at this width at all, and `bottom-navigation`
 # covers the bar that reaches it. What did *not* change is either claim below - a bar is not drawn
 # over a document, so from inside the notebook both routes are exactly what they were.
 #
 # Two claims, one per panel:
 #   1. **Files** is one tap from the document: the back arrow returns to the browser, which is
-#      where an Android reader looks for it. Since P2y the browser it returns to has the bar under
+#      where an Android reader looks for it. Now the browser it returns to has the bar under
 #      it, which is the third claim below.
 #   2. **Table of contents** is reachable *without leaving the document*, through `toc:show-panel`
-#      in the notebook's own menu - the overlay this app has had since P2h, which is the narrow
+#      in the notebook's own menu - the overlay this app has always had, which is the narrow
 #      adaptation of a sidebar the reference has never written one for
 #      (no media query, no width branch, a `format: 'mobile'` never assigned).
 #      It stays an overlay and gets **no** bar item: it is a surface over the document you are
 #      already in, where a destination is a screen you navigate to.
 #   3. And the bar is under the browser when the document is left, and was not under the document -
-#      which is the regression half of this flow now that P2y exists.
+#      which is the regression half of this flow now that the bar exists.
 #
 # **NARROW WINDOW**, which the sharder reads as < 840dp - and that is exactly "one pane", which is
 # what this flow is about. Run by hand on the tablet in portrait as well, where the window is 800dp
@@ -55,12 +55,12 @@ appId: com.jupydroid.app
 - assertVisible: "Table of contents Part A"
 - assertVisible: "Table of contents Chapter two"
 - takeScreenshot: 02-the-overlay-over-the-document
-# **What this frame claims is the dismissal, not the jump**, and P2z-x is why it says so now. It
+# **What this frame claims is the dismissal, not the jump**, and that is why it says so now. It
 # used to tap "Chapter two" and assert `two = 3` was visible, calling that a movement - true at
 # 320dp, where `collapse-all-headings`'s seven cells overflow, and **vacuous at 800dp**, where they all fit and the
 # text was on screen before the tap. A NARROW WINDOW flow runs at both widths, so an assertion
 # that can only fail at one of them is not an assertion. The jump itself is `table-of-contents-overlay`'s claim and
-# P2z-c gave it a fixture tall enough to make it at both widths; this flow is about the side area
+# it has a fixture tall enough to make it at both widths; this flow is about the side area
 # and needs the tap only to close the overlay.
 - tapOn: "Table of contents Chapter two"
 # **The pick dismissed it**, which is why this is an overlay and not a panel - and the reason a

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P1g part 1: get a server running, so the rotation has something to duplicate.
+# One container, part 1: get a server running, so the rotation has something to duplicate.
 # TABLET ONLY: `54` is a real kernel's answer; the x86_64 emulator's FakeKernelGateway echoes
 # the cell's source and could never produce it.
 - launchApp

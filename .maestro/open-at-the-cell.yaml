@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-4d: a tap on a notebook result lands the notebook **on the cell**, revealing it.
+# A tap on a notebook result lands the notebook **on the cell**, revealing it.
 #
 # `searchView.open` opens the notebook and then `showMatch` reveals the cell range
 # (`searchView.ts:2273-2295`, `notebookSearchModel.ts:234-242`). Before this, the panel handed up

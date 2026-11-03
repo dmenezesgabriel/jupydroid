@@ -24,11 +24,11 @@ appId: com.jupydroid.app
 - assertVisible: "renamed_here = 1"
 - takeScreenshot: 01-editor-before-rename
 # The app bar title, which is the rename target - and on a wide window the *only* one of two.
-# U7 puts the notebook list beside the editor, so the open notebook's name is on screen twice,
+# On a wide window the notebook list sits beside the editor, so the open notebook's name is on screen twice,
 # once as a list row and once in the app bar. Plain `tapOn` took the row, which merely re-opened
 # the notebook it was already showing, and the dialog never came.
 #
-# **`above` the back arrow, where this used to say `rightOf`.** P2q gave the title a row of its own
+# **`above` the back arrow, where this used to say `rightOf`.** The title has a row of its own
 # over the action row, which is what JupyterLab's single-document mode does
 # (`packages/application/src/shell.ts:690-705`), so the name is no longer beside the arrow at all.
 # It is above it, and the list pane's rows are not: they start below the bar on every width.
@@ -56,10 +56,10 @@ appId: com.jupydroid.app
 # which popped the editor. The next `tapOn: "Back"` then matched the *system* navigation bar's
 # back button, whose contentDescription is also "Back", and left the app for the launcher.
 - tapOn: "Back to files"   # the TopAppBar arrow. Not "Back": the system nav bar has that too
-                               # and a uiautomator dump carries both (evidence/u-flow-sweep/).
+                               # and a uiautomator dump carries both.
 # The browser's crumb, which the editor has none of: assert it before looking for a row, so a flow
 # still stuck in the editor fails here rather than against the title in the app bar. (This was
-# Home's FAB until X2h; the browser has no FAB, and "Workspace" is the thing only it draws.)
+# Home's FAB before the browser replaced Home; the browser has no FAB, and "Workspace" is the thing only it draws.)
 - extendedWaitUntil:
     visible: "Workspace"
     timeout: 10000

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-9b, part 3 of 4: the reopened notebook runs on a kernel that never saw `carried`.
+# Part 3 of 4: the reopened notebook runs on a kernel that never saw `carried`.
 #
 # **`.*NameError.*` is the whole assertion**, `shutdown-kernel-fresh-kernel-forgot`'s own reasoning verbatim: three outcomes
 # are distinguishable - 44 means the same kernel is still there (the close did nothing),
