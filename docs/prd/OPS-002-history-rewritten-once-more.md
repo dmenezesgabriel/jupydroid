@@ -56,9 +56,11 @@ Reproduce from the repository root:
   name would disagree with the docs and ADRs, which carry the real one. The old address is also the
   profile's public email, so this stops a bulk harvest from a clone and nothing more. The mailmap is
   generated at run time, never tracked: a tracked one would hold the address it removes.
-- **Remote copy: deleted and recreated.** A force-push moves the refs but leaves the old objects
-  fetchable by SHA until GitHub collects them. The repository is private with no fork, so nothing else
-  holds them. The owner deletes and recreates it; the agent never runs the delete.
+- **Remote copy: renamed to an archive, and a new repository created (owner's decision, 2026-11-03).** A
+  force-push moves the refs but leaves the old objects fetchable by SHA until GitHub collects them, so the
+  rewritten history goes to a repository that never held the old one. The old repository is kept, private,
+  as `jupydroid-archive` rather than deleted: the 40 newest commits existed only on one disk, and the owner
+  chose to keep the original. Nothing is deleted on GitHub, so the agent never ran a delete.
 - **The rule that supersedes ADR-0015's clause.** A rewrite is affordable while the repository is private
   and shared with nobody, and never after it is public, where the answer is rotation. A later ADR states it.
 - **Kept on purpose.** The upstream author's address in the MIT notice of `tools/grammars/python/`
@@ -358,12 +360,19 @@ One TDD unit each, one conventional commit each.
   work, so T11 starts from a clean, committed tree. A clone made without `PYTHONDONTWRITEBYTECODE=1` fails
   `filter-repo`'s fresh-clone check on the ignored `__pycache__` its own imports write: T11 is `--force`,
   and a rehearsal on a clone sets it.
-- [ ] T11 — the real rewrite, in place (`--force`, since `.git/filter-repo/already_ran` exists). **Waits
-  for the owner's go.** Then T9 remaps own SHAs cited
-  in tracked files from `.git/filter-repo/commit-map`. Repo-local `user.email` is set to the noreply
-  address, `origin` is re-added, T1 prints zero, the full gate is green.
-- [ ] T12 — remote: the owner deletes and recreates the repository and turns on GitHub's "Block command
-  line pushes that expose my email"; the agent pushes `main` and the tag; the Demo above is run.
+- [x] T11 — the real rewrite, run on a throwaway clone of a `git bundle` instead of in place, so the working
+  copy and the archive kept their history. `.sensitive-strings.local` was copied into the clone, which makes
+  `git filter-repo` call it not fresh, hence `--force`. T9 remapped 55 cited SHAs (32 distinct) in 14 files
+  and each resolves in the new history. The working copy then moved onto it: `origin` repointed, repo-local
+  `user.email` set to the noreply address, the old commits pushed to the archive as the branch `old-history`
+  and deleted locally with `gc --prune=now` (`.git` 522 MB to 12 MB). T1 prints 0 on every ref. The clone ran
+  the Python gates and 665 script tests; the Gradle gates ran on the commit that records this.
+- [x] T12 — remote: the old repository renamed to `dmenezesgabriel/jupydroid-archive` and a new private
+  `dmenezesgabriel/jupydroid` created, both PRIVATE, no fork. `main` and the `archive/p2v-declined-attempt`
+  tag pushed. The Demo run on a fresh clone: 0 for every class, one noreply identity on 1539 commits, `HEAD`,
+  `main` and the tag listed, 0 `evidence/` paths, 0 step-coded names, the citations gate passes. GitHub's
+  "Block command line pushes that expose my email" is an account setting the agent did not read or change;
+  it stays the owner's, and the pushes carried only the noreply address.
 - [ ] T13 — close: ADR-0133, ADR-0015's status line, the backlog row edited to `shipped` with the marker
   moved to `OPS-003`, this PRD deleted.
 
