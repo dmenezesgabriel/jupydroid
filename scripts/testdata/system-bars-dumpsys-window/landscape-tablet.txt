@@ -1,0 +1,8 @@
+    InsetsSource id=3 type=ime frame=[0,0][0,0] visibleFrame=[0,1128][1920,1200] visible=false flags= sideHint=NONE boundingRects=null
+    InsetsSource id=72430000 type=statusBars frame=[0,0][1920,45] visible=true flags= sideHint=TOP boundingRects=null
+    InsetsSource id=72430005 type=mandatorySystemGestures frame=[0,0][1920,45] visible=true flags= sideHint=TOP boundingRects=null
+    InsetsSource id=72430006 type=tappableElement frame=[0,0][1920,45] visible=true flags= sideHint=TOP boundingRects=null
+    InsetsSource id=88120001 type=navigationBars frame=[0,1128][1920,1200] visible=true flags= sideHint=BOTTOM boundingRects=null
+    InsetsSource id=88120004 type=systemGestures frame=[0,0][0,0] visible=true flags= sideHint=NONE boundingRects=null
+    InsetsSource id=88120005 type=mandatorySystemGestures frame=[0,1128][1920,1200] visible=true flags= sideHint=BOTTOM boundingRects=null
+    InsetsSource id=88120006 type=tappableElement frame=[0,1128][1920,1200] visible=true flags= sideHint=BOTTOM boundingRects=null

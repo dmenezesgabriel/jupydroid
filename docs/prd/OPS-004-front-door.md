@@ -141,7 +141,7 @@ No `domain/`, `data/`, `ui/` or `di/` file changes, so there is no port and no `
   ids are ephemeral, evidence is local, the device rule stated generically
 - [x] T5 — `.github/` issue forms, `config.yml` (blank issues off, security routed to advisories) and a
   pull-request template whose checklist mirrors the commit-body gates
-- [ ] T6 — README screenshots: a tested crop function and a tablet driver; frames under `docs/images/`,
+- [x] T6 — README screenshots: a tested crop function and a tablet driver; frames under `docs/images/`,
   each looked at and passed through `scripts/check_device_secrets.py`
 - [ ] T7 — README rewrite: what it is, status as a produced count rather than a stored one, install
   (no release exists until the delivery milestone, so build and `adb install`), build from source
