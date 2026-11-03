@@ -61,8 +61,11 @@ lists only what T2 measures as transcribed, never every `project@sha` in the tre
   The marker is a `transcrib…` word and a pinned-SHA citation of one project in one comment block
   (the word alone fails: most of the 93 files mean "from our rootfs" and cite no upstream). A file
   that has both, in different blocks, is `review`: T3 reads those by hand, and T6's ADR decides.
-- [ ] T3 — `NOTICE`: `Copyright 2026 Gabriel Menezes`, then one entry per transcribed project with
-  its licence and pinned SHA.
+- [x] T3 — `NOTICE`: `Copyright 2026 Gabriel Menezes`, then one entry per transcribed project with
+  its licence and pinned SHA. T2 flags only Termux (57 files); the 5 `review` files were read by hand
+  and two more projects are listed on that reading, which T6's ADR must turn into a rule: VS Code
+  (colour values, `TerminalPalette.kt`, `theme/`) and Jupyter Server 2.21.1 (`increment_filename`,
+  `NotebookFileName.kt`; cited by version, since no SHA is). `jupyterlab` is studied, so it is out.
 - [ ] T4 — generator (+ test) from a syft SBOM JSON of the arm64 rootfs to a third-party listing;
   the SBOM comes from a digest-pinned syft container.
 - [ ] T5 — corresponding-source offer for proot, busybox and the Alpine packages.
