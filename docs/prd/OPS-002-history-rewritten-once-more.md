@@ -280,14 +280,17 @@ One TDD unit each, one conventional commit each.
     gate pattern matches; it surfaced only in a device frame, so a rename the gate cannot see is
     checked by a case-insensitive `git grep` of the old stem and a look at the frame. `.maestro/[d-m]*.yaml`
     is the glob.
-  - [ ] T8f — `.maestro/[n-z]*.yaml` (225 hits in 115 flows), the same way, and split again when
-    opened if its first count says so. It also owns the two device names T8e2 left because their flows
-    are all in this range: `jd046-probe.sh`/`.txt` (`.maestro/fixtures/opencode-probe.sh`, typed by
-    `opencode-in-a-space.yaml` and `reinstall-demo-after.yaml`, read by `opencode-in-a-space-driver.sh`,
-    `keep-app-data-driver.sh`, `reinstall-demo-driver.sh` and `terminal-demo-driver.sh`) and
-    `jd058-console*` (`.maestro/fixtures/console-accounts.sh`, typed by `reinstall-demo-*.yaml`, read
-    by `reinstall-demo-driver.sh`), plus the `P5b` in `pylsp.yaml:51` and `P8g`-style upper-case
+  - [ ] T8f1 — `.maestro/[n-r]*.yaml` (159 flows, 90 hits in 47 of them), the same way. The whole
+    `[n-z]` range was 225 hits in 115 flows, twice a T8e slice, so it split by letter. It also owns the
+    two device names T8e2 left because their flows are all in this range: `jd046-probe.sh`/`.txt`
+    (`.maestro/fixtures/opencode-probe.sh`, typed by `opencode-in-a-space.yaml` and
+    `reinstall-demo-after.yaml`, read by `opencode-in-a-space-driver.sh`, `keep-app-data-driver.sh`,
+    `reinstall-demo-driver.sh` and `terminal-demo-driver.sh`) and `jd058-console*`
+    (`.maestro/fixtures/console-accounts.sh`, typed by `reinstall-demo-*.yaml`, read by
+    `reinstall-demo-driver.sh`), plus the `P5b` in `pylsp.yaml:51` and `P8g`-style upper-case
     literals the gate's patterns skip. Rename each with every reader in one commit.
+  - [ ] T8f2 — `.maestro/[s-z]*.yaml` (187 flows, 135 hits in 68 of them), the same way, and split
+    again when opened if its first count says so.
   - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
     names, kernelspec names). No gate reads a string literal, so the commit body names the `git grep` that
     measured it.
