@@ -280,15 +280,18 @@ One TDD unit each, one conventional commit each.
     gate pattern matches; it surfaced only in a device frame, so a rename the gate cannot see is
     checked by a case-insensitive `git grep` of the old stem and a look at the frame. `.maestro/[d-m]*.yaml`
     is the glob.
-  - [ ] T8f1 — `.maestro/[n-r]*.yaml` (159 flows, 90 hits in 47 of them), the same way. The whole
-    `[n-z]` range was 225 hits in 115 flows, twice a T8e slice, so it split by letter. It also owns the
-    two device names T8e2 left because their flows are all in this range: `jd046-probe.sh`/`.txt`
-    (`.maestro/fixtures/opencode-probe.sh`, typed by `opencode-in-a-space.yaml` and
-    `reinstall-demo-after.yaml`, read by `opencode-in-a-space-driver.sh`, `keep-app-data-driver.sh`,
-    `reinstall-demo-driver.sh` and `terminal-demo-driver.sh`) and `jd058-console*`
-    (`.maestro/fixtures/console-accounts.sh`, typed by `reinstall-demo-*.yaml`, read by
-    `reinstall-demo-driver.sh`), plus the `P5b` in `pylsp.yaml:51` and `P8g`-style upper-case
-    literals the gate's patterns skip. Rename each with every reader in one commit.
+  - [x] T8f1 — `.maestro/[n-r]*.yaml` (159 flows, 90 hits in 47 of them, plus ids no gate pattern
+    matches in 11 more), now 0, 58 flows touched. The whole `[n-z]` range was 225 hits in 115 flows,
+    twice a T8e slice, so it split by letter. The same rules as T8e. The device names say what they
+    are: `jd046-probe.*` -> `opencode-probe.*` (beside the fixture of that name, not `acp-probe`,
+    which is the `claude-acp` probe), `jd058-console-accounts.sh`/`jd058-console.txt` ->
+    `console-accounts.sh`/`console-accounts.txt`, `p5a-version.txt`/`p5a-init.out` ->
+    `pylsp-stdio-*` (`pylsp-version.txt` is `language-server`'s), `no-such-package-jd003` ->
+    `no-such-package`, and `p8f-second.ipynb` -> `running-panel-second.ipynb` with its fixture's
+    title. The last three surfaced only in the broader `git grep`, so a rename the gate cannot see is
+    found by that grep and checked on the device. `reinstall-demo-after.yaml` also carried an
+    assertion that had been stale since `.chat` opened in the chat view; the first device run failed
+    on it and it now asserts the message text the screen shows. `.maestro/[n-r]*.yaml` is the glob.
   - [ ] T8f2 — `.maestro/[s-z]*.yaml` (187 flows, 135 hits in 68 of them), the same way, and split
     again when opened if its first count says so.
   - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
