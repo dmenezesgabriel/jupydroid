@@ -1,6 +1,6 @@
 # ADR-0015 — Rewrite history once, before the first push, to take the device out of it
 
-Status: accepted; amended by [ADR-0132](0132-evidence-is-local-and-reproduction-is-a-tested-script.md), which keeps all of `evidence/` local
+Status: accepted; amended by [ADR-0132](0132-evidence-is-local-and-reproduction-is-a-tested-script.md), which keeps all of `evidence/` local, and by [ADR-0133](0133-history-is-rewritten-only-while-private-and-shared-with-nobody.md), which replaces "does not generalise" with the line between a rewrite and a rotation
 Date: 2026-09-16
 
 ## Context

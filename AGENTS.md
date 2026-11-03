@@ -190,7 +190,8 @@ step runs this loop start to finish; no stage is skipped or reordered.
    screenshots, snapshots and logs into the local `evidence/<step>/` (ADR-0132).
 5. **Commit semantically and atomically.** One coherent change per commit,
    conventional-commit subject. No complex git, no reverts, no rewriting
-   history (the one exception, before the first push, is `docs/adr/0015-*`).
+   history (the one exception, while the repository is private and shared with nobody, is
+   `docs/adr/0015-*` and `docs/adr/0133-*`).
    Every commit is fully functional — never broken mid-series. Gate results go in the **commit
    body**, never in a doc.
 6. **Refactor rather than patch.** Band-aids layered on legacy code are worse
