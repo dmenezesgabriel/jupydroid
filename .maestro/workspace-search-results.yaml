@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P2x-3: the search panel actually searches - the box, and what it found grouped by file.
+# The search panel actually searches - the box, and what it found grouped by file.
 #
 # VS Code answers for both halves of this panel. JupyterLab registers no workspace search at all,
 # its `documentsearch` being scoped to `currentWidget`
-# (`documentsearch-extension/src/index.ts:227`), which is the find bar P2i shipped - so
+# (`documentsearch-extension/src/index.ts:227`), which is the notebook's find bar - so
 # `search/browser/searchView.ts` is the reference for behaviour here as well as for presentation
 # (ADR-0062).
 #
@@ -53,8 +53,8 @@ appId: com.jupydroid.app
 # convenience.** The first run of this flow tapped a result row with the IME up: the panel had no
 # `imePadding`, the lower rows were drawn *under* the keyboard, and Maestro's tap at their
 # coordinates landed on the **space bar** - which turned the query into "cat " and quietly took the
-# count from 5 to 3 before the assertion that failed. The panel insets for the keyboard now
-# (`evidence/workspace-search-results/`), and putting it away is what a reader does before browsing.
+# count from 5 to 3 before the assertion that failed. The panel insets for the keyboard now,
+# and putting it away is what a reader does before browsing.
 - hideKeyboard
 # --- 3. grouped by file, each with its count, in the browser's own order --------------------------
 - assertVisible: "reports/analysis.py, 2 matches found"
@@ -77,8 +77,8 @@ appId: com.jupydroid.app
 #
 # Wrapped in `(?s).*…*` because Maestro matches a node's **whole** text, and the editor is a single
 # node carrying the whole file - measured: the hierarchy dump of the run that failed on a bare
-# `import os` shows one node reading `import os\n\n\ndef feed_the_cat(name):\n…`
-# (`evidence/workspace-search-results/`). The same shape every other editor assertion in `.maestro/`
+# `import os` shows one node reading `import os\n\n\ndef feed_the_cat(name):\n…`.
+# The same shape every other editor assertion in `.maestro/`
 # already uses (`file-editor.yaml:32`, `new-python-file.yaml:47`).
 - assertVisible: "(?s).*import os.*"
 - takeScreenshot: 04-the-match-opened-its-file

@@ -23,8 +23,8 @@ run_flow "$ROOT/.maestro/terminal-background.yaml" "$EVIDENCE" || exit 1
 # Both markers the flow `tee`'d - the second proves the re-attach is live, which is the gate the
 # flow's own header names. The scrollback half is a pixel compare of the two terminal frames:
 # replayed rows keep the same top strip, while a grid blanked by the cycle would not.
-wait_for_workspace_text "p4i-bg-before.txt" "before-background"
-wait_for_workspace_text "p4i-bg-after.txt" "after-foreground"
+wait_for_workspace_text "background-before.txt" "before-background"
+wait_for_workspace_text "background-after.txt" "after-foreground"
 
 SAME_STRIP="$(top_strip_differs "$EVIDENCE/01-before-background.png" "$EVIDENCE/03-foregrounded-live-and-scrollback-intact.png" 700 1900)"
 echo "top strip unchanged across the background cycle (scrollback replayed): ${SAME_STRIP}"

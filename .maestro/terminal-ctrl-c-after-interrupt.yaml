@@ -13,7 +13,7 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: 02-ctrl-c-interrupted-sleep
-- inputText: "echo interrupted > p4j2-after.txt"
+- inputText: "echo interrupted > ctrl-c-after.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 3000

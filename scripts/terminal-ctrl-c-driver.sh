@@ -36,6 +36,6 @@ run_flow "$ROOT/.maestro/terminal-ctrl-c-after-interrupt.yaml" "$EVIDENCE" || ex
 # The `echo interrupted` part2 typed reaches the shell at once only if the sleep actually died -
 # 20s is comfortably under the 30s the line would otherwise wait out. `survived` is the other
 # half: the `&&` branch ran only if the sleep saw its own end.
-wait_for_workspace_text "p4j2-after.txt" "interrupted" 20
-require_workspace_absent "p4j2-survived.txt"
+wait_for_workspace_text "ctrl-c-after.txt" "interrupted" 20
+require_workspace_absent "ctrl-c-survived.txt"
 echo "terminal-ctrl-c gate passed: Ctrl-C reached a real shell and interrupted 'sleep 30'"

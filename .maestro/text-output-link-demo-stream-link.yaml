@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# The PRD's demo, typed into a new notebook from a cold launch. The first cell prints a sentence
+# The demo, typed into a new notebook from a cold launch. The first cell prints a sentence
 # holding a URL; the URL draws as a link. Then a tap on "see", beside it, which the driver checks
 # left this app in front. Run by scripts/text-output-link-demo-driver.sh.
 #

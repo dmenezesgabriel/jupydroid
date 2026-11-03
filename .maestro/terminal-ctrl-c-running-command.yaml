@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4j-2's own closing half of the P4j gate: "send Ctrl-C to a running one." A real shell (TABLET
+# The closing half of the Ctrl-C gate: "send Ctrl-C to a running one." A real shell (TABLET
 # ONLY), not `FakeTerminalGateway`'s echo - Ctrl-C needs a real line discipline to answer to. `sleep
 # 30`, not `yes`: `yes`'s own screen-filling output makes two screenshots of it indistinguishable
 # whether or not it was actually interrupted - measured, not assumed, a first attempt against `yes`
@@ -28,10 +28,10 @@ appId: com.jupydroid.app
 - tapOn:
     id: "terminal-input"
 # `&& echo survived` runs only if the sleep lasts the full half-minute - the driver's absence check
-# on `p4j2-survived.txt` is half of the interrupt proof (`architecture/cross-cutting.md` §8.6
+# on `ctrl-c-survived.txt` is half of the interrupt proof (`architecture/cross-cutting.md` §8.6
 # forbids gating on this canvas's `visible:` `Text` column, so the `^C` echo it used to assert is a
 # screenshot, not a gate).
-- inputText: "sleep 30 && echo survived > p4j2-survived.txt"
+- inputText: "sleep 30 && echo survived > ctrl-c-survived.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 3000

@@ -37,9 +37,9 @@ read_ws() {
   "$ADB" ${ANDROID_SERIAL:+-s "$ANDROID_SERIAL"} shell \
     "run-as $APP sh -c 'test -f \"$WS/$1\" && cat \"$WS/$1\" || echo \"<absent>\"'" | tr -d '\r'
 }
-py="$(read_ws p4m-python.txt)"
-rc="$(read_ws p4m-rc.txt)"
-ec="$(read_ws p4m-echo.txt)"
+py="$(read_ws verbatim-python.txt)"
+rc="$(read_ws verbatim-rc.txt)"
+ec="$(read_ws verbatim-echo.txt)"
 {
   echo "python3 -c 'import json, sys; print(sys.prefix)'  ->  $py"
   echo "  its exit status                                 ->  $rc"

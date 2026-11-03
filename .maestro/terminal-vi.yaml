@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4i-2's own closing gate: `vi` forces the alternate screen, a full redraw on entry, and its own
+# The closing gate for the alternate screen: `vi` forces the alternate screen, a full redraw on entry, and its own
 # status line and `~` fill lines - none of which a shell prompt or an echoed keystroke can produce.
 # Two oracles stand in for what `extendedWaitUntil: visible: "~"` could not reliably read
 # (`architecture/cross-cutting.md` §8.6 forbids gating on this canvas's `Text` column): the driver's
@@ -30,7 +30,7 @@ appId: com.jupydroid.app
     id: "terminal-input"
 # The pre-vi baseline `terminal_top_strip_differs` compares against - a bare prompt's first rows.
 - takeScreenshot: 00-bare-prompt
-- inputText: "vi p4i-vi-marker.txt"
+- inputText: "vi vi-marker.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 15000
@@ -40,7 +40,7 @@ appId: com.jupydroid.app
 # itself never landed the shell would answer `not found` and every later keystroke types at a
 # prompt - the file the driver then looks for simply never exists.
 - inputText: "i"
-- inputText: "p4i-vi-wrote-this"
+- inputText: "vi-wrote-this"
 - tapOn: "Esc"
 - inputText: ":wq"
 - pressKey: Enter

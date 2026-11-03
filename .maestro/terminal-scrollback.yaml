@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P4j-3d-3's own gate: scroll back into real output a real shell produced, and show it - not the
+# The scrollback gate: scroll back into real output a real shell produced, and show it - not the
 # live screen. Maestro's own `visible:`/`extendedWaitUntil` cannot reliably read this terminal's
 # text (`architecture/cross-cutting.md` §8.6) - screenshots and the pixel-based
 # `terminal_top_strip_differs` oracle (`terminal_content_extent.py`) are what actually prove it, the
-# same screenshot-plus-python-oracle pattern P4j-3b/P4j-3c already established for this screen.
+# same screenshot-plus-python-oracle pattern `terminal-ime-resize-keyboard-open` and `terminal-font-size` already use for this screen.
 #
 # TABLET ONLY (SM-X216B): a real shell, not `FakeTerminalGateway`'s echo.
 # NOT A SUITE FLOW: the driver rotates the device, which every flow running after it would inherit.

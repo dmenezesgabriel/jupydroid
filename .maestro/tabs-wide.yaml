@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8e, two panes: the same strip over the detail pane with the browser beside it. The launcher
+# Two panes: the same strip over the detail pane with the browser beside it. The launcher
 # fill is itself a tab here (the strip's own answer to "Launcher/Settings/Terminal/Console are
 # tabs too"), so three documents on top of it make four.
 #
@@ -52,7 +52,7 @@ appId: com.jupydroid.app
 # ---- a tab tap reveals its document ----
 - tapOn: "Tab: tabs-first.ipynb"
 - extendedWaitUntil:
-    visible: ".*p8e_marker_first.*"
+    visible: ".*tab_marker_first.*"
     timeout: 10000
 - takeScreenshot: 03-tab-tap-reveals
 # ---- closing one tab leaves the rest ----
@@ -72,8 +72,8 @@ appId: com.jupydroid.app
 - tapOn:
     point: "95%,25%"
 - pressKey: Enter
-- inputText: "p8e_dirty_probe"
-- assertVisible: "(?s).*p8e_dirty_probe.*"
+- inputText: "tab_dirty_probe"
+- assertVisible: "(?s).*tab_dirty_probe.*"
 - extendedWaitUntil:
     visible: "Unsaved changes"
     timeout: 10000
@@ -108,13 +108,13 @@ appId: com.jupydroid.app
 - takeScreenshot: 08-tab-long-press-opens-rename
 # Stem selected on open (`titleStemEnd`), so typing replaces it and `.ipynb` survives - no tap
 # into the field, which would collapse the selection (`explorer-rename.yaml`'s own lesson).
-- inputText: "p8e-renamed"
+- inputText: "renamed-tab"
 - tapOn: "Rename"
 - extendedWaitUntil:
-    visible: "Tab: p8e-renamed.ipynb"
+    visible: "Tab: renamed-tab.ipynb"
     timeout: 10000
 # The tab kept its place and its document: the same cell source is still on screen, which only
 # holds if the entry and its ViewModel were never replaced (`Context._updatePath`, not a reopen).
-- assertVisible: ".*p8e_marker_first.*"
+- assertVisible: ".*tab_marker_first.*"
 - assertVisible: "Tab: Launcher"
 - takeScreenshot: 09-renamed-in-place

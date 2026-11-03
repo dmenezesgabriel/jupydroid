@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P7b: the plain file editor's breadcrumb. Where a file lives, and the way back to its folder.
+# The plain file editor's breadcrumb. Where a file lives, and the way back to its folder.
 #
-# The trail the notebook has had since P2w-1, on the other document this app opens. It is
+# The trail the notebook has, on the other document this app opens. It is
 # **ancestors only** - the file's own name is on the bar above it, so the name is never said twice -
 # and it sits **under** that bar, which is where `BreadcrumbsControl` sits relative to a tab title
 # (`parts/editor/breadcrumbsControl.ts`). The notebook has two rows and puts the trail between
@@ -19,8 +19,8 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-the-workspace
 
 # A file at the workspace root has no ancestry, so the row is **absent** rather than blank -
-# `ancestorCrumbsFor` returns empty there, and 48dp spent saying nothing is the trade P2v declined
-# the run gutter over. "Back to files" is the plain editor's own arrow, so seeing it proves the
+# `ancestorCrumbsFor` returns empty there, and 48dp spent saying nothing is the trade the run gutter
+# declined. "Back to files" is the plain editor's own arrow, so seeing it proves the
 # file did not open as a notebook.
 - tapOn: "file_editor.py"
 - assertVisible: "Back to files"

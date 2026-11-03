@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8e, one pane: the tab strip over the one pane the detail gets below two panes. Three documents
+# One pane: the tab strip over the one pane the detail gets below two panes. Three documents
 # open -> three tabs; tapping a tab reveals that document with its own state; a tab's close
 # leaves the rest; a dirty tab's close raises the reference's Save/Discard/Cancel gate
 # (`docmanager/dialogs.ts`), and Cancel really does leave the tab standing.
@@ -55,7 +55,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     # The first notebook's own cell source - a generic "editor is visible" would pass on the
     # document that was already on top.
-    visible: ".*p8e_marker_first.*"
+    visible: ".*tab_marker_first.*"
     timeout: 10000
 - takeScreenshot: 03-tab-tap-reveals
 # ---- closing one tab leaves the rest ----
@@ -75,8 +75,8 @@ appId: com.jupydroid.app
 - tapOn:
     point: "95%,25%"
 - pressKey: Enter
-- inputText: "p8e_dirty_probe"
-- assertVisible: "(?s).*p8e_dirty_probe.*"
+- inputText: "tab_dirty_probe"
+- assertVisible: "(?s).*tab_dirty_probe.*"
 - extendedWaitUntil:
     visible: "Unsaved changes"
     timeout: 10000
@@ -113,12 +113,12 @@ appId: com.jupydroid.app
 - takeScreenshot: 08-tab-long-press-opens-rename
 # Stem selected on open (`titleStemEnd`), so typing replaces it and `.ipynb` survives - no tap
 # into the field, which would collapse the selection (`explorer-rename.yaml`'s own lesson).
-- inputText: "p8e-renamed"
+- inputText: "renamed-tab"
 - tapOn: "Rename"
 - extendedWaitUntil:
-    visible: "Tab: p8e-renamed.ipynb"
+    visible: "Tab: renamed-tab.ipynb"
     timeout: 10000
 # The tab kept its place and its document: the same cell source is still on screen, which holds
 # only if the entry and its ViewModel were never replaced (`Context._updatePath`, not a reopen).
-- assertVisible: ".*p8e_marker_first.*"
+- assertVisible: ".*tab_marker_first.*"
 - takeScreenshot: 09-renamed-in-place

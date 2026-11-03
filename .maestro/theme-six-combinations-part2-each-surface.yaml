@@ -23,7 +23,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 02-file
 - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
 - extendedWaitUntil:
-    visible: "p8e_marker_first = 1"
+    visible: "tab_marker_first = 1"
     timeout: 10000
 - takeScreenshot: 03-notebook
 - tapOn: "Tab: Terminal .*"

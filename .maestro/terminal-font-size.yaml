@@ -1,16 +1,16 @@
 appId: com.jupydroid.app
 ---
-# The P4j-3c gate: "change the size, show the grid reflow and the glyphs redraw at the new scale
+# The font-size gate: "change the size, show the grid reflow and the glyphs redraw at the new scale
 # against a real shell." TABLET ONLY (SM-X216B): a real shell's own SIGWINCH redraw on `set_size`,
 # not `FakeTerminalGateway`'s echo.
 #
-# `vi`'s own full-screen `~` fill is the same oracle P4i-3a/P4j-3b already use for a resize -
+# `vi`'s own full-screen `~` fill is the same oracle `terminal-resize-before-rotation` and `terminal-ime-resize-keyboard-open` use for a resize -
 # read differently again here: the driver's own `terminal_row_spacing_px` measures the pixel gap
 # between consecutive `~` rows, which is `codeTextStyle`'s cell height rendered, not a layout
 # number either capture carries.
 #
 # `hideKeyboard` before every screenshot, unlike `terminal-ime-resize-keyboard-open`'s own IME flow which keeps it open - so
-# the IME's own inset (P4j-3b) is not a second variable inside a measurement about font size
+# the IME's own inset (`terminal-ime-resize-keyboard-open`) is not a second variable inside a measurement about font size
 # alone.
 #
 # The menu closes on every tap (`TerminalActionsMenu`'s own `DropdownMenuItem`, `open = false`

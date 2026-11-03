@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4j-3d-4's own gate: while the alternate screen is live (`vi`), a drag moves the cursor by a
+# The gate for arrow keys on the alternate screen: while the alternate screen is live (`vi`), a drag moves the cursor by a
 # real arrow keypress rather than scrolling the screen - Termux's own `doScroll`'s special case
 # for a buffer with no scrollback at all. `vi`'s own full-screen redraw (`~` fill lines) is this
 # phase's own established proof surface (`terminal-vi`) that a real, unmodified program is

@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P2x-5j: a replace reaches **the document that is open**, not the file underneath it.
+# A replace reaches **the document that is open**, not the file underneath it.
 #
 # `BulkTextEdits` resolves a text model for every resource, open or not (`bulkTextEdits.ts:227`),
 # edits the models, and only then saves each (`replaceService.ts:136`). The reason is the whole of
-# why P2x-1e took `replaceAll` off the port and why P2x-5b built `OpenDocuments`: a replace that
+# why `replaceAll` is not on the workspace port and why `OpenDocuments` exists: a replace that
 # wrote the *file* under an open editor would be undone by that editor's next debounced save, and the
 # reader would watch their replacement disappear.
 #

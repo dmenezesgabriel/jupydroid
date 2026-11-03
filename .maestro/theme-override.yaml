@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-3: the Settings screen's Theme row overrides the system's dark/light choice, and the choice
+# The Settings screen's Theme row overrides the system's dark/light choice, and the choice
 # survives a relaunch. Nothing below runs a cell, so the emulator - and its FakeKernelGateway - is
 # enough; this flow is sharded across both devices the same way settings-screen.yaml is,
 # since the segmented row's own width differs between the emulator's one pane and the tablet's two.

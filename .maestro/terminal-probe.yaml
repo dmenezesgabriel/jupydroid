@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P7e-0's other half: what the *shell* can run, which the kernel cannot answer.
+# What the *shell* can run, which the kernel cannot answer.
 #
 # Two causes, and which one each name actually hits: `usr/bin/python3.12` is an ELF under
 # `filesDir`, which `execve` refuses at targetSdk 36 (ADR-0002 - the reason `BusyBoxApplets`

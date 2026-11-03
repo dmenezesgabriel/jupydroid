@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2o-2: the table of contents is a **sidebar panel of the shell**, reached from the activity bar
+# The table of contents is a **sidebar panel of the shell**, reached from the activity bar
 # beside the file browser - `shell.add(toc, 'left', { rank: 400 })`
 # (`packages/toc-extension/src/index.ts:309`). It used to be a column on the right of the notebook,
 # which is a second side area the reference does not have.

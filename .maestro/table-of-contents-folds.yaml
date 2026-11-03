@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2h-4: `toc:toggle-collapse` - an entry folds what it owns away, and one control does the whole
+# `toc:toggle-collapse` - an entry folds what it owns away, and one control does the whole
 # tree. The claim that matters is the one the reference's own default makes: this is the **ToC's**
 # fold and not the notebook's, so folding "Chapter one" here hides its entries and leaves every
 # cell of that section exactly where it was (`syncCollapseState` defaults false,
@@ -26,7 +26,7 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Notes before any heading."
     timeout: 30000
-# From the rail, which is where the panel lives since P2o-2 - `toc:show-panel` in the notebook's
+# From the rail, which is where the panel lives - `toc:show-panel` in the notebook's
 # own menu activates the same panel, and `toc-side-panel` is what asserts that it does.
 - tapOn: "Table of contents"
 - assertVisible: "Table of contents Chapter one"

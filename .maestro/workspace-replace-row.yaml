@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-5e: the replace row on the search panel - the chevron that discloses it, the box behind it,
+# The replace row on the search panel - the chevron that discloses it, the box behind it,
 # and the preserve-case toggle inside the box.
 #
 # `.replace-container.disabled` until `onToggleReplaceButton` opens it (`searchWidget.ts:553`,
@@ -10,10 +10,10 @@ appId: com.jupydroid.app
 #
 # **The chevron has a column of its own on this row, where the reference spans it across both
 # inputs, and that is a measurement** - the query box is 336dp here and three 48dp toggles already
-# leave it 192dp (`evidence/workspace-search-options/box.txt`). This flow therefore **ends with the row
+# leave it 192dp. This flow therefore **ends with the row
 # open**, so the driver's `uiautomator dump` reads the state the decision is about.
 #
-# **Nothing is replaced here.** Replace All arrives with the action behind it (P2x-5f); a control
+# **Nothing is replaced here.** Replace All arrives with the action behind it (`workspace-replace-all`); a control
 # that does nothing when tapped is one this app does not draw.
 #
 # **WIDE WINDOW**: the panel is drawn only where there is room for two panes. No cell is run, so

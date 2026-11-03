@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4k part 2: resume after the driver's own wait past the grace, with the terminal open the whole
+# Part 2 of the idle-stopper pair, begun by `terminal-background-idle`: resume after the driver's own wait past the grace, with the terminal open the whole
 # time.
 #
 # Screenshot immediately on resume, before typing anything new - the driver compares this
@@ -22,7 +22,7 @@ appId: com.jupydroid.app
       visible: "Open Base \\(base\\)"
     file: open-base-space.yaml
 - takeScreenshot: 03-resumed-before-typing
-- inputText: "echo p4k-after-idle > p4k-marker-after.txt"
+- inputText: "echo after-idle > idle-marker-after.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 5000

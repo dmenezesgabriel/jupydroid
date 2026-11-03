@@ -1,11 +1,11 @@
 appId: com.jupydroid.app
 ---
-# P4i sub-step 1's own gate: open a terminal, type, see it come back on screen. Runs on both
+# The gate for the terminal screen: open a terminal, type, see it come back on screen. Runs on both
 # devices - the emulator's `FakeTerminalGateway` echoes what it is sent, which proves the UI flow;
 # only the tablet run (the terminal-tablet driver) proves a real shell answered.
 #
 # Not `clearState: true` - `terminal-tablet.yaml`'s own reason (it would wipe the installed
-# Space), and since P6d-4 a second one: it also wipes the seeded `launcherSeen`, so the launch
+# Space), and a second one: it also wipes the seeded `launcherSeen`, so the launch
 # would land on the first-run launcher instead of the browser this asserts.
 - launchApp
 - runFlow: open-base-space.yaml

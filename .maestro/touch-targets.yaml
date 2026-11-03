@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2l-4: the two rows in this app built from a bare `clickable`, in one frame.
+# The two rows in this app built from a bare `clickable`, in one frame.
 #
 # Seeded by scripts/touch-targets-driver.sh; clearState would delete the fixture.
 #

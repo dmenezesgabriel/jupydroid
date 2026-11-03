@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Continues the T2 driver, on the copies it left. Driven by scripts/tab-menu-demo-driver.sh.
+# Continues `scripts/tab-menu-demo-driver.sh`, on the copies it left.
 #
 # `other-Copy2.py` is deleted from its tab, then `launchApp` stops the process. The open tabs live
 # in the process's `AppContainer` (ADR-0092), so after it nothing is held in memory: what the

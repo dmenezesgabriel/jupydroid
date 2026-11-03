@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4k part 1: open a terminal, write a marker to disk, then background the app with nothing else
+# Part 1 of the idle-stopper pair, resumed by `terminal-reopen-after-idle`: open a terminal, write a marker to disk, then background the app with nothing else
 # running.
 #
 # The marker goes to a file rather than only to the screen: `architecture/cross-cutting.md` §8.6
@@ -33,7 +33,7 @@ appId: com.jupydroid.app
 # is a user's own focus move, and the one that settles the connection before typing starts.
 - tapOn:
     id: "terminal-input"
-- inputText: "echo p4k-before-idle > p4k-marker-before.txt"
+- inputText: "echo before-idle > idle-marker-before.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 5000

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-5: the Settings screen's "Wrap code lines" toggle actually changes whether a code cell's
+# The Settings screen's "Wrap code lines" toggle actually changes whether a code cell's
 # source wraps or scrolls horizontally, and the choice survives a relaunch - not only the unit/
 # instrumented proof that the field persists and the mechanism lays out correctly
 # (`EditorSettingsRepositoryContract`, `SettingsScreenTest`, `CodeCellFieldWrapTest`).
@@ -9,8 +9,8 @@ appId: com.jupydroid.app
 # whole cell's source regardless of scroll position (`architecture/cross-cutting.md` §8.6: "the
 # editor is one node carrying the whole file") - so `assertVisible` on the fixture's own END_MARKER
 # text would pass whether or not the line actually wrapped, exactly the "goes green against the
-# wrong thing" shape P2x-3f itself found. What proves the wrap state here is the screenshot, looked
-# at - the same substitution P2x-3f and the terminal's own P4j-3b/P4j-3d-3 already made for the
+# wrong thing" shape an earlier flow found. What proves the wrap state here is the screenshot, looked
+# at - the same substitution `workspace-search-results` and the terminal flows already make for the
 # identical reason.
 #
 # Nothing here runs a cell, so the emulator - and its FakeKernelGateway - is enough; sharded

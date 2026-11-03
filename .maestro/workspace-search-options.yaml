@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-3d: the three toggles on the query box, and what each one changes about the walk.
+# The three toggles on the query box, and what each one changes about the walk.
 #
 # `showCommonFindToggles: true` (`searchWidget.ts:454`) puts them inside the input, and
 # `findInput.ts:181-197` fixes their order - **case, whole word, regex**. VS Code answers for both

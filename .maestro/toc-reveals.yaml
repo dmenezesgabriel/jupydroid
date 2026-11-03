@@ -1,13 +1,13 @@
 appId: com.jupydroid.app
 ---
-# P2i-4b: a table-of-contents entry for a heading inside a collapsed section takes you there, and
+# A table-of-contents entry for a heading inside a collapsed section takes you there, and
 # the section gives way.
 #
-# **This is a correction, not a new feature.** P2h shipped the jump with a hidden target as a
+# **This is a correction, not a new feature.** The jump first shipped with a hidden target as a
 # deliberate no-op, on the grounds that the reference does not solve it either. It does:
 # `expandParent` is wired to every active-cell change
 # (`packages/notebook-extension/src/index.ts:2871-2873`, over `actions.tsx:2288-2306`), so a jump
-# there lands on a cell whose section has just been opened. P2i-4 built the helper for the find
+# there lands on a cell whose section has just been opened. The helper was built for the find
 # bar's arrows; this is the same helper on the other surface that jumps.
 #
 # Width-agnostic on purpose: the row is addressed the same way whether the editor drew
@@ -55,7 +55,7 @@ appId: com.jupydroid.app
 - tapOn: "Back to files"
 # **Wait for the explorer before reaching into it.** `tapOn` locates a node and then taps where it
 # was: fired while the document is still on screen it can read the title strip - which carries this
-# same file name since P2q - and tap those coordinates after the explorer has replaced it, landing
+# same file name - and tap those coordinates after the explorer has replaced it, landing
 # on the header and doing nothing. `Workspace` is the section only the explorer draws, so this
 # waits for the destination rather than for a duration.
 - extendedWaitUntil:

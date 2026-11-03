@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2l-1: the vertical metrics of `bodyLarge`, on every surface that draws it.
+# The vertical metrics of `bodyLarge`, on every surface that draws it.
 #
 # Seeded by scripts/text-metrics-driver.sh; clearState would delete the fixture.
 #

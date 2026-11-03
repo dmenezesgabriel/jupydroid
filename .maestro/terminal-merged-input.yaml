@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4j-1's own gate: input folded into the terminal canvas itself - no separate floating box below
+# The gate for input folded into the terminal canvas itself - no separate floating box below
 # the output, the merged surface Termux's own `TerminalView` is. Runs on both the tablet and a
 # phone-width emulator profile - `terminal-screen`'s own precedent: FakeTerminalGateway (the
 # emulator's fallback) echoes what it is sent, which is enough to prove the merged surface; the
@@ -22,7 +22,7 @@ appId: com.jupydroid.app
 
 # `TerminalInputField`'s invisible decorator still owns real focus/IME - it just paints nothing,
 # so what is on screen here is only `TerminalCanvas`: no separate input box beneath it, the way
-# there was through P4i. It autofocuses on composition, but the tap below is still taken: a first
+# there used to be. It autofocuses on composition, but the tap below is still taken: a first
 # inputText's leading keystrokes can race the IME's own connection setup on a real device
 # (`terminal-tablet.yaml`'s measured finding), and a tap on the canvas - which *is* the field,
 # this flow's whole point - is a user's own deterministic focus move.

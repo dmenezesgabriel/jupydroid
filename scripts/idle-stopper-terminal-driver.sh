@@ -129,8 +129,8 @@ echo "app pid $APP_PID"
 server_pids | grep -q . || { echo "jupyter_server is not running right after opening a terminal" >&2; exit 1; }
 capture before-idle
 
-BEFORE_MARKER="$(marker_text p4k-marker-before.txt)"
-[ "$BEFORE_MARKER" = "p4k-before-idle" ] ||
+BEFORE_MARKER="$(marker_text idle-marker-before.txt)"
+[ "$BEFORE_MARKER" = "before-idle" ] ||
   { echo "the pre-background marker never reached disk (read: '$BEFORE_MARKER')" >&2; exit 1; }
 echo "marker on disk before backgrounding"
 
@@ -165,8 +165,8 @@ echo "terminal content area across the idle background: $SCROLLBACK"
 
 # Live shell: a *new* command, typed only now, must still be answered - stale pixels alone cannot
 # prove that, which is why this is read off disk rather than off the screen.
-AFTER_MARKER="$(marker_text p4k-marker-after.txt)"
-[ "$AFTER_MARKER" = "p4k-after-idle" ] ||
+AFTER_MARKER="$(marker_text idle-marker-after.txt)"
+[ "$AFTER_MARKER" = "after-idle" ] ||
   { echo "the post-resume marker never reached disk (read: '$AFTER_MARKER') - the shell is not live" >&2; exit 1; }
 
 echo "idle-stopper-terminal gate passed: a live terminal kept the server up through the idle stopper's grace, and the shell answered again with its scrollback intact."

@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4i-3a's own gate: `gateway.resize` reaches the real pty on a real size change (rotation), not
+# The gate for resizing the pty: `gateway.resize` reaches the real pty on a real size change (rotation), not
 # only the app's own redraw. The oracle is `os.get_terminal_size()` written to the workspace by
 # `tee` - CPython's own `TIOCGWINSZ` on fd 1, the live answer `stty size` could not give (this
 # busybox build answers a fixed `25 80` regardless of the real winsize,

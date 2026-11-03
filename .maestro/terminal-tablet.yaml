@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4i sub-step 1's tablet half - a real shell, not the fake's echo. `architecture/cross-cutting.md`
+# The tablet half of `terminal-screen` - a real shell, not the fake's echo. `architecture/cross-cutting.md`
 # §8.6: an assertion must name something that cannot appear in the prompt or the pty's own echo of
 # the command line, so this asks for arithmetic the shell has to compute and lists a file the driver
 # seeded, rather than waiting for "ls" or "ok".
@@ -37,9 +37,9 @@ appId: com.jupydroid.app
 # any inputText runs.
 - tapOn:
     id: "terminal-input"
-- inputText: "echo $((6*7)) | tee p4i-answer.txt"
+- inputText: "echo $((6*7)) | tee shell-answer.txt"
 - pressKey: Enter
-- inputText: "ls | tee p4i-listing.txt"
+- inputText: "ls | tee shell-listing.txt"
 - pressKey: Enter
 # The screenshots are evidence, not the gate - the driver greps the tee'd files. This wait just
 # gives the shell a beat to answer so the frame shows it.

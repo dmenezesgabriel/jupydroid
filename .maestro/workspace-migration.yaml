@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# X1a: a notebook from the old private folder arrives in the workspace the kernel can see.
+# A notebook from the old private folder arrives in the workspace the kernel can see.
 #
 # Seeded by scripts/workspace-migration-driver.sh, which puts the fixture in the *old* place -
 # `files/notebooks` - and deletes the stamp, so the launch below is a first launch after an

@@ -1,8 +1,8 @@
 appId: com.jupydroid.app
 ---
-# P4i-3b's own gate: `attach()` cancels while backgrounded and a re-attach replays scrollback.
+# The gate for re-attaching after a background cycle: `attach()` cancels while backgrounded and a re-attach replays scrollback.
 #
-# Proving only that the *old* text is still on screen after the cycle would not test this sub-step
+# Proving only that the *old* text is still on screen after the cycle would not test this
 # at all - `TerminalEmulator`'s own grid lives in the ViewModel's memory regardless of whether
 # `attach()`'s collection is running, so it would survive a background/foreground cycle even under
 # the old code that never cancelled it. The real proof is that a *second, new* command, typed only
@@ -31,7 +31,7 @@ appId: com.jupydroid.app
 # is a user's own focus move, and the one that settles the connection before typing starts.
 - tapOn:
     id: "terminal-input"
-- inputText: "echo before-background | tee p4i-bg-before.txt"
+- inputText: "echo before-background | tee background-before.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 5000
@@ -49,7 +49,7 @@ appId: com.jupydroid.app
 # The resume re-composes the field and re-runs its autofocus - the same race the tap above took.
 - tapOn:
     id: "terminal-input"
-- inputText: "echo after-foreground | tee p4i-bg-after.txt"
+- inputText: "echo after-foreground | tee background-after.txt"
 - pressKey: Enter
 - waitForAnimationToEnd:
     timeout: 5000

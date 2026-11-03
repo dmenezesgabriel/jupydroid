@@ -97,8 +97,8 @@ record "app pid when typed: $typed_pid, after the save: $saved_pid"
 [ "$typed_pid" = "$saved_pid" ] || fail "the process was restarted; the save measured nothing"
 
 run_part part3-notebook
-holds "$NOTEBOOK.ipynb" "p8e_marker_first = 10" || fail "the save icon did not write the notebook's cell"
-record "$NOTEBOOK.ipynb after the tap: holds p8e_marker_first = 10"
+holds "$NOTEBOOK.ipynb" "tab_marker_first = 10" || fail "the save icon did not write the notebook's cell"
+record "$NOTEBOOK.ipynb after the tap: holds tab_marker_first = 10"
 
 "${adb[@]}" shell am force-stop "$APP"
 run_part part4-relaunched

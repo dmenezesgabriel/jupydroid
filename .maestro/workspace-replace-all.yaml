@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-5h: Replace All across the workspace - the counted question, and **one action rewriting a
+# Replace All across the workspace - the counted question, and **one action rewriting a
 # notebook and a plain file together**.
 #
 # `SearchView.replaceAll` (`searchView.ts:812-853`): the counts are the tree's own

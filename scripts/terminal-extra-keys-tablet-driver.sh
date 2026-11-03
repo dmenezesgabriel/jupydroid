@@ -20,10 +20,10 @@ run_flow "$ROOT/.maestro/terminal-extra-keys-tablet.yaml" "$ROOT/evidence/termin
 
 # The `echo interrupted` the flow typed *after* its Ctrl+C tap reaches the shell at once only if
 # the sleep actually died - 20s is comfortably under the 30s the line would otherwise wait out.
-wait_for_workspace_text "p4j3a-after.txt" "interrupted" 20
+wait_for_workspace_text "extra-keys-after.txt" "interrupted" 20
 # And the other half of it: a surviving sleep would have run its `&&` branch already by now.
-require_workspace_absent "p4j3a-survived.txt"
+require_workspace_absent "extra-keys-survived.txt"
 # Esc's half: `vi` wrote `zqxvk` only because Esc left insert mode - otherwise `:wq` was buffer
 # text and the file simply does not exist.
-wait_for_workspace_text "p4j3a.txt" "zqxvk"
+wait_for_workspace_text "extra-keys-typed.txt" "zqxvk"
 echo "terminal-extra-keys-tablet gate passed: Ctrl interrupted a real sleep, and Esc left a real vi's insert mode"

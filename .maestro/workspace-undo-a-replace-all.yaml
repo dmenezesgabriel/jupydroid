@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-5i: **one undo takes back the whole replace-all** - every file, in one tap.
+# **One undo takes back the whole replace-all** - every file, in one tap.
 #
 # `MultiModelEditStackElement` is one entry over every model a bulk edit touched, and its `undo()`
 # loops the lot in one go (`editStack.ts:319-330`, `:330-336`). What is asserted here is that
@@ -28,7 +28,7 @@ appId: com.jupydroid.app
 - assertVisible: "analysis.ipynb"
 - tapOn:
     text: "^Search$"
-# --- replace across both files, exactly as P2x-5h does ------------------------------------------
+# --- replace across both files, exactly as `workspace-replace-all` does ------------------------------------------
 - tapOn: "Show replace"
 - tapOn: "Search the workspace"
 - inputText: "cat"

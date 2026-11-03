@@ -86,8 +86,8 @@ file_saved_on_demand() {
 # The same act on a notebook's cell.
 notebook_saved_on_demand() {
   run_flow "$FLOWS-notebook.yaml" "$EVIDENCE/part3-notebook" || exit 1
-  holds "$NOTEBOOK.ipynb" "p8e_marker_first = 10" || fail "the save icon did not write the notebook's cell"
-  record "$NOTEBOOK.ipynb after the tap: holds p8e_marker_first = 10"
+  holds "$NOTEBOOK.ipynb" "tab_marker_first = 10" || fail "the save icon did not write the notebook's cell"
+  record "$NOTEBOOK.ipynb after the tap: holds tab_marker_first = 10"
 }
 
 # A second line, a rewrite beneath it, and the tap asks rather than writing over the disk.

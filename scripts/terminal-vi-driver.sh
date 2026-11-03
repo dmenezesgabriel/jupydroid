@@ -16,7 +16,7 @@ EVIDENCE="$ROOT/evidence/terminal-vi"
 . "$ROOT/scripts/maestro-run.sh"   # reset_notebooks + seed_file + run_flow
 
 reset_notebooks
-seed_file "$ROOT/.maestro/fixtures/terminal-marker.txt" "p4i-vi-marker.txt"
+seed_file "$ROOT/.maestro/fixtures/terminal-marker.txt" "vi-marker.txt"
 
 run_flow "$ROOT/.maestro/terminal-vi.yaml" "$EVIDENCE" || exit 1
 
@@ -29,5 +29,5 @@ echo "terminal's top strip redrew when vi opened: ${REDRAWN}"
   echo "the terminal's top strip is pixel-identical before and after 'vi' - no full-screen program drew" >&2
   exit 1
 }
-wait_for_workspace_text "p4i-vi-marker.txt" "p4i-vi-wrote-this"
+wait_for_workspace_text "vi-marker.txt" "vi-wrote-this"
 echo "terminal-vi gate passed: vi redrew the terminal's own screen and wrote its buffer back"

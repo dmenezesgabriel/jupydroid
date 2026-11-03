@@ -6,11 +6,11 @@ appId: com.jupydroid.app
     stopApp: false
 - tapOn: "${MAESTRO_NOTEBOOK}"
 - extendedWaitUntil:
-    visible: "p8e_marker_first = 1"
+    visible: "tab_marker_first = 1"
     timeout: 30000
-- tapOn: "p8e_marker_first = 1"
+- tapOn: "tab_marker_first = 1"
 - inputText: "0"
-- assertVisible: ".*p8e_marker_first = 10.*"
+- assertVisible: ".*tab_marker_first = 10.*"
 - hideKeyboard
 - waitForAnimationToEnd:
     timeout: 3000

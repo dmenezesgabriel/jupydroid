@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P4j-3b's own gate: `set_size` actually resizes when the keyboard opens, not only on rotation
-# (P4i-3a's own gate, `terminal-resize`). `vi`'s own full-screen redraw is the same oracle idea
+# The gate for the keyboard's inset: `set_size` actually resizes when the keyboard opens, not only on rotation
+# (`terminal-resize-before-rotation`'s gate). `vi`'s own full-screen redraw is the same oracle idea
 # reused, but read differently: the driver's own `terminal_content_extent.py` measures the
 # screenshot's own pixels rather than the accessibility tree - `grep -c 'text="~"'` over a
-# `uiautomator dump` (P4i-3a's own oracle) proved unreliable on this device, independent of anything
+# `uiautomator dump` (`terminal-resize-before-rotation`'s oracle) proved unreliable on this device, independent of anything
 # `TerminalCanvas` draws (`architecture/cross-cutting.md` §8.6). `stty size` is still rejected for
 # the same reason.
 #

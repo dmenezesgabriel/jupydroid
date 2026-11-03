@@ -16,7 +16,7 @@ appId: com.jupydroid.app
     timeout: 10000
 - tapOn: "${MAESTRO_NOTEBOOK}"
 - extendedWaitUntil:
-    visible: "p8e_marker_first = 1"
+    visible: "tab_marker_first = 1"
     timeout: 30000
 - tapOn: "New Launcher"
 - extendedWaitUntil:

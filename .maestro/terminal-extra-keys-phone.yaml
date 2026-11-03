@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P4j-3a's phone-width half - this step's gate names both a tablet and a phone-width run
+# The phone-width half of the extra-keys gate, which names both a tablet and a phone-width run
 # (`architecture/cross-cutting.md` §8.6), `terminal-merged-input.yaml`'s own precedent.
 # FakeTerminalGateway (the emulator's fallback) echoes bytes back through the same VT100 parser real
 # output would hit, but a control byte - Esc, Tab, Ctrl+letter - has no glyph of its own to draw, so

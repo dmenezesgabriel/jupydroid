@@ -25,6 +25,6 @@ seed_file "$ROOT/.maestro/fixtures/terminal-marker.txt" "terminal-marker.txt"
 
 run_flow "$ROOT/.maestro/terminal-tablet.yaml" "$ROOT/evidence/terminal-tablet" || exit 1
 
-wait_for_workspace_text "p4i-answer.txt" "42"
-wait_for_workspace_text "p4i-listing.txt" "terminal-marker.txt"
+wait_for_workspace_text "shell-answer.txt" "42"
+wait_for_workspace_text "shell-listing.txt" "terminal-marker.txt"
 echo "terminal-tablet gate passed: a real shell computed 42 and listed the seeded workspace file"
