@@ -301,8 +301,22 @@ One TDD unit each, one conventional commit each.
     string literals and wait for T8g. `space-packages-driver.sh` fails at HEAD and after on the
     kernel cell (`No module named 'tabulate'`) while every leg that reads the renamed files passes:
     a defect of its own, not this task's. `.maestro/s*.yaml` is the glob.
-  - [ ] T8f3 — `.maestro/[t-z]*.yaml` (116 flows, 96 hits in 43 of them: `t` 74, `u` 3, `v` 2, `w` 17),
-    the same way.
+  - [x] T8f3 — `.maestro/[t-z]*.yaml` (116 flows, 96 hits in 43 of them: `t` 74, `u` 3, `v` 2, `w` 17;
+    the gate counts 84 problems in 40), now 0, which puts all 690 flows in its scope. The same rules
+    as T8e. The device names say what they are, and a name shared by two flows carries its flow's
+    prefix so none collides in a workspace: `p4j2-*` -> `ctrl-c-after.txt`/`ctrl-c-survived.txt`
+    (`wkr-survived.txt` and `extra-keys-survived.txt` are the siblings'), `p4j3a*` -> `extra-keys-*`,
+    `p4i-answer`/`p4i-listing` -> `shell-answer`/`shell-listing`, `p4k-*` -> `idle-marker-*` and
+    `before-idle`/`after-idle`, `p4m-*` -> `verbatim-*`, `p4i-bg-*` -> `background-*`,
+    `p4i-vi-*` -> `vi-*`, `p8e-renamed` -> `renamed-tab`. Three more no gate pattern matches (an
+    underscore ends the `\b`) went with them: `p8e_marker_first`/`_second`/`p8e_dirty_probe` ->
+    `tab_*` across the two fixtures, three flows and two drivers, the fixtures' `P8e First` titles,
+    and the `p4i` in `terminal-marker.txt`. Four drivers fail at HEAD and after, identically, on
+    something this task did not touch, each a defect of its own: `terminal-vi-driver.sh`'s top-strip
+    oracle reads `False` while the frame shows `vi` drawn, `terminal-input-verbatim-driver.sh` expects
+    a `sys.prefix` ending `/files/spaces/base/usr` and gets `/usr`, and `tabs-narrow` and `tabs-wide`
+    stop at `Rename file` before the typed `renamed-tab`, so that rename ran on no device.
+    `.maestro/[t-z]*.yaml` is the glob.
   - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
     names, kernelspec names). No gate reads a string literal, so the commit body names the `git grep` that
     measured it.
