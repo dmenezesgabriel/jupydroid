@@ -70,8 +70,10 @@ Reproduce from the repository root:
 - **Evidence is local-only (owner's decision, 2026-11-02).** `evidence/` is gitignored, untracked, and
   removed from every commit by the rewrite (`--path-glob 'evidence/*' --invert-paths`). Drivers still write
   there; nothing tracked reads from or cites it. It is untracked *before* the in-place rewrite, because
-  `git filter-repo` ends in `git reset --hard` and would delete files the new tip no longer tracks; it is
-  also archived to a disk path outside the repository first. This supersedes `AGENTS.md` rule 2's
+  `git filter-repo` ends in `git reset --hard` and would delete files the new tip no longer tracks. The
+  2.4 GB on disk was deleted at T10 (owner's decision, 2026-11-03): the script suite passes without it
+  (675 tests), `run_flow` recreates its output directory, and ADR-0132 says losing it loses nothing a
+  tracked file depends on, so there is nothing to archive. This supersedes `AGENTS.md` rule 2's
   "commit them", in an ADR of its own.
 - **Reproduction is a script, not a README.** A result someone must be able to reproduce ships as a
   tested script whose docstring says how to run it. The SHA remap that T3 dry-ran as a pasted snippet is
@@ -346,11 +348,18 @@ One TDD unit each, one conventional commit each.
   so the ambiguity check lives with the lookup. Nothing is written until every file has been read.
   `python3 scripts/remap_cited_shas.py --dry-run` is the command; the map on disk now is the earlier
   rewrite's, so the T10 rehearsal is the first run against the map that matters.
-- [ ] T10 — rehearsal again on the T4 argv: T3's checks, plus no path under `evidence/` in history, T9's
-  dry run, and an in-place run on a copy of the working directory whose ignored `evidence/` must survive.
-  Numbers in the commit body.
+- [x] T10 — rehearsal again on the T4 argv: T3's checks, plus no path under `evidence/` in history, T9's
+  dry run, and an in-place `--force` run on a copy of `.git` and the tracked files (no `evidence/`: it is
+  deleted). Numbers in the commit body. Two bundle clones rewrote to a byte-identical `commit-map` and the
+  same tip; the in-place run found what T11 must handle. `git filter-repo` asks on stdin whether to continue
+  when `.git/filter-repo/already_ran` is over a day old (here about 47 days) and continues without asking
+  under a day, so `rewrite_history.py` now removes the marker first (`forget_previous_run`). The run also
+  removes `origin`, leaves the repo-local `user.email` as it was, and `reset --hard` discards uncommitted
+  work, so T11 starts from a clean, committed tree. A clone made without `PYTHONDONTWRITEBYTECODE=1` fails
+  `filter-repo`'s fresh-clone check on the ignored `__pycache__` its own imports write: T11 is `--force`,
+  and a rehearsal on a clone sets it.
 - [ ] T11 — the real rewrite, in place (`--force`, since `.git/filter-repo/already_ran` exists). **Waits
-  for the owner's go.** `evidence/` archived outside the repository first. Then T9 remaps own SHAs cited
+  for the owner's go.** Then T9 remaps own SHAs cited
   in tracked files from `.git/filter-repo/commit-map`. Repo-local `user.email` is set to the noreply
   address, `origin` is re-added, T1 prints zero, the full gate is green.
 - [ ] T12 — remote: the owner deletes and recreates the repository and turns on GitHub's "Block command
