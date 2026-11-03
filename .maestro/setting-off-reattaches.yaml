@@ -1,15 +1,15 @@
 appId: com.jupydroid.app
 ---
-# P6c-9b, part 4 of 4 - the control arm, and the live-read claim besides. The row is toggled off
-# in the *same* process that has been running since part 1, so `NotebookKernel.close` must answer
+# The control arm, and the live-read claim besides. The row is toggled off
+# in the *same* process that has been running since `settings-row.yaml`, so `NotebookKernel.close` must answer
 # from the setting as it is now (`kernelPreference.shutdownOnDispose`, read at dispose), not from
 # whatever the file said when the notebook opened.
 #
 # Then the notebook does what `notebook-session-reattaches.yaml` has always asserted: a second
 # run of the incrementing cell prints **44**, which only a kernel that stayed alive can compute -
-# a fresh kernel would NameError like part 3's did, and a stale saved output would read 43.
+# a fresh kernel would NameError like `reopen-forgot.yaml`'s did, and a stale saved output would read 43.
 #
-# `stopApp: false` throughout - `shutdown-kernel-shut-it-down`'s own rule. TABLET ONLY: see part 2.
+# `stopApp: false` throughout - `shutdown-kernel-shut-it-down`'s own rule. TABLET ONLY: see `close-shuts-down.yaml`.
 - launchApp:
     stopApp: false
 - waitForAnimationToEnd:
@@ -39,7 +39,7 @@ appId: com.jupydroid.app
     timeout: 120000
 # Cell 1 runs on BOTH visits, `notebook-session-reattaches`'s own trick: an increment reads the
 # kernel's memory and then moves it, so the reopen's answer is 44 - uncomputable by a fresh
-# kernel (part 3's NameError) and distinct from any output the first visit could have left (43).
+# kernel (`reopen-forgot.yaml`'s NameError) and distinct from any output the first visit could have left (43).
 - tapOn:
     text: "Run cell"
     index: 1

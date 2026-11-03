@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P8b: `pip install` grounds in the Space's own user base, unflagged - the user's report made
+# `pip install` grounds in the Space's own user base, unflagged - the user's report made
 # end to end. The terminal is the path the complaint named, the kernel cell is the proof the
 # install is reachable, and the driver-side reads are the proof of *where* it landed.
 #
@@ -45,13 +45,13 @@ appId: com.jupydroid.app
     id: "terminal-input"
 # The log file is the driver's oracle: the canvas's own Text column reads "" on this device
 # (`architecture/cross-cutting.md` §8.6), so the shell writes its answer where run-as can read it.
-- inputText: "pip install tabulate > p8b-install.log 2>&1; echo rc=$? > p8b-pip.rc"
+- inputText: "pip install tabulate > pip-install.log 2>&1; echo rc=$? > pip-install.rc"
 - pressKey: Enter
 - takeScreenshot: 01-pip-install-running
-# p8b-pip.rc exists only after pip exits, and the Files rail re-lists on its 10 s poll - the
+# pip-install.rc exists only after pip exits, and the Files rail re-lists on its 10 s poll - the
 # same refresh JupyterLab's FileBrowserModel runs - so this row appearing IS "pip is done".
 - extendedWaitUntil:
-    visible: "p8b-pip.rc"
+    visible: "pip-install.rc"
     timeout: 120000
 - tapOn: "Cold Path.ipynb"
 - extendedWaitUntil:

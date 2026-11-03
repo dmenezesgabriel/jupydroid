@@ -1,19 +1,19 @@
 appId: com.jupydroid.app
 ---
-# P1d part 2: `notebook:shutdown-kernel` from the kernel bar's menu.
+# `notebook:shutdown-kernel` from the kernel bar's menu.
 #
-# **`stopApp: false` is the test, not a detail** - the same rule P1c's parts run under. Maestro's
+# **`stopApp: false` is the test, not a detail** - the same rule the other flows that reopen a kernel run under. Maestro's
 # `launchApp` force-stops the app first, and the server is a child of that process: a force-stop
 # would take the kernel with it and the driver's "the session is gone" check would pass without
 # the command having done anything at all.
 #
 # No dialog is tapped and none is expected. The reference's `notebook:shutdown-kernel` executes on
-# the spot; it is `close-and-shutdown` (part 4) that asks.
+# the spot; it is `close-and-shutdown` (`shutdown-kernel-close-and-shut-down.yaml`) that asks.
 #
 # What the flow can see afterwards is only that the notebook is still here - the outputs stay on
 # screen, which is exactly what tells a shutdown from a close. The claim that the *kernel* went is
 # the driver's, out of `GET /api/sessions` and `ps`.
-# TABLET ONLY: see part 1.
+# TABLET ONLY: see `shutdown-kernel-run-a-cell.yaml`.
 - launchApp:
     stopApp: false
 - waitForAnimationToEnd:

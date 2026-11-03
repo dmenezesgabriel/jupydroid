@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6d-5: the launcher's Console card mints a standalone console on its own kernel.
+# The launcher's Console card mints a standalone console on its own kernel.
 #
 # `21 * 2` -> `42` is console-shares-kernel.yaml's own distinguishing move: an answer only a real kernel produces -
 # on the x86_64 emulator FakeKernelGateway would echo `21 * 2` back as text, so the assertion
@@ -9,7 +9,7 @@ appId: com.jupydroid.app
 # TABLET ONLY (SM-X216B): no kernel runs on the emulator - see the driver.
 #
 # reset_notebooks seeds launcherSeen, so this is a returning user - and at this window the detail
-# area has already auto-filled with the Launcher (P6d-4), so the card is on screen on launch.
+# area has already auto-filled with the Launcher, so the card is on screen on launch.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

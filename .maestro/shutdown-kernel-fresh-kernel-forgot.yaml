@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# P1d part 3: the notebook still runs, and the kernel it runs on is a different one.
+# The notebook still runs, and the kernel it runs on is a different one.
 #
 # **NameError is the whole assertion.** The cell is `carried += 1`, and `carried` was 43 in the
-# kernel part 2 ended. Three outcomes are distinguishable here:
+# kernel `shutdown-kernel-shut-it-down.yaml` ended. Three outcomes are distinguishable here:
 #
 #   44        -> the same kernel is still there and the shutdown did nothing
 #   NameError -> a kernel that never saw the assignment, which is what a shutdown leaves
@@ -21,7 +21,7 @@ appId: com.jupydroid.app
 # than assumed - the first run of this flow failed with the error plainly on screen, reading
 # `---…---\nNameError   Traceback (most recent call last)\nCell In[1], line 1\n----> 1 carried +=
 # 1\n…\nNameError: name 'carried' is not defined`.
-# TABLET ONLY: see part 1.
+# TABLET ONLY: see `shutdown-kernel-run-a-cell.yaml`.
 - launchApp:
     stopApp: false
 - waitForAnimationToEnd:

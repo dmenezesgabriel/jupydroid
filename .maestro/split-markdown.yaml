@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2b, second half: `notebook:split-cell-at-cursor` on a **markdown** cell.
+# `notebook:split-cell-at-cursor` on a **markdown** cell; `split-code-cell.yaml` has the code cell.
 #
 # Runs no cell, so the emulator is enough and this is evidence on both devices.
 #
@@ -35,7 +35,7 @@ appId: com.jupydroid.app
 - assertVisible: "Below line"
 - assertNotVisible: "# Above"
 - takeScreenshot: 01-rendered
-# A tap on the rendered cell opens its editor - A1c - and the source comes back with the hashes.
+# A tap on the rendered cell opens its editor, and the source comes back with the hashes.
 - tapOn:
     text: "Above"
 - waitForAnimationToEnd:

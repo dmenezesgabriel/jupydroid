@@ -30,7 +30,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FIXTURE="$ROOT/.maestro/fixtures/export-lands-in-workspace.ipynb"
-NOTEBOOK="p2j-5-share"
+NOTEBOOK="share-export"
 AUTHORITY="com.jupydroid.app.exports"
 
 # shellcheck source=scripts/java-home.sh

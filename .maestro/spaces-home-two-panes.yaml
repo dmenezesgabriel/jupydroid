@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-002 T5, two panes: the app opens on the Spaces home, only base's Open is live, Open enters
+# Two panes: the app opens on the Spaces home, only base's Open is live, Open enters
 # base's workspace, and Back from its resting state - the lone launcher - comes back to the home.
 # Runs no cell. Landscape on the tablet; `scripts/spaces-home-driver.sh` rotates.
 - launchApp

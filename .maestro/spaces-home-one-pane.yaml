@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-002 T5, one pane: the home fills a portrait window too, and the browser is the workspace's
+# One pane: the home fills a portrait window too, and the browser is the workspace's
 # root, so Back from it is Back to the home. Runs no cell. Portrait on the tablet;
 # `scripts/spaces-home-driver.sh` rotates.
 - launchApp

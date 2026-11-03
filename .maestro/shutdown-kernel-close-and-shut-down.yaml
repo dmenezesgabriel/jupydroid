@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P1d part 4: `notebook:close-and-shutdown` - the one that asks first, and then takes the
+# `notebook:close-and-shutdown` - the one that asks first, and then takes the
 # notebook off the screen as well.
 #
 # Two assertions, and the order matters. The dialog must appear *before* anything happens, which
@@ -8,8 +8,8 @@ appId: com.jupydroid.app
 # as the command; and the browser's own crumb - "Workspace", which the editor never draws - is
 # what says the notebook really closed rather than the dialog merely having gone away.
 #
-# `stopApp: false` for the reason part 2 records: a force-stop would end the kernel by itself.
-# TABLET ONLY: see part 1.
+# `stopApp: false` for the reason `shutdown-kernel-shut-it-down.yaml` records: a force-stop would end the kernel by itself.
+# TABLET ONLY: see `shutdown-kernel-run-a-cell.yaml`.
 - launchApp:
     stopApp: false
 - waitForAnimationToEnd:

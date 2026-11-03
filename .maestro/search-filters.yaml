@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P2i-7: the two filters `getFilters` declares - `output` ("Search Cell Outputs") and `selection`
+# The two filters `getFilters` declares - `output` ("Search Cell Outputs") and `selection`
 # ("Search in %1 Selected Cells"), both **off** by default as they are there
 # (`packages/notebook/src/searchprovider.ts:228-256`).
 #
-# **The fixture needs no kernel**, which is the same reading that made P2h-6 device-free: nbformat
+# **The fixture needs no kernel**, which is the same reading that makes the table-of-contents flows device-free: nbformat
 # stores a cell's outputs, so `the cat sat on the mat` is on disk and the flow is about a filter
 # rather than about an ABI.
 #

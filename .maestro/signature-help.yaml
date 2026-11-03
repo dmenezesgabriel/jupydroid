@@ -1,12 +1,12 @@
 appId: com.jupydroid.app
 ---
-# P5e-4: typing `(` inside a cell asks `textDocument/signatureHelp` at the caret's virtual position
+# Typing `(` inside a cell asks `textDocument/signatureHelp` at the caret's virtual position
 # and the card draws the signature pylsp answers - VS Code's parameter-hints widget.
 #
 # The trigger is real typing, not a menu row: `inputText` drives the IME, so `(` first runs
 # `PythonTypingRules`' autoclose and lands the caret inside `os.path.join()` - the exact
-# keystroke `onTypeHint` opens on. The answer must be jedi's own signature: the probe
-# (`evidence/p5e-0-lsp-surface/`) measured `join(path: LiteralString, /, *paths:
+# keystroke `onTypeHint` opens on. The answer must be jedi's own signature: a probe of
+# pylsp measured `join(path: LiteralString, /, *paths:
 # LiteralString) -> LiteralString`, so `join(path` is what the screenshot has to show.
 #
 # Same scaffold as `hover.yaml`: the warmup cell runs first because the ask is

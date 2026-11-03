@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2j-5: the exported file leaves the app.
+# The exported file leaves the app.
 #
 # The report that says a file was written carries the one thing left to do with it. Tapping
 # **Share** puts Android's chooser up over the app, with a `content://` URI from this app's
@@ -21,10 +21,10 @@ appId: com.jupydroid.app
 - runFlow: open-base-space.yaml
 - scrollUntilVisible:
     element:
-      text: "p2j-5-share.ipynb"
+      text: "share-export.ipynb"
     direction: DOWN
     timeout: 20000
-- tapOn: "p2j-5-share.ipynb"
+- tapOn: "share-export.ipynb"
 - waitForAnimationToEnd:
     timeout: 5000
 - tapOn:
@@ -38,7 +38,7 @@ appId: com.jupydroid.app
 - tapOn:
     text: "HTML"
 - extendedWaitUntil:
-    visible: "Exported to p2j-5-share.html"
+    visible: "Exported to share-export.html"
     timeout: 120000
 - takeScreenshot: 01-the-report-offers-to-share
 # On the report rather than in a menu: the moment a file is written is the moment somebody wants

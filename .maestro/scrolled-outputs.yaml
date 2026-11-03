@@ -1,7 +1,7 @@
 appId: com.jupydroid.app
 ---
-# P2g-2a: a cell whose saved outputs are marked `scrolled` draws them bounded, before this app can
-# mark one itself (P2g-2b, the command). Seeded by scripts/scrolled-outputs-driver.sh;
+# A cell whose saved outputs are marked `scrolled` draws them bounded, whether or not this app can
+# mark one itself. Seeded by scripts/scrolled-outputs-driver.sh;
 # clearState would delete the fixtures.
 #
 # Two notebooks, same 40-line stream output - one carries `"scrolled": true` in the saved file,

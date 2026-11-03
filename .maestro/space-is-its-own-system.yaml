@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# JD-008: a Space is its own system - the item demo, one run on the tablet.
+# A Space is its own system - the demo, one run on the tablet.
 #
 #   1. cold start: install and launch, the home lists Base, open it;
 #   2. a terminal: `apk add jq` succeeds and `jq` answers;
@@ -16,7 +16,8 @@ appId: com.jupydroid.app
 # Driven by scripts/space-is-its-own-system-driver.sh, which pm-clear's first for the
 # cold start and reads the answer files the typed commands leave in the workspace: the terminal
 # draws to a canvas, so nothing in it is assertable by text (`architecture/cross-cutting.md`
-# §8.6) - the `jd8-*.rc`/`*.out` files are the oracle and the frames are the record. Typed lines
+# §8.6) - the `apk-add.rc`, `jq-run.rc` and `jq-run-again.rc` files and the `*.out` beside them are
+# the oracle and the frames are the record. Typed lines
 # stay short for the measured dropped-character defect in terminal inputText
 # (space-python-driver.sh's header names it).
 #
@@ -61,22 +62,22 @@ appId: com.jupydroid.app
 # starts - autofocus alone raced the first inputText once (space-python.yaml).
 - tapOn:
     id: "terminal-input"
-- inputText: "apk add jq > jd8-apk.log 2>&1; echo rc=$? > jd8-apk.rc"
+- inputText: "apk add jq > apk-add.log 2>&1; echo rc=$? > apk-add.rc"
 - pressKey: Enter
 - takeScreenshot: 02-apk-add-running
 # The Files rail re-lists on its 10 s poll, so this row appearing IS "apk exited".
 - extendedWaitUntil:
-    visible: "jd8-apk.rc"
+    visible: "apk-add.rc"
     timeout: 180000
 - inputText: "echo '{\"a\":1}' > j.json"
 - pressKey: Enter
-- inputText: "jq .a j.json > jd8-jq.out; echo rc=$? > jd8-jq.rc"
+- inputText: "jq .a j.json > jq-run.out; echo rc=$? > jq-run.rc"
 - pressKey: Enter
-# The keyboard covers the rail's lower rows: jd8-apk.rc was the third row and still showed, but
+# The keyboard covers the rail's lower rows: apk-add.rc was the third row and still showed, but
 # the j* rows after it do not. Hidden once, every later row-wait reads the whole rail.
 - hideKeyboard
 - extendedWaitUntil:
-    visible: "jd8-jq.rc"
+    visible: "jq-run.rc"
     timeout: 60000
 - takeScreenshot: 03-jq-installed-and-answers
 
@@ -99,7 +100,7 @@ appId: com.jupydroid.app
 
 # --- 4. back home: creating "Thesis" copies the image, progress showing -----------------------------
 # The user's own way out of a document is its tab's close - one per open tab - and then the
-# workspace is the lone launcher, where one Back leaves for the home (back-at-one-pane.yaml, jd-002).
+# workspace is the lone launcher, where one Back leaves for the home (back-at-one-pane.yaml).
 - tapOn: "Close tab: Apk Space\\.ipynb"
 - tapOn: "Close tab: Terminal .*"
 - extendedWaitUntil:
@@ -118,7 +119,7 @@ appId: com.jupydroid.app
     timeout: 5000
 - inputText: "Thesis"
 - tapOn: "Create"
-# The ~14 s copy keeps the bar up long after the tap - T4's own assertion shape.
+# The ~14 s copy keeps the bar up long after the tap, so the assertion has time to see it.
 - assertVisible: "Working on Spaces"
 - takeScreenshot: 06-thesis-copy-in-progress
 - extendedWaitUntil:
@@ -165,10 +166,10 @@ appId: com.jupydroid.app
     id: "terminal-input"
 # j.json was written before the kill: jq answering against it now is the install *and* the
 # workspace surviving the relaunch in one line.
-- inputText: "jq .a j.json > jd8-jq2.out; echo rc=$? > jd8-jq2.rc"
+- inputText: "jq .a j.json > jq-run-again.out; echo rc=$? > jq-run-again.rc"
 - pressKey: Enter
 - hideKeyboard
 - extendedWaitUntil:
-    visible: "jd8-jq2.rc"
+    visible: "jq-run-again.rc"
     timeout: 60000
 - takeScreenshot: 08-jq-still-installed-after-relaunch

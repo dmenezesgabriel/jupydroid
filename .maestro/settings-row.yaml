@@ -1,11 +1,12 @@
 appId: com.jupydroid.app
 ---
-# P6c-9b, part 1 of 4: the Settings screen's "Shut down kernel on close" row is real and writes
+# The Settings screen's "Shut down kernel on close" row is real and writes
 # `kernelShutdown` on - `tracker.json`'s own setting (title "Shut down kernel", description
 # "...when closing a notebook", schema/tracker.json:741-746), one label here because this
 # screen's rows carry no description line.
 #
-# Bare `launchApp`: this part starts the process every later part pins, `shutdown-kernel-shut-it-down`'s own shape.
+# Bare `launchApp`: this flow starts the process the three that follow it (`close-shuts-down`,
+# `reopen-forgot`, `setting-off-reattaches`) pin, `shutdown-kernel-shut-it-down`'s own shape.
 # TABLET ONLY - the row itself needs no kernel, but the gate it feeds does, and there is no point
 # in a two-device sweep of one flow's head.
 - launchApp

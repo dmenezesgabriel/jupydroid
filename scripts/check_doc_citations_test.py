@@ -297,6 +297,17 @@ class ScannedFilesTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn(path, found)
 
+    def test_the_flows_from_s_are_discovered(self):
+        """`.maestro/s*.yaml` is read, so these flows cannot cite a plan step or an item id again."""
+        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
+        for path in (
+            ".maestro/save-all-demo-relaunch.yaml",
+            ".maestro/share-export.yaml",
+            ".maestro/space-packages.yaml",
+        ):
+            with self.subTest(path=path):
+                self.assertIn(path, found)
+
     def test_a_package_narrows_to_that_package(self):
         found = scanned_files("domain")
         self.assertTrue(found)

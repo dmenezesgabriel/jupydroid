@@ -1,9 +1,9 @@
 appId: com.jupydroid.app
 ---
-# P1b part 2: after the server stopped itself, reopening the notebook must bring a
+# After the server stopped itself, reopening the notebook must bring a
 # kernel back - a fresh server, a fresh session, a fresh answer. Runs only after the
 # driver has shown the process gone.
-# TABLET ONLY: same reason as part 1.
+# TABLET ONLY: same reason as `server-stops-itself-open-and-close.yaml`.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000

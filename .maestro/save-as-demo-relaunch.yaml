@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# Continues the T1 flows after a kill. Driven by scripts/save-as-demo-driver.sh.
+# Continues save-as-file.yaml and save-as-notebook.yaml after a kill. Driven by scripts/save-as-demo-driver.sh.
 #
 # `launchApp` stops the process first, and the open tabs live in the process's `AppContainer`
 # (ADR-0092), so nothing is held in memory: both copies are opened again from the explorer, and what

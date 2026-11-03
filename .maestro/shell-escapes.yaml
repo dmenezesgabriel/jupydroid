@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P4b-2: a cell's shell escapes reach the Space's busybox, on the device's own seccomp filter.
+# A cell's shell escapes reach the Space's busybox, on the device's own seccomp filter.
 #
-# All three cells died before this phase, and not visibly: Alpine's busybox calls setgid/setuid on
+# All three cells died before the seccomp fix, and not visibly: Alpine's busybox calls setgid/setuid on
 # every applet dispatch, both refused to app processes, so the shell was killed by SIGSYS before it
-# printed anything (evidence/p4-terminal/busybox-under-app-seccomp.md).
+# printed anything (ADR-0006, `scripts/check_busybox_seccomp.py`).
 #
 # Every wait asserts a value that appears in **no cell's source**, which is what makes it honest:
 # `FakeKernelGateway` echoes the source back, so an assertion the source could satisfy would pass
@@ -25,7 +25,7 @@ appId: com.jupydroid.app
 - tapOn: "Shell Escapes.ipynb"
 - assertVisible: "!head -2 dataset.csv"
 - takeScreenshot: 01-before-running
-# `head` is a busybox applet, not an ash builtin - the distinction P4b's own gate got wrong when
+# `head` is a busybox applet, not an ash builtin - the distinction an earlier gate got wrong when
 # `echo` passed with all 304 applets broken. `ada,1815` is a row of the seeded CSV and appears
 # nowhere in the notebook, so only the applet's output can satisfy this.
 - tapOn:

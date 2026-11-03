@@ -35,13 +35,13 @@ seed_notebook "$ROOT/.maestro/fixtures/space-packages.ipynb" "Cold Path"
 
 # A previous run's install must not make this one's "Requirement already satisfied" pass as a
 # fresh landing - the assertion is where it lands, so it has to land.
-"${DEVICE_ADB[@]}" shell "run-as $APP rm -rf files/spaces/base/pkgs files/spaces/base/home/jupydroid/p8b-install.log files/spaces/base/home/jupydroid/p8b-pip.rc" || true
+"${DEVICE_ADB[@]}" shell "run-as $APP rm -rf files/spaces/base/pkgs files/spaces/base/home/jupydroid/pip-install.log files/spaces/base/home/jupydroid/pip-install.rc" || true
 
 run_flow "$ROOT/.maestro/space-packages.yaml" "$EVIDENCE"
 
 # The marker file is what the flow waited on; its contents are the rc pip exited with.
-wait_for_workspace_text "p8b-pip.rc" "rc=0" 30
-wait_for_workspace_text "p8b-install.log" "Successfully installed tabulate" 10
+wait_for_workspace_text "pip-install.rc" "rc=0" 30
+wait_for_workspace_text "pip-install.log" "Successfully installed tabulate" 10
 
 # Where it landed: the Space's user base, and only there. The system site-packages' top level
 # is searched at maxdepth 1 because jedi ships typeshed *stubs* for tabulate deeper down - a

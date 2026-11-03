@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P6c-7: the Settings screen's "Symbol row" toggle actually stops the row rendering while a cell
+# The Settings screen's "Symbol row" toggle actually stops the row rendering while a cell
 # is being typed into, and the choice survives a relaunch - not only the unit/instrumented proof
 # that the field persists and `editorBottomBar` answers NONE for it
 # (`EditorSettingsRepositoryContract`, `SettingsScreenTest`, `EditorBottomBarTest`).

@@ -55,11 +55,11 @@ capture "before: a wiped app - nothing under files/spaces but the seed" \
 run_flow "$ROOT/.maestro/space-is-its-own-system.yaml" "$EVIDENCE" || exit 1
 
 # What the typed commands answered: the rc each finished with, and jq's answer itself.
-wait_for_workspace_text "jd8-apk.rc" "rc=0" 30
-wait_for_workspace_text "jd8-jq.rc" "rc=0" 10
-wait_for_workspace_text "jd8-jq.out" "1" 10
-wait_for_workspace_text "jd8-jq2.rc" "rc=0" 30
-wait_for_workspace_text "jd8-jq2.out" "1" 10
+wait_for_workspace_text "apk-add.rc" "rc=0" 30
+wait_for_workspace_text "jq-run.rc" "rc=0" 10
+wait_for_workspace_text "jq-run.out" "1" 10
+wait_for_workspace_text "jq-run-again.rc" "rc=0" 30
+wait_for_workspace_text "jq-run-again.out" "1" 10
 
 # Where the install landed: jq under base's rootfs and in its package db - and NOT under
 # space-1's rootfs, which is the "that Space alone" half of the claim.

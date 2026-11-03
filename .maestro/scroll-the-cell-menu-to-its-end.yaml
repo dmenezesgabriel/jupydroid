@@ -9,7 +9,7 @@ appId: com.jupydroid.app
 # **`scrollUntilVisible` cannot do this.** It swipes at the centre of the *screen*, which is inside
 # the phone's `ModalBottomSheet` and **outside** the tablet's `DropdownMenu` - where it scrolled the
 # notebook behind the menu and the menu dismissed itself, the failure capture showing no menu at
-# all. That was invisible while the list was thirteen rows and every one fitted the tablet; P2b's
+# all. That was invisible while the list was thirteen rows and every one fitted the tablet; adding
 # `Split cell` made it fourteen and Delete went below the fold on both.
 #
 # `90%, 60%` is inside both: the dropdown hugs the right edge and the sheet spans the width.

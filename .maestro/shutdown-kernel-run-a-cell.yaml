@@ -1,10 +1,10 @@
 appId: com.jupydroid.app
 ---
-# P1d part 1: get a kernel, and put something in it that only that kernel knows.
+# Get a kernel, and put something in it that only that kernel knows.
 #
 # The two cells are `notebook-session-reattaches`' - the first defines a variable and prints it,
 # the second increments it - and they are here for the mirror image of that flow's reason. There,
-# `44` after a reopen proves the kernel survived being left. Here, part 3 asks for the same
+# `44` after a reopen proves the kernel survived being left. Here, `shutdown-kernel-fresh-kernel-forgot.yaml` asks for the same
 # increment after a shutdown and must get a **NameError**, which only a kernel that never saw the
 # assignment can produce.
 #

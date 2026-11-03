@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2b: `notebook:split-cell-at-cursor` - cutting one cell in two where the caret is.
+# `notebook:split-cell-at-cursor` - cutting one cell in two where the caret is.
 #
 # Runs no cell, so the emulator is enough and this is evidence on both devices.
 #
@@ -80,7 +80,7 @@ appId: com.jupydroid.app
 # The result stayed with the lower cell, which is the one that kept the cell id. `below:` is what
 # makes this an assertion about *which* cell rather than about the screen having a `[7]` on it
 # somewhere.
-# Scrolled into view first: since P2q the document's name has a row of its own, which costs 48dp
+# Scrolled into view first: the document's name has a row of its own, which costs 48dp
 # until a scroll hands it back (`titleCollapseFraction`), and the split cell's output sits just
 # past the fold at 320dp. `below:` still carries the claim - it is *which* cell holds the output.
 - scrollUntilVisible:

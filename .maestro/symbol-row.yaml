@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# U5d: the characters a touch keyboard hides, one tap above it.
+# The characters a touch keyboard hides, one tap above it.
 #
 # Runs no cell, so any device will do. What it drives is the sequence a Python line actually
 # needs and a soft keyboard makes expensive: `(`, `)`, `:` - each two taps away behind a symbols

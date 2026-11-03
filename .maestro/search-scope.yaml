@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2x-3e: the two glob boxes behind the `…`, and the files each one takes out of the walk.
+# The two glob boxes behind the `…`, and the files each one takes out of the walk.
 #
 # `.query-details` under the query box (`searchView.ts:504-580`): a `.more` button at the row's
 # right (`searchview.css:124-133`), and under it two labelled inputs that are `display: none` until
@@ -38,9 +38,8 @@ appId: com.jupydroid.app
 - assertNotVisible: "files to exclude"
 - tapOn: "Show search details"
 # The details open **focused** - `toggleQueryDetails`' own `moveFocus` - so the IME comes up with
-# them, and since P2x-5e put the replace chevron's row above these two boxes the exclude one no
-# longer fits in what it leaves. This flow was the thing that said so, one phase late: its committed
-# `02` frame already showed the exclude field half clipped, and 48dp finished the job. Putting the
+# them, and since the replace chevron's row sits above these two boxes the exclude one no
+# longer fits in what it leaves. Its `02` frame already showed the exclude field half clipped, and 48dp finished the job. Putting the
 # keyboard away first is what a reader does to read a panel, and it is what `03` and `04` below have
 # always done before reading a count.
 - hideKeyboard

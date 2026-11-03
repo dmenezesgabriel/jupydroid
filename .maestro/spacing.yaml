@@ -1,6 +1,6 @@
 appId: com.jupydroid.app
 ---
-# P2l-2: the surfaces whose padding moved onto `Spacing`.
+# The surfaces whose padding moved onto `Spacing`.
 #
 # Seeded by scripts/spacing-driver.sh; clearState would delete the fixture.
 #
