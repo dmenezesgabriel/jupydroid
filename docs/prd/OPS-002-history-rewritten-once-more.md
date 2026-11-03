@@ -317,9 +317,16 @@ One TDD unit each, one conventional commit each.
     a `sys.prefix` ending `/files/spaces/base/usr` and gets `/usr`, and `tabs-narrow` and `tabs-wide`
     stop at `Rename file` before the typed `renamed-tab`, so that rename ran on no device.
     `.maestro/[t-z]*.yaml` is the glob.
-  - [ ] T8g — the 91 step-code-shaped string literals in 18 Kotlin files (`app/src/androidTest` device file
-    names, kernelspec names). No gate reads a string literal, so the commit body names the `git grep` that
-    measured it.
+  - [x] T8g — the step-code-shaped string literals in Kotlin: 97 lines in 18 files (the PRD's 91 had
+    missed six), now 0 of them; 9 lines in 4 files stay, each named in the commit body (the DCS replies
+    `${ESC}P1+r`, `Cell("p1")`, and `x2`, `x0`, `\x1b`, which the measuring pattern over-matched). No gate
+    reads a string literal, so the commit body names the `git grep` that measured it. The names say what
+    they are: the kernelspec `p8g` -> `julia` (`pypy3` in `OkHttpKernelLifecycleTest`, where it is the
+    second Python spec), `p2j-5-*` -> `sharer-*` (not bare `reports`, which `ExplorerNavigationTest`
+    asserts), each LSP probe document takes the name of the test that opens it, and the console
+    screenshots drop their `p6b-N-` prefix. Nothing outside Kotlin read any of them.
+    `language-server-driver.sh` prints `FAIL` at HEAD and after, because it greps `OK (3 tests)` and
+    `StdioLanguageServerDeviceTest` has 9: a defect of its own, not this task's.
   - [ ] T8h — the globs collapse into `scripts` and `.maestro` in `SCANNED_TREES`; `.ipynb`, `.txt`, `.csv`,
     `.chat` and the extensionless `gradlew-jbr` get a scanner or join `NO_PROSE`; `AGENTS.md`'s tooling row
     and `docs/README.md` follow. Demo step 6 is run.
