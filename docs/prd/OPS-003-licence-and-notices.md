@@ -66,8 +66,13 @@ lists only what T2 measures as transcribed, never every `project@sha` in the tre
   and two more projects are listed on that reading, which T6's ADR must turn into a rule: VS Code
   (colour values, `TerminalPalette.kt`, `theme/`) and Jupyter Server 2.21.1 (`increment_filename`,
   `NotebookFileName.kt`; cited by version, since no SHA is). `jupyterlab` is studied, so it is out.
-- [ ] T4 — generator (+ test) from a syft SBOM JSON of the arm64 rootfs to a third-party listing;
-  the SBOM comes from a digest-pinned syft container.
+- [x] T4 — generator (+ test) from a syft SBOM JSON of the arm64 rootfs to a third-party listing;
+  the SBOM comes from a digest-pinned syft container. `THIRD_PARTY.md`, by `tools/rootfs/sbom.sh`.
+  The fields were chosen on the real SBOM, not the schema: syft's 14 `binary` artifacts are launcher
+  exes inside setuptools/pydevd, so only `apk` and `python` are rows; its licence values carry
+  `sha256:` file hashes and split `AND` terms, which are dropped; 10 python packages declare no
+  licence syft read, which the cell says as `NOASSERTION`. T6's ADR decides whether the
+  Alpine `busybox` row, which is not the shipped binary, stays.
 - [ ] T5 — corresponding-source offer for proot, busybox and the Alpine packages.
 - [ ] T6 — ADR; edit §8.4 and ADR-0018's "no `NOTICE` yet" sentences; delete this PRD; backlog row
   to `shipped`.
