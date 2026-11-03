@@ -56,9 +56,17 @@ class SourceOfferTest(unittest.TestCase):
         self.assertIn(f"v{release}", self.offer)
         self.assertIn(f"{release.rsplit('.', 1)[0]}-stable", self.offer)
 
-    def test_it_is_a_three_year_offer_with_a_way_to_ask(self) -> None:
-        self.assertRegex(self.offer, r"(?i)three years")
-        self.assertRegex(self.offer, r"(?i)open an issue")
+    def test_it_promises_no_copy_and_only_says_where_the_public_source_is(self) -> None:
+        # The maintainer keeps and ships no copy of the source, so the file must not offer one:
+        # a promise to send a copy for three years is one this project does not make.
+        self.assertNotRegex(self.offer, r"(?i)three years|machine-readable copy|open an issue")
+        self.assertRegex(self.offer, r"(?i)keeps no copy")
+
+    def test_it_has_no_table_because_a_row_of_it_scrolls_off_the_screen(self) -> None:
+        # The Licences screen draws a table as one line per row and scrolls it sideways, so the
+        # source column of a prose-sized row sits hundreds of characters off a tablet's edge.
+        rows = [line[:60] for line in self.offer.splitlines() if line.startswith("|")]
+        self.assertEqual([], rows, "expected one section per part, found table rows")
 
     def test_notice_and_the_listing_both_point_here(self) -> None:
         self.assertIn("SOURCE_OFFER.md", read("NOTICE"))
