@@ -483,7 +483,7 @@ contract, and the decline ours made lives in `backlog.md`'s not-scheduled table.
 | `textDocument/didSave` | — | adapted | pylsp re-lints `is_saved` on it (`python_lsp.py:697`), and the one save-gated plugin ships disabled and unreachable — `pylint_lint.py`'s own `"enabled": False`, GAP-030's edge. Every enabled lint already fires on `didChange`/`didOpen` |
 | `workspace/didChangeConfiguration` | — | **absent** | `GAP-030`. The `pylsp.plugins.*` route — `m_workspace__did_change_configuration` merges `settings["pylsp"]` and re-lints (`python_lsp.py:832`) — and nothing reaches it |
 | `$/setTrace` | — | adapted | a wire-trace toggle; the server's own log drains on stderr (`drainStderr`), which is where a trace's detail belongs here |
-| `textDocument/didClose` (unrouted by the reference) | `closeDocument` | **defect** → fixed | a rename re-keyed the uri and orphaned the server's copy — `sync` closes the replaced uri now (`NotebookLanguageDocumentTest.aRename_closesTheDocumentTheServerKnew`, `de92aa58`) |
+| `textDocument/didClose` (unrouted by the reference) | `closeDocument` | **defect** → fixed | a rename re-keyed the uri and orphaned the server's copy — `sync` closes the replaced uri now (`NotebookLanguageDocumentTest.aRename_closesTheDocumentTheServerKnew`, `7edf3373`) |
 | `textDocument/foldingRange` (unrouted by the reference) | — | adapted | the enum holds 36 members and this is not one; pylsp advertises it, and `backlog.md`'s not-scheduled table holds the code-folding decline |
 
 **Server → client — the 4 requests, then the 4 notifications.**
@@ -1074,7 +1074,7 @@ leaving-seam — is reachable only from a notebook's export.
 | `filebrowser:open-url` — prompt → `fetch` → `model.upload` → `docmanager`'s `open` (`index.ts:1088-1140`) | — | absent | GAP-054. A file *in* — the URL's content is fetched then uploaded into the workspace — and nothing puts a file in. |
 | `filebrowser:open-browser-tab` — per selected item, a `single-document` tree URL or `docmanager`'s `open-browser-tab`'s download URL → `window.open` (`index.ts:976-1010`) | — | absent | GAP-055. Both halves presuppose a server URL a browser can open; none exists. |
 | `docmanager:new-untitled` — `contents.newUntitled({path,type,ext})` — the typed create every surface delegates to (`index.tsx:775-822`, `manager.ts:426-430`) | `NewMenu` → `create` → `createFile`/`createFolder`/`createNotebook` | adapted | The same create under the same server names. The notebook arm goes through `NotebookRepository` because an `.ipynb` is nbformat, not an empty file — `create`'s docstring states the split. |
-| `docmanager:open` — `contents.get` then `openOrReveal` (`index.tsx:824-847`) | a tap → `openDocument` — `OpenDocuments.at` resolves the live path to the `openedAs` the key keeps — → `openNotebook`/`openFile` → `openInMainArea` | **defect** | found by the walk and fixed red-first: the reveal was key-equality only and a `NavKey` keeps the path it was opened under, so a document renamed beside its open editor re-opened as a *second* entry — two ViewModels, two autosaves on one file (`fbd21a99`, `NotebookBackStackTest.openingARenamedDocumentRevealsItInsteadOfOpeningItAgain`). The reference matches by the context's *current* path via `_contextsForPath` (`manager.ts:481-503`). |
+| `docmanager:open` — `contents.get` then `openOrReveal` (`index.tsx:824-847`) | a tap → `openDocument` — `OpenDocuments.at` resolves the live path to the `openedAs` the key keeps — → `openNotebook`/`openFile` → `openInMainArea` | **defect** | found by the walk and fixed red-first: the reveal was key-equality only and a `NavKey` keeps the path it was opened under, so a document renamed beside its open editor re-opened as a *second* entry — two ViewModels, two autosaves on one file (`dc83ebef`, `NotebookBackStackTest.openingARenamedDocumentRevealsItInsteadOfOpeningItAgain`). The reference matches by the context's *current* path via `_contextsForPath` (`manager.ts:481-503`). |
 | `docmanager:rename` — `dialogs.rename(context)`, bound on `document-title` context menus (`index.tsx:1428-1450`) | tab long press → Rename… → the same `RenameFileDialog` → `rename`; the document adopts through `WorkspaceChange.Renamed` | present | `MainAreaTab.kt`'s docstring states the long press is the `document-title` menu, rename first. |
 | `docmanager:delete`, `docmanager:delete-file` — ask → `deleteFile` = `stopIfNeeded` + `contents.delete` + `deleteWidgets` (`index.tsx:749-773,1473-1506`) | tab long press → Delete… → `DeleteFileDialog` → `WorkspaceFiles.delete`, then the strip discards the tab's edits and closes it, on top or beneath (`TabDelete.kt`, `MainAreaTabStrip.kt`); the explorer row asks the same | adapted | ADR-0102: the ask is the file browser's "permanently delete" rather than docmanager's "delete", and the strip closes the tab itself because a screen beneath the top is not composed to hear its file go. The `stopIfNeeded` half is `DeletedDocumentSessions`, on the same `Deleted` announcement. |
 | `docmanager:duplicate` — `manager.duplicate` on the context's path (`index.tsx:1452-1471`) | tab long press → Duplicate → `WorkspaceFiles.copy`, the file as saved beside itself under the server's `-Copy<n>` name; opens nothing (`TabDuplicate.kt`) | present | The same act on the same menu, named by the rootfs `copy`'s own rule (`nameBeforeCopies`); ADR-0102. |
@@ -1099,7 +1099,7 @@ reference's `DocumentManager.overwrite` deletes the target through `deleteFile`
 (`manager.ts:514-528`), whose `deleteWidgets` is what a widget on the target
 hears — so a document open on the *overwritten* path was never told its file
 was gone and its next save wrote over the winner. **defect → fixed** in
-`b492da53`, red-first through
+`9648b905`, red-first through
 `WorkspaceRepositoryContract.overwritingTellsTheTargetIsGoneBeforeItMoves` and
 `FileEditorViewModelTest.aFileOverwrittenUnderTheEditorIsNotWrittenBack`;
 `overwrite` now emits `Deleted(moved)` before `Renamed`, matching the disk's
@@ -1240,13 +1240,13 @@ What it found, beyond the rows above:
   one when asked (ADR-0096). The defects the walk owes the ledger, all fixed
   red-first: **`docmanager:open` revealed by key equality, and a key keeps the path it opened
   under** — rename a file beside its open document and the next tap pushed a second editor, two
-  autosaves on one file — `fbd21a99`,
+  autosaves on one file — `dc83ebef`,
   `NotebookBackStackTest.openingARenamedDocumentRevealsItInsteadOfOpeningItAgain` (the row above
   is re-verdicted `**defect**`); **an act landing mid-navigation re-listed the stale path** —
   `relistAfter`/`move` read `uiState.path` where `refresh` already reads `browsing`, cancelling the
-  pending `goTo` — `f631fea2`, `aRename…`/`aDeleteFinishedMidNavigationRelistsWhereWeAreGoing`;
+  pending `goTo` — `1cfba5e0`, `aRename…`/`aDeleteFinishedMidNavigationRelistsWhereWeAreGoing`;
   **a landing listing retracted the overwrite question** — `listingOf`'s fresh state dropped
-  `nameTaken`, so a poll tick answered the ask nobody answered — `068d08c9`,
+  `nameTaken`, so a poll tick answered the ask nobody answered — `4a7a6c98`,
   `aPollDoesNotRetractTheOverwriteQuestion`. One more failure found and not repaired here: a rename or
   overwrite refused on the *tab strip* landed nowhere at all; it now draws the browser's
   "Rename Error" dialog (`MainAreaTabStrip.kt`). That was `GAP-069`, closed.
@@ -1407,18 +1407,18 @@ second to go.
 
 | Reference entry | Ours | Verdict | Why / id |
 |---|---|---|---|
-| `console:run-forced` — `console.execute(true)`, Shift Enter in both modes (`index.ts:1058-1080`) | `ConsoleViewModel.submit` → `run` → `kernelGateway.execute`, on `ConsoleInputRow`'s Run button, disabled while the last entry runs | **defect** | The forced run is what a tap on Run is; `submit`'s docstring records the dedicated-action-in-place-of-Shift+Enter call. The walk found `run` awaiting `reopeningIfStale` outside the flow's `catch` — a refused `connect` escaped the launch and the entry span RUNNING for ever; fixed red-first in `dc73b380` (`submit_resolvesToStoppedErrorWhenConnectingIsRefused`). |
+| `console:run-forced` — `console.execute(true)`, Shift Enter in both modes (`index.ts:1058-1080`) | `ConsoleViewModel.submit` → `run` → `kernelGateway.execute`, on `ConsoleInputRow`'s Run button, disabled while the last entry runs | **defect** | The forced run is what a tap on Run is; `submit`'s docstring records the dedicated-action-in-place-of-Shift+Enter call. The walk found `run` awaiting `reopeningIfStale` outside the flow's `catch` — a refused `connect` escaped the launch and the entry span RUNNING for ever; fixed red-first in `a9d1785e` (`submit_resolvesToStoppedErrorWhenConnectingIsRefused`). |
 | `console:run-unforced` — `console.execute()`; notebook-mode Enter runs only when `requestIsComplete` says the block is whole, else inserts a newline (`widget.ts:960-1000`) | the same `submit()` — no completeness ask precedes it | **defect** | Executing is the same `execute`; the unforced half's check — `is_complete_request` — is `GAP-012`'s recorded absence, so a run here is always the forced arm's. The same `run` boundary defect, judged once with `console:run-forced`. |
 | `console:linebreak` — `console.insertLinebreak()`, Accel Enter in terminal mode (`index.ts:1081-1102`) | Enter inside `CodeCellField` inserts a newline | adapted | `ConsoleInputRow`'s docstring states it: Enter keeps the field's own newline and the dedicated action runs. |
 | `console:replace-selection` — `console.replaceSelection(text)`, the write-back a completer pick rides (`index.ts:1104-1130`) | — | absent | GAP-072. |
 | `console:undo`, `console:redo` — `editor.undo()`/`editor.redo()` on the prompt cell, enabled on `sharedModel.canUndo()`/`canRedo()` (`index.ts:910-985`) | — | absent | GAP-071 — the prompt's `TextFieldState` keeps no edit history to walk. |
 | `console:clear` — `console.clear()`, unconditional (`index.ts:997-1024`) | `ConsoleActionsMenu`'s "Clear Console Cells" → `ConsoleViewModel.clear` | present | Same act, same label, same unconditionality — `clear()`'s docstring cites both. |
-| `console:interrupt-kernel` — `sessionContext.interrupt()`, reachable only from a menu or the palette in either reference (`index.ts:1132-1150`) | `ConsoleActionsMenu`'s "Interrupt Kernel" → `interrupt` → `kernelGateway.interrupt`, enabled only while a run is live | **defect** | `ConsoleActionsMenu.kt:23-27` states the menu-only placement both references share. The walk found the stale arm unguarded — interrupt on a session whose server was replaced threw `StaleKernelSessionException` out of the launch; fixed red-first in `0d2146b8` (`interrupt_onASessionWhoseServerWasReplaced_forgetsIt`). |
+| `console:interrupt-kernel` — `sessionContext.interrupt()`, reachable only from a menu or the palette in either reference (`index.ts:1132-1150`) | `ConsoleActionsMenu`'s "Interrupt Kernel" → `interrupt` → `kernelGateway.interrupt`, enabled only while a run is live | **defect** | `ConsoleActionsMenu.kt:23-27` states the menu-only placement both references share. The walk found the stale arm unguarded — interrupt on a session whose server was replaced threw `StaleKernelSessionException` out of the launch; fixed red-first in `b9497e60` (`interrupt_onASessionWhoseServerWasReplaced_forgetsIt`). |
 | `console:restart-kernel` — `sessionDialogs.restart(sessionContext)`, on the console toolbar's contributed slots and the Interactive Window's primary toolbar | — | absent | GAP-009 — recorded by the backlog before this audit, verdicted not decided here. |
 | `console:shutdown`, `console:close-and-shutdown` — `sessionContext.shutdown()` leaving the console open; the close variant asks, shuts, disposes (`index.ts:1186-1255`) | — | absent | GAP-075 — the console surface has no end act, and closing its tab frees neither socket nor session. |
 | `console:change-kernel`, `console:get-kernel` — `sessionDialogs.selectKernel`, and the invisible `session?.kernel` the kernel-name/status widgets ask (`index.ts:1338-1380`) | — | absent | GAP-074 — `NotebookKernelSession.changeKernel` exists but the console carries no kernel surface that reaches it. |
 | `console:create` — mints `console-<count>-<uuid>` under cwd titled `Console <count>`, from launcher tile, palette, or menu (`index.ts:716-770`, `panel.ts:58-70`) | the launcher's console card → `LauncherViewModel.mintConsole` → `openStandaloneConsole` | adapted | The mint and the naming are the same (`Console.kt:7-15` cites both); one card instead of per-kernelspec tiles, and the sweep is the single-`consoleSession`-holder rule. |
-| `console:open` — reveals the console whose session path matches, minting one when a running session has none (`index.ts:674-710`) | `openRunningSession`'s console arm — reveal only | **defect** | Found by the read and fixed red-first: every session POST derived `type` from the path and `console-<count>-<uuid>` is extensionless, so the row always read `file` and the tap fell to `openDocument` on a path that does not exist (`0af14e7b`; `OkHttpKernelLifecycleTest`, `LauncherViewModelTest`, `EditorViewModelTest`, `RunningPanelViewModelTest`). Still reveal-only past the fix — `Navigation.kt:172-185` states why a console with no tab cannot be synthesised. |
+| `console:open` — reveals the console whose session path matches, minting one when a running session has none (`index.ts:674-710`) | `openRunningSession`'s console arm — reveal only | **defect** | Found by the read and fixed red-first: every session POST derived `type` from the path and `console-<count>-<uuid>` is extensionless, so the row always read `file` and the tap fell to `openDocument` on a path that does not exist (`caf425f9`; `OkHttpKernelLifecycleTest`, `LauncherViewModelTest`, `EditorViewModelTest`, `RunningPanelViewModelTest`). Still reveal-only past the fix — `Navigation.kt:172-185` states why a console with no tab cannot be synthesised. |
 | `console:inject` — find-or-create a console by session path, run `code` in it (`index.ts:1294-1337`) | — | absent | GAP-073. `attachConsole`'s docstring already names the find-the-tracked-session half as its own precedent; the act that would use it does not exist. |
 | `filemenu:create-console` — the File menu's entry, a semantic delegate to console:create (`mainmenu-extension/src/index.ts`) | the launcher card is the only create entry | adapted | The same mint under one entry point; the File menu shell itself is the chrome slice's (`AUD-009`). |
 | `console:rename` — `InputDialog.getText` → `session.setName` = `PATCH api/sessions` `name` (`index.ts:1257-1292`) | — | absent | GAP-076 — `KernelSessions` has no name op, and a `Console` key's `title` is minted once. |
@@ -1431,7 +1431,7 @@ second to go.
 
 **The read's own findings.** One defect came out of tracing rather than comparing —
 `openRunningSession`'s console arm could never fire, since every session POST derived `type` from
-the path and a minted `console-<count>-<uuid>` is extensionless — **defect → fixed** in `0af14e7b`,
+the path and a minted `console-<count>-<uuid>` is extensionless — **defect → fixed** in `caf425f9`,
 red-first through `OkHttpKernelLifecycleTest`, `LauncherViewModelTest`, `EditorViewModelTest` and
 `RunningPanelViewModelTest`'s new cases, the fix threading a declared `SessionType` from both
 console constructors down to `SessionStartRequest` the way `ConsolePanel`'s `type: 'console'`
@@ -1467,12 +1467,12 @@ and `skipKernelRestartDialog` is the one hole the read found in the dialogs — 
 
 | Reference entry | Ours | Verdict | Why / id |
 |---|---|---|---|
-| `notebook:interrupt-kernel` — `sessionContext.interrupt()` → `POST api/kernels/<id>/interrupt`; the toolbar's stop square, enabled while running (`createInterruptButton`, `apputils/src/toolbar/widget.tsx:50`) | `NotebookBar`'s stop square, enabled `busy` → `stopRunningCell` → `kernelGateway.interrupt` → the same POST | **defect** | Same endpoint, same icon, same enable-while-running — `NotebookBar.kt`'s doc cites both halves. The walk found the stale arm unguarded — interrupt on a session whose server was replaced threw `StaleKernelSessionException` out of the launch; fixed red-first in `0d2146b8` (`aStopWhoseServerWasReplaced_landsOnNoKernel`). |
-| `notebook:restart-kernel` — `sessionDialogs.restart` → `restartKernel` → `POST api/kernels/<id>/restart` | `NotebookBar`'s refresh button → `RestartDialog(RESTART)` → `NotebookKernel.restart` → `kernelGateway.restart` | **defect** | The same confirm asking the reference's own sentence, then the same POST. The dialog's "Do not ask me again" half is the settings read below, not the command's. The walk found the stale arm unguarded — restart beside `reopeningIfStale` threw out of the launch with `kernelRestarting` latched; fixed red-first in `0d2146b8` (`aRestartWhoseServerWasReplaced_reconnectsAndRestartsTheFreshKernel`). |
+| `notebook:interrupt-kernel` — `sessionContext.interrupt()` → `POST api/kernels/<id>/interrupt`; the toolbar's stop square, enabled while running (`createInterruptButton`, `apputils/src/toolbar/widget.tsx:50`) | `NotebookBar`'s stop square, enabled `busy` → `stopRunningCell` → `kernelGateway.interrupt` → the same POST | **defect** | Same endpoint, same icon, same enable-while-running — `NotebookBar.kt`'s doc cites both halves. The walk found the stale arm unguarded — interrupt on a session whose server was replaced threw `StaleKernelSessionException` out of the launch; fixed red-first in `b9497e60` (`aStopWhoseServerWasReplaced_landsOnNoKernel`). |
+| `notebook:restart-kernel` — `sessionDialogs.restart` → `restartKernel` → `POST api/kernels/<id>/restart` | `NotebookBar`'s refresh button → `RestartDialog(RESTART)` → `NotebookKernel.restart` → `kernelGateway.restart` | **defect** | The same confirm asking the reference's own sentence, then the same POST. The dialog's "Do not ask me again" half is the settings read below, not the command's. The walk found the stale arm unguarded — restart beside `reopeningIfStale` threw out of the launch with `kernelRestarting` latched; fixed red-first in `b9497e60` (`aRestartWhoseServerWasReplaced_reconnectsAndRestartsTheFreshKernel`). |
 | `notebook:restart-clear-output` — restart, then `NotebookActions.clearAllOutputs` (`index.ts:3245-3260`) | `KernelMenu`'s `RESTART_AND_CLEAR` row → `RestartDialog` → `kernel.restart(then = edits.clearAllOutputs)` | present | The same awaited-restart-then-clear; `restart`'s `then` parameter exists for exactly these three commands (`NotebookKernel.kt`). |
 | `notebook:restart-run-all` — restart, then the public `NotebookActions.runCells` over the whole notebook (`index.ts:3315`) | `NotebookBar`'s fast-forward → `restartAndRunAll` → `restart(then = runs.runCells(cells))` | present | Same continuation, same toolbar-button surface; `restartAndRunAll`'s doc states why it composes out of `runCells` rather than `runAll`, exactly as the reference does. |
 | `notebook:shutdown-kernel` — `sessionContext.shutdown()` → `DELETE api/kernels/<id>`, unguarded | `KernelMenu`'s "Shut Down Kernel" → `kernel.shutdown()` → `kernelGateway.shutdown` → DELETE + `ended` | present | Unguarded in both — the close variant is the one that asks (`index.ts:3189-3213`), which `shutdown`'s doc states. |
-| `notebook:change-kernel` — `sessionDialogs.selectKernel` over specs, running kernels and "No Kernel" | `KernelMenu`'s "Change Kernel…" and the `KernelIndicator` tap → `NotebookKernelPicker` | **defect** | The same three groups, transcribed from `kernelOptions`; the picker's `autoStartDefault`/"always start the preferred kernel" checkbox is declined on purpose — `KernelChoice.kt` states it. The walk found the stale PATCH escaping `pick`'s launch with `kernelChanging` latched; fixed red-first in `0d2146b8` (`changeKernel_connectsTheChoiceWhenTheOpenSessionProvesStale`). |
+| `notebook:change-kernel` — `sessionDialogs.selectKernel` over specs, running kernels and "No Kernel" | `KernelMenu`'s "Change Kernel…" and the `KernelIndicator` tap → `NotebookKernelPicker` | **defect** | The same three groups, transcribed from `kernelOptions`; the picker's `autoStartDefault`/"always start the preferred kernel" checkbox is declined on purpose — `KernelChoice.kt` states it. The walk found the stale PATCH escaping `pick`'s launch with `kernelChanging` latched; fixed red-first in `b9497e60` (`changeKernel_connectsTheChoiceWhenTheOpenSessionProvesStale`). |
 | `notebook:get-kernel` — the invisible `session?.kernel` the name and status widgets query (`index.ts:4591-4607`) | `KernelSession.kernelName`/`preferredKernel`, drawn by `KernelIndicator` | adapted | The question exists as resolved state rather than a command result — `KernelIndicator.kt`'s doc states why the name is the *live* kernel's, not the file's. |
 | `notebook:reconnect-to-kernel` — `kernel.reconnect()`: close the websocket, open a fresh one on the same kernel (`index.ts:4591-4607`) | `KernelSockets.socketFor` evicts a socket that ended, so the next ask opens the fresh one | **defect** | Found by the read and fixed red-first: a socket that reported `Ended` between asks stayed cached in `sessionSockets`, the next `execute` reused it — OkHttp's `send` returns false there and no frame ever arrives — so the run waited for ever. `RealKernelGatewayTest.execute_reopensASocketThatEndedBetweenRuns`; the act is now the reference's own, arriving on the next ask rather than from a menu. |
 | `notebook:close-and-shutdown` — asks "Shut down the notebook?", awaits `sessionContext.shutdown()`, disposes (`index.ts:3189-3213`) | `KernelMenu`'s "Close and Shut Down Notebook…" → `CloseAndShutDownDialog` → `kernel.shutdown(then = onBack)` | present | Same question in the reference's own words, same awaited ordering — `CloseAndShutDownDialog` cites `index.ts:3196-3205`, and `shutdown`'s `then` runs after the session has ended, as the reference's `await` does. |
@@ -1483,7 +1483,7 @@ and `skipKernelRestartDialog` is the one hole the read found in the dialogs — 
 | `kernelmenu:restart-and-clear` — the menu row executing `restartKernel` + `clearWidget` (`mainmenu-extension/src/index.ts:653`) | `KernelMenu`'s `RESTART_AND_CLEAR` row | present | Same label, same composition, filed in the Kernel menu the reference files it under. |
 | `kernelmenu:change` — the menu's "Change Kernel…" row | `KernelMenu`'s "Change Kernel…" row | **defect** | The same stale PATCH escape, judged once with `notebook:change-kernel` — the row and label stand; the act behind them was what was unguarded. |
 | `kernelmenu:shutdown` — the menu's "Shut Down Kernel" row | `KernelMenu`'s "Shut Down Kernel" row | present | Same label, same unguarded act. |
-| `kernelmenu:shutdownAll` — "Shut Down All Kernels…" → counted confirm → `sessions.shutdownAll()` (`mainmenu-extension/src/index.ts:708-735`); also the running panel's own bulk button (`running/src/index.tsx:584-620`) | the Kernel Sessions section's "Shut Down All" → `kernelShutdownAllText`'s counted confirm → `shutdownAllSessions` | **defect** | The act lives on the running surface, which is the reference's own second home for it; `RunningPanelViewModel.kt`'s doc states why ours deletes sessions — the level the reference's own `sessions.shutdownAll()` works at — where its dialog counts kernels. The walk found one refused DELETE escaping the launch and skipping the rows behind it; fixed red-first in `7b5e670e` (`aRefusedShutdownDoesNotSkipTheRestOfShutdownAll`). |
+| `kernelmenu:shutdownAll` — "Shut Down All Kernels…" → counted confirm → `sessions.shutdownAll()` (`mainmenu-extension/src/index.ts:708-735`); also the running panel's own bulk button (`running/src/index.tsx:584-620`) | the Kernel Sessions section's "Shut Down All" → `kernelShutdownAllText`'s counted confirm → `shutdownAllSessions` | **defect** | The act lives on the running surface, which is the reference's own second home for it; `RunningPanelViewModel.kt`'s doc states why ours deletes sessions — the level the reference's own `sessions.shutdownAll()` works at — where its dialog counts kernels. The walk found one refused DELETE escaping the launch and skipping the rows behind it; fixed red-first in `1eaa04d3` (`aRefusedShutdownDoesNotSkipTheRestOfShutdownAll`). |
 | `filemenu:close-and-cleanup` — semantic delegate to `*:close-and-shutdown`, `application:close` as the fallback | `KernelMenu`'s "Close and Shut Down Notebook…" row | adapted | The same close-and-shutdown act under the one entry point; the File menu shell itself is `AUD-009`'s chrome. |
 | `sessionDialogs.json`'s `skipKernelRestartDialog` — the "Do not ask me again." checkbox writing `kernelPreference.skipKernelRestartDialog`, and the setting that skips the confirm outright (`sessioncontext.tsx:1493-1540`) | — | absent | GAP-078. |
 | `kernels-settings.json`'s `commsOverSubshells` — how comms route over kernel-spawned subshells | — | absent | GAP-077 — no subshell exists to route over. |
@@ -1538,15 +1538,15 @@ carries no such signal, so its rows re-list after their own acts instead
 | `running:show-panel` — `app.shell.activateById(running.id)`, the palette/menu reach that puts Sessions and Tabs on screen (`running-extension/src/index.ts:123-134`) | the rail's `SidePanel.RUNNING` item → `onChoosePanel` (`SidePanelRail.kt:50`), the bottom bar's same item at one pane (`onePaneDestinations`, `SidePanel.kt:114`) | adapted | The activate act is a rail/bar item rather than a command — the panel is a destination of the shell, not a palette reach, which is `SidePanel.chosen`/`showingAtOnePane`'s own shape. |
 | `running:show-modal` — a `Dialog` over `SearchableSessions`: a `FilterBox` flattening every section, arrow-key walk, `getValue` clicking the active row (`index.ts:190-209`, `running/src/index.tsx:999-1146`) | — | **absent** | `GAP-079`. |
 | `running:kernel-open-session` — docmanager:open on the session's path, console:open when `type === 'console'`; label is the session name or path basename, icon by type (`kernels.tsx:248-285`) | `openRunningSession` — `openDocument(path)` for a document row, a console row reveals its open tab (`Navigation.kt:172-185`) | adapted | The document arm is the same act; the console arm is reveal-only because `entry<Console>` draws from the single `consoleSession` holder — a console with no tab cannot be synthesised, which both the caller and `RunningSidePanel`'s doc state. A notebook's row follows its rename through `KernelSessions.setPath`, which closed `GAP-068`. |
-| `running:kernel-shut-down` — `kernels.shutdown(id)` → `DELETE api/kernels/<id>` on the row's ✕, unguarded (`kernels.tsx:286-307`; `Item.shutdown` asks nothing, `index.tsx:218-225`) | the row's ✕ → `shutdownSession` → `DELETE api/sessions/<id>`, unguarded (`RunningPanelViewModel.kt:54-57`) | **defect** | Session-level rather than kernel-level — `delete_session` shuts the kernel behind the session (`sessionmanager.py:522-527`), the level `kernelmenu:shutdownAll` was already verdicted at. The row keeps the reference's own `Shut Down Kernel` label. The walk found a refused DELETE escaping the launch; fixed red-first in `7b5e670e` (`aRefusedShutdownLeavesTheSessionListed`). |
+| `running:kernel-shut-down` — `kernels.shutdown(id)` → `DELETE api/kernels/<id>` on the row's ✕, unguarded (`kernels.tsx:286-307`; `Item.shutdown` asks nothing, `index.tsx:218-225`) | the row's ✕ → `shutdownSession` → `DELETE api/sessions/<id>`, unguarded (`RunningPanelViewModel.kt:54-57`) | **defect** | Session-level rather than kernel-level — `delete_session` shuts the kernel behind the session (`sessionmanager.py:522-527`), the level `kernelmenu:shutdownAll` was already verdicted at. The row keeps the reference's own `Shut Down Kernel` label. The walk found a refused DELETE escaping the launch; fixed red-first in `1eaa04d3` (`aRefusedShutdownLeavesTheSessionListed`). |
 | `running:kernel-shut-down-unused` — every kernel with `connections < 1`, a confirm listing them, `KernelAPI.shutdownKernel` each, then both managers refreshed; a `CommandToolbarButton` on the section toolbar, `isEnabled` re-asked on a 10 s `Throttler` (`kernels.tsx:54-140`) | — | adapted | Declined where the section is drawn: the "unused" question is asked of `GET api/kernels`' `connections`, which the contract does not carry — the port's rows are sessions, and `RunningSidePanel.kt`'s class doc states the decline. |
 | `running:kernel-new-console` — console:create with `kernelPreference: {id}` — the minted console's `SessionContext` joins the *running* kernel (`kernels.tsx:204-225`) | — | **absent** | `GAP-080`. |
 | `running:kernel-new-notebook` — notebook:create-new with `kernelId` — the same join for a notebook (`kernels.tsx:226-247`) | — | **absent** | `GAP-080`. |
 | `Section` + `Item` — accordion title, per-section toolbar (counted shutdown-all confirm, list/tree switch, collapse-expand), rows carrying icon/label/`labelTitle`/detail with tap-to-open and an unguarded ✕ (`index.tsx:192-746`) | `RunningSection` + `RunningRow` — caret fold, the bulk `TextButton` drawn only while open and disabled on an empty section, the `(kernelIdPrefix)` detail list-mode carries | adapted | Folds survive a rotation in `rememberSaveable` rather than a StateDB, and the two tree-only controls are declined with the grouping itself — `RunningSidePanel.kt`'s doc states both, and `_updateButtons`' disabled-when-empty is `bulkEnabled`'s own read. |
-| `RunningSessions` — the `SidePanel` at left rank 200, its refresh button calling every `refreshRunning()`, `restorer.add` for layout restore, `IMovableSectionRegistry` for drag-reorder (`index.tsx:786-955`, `running-extension/src/index.ts:83-146`) | `RunningSidePanel` under `SidePanel.RUNNING`, refresh icon → `viewModel.refresh()` (`ShellSidePane.kt:122-131`) | **defect** | A fixed trio in the registration order rather than a movable registry — the rail offers no drag to reorder with, so there is nothing for a registry to persist. The walk found `relist` propagating a refused `running()` uncaught — the class's own "keeps the last good list" contract; fixed red-first in `7b5e670e` (`aRefusedRelistKeepsTheLastGoodSessions`). |
+| `RunningSessions` — the `SidePanel` at left rank 200, its refresh button calling every `refreshRunning()`, `restorer.add` for layout restore, `IMovableSectionRegistry` for drag-reorder (`index.tsx:786-955`, `running-extension/src/index.ts:83-146`) | `RunningSidePanel` under `SidePanel.RUNNING`, refresh icon → `viewModel.refresh()` (`ShellSidePane.kt:122-131`) | **defect** | A fixed trio in the registration order rather than a movable registry — the rail offers no drag to reorder with, so there is nothing for a registry to persist. The walk found `relist` propagating a refused `running()` uncaught — the class's own "keeps the last good list" contract; fixed red-first in `1eaa04d3` (`aRefusedRelistKeepsTheLastGoodSessions`). |
 | Open Tabs manager — `labShell.widgets('main')`, `activateById` on tap, `widget.close()` on ✕, "Close"/"Close All" with the counted confirm; `runningChanged` driven by `layoutModified` plus each widget's `title.changed` (`opentabs.ts:19-127`) | `openTabs` handed down from the back stack, `onActivateTab` → `activateMainAreaTab`, `onCloseTab` through the shared close gate, "Close All" with the same question | present | Same section, same acts, same labels; recomposition on the live `openTabs` list is `OpenTabsSignaler`'s job done by the state itself, and the dirty gate is the reference's own close-request answer. |
 | Recently Closed manager — `recentsManager.recentlyClosed`, reopen validates then docmanager:open and forgets the row, per-row Forget, "Forget All" (`recents.ts:33-109`) | — | **absent** | `GAP-066` — the `closed` list it would read was verdicted in AUD-005; this section is the surface half that gap already names. |
-| Terminals section — `terminal-extension`'s manager: `terminals.running()`, terminal:open on tap, `manager.shutdown`/`shutdownAll` under "Shut Down"/"Shut Down All" (`terminal-extension/src/index.ts:420-462`) | `TerminalGateway.running()`/`close()`, `onOpenTerminal` reattaches to the held shell, the same confirm sentence verbatim (`RunningSidePanel.kt:181-205`) | **defect** | The section's machinery verdicts here as `running-extension`'s surface; the pane's own `terminal:*` ids stay `AUD-007`'s. The walk found a refused close escaping the launch instead of relisting; fixed red-first in `7b5e670e` (`aRefusedTerminalCloseLeavesTheTerminalListed`). |
+| Terminals section — `terminal-extension`'s manager: `terminals.running()`, terminal:open on tap, `manager.shutdown`/`shutdownAll` under "Shut Down"/"Shut Down All" (`terminal-extension/src/index.ts:420-462`) | `TerminalGateway.running()`/`close()`, `onOpenTerminal` reattaches to the held shell, the same confirm sentence verbatim (`RunningSidePanel.kt:181-205`) | **defect** | The section's machinery verdicts here as `running-extension`'s surface; the pane's own `terminal:*` ids stay `AUD-007`'s. The walk found a refused close escaping the launch instead of relisting; fixed red-first in `1eaa04d3` (`aRefusedTerminalCloseLeavesTheTerminalListed`). |
 | `runningSessions.tsx` statusbar item — "N Terminals, M Kernel sessions" counting off `sessions.runningChanged`/`terminals.runningChanged`, click activating the sidebar (`apputils/src/runningSessions.tsx:111-213`) | — | adapted | The shell has no statusbar to hold it; the same two lists the item counts are drawn always-on in the panel — `showStatusBarItem`'s own read, one section up. |
 | kernels-by-spec tree and the connected-sessions submenu — `KernelSpecItem` → `RunningKernel` → session children, the switch-view that flattens it, the `contextMenu.opened` submenu listing a kernel's sessions (`kernels.tsx:143-199,309-517`) | flat session rows under "Kernel Sessions" | adapted | The grouping is the same `GET api/kernels` decline the shut-down-unused row rests on — `RunningSidePanel.kt`'s doc names the section "Kernel Sessions" because its rows *are* sessions; a phone's rail has no context-menu slot for the submenu. |
 
@@ -1632,16 +1632,16 @@ What the walk found, beyond the rows above:
   gateway beside `reopeningIfStale`, so a session minted by a server the idle backstop had
   stopped threw `StaleKernelSessionException` out of the `scope.launch` — an uncaught coroutine
   failure with `kernelRestarting`/`kernelChanging` latched and a continuation that silently
-  never ran; `0d2146b8`, red through
+  never ran; `b9497e60`, red through
   `aRestartWhoseServerWasReplaced_reconnectsAndRestartsTheFreshKernel`,
   `aStopWhoseServerWasReplaced_landsOnNoKernel`,
   `changeKernel_connectsTheChoiceWhenTheOpenSessionProvesStale` and
   `interrupt_onASessionWhoseServerWasReplaced_forgetsIt`. The console's `run` awaited
   `reopeningIfStale` before the flow existed, so a refused `connect` escaped past the `catch`
-  and left the entry RUNNING for ever; `dc73b380`,
+  and left the entry RUNNING for ever; `a9d1785e`,
   `submit_resolvesToStoppedErrorWhenConnectingIsRefused`. And every launch in
   `RunningPanelViewModel` propagated a refused ask, contradicting its own "keeps the last good
-  list" contract; `7b5e670e`, the four `aRefused*` cases. The failure shapes the walk confirmed
+  list" contract; `1eaa04d3`, the four `aRefused*` cases. The failure shapes the walk confirmed
   rather than repaired: `ended` fires for a dead server's sessions even when nothing was left to
   DELETE, `running()`'s `dropped` reconciliation ends rows the server forgot without asking, and
   an already-gone shutdown is a no-op by the registry's once-per-id emission.
@@ -2031,7 +2031,7 @@ What the walk found, beyond the rows above:
   server was replaced kept the count positive forever, and `IdleServerStopper`'s
   `combine { both zero }` cannot fire while it stays positive: a dead shell held a live server
   open. `Ended` could not decrement on its own - `TermSocket.on_close` means the pty may live -
-  so `b176c260` made the belief a set of names reconciled to `running()`'s answer: asked once on
+  so `726d5bb1` made the belief a set of names reconciled to `running()`'s answer: asked once on
   every attach's `Ended`, re-aligned by every `running()` call, removed idempotently by `close`.
   Red first: `anEndedAttachReconcilesAwayTheDeadShell`, `aSocketEndOnALiveShellKeepsItsHold`,
   `aShellEndedElsewhereDropsOnTheNextList`, `anEndedObservedAfterCloseStillCountsOnce`, with
@@ -2224,7 +2224,7 @@ These rows carry no `family:id` — the command surface is `T2`'s above — so t
 do not move; each `absent` still names the `GAP-NNN` ADR-0067 obliges. One defect surfaced: a
 stream or `text/plain` that coloured itself kept its escapes — the same `[31m`-on-screen
 wrongness `withoutAnsiColours` was written to remove on tracebacks — fixed red-first in
-`f1bd2e05` (`render_stripsTheAnsiColoursOutOfAStream`, `render_stripsTheAnsiColoursOutOfPlainText`).
+`358aae42` (`render_stripsTheAnsiColoursOutOfAStream`, `render_stripsTheAnsiColoursOutOfPlainText`).
 Eleven GAPs open — `GAP-101` through `GAP-111`, `GAP-106` closed since by `SgrText` (ADR-0083); `GAP-093`, `GAP-096` and `GAP-099` are cited
 where the read lands on their ground rather than re-gapped. Fold calls the PRD left open:
 granularity is per factory or mime family where one read covers them — `image/*`'s four non-png
@@ -2301,7 +2301,7 @@ cat app/src/main/java/com/jupydroid/app/import/ImportTitles.kt; grep -n 'importT
 
 These rows carry no `family:id` — the command surface is `T2`'s — so the produced counts do not
 move; each `absent` still names the `GAP-NNN` ADR-0067 obliges. One defect surfaced and was
-fixed red-first in `974ba25c`: `clear_output` was appended to the output list as an invisible
+fixed red-first in `f56af526`: `clear_output` was appended to the output list as an invisible
 instruction — a `print; clear_output()` kept its output on screen, and the same entry serialized
 to disk as `{}`, an output `nbformat.validate` refuses. `EditorUiStateTest`'s three
 `aClearOutput*` cases and `KernelOutputsTest.outputOf_readsClearOutputWait` pinned it;
@@ -2323,7 +2323,7 @@ frame, a visible wrongness no comment states — while the carrier it needs stay
 | `PromptOverlay` — the output-column overlay that toggles the `scrolled` metadata flag (`widget.ts`, `tokens.ts`) | `CellAction.ToggleOutputsScrolled` in the cell menu; `outputsScrolled` persisted the same way | adapted | same flag, different affordance — the hover/click overlay is a pointer's luxury the menu row answers on a tablet; the toggle itself verdicted at `AUD-002` |
 | `Stdin`/`onInputRequest`/`allow_stdin: true` — a prompt widget on `input_request`, the reply echoed as `stream(name:'stdin')` (`widget.ts:547-629`) | `InputPromptField` (`ui/editor/CellInputPrompt.kt`) at the foot of `CellOutputs`, masked for `password`; submit appends `KernelInputRequest.echoOf` (`Name? Ada`, `Secret? ········`) as `StreamName.STDIN`, which the disk round-trips as `"stdin"` | adapted | the same field and the same echo; no line history (`inputHistoryScope`) and no placeholder hint, both a hardware keyboard's ([ADR-0082](../adr/0082-a-cells-input-is-answered-inline-and-kept-as-a-stdin-echo.md)) |
 | `display_id`/`update_display_data` — outputs registered under `transient.display_id`; an update `set()`s the stored bundle in place, every view redraws (`widget.ts:804-850`) | `transient.display_id` rides on `CellOutput.DisplayData.displayId`; `update_display_data` arrives as `CellOutput.DisplayUpdate` and `withDisplayReplaced` replaces every output carrying the id, in the notebook and across the Console's entries; a repeated `display_data` updates, then appends | adapted | ADR-0085: the id on the output rather than a side map, and the scope vscode-jupyter's whole notebook rather than JupyterLab's request lifetime; `GAP-113` closed by it |
-| `clear_output`/`clear(wait)` — `wait:false` clears the model now, `wait:true` sets `clearNext` and the next `add` clears first (`model.ts:301-311`) | was: appended as an invisible output and persisted as `{}` — now: `afterOutput` executes it against the model, `clearsPending` carries the deferred half; the Console does the same by entry (`ConsoleOutputArrival.afterOutput`, `ConsoleEntry.clearPending`) | **defect** | fixed red-first in `974ba25c` — `aClearOutputDropsWhatTheCellPrinted`, `aClearOutputWithWaitKeepsTheOutputsUntilTheNextOneArrives`, `aClearOutputWithWaitIsSpentByTheNextOutput`, `outputOf_readsClearOutputWait`; the Console's by `ConsoleOutputArrivalTest`'s `anImmediateClearEmptiesItsOwnEntryOnly`, `aWaitingClearKeepsTheEntryUntilItsNextOutput`, `aWaitingClearIsSpentByTheNextOutput`, `anUpdateLeavesAWaitingClearForTheNextOutput`; the `{}` write dies with it — the instruction never reaches `outputs`, so `toFileOutput`'s arm is unreachable |
+| `clear_output`/`clear(wait)` — `wait:false` clears the model now, `wait:true` sets `clearNext` and the next `add` clears first (`model.ts:301-311`) | was: appended as an invisible output and persisted as `{}` — now: `afterOutput` executes it against the model, `clearsPending` carries the deferred half; the Console does the same by entry (`ConsoleOutputArrival.afterOutput`, `ConsoleEntry.clearPending`) | **defect** | fixed red-first in `f56af526` — `aClearOutputDropsWhatTheCellPrinted`, `aClearOutputWithWaitKeepsTheOutputsUntilTheNextOneArrives`, `aClearOutputWithWaitIsSpentByTheNextOutput`, `outputOf_readsClearOutputWait`; the Console's by `ConsoleOutputArrivalTest`'s `anImmediateClearEmptiesItsOwnEntryOnly`, `aWaitingClearKeepsTheEntryUntilItsNextOutput`, `aWaitingClearIsSpentByTheNextOutput`, `anUpdateLeavesAWaitingClearForTheNextOutput`; the `{}` write dies with it — the instruction never reaches `outputs`, so `toFileOutput`'s arm is unreachable |
 | `maxNumberOutputs`/`TrimmedOutputs` — a cap (50 in a notebook, `notebook-extension/schema/tracker.json`) with a `Show more outputs` button (`{model,widget}.ts`) | `drawnOutputCountOf` draws the first `OUTPUT_COUNT_LIMIT` (50) behind `Show more outputs`, and `outputLineWindowOf` cuts a text past 30 lines to its head and tail behind an `N lines hidden` row; the model and the file keep every output and line | adapted | ADR-0084: both caps, since JupyterLab counts outputs and VS Code counts lines and each misses the other's runaway; expanded in place per output, and a search step onto a hidden hit draws it; `GAP-115` closed by it |
 | `isIsolated`/`IsolatedRenderer` — `metadata.isolated` (per-mime key, then `metadata.isolated`) wraps the output in an iframe (`widget.ts:769-783`, `:1052-1064`) | `metadata.isolated` carried and unread, and no DOM to isolate — the subset parse is unconditional | adapted | the isolation question presumes rendered markup can act — under ADR-0039 nothing can, so there is nothing to fence; `notebook:trust`'s `T2` verdict covers the flag itself |
 | `SimplifiedOutputArea` — the prompt-less output area `CodeCell.cloneOutputArea()` builds for a second view of a cell's outputs, `onInputRequest` a no-op so only the cell's own area prompts (`widget.ts:936-950`, `packages/cells/src/widget.ts:1590-1600`). The console is not it: its cells are ordinary `CodeCell`s (`packages/console/src/widget.ts:1382`) | no second view of a cell's outputs; the console's entries answer stdin through the same `CellOutputs` a notebook cell does | **absent** | `GAP-100` — the clone's own widget; with no second view there is no second prompt to suppress |
@@ -2386,7 +2386,7 @@ backpressured → `onSubscription` — `awaitReady` holding the request until ha
 `uiState.update { it.after(event) }` → `afterOutput` — `ClearOutput` executed against the
 model: immediate drops the list, `wait` parks the cell in `clearsPending` and the next output
 spends it, so the instruction never lands in `outputs`, never renders and never serializes
-(`974ba25c`) — → `withSearchedOutputsRecomputed`, a no-op unless the search reads outputs →
+(`f56af526`) — → `withSearchedOutputsRecomputed`, a no-op unless the search reads outputs →
 `finishedRun` → `checkpoint` — `persist()` when autosave is on, `dirty = true` when not — → the
 cell's `EditorContent` item → `CellOutputs` → `render()`/`renderRichest` — three mimes ranked
 off `defaultRank`, an unusable payload falling through to the next, the bundle's keys the last
@@ -2397,7 +2397,7 @@ the runtime, which is why the ask sits inside the picker and not beside the menu
 `GET api/nbconvert` → `offeredExportFormats` intersecting the server's list with the four ours
 has labels for → `exportAs("html")` → `converting` named on the row → `persist()` — the
 save-first the reference does as `await context.save()`, and refused rather than silent since
-`48041f2f` when the write never landed — → `exporter.export(path, "html")` →
+`8cb91a01` when the write never landed — → `exporter.export(path, "html")` →
 `GET nbconvert/html/<path>?download=true` → `NbConvertResponse` — the server's own filename off
 `Content-Disposition`, its media type off `Content-Type`, its own sentence off a failure — →
 `writeBytes` beside the notebook, a same-name artifact replaced → `ExportReport.Written` → the
@@ -2447,7 +2447,7 @@ What the walk found, beyond the rows above:
   An open failure is `EditorUiState.error` with the file's name in it. A save failure is
   `saveFailure` — a state rather than an event, because "your work is not reaching disk" goes
   on being true until it stops — and is now also the export's refusal where it used to convert
-  the last-good file beside the banner: `48041f2f`, red first
+  the last-good file beside the banner: `8cb91a01`, red first
   (`exportAs_refusesToConvertAFileTheSaveNeverWrote`). A wire failure is a `CellOutput.Error`
   the cell earned — `KernelChannelException` on an `Ended` socket, a refused connect — except
   `KernelPickRequiredException`, rethrown past the failure lane to arm the picker rather than
@@ -2455,7 +2455,7 @@ What the walk found, beyond the rows above:
   server's own sentence (`NbConvertResponse`). The second defect is the file half's twin of the
   wire's totality contract: `toDomainOutput` promised "dropped rather than throwing" and read
   every member through `jsonPrimitive`, which throws on a non-primitive — one malformed member
-  anywhere in `outputs` failed the whole open until `4304a05f` made the reads `as?`-tolerant at
+  anywhere in `outputs` failed the whole open until `9ec12953` made the reads `as?`-tolerant at
   member granularity (red first: the four `toDomain_*` cases in `NotebookOutputsTest`). What
   the walk confirmed rather than repaired: `toStream`'s stdin refusal (`domain/model/CellOutput.kt`),
   `stopWriting`/`notebookIsGone` gating the farewell write so a deleted file is not
@@ -2795,14 +2795,14 @@ not the stack's promotion order — → `EditorViewModel` registering `openDocum
 `saveNow`'s continuation, a refused save never closing — → `closeMainAreaTab` re-selecting the
 sibling by opening order → the entry leaves, its `ViewModelStore` clears, `onCleared` runs
 `openDocuments.closed` and the farewell `persist()` → `reconcileOpenTabs` dropping the dead key
-from the order and both maps — `46164a51`, because before it a renamed-then-closed key kept
+from the order and both maps — `cf76f9f3`, because before it a renamed-then-closed key kept
 answering `liveDocumentPath`, and a reopen of the old name whose open failed marked the renamed
 file's row for a document that never arrived (`aClosedTabsLivePathStopsAnswering`) — → an empty
 main area → `LauncherNavigation`'s `maybeCreate` fill. **A settings write:** `SettingsScreen`
 collects each `observeSettings()` live → a row's tap → the `*Settings` model's callback →
 `applicationScope.launch { repository.update }` → `withContext(ioDispatcher)` →
 `writeMutex.withLock` → `mkdirs` → `writeText` → *then* the `MutableStateFlow` publishes —
-`e31f319b`, since before that order a refused `writeText` broadcast a value the next launch
+`ba8c8418`, since before that order a refused `writeText` broadcast a value the next launch
 never kept, and two writes racing on the scope could leave file and flow disagreeing about
 which update was last — → the same flow collected by the editor, file editor, terminal and
 settings screens themselves → applied live, no restart — → a restart reconstructs the
@@ -2845,9 +2845,9 @@ What the walk found, beyond the rows above:
   dispatches on `LaunchedDocument`'s four kinds, and `resolvesToDark` is the tri-state's own
   fork.
 - **Failure has an honest arm on the write path, and the walk named where it does not.** A
-  refused settings write publishes nothing (`e31f319b`, red first in all six stores); a failed
+  refused settings write publishes nothing (`ba8c8418`, red first in all six stores); a failed
   document open lands `EditorUiState.error` with the file's name in it; a refused card mint
-  surfaces on `LauncherViewModel.error`; a dead key stopped answering at `46164a51`. The
+  surfaces on `LauncherViewModel.error`; a dead key stopped answering at `cf76f9f3`. The
   recorded silences: `importTitle`'s `createNotebook` and the explorer's `openNewTerminal` ride
   a bare `runCatching` — a user act that lands nowhere, unsaid — `GAP-144`. A `Console` key
   restored after a process death without its session composes a blank pane under a live tab —
@@ -2861,7 +2861,7 @@ What the walk found, beyond the rows above:
   console's session — lives one level up and is handed down. `WorkspaceChange.Renamed` is what
   keeps the two "where is it" records coherent: the repository emits, the ViewModels adopt the
   moved `path`, the screens report it back into `openDocumentPaths`, and the strip, the close
-  gate and the row marker read through `documentIn`-then-map. That is also why `46164a51` was a
+  gate and the row marker read through `documentIn`-then-map. That is also why `cf76f9f3` was a
   reconcile fix and not a marking fix — the map can only lie where no document remains to
   correct it. The five live in three `ViewModel`s of the activity where `browsedDirectory` is
   `rememberSaveable`: a rotation keeps the stack and, beside it, the strip's order, the live
@@ -3154,7 +3154,7 @@ that shape.
 | Staging — termux extracts to `usr-staging`, builds `SYMLINKS.txt` links, then `renameTo(files/usr)`; a broken staging can never masquerade (`TermuxInstaller.java:154-217`) | none — the extract writes the destination directly | adapted | the stronger variant is termux's; both in-place installers lean on the stamp instead — a mid-write death leaves a mixed or cleared tree *without* the new stamp, so the next check re-extracts either way |
 | Failure arm — extract answers `success`; on `false` a toast, a cleared tree with no stamp, and `installIfNeeded` retries next launch; termux shows an abort/try-again dialog that deletes and re-runs (`RootFSInstaller.java:70-74`, `TermuxInstaller.java:242-264`) | the extract throws → `BaseSpaceServer.startSpace` logs `failed` and rethrows; the old stamp stays → the next start re-extracts | adapted | all three self-heal through the unwritten stamp; ours' residue is a mixed new-over-old tree where theirs' is a cleared one, and logcat stands where they put a dialog — the surface half is the row below |
 | The stamp — `.winlator/.rfs_version` under `.winlator/`, written only on extract `success`; an `IOException` there is `printStackTrace`d and silently retried next launch (`RootFS.java:50-59`, `RootFSInstaller.java:70-73`) | `.jupydroid/rootfs-version`, written only when the extract returned (`stampVersion`, after `entriesWritten`) | present | the same dot-dir-inside-the-tree placement and the same stamp-last ordering — a stamp-write failure means "not installed" on both sides, theirs by swallow, ours by rethrow |
-| The version cascade — a rootfs bump clears every container's `rfsVersion` and flags `wineprefixNeedsUpdate` under ≤ `UPDATE_WINEPREFIX_VERSION`; the next launch's `setupWineSystemFiles` re-extracts the patch layer and `wineboot -u` migrates the prefix (`RootFSInstaller.java:33-45`, `XServerDisplayActivity.java:429-441`) | none — `BUNDLED_ROOTFS_VERSION` is one stamp, bumped eight times since `fc6d171b`, and there are no envs to flag | adapted | the extras-bag carrier exists (T2's row) but there is nothing to cascade into today; `pkgs/lib/python3.12` *would* strand on an interpreter bump — the findings carry that arm |
+| The version cascade — a rootfs bump clears every container's `rfsVersion` and flags `wineprefixNeedsUpdate` under ≤ `UPDATE_WINEPREFIX_VERSION`; the next launch's `setupWineSystemFiles` re-extracts the patch layer and `wineboot -u` migrates the prefix (`RootFSInstaller.java:33-45`, `XServerDisplayActivity.java:429-441`) | none — `BUNDLED_ROOTFS_VERSION` is one stamp, bumped eight times since `4ad54df7`, and there are no envs to flag | adapted | the extras-bag carrier exists (T2's row) but there is nothing to cascade into today; `pkgs/lib/python3.12` *would* strand on an interpreter bump — the findings carry that arm |
 | Versioned parts — seven `GeneralComponents.Type`s (five `isVersioned`), fourteen `DefaultVersion` pins, builtin asset folders + `installed_components/<type>/<name>-<ver>.tzst` + `index.txt` manifests, per-type destinations (rootfs / `drive_c/windows` / cache), spinners with a remove-confirm, `generateCompactContainerPattern` repacking the per-container pattern | one blob, one version | **absent** | `GAP-149` — there is no per-part upgrade path: a busybox rebuild or a `jupyter_server` bump costs a whole-image rebuild, a `BUNDLED_ROOTFS_VERSION` bump and a full re-extract |
 | The launch repair pass — `activateContainer` repoints `home/xuser`; `setupWineSystemFiles` compares `appVersion`/`rfsVersion` extras → `applyGeneralPatches` re-extracts `rootfs_patches.tzst` + `pulseaudio.tzst`, applies `WineUtils` tweaks, resets extras (`XServerDisplayActivity.java:169,429-441,1059-1070`) | every launch repoints the loader, the interpreter, `bin/busybox` + its 304 applets and `bin/shebang-exec` + its `usr/local/bin` links, and rewrites `kernel.json` | adapted | the same "the tree is repaired at launch because its pointers moved" shape — ours' mover is `nativeLibraryDir` on every app update (ADR-0002, CLOSED-001), theirs' is the version cascade; the exec model itself is the forced deviation, no parity target |
 | `kernel.json` — the image carries ipykernel's stock spec (`python -m ipykernel_launcher`, `supported_encryption`, `kernel_protocol_version`) and nothing rewrites it — the container's wine path is `setWinePath`'s job at launch | `SpaceKernelSpec.install` rewrites the shipped spec on every launch: argv[0] → the `nativeLibraryDir` interpreter, `-m jupydroid_kernel`, `--log-level=DEBUG`, `metadata.debugger` | adapted | a kernelspec is JSON we own, and argv[0] is the one path execve permits (ADR-0002); the rewrite is total — the two keys it drops ride the findings |
@@ -3166,7 +3166,7 @@ that shape.
 
 What the read found, beyond the rows:
 
-- **The `ash builtin.md` sentence was mangled by `e421345c`'s citation-drop** — "an ash builtin.
+- **The `ash builtin.md` sentence was mangled by `c3643a29`'s citation-drop** — "an ash builtin.
   Measured in `evidence/…`" became "an ash builtin.md`, which is also where the…" mid-sentence.
   Repaired in place under T2's KDoc precedent: the naming constraint now cites ADR-0045, which is
   the decision that records it.
@@ -3687,7 +3687,7 @@ where the friendly message lives, not where the coverage lives. **No defect.**
 | `check_retired_doc_citations.py` | `_test.py` incl. the `git ls-files` sweep | its suite | `retired-doc-citations` hook on staged `types: [text]` | the suite is the whole-tree arm |
 | `check_chrome_parts.py` | `_test.py` over this repo's committed frames | its suite | `chrome-parts-driver.sh` | driver-bound: a device frame is its input, so no commit hook could hold it — the wire is the flow itself |
 | `check_node_fill.py` | `_test.py` over a committed frame | its suite | the `p7a-1b-*` drivers | same |
-| `ArchitectureGuardTest` | a planted violation, watched fail, reverted — `f18e2dc1`'s commit body | it *is* the suite | `unit-tests` hook (`testDebugUnitTest`) | asserts the real tree rather than fixtures, so its red-proof lives in git log — the `layersChecker.test.ts` idea at repo scale |
+| `ArchitectureGuardTest` | a planted violation, watched fail, reverted — `74e8e979`'s commit body | it *is* the suite | `unit-tests` hook (`testDebugUnitTest`) | asserts the real tree rather than fixtures, so its red-proof lives in git log — the `layersChecker.test.ts` idea at repo scale |
 | ktlint, detekt, `lintDebug` | the build | — | `ktlint-check`, `detekt`, `android-lint` hooks `always_run`, tasks named per `ADR-0016` | detekt `NestedBlockDepth` unset — default allows 4 against the stated 2 |
 | `maestro-gate-tests` | — | it is the runner | `always_run` | the meta-arm: what makes every `_test.py` sweep a gate rather than a document |
 | `unit-tests` | — | runs `testDebugUnitTest` + `compileDebugAndroidTestKotlin` | `always_run` | the second Gradle call a commit pays |
@@ -3788,7 +3788,7 @@ for all four (the documented `<jdk>` is the same fact a human pays by hand).
 `always_run` — runs `unittest discover -s scripts -p '*_test.py'`: 34 suites, milliseconds, and
 the reason the five narrow triggers can stay narrow. `ArchitectureGuardTest` is the same act on
 the Gradle side, inside `testDebugUnitTest`, asserting the real tree — its red proven not by a
-fixture suite but by a planted violation watched failing and reverted, recorded in `f18e2dc1`'s
+fixture suite but by a planted violation watched failing and reverted, recorded in `74e8e979`'s
 commit body: the two red-proof styles the audit found, kept as the fact they are. `unittest
 discover`'s `*_test.py` pattern is the wiring — a new gate's suite joins the run by filename
 alone, no registration — which is also the edge the one `.sh` gate sits outside: a
@@ -3848,7 +3848,7 @@ without a fix are `sqlite-libs`. Two facts are carried to the verdicts:
 token is the one barrier loopback leaves. Re-resolving `requirements.lock` against PyPI fails on
 `aiofile==3.12.3` against a declared `<3.10`.
 
-Run on 2026-10-27 from a clean tree at `4534ec88`: osv-scanner 2.7.0
+Run on 2026-10-27 from a clean tree at `9f0bf946`: osv-scanner 2.7.0
 (`ghcr.io/google/osv-scanner@sha256:4f3b7e2c64b9d38a5febc5a7e4a3dfef1d1362f726dea7a2ef4762b46469fcd0`, `scan source
 --no-resolve` over the lockfiles), syft 1.55.0
 (`anchore/syft@sha256:4cc92b64ca74ffca4c94d4c8fcc01f217731375300be14d0b6eeb2e82eaa110a`) and grype 0.121.0
@@ -3871,7 +3871,7 @@ cleartext permitted to `127.0.0.1` and `localhost`. Two of the warnings are acti
 the debug-only `ui-test-manifest` and `ui-tooling`. Of the native libraries, `libproot.so` and
 `libproot-loader.so` have no stack canary, and `libzstd-jni` lacks full RELRO.
 
-Run on 2026-10-27 from a clean tree at `de8118dc`: `lintDebug` of the four modules with no
+Run on 2026-10-27 from a clean tree at `c6ad6d7d`: `lintDebug` of the four modules with no
 baseline, semgrep 1.178.0 with `p/kotlin` and `p/mobsfscan`, gitleaks v8.30.1
 (`zricethezav/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f`, default ruleset), and
 MobSF 4.6.2
@@ -4009,7 +4009,7 @@ already running in that Space, and every Space process can read its own `run/` d
 
 ```sh
 grep -n -A3 'action.VIEW' app/src/main/AndroidManifest.xml | grep -c BROWSABLE            # 1
-git log --format=%h -S'category.BROWSABLE' -- app/src/main/AndroidManifest.xml          # b59d9068
+git log --format=%h -S'category.BROWSABLE' -- app/src/main/AndroidManifest.xml          # f0259dc4
 grep -n 'readBytes()' app/src/main/java/com/jupydroid/app/data/intent/ContentResolverSharedDocumentReader.kt
 grep -rnE '777|a\+rwx|o\+w' app/src/main tools/rootfs | grep -v requirements.lock         # none
 adb shell run-as com.jupydroid.app ls -lnd files/spaces/base/bin                          # drwx------

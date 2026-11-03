@@ -66,7 +66,7 @@ JupyterLab's model, narrowed. A key carries the path it opened under and an `ope
   up by `OpenDocuments.openedAs`, so two documents opened under one path are never confused
   (`eachTabFindsItsOwnDocumentWhenTwoOpenedUnderOnePath`).
 
-Measured on SM-X216B on a fresh install (`d9421fce`): `a.ipynb`, typed into with autosave off, was
+Measured on SM-X216B on a fresh install (`bd758437`): `a.ipynb`, typed into with autosave off, was
 renamed to `b.ipynb` from its tab, and a notebook created as `a.ipynb` opened beside it. The strip
 read `Launcher, b.ipynb, a.ipynb`; `a.ipynb` showed an empty cell and `b.ipynb` the typed one with
 its dot, and the typed line had not reached the disk. The same held for `a.py` → `b.py`, and

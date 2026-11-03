@@ -45,7 +45,7 @@ Every id is a unique grep token.
 pre-ADR step codes. They survive **only** in git history, `evidence/<step>/` directory names, and
 `.maestro`/`scripts` driver filenames — where they are the index that ties a flow to its evidence.
 Nothing in `app/src/`, `tools/` or `*.gradle.kts` references them. The `A*`/`D*`/`U*`/`X*` families
-were last defined in `git show 718fa5dc^:docs/PLAN.md`; `P*` numbering was never stable (the terminal
+were last defined in `git show b1998bf4^:docs/PLAN.md`; `P*` numbering was never stable (the terminal
 phase was re-lettered mid-flight, turning `P4d` into `P4e`-`P4h`).
 
 ## Finding things — grep, don't read

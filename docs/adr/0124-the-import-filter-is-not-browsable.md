@@ -7,7 +7,7 @@ Date: 2026-10-29
 
 `MainActivity` has one inbound door besides the launcher: a `VIEW` filter on any `content://` URI
 of any MIME type. It copies the `.ipynb` it names into a Space. The filter has carried
-`android.intent.category.BROWSABLE` since the commit that added it (`b59d9068`, "import .ipynb from
+`android.intent.category.BROWSABLE` since the commit that added it (`f0259dc4`, "import .ipynb from
 VIEW intent"), and nothing anyone wrote says why. The manifest's comment explains the scheme and the
 MIME type, not the category.
 

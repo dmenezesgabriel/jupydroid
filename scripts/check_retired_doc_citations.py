@@ -22,7 +22,7 @@ import pathlib
 import re
 import sys
 
-#: Deleted by ADR-0001. Git history still holds them - `git show 718fa5dc^:` then a `RETIRED` name.
+#: Deleted by ADR-0001. Git history still holds them - `git show b1998bf4^:` then a `RETIRED` name.
 RETIRED = ("docs/PLAN.md", "docs/DECISIONS.md", "docs/environment-fidelity.md")
 
 #: Naming a retired document is these files' job: two ADRs record the retirement and the rule for

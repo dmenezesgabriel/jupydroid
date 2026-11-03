@@ -118,7 +118,7 @@ One TDD unit each, one conventional commit each.
   `*.pyc` is dropped from history (`--path-glob '*.pyc' --invert-paths`).
 - [x] T3 — rehearsal: `git bundle create` outside the repo on a disk filesystem, `git bundle verify`,
   clone it, run T2, run T1 (all zero), diff the old and new tip trees (only scrubbed paths differ), commit
-  count unchanged, tag present, SHA remap dry-run. All four classes read 0 on `9529c361`, deterministic
+  count unchanged, tag present, SHA remap dry-run. All four classes read 0 on `f05b6a65`, deterministic
   across two runs, 219 cited SHAs unambiguous. **Superseded by T10**, which rehearses the argv T4 and T5
   change; its README goes with `evidence/`.
 - [x] T4 — the rewrite's inputs leave `evidence/`: `rewrite_history.py` builds the carrier rules from

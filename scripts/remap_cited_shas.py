@@ -11,7 +11,7 @@ that prefixes exactly one *old* commit. Most hex-looking tokens in the tree are 
 that prefixes none is left alone (an upstream project's pinned SHA, another hash). One that prefixes two
 or more refuses the whole run: guessing would point a citation at the wrong commit. Edits are made on
 bytes and only to tracked files without a NUL in the first 8 KiB, so a binary file, an ignored directory
-and an encoding are never touched or guessed. A cited prefix keeps its length: `f5ff4fcd` stays 8 hex.
+and an encoding are never touched or guessed. A cited prefix keeps its length: `3dc743ad` stays 8 hex.
 
 Nothing is written until every file has been read, so an ambiguity in the last file leaves the first one
 as it was.

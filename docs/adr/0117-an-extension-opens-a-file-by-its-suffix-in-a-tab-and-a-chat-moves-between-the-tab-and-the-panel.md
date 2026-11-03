@@ -107,7 +107,7 @@ Measured on SM-X216B (240 dpi):
 - **A reload used to write a replayed answer.** Moving a chat empties and refills its room, so the
   persona loads the session again, and jupyter_ai_acp_client 0.3.3 could write a replayed chunk that
   landed after the load as a new message. `tools/rootfs/acp_replayed_updates_patch.py` drops the
-  replayed updates by count instead (Fixes: ce48b3942f67 ("fix(rootfs): a chat loaded again writes none
+  replayed updates by count instead (Fixes: a7e38bcc8817 ("fix(rootfs): a chat loaded again writes none
   of the history its agent replays")).
 - **A contribution that no extension gives any more draws an empty tab**, which the strip can still
   close.

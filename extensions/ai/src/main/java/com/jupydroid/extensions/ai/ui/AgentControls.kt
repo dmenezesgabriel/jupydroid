@@ -63,7 +63,7 @@ internal fun AgentControls(transcript: ChatTranscript, pick: AgentPick, onPick: 
  * (jupyter-ai-persona-manager@d5ed04b `src/persona-controls.tsx`, `ControlsRow`; vscode@3f3380c
  * `src/vs/workbench/contrib/chat/browser/widget/input/chatInputPickerResponsiveLayout.ts`).
  *
- * Fixes: 7aa8cfb98a80 ("feat(ai): a mode chip beside the model chip names opencode's mode and picks the
+ * Fixes: 714399219c40 ("feat(ai): a mode chip beside the model chip names opencode's mode and picks the
  * next question's")
  */
 @Composable

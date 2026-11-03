@@ -125,7 +125,7 @@ class ThisRepositoryTest(unittest.TestCase):
     """The wash defect, read off the frames it is visible in.
 
     **An oracle that cannot see the bug cannot be trusted to see the fix.** These pairs were
-    captured at `b4a81e47`, the commit before the fix, and are kept as fixtures rather than
+    captured at `9ab86228`, the commit before the fix, and are kept as fixtures rather than
     overwritten by the run that proves the fix. What they hold is a search toggle drawing its *on*
     wash from `list.inactiveSelectionBackground`, the id that belongs to the explorer's row, rather
     than from the `inputOption.activeBackground` its own KDoc has always cited.

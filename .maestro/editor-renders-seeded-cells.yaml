@@ -9,7 +9,7 @@ appId: com.jupydroid.app
     timeout: 5000
 # Scrolled to rather than asserted on: Home is sorted by `updatedAt` descending and the fixture
 # is seeded at 2026-08-04, so it sinks below the fold as the device accumulates notebooks. This
-# flow was missed by the sweep in e962d7d that gave every other seeded flow the same two steps.
+# flow was missed by the sweep in 7698b4e that gave every other seeded flow the same two steps.
 - scrollUntilVisible:
     element:
       text: "Two Cells.ipynb"

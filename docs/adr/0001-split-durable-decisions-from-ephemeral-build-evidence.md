@@ -19,7 +19,7 @@ research:
 
 Five failures followed, each measured rather than supposed.
 
-**The split was already tried once and regressed.** Commit `718fa5dc`, *"docs(plan): split the
+**The split was already tried once and regressed.** Commit `b1998bf4`, *"docs(plan): split the
 record out of the plan, and rewrite what is left"*, cut `PLAN.md` from 3,321 lines to 387 for
 exactly this reason. It grew back to 2,190, and 162 `shipped` markers now sit in a file whose own
 header reads *"This file is forward-looking only."* Prose discipline alone does not hold this line.
@@ -60,7 +60,7 @@ files — 70% — referenced a planning artifact:
 | `reference/…` paths | 250 lines |
 
 The step-code families were not defined in any current document: `A*`, `D*`, `U*` and `X*` are
-documented only in `git show 718fa5dc^:docs/PLAN.md`, and the surviving `P*` numbering is itself
+documented only in `git show b1998bf4^:docs/PLAN.md`, and the surviving `P*` numbering is itself
 unstable — `DECISIONS.md:1914` records *"P4e-P4h, which were P4d until the terminal phase was
 re-lettered."* Meanwhile `reference/` is gitignored (`.gitignore:17`), so `git ls-files reference`
 returns 0 and all 250 of those citations are unresolvable in any clone. And four comments described
@@ -81,7 +81,7 @@ shipped work as future: `domain/port/ServerLauncher.kt` *"Rootfs launcher lands 
 
 | Option | Pro | Con |
 |---|---|---|
-| Keep two growing documents, rewrite the prose again | Nothing to route between | What `718fa5dc` already tried; it regressed from 387 lines to 2,190 |
+| Keep two growing documents, rewrite the prose again | Nothing to route between | What `b1998bf4` already tried; it regressed from 387 lines to 2,190 |
 | Split by topic — one file per subsystem | Familiar | Each file still mixes decision, plan and measurement; the genres are what rot at different rates |
 | Split by **lifetime** — durable decisions, ephemeral work, measured research | Each artifact is kept or discarded on its own merits, and ids make it greppable | Requires the discipline to actually delete, so it is gated rather than trusted |
 

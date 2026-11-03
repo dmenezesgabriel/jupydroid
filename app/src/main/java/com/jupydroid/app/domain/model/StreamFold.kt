@@ -60,7 +60,7 @@ private fun streamTokensOf(chunk: String): Sequence<String> = sequence {
  * than once per token - a print loop is two tokens a line, and rebuilding the whole text for each
  * froze the editor for minutes on 200k lines (StreamFoldTest.aRunawayPrintFoldsInLinearTime).
  *
- * Fixes: 6afbdf9a5dda ("feat(editor): adjacent streams fold and \r rewrites the line")
+ * Fixes: aa61e7d87570 ("feat(editor): adjacent streams fold and \r rewrites the line")
  */
 private fun CellOutput.Stream.overwrittenBy(chunk: String): CellOutput.Stream {
   val buffer = StringBuilder(text)
