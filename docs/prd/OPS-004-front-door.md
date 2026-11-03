@@ -136,7 +136,7 @@ No `domain/`, `data/`, `ui/` or `di/` file changes, so there is no port and no `
   in a tracked Markdown file resolves to a tracked file; wired into `.pre-commit-config.yaml`
 - [x] T2 — `SECURITY.md`: private vulnerability reporting; scope is the loopback server's token, the MCP
   port and the proot sandbox; no released versions yet
-- [ ] T3 — `CODE_OF_CONDUCT.md`: the Contributor Covenant 2.1 with its attribution and a contact placeholder
+- [x] T3 — `CODE_OF_CONDUCT.md`: the Contributor Covenant 2.1 with its attribution and a contact placeholder
 - [ ] T4 — `CONTRIBUTING.md`: the working agreement for people, `pre-commit install`, the gate command,
   ids are ephemeral, evidence is local, the device rule stated generically
 - [ ] T5 — `.github/` issue forms, `config.yml` (blank issues off, security routed to advisories) and a
