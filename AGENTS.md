@@ -222,7 +222,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
 | device-secrets gate | no staged file, test fixtures included, describes the house a device run happened in | `scripts/check_device_secrets.py` (+ `_test.py`); local literals in gitignored `.sensitive-strings.local` |
 | monospace-home gate | what code looks like has one home | `scripts/check_monospace_home.py` (+ `_test.py`) |
-| doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/`+each extension module's `src/` read, an unknown type fails |
+| doc-citations gate | a comment cites what still resolves in a fresh clone | `scripts/check_doc_citations.py` (+ `_test.py`); no allowlist, every file under `app/src/`+`tools/`+`scripts/`+`.maestro/`+each extension module's `src/` read (a notebook by its code cells' comments), an unknown type fails |
 | retired-doc gate | no file names a document ADR-0001 deleted | `scripts/check_retired_doc_citations.py` (+ `_test.py`); the three names, and the eight files whose job is to hold them |
 | evidence-citations gate | no tracked Markdown names a directory under the local `evidence/`; a placeholder or glob passes | `scripts/check_evidence_citations.py` (+ `_test.py`) |
 | comment scanners | one prose reader per comment syntax, shared by the gates | `scripts/kotlin_source.py` (`//`, `/* */`), `script_source.py` (`#`, docstrings), `xml_source.py` (`<!-- -->`) (+ `_test.py` each) |

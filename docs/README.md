@@ -79,11 +79,12 @@ an `architecture.md`/`architecture/*.md` section, which is durable · an upstrea
 **Banned:** a plan/step code · `docs/backlog.md` · a `JD-NNN` or `OPS-NNN` · `evidence/<step>/` · any
 `reference/…` path.
 
-`scripts/check_doc_citations.py` is the gate. It reads **every file under `app/src/` and `tools/`**,
-plus the build files and `.editorconfig`/`.gitignore`/`.pre-commit-config.yaml` — 870 files — and
-picks a scanner per language: Kotlin/C/Java/ANTLR `//` and `/* */`,
+`scripts/check_doc_citations.py` is the gate. It reads **every file under `app/src/`, `tools/`, `scripts/` and `.maestro/`**,
+plus each extension module's `src/`, the build files and `.editorconfig`/`.gitignore`/`.pre-commit-config.yaml`
+— 2773 files — and picks a scanner per language: Kotlin/C/Java/ANTLR `//` and `/* */`,
 shell and Python `#` — a Python **docstring** counts, which is where `tools/rootfs/` explains itself
-— and `<!-- -->` for `AndroidManifest.xml`. Discovery is **fail-closed**: a type with no scanner
+— `<!-- -->` for `AndroidManifest.xml`, and the **code cells' `#` comments** for a `.ipynb`. Plain-text
+fixtures (`.txt`, `.csv`, `.chat`), `.md` and `.json` carry no comment syntax and are not read. Discovery is **fail-closed**: a type with no scanner
 fails the run by name rather than passing quietly, which is how `Dockerfile`, two `.g4` grammars and
 the manifest went 33 citations unread behind a four-extension glob. Binary files are skipped by
 git's own rule (a NUL byte in the first 8000 bytes), so gitignored build output in `jniLibs/` and

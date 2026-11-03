@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import pathlib
 import tempfile
 import unittest
 
 from check_doc_citations import (
     BANNED,
+    NO_PROSE,
     ROOT,
     citations_in,
     is_binary,
@@ -16,6 +18,7 @@ from check_doc_citations import (
     unknown_adrs_in,
 )
 from kotlin_source import comments_only
+from notebook_source import notebook_code_comments
 from script_source import hash_comments, python_prose
 from xml_source import xml_comments
 
@@ -140,6 +143,22 @@ class ScannerForTest(unittest.TestCase):
         """`tools/rootfs/Dockerfile` builds the shipped rootfs and its comments are prose."""
         self.assertIs(hash_comments, scanner_for("Dockerfile"))
 
+    def test_the_extensionless_gradle_wrapper_script_is_keyed_by_its_name(self):
+        """`scripts/gradlew-jbr` is a bash script with a comment header and no extension."""
+        self.assertIs(hash_comments, scanner_for("gradlew-jbr"))
+
+    def test_a_notebook_gets_the_scanner_that_reads_its_code_cells(self):
+        self.assertIs(notebook_code_comments, scanner_for(".ipynb"))
+
+    def test_a_comment_in_a_notebook_code_cell_is_a_citation(self):
+        source = json.dumps({"cells": [{"cell_type": "code", "source": ["# see docs/PLAN.md\n"]}]})
+        found = citations_in(source, scanner_for(".ipynb"))
+        self.assertEqual(["docs/PLAN.md"], [text for _, text, _ in found])
+
+    def test_fixture_data_with_no_comment_syntax_is_not_prose(self):
+        """A `.txt`, `.csv` or `.chat` fixture is data a flow types or opens, like a `.json`."""
+        self.assertLessEqual({".txt", ".csv", ".chat"}, NO_PROSE)
+
     def test_an_unknown_type_gets_no_scanner_rather_than_a_default(self):
         """A default is how this gate read `.sh` as Kotlin and called `tools/rootfs/` clean.
 
@@ -200,122 +219,31 @@ class ScannedFilesTest(unittest.TestCase):
                 self.assertIn(script, found)
         self.assertEqual([], [path for path in found if "/build/" in path])
 
-    def test_the_measurement_tools_and_their_tests_are_discovered(self):
-        """`scripts/read_*.py` is read, so a measurement tool cannot cite an item id again.
-
-        `scripts/` joins the gate one family at a time, each with the glob that names it, because a
-        whole-tree read reports 781 hits at once and nothing could keep a cleaned family clean.
-        """
-        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
-        for path in ("scripts/read_ledger_partition.py", "scripts/read_ledger_partition_test.py"):
-            with self.subTest(path=path):
-                self.assertIn(path, found)
-
-    def test_the_gates_their_helpers_and_the_shell_tools_are_discovered(self):
-        """Every `scripts/*.py` and every non-driver `.sh` is read.
-
-        The drivers join in the slices that follow; a glob rather than one name per file keeps a
-        helper added later inside the gate from the day it is written.
+    def test_the_scripts_tree_is_read_whole(self):
+        """Every file under `scripts/` is read, so a helper, a driver or a fixture added later is
+        inside the gate on the day it is written - the globs that joined it family by family are gone.
         """
         found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
         for path in (
             "scripts/check_doc_citations.py",
             "scripts/check_doc_citations_test.py",
-            "scripts/script_source.py",
+            "scripts/read_ledger_partition.py",
             "scripts/maestro-run.sh",
-            "scripts/run-all-flows.sh",
-            "scripts/check-file-line-length.sh",
-            "scripts/rotation-reads.sh",
-        ):
-            with self.subTest(path=path):
-                self.assertIn(path, found)
-
-    def test_the_first_half_of_the_drivers_is_discovered(self):
-        """`scripts/[a-l]*-driver.sh` is read, so a driver cannot cite an item id again.
-
-        A range glob rather than one name per file keeps a driver added later inside the gate
-        from the day it is written.
-        """
-        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
-        for path in (
             "scripts/adaptive-panes-driver.sh",
-            "scripts/chat-server-driver.sh",
-            "scripts/list-selection-driver.sh",
-        ):
-            with self.subTest(path=path):
-                self.assertIn(path, found)
-
-    def test_the_second_half_of_the_drivers_is_discovered(self):
-        """`scripts/[m-z]*-driver.sh` is read, so the other half cannot cite an item id either.
-
-        The two halves are two globs rather than one because each joined in its own slice, and
-        every driver is now read: a driver added later falls in one half or the other.
-        """
-        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
-        for path in (
-            "scripts/markdown-render-driver.sh",
-            "scripts/toggle-wash-driver.sh",
             "scripts/workspace-undo-a-replace-all-driver.sh",
+            "scripts/gradlew-jbr",
         ):
             with self.subTest(path=path):
                 self.assertIn(path, found)
 
-    def test_the_first_half_of_the_flows_is_discovered(self):
-        """`.maestro/[a-c]*.yaml` is read, so a flow cannot cite a plan step or an item id again.
-
-        The flows join by letter range as the drivers did, and a range glob rather than one name
-        per file keeps a flow added later inside the gate from the day it is written.
-        """
+    def test_the_maestro_tree_is_read_whole(self):
+        """Every flow and every fixture beside it is read, notebooks included."""
         found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
         for path in (
             ".maestro/access-kernel-history.yaml",
-            ".maestro/bottom-navigation.yaml",
-            ".maestro/console-shares-kernel.yaml",
-        ):
-            with self.subTest(path=path):
-                self.assertIn(path, found)
-
-    def test_the_second_quarter_of_the_flows_is_discovered(self):
-        """`.maestro/[d-m]*.yaml` is read, so these flows cannot cite a plan step or an item id again."""
-        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
-        for path in (
-            ".maestro/importtime.yaml",
-            ".maestro/kernel-picker-tablet.yaml",
-            ".maestro/multi-document.yaml",
-        ):
-            with self.subTest(path=path):
-                self.assertIn(path, found)
-
-    def test_the_flows_from_n_to_r_are_discovered(self):
-        """`.maestro/[n-r]*.yaml` is read, so these flows cannot cite a plan step or an item id again."""
-        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
-        for path in (
-            ".maestro/opencode-in-a-space.yaml",
-            ".maestro/pylsp.yaml",
-            ".maestro/reinstall-demo-after.yaml",
-        ):
-            with self.subTest(path=path):
-                self.assertIn(path, found)
-
-    def test_the_flows_from_s_are_discovered(self):
-        """`.maestro/s*.yaml` is read, so these flows cannot cite a plan step or an item id again."""
-        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
-        for path in (
-            ".maestro/save-all-demo-relaunch.yaml",
-            ".maestro/share-export.yaml",
-            ".maestro/space-packages.yaml",
-        ):
-            with self.subTest(path=path):
-                self.assertIn(path, found)
-
-    def test_the_flows_from_t_to_z_are_discovered(self):
-        """`.maestro/[t-z]*.yaml` is read, so these flows cannot cite a plan step or an item id again."""
-        found = {f.relative_to(ROOT).as_posix() for f in scanned_files(None)}
-        for path in (
             ".maestro/tabs-wide.yaml",
-            ".maestro/terminal-vi.yaml",
-            ".maestro/undo-cell-operation.yaml",
-            ".maestro/workspace-replace-row.yaml",
+            ".maestro/fixtures/app-chrome.ipynb",
+            ".maestro/fixtures/claude-acp-probe.sh",
         ):
             with self.subTest(path=path):
                 self.assertIn(path, found)

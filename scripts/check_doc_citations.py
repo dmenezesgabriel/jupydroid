@@ -14,15 +14,15 @@ at a pinned SHA, a published spec or upstream issue URL, or a test name.
 
 **Only prose is read**, and each language by its own scanner: `kotlin_source.comments_only` for
 Kotlin, C and the ANTLR grammars, `script_source` for shell and Python, `xml_source` for the
-manifest. A path in a *string literal* is a value the program uses, not a citation, and the
-evidence path in a driver's `OUT=` is functional. That exemption has a measured edge: 32 banned
+manifest, `notebook_source` for the code cells of a notebook. A path in a *string literal* is a
+value the program uses, not a citation, and the evidence path in a driver's `OUT=` is functional.
+That exemption has a measured edge: 32 banned
 tokens sit outside comments in 13 files, and 18 of them are legitimate - `DeviceControlStringTest`'s
 DCS reply is a `P`, a digit and `+r`, not a plan step. The rest are assertion and log *messages*,
 which are prose a human reads; telling those two apart needs to know which argument of `assertTrue`
 is the message, and that is the backlog's row, not this gate's.
 
-**Not yet scanned:** the fixtures beside the `.maestro/` flows. The local
-evidence tree is never read at all - nothing under it is tracked.
+**Never read:** the local evidence tree - nothing under it is tracked.
 
 **Every file under a scanned tree is read, and an unknown type is a failure rather than a pass.**
 This gate has now shipped the same defect three times, each time by looking at less than it claimed:
@@ -49,17 +49,18 @@ from collections.abc import Callable
 from pathlib import Path
 
 from kotlin_source import comments_only
+from notebook_source import notebook_code_comments
 from script_source import hash_comments, python_prose
 from xml_source import xml_comments
 
 ROOT = Path(__file__).resolve().parent.parent
 ADR_DIR = ROOT / "docs" / "adr"
 
-#: Every file under these is read. `scripts/` joins through [SCANNED_FILES] one family at a time,
-#: so a cleaned family stays clean.
+#: Every file under these is read. `scripts` and `.maestro` are whole trees: a driver, a flow, a helper
+#: or a fixture added later is inside the gate the day it is written.
 #: Globs, so an extension module added under `extensions/` (ADR-0104) is read the day it arrives;
 #: `src` rather than the module, because a module's `build/` holds generated code, not our prose.
-SCANNED_TREES = ("app/src", "tools", "extension-api/src", "extensions/*/src")
+SCANNED_TREES = ("app/src", "tools", "extension-api/src", "extensions/*/src", "scripts", ".maestro")
 
 #: The build and repo-root configuration files, which carry prose but live in no scanned tree.
 #: `.editorconfig` cited the retired decisions document for why ktlint had checked nothing, and
@@ -75,33 +76,6 @@ SCANNED_FILES = (
     ".editorconfig",
     ".gitignore",
     ".pre-commit-config.yaml",
-    # `scripts/` joins one family at a time: widened whole it reports 781 hits at once, and nothing
-    # would keep a cleaned family clean. The globs collapse into SCANNED_TREES when the last joins.
-    "scripts/*.py",
-    # Every non-driver `.sh`: the `*-driver.sh` families join in the slices that follow. The
-    # `atomic-` and `run-` prefixes name drivers too, so their two non-driver members are named.
-    "scripts/check-*.sh",
-    "scripts/*-reads.sh",
-    "scripts/atomic-save-fixtures.sh",
-    "scripts/atomic-save-kill.sh",
-    "scripts/count-tests.sh",
-    "scripts/driver-rules.sh",
-    "scripts/image-nodes.sh",
-    "scripts/java-home.sh",
-    "scripts/maestro-run.sh",
-    "scripts/run-all-flows.sh",
-    "scripts/run-flows-sharded.sh",
-    "scripts/space-server.sh",
-    # Every driver, both halves: `a`-`l` joined first, `m`-`z` with it.
-    "scripts/[a-l]*-driver.sh",
-    "scripts/[m-z]*-driver.sh",
-    # `.maestro/` flows join by letter range too: `a`-`c` first, `d`-`m` after, `n`-`r` next, `s`
-    # after them, `t`-`z` last.
-    ".maestro/[a-c]*.yaml",
-    ".maestro/[d-m]*.yaml",
-    ".maestro/[n-r]*.yaml",
-    ".maestro/s*.yaml",
-    ".maestro/[t-z]*.yaml",
 )
 
 #: Each pattern with the reason it is banned, which the failure message prints.
@@ -165,6 +139,8 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".config": hash_comments,
     ".yaml": hash_comments,
     "Dockerfile": hash_comments,
+    "gradlew-jbr": hash_comments,
+    ".ipynb": notebook_code_comments,
     ".editorconfig": hash_comments,
     ".gitignore": hash_comments,
     ".xml": xml_comments,
@@ -173,7 +149,9 @@ SCANNERS: dict[str, Callable[[str], str]] = {
 #: A `.md` under a scanned tree is documentation, and documentation is allowed to name what the code
 #: may not - that is the whole split ADR-0001 records. A `.json` has no comment syntax at all
 #: (RFC 8259), so it cannot carry a citation: the server answers recorded as test fixtures are data.
-NO_PROSE = frozenset({".md", ".json"})
+#: So are the `.txt`, `.csv` and `.chat` files a flow opens or types into the app: plain text with
+#: no comment syntax, whose content is what the screen shows.
+NO_PROSE = frozenset({".md", ".json", ".txt", ".csv", ".chat"})
 
 #: How many leading bytes decide whether a file is binary. Git's own rule, so the gate agrees with
 #: the tool that decides what `git diff` will show: `buffer_is_binary()` looks for a NUL byte in the

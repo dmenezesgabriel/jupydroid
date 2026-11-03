@@ -327,9 +327,16 @@ One TDD unit each, one conventional commit each.
     screenshots drop their `p6b-N-` prefix. Nothing outside Kotlin read any of them.
     `language-server-driver.sh` prints `FAIL` at HEAD and after, because it greps `OK (3 tests)` and
     `StdioLanguageServerDeviceTest` has 9: a defect of its own, not this task's.
-  - [ ] T8h — the globs collapse into `scripts` and `.maestro` in `SCANNED_TREES`; `.ipynb`, `.txt`, `.csv`,
-    `.chat` and the extensionless `gradlew-jbr` get a scanner or join `NO_PROSE`; `AGENTS.md`'s tooling row
-    and `docs/README.md` follow. Demo step 6 is run.
+  - [x] T8h — the globs collapse into `scripts` and `.maestro` in `SCANNED_TREES`, which puts 2773 files in
+    scope. The widened gate read 0 hits in every type that already had a scanner; the five that had none
+    were decided on what they hold. `.txt`, `.csv` and `.chat` are fixture data with no comment syntax and
+    join `NO_PROSE`; `gradlew-jbr` is a bash script and is keyed by its whole name; `.ipynb` gets
+    `scripts/notebook_source.py`, because it is not `NO_PROSE`: a code cell is Python and
+    `app-chrome.ipynb` carried a step code in a `#` comment there (39 code cells hold a `#`). Its
+    reported line numbers count code-cell lines, since a notebook is one JSON line. Metadata and
+    markdown cells stay unread, as a `.md` does, so the one `"P7e-0 Runtime Probe"` title was retitled
+    by hand. The frozen device frames in `scripts/testdata/` keep the old comment text: they are data.
+    Demo step 6 is run: the gate exits 0 and the step-code name grep prints 0.
 - [ ] T9 — `scripts/remap_cited_shas.py`: from a `commit-map`, rewrite every 7 to 12 hex token in tracked
   text that prefixes exactly one old commit; refuse an ambiguous prefix with its value; `--dry-run` prints
   counts. Red tests first, on a fixture map.
