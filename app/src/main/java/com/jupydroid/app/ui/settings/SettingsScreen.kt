@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,7 +60,7 @@ const val SETTINGS_SCREEN_TAG = "settings_screen"
  * open rather than replacing it - see that function's own doc comment.
  *
  * ```
- * SettingsScreen(editorSettingsRepository, themeSettingsRepository, applicationScope)
+ * SettingsScreen(editorSettingsRepository, themeSettingsRepository, applicationScope, onOpenLicences)
  * ```
  */
 @Composable
@@ -68,6 +69,8 @@ fun SettingsScreen(
   themeSettingsRepository: ThemeSettingsRepository,
   /** Writes must outlive this screen's own composition - a tap and a navigate-away can race. */
   applicationScope: CoroutineScope,
+  /** Opens the Licences screen over this one; the back stack stays with the caller. */
+  onOpenLicences: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val settings by editorSettingsRepository.observeSettings().collectAsStateWithLifecycle(EditorSettings())
@@ -167,8 +170,18 @@ fun SettingsScreen(
       SettingsToggleRow(OUTPUT_HEADINGS, settings.tocIncludeOutput) {
         update(settings.copy(tocIncludeOutput = it))
       }
+      LicencesLinkRow(onOpenLicences)
     }
   }
+}
+
+/** A row that opens another screen rather than changing a preference, so it carries no control. */
+@Composable
+private fun LicencesLinkRow(onClick: () -> Unit) {
+  ListItem(
+    headlineContent = { Text(LICENCES) },
+    modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
+  )
 }
 
 /**
@@ -344,3 +357,6 @@ internal const val NUMBER_TOP_LEVEL_HEADINGS = "Number top-level headings"
 
 /** `toc:display-outputs-numbering` - see `EditorSettings.tocIncludeOutput`. */
 internal const val OUTPUT_HEADINGS = "Output headings"
+
+/** The row that opens the Licences screen, which shares this title - see [com.jupydroid.app.Licences]. */
+internal const val LICENCES = "Licences"

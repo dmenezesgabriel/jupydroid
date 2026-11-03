@@ -32,6 +32,8 @@ import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.launcher.LauncherScreen
 import com.jupydroid.app.ui.launcher.LauncherViewModel
+import com.jupydroid.app.ui.settings.LicencesScreen
+import com.jupydroid.app.ui.settings.LicencesViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
@@ -372,8 +374,12 @@ fun MainNavigation(
               editorSettingsRepository = appContainer.editorSettings,
               themeSettingsRepository = appContainer.themeSettings,
               applicationScope = appContainer.applicationScope,
+              onOpenLicences = { backStack.openLicences() },
             )
           }
+        }
+        entry<Licences>(metadata = ListDetailSceneStrategy.detailPane()) {
+          tabbedPane { LicencesScreen(viewModel { LicencesViewModel(appContainer.licenceDocuments) }) }
         }
         entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
           tabbedPane {

@@ -125,7 +125,7 @@ None open.
 - [x] T2 — Gradle libraries' licences, through the same port: a per-variant `bundle<Variant>GradleLicences`
   task and `GradleLibraryLicences`.
 - [x] T3 — `Licences` `NavKey`, `openLicences` and `LicencesScreen`: a list, tap to read.
-- [ ] T4 — The Licences row in `SettingsScreen`, the `Navigation.kt` entry, an instrumented test.
+- [x] T4 — The Licences row in `SettingsScreen`, the `Navigation.kt` entry, an instrumented test.
 - [ ] T5 — The Maestro flow and its driver on `dev36`; screenshots looked at.
 - [ ] T6 — ADR, `cross-cutting.md` §8.4, the ledger's `GAP-136` row, delete this PRD, backlog to
   `shipped`.

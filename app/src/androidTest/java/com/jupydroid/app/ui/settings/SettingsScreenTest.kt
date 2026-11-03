@@ -28,6 +28,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -332,9 +333,20 @@ class SettingsScreenTest {
     compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().override == ThemeOverride.SYSTEM }
   }
 
+  @Test
+  fun tappingTheLicencesRowAsksToOpenThem() {
+    var opened = 0
+    startScreen(onOpenLicences = { opened++ })
+
+    compose.onNodeWithText(LICENCES).performScrollTo().performClick()
+
+    assertEquals(1, opened)
+  }
+
   private fun startScreen(
     editorSettingsRepository: EditorSettingsRepository = FakeEditorSettingsRepository(),
     themeSettingsRepository: ThemeSettingsRepository = FakeThemeSettingsRepository(),
+    onOpenLicences: () -> Unit = {},
   ) {
     compose.setContent {
       JupyterDroidTheme {
@@ -342,6 +354,7 @@ class SettingsScreenTest {
           editorSettingsRepository = editorSettingsRepository,
           themeSettingsRepository = themeSettingsRepository,
           applicationScope = scope,
+          onOpenLicences = onOpenLicences,
         )
       }
     }

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
@@ -21,6 +22,8 @@ import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.settings.LICENCES
+import com.jupydroid.app.ui.settings.LICENCES_SCREEN_TAG
 import com.jupydroid.app.ui.settings.SETTINGS_SCREEN_TAG
 import org.junit.Rule
 import org.junit.Test
@@ -84,6 +87,22 @@ class SettingsNavigationTest {
 
     waitForTag(SETTINGS_SCREEN_TAG)
     compose.onNodeWithContentDescription("Search").assertIsSelected()
+  }
+
+  /** Licences opens over Settings, so Back from it lands on Settings and not on the files beneath. */
+  @Test
+  fun atOnePaneLicencesOpensFromSettingsAndBackReturnsToSettings() {
+    startApp()
+    compose.onNodeWithContentDescription("More").performClick()
+    compose.onNodeWithText("Settings").performClick()
+    waitForTag(SETTINGS_SCREEN_TAG)
+
+    compose.onNodeWithText(LICENCES).performScrollTo().performClick()
+    waitForTag(LICENCES_SCREEN_TAG)
+
+    Espresso.pressBack()
+    waitForTag(LICENCES_SCREEN_TAG, present = false)
+    waitForTag(SETTINGS_SCREEN_TAG)
   }
 
   private fun startApp(twoPane: Boolean = false) {
