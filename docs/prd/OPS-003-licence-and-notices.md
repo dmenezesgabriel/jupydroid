@@ -57,7 +57,10 @@ lists only what T2 measures as transcribed, never every `project@sha` in the tre
 ## Tasks
 
 - [x] T1 — `LICENSE`: the verbatim Apache-2.0 text. No code, so it closes on the `diff` above.
-- [ ] T2 — `scripts/read_transcribed_upstreams.py` (+ test): which cited upstreams are transcribed.
+- [x] T2 — `scripts/read_transcribed_upstreams.py` (+ test): which cited upstreams are transcribed.
+  The marker is a `transcrib…` word and a pinned-SHA citation of one project in one comment block
+  (the word alone fails: most of the 93 files mean "from our rootfs" and cite no upstream). A file
+  that has both, in different blocks, is `review`: T3 reads those by hand, and T6's ADR decides.
 - [ ] T3 — `NOTICE`: `Copyright 2026 Gabriel Menezes`, then one entry per transcribed project with
   its licence and pinned SHA.
 - [ ] T4 — generator (+ test) from a syft SBOM JSON of the arm64 rootfs to a third-party listing;

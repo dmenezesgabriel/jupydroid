@@ -235,6 +235,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | vscode-theme resolve | what colour a VS Code role *actually* is, after its `include` chain | `scripts/resolve_vscode_theme.py` (+ `_test.py`) — a measurement, not a gate |
 | reference-surface measure | what each reference offers, enumerated with the pattern that counted it | `scripts/read_reference_commands.py` (+ `_test.py`) — a measurement, not a gate |
 | port-surface measure | every port operation, and whether production code uses it | `scripts/read_port_surface.py` (+ `_test.py`) — a measurement, not a gate |
+| transcribed-upstreams measure | which cited upstreams a file transcribes rather than studied; exits 1 only for a clean-room project marked transcribed | `scripts/read_transcribed_upstreams.py` (+ `_test.py`) — a measurement, not a gate |
 | ledger-partition measure | every reference command id is owned by exactly one audit slice | `scripts/read_ledger_partition.py` (+ `_test.py`) — a measurement, not a gate; its cross-check skips where `reference/` is absent |
 | ledger-verdicts measure | every id an examined audit task owns carries exactly one verdict, and the counts beside them | `scripts/read_ledger_verdicts.py` (+ `_test.py`) — a measurement, not a gate; its cross-check skips where `reference/` is absent |
 
