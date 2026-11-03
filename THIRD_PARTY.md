@@ -11,7 +11,8 @@ SPDX list is shown as written, and `NOASSERTION` means the package declared none
 
 Not covered by this table: the Alpine `busybox` row is the package syft found, but the shipped
 busybox is built from source in `tools/rootfs/Dockerfile`; `proot` is staged into the APK's native
-libraries, outside the rootfs; and the Gradle libraries are not read here.
+libraries, outside the rootfs; and the Gradle libraries are not read here. Where to get the source of
+the GPL and LGPL parts is in `SOURCE_OFFER.md`.
 
 | Package | Version | Ecosystem | Licence | Source |
 |---|---|---|---|---|

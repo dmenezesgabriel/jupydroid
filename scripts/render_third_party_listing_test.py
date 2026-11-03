@@ -121,6 +121,9 @@ class RenderListingTest(unittest.TestCase):
         self.assertIn("syft 1.55.0", text)
         self.assertIn(f"`{ROOTFS_SHA256}`", text)
 
+    def test_the_header_sends_the_reader_to_the_source_offer(self) -> None:
+        self.assertIn("SOURCE_OFFER.md", self.render())
+
     def test_the_header_counts_each_ecosystem(self) -> None:
         self.assertIn("Packages: 2 (apk 1, python 1)", self.render())
 

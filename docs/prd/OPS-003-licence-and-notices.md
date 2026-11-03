@@ -73,7 +73,11 @@ lists only what T2 measures as transcribed, never every `project@sha` in the tre
   `sha256:` file hashes and split `AND` terms, which are dropped; 10 python packages declare no
   licence syft read, which the cell says as `NOASSERTION`. T6's ADR decides whether the
   Alpine `busybox` row, which is not the shipped binary, stays.
-- [ ] T5 — corresponding-source offer for proot, busybox and the Alpine packages.
+- [x] T5 — corresponding-source offer for proot, busybox and the Alpine packages: `SOURCE_OFFER.md`,
+  a GPL-2 section 3(b) offer whose pins `scripts/source_offer_test.py` reads from the code. proot is
+  pinned to an aports commit (edge drops revisions) and names talloc, which `proot.static` links
+  statically; the Alpine packages to aports tag `v3.21.9`, which matches the rootfs for all 33 of 35
+  origin packages except `brotli` and `python3`, neither copyleft.
 - [ ] T6 — ADR; edit §8.4 and ADR-0018's "no `NOTICE` yet" sentences; delete this PRD; backlog row
   to `shipped`.
 

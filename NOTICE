@@ -3,6 +3,9 @@ Copyright 2026 Gabriel Menezes
 
 Licensed under the Apache License, Version 2.0; see LICENSE.
 
+The APK also ships GPL and LGPL programs (proot, busybox, Alpine packages) that this licence does
+not cover. THIRD_PARTY.md lists them and SOURCE_OFFER.md says where their source is.
+
 This product includes code and data transcribed from the projects below. Each is credited at the
 revision the source files cite. Projects that were only studied, and those whose licence allows
 no copying, are not listed.
