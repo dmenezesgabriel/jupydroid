@@ -38,8 +38,8 @@ class AssetLicenceDocumentsTest : LicenceDocumentsContract() {
         LicenceDocument("Licence", "Apache License 2.0 text"),
         LicenceDocument("Notices", "Jupydroid notice"),
         LicenceDocument("Gradle libraries", RENDERED_GRADLE_LIBRARIES),
-        LicenceDocument("Third-party software", "| Package | Version |"),
-        LicenceDocument("Source offer", "# Source for the GPL and LGPL parts"),
+        LicenceDocument("Third-party software", "| Package | Version |", isMarkdown = true),
+        LicenceDocument("Source offer", "# Source for the GPL and LGPL parts", isMarkdown = true),
       ),
       read,
     )

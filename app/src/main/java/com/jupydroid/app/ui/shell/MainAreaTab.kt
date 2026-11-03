@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.DropdownMenu
@@ -48,6 +49,7 @@ import com.jupydroid.app.ContributedDocument
 import com.jupydroid.app.Editor
 import com.jupydroid.app.FileEditor
 import com.jupydroid.app.Launcher
+import com.jupydroid.app.Licences
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.Settings
 import com.jupydroid.app.Terminal
@@ -254,6 +256,7 @@ internal fun tabIcon(key: NavKey, documentContributions: List<DocumentContributi
   is Console -> Icons.Filled.Code
   Launcher -> Icons.AutoMirrored.Filled.OpenInNew
   Settings -> Icons.Filled.Settings
+  Licences -> Icons.Filled.Description
   is ContributedDocument -> documentContributions.find { it.id == key.contributionId }?.icon
     ?: Icons.AutoMirrored.Filled.InsertDriveFile
   else -> Icons.AutoMirrored.Filled.InsertDriveFile

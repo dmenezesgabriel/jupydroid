@@ -72,7 +72,7 @@ We have no licences server, and an APK is a fixed artifact, so we bundle.
 | Where the files live | copy into `app/src/main/assets`; copy at build time | A committed copy drifts from `LICENSE`/`NOTICE` | **A Gradle `Copy` at build time** into a generated assets dir; the repo files stay the one source |
 | Gradle libraries | none of the seven; Google's `oss-licenses-plugin`; our own task over POMs | The plugin reads AGP's library-dependencies report, which AGP does not produce for a debug variant, so the debug APK every device flow runs would list nothing | **Our own task over POMs**, per variant: it resolves the runtime classpath and bundles each library's POM and its `<parent>` chain; the device parses them. Decided with the user after reading the plugin's source |
 | Surface | JupyterLab: a main-area widget; IntelliJ: a dialog | A 245-row table does not fit a dialog | **A `NavKey` screen over Settings**, as `Settings` is |
-| Rendering | HTML (IntelliJ), a grid (JupyterLab) | Re-implementing a renderer is new code | **Reuse** `markdown/` and `richtext/` for the three Markdown files; plain monospaced text for `LICENSE` and the Gradle list |
+| Rendering | HTML (IntelliJ), a grid (JupyterLab) | Re-implementing a renderer is new code | **Reuse** `markdown/` and `richtext/` for the two Markdown files (`THIRD_PARTY.md`, `SOURCE_OFFER.md`); plain monospaced text for `LICENSE`, `NOTICE` (prose, not Markdown) and the Gradle list, chosen by `LicenceDocument.isMarkdown` |
 
 ## Gap analysis — what we already have vs the references
 
@@ -124,7 +124,7 @@ None open.
   `FakeLicenceDocuments`, the Gradle `Copy`, `AssetLicenceDocuments`.
 - [x] T2 — Gradle libraries' licences, through the same port: a per-variant `bundle<Variant>GradleLicences`
   task and `GradleLibraryLicences`.
-- [ ] T3 — `Licences` `NavKey`, `openLicences` and `LicencesScreen`: a list, tap to read.
+- [x] T3 — `Licences` `NavKey`, `openLicences` and `LicencesScreen`: a list, tap to read.
 - [ ] T4 — The Licences row in `SettingsScreen`, the `Navigation.kt` entry, an instrumented test.
 - [ ] T5 — The Maestro flow and its driver on `dev36`; screenshots looked at.
 - [ ] T6 — ADR, `cross-cutting.md` §8.4, the ledger's `GAP-136` row, delete this PRD, backlog to

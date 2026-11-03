@@ -119,9 +119,10 @@ fun NavKey.mainAreaTabTitle(liveDocumentPaths: Map<NavKey, String>): String = wh
   is Console -> title
   Launcher -> "Launcher"
   Settings -> "Settings"
+  Licences -> "Licences"
   else -> error(
     "mainAreaTabTitle: $this is not a main-area key " +
-      "(Editor|FileEditor|ContributedDocument|Terminal|Console|Launcher|Settings)",
+      "(Editor|FileEditor|ContributedDocument|Terminal|Console|Launcher|Settings|Licences)",
   )
 }
 

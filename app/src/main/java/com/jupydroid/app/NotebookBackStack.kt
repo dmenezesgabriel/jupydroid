@@ -161,5 +161,6 @@ internal fun Any?.isDocument(): Boolean = this is Editor ||
   this is Terminal ||
   this is Console ||
   this is Settings ||
+  this is Licences ||
   this is Launcher ||
   this is ContributedDocument

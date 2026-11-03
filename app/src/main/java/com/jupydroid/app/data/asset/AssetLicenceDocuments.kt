@@ -41,7 +41,7 @@ class AssetLicenceDocuments(
   }
 
   private fun repositoryFile(title: String, fileName: String): LicenceDocument =
-    LicenceDocument(title, read("$LICENCES_ASSET_DIR/$fileName"))
+    LicenceDocument(title, read("$LICENCES_ASSET_DIR/$fileName"), isMarkdown = fileName.endsWith(".md"))
 
   private fun readText(path: String): String = openAsset(path).use { it.readBytes().toString(Charsets.UTF_8) }
 
