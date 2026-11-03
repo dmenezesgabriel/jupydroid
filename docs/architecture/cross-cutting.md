@@ -100,7 +100,9 @@ What may be copied is decided per reference, and it is load-bearing rather than 
 One attribution point per file is the form this repo uses, and a transcribed file names its upstream
 project and **pinned SHA** rather than a `reference/…` path. The repository carries an Apache-2.0
 `LICENSE` and a `NOTICE`; which projects the `NOTICE` names is
-[ADR-0134](../adr/0134-notice-credits-what-was-copied-and-a-person-decides-the-edge.md).
+[ADR-0134](../adr/0134-notice-credits-what-was-copied-and-a-person-decides-the-edge.md). A person
+holding only the APK reads them in Settings → Licences,
+[ADR-0135](../adr/0135-the-apk-bundles-its-licences-and-settings-shows-them.md).
 
 The decision and what it forbids are
 [ADR-0018](../adr/0018-transcribe-under-permissive-licences-clean-room-otherwise.md).
