@@ -6,6 +6,7 @@ import com.jupydroid.app.data.fake.FakeExternalLinkOpener
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
+import com.jupydroid.app.data.fake.FakeLicenceDocuments
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakePlatformNightMode
 import com.jupydroid.app.data.fake.FakeRemoteImageReader
@@ -27,6 +28,7 @@ import com.jupydroid.app.domain.port.ExternalLinkOpener
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
+import com.jupydroid.app.domain.port.LicenceDocuments
 import com.jupydroid.app.domain.port.PlatformNightMode
 import com.jupydroid.app.domain.port.RemoteImageReader
 import com.jupydroid.app.domain.port.SharedDocumentReader
@@ -113,6 +115,8 @@ class AppContainer(
    * `maybeCreate` fills an empty main area unconditionally and needs no flag.
    */
   val launcherSettings: LauncherSettingsRepository = FakeLauncherSettingsRepository(),
+  /** The licence files that travel with the APK, which the Licences screen lists - see [LicenceDocuments]. */
+  val licenceDocuments: LicenceDocuments = FakeLicenceDocuments(),
   /** Where a rendered link's web address goes when it is tapped - see [ExternalLinkOpener]. */
   val externalLinkOpener: ExternalLinkOpener = FakeExternalLinkOpener(),
   /** Where a notebook another app hands over is read from - see [SharedDocumentReader]. */

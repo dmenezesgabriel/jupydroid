@@ -165,7 +165,7 @@ reference trip it alike while a KDoc `[…]` citation does not.
 | `domain` imports no `android.*` | **enforced** — `ArchitectureGuardTest.domainLayer_hasSources_withZeroAndroidImports` |
 | `domain` imports no `data`/`ui`/`di` | **enforced** — `ArchitectureGuardTest.domainLayer_doesNotImportOtherLayers` |
 | doc/language packages import no `android.*` — all six §5.2 names | **enforced** — `ArchitectureGuardTest.documentAndLanguageModules_haveSources_withZeroAndroidImports` |
-| `ui` names no real adapter (`data.disk`/`space`/`intent`; `data.fake` is the DI default) | **enforced** — `ArchitectureGuardTest.uiLayer_namesNoRealAdapterPackages` |
+| `ui` names no real adapter (`data.asset`/`disk`/`space`/`intent`; `data.fake` is the DI default) | **enforced** — `ArchitectureGuardTest.uiLayer_namesNoRealAdapterPackages` |
 | `data` names no `ui`/`di` | **enforced** — `ArchitectureGuardTest.dataLayer_namesNoUiOrDi` |
 | real adapters are named only inside `data/` and at the composition root (`di/`, `JupydroidApplication`) | **enforced** — `ArchitectureGuardTest.realAdapters_areNamedOnlyInsideDataOrTheCompositionRoot` |
 

@@ -41,6 +41,7 @@ class ArchitectureGuardTest {
    */
   private val realAdapterPrefixes =
     listOf(
+      "com.jupydroid.app.data.asset",
       "com.jupydroid.app.data.disk",
       "com.jupydroid.app.data.intent",
       "com.jupydroid.app.data.space",

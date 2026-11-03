@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.JavaExec
+import javax.inject.Inject
 
 plugins {
     alias(libs.plugins.android.application)
@@ -237,11 +238,49 @@ val generatePythonLexer by tasks.registering(GeneratePythonLexer::class) {
     }
 }
 
+// --- Licence files in the APK ----------------------------------------------------------
+//
+// The repository's own LICENSE, NOTICE, THIRD_PARTY.md and SOURCE_OFFER.md are copied into the
+// assets at build time rather than kept as a second copy beside them, so the Licences screen shows
+// what was in the tree the APK was built from. `AssetLicenceDocuments` names the same four files.
+
+abstract class BundleLicences : DefaultTask() {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.NAME_ONLY)
+    abstract val licenceFiles: ConfigurableFileCollection
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @get:Inject
+    abstract val fileSystem: FileSystemOperations
+
+    @TaskAction
+    fun bundle() {
+        fileSystem.sync {
+            from(licenceFiles)
+            into(outputDir.dir("licences"))
+        }
+    }
+}
+
+val bundleLicences by tasks.registering(BundleLicences::class) {
+    description = "Copies the repository's licence files into the APK's assets."
+    group = "build"
+    licenceFiles.from(
+        listOf("LICENSE", "NOTICE", "THIRD_PARTY.md", "SOURCE_OFFER.md").map { rootProject.file(it) },
+    )
+}
+
 androidComponents {
     onVariants { variant ->
         variant.sources.java?.addGeneratedSourceDirectory(
             generatePythonLexer,
             GeneratePythonLexer::outputDir,
+        )
+        variant.sources.assets?.addGeneratedSourceDirectory(
+            bundleLicences,
+            BundleLicences::outputDir,
         )
     }
 }

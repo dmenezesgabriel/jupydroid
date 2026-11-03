@@ -5,6 +5,7 @@ import android.app.UiModeManager
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.jupydroid.app.data.asset.AssetLicenceDocuments
 import com.jupydroid.app.data.disk.DiskDocumentCheckpoints
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
@@ -214,6 +215,7 @@ class JupydroidApplication : Application() {
       GitExtension(),
       AiExtension(queuesFor = { spaceId -> DiskQueuedQuestionsStore(File(filesDir, "chat-queues/$spaceId.json")) }),
     ),
+    licenceDocuments = AssetLicenceDocuments(assets::open),
     externalLinkOpener = IntentExternalLinkOpener(this),
     sharedDocumentReader = ContentResolverSharedDocumentReader(contentResolver),
     // In `cacheDir`, not `filesDir`: a fetched image is a copy the web still holds.

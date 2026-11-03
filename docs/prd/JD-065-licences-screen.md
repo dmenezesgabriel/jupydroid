@@ -1,6 +1,6 @@
 # JD-065 — Settings shows the licences of everything the APK ships
 
-Milestone: `M0` · State: open | Depends on: `OPS-003` · Closes: `GAP-136`
+Milestone: `M0` · State: in-progress | Depends on: `OPS-003` · Closes: `GAP-136`
 
 ## Outcome
 
@@ -117,7 +117,7 @@ We have no licences server, and an APK is a fixed artifact, so we bundle.
 
 ## Tasks
 
-- [ ] T1 — Bundle the repo's licence files into the APK: `LicenceDocument`, `LicenceDocuments`,
+- [x] T1 — Bundle the repo's licence files into the APK: `LicenceDocument`, `LicenceDocuments`,
   `FakeLicenceDocuments`, the Gradle `Copy`, `AssetLicenceDocuments`.
 - [ ] T2 — Gradle libraries' licences via `oss-licenses-plugin`, through the same port.
 - [ ] T3 — `Licences` `NavKey`, `openLicences` and `LicencesScreen`: a list, tap to read.
