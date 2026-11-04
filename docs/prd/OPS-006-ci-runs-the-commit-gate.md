@@ -126,10 +126,19 @@ Each needs a measurement from T1, not a guess.
   `setup-java` for 25 as the Gradle JVM, because the gate is proven on 25 and not on the runner's default 17, and
   needs nothing from `sdkmanager`. Whether Gradle finds the runner's JDK 17 for the toolchain or downloads one
   is for T4 to read from its first run.
-- **How actionlint is installed.** zizmor is on PyPI from its own project, so it joins the `dev` group and
-  `uv.lock` (ADR-0130). actionlint is a Go binary; a community repackaging on PyPI is excluded by the
-  standing rule against obscure packages, so the choice is the upstream release binary checked against a
-  sha256, or its published container image pinned by digest.
+- **How actionlint is installed.** Decided in T3: upstream's own pre-commit hook, `rhysd/actionlint`
+  `actionlint-docker` at `rev: v1.7.12`, which runs `docker.io/rhysd/actionlint:1.7.12`. It is the shape the
+  ShellCheck hook already has (an upstream image, its tag fixed by the hook's `rev`), needs no Go toolchain, and
+  the runner has Docker. The image carries ShellCheck, so `run:` scripts are linted: a draft with `echo $FOO | cat`
+  was refused with SC2086. The community `actionlint-py` repackaging that `claude-acc-manager` uses stays out
+  under the standing rule against obscure packages. zizmor is on PyPI from its own project, so it joined the
+  `dev` group and `uv.lock` (ADR-0130), run offline as `uv run --locked zizmor --offline`.
+- **Does the gate's Python half pass on a fresh clone?** Not at first, measured in T3 on 2026-11-04. Every hook
+  but two passed, ShellCheck's image included. `ruff check` and `ruff format --check` refused two Maestro
+  fixtures, which a commit never hands them (it passes the staged files, CI passes `--all-files`):
+  `.maestro/fixtures/window-key-row.py` is `def area` on purpose (not valid Python), and `file-editor.py` ends
+  with no newline on purpose. Both are byte-exact test data like `mod.py`, so `pyproject.toml` excludes them with
+  the reason. After that the whole Python half passes on a fresh clone in 2m09s with a cold pre-commit cache.
 - **Dependabot against strict locks.** ADR-0123 locks Gradle strictly with verification metadata, which
   Dependabot cannot rewrite. Whether it opens Gradle pull requests that fail the gate by design, or
   watches Actions and `uv` only and leaves Gradle to the documented manual bump, is decided in T5 on what
@@ -159,7 +168,7 @@ workflow's own tests are actionlint and zizmor, plus the run that must fail once
   the gate's Gradle tasks fail naming the three artifacts above. Green: they pass once the three are recorded by
   ADR-0123's write procedure run against an empty home. If only an empty home records them, AGENTS.md's
   lock-bump note says so
-- [ ] T3 — `pre-commit` and `zizmor` into the `dev` group and `uv.lock`; the `actionlint` and `zizmor`
+- [x] T3 — `pre-commit` and `zizmor` into the `dev` group and `uv.lock`; the `actionlint` and `zizmor`
   hooks; `ci.yml` with `python-gate` (the Python and ShellCheck hooks, `SKIP`ing the Gradle ones). Red
   first: the workflow's first draft uses a tag, the hooks refuse it, then it is pinned
 - [ ] T4 — `gradle-gate` in `ci.yml`: the Gradle hooks plus `assembleDebug`; record the minutes of one run
