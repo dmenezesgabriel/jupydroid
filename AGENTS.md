@@ -220,7 +220,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | ShellCheck | every shell script, followed into what it sources | `.pre-commit-config.yaml` (`koalaman/shellcheck-precommit` v0.11.0, needs Docker) + `.shellcheckrc` |
 | workflow lint | expressions, contexts and the `run:` shell of every workflow; upstream's image, its tag fixed by the hook's `rev` | `.pre-commit-config.yaml` (`rhysd/actionlint` `actionlint-docker`, needs Docker) |
 | workflow audit | unpinned actions, token scopes, persisted credentials, template injection; offline | `.pre-commit-config.yaml` (`zizmor`), `uv.lock` |
-| CI | the hooks above, verbatim, on every push to `main` and every pull request: `python-gate` here, the Gradle half beside it once `gradle-gate` lands | `.github/workflows/ci.yml` |
+| CI | the hooks above, verbatim, on every push to `main` and every pull request: `python-gate` for the Python and ShellCheck hooks, `gradle-gate` for the Gradle ones and `assembleDebug` | `.github/workflows/ci.yml` |
 | duplication gate | no Kotlin block of 150+ tokens is copied, tests included; PMD CPD, which Gradle's PMD plugin does not run | `:app:cpd` in `app/build.gradle.kts` (`cpdTool`, `libs.versions.toml` `pmd`) |
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
