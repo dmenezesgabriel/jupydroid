@@ -280,7 +280,9 @@ Notes:
   dependency or plugin bump rewrites both. Run the gate command above plus
   `assembleDebugAndroidTest` once with `--write-locks --write-verification-metadata sha256`
   together, then run it again with neither, so STRICT and verification both prove out on the
-  new files. The flags must go on the *same* run: `--write-locks` resolves unlocked, which
+  new files. Run the writing pass with an empty `GRADLE_USER_HOME` on a disk path (`/tmp` is
+  RAM): a warm home records only what it downloads in that run, so the artifacts it cached
+  earlier go unrecorded and a cold CI runner refuses them. The flags must go on the *same* run: `--write-locks` resolves unlocked, which
   downloads candidate metadata the recorded sums never covered, so it fails verification
   unless that run is also writing them. Running only `<module>:dependencies` misses
   configurations that only a task resolves, and STRICT then fails on them. Commit the lockfiles and

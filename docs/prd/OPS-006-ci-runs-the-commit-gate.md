@@ -108,7 +108,9 @@ Each needs a measurement from T1, not a guess.
     says "Checksums are missing from verification metadata". These are the only three: a lenient run logs no
     others. The host's populated cache passes the same file, which is why the commit gate never saw them.
   - `--write-verification-metadata sha256` on a home that had already downloaded them changed nothing, so
-    ADR-0123's procedure on a warm home does not record them. Whether an empty home does is unmeasured; T2 settles it.
+    ADR-0123's procedure on a warm home does not record them. An empty home does (T2, 2026-11-04): the same
+    whole-gate run with `--write-verification-metadata sha256` added exactly those three entries and no other,
+    each sum equal to Maven Central's published `.sha256`; 10m51s, peak 11.5 GB for the Gradle service.
   - With `--dependency-verification=lenient` every task passes without the rootfs asset or `proot`: ktlint, detekt,
     `:app:cpd`, the four `lintDebug`s, the four unit-test tasks, `compileDebugAndroidTestKotlin` and `assembleDebug`.
   - Wall time on this 8-core host at load 2: 8m52s with an empty Gradle home (222 tasks executed, 22 from the
@@ -153,7 +155,7 @@ workflow's own tests are actionlint and zizmor, plus the run that must fail once
 
 - [x] T1 — measure a fresh clone: build, unit tests and `lintDebug` without the rootfs asset or `proot`,
   with `devjob`; record the JDK, SDK platform and wall time in *Open decisions*
-- [ ] T2 — repair `gradle/verification-metadata.xml`. Red: in a fresh clone with an empty `GRADLE_USER_HOME`,
+- [x] T2 — repair `gradle/verification-metadata.xml`. Red: in a fresh clone with an empty `GRADLE_USER_HOME`,
   the gate's Gradle tasks fail naming the three artifacts above. Green: they pass once the three are recorded by
   ADR-0123's write procedure run against an empty home. If only an empty home records them, AGENTS.md's
   lock-bump note says so
