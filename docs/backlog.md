@@ -291,7 +291,7 @@ reference we transcribe from permits ([`architecture/cross-cutting.md`](architec
 | `OPS-003` | **Licence and notices:** an Apache-2.0 `LICENSE`, a `NOTICE` for the transcribed upstreams, and a third-party listing generated from the rootfs SBOM by a reproducible command, with the corresponding-source offer GPL-2 proot, busybox and the Alpine packages owe | shipped | — | — |
 | `JD-065` | **Settings shows the licences of everything the APK ships:** the app's own, the transcribed upstreams', and the rootfs packages' with their source offer ([ADR-0135](adr/0135-the-apk-bundles-its-licences-and-settings-shows-them.md)) | shipped | — | `GAP-136` |
 | `OPS-004` | **A front door for strangers:** a README (what it is, screenshots, install, build from source including the rootfs), CONTRIBUTING (the working agreement, pre-commit, the device rule stated generically), SECURITY.md (private vulnerability reporting), a code of conduct, issue and PR templates | shipped | — | — |
-| `OPS-005` | **The repository goes public:** visibility flipped, secret scanning and push protection on, private vulnerability reporting on, `main` protected and requiring M10's checks once they exist; the conduct-report contact in `CODE_OF_CONDUCT.md` is filled first | open ← next | — | — |
+| `OPS-005` | **The repository goes public:** visibility flipped, secret scanning and push protection on, private vulnerability reporting on, `main` protected and requiring M10's checks once they exist; the conduct-report contact in `CODE_OF_CONDUCT.md` is filled first; deferred by the maintainer, and it holds back CodeQL and Scorecard, the free arm64 runner and the Pages deploy | open | — | — |
 
 ### M10 — Delivery
 
@@ -301,7 +301,7 @@ security, scorecard, release-cut, release-tag, release and docs, with every acti
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `OPS-006` | **CI runs the commit gate on every push and pull request:** the Gradle gate `AGENTS.md` lists, the `scripts/*_test.py` suite and pre-commit's hooks including ShellCheck, with actions pinned by SHA, linted by actionlint and zizmor, and kept current by Dependabot for actions, Gradle and pip | open | — | — |
+| `OPS-006` | **CI runs the commit gate on every push and pull request:** the Gradle gate `AGENTS.md` lists, the `scripts/*_test.py` suite and pre-commit's hooks including ShellCheck, with actions pinned by SHA, linted by actionlint and zizmor, and kept current by Dependabot for actions, Gradle and pip | open ← next | [OPS-006](prd/OPS-006-ci-runs-the-commit-gate.md) | — |
 | `OPS-007` | **Security scans run in CI, free and keyless:** gitleaks, CodeQL (Kotlin, Python, Actions), osv-scanner, grype over the rootfs SBOM, opengrep, a MobSF static scan of the built APK and OpenSSF Scorecard, on push, pull request and a weekly cron, with SARIF in code scanning | open | — | — |
 | `OPS-008` | **Conventional commits are enforced:** a `commit-msg` hook in pre-commit, and a check over a pull request's commits and title in CI | open | — | — |
 | `JD-066` | **A user installs Jupydroid from GitHub Releases:** a release PR cut from the conventional commits, a semver tag driving `versionName` and a derived `versionCode`, the arm64 rootfs built from the digest-pinned image on a native arm64 runner, the APK signed with a release keystore held in Actions secrets and published with its changelog, SHA256SUMS, SBOM, build-provenance attestation and GPL source offer; the demo installs the released APK on the tablet and runs a cell | open | — | — |
