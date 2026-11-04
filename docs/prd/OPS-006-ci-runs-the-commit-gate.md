@@ -75,7 +75,7 @@ kind (AGENTS.md rule 7), so the second is the model.
 | Axis | Options seen (project → approach) | Trade-off | Our choice, and why |
 |---|---|---|---|
 | What CI runs | `termux-app` → `./gradlew test`; `claude-acc-manager` → `pre-commit run --all-files` | the first misses ruff, mypy, ShellCheck and every `scripts/check_*.py` gate | the hooks verbatim, so CI cannot pass what a commit cannot |
-| Job shape | `claude-acc-manager` → one `gate` job | the Gradle hooks take far longer than the Python ones, so one job reports nothing until the slow half ends | two jobs, `python-gate` and `gradle-gate`, split with pre-commit's `SKIP`; named in T2 and T3 |
+| Job shape | `claude-acc-manager` → one `gate` job | the Gradle hooks take far longer than the Python ones, so one job reports nothing until the slow half ends | two jobs, `python-gate` and `gradle-gate`, split with pre-commit's `SKIP`; named in T3 and T4 |
 | Action pinning | `claude-acc-manager` → full SHA with a `# vX.Y.Z` comment; `termux-app` → tags | a tag can be moved | SHA, kept fresh by Dependabot |
 | Linting workflows | `claude-acc-manager` → actionlint and zizmor | one more pair of tools to pin | both, as pre-commit hooks so a commit is refused before CI is |
 
@@ -99,22 +99,40 @@ kind (AGENTS.md rule 7), so the second is the model.
 
 Each needs a measurement from T1, not a guess.
 
-- **Does a fresh clone build?** The rootfs asset (`app/src/main/assets/spaces/`) and the `proot` pair are
-  gitignored build artifacts. The README says an x86_64 build needs neither. Whether `assembleDebug`,
-  the unit tests and `lintDebug` pass on a clone with neither is untested here. T1 clones, builds and times it.
-- **Which JDK, which SDK platform.** The Kotlin toolchain is 17 (`app/build.gradle.kts`), `compileSdk` is 37,
-  and AGENTS.md pins detekt to the alpha line because stable 1.23.8 cannot run on JDK 25, which implies the
-  host builds on 25. T1 reads what the runner image has and what `setup-java` and
-  `sdkmanager` must add.
+- **Does a fresh clone build?** No, not on a cold Gradle cache, and the rootfs asset and `proot` are not why.
+  Measured in T1 on 2026-11-04 at `a36ca0e4`, a `git clone` of the committed tree (no `spaces/`, no `jniLibs/`,
+  no `local.properties`, no `reference/`) with the Gradle half of the commit gate and `assembleDebug`:
+  - Strict verification stops the build with an empty `GRADLE_USER_HOME`: `gradle/verification-metadata.xml`
+    has no checksums for `bc-jdk18on-bom-1.80.2.module` and `guava-parent-33.7.2-jre.pom` (the `classpath`
+    configuration, at configuration time) and `groovy-bom-4.0.29.pom` (`:app:androidLintTool`). Gradle's report
+    says "Checksums are missing from verification metadata". These are the only three: a lenient run logs no
+    others. The host's populated cache passes the same file, which is why the commit gate never saw them.
+  - `--write-verification-metadata sha256` on a home that had already downloaded them changed nothing, so
+    ADR-0123's procedure on a warm home does not record them. Whether an empty home does is unmeasured; T2 settles it.
+  - With `--dependency-verification=lenient` every task passes without the rootfs asset or `proot`: ktlint, detekt,
+    `:app:cpd`, the four `lintDebug`s, the four unit-test tasks, `compileDebugAndroidTestKotlin` and `assembleDebug`.
+  - Wall time on this 8-core host at load 2: 8m52s with an empty Gradle home (222 tasks executed, 22 from the
+    build cache; the home ends at 2.4 GB); 29s with a fresh checkout on that populated home (108 executed, 136 from
+    the build cache, which `gradle.properties` turns on). A private-repository runner has 2 vCPU and 8 GB, so the
+    cold figure there is longer; T4 measures it.
+- **Which JDK, which SDK platform.** Gradle ran on the Android Studio JBR 25.0.2; the Kotlin toolchain is 17 and
+  the foojay resolver downloaded Temurin 17.0.21_9, since the host has no system JDK 17. The wrapper fetched Gradle
+  9.6.1. No SDK component was downloaded: the host's `platforms/android-37.0` and `build-tools/36.0.0` sufficed.
+  The `ubuntu-24.04` runner image (its README, read in T1) has JDK 17.0.21+9 as the default plus 21 and
+  25.0.5+8 (`JAVA_HOME_25_X64`), `android-37.0` (rev 2) and `build-tools` 36.0.0 under
+  `/usr/local/lib/android/sdk`, and lists no `uv`, with Python 3.14.9 only in the tool cache. So the gate needs
+  `setup-java` for 25 as the Gradle JVM, because the gate is proven on 25 and not on the runner's default 17, and
+  needs nothing from `sdkmanager`. Whether Gradle finds the runner's JDK 17 for the toolchain or downloads one
+  is for T4 to read from its first run.
 - **How actionlint is installed.** zizmor is on PyPI from its own project, so it joins the `dev` group and
   `uv.lock` (ADR-0130). actionlint is a Go binary; a community repackaging on PyPI is excluded by the
   standing rule against obscure packages, so the choice is the upstream release binary checked against a
   sha256, or its published container image pinned by digest.
 - **Dependabot against strict locks.** ADR-0123 locks Gradle strictly with verification metadata, which
   Dependabot cannot rewrite. Whether it opens Gradle pull requests that fail the gate by design, or
-  watches Actions and `uv` only and leaves Gradle to the documented manual bump, is decided in T4 on what
+  watches Actions and `uv` only and leaves Gradle to the documented manual bump, is decided in T5 on what
   a trial pull request does. An ADR if the answer is "leave Gradle out".
-- **Does the free quota carry it?** Private repositories get a monthly minutes allowance. T3's first green run
+- **Does the free quota carry it?** Private repositories get a monthly minutes allowance. T4's first green run
   reports the minutes; if a month of pushes would exceed it, the trigger narrows (pull requests and `main`
   only, not every branch) before the item closes.
 
@@ -126,20 +144,25 @@ Each needs a measurement from T1, not a guess.
 | `.github/` | `actionlint.yaml` if its false positive reproduces, `dependabot.yml` |
 | `pyproject.toml`, `uv.lock` | `pre-commit` and `zizmor` in the `dev` group |
 | `.pre-commit-config.yaml` | `actionlint` and `zizmor` hooks over `.github/workflows/` |
+| `gradle/verification-metadata.xml`, `AGENTS.md` | the three missing checksums; the lock-bump note if it needs the empty home |
 
 No `domain/`, `data/`, `ui/` or `di/` file changes, so there is no port and no `Fake…` to add. The
 workflow's own tests are actionlint and zizmor, plus the run that must fail once (Demo step 2).
 
 ## Tasks
 
-- [ ] T1 — measure a fresh clone: build, unit tests and `lintDebug` without the rootfs asset or `proot`,
+- [x] T1 — measure a fresh clone: build, unit tests and `lintDebug` without the rootfs asset or `proot`,
   with `devjob`; record the JDK, SDK platform and wall time in *Open decisions*
-- [ ] T2 — `pre-commit` and `zizmor` into the `dev` group and `uv.lock`; the `actionlint` and `zizmor`
+- [ ] T2 — repair `gradle/verification-metadata.xml`. Red: in a fresh clone with an empty `GRADLE_USER_HOME`,
+  the gate's Gradle tasks fail naming the three artifacts above. Green: they pass once the three are recorded by
+  ADR-0123's write procedure run against an empty home. If only an empty home records them, AGENTS.md's
+  lock-bump note says so
+- [ ] T3 — `pre-commit` and `zizmor` into the `dev` group and `uv.lock`; the `actionlint` and `zizmor`
   hooks; `ci.yml` with `python-gate` (the Python and ShellCheck hooks, `SKIP`ing the Gradle ones). Red
   first: the workflow's first draft uses a tag, the hooks refuse it, then it is pinned
-- [ ] T3 — `gradle-gate` in `ci.yml`: the Gradle hooks plus `assembleDebug`; record the minutes of one run
-- [ ] T4 — `dependabot.yml` for the ecosystems T3's trial supports, with a 7-day cooldown
-- [ ] T5 — close: Demo steps 1–4, an ADR only if a decision outlives the item (Dependabot against strict
+- [ ] T4 — `gradle-gate` in `ci.yml`: the Gradle hooks plus `assembleDebug`; record the minutes of one run
+- [ ] T5 — `dependabot.yml` for the ecosystems T4's trial supports, with a 7-day cooldown
+- [ ] T6 — close: Demo steps 1–4, an ADR only if a decision outlives the item (Dependabot against strict
   locks is the likely one), delete this PRD, edit the backlog row
 
 ## Out of scope
