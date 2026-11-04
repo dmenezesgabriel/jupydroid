@@ -1,39 +1,93 @@
 # JupyterDroid
 
 Offline Jupyter notebook app for Android. Runs a **real** `jupyter_server` + `ipykernel`
-inside a bundled, rootless **musl** (Alpine) Linux rootfs on loopback, with a mobile-optimised
-UI: a Jetpack Compose shell and a **Compose-native** cell editor.
+inside a bundled musl (Alpine) Linux rootfs, run unprivileged under `proot`, on loopback, with a
+mobile-optimised UI: a Jetpack Compose shell and a **Compose-native** cell editor. No remote server.
+
+![A notebook on a tablet: a code cell, its printed output and the file browser beside it](docs/images/notebook-with-outputs.png)
+
+![The same notebook after the second cell ran: its HTML output drawn as a table](docs/images/html-table-output.png)
 
 ## Status
 
-Working end to end on an arm64 tablet: rootfs installs, `jupyter_server` starts on 127.0.0.1,
+Working end to end on an arm64 tablet: the rootfs installs, `jupyter_server` starts on 127.0.0.1,
 kernels start through `POST /api/sessions` and reattach, cells run and render their outputs
 (stream, tracebacks, PNG, `text/html`, tables), and notebooks persist as nbformat on a filesystem
 the app, the server and the kernel all share. There is a file browser, a Compose cell editor with
 syntax highlighting and kernel-backed completion, and a two-pane layout at ≥ 840dp.
 
-Also built: Spaces as directories under `files/spaces/`, a real busybox terminal over terminado,
-`pylsp` over stdio, the debugger over DAP on the kernel's control channel, the console, workspace
-search and replace, and the table of contents. The server's lifecycle is built too — it stops itself
-when it is idle or the app is left, comes back on the next run, and a kernel can be ended on purpose
-from the kernel menu.
+Also built: **Spaces** (each an isolated system with its own rootfs, packages and Python
+environments, run and stopped from a home screen), a real busybox terminal over terminado, `pylsp`
+over stdio, the debugger over DAP on the kernel's control channel, the console, workspace search and
+replace, the table of contents, a Source Control panel and an AI chat panel (each its own
+[extension module](docs/adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)).
 
-What is *not* built is in [`docs/backlog.md`](docs/backlog.md) — the Space system's runtime and UI, and
-whatever the next cold-path measurement names. The eleven measured gaps are
-[`docs/architecture.md` §11](docs/architecture.md).
-
-Test and flow counts are **produced, not stored**, because a stored one drifted repeatedly:
+What is *not* built is in [`docs/backlog.md`](docs/backlog.md), and the known gaps are
+[`docs/architecture.md` §11](docs/architecture.md). Counts are **produced, not stored**, because a
+stored one drifted repeatedly:
 
 ```sh
-scripts/count-tests.sh
+scripts/count-tests.sh                      # tests, flows and drivers, counted off the tree
+grep -c "^### GAP-" docs/architecture.md    # documented gaps
+grep -c "| shipped |" docs/backlog.md       # shipped items
 ```
 
 Kotlin + Jetpack Compose, `com.jupydroid.app`, AGP 9, compileSdk 37, minSdk 32, targetSdk 36.
-The runtime is **arm64-only**; on x86_64 the app runs against a fake kernel for UI work.
+The runtime is **arm64-only**: Android's seccomp filter kills musl's startup on x86_64
+([ADR-0003](docs/adr/0003-musl-not-glibc-and-arm64-only-at-runtime.md)), so there the app installs
+and runs its UI against a fake kernel that echoes a cell's source back as its output.
+
+## Install
+
+There is no release yet, so install what you build (next section) on an arm64 device with USB
+debugging on:
+
+```sh
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+The first launch unpacks the rootfs, which takes a while.
+
+## Build from source
+
+| Needs | For |
+|---|---|
+| JDK 17 | Gradle and the Kotlin toolchain |
+| Android SDK | `sdk.dir` in `local.properties` |
+| Docker | building the rootfs image |
+| `zstd` | compressing it |
+| Python 3 | `scripts/stage_proot.py`, standard library only |
+| network | the pinned Alpine `proot` package, fetched by sha256 |
+
+Building the arm64 image on an x86_64 host runs under qemu, which needs Docker's arm64 binfmt
+handler; `tools/rootfs/build.sh` says how to register it and that it does not survive a reboot.
+
+```sh
+tools/rootfs/build.sh arm64-v8a                  # the rootfs tarball, in build/rootfs/
+tools/rootfs/stage-app-artifacts.sh arm64-v8a    # it and proot, into the app module
+./gradlew :app:assembleDebug
+```
+
+The rootfs asset and the `proot` pair (`libproot.so`, `libproot-loader.so`) are build artifacts, not
+committed files, and an arm64 APK needs both. An x86_64 build needs neither:
+`stage-app-artifacts.sh x86_64` stages nothing, and the APK runs the fake kernel.
+
+## Contributing and security
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) is the working agreement: test first, small commits, the commit
+gate, and a device check for anything that runs a cell. Take part under the
+[Code of Conduct](CODE_OF_CONDUCT.md). Report a vulnerability privately, as
+[`SECURITY.md`](SECURITY.md) describes.
+
+## Licence
+
+Apache-2.0: [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE). The APK also carries third-party software,
+listed in [`THIRD_PARTY.md`](THIRD_PARTY.md); [`SOURCE_OFFER.md`](SOURCE_OFFER.md) says where the
+source of its GPL and LGPL parts is.
 
 ## Documentation
 
-Start at **[`docs/README.md`](docs/README.md)** — it is the map, and it carries the id scheme and the
+Start at **[`docs/README.md`](docs/README.md)**: it is the map, and it carries the id scheme and the
 greps. Documents are separated by **lifetime**, not by topic
 ([ADR-0001](docs/adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).
 
@@ -48,27 +102,11 @@ greps. Documents are separated by **lifetime**, not by topic
 | [`AGENTS.md`](AGENTS.md) | how work is done: the working agreement, per-step procedure, tooling. Every agent, Claude Code included, reads it | durable |
 | `evidence/<step>/` | the screenshots, snapshots and logs a step closed on, local and never committed ([ADR-0132](docs/adr/0132-evidence-is-local-and-reproduction-is-a-tested-script.md)) | ephemeral |
 
-## Build
-
-```sh
-./gradlew :app:assembleDebug
-```
-
-Requires the Android SDK at `~/Android/Sdk` (see `local.properties`). The rootfs asset and the
-proot pair (`libproot.so`, `libproot-loader.so`) are build artifacts, not committed files — build
-them with `tools/rootfs/build.sh arm64-v8a` then `tools/rootfs/stage-app-artifacts.sh arm64-v8a`.
-
 ## Reference
 
 Study material lives in `reference/`, which is **git-ignored**: none of it travels with a clone, and
-nothing under it is ever vendored. Because it travels with no clone, no durable document and no code
-comment depends on it — a comment cites an upstream project as `<project>@<sha> <path>` instead.
-
-[`docs/README.md`](docs/README.md) has the nine pinned SHAs and the clone commands;
+nothing under it is ever vendored. A comment cites an upstream project as `<project>@<sha> <path>`
+instead. [`docs/README.md`](docs/README.md) has the pinned SHAs and the clone commands, and
 [`docs/architecture/cross-cutting.md` §8.3](docs/architecture/cross-cutting.md) records what each
-reference is authoritative for, and §8.4 what each licence allows — Winlator and sora-editor are
+reference is authoritative for, and §8.4 what each licence allows: Winlator and sora-editor are
 LGPL-2.1 and therefore clean-room only.
-
-- `reference/research_repos/` — upstream clones studied for technique: `jupyterlab`, `vscode`,
-  `vscode-jupyter`, `intellij-community`, `jediterm`, `termux-app`, `winlator`, `box64`, `box86`
-- `reference/xeus-android/` — the original feasibility and architecture study

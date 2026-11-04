@@ -143,7 +143,7 @@ No `domain/`, `data/`, `ui/` or `di/` file changes, so there is no port and no `
   pull-request template whose checklist mirrors the commit-body gates
 - [x] T6 — README screenshots: a tested crop function and a tablet driver; frames under `docs/images/`,
   each looked at and passed through `scripts/check_device_secrets.py`
-- [ ] T7 — README rewrite: what it is, status as a produced count rather than a stored one, install
+- [x] T7 — README rewrite: what it is, status as a produced count rather than a stored one, install
   (no release exists until the delivery milestone, so build and `adb install`), build from source
   including the rootfs
 - [ ] T8 — close: run the community-profile command, write an ADR only if a decision outlives the item,
