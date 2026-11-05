@@ -149,6 +149,12 @@ counted. The red run on a throwaway pull request carrying `requests==2.19.0` in 
 advisories (`PYSEC-2018-28` among them). The two rootfs `.lock` files need the `requirements.txt:` prefix on `-L`:
 without it the scanner skips them without an error and counts 1,463 packages, not 1,645.
 
+**First runs on GitHub (T4).** `opengrep` on the runner, 2026-11-05: the run on pull request #14 (run `42026708831`)
+took 52 s of job time, billed as 1 minute, and printed `103 Code Findings`, the count T1 measured locally over the same
+six paths. The binary has no `--metrics` flag, so none is passed; `--quiet` hides the partial-parse count T1 saw (23),
+so the runner's is not recorded. The job does not block, so it has no red run: it exits 0 on findings, and its text
+and SARIF output are the `opengrep-findings` artifact (75,614 bytes, kept 14 days).
+
 ## Decisions
 
 - **(a) What grype reads:** the Alpine base by its pinned digest, `linux/arm64`, blocking with `--only-fixed
@@ -213,7 +219,7 @@ is the run that must fail once (Demo step 2); any script this item writes is TDD
 - [x] T2 — `security.yml` skeleton (`permissions: {}`, SHA-keyed concurrency, push, pull request, weekly cron) and the
   `gitleaks` job; red first: a planted token-shaped string turns it red
 - [x] T3 — `osv-scanner` over `uv.lock`, `tools/rootfs/*.lock` and the Gradle lockfiles
-- [ ] T4 — `opengrep` over the Kotlin and Python sources
+- [x] T4 — `opengrep` over the Kotlin and Python sources
 - [ ] T5 — `grype` over the input T1 chose for (a)
 - [ ] T6 — `mobsf` static scan of the debug APK, with a tested driver script if (c) needs one
 - [ ] T7 — the guarded jobs: `codeql` (Python, Actions, and Kotlin per (e)), `scorecard`, and the SARIF upload
