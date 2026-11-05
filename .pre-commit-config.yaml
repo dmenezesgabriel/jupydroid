@@ -56,7 +56,9 @@ repos:
       # and their tests are milliseconds.
       - id: maestro-gate-tests
         name: the maestro gates' own tests
-        entry: uv run --locked python -m unittest discover -s scripts -p '*_test.py'
+        # `env -u`: `git commit -a` exports GIT_INDEX_FILE as the outer repository's index to every hook,
+        # and the tests that build a repository in a temp dir would then write into it.
+        entry: env -u GIT_INDEX_FILE uv run --locked python -m unittest discover -s scripts -p '*_test.py'
         language: system
         pass_filenames: false
         always_run: true
