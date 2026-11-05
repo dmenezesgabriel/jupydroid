@@ -157,3 +157,42 @@ jobs:
             ${{ runner.temp }}/opengrep.txt
             ${{ runner.temp }}/opengrep.sarif
           retention-days: 14
+
+  grype:
+    name: grype
+    # Its input changes with the Dockerfile alone and a pull request spends minutes, so it runs on
+    # `main`, the weekly cron and a manual dispatch.
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # Pinned twice, by version and by the sha256 the project publishes (grype_0.121.1_checksums.txt).
+      GRYPE_VERSION: "0.121.1"
+      GRYPE_SHA256: "bc3ea3f9e6fd56ac781c08c6c5e614271b79f438200757f6932085c19b0a4657"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned grype
+        run: |
+          archive="grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/${archive}"
+          echo "${GRYPE_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" grype
+
+      # The image is the last `FROM alpine:` of the rootfs Dockerfile, read at run time so a base
+      # bump cannot leave this scan on a stale digest. It is the shipped base, fetched without a
+      # Docker daemon (`registry:`) for the platform the rootfs runs on. Only a CVE with a fix
+      # blocks: an unfixed one (busybox, CVE-2025-60876) is listed and nothing can be done about it
+      # (ADR-0131). The vulnerability database is fetched fresh on purpose, since a weekly run
+      # exists to meet advisories published after the last commit. The source-built busybox is not
+      # an apk package, so grype reads Alpine's, not ours.
+      - name: Scan the Alpine base
+        run: |
+          image="$(grep -E '^FROM alpine:' tools/rootfs/Dockerfile | tail -1 | cut -d' ' -f2)"
+          "${RUNNER_TEMP}/grype" "registry:${image}" --platform linux/arm64 \
+            --only-fixed --fail-on medium
