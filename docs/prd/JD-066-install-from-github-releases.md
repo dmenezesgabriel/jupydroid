@@ -112,7 +112,7 @@ Each needs evidence gathered in the task that owns it, and an ADR (0140) when th
 
 | Layer | Files |
 |---|---|
-| host scripts | `scripts/release_version.py` (T1), `scripts/pending_release.py` (T2), `scripts/release_notes.py` (T5) |
+| host scripts | `scripts/release_version.py` (T1), `scripts/pending_release.py` (T2), `scripts/release_commit_tag.py` (T2 fix: the tag workflow also reads a merge commit's second parent), `scripts/release_notes.py` (T5) |
 | build | `app/build.gradle.kts` (T1 version properties; T4 `signingConfig`), `scripts/release_signing_config_test.py` (T4) |
 | workflows | `.github/workflows/release-cut.yml`, `release-tag.yml` (T2), `release.yml`: `rootfs` (T3), `version`, `apk`, `publish`, `attest` (T5) |
 | unit tests | `scripts/release_version_test.py` (T1), `scripts/pending_release_test.py`, `scripts/release_cut_config_test.py` (T2), `scripts/release_rootfs_workflow_test.py` (T3), `scripts/release_notes_test.py`, `scripts/release_publish_workflow_test.py`, `scripts/workflow_reader.py` + `_test.py` (T5) |

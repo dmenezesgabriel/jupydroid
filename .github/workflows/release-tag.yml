@@ -64,6 +64,8 @@ jobs:
           token: ${{ steps.app.outputs.token }}
           persist-credentials: false
           ref: ${{ github.event.pull_request.merge_commit_sha }}
+          # The merge commit and its parents: the release commit is the second parent of a merge commit.
+          fetch-depth: 2
 
       - name: Tag the merged release commit
         if: steps.preflight.outputs.configured == 'true'
@@ -75,12 +77,12 @@ jobs:
         run: |
           set -euo pipefail
           # Only a real release commit gets a tag: a release/* branch whose tip is anything else is not one.
-          SUBJECT="$(git log -1 --format=%s "$MERGE_SHA")"
-          if [[ ! "$SUBJECT" =~ ^chore\(release\):\ (v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
-            echo "::warning::the merged release/* tip is not a 'chore(release): vX.Y.Z' commit (${SUBJECT}), no tag"
+          # A merge commit's own subject is "Merge pull request #N", so the script also reads its second parent.
+          TAG="$(python3 scripts/release_commit_tag.py . "$MERGE_SHA")"
+          if [ -z "$TAG" ]; then
+            echo "::warning::the merged release/* branch holds no 'chore(release): vX.Y.Z' commit at ${MERGE_SHA}, no tag"
             exit 0
           fi
-          TAG="${BASH_REMATCH[1]}"
           if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
             echo "tag ${TAG} already exists, nothing to do"
             exit 0
