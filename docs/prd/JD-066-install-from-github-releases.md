@@ -119,7 +119,7 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port.
 
 ## Tasks
 
-- [ ] T1 — a release tag derives `versionName` and `versionCode`; Gradle reads them as properties and keeps today's defaults. Closes on `aapt2 dump badging` of a debug APK built with the properties, since no screen changes
+- [x] T1 — a release tag derives `versionName` and `versionCode`; Gradle reads them as properties and keeps today's defaults. Closes on `aapt2 dump badging` of a debug APK built with the properties, since no screen changes
 - [ ] T2 — the release cut and the tag workflow, the locked release tool and the changelog; both degrade to a warning without the credential
 - [ ] T3 — the arm64 rootfs and its SBOM built in CI under qemu from the digest-pinned image; the duration measured
 - [ ] T4 — a release `signingConfig` read from environment variables; `assembleRelease` verified with `apksigner verify`

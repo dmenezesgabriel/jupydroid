@@ -44,8 +44,10 @@ android {
         applicationId = "com.jupydroid.app"
         minSdk = 32
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // A release passes both, derived from its tag by scripts/release_version.py; a developer
+        // build passes neither and keeps the values it always had.
+        versionCode = providers.gradleProperty("versionCode").map(String::toInt).getOrElse(1)
+        versionName = providers.gradleProperty("versionName").getOrElse("1.0")
         // The Compose test deps were declared long before anything ran against them; this is
         // what lets androidTest actually execute (first used by CellHeaderTest).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
