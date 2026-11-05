@@ -3,7 +3,8 @@ name: Security
 # The scanners that read the tree, its history and what it builds, in a file of their own: a weekly
 # run catches drift that no code change triggers (a new advisory, a new rule), and `ci.yml` stays
 # the commit gate and nothing else. A scanner blocks only where its findings on this tree are real
-# (ADR-0131); the jobs join this file one at a time.
+# (ADR-0131). `codeql` waits for a public repository: its SARIF upload needs code scanning, which a
+# private one only has with a paid licence. `scorecard` has a file of its own, `scorecard.yml`.
 #
 # Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
 # ruleset in the same commit.
@@ -261,3 +262,50 @@ jobs:
             ${{ runner.temp }}/mobsf/mobsf-report.json
             ${{ runner.temp }}/mobsf/mobsf-summary.txt
           retention-days: 14
+
+  codeql:
+    name: codeql (${{ matrix.language }})
+    # SARIF upload needs code scanning, which a private repository only has with a paid licence. The
+    # job is written now and skipped until the repository is public, rather than failing on every run.
+    if: ${{ github.event.repository.visibility == 'public' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write # upload the analysis SARIF to code scanning
+      actions: read # CodeQL reads workflow metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        # Kotlin has no `build-mode: none`: it needs a build, which costs minutes, so a pull request
+        # analyses Python and the workflows only and Kotlin runs on `main`, the cron and a dispatch.
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"language":"actions","build-mode":"none"},{"language":"python","build-mode":"none"}]' || '[{"language":"actions","build-mode":"none"},{"language":"python","build-mode":"none"},{"language":"java-kotlin","build-mode":"manual"}]') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        if: ${{ matrix.build-mode == 'manual' }}
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        if: ${{ matrix.build-mode == 'manual' }}
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # The build CodeQL traces to extract the Kotlin: the same `assembleDebug` that `gradle-gate` runs.
+      - name: Assemble the debug APK
+        if: ${{ matrix.build-mode == 'manual' }}
+        run: ./gradlew assembleDebug
+
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}
