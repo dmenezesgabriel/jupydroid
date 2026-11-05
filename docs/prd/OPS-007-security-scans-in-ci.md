@@ -141,6 +141,14 @@ a job, which also pays for checkout and setup (measured in T2-T7).
 scans are inside it. The red run on a throwaway pull request carrying a `ghp_`-shaped fake token (run `42022594502`,
 closed and its branch deleted) failed at the step `Scan every commit` with `leaks found: 1`, and skipped the second scan.
 
+**First runs on GitHub (T3).** Pillow went to 13.0.0 first, in its own commit (`uv lock --upgrade-package pillow`; the
+`uv.lock` diff moves only `pillow`). `osv-scanner` on the runner, 2026-11-05: the green run on pull request #13 (run
+`42024835496`) took 8 s of job time, billed as 1 minute, and printed `No issues found` over the same 1,645 packages T1
+counted. The red run on a throwaway pull request carrying `requests==2.19.0` in `tools/rootfs/requirements.lock` (run
+`42024712526`, closed and its branch deleted) failed at `Scan the lockfiles`, naming `requests` 2.19.0 and 5
+advisories (`PYSEC-2018-28` among them). The two rootfs `.lock` files need the `requirements.txt:` prefix on `-L`:
+without it the scanner skips them without an error and counts 1,463 packages, not 1,645.
+
 ## Decisions
 
 - **(a) What grype reads:** the Alpine base by its pinned digest, `linux/arm64`, blocking with `--only-fixed
@@ -204,7 +212,7 @@ is the run that must fail once (Demo step 2); any script this item writes is TDD
   real or false, wall time and peak memory; settle (a)–(g) in *Decisions*
 - [x] T2 — `security.yml` skeleton (`permissions: {}`, SHA-keyed concurrency, push, pull request, weekly cron) and the
   `gitleaks` job; red first: a planted token-shaped string turns it red
-- [ ] T3 — `osv-scanner` over `uv.lock`, `tools/rootfs/*.lock` and the Gradle lockfiles
+- [x] T3 — `osv-scanner` over `uv.lock`, `tools/rootfs/*.lock` and the Gradle lockfiles
 - [ ] T4 — `opengrep` over the Kotlin and Python sources
 - [ ] T5 — `grype` over the input T1 chose for (a)
 - [ ] T6 — `mobsf` static scan of the debug APK, with a tested driver script if (c) needs one
