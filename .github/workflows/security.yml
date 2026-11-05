@@ -3,7 +3,7 @@ name: Security
 # The scanners that read the tree, its history and what it builds, in a file of their own: a weekly
 # run catches drift that no code change triggers (a new advisory, a new rule), and `ci.yml` stays
 # the commit gate and nothing else. A scanner blocks only where its findings on this tree are real
-# (ADR-0131); gitleaks is the first, and the others join this file one job at a time.
+# (ADR-0131); the jobs join this file one at a time.
 #
 # Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
 # ruleset in the same commit.
@@ -60,3 +60,42 @@ jobs:
       # The checkout holds tracked files only, so this reads what the history scan reads, as files.
       - name: Scan the checkout
         run: '"${RUNNER_TEMP}/gitleaks" dir --redact --no-banner --exit-code 1 .'
+
+  osv-scanner:
+    name: osv-scanner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # Pinned twice, by version and by the sha256 the project publishes (osv-scanner_SHA256SUMS).
+      OSV_SCANNER_VERSION: "2.7.0"
+      OSV_SCANNER_SHA256: "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned osv-scanner
+        run: |
+          curl -fsSL -o "${RUNNER_TEMP}/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  ${RUNNER_TEMP}/osv-scanner" | sha256sum -c -
+          chmod +x "${RUNNER_TEMP}/osv-scanner"
+
+      # Every lockfile that decides what ships: the host's uv.lock, the two hashed rootfs locks and the
+      # five non-empty Gradle lockfiles (settings-gradle.lockfile holds no dependency). The scanner
+      # does not know the `.lock` name, so the rootfs locks, which are requirements files, say so with
+      # the `requirements.txt:` prefix; without it they are skipped without an error. Any advisory
+      # exits 1.
+      - name: Scan the lockfiles
+        run: |
+          "${RUNNER_TEMP}/osv-scanner" scan source \
+            -L uv.lock \
+            -L requirements.txt:tools/rootfs/requirements.lock \
+            -L requirements.txt:tools/rootfs/jupyter-ai-tools.lock \
+            -L buildscript-gradle.lockfile \
+            -L app/gradle.lockfile \
+            -L extension-api/gradle.lockfile \
+            -L extensions/ai/gradle.lockfile \
+            -L extensions/git/gradle.lockfile
