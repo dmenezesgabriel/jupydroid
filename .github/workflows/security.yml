@@ -1,0 +1,198 @@
+name: Security
+
+# The scanners that read the tree, its history and what it builds, in a file of their own: a weekly
+# run catches drift that no code change triggers (a new advisory, a new rule), and `ci.yml` stays
+# the commit gate and nothing else. A scanner blocks only where its findings on this tree are real
+# (ADR-0131); the jobs join this file one at a time.
+#
+# Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
+# ruleset in the same commit.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mondays 04:17 UTC, off the hour so it does not queue with every other job scheduled on it.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+# Default-deny: a job inherits nothing unless it re-declares a scope.
+permissions: {}
+
+# Keyed on the commit for a push and the cron, so consecutive runs on `main` never cancel each
+# other; a pull request keys on its number, so a fresh push replaces a stale run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # The binary is pinned twice, by version and by the sha256 the project publishes beside it
+      # (gitleaks_8.30.1_checksums.txt). The action is not used: its owner lookup needs a token and
+      # its binary is not pinned by sum.
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      # Full history, because `gitleaks git` reads every commit and a shallow clone hides the old ones.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install the pinned gitleaks
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" gitleaks
+
+      # `--redact` keeps a finding's secret out of the run log, which outlives the branch.
+      - name: Scan every commit
+        run: '"${RUNNER_TEMP}/gitleaks" git --redact --no-banner --exit-code 1 .'
+
+      # The checkout holds tracked files only, so this reads what the history scan reads, as files.
+      - name: Scan the checkout
+        run: '"${RUNNER_TEMP}/gitleaks" dir --redact --no-banner --exit-code 1 .'
+
+  osv-scanner:
+    name: osv-scanner
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # Pinned twice, by version and by the sha256 the project publishes (osv-scanner_SHA256SUMS).
+      OSV_SCANNER_VERSION: "2.7.0"
+      OSV_SCANNER_SHA256: "160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned osv-scanner
+        run: |
+          curl -fsSL -o "${RUNNER_TEMP}/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  ${RUNNER_TEMP}/osv-scanner" | sha256sum -c -
+          chmod +x "${RUNNER_TEMP}/osv-scanner"
+
+      # Every lockfile that decides what ships: the host's uv.lock, the two hashed rootfs locks and the
+      # five non-empty Gradle lockfiles (settings-gradle.lockfile holds no dependency). The scanner
+      # does not know the `.lock` name, so the rootfs locks, which are requirements files, say so with
+      # the `requirements.txt:` prefix; without it they are skipped without an error. Any advisory
+      # exits 1.
+      - name: Scan the lockfiles
+        run: |
+          "${RUNNER_TEMP}/osv-scanner" scan source \
+            -L uv.lock \
+            -L requirements.txt:tools/rootfs/requirements.lock \
+            -L requirements.txt:tools/rootfs/jupyter-ai-tools.lock \
+            -L buildscript-gradle.lockfile \
+            -L app/gradle.lockfile \
+            -L extension-api/gradle.lockfile \
+            -L extensions/ai/gradle.lockfile \
+            -L extensions/git/gradle.lockfile
+
+  opengrep:
+    name: opengrep
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # The binary is pinned by version and by the sha256 measured on the release asset: upstream
+      # publishes a cosign signature, not a sum file. The rules are the project's own mirror at a
+      # commit; that repository is archived, so they will not move. Never `--config auto`, which
+      # fetches third-party rules at run time.
+      OPENGREP_VERSION: "1.33.1"
+      OPENGREP_SHA256: "46e8133cc490f9f50518061590ce2f6be5a08afaeda034471c0ceda4b3899808"
+      OPENGREP_RULES_SHA: "f1d2b562b414783763fd02a6ed2736eaed622efa"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned opengrep
+        run: |
+          curl -fsSL -o "${RUNNER_TEMP}/opengrep" \
+            "https://github.com/opengrep/opengrep/releases/download/v${OPENGREP_VERSION}/opengrep_manylinux_x86"
+          echo "${OPENGREP_SHA256}  ${RUNNER_TEMP}/opengrep" | sha256sum -c -
+          chmod +x "${RUNNER_TEMP}/opengrep"
+
+      # A fetch by commit, so the tree is what the SHA names and nothing else.
+      - name: Fetch the pinned rules
+        run: |
+          git init --quiet "${RUNNER_TEMP}/opengrep-rules"
+          git -C "${RUNNER_TEMP}/opengrep-rules" fetch --quiet --depth 1 \
+            https://github.com/opengrep/opengrep-rules.git "${OPENGREP_RULES_SHA}"
+          git -C "${RUNNER_TEMP}/opengrep-rules" checkout --quiet FETCH_HEAD
+
+      # Reports and does not block: on this tree every hit is a design choice or a repeat of what
+      # ShellCheck already passes, and a scanner that always fails teaches the reader to ignore it
+      # (ADR-0131). No `--error`, so findings exit 0. Re-read the findings when a rule is chosen
+      # that has a real one to catch.
+      - name: Scan the sources
+        run: |
+          rules="${RUNNER_TEMP}/opengrep-rules"
+          "${RUNNER_TEMP}/opengrep" scan --quiet --disable-version-check \
+            --config "${rules}/kotlin" --config "${rules}/python" --config "${rules}/bash" \
+            --text-output "${RUNNER_TEMP}/opengrep.txt" \
+            --sarif-output "${RUNNER_TEMP}/opengrep.sarif" \
+            app/src extension-api/src extensions/ai/src extensions/git/src scripts tools
+          cat "${RUNNER_TEMP}/opengrep.txt"
+
+      # A plain artifact, not a code-scanning upload: that needs a public repository.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: opengrep-findings
+          path: |
+            ${{ runner.temp }}/opengrep.txt
+            ${{ runner.temp }}/opengrep.sarif
+          retention-days: 14
+
+  grype:
+    name: grype
+    # Its input changes with the Dockerfile alone and a pull request spends minutes, so it runs on
+    # `main`, the weekly cron and a manual dispatch.
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # Pinned twice, by version and by the sha256 the project publishes (grype_0.121.1_checksums.txt).
+      GRYPE_VERSION: "0.121.1"
+      GRYPE_SHA256: "bc3ea3f9e6fd56ac781c08c6c5e614271b79f438200757f6932085c19b0a4657"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the pinned grype
+        run: |
+          archive="grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+          curl -fsSL -o "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/${archive}"
+          echo "${GRYPE_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" grype
+
+      # The image is the last `FROM alpine:` of the rootfs Dockerfile, read at run time so a base
+      # bump cannot leave this scan on a stale digest. It is the shipped base, fetched without a
+      # Docker daemon (`registry:`) for the platform the rootfs runs on. Only a CVE with a fix
+      # blocks: an unfixed one (busybox, CVE-2025-60876) is listed and nothing can be done about it
+      # (ADR-0131). The vulnerability database is fetched fresh on purpose, since a weekly run
+      # exists to meet advisories published after the last commit. The source-built busybox is not
+      # an apk package, so grype reads Alpine's, not ours.
+      - name: Scan the Alpine base
+        run: |
+          image="$(grep -E '^FROM alpine:' tools/rootfs/Dockerfile | tail -1 | cut -d' ' -f2)"
+          "${RUNNER_TEMP}/grype" "registry:${image}" --platform linux/arm64 \
+            --only-fixed --fail-on medium

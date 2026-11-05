@@ -14,7 +14,7 @@ default-groups = ["host", "dev"]
 [dependency-groups]
 # Imported by scripts/: Pillow by the read_* image measures, PyYAML by check_maestro_output_assertions.
 host = [
-    "Pillow>=12.1,<13",
+    "Pillow>=13,<14",
     "PyYAML>=6.0,<7",
 ]
 

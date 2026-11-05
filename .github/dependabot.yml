@@ -26,8 +26,10 @@ updates:
     cooldown:
       default-days: 7
 
-  # Gradle is on trial (ADR-0123): Dependabot rewrites gradle.lockfile but does not run Gradle, so
-  # it cannot update gradle/verification-metadata.xml, and a pull request may fail the gate by design.
+  # Gradle gets security updates only (ADR-0137). Dependabot edits the catalog and some lockfiles but
+  # does not run Gradle, so it never updates gradle/verification-metadata.xml or
+  # buildscript-gradle.lockfile, and every version-update pull request failed gradle-gate. A limit of 0
+  # turns version updates off; security updates keep their own separate limit.
   - package-ecosystem: gradle
     directories:
       - /
@@ -35,6 +37,7 @@ updates:
       - /extension-api
       - /extensions/git
       - /extensions/ai
+    open-pull-requests-limit: 0
     schedule:
       interval: weekly
     cooldown:
