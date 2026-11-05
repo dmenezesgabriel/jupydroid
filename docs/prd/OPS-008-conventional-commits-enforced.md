@@ -125,10 +125,11 @@ commitlint parses as a footer; it is off, with a test, so the warning is not noi
 
 - [x] T1 — `package.json`, `package-lock.json`, `commitlint.config.mjs` and `commitlint.config.test.mjs`
   (red first), `node_modules/` in `.gitignore`; re-measure the history with the config and record it above
-- [ ] T2 — the `commit-msg` hook and the config-test hook in `.pre-commit-config.yaml`,
-  `default_install_hook_types`, and the install steps in `CONTRIBUTING.md`
-- [ ] T3 — the `commit-messages` job in `ci.yml` (range and title), `python-gate`'s `SKIP` list, and the
-  Dependabot `npm` block
+- [x] T2 — the `commit-msg` hook and the config-test hook in `.pre-commit-config.yaml`,
+  `default_install_hook_types`, `default_stages`, `python-gate`'s `SKIP` entry (CI would go red the moment
+  the Node hook exists), and the install steps in `CONTRIBUTING.md`
+- [ ] T3 — the `commit-messages` job in `ci.yml` (range and title; it runs `commitlint-config-tests` after
+  `npm ci`) and the Dependabot `npm` block
 - [ ] T4 — close: Demo steps 1–4, `ADR-0139`, the `AGENTS.md` tooling row, the `CONTRIBUTING.md` Commits
   section, delete this PRD, edit `docs/backlog.md`
 

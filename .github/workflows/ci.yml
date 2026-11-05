@@ -51,9 +51,10 @@ jobs:
 
       # The Gradle hooks run in gradle-gate. A hook renamed in .pre-commit-config.yaml is no
       # longer skipped by this list and starts running here, where there is no Gradle setup.
+      # commitlint-config-tests needs Node and `npm ci`, which this job does not set up.
       - name: Python and ShellCheck hooks
         env:
-          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests
+          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests,commitlint-config-tests
         run: uv run --locked pre-commit run --all-files
 
   gradle-gate:
