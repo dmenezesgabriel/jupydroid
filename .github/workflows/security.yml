@@ -1,0 +1,62 @@
+name: Security
+
+# The scanners that read the tree, its history and what it builds, in a file of their own: a weekly
+# run catches drift that no code change triggers (a new advisory, a new rule), and `ci.yml` stays
+# the commit gate and nothing else. A scanner blocks only where its findings on this tree are real
+# (ADR-0131); gitleaks is the first, and the others join this file one job at a time.
+#
+# Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
+# ruleset in the same commit.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mondays 04:17 UTC, off the hour so it does not queue with every other job scheduled on it.
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
+
+# Default-deny: a job inherits nothing unless it re-declares a scope.
+permissions: {}
+
+# Keyed on the commit for a push and the cron, so consecutive runs on `main` never cancel each
+# other; a pull request keys on its number, so a fresh push replaces a stale run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      # The binary is pinned twice, by version and by the sha256 the project publishes beside it
+      # (gitleaks_8.30.1_checksums.txt). The action is not used: its owner lookup needs a token and
+      # its binary is not pinned by sum.
+      GITLEAKS_VERSION: "8.30.1"
+      GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+    steps:
+      # Full history, because `gitleaks git` reads every commit and a shallow clone hides the old ones.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Install the pinned gitleaks
+        run: |
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "${RUNNER_TEMP}/${archive}" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
+          tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" gitleaks
+
+      # `--redact` keeps a finding's secret out of the run log, which outlives the branch.
+      - name: Scan every commit
+        run: '"${RUNNER_TEMP}/gitleaks" git --redact --no-banner --exit-code 1 .'
+
+      # The checkout holds tracked files only, so this reads what the history scan reads, as files.
+      - name: Scan the checkout
+        run: '"${RUNNER_TEMP}/gitleaks" dir --redact --no-banner --exit-code 1 .'
