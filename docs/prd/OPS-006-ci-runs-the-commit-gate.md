@@ -140,9 +140,11 @@ Each needs a measurement from T1, not a guess.
   with no newline on purpose. Both are byte-exact test data like `mod.py`, so `pyproject.toml` excludes them with
   the reason. After that the whole Python half passes on a fresh clone in 2m09s with a cold pre-commit cache.
 - **Dependabot against strict locks.** ADR-0123 locks Gradle strictly with verification metadata, which
-  Dependabot cannot rewrite. Whether it opens Gradle pull requests that fail the gate by design, or
-  watches Actions and `uv` only and leaves Gradle to the documented manual bump, is decided in T5 on what
-  a trial pull request does. An ADR if the answer is "leave Gradle out".
+  Dependabot cannot rewrite. T5 wrote `dependabot.yml` with `github-actions`, `uv` and `gradle` (five
+  directories), each on a 7-day cooldown; `tools/rootfs/*.lock` is left out because it is `uv pip compile`
+  output and Dependabot's pip ecosystem drives pip-compile. Gradle is on trial: Dependabot reads its config
+  only from `main`, so whether a Gradle pull request fails `gradle-gate` by design is read from the first
+  ones after the merge, in T6. An ADR if the answer is "leave Gradle out".
 - **Does `gradle-gate` fit a runner?** Yes, measured in T4 on 2026-11-04 (run 41932521140, `ubuntu-24.04`,
   2 vCPU, cold Gradle cache since a pull request only reads it): green on the first run, `gradle-gate` 15m58s,
   `python-gate` 2m28s, in parallel. Steps of `gradle-gate`: ktlint 2m29s, detekt 31s, cpd 9s, Android Lint
@@ -178,7 +180,7 @@ workflow's own tests are actionlint and zizmor, plus the run that must fail once
   hooks; `ci.yml` with `python-gate` (the Python and ShellCheck hooks, `SKIP`ing the Gradle ones). Red
   first: the workflow's first draft uses a tag, the hooks refuse it, then it is pinned
 - [x] T4 — `gradle-gate` in `ci.yml`: the Gradle hooks plus `assembleDebug`; record the minutes of one run
-- [ ] T5 — `dependabot.yml` for the ecosystems T4's trial supports, with a 7-day cooldown
+- [x] T5 — `dependabot.yml` for the ecosystems T4's trial supports, with a 7-day cooldown
 - [ ] T6 — close: Demo steps 1–4, an ADR only if a decision outlives the item (Dependabot against strict
   locks is the likely one), delete this PRD, edit the backlog row
 
