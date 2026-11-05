@@ -169,12 +169,13 @@ repos:
         entry: npm exec --no -- commitlint --edit
         language: system
         stages: [commit-msg]
-      # Only when the rules or the lockfile change; the hook above is what runs on every commit.
+      # Only when the rules, the npm settings or the lockfile change (any root-level .mjs is a config or
+      # its test); the hook above is what runs on every commit.
       - id: commitlint-config-tests
-        name: the commitlint rules' own tests
+        name: the commit tooling's own tests (commitlint, commitizen, .npmrc)
         entry: npm test
         language: system
-        files: '^(package(-lock)?\.json|commitlint\.config(\.test)?\.mjs)$'
+        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs)$'
         pass_filenames: false
       - id: ktlint-check
         name: ktlint format check

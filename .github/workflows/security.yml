@@ -88,8 +88,9 @@ jobs:
           echo "${OSV_SCANNER_SHA256}  ${RUNNER_TEMP}/osv-scanner" | sha256sum -c -
           chmod +x "${RUNNER_TEMP}/osv-scanner"
 
-      # Every lockfile that decides what ships: the host's uv.lock, the two hashed rootfs locks and the
-      # five non-empty Gradle lockfiles (settings-gradle.lockfile holds no dependency). The scanner
+      # Every lockfile that decides what ships or runs in CI: the host's uv.lock, the commit tooling's
+      # package-lock.json, the two hashed rootfs locks and the five non-empty Gradle lockfiles
+      # (settings-gradle.lockfile holds no dependency). The scanner
       # does not know the `.lock` name, so the rootfs locks, which are requirements files, say so with
       # the `requirements.txt:` prefix; without it they are skipped without an error. Any advisory
       # exits 1.
@@ -97,6 +98,7 @@ jobs:
         run: |
           "${RUNNER_TEMP}/osv-scanner" scan source \
             -L uv.lock \
+            -L package-lock.json \
             -L requirements.txt:tools/rootfs/requirements.lock \
             -L requirements.txt:tools/rootfs/jupyter-ai-tools.lock \
             -L buildscript-gradle.lockfile \

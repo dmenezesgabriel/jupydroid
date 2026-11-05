@@ -110,13 +110,25 @@ commitlint parses as a footer; it is off, with a test, so the warning is not noi
   trade-offs table. The ADR is `ADR-0139`, written at T4.
 - Host: Node 24.18.0 locally; CI pins the same version. commitlint 21.2.4 was published 2026-10-18, past
   Dependabot's 7-day cooldown.
+- Writer is commitizen with `@commitlint/cz-commitlint` (the maintainer's decision), run as
+  `npm run commit`: the prompt reads `commitlint.config.mjs`, so the questions and the `commit-msg` check
+  share one rule list. `cz-conventional-changelog` keeps its own list (with `revert`) and Python's
+  `commitizen` keeps its own rules in `pyproject.toml`; both would drift from the hook. The adapter's peers
+  are `commitizen` ^4.0.3 and `inquirer` ^9 to ^12, so `inquirer` is pinned at 12.11.1 (2025-11-12), the
+  newest it accepts; the 14.x line is outside the peer range.
+- The npm tree is a supply-chain surface of its own, and npm's defaults run install scripts, accept git
+  dependencies and take a release the minute it is published. `.npmrc` turns that off: `ignore-scripts`,
+  `allow-git=none`, `engine-strict`, `save-exact`, `min-release-age` of 7 days (the Dependabot cooldown).
+  CI adds `npm audit signatures` (registry signatures and provenance, which `osv-scanner` does not read) and
+  `osv-scanner` gains `-L package-lock.json`, which it does not scan today because its lockfiles are listed
+  one by one.
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| tool | `package.json`, `package-lock.json`, `commitlint.config.mjs`, `.gitignore` (`node_modules/`) |
-| unit tests | `commitlint.config.test.mjs`, run by `node --test` |
+| tool | `package.json`, `package-lock.json`, `commitlint.config.mjs`, `.npmrc`, `.gitignore` (`node_modules/`) |
+| unit tests | `commitlint.config.test.mjs`, `commitizen.config.test.mjs`, `npmrc.test.mjs`, run by `node --test` |
 | hooks | `.pre-commit-config.yaml` (`default_install_hook_types`, `commitlint`, `commitlint-config-tests`) |
 | CI | `.github/workflows/ci.yml` (`commit-messages`), `.github/dependabot.yml` (`npm`) |
 | docs | `CONTRIBUTING.md`, `AGENTS.md` tooling table, `docs/adr/0139-*.md`, `docs/backlog.md` |
@@ -128,8 +140,14 @@ commitlint parses as a footer; it is off, with a test, so the warning is not noi
 - [x] T2 — the `commit-msg` hook and the config-test hook in `.pre-commit-config.yaml`,
   `default_install_hook_types`, `default_stages`, `python-gate`'s `SKIP` entry (CI would go red the moment
   the Node hook exists), and the install steps in `CONTRIBUTING.md`
-- [ ] T3 — the `commit-messages` job in `ci.yml` (range and title; it runs `commitlint-config-tests` after
-  `npm ci`) and the Dependabot `npm` block
+- [ ] T2b — commitizen: `commitizen`, `@commitlint/cz-commitlint` and `inquirer` pinned exactly and locked,
+  `config.commitizen.path` and the `commit` script in `package.json`, `commitizen.config.test.mjs` (red
+  first: the prompt offers exactly the configured types, and a message built from its answers passes
+  commitlint), the `commitlint-config-tests` hook `files` extended, `CONTRIBUTING.md` Commits section
+- [x] T2c — npm supply-chain settings: `.npmrc` (above) with a test that `npm config get` reports each
+  setting from the repository root, and `-L package-lock.json` in `security.yml`'s `osv-scanner` step
+- [ ] T3 — the `commit-messages` job in `ci.yml` (range and title; `npm ci`, `npm audit signatures`, then
+  `commitlint-config-tests`) and the Dependabot `npm` block with the 7-day cooldown
 - [ ] T4 — close: Demo steps 1–4, `ADR-0139`, the `AGENTS.md` tooling row, the `CONTRIBUTING.md` Commits
   section, delete this PRD, edit `docs/backlog.md`
 
