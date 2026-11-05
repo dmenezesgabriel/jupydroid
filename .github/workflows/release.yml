@@ -13,10 +13,6 @@ on:
         description: Commit, branch or tag to build
         required: true
         type: string
-  # TEMPORARY: lets the first run happen before this file is on main, where workflow_dispatch needs it.
-  pull_request:
-    paths:
-      - .github/workflows/release.yml
 
 # Default-deny: a job inherits nothing unless it re-declares a scope.
 permissions: {}
@@ -25,7 +21,8 @@ jobs:
   rootfs:
     name: rootfs
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
+    # Measured at 32 minutes on a 2 vCPU runner (the build 31 min 06 s, the SBOM 16 s); about three times that.
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:

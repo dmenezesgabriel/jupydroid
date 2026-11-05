@@ -103,7 +103,7 @@ Each needs evidence gathered in the task that owns it, and an ADR (0140) when th
 | ~~The credential~~ **Decided in T2:** a GitHub App, `JUPYDROID_RELEASE_CLIENT_ID` (variable) and `JUPYDROID_RELEASE_APP_PRIVATE_KEY` (secret), created by the maintainer; both workflows warn and stay green without it. The repository is private on the free plan, so no ruleset and no auto-merge: the maintainer merges the release PR | | T2 |
 | ~~Whether a rootfs-only change cuts a release~~ **Decided in T2:** by commit type alone. `tools/rootfs` history is 18 `build`, 13 `feat`, 5 `fix`, 3 `perf`; a rootfs `feat`/`fix`/`perf` changes the bundled APK and cuts, a `build` does not | | T2 |
 | ~~First version~~ **Decided in T2:** `0.1.0` (`allow_zero_version`), no tag exists in 1614 commits; the first notes are PSR's masked "Initial Release" | | T2 |
-| qemu build time of the arm64 rootfs against the 6 hour job limit | one measured run | T3 |
+| ~~qemu build time of the arm64 rootfs against the 6 hour job limit~~ **Decided in T3:** one run on a 2 vCPU `ubuntu-24.04` runner took 31 min 06 s for `build.sh` and 16 s for `sbom.sh`, 31 min 39 s for the job, a tenth of the limit. The job's `timeout-minutes` is 90. No native runner and no layer cache are needed for that | | T3 |
 | Where the release keystore lives and who rotates it | Actions secret versus an environment with a required reviewer | T4 |
 
 ## Surface
@@ -122,7 +122,7 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port.
 
 - [x] T1 — a release tag derives `versionName` and `versionCode`; Gradle reads them as properties and keeps today's defaults. Closes on `aapt2 dump badging` of a debug APK built with the properties, since no screen changes
 - [x] T2 — the release cut and the tag workflow, the locked release tool and the changelog; both degrade to a warning without the credential
-- [ ] T3 — the arm64 rootfs and its SBOM built in CI under qemu from the digest-pinned image; the duration measured
+- [x] T3 — the arm64 rootfs and its SBOM built in CI under qemu from the digest-pinned image; the duration measured
 - [ ] T4 — a release `signingConfig` read from environment variables; `assembleRelease` verified with `apksigner verify`
 - [ ] T5 — `release.yml` publishes the Release: APK, `SHA256SUMS`, SBOM, notes, `SOURCE_OFFER.md`; attestation guarded on a public repository
 - [ ] T6 — the demo on the tablet; ADR-0140; delete this PRD; the backlog row to shipped
