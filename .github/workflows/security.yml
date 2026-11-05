@@ -46,10 +46,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # `--retry 3` on every download below: GitHub's release host answered one run with a 504, which
+      # failed the job before any scan ran. curl retries a timeout and HTTP 408, 429, 500, 502, 503,
+      # 504, 522 and 524 with a doubling wait; the sha256 check still decides whether the file is the
+      # pinned one.
       - name: Install the pinned gitleaks
         run: |
           archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
-          curl -fsSL -o "${RUNNER_TEMP}/${archive}" \
+          curl -fsSL --retry 3 -o "${RUNNER_TEMP}/${archive}" \
             "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
           echo "${GITLEAKS_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
           tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" gitleaks
@@ -79,7 +83,7 @@ jobs:
 
       - name: Install the pinned osv-scanner
         run: |
-          curl -fsSL -o "${RUNNER_TEMP}/osv-scanner" \
+          curl -fsSL --retry 3 -o "${RUNNER_TEMP}/osv-scanner" \
             "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
           echo "${OSV_SCANNER_SHA256}  ${RUNNER_TEMP}/osv-scanner" | sha256sum -c -
           chmod +x "${RUNNER_TEMP}/osv-scanner"
@@ -122,7 +126,7 @@ jobs:
 
       - name: Install the pinned opengrep
         run: |
-          curl -fsSL -o "${RUNNER_TEMP}/opengrep" \
+          curl -fsSL --retry 3 -o "${RUNNER_TEMP}/opengrep" \
             "https://github.com/opengrep/opengrep/releases/download/v${OPENGREP_VERSION}/opengrep_manylinux_x86"
           echo "${OPENGREP_SHA256}  ${RUNNER_TEMP}/opengrep" | sha256sum -c -
           chmod +x "${RUNNER_TEMP}/opengrep"
@@ -180,7 +184,7 @@ jobs:
       - name: Install the pinned grype
         run: |
           archive="grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
-          curl -fsSL -o "${RUNNER_TEMP}/${archive}" \
+          curl -fsSL --retry 3 -o "${RUNNER_TEMP}/${archive}" \
             "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/${archive}"
           echo "${GRYPE_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
           tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" grype
