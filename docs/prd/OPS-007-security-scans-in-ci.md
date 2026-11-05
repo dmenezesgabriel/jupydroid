@@ -155,6 +155,17 @@ six paths. The binary has no `--metrics` flag, so none is passed; `--quiet` hide
 so the runner's is not recorded. The job does not block, so it has no red run: it exits 0 on findings, and its text
 and SARIF output are the `opengrep-findings` artifact (75,614 bytes, kept 14 days).
 
+**First runs on GitHub (T5).** `grype` on the runner, 2026-11-05: the manual dispatch on `ops-007-t5` (run
+`42028107133`) took 64 s of job time, billed as 2 minutes, and printed `No vulnerabilities found` for the digest
+`Dockerfile` names, the result T1 measured locally; the whole run (four jobs) is 5 billed minutes. The red run
+dispatched on a throwaway branch with the final `FROM alpine:` pinned to `alpine:3.21.0`
+(`sha256:21dc6063…`; run `42028608429`, branch deleted) failed at `Scan the Alpine base` on `libcrypto3` and
+`libssl3` (CVE-2025-15467, Critical, fixed in 3.3.6-r0, among others). `alpine:3.15` was tried first and passed:
+grype has no data for a distro that old, so a planted finding needs a release the database still covers.
+**Both runs print `15 packages from EOL distro "alpine 3.21.x"`**: Alpine 3.21 reached end of life on 2026-11-01, so
+the data for it is going stale and this gate weakens until the base moves to a supported release (a `JD-NNN` of its
+own; the `Dockerfile` pin is not touched here).
+
 ## Decisions
 
 - **(a) What grype reads:** the Alpine base by its pinned digest, `linux/arm64`, blocking with `--only-fixed
@@ -220,7 +231,7 @@ is the run that must fail once (Demo step 2); any script this item writes is TDD
   `gitleaks` job; red first: a planted token-shaped string turns it red
 - [x] T3 — `osv-scanner` over `uv.lock`, `tools/rootfs/*.lock` and the Gradle lockfiles
 - [x] T4 — `opengrep` over the Kotlin and Python sources
-- [ ] T5 — `grype` over the input T1 chose for (a)
+- [x] T5 — `grype` over the input T1 chose for (a)
 - [ ] T6 — `mobsf` static scan of the debug APK, with a tested driver script if (c) needs one
 - [ ] T7 — the guarded jobs: `codeql` (Python, Actions, and Kotlin per (e)), `scorecard`, and the SARIF upload
 - [ ] T8 — close: Demo steps 1–4, an ADR for what outlives the item (the visibility guard; blocking output in place of
