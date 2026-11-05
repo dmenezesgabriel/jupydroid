@@ -136,6 +136,11 @@ a job, which also pays for checkout and setup (measured in T2-T7).
   with a debug build; a release APK would not carry the first two. The four "secrets" are an RFC 6455 handshake GUID,
   a sha256 constant and two non-secrets.
 
+**First runs on GitHub (T2).** `gitleaks` on the runner, 2026-11-05: the green run on `ops-007-t2` (run
+`42022695242`) took 14 s of job time, which GitHub bills as 1 minute; checkout, the checksum-verified download and both
+scans are inside it. The red run on a throwaway pull request carrying a `ghp_`-shaped fake token (run `42022594502`,
+closed and its branch deleted) failed at the step `Scan every commit` with `leaks found: 1`, and skipped the second scan.
+
 ## Decisions
 
 - **(a) What grype reads:** the Alpine base by its pinned digest, `linux/arm64`, blocking with `--only-fixed
@@ -197,7 +202,7 @@ is the run that must fail once (Demo step 2); any script this item writes is TDD
 
 - [x] T1 — measure each scanner on the tree with `devjob`: pinned version and sha256 or digest, findings triaged as
   real or false, wall time and peak memory; settle (a)–(g) in *Decisions*
-- [ ] T2 — `security.yml` skeleton (`permissions: {}`, SHA-keyed concurrency, push, pull request, weekly cron) and the
+- [x] T2 — `security.yml` skeleton (`permissions: {}`, SHA-keyed concurrency, push, pull request, weekly cron) and the
   `gitleaks` job; red first: a planted token-shaped string turns it red
 - [ ] T3 — `osv-scanner` over `uv.lock`, `tools/rootfs/*.lock` and the Gradle lockfiles
 - [ ] T4 — `opengrep` over the Kotlin and Python sources
