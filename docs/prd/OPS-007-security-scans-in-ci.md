@@ -18,9 +18,11 @@ An OPS item (ADR-0122): no screen changes, so the demo is a run anyone can repea
    dependency pinned to a version with a published advisory, a pattern the rule set names) and
    `gh run list --branch <it>` reports `failure` with the failing job's log naming that scanner. A gate that has
    only ever been seen green has not been shown to fail.
-3. `pre-commit run actionlint zizmor --all-files` exits 0 on `.github/workflows/security.yml`.
-4. `gh run view <id> --json jobs` shows `codeql` and `scorecard` as `skipped` while the repository is private. Their
-   first real run belongs to `OPS-005`, and the closing commit says so rather than calling them proven.
+3. `pre-commit run actionlint-docker --all-files` and `pre-commit run zizmor --all-files` exit 0 over
+   `.github/workflows/security.yml` and `.github/workflows/scorecard.yml`.
+4. `gh run view <id> --json jobs` shows `codeql` as `skipped` in a `security.yml` run and `scorecard` as `skipped` in a
+   `scorecard.yml` run while the repository is private. Their first real run belongs to `OPS-005`, and the closing
+   commit says so rather than calling them proven.
 
 The repository stays private, so the minutes come from the free quota. The closing commit quotes the minutes one
 `security.yml` run used (`gh run view <id> --json jobs`), added to the 21 that `ci.yml` uses
@@ -180,6 +182,20 @@ is not readable, so a silent jadx kill there cannot be ruled out beyond the matc
 outputs a fresh checkout lacks, so `binary_analysis` has 8 entries on the runner against 10 locally and the scan does not
 read the proot binaries or the rootfs. It covers the app's code and manifest, which is what `gradle-gate` builds as well.
 
+**First runs on GitHub (T7).** `codeql` has never run with its guard on a public repository, so what follows is the
+analysis alone, measured on a throwaway branch with the visibility guard dropped, `upload: never` and the other five
+jobs off; the branch is deleted. The first dispatch (run `42042274485`) passed `actions` and `python` and **failed the
+`java-kotlin` leg** at `analyze` with "CodeQL detected code written in Java/Kotlin but this run didn't build any of
+it": `setup-gradle` had restored Gradle's build cache, `:extension-api:compileDebugKotlin` was `FROM-CACHE`, and no
+compiler ran under the tracer. The step became `./gradlew --no-daemon --no-build-cache assembleDebug` (`Fixes:
+2d51f3ac`) and the second dispatch (run `42043820482`, 2026-11-05) went green: `actions` 2 min 31 s and `python`
+2 min 31 s of job time, `java-kotlin` 9 min 29 s (the build `BUILD SUCCESSFUL in 5m 7s`, no task `FROM-CACHE`), billed
+as 3 + 3 + 10 = 16 minutes. Every Kotlin compile task ran, and the log reads "CodeQL scanned 634 out of 1334 Kotlin
+files": 634 is the tracked `src/main` count, so **`assembleDebug` analyses production code only**, not the 496 unit-test
+and 197 instrumented-test files. One run, one commit's cache state (the branch run reads the cache and never saves it);
+a `main` run, which also saves, is not measured. Not proven: the SARIF upload, the `category` per language, a pull
+request's two-leg matrix, and everything in `scorecard.yml`, which needs a public repository.
+
 ## Decisions
 
 - **(a) What grype reads:** the Alpine base by its pinned digest, `linux/arm64`, blocking with `--only-fixed
@@ -206,8 +222,9 @@ read the proot binaries or the rootfs. It covers the app's code and manifest, wh
   `--config auto` is not used: it is third-party content fetched at run time.
 - **(e) CodeQL for Kotlin:** GitHub's documentation says "Kotlin analysis requires a build" and that `build-mode: none`
   skips Kotlin with a warning, so Kotlin needs `build-mode: manual` around `assembleDebug`. Python and Actions need no
-  build and run on every trigger; Kotlin runs on pushes to `main` and the weekly cron only. The cost cannot be
-  measured while the repository is private, so T7 records it on `OPS-005`'s first run.
+  build and run on every trigger; Kotlin runs on pushes to `main`, the weekly cron and a dispatch. The build must
+  bypass Gradle's cache (`--no-build-cache`), and it covers production code only. Both were measured in T7 on the
+  private repository (*First runs on GitHub (T7)*); the upload waits for `OPS-005`.
 - **(f) gitleaks scope:** `gitleaks git` over full history plus `gitleaks dir` over the checkout, which in CI holds
   tracked files only. Both are clean, so no `.gitleaks.toml` is written; one appears with the first real false
   positive, anchored on the extracted secret. It sits beside `scripts/check_device_secrets.py` without overlap: that
@@ -228,7 +245,7 @@ read the proot binaries or the rootfs. It covers the app's code and manifest, wh
 
 | Layer | Files |
 |---|---|
-| `.github/workflows/` | `security.yml` |
+| `.github/workflows/` | `security.yml`; `scorecard.yml`, a file of its own because Scorecard's results publishing refuses a workflow that mixes in `run:` steps and `env` |
 | `.github/` | `dependabot.yml` untouched; no `.gitleaks.toml` (decision f) |
 | `scripts/` | `mobsf_scan.py` with its `_test.py` (decision c); the Pillow bump touches `pyproject.toml` and `uv.lock` |
 | `.pre-commit-config.yaml` | unchanged: no scanner joins the commit gate |
@@ -246,7 +263,7 @@ is the run that must fail once (Demo step 2); any script this item writes is TDD
 - [x] T4 — `opengrep` over the Kotlin and Python sources
 - [x] T5 — `grype` over the input T1 chose for (a)
 - [x] T6 — `mobsf` static scan of the debug APK, with a tested driver script if (c) needs one
-- [ ] T7 — the guarded jobs: `codeql` (Python, Actions, and Kotlin per (e)), `scorecard`, and the SARIF upload
+- [x] T7 — the guarded jobs: `codeql` (Python, Actions, and Kotlin per (e)), `scorecard`, and the SARIF upload
 - [ ] T8 — close: Demo steps 1–4, an ADR for what outlives the item (the visibility guard; blocking output in place of
   SARIF), delete this PRD, edit the backlog row to `shipped`, and move `← next` to `OPS-008`
 
