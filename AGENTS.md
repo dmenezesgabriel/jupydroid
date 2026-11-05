@@ -168,7 +168,8 @@ is skipped "for speed". A step is only finished when all of them hold.
 - **pre-commit framework** with local Gradle hooks: file-length → ktlint →
   detekt → Android Lint → unit tests. Commit is blocked on any failure.
 - Hooks are pure checkers (no mutation). Format locally with `ktlintFormat`.
-- Install: `pip install pre-commit && pre-commit install`.
+- Install: `pip install pre-commit && pre-commit install && npm ci`. `pre-commit install` sets up the
+  `commit-msg` hook as well, and the `npm ci` is what that hook runs.
 - Instrumented tests + Maestro stay step-level evidence gates (too slow to run
   per commit).
 
@@ -220,7 +221,10 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | ShellCheck | every shell script, followed into what it sources | `.pre-commit-config.yaml` (`koalaman/shellcheck-precommit` v0.11.0, needs Docker) + `.shellcheckrc` |
 | workflow lint | expressions, contexts and the `run:` shell of every workflow; upstream's image, its tag fixed by the hook's `rev` | `.pre-commit-config.yaml` (`rhysd/actionlint` `actionlint-docker`, needs Docker) |
 | workflow audit | unpinned actions, token scopes, persisted credentials, template injection; offline | `.pre-commit-config.yaml` (`zizmor`), `uv.lock` |
-| CI | the hooks above, verbatim, on every push to `main` and every pull request: `python-gate` for the Python and ShellCheck hooks, `gradle-gate` for the Gradle ones and `assembleDebug` | `.github/workflows/ci.yml` |
+| commit-message gate | a subject is `type(scope): subject`, with the ten types the history uses and no `revert`; refused at `commit-msg` before the commit exists | `commitlint.config.mjs` (+ `.test.mjs`), `.pre-commit-config.yaml` (`commitlint`, `commitlint-config-tests`), [ADR-0139](docs/adr/0139-commit-subjects-are-checked-by-commitlint-from-a-locked-npm-tree-and-written-with-commitizen.md) |
+| commit writer | `npm run commit` asks for the type, scope and subject from the same rules the gate checks | `package.json` (`config.commitizen`), `commitizen.config.test.mjs` |
+| npm supply chain | no install script, git dependency or release younger than 7 days; exact pins; `npm ci` from a sha512 lock | `.npmrc` (+ `npmrc.test.mjs`), `package-lock.json`, `.github/dependabot.yml` (`npm`) |
+| CI | the hooks above, verbatim, on every push to `main` and every pull request: `python-gate` for the Python and ShellCheck hooks, `gradle-gate` for the Gradle ones and `assembleDebug`; `commit-messages` on a pull request only, for its commits and its title | `.github/workflows/ci.yml` |
 | duplication gate | no Kotlin block of 150+ tokens is copied, tests included; PMD CPD, which Gradle's PMD plugin does not run | `:app:cpd` in `app/build.gradle.kts` (`cpdTool`, `libs.versions.toml` `pmd`) |
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
@@ -268,7 +272,7 @@ nothing about one that does not.
 ktlint check is a formatter, which parses without resolving.
 
 And `uv run --locked ruff check scripts tools`, `uv run --locked ruff format --check scripts tools`, `uv run --locked mypy`, `uv run --locked mypy --config-file tools/rootfs/mypy.ini` and
-`uv run --locked python -m unittest discover -s scripts -p '*_test.py'`
+`uv run --locked python -m unittest discover -s scripts -p '*_test.py'` and `npm test`
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current

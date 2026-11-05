@@ -101,9 +101,16 @@ name. [`docs/README.md`](docs/README.md) lists what a comment may cite, and
 
 ## Commits
 
-- A conventional-commit subject, such as `feat(scope): ...` or `fix(scope): ...`. `npm run commit`
-  (commitizen) asks for the type, scope and subject and builds it from the same rules the commit-msg hook
-  checks, so it offers no type the hook would refuse; writing the message by hand works as well.
+- A conventional-commit subject, such as `feat(scope): ...` or `fix(scope): ...`, with one of
+  `feat fix docs test refactor build ci chore perf style` (there is no `revert`: history is not undone
+  with commits). The commit-msg hook refuses anything else before the commit exists. `npm run commit`
+  (commitizen) asks for the type, scope and subject and builds it from the same rules, so it offers no type
+  the hook would refuse; writing the message by hand works as well.
+- A pull request's commits and its title are checked by the `commit-messages` job. Correcting only the
+  title does not re-run it (GitHub re-runs on a push, not on an edited title): push, or re-run the job.
+  Branch names say what the work does (`retry-pinned-binary-downloads`), not which item it belongs to.
+- The npm tree behind both is locked and its install scripts are off
+  ([ADR-0139](docs/adr/0139-commit-subjects-are-checked-by-commitlint-from-a-locked-npm-tree-and-written-with-commitizen.md)).
 - The body names the gates that passed and the command or flow that reproduces the result. Gate
   results go in the commit body, not in a document.
 - History is not rewritten once the repository is shared with others
