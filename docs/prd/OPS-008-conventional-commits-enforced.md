@@ -73,7 +73,7 @@ CI check of its own over a pull request's commits.
 | Checker | `commitlint` (npm) · `conventional-pre-commit` (`claude-acc-manager`) · an own script like `scripts/check_markdown_links.py` | commitlint is the standard and parses body and footer, but brings Node, a lockfile and a CI setup into a Python and Gradle repository; the hook repo needs no Node but lives outside `uv.lock`; an own script needs no dependency but is one more parser to maintain | **commitlint**, the maintainer's decision. The cost is named here and in the ADR rather than discovered later |
 | How the hook runs | `language: node` with `additional_dependencies` · `language: system` over a committed lockfile | `language: node` pins only the two named packages, so the transitive tree is unlocked, against [ADR-0123](../adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md); `language: system` needs `npm ci` once | `language: system`: `npm ci` fails on a sha512 mismatch, which is the same promise the Gradle and uv locks make |
 | Types | the preset's eleven · the ten the history uses | `revert` is in the preset, and `AGENTS.md` forbids reverts | the preset minus `revert`: `feat fix docs test refactor build ci chore perf style` |
-| Length and case | the preset's 100-column header, lowercase subject · none | 1603 subjects, p95 178 characters, max 313; capitalised subjects such as `refactor(tests): Kotlin fixtures …` exist | `header-max-length`, `body-max-line-length`, `footer-max-line-length` and `subject-case` off |
+| Length and case | the preset's 100-column header, lowercase subject · none | 1603 subjects, p95 178 characters, max 313; capitalised subjects such as `refactor(tests): Kotlin fixtures …` exist | `header-max-length`, `body-max-line-length`, `footer-max-line-length`, `subject-case` and `footer-leading-blank` off |
 | Where CI looks | every push · a pull request's own range | history holds 3 non-conventional non-merge subjects and is not rewritten ([ADR-0133](../adr/0133-history-is-rewritten-only-while-private-and-shared-with-nobody.md)) | pull requests only, `base.sha..head.sha`, plus the title |
 
 Anything here that outlives the item becomes an ADR before the PRD is deleted.
@@ -97,8 +97,12 @@ None from commitlint's behaviour; the config states its overrides and the reason
 The commit history at the time of writing (`git log --format=%s`): 1603 subjects, 1541 with a scope, 47
 without, p95 length 178, max 313; 12 merge subjects; 3 non-merge subjects that are not conventional
 (`spike(rootfs): …` and two plain-prose subjects, `Add verification harness …` and `Scaffold JupyterDroid …`,
-all from the first days). T1 re-measures with
-the config itself and records the result here.
+all from the first days). T1 re-ran it with the config
+itself: `node_modules/.bin/commitlint --from 4c666d3f --to HEAD` (the first commit is outside the range)
+reports exactly two failing subjects, `spike(rootfs): …` (`type-enum`) and `Add verification harness …`
+(`type-empty`, `subject-empty`), and `Scaffold JupyterDroid …` is the excluded first commit. The preset's
+`footer-leading-blank` warned on 170 bodies that close with a `Gates:` or `Reproduce:` line, which
+commitlint parses as a footer; it is off, with a test, so the warning is not noise on one commit in ten.
 
 ## Decisions
 
@@ -119,7 +123,7 @@ the config itself and records the result here.
 
 ## Tasks
 
-- [ ] T1 — `package.json`, `package-lock.json`, `commitlint.config.mjs` and `commitlint.config.test.mjs`
+- [x] T1 — `package.json`, `package-lock.json`, `commitlint.config.mjs` and `commitlint.config.test.mjs`
   (red first), `node_modules/` in `.gitignore`; re-measure the history with the config and record it above
 - [ ] T2 — the `commit-msg` hook and the config-test hook in `.pre-commit-config.yaml`,
   `default_install_hook_types`, and the install steps in `CONTRIBUTING.md`
