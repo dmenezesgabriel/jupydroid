@@ -150,7 +150,10 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: npm exec --no -- commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
 
+      # Runs after a failed range too, so a pull request with a bad commit and a bad title shows both in
+      # one run instead of the second after the first is fixed.
       - name: The pull request title
+        if: ${{ !cancelled() }}
         env:
           PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
         run: printf '%s' "$PULL_REQUEST_TITLE" | npm exec --no -- commitlint --verbose
