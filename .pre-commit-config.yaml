@@ -143,13 +143,14 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-      # Security audit of the workflows (unpinned actions, token scopes, template injection), from
-      # the uv.lock environment. Offline: an online audit needs a token, which is not handed to CI.
+      # Security audit of the workflows (unpinned actions, token scopes, template injection) and of
+      # dependabot.yml (a missing cooldown), from the uv.lock environment. Offline: an online audit
+      # needs a token, which is not handed to CI.
       - id: zizmor
-        name: workflows pass the zizmor security audit
+        name: workflows and dependabot.yml pass the zizmor security audit
         entry: uv run --locked zizmor --offline
         language: system
-        files: '^\.github/workflows/'
+        files: '^\.github/(workflows/|dependabot\.yml$)'
       - id: ktlint-check
         name: ktlint format check
         entry: >-

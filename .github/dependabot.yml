@@ -1,0 +1,41 @@
+version: 2
+
+# `cooldown` defers a release younger than 7 days: a freshly published version is the window in
+# which most supply-chain compromises are caught and pulled. It applies to version updates only; a
+# security update is never delayed.
+#
+# `github-actions` keeps every `# vX.Y.Z`-commented SHA pin in .github/workflows/ current, which is
+# what makes pinning by SHA sustainable. `uv` rewrites pyproject.toml and uv.lock together
+# (ADR-0130).
+#
+# Not listed on purpose: `tools/rootfs/*.lock` is `uv pip compile --python-platform
+# aarch64-unknown-linux-musl --generate-hashes` output, while Dependabot's pip ecosystem drives
+# pip-compile, so the rootfs stays a deliberate bump (ADR-0130).
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
+  # Gradle is on trial (ADR-0123): Dependabot rewrites gradle.lockfile but does not run Gradle, so
+  # it cannot update gradle/verification-metadata.xml, and a pull request may fail the gate by design.
+  - package-ecosystem: gradle
+    directories:
+      - /
+      - /app
+      - /extension-api
+      - /extensions/git
+      - /extensions/ai
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
