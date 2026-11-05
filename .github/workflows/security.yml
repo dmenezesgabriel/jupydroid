@@ -3,7 +3,8 @@ name: Security
 # The scanners that read the tree, its history and what it builds, in a file of their own: a weekly
 # run catches drift that no code change triggers (a new advisory, a new rule), and `ci.yml` stays
 # the commit gate and nothing else. A scanner blocks only where its findings on this tree are real
-# (ADR-0131); the jobs join this file one at a time.
+# (ADR-0131). `codeql` waits for a public repository: its SARIF upload needs code scanning, which a
+# private one only has with a paid licence. `scorecard` has a file of its own, `scorecard.yml`.
 #
 # Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
 # ruleset in the same commit.
@@ -196,3 +197,118 @@ jobs:
           image="$(grep -E '^FROM alpine:' tools/rootfs/Dockerfile | tail -1 | cut -d' ' -f2)"
           "${RUNNER_TEMP}/grype" "registry:${image}" --platform linux/arm64 \
             --only-fixed --fail-on medium
+
+  mobsf:
+    name: mobsf
+    # A debug build costs minutes and the APK changes with any code, so like grype it runs on `main`,
+    # the weekly cron and a manual dispatch, not on every pull request.
+    if: ${{ github.event_name != 'pull_request' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      # MobSF v4.6.4, by digest: the tag is movable. The image has no command-line scanner, so
+      # scripts/mobsf_scan.py drives its REST API.
+      MOBSF_IMAGE: "opensecurity/mobile-security-framework-mobsf@sha256:cf1465a3cc0c95488b9a6cdb1c7799d4b576d391ee28232c221f6a196bf2f74c"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The driver is stdlib-only but written for the Python that `pyproject.toml` pins (3.14), which
+      # the runner's own interpreter is not.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.11.8"
+          checksum: "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
+          enable-cache: true
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Assemble the debug APK
+        run: ./gradlew assembleDebug
+
+      # MobSF's decompiler (jadx) is the memory cost: capped at 6 GB the kernel killed it at 5.9 GB of
+      # anonymous memory, so Gradle's daemons stop first to leave the runner's RAM to the container.
+      # The key is generated here and masked, never stored. The step prints the summary and exits 0
+      # on findings (ADR-0131); it fails only when the scan could not run.
+      - name: Scan the APK
+        run: |
+          ./gradlew --stop
+          key="$(openssl rand -hex 32)"
+          echo "::add-mask::${key}"
+          docker run -d --name mobsf -e MOBSF_API_KEY="${key}" -p 127.0.0.1:8000:8000 "${MOBSF_IMAGE}"
+          MOBSF_API_KEY="${key}" uv run --locked --no-default-groups python scripts/mobsf_scan.py \
+            app/build/outputs/apk/debug/app-debug.apk --out-dir "${RUNNER_TEMP}/mobsf"
+
+      - name: Show the container's last lines
+        if: ${{ failure() }}
+        run: docker logs --tail 40 mobsf
+
+      # A plain artifact, not a code-scanning upload: that needs a public repository.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with:
+          name: mobsf-findings
+          path: |
+            ${{ runner.temp }}/mobsf/mobsf-report.json
+            ${{ runner.temp }}/mobsf/mobsf-summary.txt
+          retention-days: 14
+
+  codeql:
+    name: codeql (${{ matrix.language }})
+    # SARIF upload needs code scanning, which a private repository only has with a paid licence. The
+    # job is written now and skipped until the repository is public, rather than failing on every run.
+    if: ${{ github.event.repository.visibility == 'public' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      security-events: write # upload the analysis SARIF to code scanning
+      actions: read # CodeQL reads workflow metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        # Kotlin has no `build-mode: none`: it needs a build, which costs minutes, so a pull request
+        # analyses Python and the workflows only and Kotlin runs on `main`, the cron and a dispatch.
+        include: ${{ fromJSON(github.event_name == 'pull_request' && '[{"language":"actions","build-mode":"none"},{"language":"python","build-mode":"none"}]' || '[{"language":"actions","build-mode":"none"},{"language":"python","build-mode":"none"},{"language":"java-kotlin","build-mode":"manual"}]') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        if: ${{ matrix.build-mode == 'manual' }}
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        if: ${{ matrix.build-mode == 'manual' }}
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # The build CodeQL traces to extract the Kotlin. A compiler task that Gradle serves from its build
+      # cache never runs, so the tracer sees no source and `analyze` fails with "didn't build any of it"
+      # (measured: `compileDebugKotlin FROM-CACHE` after setup-gradle restored the cache). Hence no
+      # build cache, and no daemon, which would outlive the traced shell.
+      - name: Assemble the debug APK
+        if: ${{ matrix.build-mode == 'manual' }}
+        run: ./gradlew --no-daemon --no-build-cache assembleDebug
+
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.language }}
