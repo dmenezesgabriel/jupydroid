@@ -104,6 +104,17 @@ reports exactly two failing subjects, `spike(rootfs): …` (`type-enum`) and `Ad
 `footer-leading-blank` warned on 170 bodies that close with a `Gates:` or `Reproduce:` line, which
 commitlint parses as a footer; it is off, with a test, so the warning is not noise on one commit in ten.
 
+The npm tree after T2b (`package-lock.json`, read with a script over its `packages` map): 216 packages,
+every one with a sha512 `integrity`, every `resolved` on `registry.npmjs.org`, none with an install script
+(so `ignore-scripts` costs nothing here), two deprecated, both under `commitizen` (`glob@7.2.3` and
+`inflight@1.0.6`; `npm audit` reports 0 vulnerabilities, and they are accepted as the price of the writer).
+commitlint alone was 71 (the T1 lock). `npm audit signatures --min-release-age=0` verifies all 216 registry
+signatures and 18 provenance attestations. `es-toolkit@1.53.1` (published 2026-10-30, required by
+`@commitlint/load` and `@commitlint/ensure`) entered the T1 lock before `.npmrc` existed, so it is inside
+the 7-day window until 2026-11-06 and `npm audit signatures` refuses to resolve it under
+`min-release-age=7`. T3 decides how the CI step treats that: verification is not resolution, so the step
+may need the override with a comment saying why.
+
 ## Decisions
 
 - Checker is commitlint, run from a committed `package-lock.json` through `npm ci`, with the rules in the
@@ -140,7 +151,7 @@ commitlint parses as a footer; it is off, with a test, so the warning is not noi
 - [x] T2 — the `commit-msg` hook and the config-test hook in `.pre-commit-config.yaml`,
   `default_install_hook_types`, `default_stages`, `python-gate`'s `SKIP` entry (CI would go red the moment
   the Node hook exists), and the install steps in `CONTRIBUTING.md`
-- [ ] T2b — commitizen: `commitizen`, `@commitlint/cz-commitlint` and `inquirer` pinned exactly and locked,
+- [x] T2b — commitizen: `commitizen`, `@commitlint/cz-commitlint` and `inquirer` pinned exactly and locked,
   `config.commitizen.path` and the `commit` script in `package.json`, `commitizen.config.test.mjs` (red
   first: the prompt offers exactly the configured types, and a message built from its answers passes
   commitlint), the `commitlint-config-tests` hook `files` extended, `CONTRIBUTING.md` Commits section

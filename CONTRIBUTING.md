@@ -101,7 +101,9 @@ name. [`docs/README.md`](docs/README.md) lists what a comment may cite, and
 
 ## Commits
 
-- A conventional-commit subject, such as `feat(scope): ...` or `fix(scope): ...`.
+- A conventional-commit subject, such as `feat(scope): ...` or `fix(scope): ...`. `npm run commit`
+  (commitizen) asks for the type, scope and subject and builds it from the same rules the commit-msg hook
+  checks, so it offers no type the hook would refuse; writing the message by hand works as well.
 - The body names the gates that passed and the command or flow that reproduces the result. Gate
   results go in the commit body, not in a document.
 - History is not rewritten once the repository is shared with others
