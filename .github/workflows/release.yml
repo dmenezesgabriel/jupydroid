@@ -1,0 +1,73 @@
+name: Release
+
+# Builds what a release APK is made of, on a runner, so the rootfs it carries was never on a developer
+# host: tools/rootfs/build.sh arm64-v8a from the digest-pinned image, and the SBOM syft cuts from that
+# tarball. The arm64 rootfs is the only one a Space can run (ADR-0003), and the repository is private on
+# the free plan, which has no hosted arm64 runner, so every RUN of the Dockerfile executes under qemu.
+#
+# `ref` rebuilds any commit or tag by hand, which is also how a failed release is retried.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit, branch or tag to build
+        required: true
+        type: string
+  # TEMPORARY: lets the first run happen before this file is on main, where workflow_dispatch needs it.
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+
+# Default-deny: a job inherits nothing unless it re-declares a scope.
+permissions: {}
+
+jobs:
+  rootfs:
+    name: rootfs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      # sbom.sh ends in `uv run --locked`. No cache: this is a release workflow, and a cache another
+      # workflow could have written to is how a release picks up bytes nobody reviewed.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.11.8"
+          checksum: "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
+          enable-cache: false
+
+      # The arm64 handler does not survive a reboot, so every fresh runner needs it before the first RUN
+      # (`exec /bin/sh: exec format error` otherwise). Pinned by digest, as tools/rootfs/build.sh names it:
+      # this is qemu-v10.2.3, pushed 2026-06-08.
+      - name: Register the arm64 binfmt handler
+        run: docker run --privileged --rm tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 --install arm64
+
+      # The elapsed times go to the job summary: how long the build takes under qemu is what decides
+      # whether a release can wait for it.
+      - name: Build the arm64 rootfs
+        run: |
+          started=$SECONDS
+          tools/rootfs/build.sh arm64-v8a
+          echo "rootfs build under qemu: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Catalogue the rootfs
+        run: |
+          started=$SECONDS
+          tools/rootfs/sbom.sh arm64-v8a
+          echo "sbom: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rootfs-arm64-v8a
+          path: |
+            build/rootfs/rootfs-arm64-v8a.tzst
+            build/rootfs/rootfs-arm64-v8a.manifest.txt
+            build/rootfs/sbom-arm64-v8a.json
+          if-no-files-found: error
+          retention-days: 7
