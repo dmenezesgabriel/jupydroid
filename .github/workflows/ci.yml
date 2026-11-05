@@ -51,9 +51,10 @@ jobs:
 
       # The Gradle hooks run in gradle-gate. A hook renamed in .pre-commit-config.yaml is no
       # longer skipped by this list and starts running here, where there is no Gradle setup.
+      # commitlint-config-tests needs Node and `npm ci`, which this job does not set up.
       - name: Python and ShellCheck hooks
         env:
-          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests
+          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests,commitlint-config-tests
         run: uv run --locked pre-commit run --all-files
 
   gradle-gate:
@@ -101,3 +102,58 @@ jobs:
 
       - name: Assemble the debug APK
         run: ./gradlew assembleDebug
+
+  # Conventional commits (commitlint.config.mjs): the commits a pull request adds, and its title, which
+  # a squash merge turns into the commit on main. Pull requests only: the history before this check
+  # holds three subjects that are not conventional and is not rewritten (ADR-0133), so a push to main
+  # is not a range anyone can ask to be clean. The commit-msg hook is what stops a bad subject locally;
+  # this job is the witness for a contributor who never installed it. Every input from the event goes
+  # through `env`, never into the script text.
+  commit-messages:
+    name: commit-messages
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The range below walks the history between the base and the head.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # No dependency cache: nothing here is slow enough to be worth a cache another job could write to.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24.18.0"
+          package-manager-cache: false
+
+      # `npm ci` installs exactly package-lock.json and fails on a sha512 mismatch; .npmrc turns the
+      # dependencies' install scripts off.
+      - name: Install the locked commit tooling
+        run: npm ci
+
+      # Registry signatures and provenance, which osv-scanner does not read. Verifying is not choosing a
+      # version, so the 7-day `min-release-age` of .npmrc (which Dependabot and `npm install` enforce) is
+      # lifted here: with it, a lock entry younger than a week would fail a check that has nothing to say
+      # about its age.
+      - name: Verify the registry signatures
+        run: npm audit signatures --min-release-age=0
+
+      - name: The commit tooling's own tests
+        run: npm test
+
+      - name: Commits in the pull request
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: npm exec --no -- commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+
+      # Runs after a failed range too, so a pull request with a bad commit and a bad title shows both in
+      # one run instead of the second after the first is fixed.
+      - name: The pull request title
+        if: ${{ !cancelled() }}
+        env:
+          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s' "$PULL_REQUEST_TITLE" | npm exec --no -- commitlint --verbose

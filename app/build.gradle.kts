@@ -29,6 +29,31 @@ dependencyLocking {
     lockMode.set(LockMode.STRICT)
 }
 
+// The release key comes from the environment and is never written down here: the four variables
+// together, or none (a developer build and ci.yml set none and get an unsigned release APK). Part of
+// the set is refused, because a release that quietly fell back to unsigned would be uninstallable over
+// the previous one. Signing config reference: https://developer.android.com/build/building-cmdline#sign_cmdline
+val releaseSigningVariables: List<String> = listOf(
+    "JUPYDROID_RELEASE_KEYSTORE_FILE",
+    "JUPYDROID_RELEASE_KEYSTORE_PASSWORD",
+    "JUPYDROID_RELEASE_KEY_ALIAS",
+    "JUPYDROID_RELEASE_KEY_PASSWORD",
+)
+
+fun releaseSigningValues(): Map<String, String>? {
+    val values: Map<String, String> = releaseSigningVariables.mapNotNull { name ->
+        providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }?.let { name to it }
+    }.toMap()
+    if (values.isEmpty()) return null
+    val missing = releaseSigningVariables - values.keys
+    check(missing.isEmpty()) {
+        "release signing is half configured: missing $missing of $releaseSigningVariables; set all four or none"
+    }
+    return values
+}
+
+val releaseSigning: Map<String, String>? = releaseSigningValues()
+
 android {
     namespace = "com.jupydroid.app"
     // 37 because `adaptive-*:1.3.0` refuses to be consumed below it (`checkDebugAarMetadata`:
@@ -44,15 +69,29 @@ android {
         applicationId = "com.jupydroid.app"
         minSdk = 32
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // A release passes both, derived from its tag by scripts/release_version.py; a developer
+        // build passes neither and keeps the values it always had.
+        versionCode = providers.gradleProperty("versionCode").map(String::toInt).getOrElse(1)
+        versionName = providers.gradleProperty("versionName").getOrElse("1.0")
         // The Compose test deps were declared long before anything ran against them; this is
         // what lets androidTest actually execute (first used by CellHeaderTest).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (releaseSigning != null) {
+            create("release") {
+                storeFile = file(releaseSigning.getValue("JUPYDROID_RELEASE_KEYSTORE_FILE"))
+                storePassword = releaseSigning.getValue("JUPYDROID_RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = releaseSigning.getValue("JUPYDROID_RELEASE_KEY_ALIAS")
+                keyPassword = releaseSigning.getValue("JUPYDROID_RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            if (releaseSigning != null) signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }

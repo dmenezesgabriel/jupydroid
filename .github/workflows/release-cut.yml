@@ -1,0 +1,143 @@
+name: Release cut
+
+# Keeps one standing pull request, release/next, that carries the next release. On every push to `main`
+# (and on demand) python-semantic-release reads the conventional commits since the last tag; when one
+# of them bumps the version, the branch is rebuilt on `main` with the `chore(release): vX.Y.Z` commit
+# (CHANGELOG.md is all it changes: the git tag is the only record of a version) and the PR is opened or
+# refreshed. The maintainer's only act is merging it; release-tag.yml then tags the merge commit.
+#
+# Why a GitHub App token and not GITHUB_TOKEN: events authored by GITHUB_TOKEN start no workflow, so a
+# bot-pushed branch would get no check runs and a bot-pushed tag would never start the release. Without
+# the credential pair the job prints a warning and stays green, so a fork or an unconfigured repository
+# is not a red run.
+#
+# No auto-merge is armed: this repository is private on the free plan, which has neither rulesets nor
+# auto-merge. The step comes back with the public repository.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Default-deny: a job inherits nothing unless it re-declares a scope. The app token, not GITHUB_TOKEN,
+# carries the write surface.
+permissions: {}
+
+# A newer main supersedes a stale cut: the next push recomputes from a newer HEAD, so cancelling loses nothing.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  # Every uv call verifies uv.lock and fails rather than silently relocking (ADR-0130).
+  UV_LOCKED: "1"
+
+jobs:
+  cut:
+    name: cut
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # A fork's push must never reach this repository's release machinery.
+    if: github.repository == 'dmenezesgabriel/jupydroid'
+    permissions:
+      contents: read
+    steps:
+      # create-github-app-token errors on empty inputs, so presence is checked first.
+      - name: App credentials configured?
+        id: preflight
+        env:
+          APP_CLIENT_ID: ${{ vars.JUPYDROID_RELEASE_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.JUPYDROID_RELEASE_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_CLIENT_ID" ] || [ -z "$APP_PRIVATE_KEY" ]; then
+            echo "::warning::JUPYDROID_RELEASE_CLIENT_ID / JUPYDROID_RELEASE_APP_PRIVATE_KEY not set, skipping the release cut"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: app
+        if: steps.preflight.outputs.configured == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.JUPYDROID_RELEASE_CLIENT_ID }}
+          private-key: ${{ secrets.JUPYDROID_RELEASE_APP_PRIVATE_KEY }}
+          owner: dmenezesgabriel
+          repositories: jupydroid
+          permission-contents: write
+          permission-pull-requests: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.preflight.outputs.configured == 'true'
+        with:
+          token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
+          # The bump is computed from tags and history: a shallow clone would misjudge the last release.
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        if: steps.preflight.outputs.configured == 'true'
+        with:
+          version: "0.11.8"
+          checksum: "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
+
+      - name: Rebuild release/next with the next version's release commit
+        id: cut
+        if: steps.preflight.outputs.configured == 'true'
+        env:
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          echo "next=" >> "$GITHUB_OUTPUT"
+
+          # The merged release commit is the tip of main until release-tag.yml tags it, and until then the
+          # tag-less history would announce the same version again.
+          if git log -1 --format=%s origin/main | grep -q '^chore(release):'; then
+            echo "main is a release commit awaiting its tag, nothing to cut"
+            exit 0
+          fi
+
+          # psr only releases from a branch in its release group, and release/.* is in it.
+          git switch -C release/next origin/main
+          mapfile -t TAGS < <(git tag --list 'v*')
+          NEXT="$(uv run semantic-release version --print | uv run python scripts/pending_release.py "${TAGS[@]}")"
+          if [ -z "$NEXT" ]; then
+            echo "nothing to release"
+            exit 0
+          fi
+          echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
+          # The committer email is <bot-user-id>+<slug>[bot]@..., the id being the bot's user id.
+          BOT_USER_ID="$(gh api "users/${APP_SLUG}[bot]" --jq .id)"
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${BOT_USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # release/next is bot-owned. psr checks the branch exists upstream, and --force-with-lease keeps a
+          # human push to it from being silently overwritten.
+          git push --force-with-lease -u origin release/next
+
+          # psr <= 10.7.0 crashes writing step outputs under --no-tag, because commit_sha is assigned only
+          # when it tags. We read stdout rather than its outputs, so the sink is unset for this call.
+          env -u GITHUB_OUTPUT uv run semantic-release version --no-tag --no-vcs-release --no-push
+          git push --force-with-lease origin release/next
+
+      - name: Open or refresh the standing release pull request
+        if: steps.preflight.outputs.configured == 'true' && steps.cut.outputs.next != ''
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          NEXT: ${{ steps.cut.outputs.next }}
+          PR_BODY: |
+            Cut by `.github/workflows/release-cut.yml`: python-semantic-release derived this version from
+            the conventional commits since the last tag. Merging this pull request is the whole release:
+            `release-tag.yml` tags the merge commit `v${{ steps.cut.outputs.next }}`.
+        run: |
+          set -euo pipefail
+          # Only an OPEN pull request counts: `gh pr view <branch>` also matches the merged one.
+          OPEN_PR="$(gh pr list --head release/next --state open --json number --jq '.[0].number')"
+          if [ -z "$OPEN_PR" ]; then
+            gh pr create --head release/next --base main --title "chore(release): v${NEXT}" --body "$PR_BODY"
+          else
+            gh pr edit "$OPEN_PR" --title "chore(release): v${NEXT}" --body "$PR_BODY"
+          fi

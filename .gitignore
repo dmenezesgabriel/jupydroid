@@ -41,3 +41,5 @@ __pycache__/
 # clean session needs it, so it cannot be personal (ADR-0001).
 /.sensitive-strings.local
 .venv/
+# The commit-message tooling's dependencies (package-lock.json is the record).
+node_modules/

@@ -1,0 +1,25 @@
+{
+  "name": "jupydroid-commit-tooling",
+  "private": true,
+  "description": "Checks commit messages. The app is built by Gradle and its host tooling by uv; nothing here ships.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "commit": "cz",
+    "test": "node --test \"*.test.mjs\""
+  },
+  "config": {
+    "commitizen": {
+      "path": "@commitlint/cz-commitlint"
+    }
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "@commitlint/cz-commitlint": "21.2.4",
+    "commitizen": "4.3.2",
+    "inquirer": "12.11.1"
+  }
+}

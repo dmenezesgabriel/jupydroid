@@ -3,6 +3,12 @@
 # Hooks are pure checkers (non-mutating). Format with: ./gradlew ktlintFormat
 # Gradle hooks run through scripts/gradlew-jbr (resolves JAVA_HOME from the
 # Android Studio JBR) so they work without JAVA_HOME exported.
+# `pre-commit install` installs both types: without the second, the commit-msg hook below is
+# configured and never runs. `default_stages` keeps every other hook at pre-commit: a hook with no
+# `stages` runs at every installed stage, so the whole gate (Gradle included) ran a second time
+# at commit-msg until this line.
+default_install_hook_types: [pre-commit, commit-msg]
+default_stages: [pre-commit]
 repos:
   # ShellCheck's own hook (koalaman/shellcheck README): the pinned upstream image, run offline
   # by pre-commit over every file it identifies as shell, by extension or shebang. .shellcheckrc
@@ -153,6 +159,24 @@ repos:
         entry: uv run --locked zizmor --offline
         language: system
         files: '^\.github/(workflows/|dependabot\.yml$)'
+      # Conventional commits (commitlint.config.mjs). `language: system` over the committed
+      # package-lock.json, run after `npm ci`: `language: node` with `additional_dependencies` pins
+      # only the two named packages and leaves the transitive tree unlocked (ADR-0123), while `npm ci`
+      # fails on a sha512 mismatch. `--no` makes a clone that skipped `npm ci` fail instead of
+      # downloading an unlocked copy. pre-commit appends the message file path to the entry.
+      - id: commitlint
+        name: commit message is a conventional commit
+        entry: npm exec --no -- commitlint --edit
+        language: system
+        stages: [commit-msg]
+      # Only when the rules, the npm settings or the lockfile change (any root-level .mjs is a config or
+      # its test); the hook above is what runs on every commit.
+      - id: commitlint-config-tests
+        name: the commit tooling's own tests (commitlint, commitizen, .npmrc)
+        entry: npm test
+        language: system
+        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs)$'
+        pass_filenames: false
       - id: ktlint-check
         name: ktlint format check
         entry: >-

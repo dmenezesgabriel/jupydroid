@@ -24,6 +24,7 @@ points there.
 | [`uv`](https://docs.astral.sh/uv/) | the Python host tooling under `scripts/` (Python 3.14 or newer) |
 | [`pre-commit`](https://pre-commit.com/) | the commit gate |
 | Docker | the ShellCheck hook and the root filesystem build |
+| [Node](https://nodejs.org/) 22.12 or newer | the commit-message check (commitlint) |
 | an arm64 Android device, `adb` and [Maestro](https://maestro.mobile.dev/) | anything that runs a cell |
 
 How to build the app and its root filesystem is the Build section of [`README.md`](README.md).
@@ -33,7 +34,12 @@ How to build the app and its root filesystem is the Build section of [`README.md
 ```sh
 uv tool install pre-commit   # or: pip install pre-commit
 pre-commit install
+npm ci                       # the locked commitlint the commit-msg hook runs
 ```
+
+`pre-commit install` sets up both the pre-commit and the commit-msg hook. A clone that skipped
+`npm ci` has its commits refused by the commit-msg hook, and a clone that installed hooks before the
+commit-msg hook existed runs `pre-commit install` again.
 
 The hooks only check; they never rewrite a file. Format with `./gradlew ktlintFormat` for Kotlin and
 `uv run --locked ruff format scripts tools` for Python.
@@ -95,7 +101,16 @@ name. [`docs/README.md`](docs/README.md) lists what a comment may cite, and
 
 ## Commits
 
-- A conventional-commit subject, such as `feat(scope): ...` or `fix(scope): ...`.
+- A conventional-commit subject, such as `feat(scope): ...` or `fix(scope): ...`, with one of
+  `feat fix docs test refactor build ci chore perf style` (there is no `revert`: history is not undone
+  with commits). The commit-msg hook refuses anything else before the commit exists. `npm run commit`
+  (commitizen) asks for the type, scope and subject and builds it from the same rules, so it offers no type
+  the hook would refuse; writing the message by hand works as well.
+- A pull request's commits and its title are checked by the `commit-messages` job. Correcting only the
+  title does not re-run it (GitHub re-runs on a push, not on an edited title): push, or re-run the job.
+  Branch names say what the work does (`retry-pinned-binary-downloads`), not which item it belongs to.
+- The npm tree behind both is locked and its install scripts are off
+  ([ADR-0139](docs/adr/0139-commit-subjects-are-checked-by-commitlint-from-a-locked-npm-tree-and-written-with-commitizen.md)).
 - The body names the gates that passed and the command or flow that reproduces the result. Gate
   results go in the commit body, not in a document.
 - History is not rewritten once the repository is shared with others

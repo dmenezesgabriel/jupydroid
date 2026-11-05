@@ -1,0 +1,97 @@
+name: Release tag
+
+# The tag half of the cut: release-cut.yml opens the release pull request and the maintainer merges it;
+# this workflow tags the merge commit so the release workflow's tag trigger fires.
+#
+# The tag is on the merge_commit_sha, never on "main", so a later push cannot move it past the released
+# commit, and the version comes from the commit's own `chore(release): vX.Y.Z` subject. It is pushed
+# with the app token because a tag pushed with GITHUB_TOKEN starts no workflow. Without the credential
+# pair the job prints a warning and stays green.
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+# Default-deny: a job inherits nothing unless it re-declares a scope.
+permissions: {}
+
+# One tag push per pull request, never cancelled: a push killed halfway could strand a half-tagged release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # head.repo pins the branch to this repository: a merged fork pull request whose branch happens to be
+    # named release/* must never reach the tag machinery.
+    if: >-
+      github.repository == 'dmenezesgabriel/jupydroid' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == 'dmenezesgabriel/jupydroid' &&
+      startsWith(github.event.pull_request.head.ref, 'release/')
+    permissions:
+      contents: read
+    steps:
+      - name: App credentials configured?
+        id: preflight
+        env:
+          APP_CLIENT_ID: ${{ vars.JUPYDROID_RELEASE_CLIENT_ID }}
+          APP_PRIVATE_KEY: ${{ secrets.JUPYDROID_RELEASE_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_CLIENT_ID" ] || [ -z "$APP_PRIVATE_KEY" ]; then
+            echo "::warning::JUPYDROID_RELEASE_CLIENT_ID / JUPYDROID_RELEASE_APP_PRIVATE_KEY not set, skipping the release tag"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - id: app
+        if: steps.preflight.outputs.configured == 'true'
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.JUPYDROID_RELEASE_CLIENT_ID }}
+          private-key: ${{ secrets.JUPYDROID_RELEASE_APP_PRIVATE_KEY }}
+          owner: dmenezesgabriel
+          repositories: jupydroid
+          permission-contents: write
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.preflight.outputs.configured == 'true'
+        with:
+          token: ${{ steps.app.outputs.token }}
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Tag the merged release commit
+        if: steps.preflight.outputs.configured == 'true'
+        env:
+          APP_TOKEN: ${{ steps.app.outputs.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+          # Only a real release commit gets a tag: a release/* branch whose tip is anything else is not one.
+          SUBJECT="$(git log -1 --format=%s "$MERGE_SHA")"
+          if [[ ! "$SUBJECT" =~ ^chore\(release\):\ (v[0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "::warning::the merged release/* tip is not a 'chore(release): vX.Y.Z' commit (${SUBJECT}), no tag"
+            exit 0
+          fi
+          TAG="${BASH_REMATCH[1]}"
+          if git ls-remote --tags origin "refs/tags/${TAG}" | grep -q .; then
+            echo "tag ${TAG} already exists, nothing to do"
+            exit 0
+          fi
+
+          BOT_USER_ID="$(gh api "users/${APP_SLUG}[bot]" --jq .id)"
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${BOT_USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${APP_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          # Annotated: it carries the tagger and the time.
+          git tag -a "$TAG" -m "$TAG" "$MERGE_SHA"
+          git push origin "refs/tags/${TAG}"
+          echo "tagged ${MERGE_SHA} as ${TAG}"
