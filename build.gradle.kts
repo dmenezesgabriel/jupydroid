@@ -25,13 +25,13 @@ buildscript {
       add("classpath", "org.jdom:jdom2:2.0.6.1").because(
         "https://github.com/advisories/GHSA-2363-cqg2-863c",
       )
-      add("classpath", "org.bouncycastle:bcprov-jdk18on:1.85.2").because(
+      add("classpath", "org.bouncycastle:bcprov-jdk18on:1.86.2").because(
         "https://github.com/advisories/GHSA-9pwp-9qqc-pr26",
       )
-      add("classpath", "org.bouncycastle:bcpkix-jdk18on:1.85").because(
+      add("classpath", "org.bouncycastle:bcpkix-jdk18on:1.86").because(
         "https://github.com/advisories/GHSA-wg6q-6289-32hp",
       )
-      add("classpath", "org.bouncycastle:bcutil-jdk18on:1.85").because(
+      add("classpath", "org.bouncycastle:bcutil-jdk18on:1.86").because(
         "jdk18on trio; floors with bcprov",
       )
     }
