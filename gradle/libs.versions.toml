@@ -23,7 +23,7 @@ commonsLang3 = "3.18.0"
 # `common-page-size=16384`, after -10/-11/-12 each shipped a wrong fix first
 # (https://github.com/luben/zstd-jni/issues/381). -24 is the newest tagged release; -25 was a
 # day old and carried no tag.
-zstdJni = "1.5.7-24"
+zstdJni = "1.5.7-25"
 # 1.23.2 fixes GHSA-65r4-943x-97jj, an out-of-memory in XmlTreeBuilder our parseBodyFragment path
 # never reaches; the APK still ships whatever version is here.
 jsoup = "1.23.2"
