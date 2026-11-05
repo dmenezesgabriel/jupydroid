@@ -21,13 +21,36 @@ host = [
 # Run by the commit gate, never imported: ruff lints scripts/ and tools/rootfs/, its S rules carrying bandit's checks,
 # and mypy type-checks scripts/ (ADR-0131). types-PyYAML because PyYAML ships no inline types; Pillow does.
 # pre-commit is the gate's runner and zizmor audits .github/workflows/: locked here so CI runs the versions a commit does.
+# python-semantic-release computes the next version from the commit subjects in release-cut.yml (no wheel is built).
 dev = [
     "mypy>=2.0,<3",
     "pre-commit>=4.6,<5",
+    "python-semantic-release>=10.7,<11",
     "ruff>=0.17.3,<0.18",
     "types-PyYAML>=6.0,<7",
     "zizmor>=1.32,<2",
 ]
+
+# The release cut. The git tag is the only record of a version: no file holds one, so nothing is edited by regex
+# and the release commit carries only CHANGELOG.md. 0.x because the app has no stable contract yet, and a breaking
+# change stays 0.x until `major_on_zero` is turned on. The default parser bumps on feat (minor) and fix/perf (patch)
+# and releases nothing for docs, build, ci, chore, refactor, test and style, which is the right line for a bundled
+# rootfs too: a rootfs feat/fix/perf changes the APK, a rootfs build does not.
+# `scripts/release_cut_config_test.py` asserts each of these.
+[tool.semantic_release]
+tag_format = "v{version}"
+commit_message = "chore(release): v{version}"
+allow_zero_version = true
+major_on_zero = false
+
+[tool.semantic_release.changelog]
+mode = "update"
+default_templates = { changelog_file = "CHANGELOG.md" }
+
+# The release commit rides a normal pull request from release/next, so the cut runs on it as it does on main.
+[tool.semantic_release.branches.main]
+match = "(main|release/.*)"
+prerelease = false
 
 # scripts/ runs on the host's interpreter; tools/rootfs/ overrides the target in its own ruff.toml,
 # because the image runs Python 3.12 (tools/rootfs/Dockerfile) and a 3.14-only syntax must not land there.
@@ -78,6 +101,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/remap_cited_shas_test.py" = ["S603", "S607"]
 # The test sources java-home.sh with `sh` and a fixture HOME; the argv is literal.
 "scripts/java_home_test.py" = ["S603", "S607"]
+# The test builds a scratch git repository and runs the locked semantic-release in it; both argvs are literal.
+"scripts/release_cut_config_test.py" = ["S603", "S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]
 "scripts/check_evidence_citations_test.py" = ["S607"]
 "scripts/check_markdown_links.py" = ["S607"]

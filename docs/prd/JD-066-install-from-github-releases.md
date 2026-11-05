@@ -99,9 +99,10 @@ Each needs evidence gathered in the task that owns it, and an ADR (0140) when th
 
 | Decision | Evidence to gather | Task |
 |---|---|---|
-| Release tool: `python-semantic-release`, Node `semantic-release`, release-please | does it read our ten commit types, edit no file by regex, and pass the 7-day cooldown and sha256 locking | T2 |
-| The credential that lets the cut start workflows: a GitHub App or a token | `GITHUB_TOKEN` events start nothing; a credential is the maintainer's to create | T2 |
-| Whether a rootfs-only change cuts a release | which paths `feat`/`fix` commits touch | T2 |
+| ~~Release tool~~ **Decided in T2:** `python-semantic-release` 10.7.0, locked in the `dev` group of `uv.lock`. It reads our ten commit types (bumps on `feat`, `fix`, `perf`), edits no file when no `version_toml` is set, and was released 2026-09-22, past the 7-day cooldown. Its four newer dependencies (`pydantic`, `pydantic-core`, `typing-inspection`, `wrapt`) were younger than 7 days and are locked one release back | | T2 |
+| ~~The credential~~ **Decided in T2:** a GitHub App, `JUPYDROID_RELEASE_CLIENT_ID` (variable) and `JUPYDROID_RELEASE_APP_PRIVATE_KEY` (secret), created by the maintainer; both workflows warn and stay green without it. The repository is private on the free plan, so no ruleset and no auto-merge: the maintainer merges the release PR | | T2 |
+| ~~Whether a rootfs-only change cuts a release~~ **Decided in T2:** by commit type alone. `tools/rootfs` history is 18 `build`, 13 `feat`, 5 `fix`, 3 `perf`; a rootfs `feat`/`fix`/`perf` changes the bundled APK and cuts, a `build` does not | | T2 |
+| ~~First version~~ **Decided in T2:** `0.1.0` (`allow_zero_version`), no tag exists in 1614 commits; the first notes are PSR's masked "Initial Release" | | T2 |
 | qemu build time of the arm64 rootfs against the 6 hour job limit | one measured run | T3 |
 | Where the release keystore lives and who rotates it | Actions secret versus an environment with a required reviewer | T4 |
 
@@ -109,10 +110,10 @@ Each needs evidence gathered in the task that owns it, and an ADR (0140) when th
 
 | Layer | Files |
 |---|---|
-| host scripts | `scripts/release_version.py` (T1) |
+| host scripts | `scripts/release_version.py` (T1), `scripts/pending_release.py` (T2) |
 | build | `app/build.gradle.kts` (T1 version properties; T4 `signingConfig`) |
 | workflows | `.github/workflows/release-cut.yml`, `release-tag.yml`, `release.yml` (T2, T3, T5) |
-| unit tests | `scripts/release_version_test.py` (T1) |
+| unit tests | `scripts/release_version_test.py` (T1), `scripts/pending_release_test.py`, `scripts/release_cut_config_test.py` (T2) |
 | `.maestro/` flow + `scripts/` driver | install-and-run-a-cell flow, T6 |
 
 No `domain`, `data`, `ui` or `di` change: this item ships no port.
@@ -120,7 +121,7 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port.
 ## Tasks
 
 - [x] T1 — a release tag derives `versionName` and `versionCode`; Gradle reads them as properties and keeps today's defaults. Closes on `aapt2 dump badging` of a debug APK built with the properties, since no screen changes
-- [ ] T2 — the release cut and the tag workflow, the locked release tool and the changelog; both degrade to a warning without the credential
+- [x] T2 — the release cut and the tag workflow, the locked release tool and the changelog; both degrade to a warning without the credential
 - [ ] T3 — the arm64 rootfs and its SBOM built in CI under qemu from the digest-pinned image; the duration measured
 - [ ] T4 — a release `signingConfig` read from environment variables; `assembleRelease` verified with `apksigner verify`
 - [ ] T5 — `release.yml` publishes the Release: APK, `SHA256SUMS`, SBOM, notes, `SOURCE_OFFER.md`; attestation guarded on a public repository
