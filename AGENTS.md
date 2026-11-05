@@ -218,6 +218,9 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | python types | mypy `--strict` over `scripts/` sources (the `_test.py` files are out: 74 findings of Optional narrowing and unittest fakes beyond unannotated methods) and over `tools/rootfs/` as py312, its image-only imports named one by one | `pyproject.toml` `[tool.mypy]`, `tools/rootfs/mypy.ini` |
 | file-length gate | ≤500 lines/file | `scripts/check-file-line-length.sh` |
 | ShellCheck | every shell script, followed into what it sources | `.pre-commit-config.yaml` (`koalaman/shellcheck-precommit` v0.11.0, needs Docker) + `.shellcheckrc` |
+| workflow lint | expressions, contexts and the `run:` shell of every workflow; upstream's image, its tag fixed by the hook's `rev` | `.pre-commit-config.yaml` (`rhysd/actionlint` `actionlint-docker`, needs Docker) |
+| workflow audit | unpinned actions, token scopes, persisted credentials, template injection; offline | `.pre-commit-config.yaml` (`zizmor`), `uv.lock` |
+| CI | the hooks above, verbatim, on every push to `main` and every pull request: `python-gate` for the Python and ShellCheck hooks, `gradle-gate` for the Gradle ones and `assembleDebug` | `.github/workflows/ci.yml` |
 | duplication gate | no Kotlin block of 150+ tokens is copied, tests included; PMD CPD, which Gradle's PMD plugin does not run | `:app:cpd` in `app/build.gradle.kts` (`cpdTool`, `libs.versions.toml` `pmd`) |
 | maestro-output gate | a post-Run wait must need a kernel | `scripts/check_maestro_output_assertions.py` (+ `_test.py`) |
 | system-ANR clear | a stuck *system* dialog fails no flow but its own | `scripts/clear_system_anr.py` + `scripts/system_anr_dialog.py` (+ `_test.py`) |
@@ -280,7 +283,9 @@ Notes:
   dependency or plugin bump rewrites both. Run the gate command above plus
   `assembleDebugAndroidTest` once with `--write-locks --write-verification-metadata sha256`
   together, then run it again with neither, so STRICT and verification both prove out on the
-  new files. The flags must go on the *same* run: `--write-locks` resolves unlocked, which
+  new files. Run the writing pass with an empty `GRADLE_USER_HOME` on a disk path (`/tmp` is
+  RAM): a warm home records only what it downloads in that run, so the artifacts it cached
+  earlier go unrecorded and a cold CI runner refuses them. The flags must go on the *same* run: `--write-locks` resolves unlocked, which
   downloads candidate metadata the recorded sums never covered, so it fails verification
   unless that run is also writing them. Running only `<module>:dependencies` misses
   configurations that only a task resolves, and STRICT then fails on them. Commit the lockfiles and

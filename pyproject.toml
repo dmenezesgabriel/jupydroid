@@ -20,10 +20,13 @@ host = [
 
 # Run by the commit gate, never imported: ruff lints scripts/ and tools/rootfs/, its S rules carrying bandit's checks,
 # and mypy type-checks scripts/ (ADR-0131). types-PyYAML because PyYAML ships no inline types; Pillow does.
+# pre-commit is the gate's runner and zizmor audits .github/workflows/: locked here so CI runs the versions a commit does.
 dev = [
     "mypy>=2.0,<3",
+    "pre-commit>=4.6,<5",
     "ruff>=0.15,<0.16",
     "types-PyYAML>=6.0,<7",
+    "zizmor>=1.32,<2",
 ]
 
 # scripts/ runs on the host's interpreter; tools/rootfs/ overrides the target in its own ruff.toml,
@@ -34,7 +37,10 @@ target-version = "py314"
 # evidence/ holds local captured runs, not source (ADR-0132): a harness copy there is a record, so it is neither linted
 # nor reformatted. The hooks pass --force-exclude because pre-commit hands ruff the staged filenames, and
 # a named file ignores an exclude without it.
-extend-exclude = ["evidence"]
+# window-key-row.py is `def area` with no body, on purpose: its flow types the rest into the editor, so it is not
+# valid Python and ruff cannot lint it. CI hands the hooks every file (`--all-files`), where a commit hands only the
+# staged ones, which is how neither fixture was ever read by ruff before.
+extend-exclude = ["evidence", ".maestro/fixtures/window-key-row.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S"]
@@ -84,9 +90,10 @@ select = ["E", "F", "I", "B", "UP", "S"]
 # S310: PROOT_URL is a literal https URL, and the download is refused unless it matches PROOT_SHA256.
 "scripts/stage_proot.py" = ["S310"]
 
-# Same reason as the B018 entry above: the formatter would move `1 / 0` off line 1.
+# Same reason as the B018 entry above: the formatter would move `1 / 0` off line 1. file-editor.py ends without a
+# newline on purpose: the drivers seed it byte for byte and the flows assert the file as written.
 [tool.ruff.format]
-exclude = [".maestro/fixtures/mod.py"]
+exclude = [".maestro/fixtures/mod.py", ".maestro/fixtures/file-editor.py"]
 
 # scripts/ is strict: its sources already annotate every function, so strict only adds the findings fixed
 # when this gate landed. The _test.py files are left out: the same run measured them at 74 findings beyond

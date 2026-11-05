@@ -13,6 +13,14 @@ repos:
     hooks:
       - id: shellcheck
         exclude: ^(gradlew|\.maestro/fixtures/)
+  # actionlint's own hook, same shape as ShellCheck's above: the upstream image, its tag fixed by
+  # this rev, so no Go toolchain or community repackaging joins the lock (ADR-0130). It lints what
+  # zizmor does not - expressions, contexts and the shell in a `run:` step - and finds ShellCheck on
+  # the image's own PATH.
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint-docker
   - repo: local
     hooks:
       - id: file-line-length
@@ -135,6 +143,14 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      # Security audit of the workflows (unpinned actions, token scopes, template injection) and of
+      # dependabot.yml (a missing cooldown), from the uv.lock environment. Offline: an online audit
+      # needs a token, which is not handed to CI.
+      - id: zizmor
+        name: workflows and dependabot.yml pass the zizmor security audit
+        entry: uv run --locked zizmor --offline
+        language: system
+        files: '^\.github/(workflows/|dependabot\.yml$)'
       - id: ktlint-check
         name: ktlint format check
         entry: >-

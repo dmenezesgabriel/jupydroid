@@ -1,0 +1,103 @@
+name: CI
+
+# The commit gate (AGENTS.md rule 7), run where the author's machine is not the only witness. The
+# job runs `pre-commit run --all-files` verbatim, so CI cannot pass what a commit cannot. This file
+# carries the Python and ShellCheck half; the Gradle hooks are skipped by id and get a job of their
+# own, because they take far longer and one job would report nothing until they ended.
+#
+# Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
+# ruleset in the same commit.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Default-deny: a job inherits nothing unless it re-declares a scope. Even `checkout` needs
+# `contents: read`, since a zero-scope token cannot clone a private repository.
+permissions: {}
+
+# Keyed on the commit for a push, so consecutive pushes to `main` never cancel each other; a pull
+# request keys on its number, so a fresh push replaces a stale run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+env:
+  # Every uv call verifies uv.lock and fails rather than silently relocking (ADR-0130).
+  UV_LOCKED: "1"
+
+jobs:
+  python-gate:
+    name: python-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The binary is pinned twice, by version and by the sha256 astral publishes beside it.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.11.8"
+          checksum: "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
+          enable-cache: true
+
+      - name: Install the locked tooling
+        run: uv sync --locked
+
+      # The Gradle hooks run in gradle-gate. A hook renamed in .pre-commit-config.yaml is no
+      # longer skipped by this list and starts running here, where there is no Gradle setup.
+      - name: Python and ShellCheck hooks
+        env:
+          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests
+        run: uv run --locked pre-commit run --all-files
+
+  gradle-gate:
+    name: gradle-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.11.8"
+          checksum: "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
+          enable-cache: true
+
+      - name: Install the locked tooling
+        run: uv sync --locked
+
+      # Gradle's own JVM. The Kotlin toolchain is 17 and is resolved by Gradle, not by this step.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      # Caches are written from main only, so a pull request can read but never poison them.
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # One step per hook, in the order .pre-commit-config.yaml runs them, so the log times each.
+      - name: ktlint
+        run: uv run --locked pre-commit run ktlint-check --all-files
+      - name: detekt
+        run: uv run --locked pre-commit run detekt --all-files
+      - name: copy-paste detector
+        run: uv run --locked pre-commit run cpd --all-files
+      - name: Android Lint
+        run: uv run --locked pre-commit run android-lint --all-files
+      - name: Unit tests
+        run: uv run --locked pre-commit run unit-tests --all-files
+
+      - name: Assemble the debug APK
+        run: ./gradlew assembleDebug
