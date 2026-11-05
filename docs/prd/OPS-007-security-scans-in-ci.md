@@ -121,7 +121,7 @@ a job, which also pays for checkout and setup (measured in T2-T7).
 | osv-scanner | v2.7.0, sha256 `160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b` (`osv-scanner_linux_amd64`) | `uv.lock`, both `tools/rootfs/*.lock`, five non-empty `gradle.lockfile`s: 1,645 packages | 2.8 s | 74 MB | 59 advisories, one package | real: `pillow` 12.3.0 in the `host` group, fixed in 13.0.0 |
 | opengrep | v1.33.1, sha256 `46e8133cc490f9f50518061590ce2f6be5a08afaeda034471c0ceda4b3899808` (`opengrep_manylinux_x86`; upstream publishes a cosign `.sig`/`.cert`, no sum file) with `opengrep/opengrep-rules@f1d2b562b414783763fd02a6ed2736eaed622efa` | `kotlin/`, `python/`, `bash/` rules over `app/src`, the three module `src/`, `scripts`, `tools` (1,428 files) | 22 s | 371 MB | 103 (85 bash INFO, 18 other); 23 partial-parse errors | 0 real, below |
 | grype | v0.121.1, sha256 `bc3ea3f9e6fd56ac781c08c6c5e614271b79f438200757f6932085c19b0a4657`, DB schema v6.1.10 built 2026-11-05T06:21Z | `alpine:3.21@sha256:ee16d92f…` (`Dockerfile:84`), `--platform linux/arm64` | 5.8 s (+ 74 s DB download) | 224 MB | 3 matches, one CVE (`CVE-2025-60876`, Medium, no fix) | real in substance, unfixable today, below |
-| MobSF | v4.6.4, image `opensecurity/mobile-security-framework-mobsf@sha256:cf1465a3cc0c95488b9a6cdb1c7799d4b576d391ee28232c221f6a196bf2f74c` (2.49 GB on disk, 31 s pull) | `app-debug.apk` (181 MB), static | 332 s from `docker run` to report (58 s ready, 272 s scan) | 12.3 GiB (`docker stats`, container) | 1 high, 8 warnings, 2 info, counted by rule, not by occurrence | mostly debug-build artifacts, below |
+| MobSF | v4.6.4, image `opensecurity/mobile-security-framework-mobsf@sha256:cf1465a3cc0c95488b9a6cdb1c7799d4b576d391ee28232c221f6a196bf2f74c` (2.49 GB on disk, 31 s pull) | `app-debug.apk` (181 MB), static | 332 s from `docker run` to report (58 s ready, 272 s scan) | 12.3 GiB (`docker stats`, container) | 3 high, 9 warnings, 1 info (the report's `appsec` block, one entry per rule) | mostly debug-build artifacts, below |
 
 **Triage notes.**
 
@@ -132,8 +132,9 @@ a job, which also pays for checkout and setup (measured in T2-T7).
 - *grype.* The shipped `/bin/busybox` is built from source (`Dockerfile:59`), the same 1.37.0 the CVE names, so the
   finding applies to the image. Grype cannot see that binary, since it is not an apk package; it sees Alpine's.
   `--only-fixed --fail-on medium` exits 0.
-- *MobSF.* `android:debuggable=true` (the one high), the exported `PreviewActivity` and the `allowBackup` warning come
-  with a debug build; a release APK would not carry the first two. The four "secrets" are an RFC 6455 handshake GUID,
+- *MobSF.* The three highs are the debug signing certificate, `android:debuggable=true` and a cleartext-traffic domain
+  config (whose source was not traced). The exported `PreviewActivity` and the `allowBackup` warning come with a debug
+  build; a release APK would not carry the debug ones. The four "secrets" are an RFC 6455 handshake GUID,
   a sha256 constant and two non-secrets.
 
 **First runs on GitHub (T2).** `gitleaks` on the runner, 2026-11-05: the green run on `ops-007-t2` (run
@@ -166,6 +167,19 @@ grype has no data for a distro that old, so a planted finding needs a release th
 the data for it is going stale and this gate weakens until the base moves to a supported release (a `JD-NNN` of its
 own; the `Dockerfile` pin is not touched here).
 
+**First runs on GitHub (T6).** `mobsf` on a private-repository runner (2 vCPU, 8 GB per GitHub's hosted-runner
+reference), 2026-11-05: the manual dispatch on `ops-007-t6` (run `42037684071`) took 6 min 12 s of job time, billed as
+7 minutes (the build 52 s, the scan step 4 min 49 s), and uploaded the `mobsf-findings` artifact. The summary is the one
+the local run printed, 3 high / 9 warning / 1 info, and the `code_analysis`, `manifest_analysis`, `network_security` and
+`appsec` sections match the stored local report entry for entry. The job does not block, so it has no red run.
+Under `--memory=6g --memory-swap=6g` on the dev host the same scan also finished (298 s) but the kernel killed jadx's
+`java` at 5.9 GB of anonymous memory (`journalctl -k`, "Memory cgroup out of memory"), so the 12.3 GiB `docker stats`
+peak is real growth, not page cache. That the runner's job went green is the evidence it fits; the runner's kernel log
+is not readable, so a silent jadx kill there cannot be ruled out beyond the matching sections, and this is one run.
+**The CI-built APK is 73 MB, the local one 172 MB:** the rootfs tarball and `libproot*.so` are gitignored build
+outputs a fresh checkout lacks, so `binary_analysis` has 8 entries on the runner against 10 locally and the scan does not
+read the proot binaries or the rootfs. It covers the app's code and manifest, which is what `gradle-gate` builds as well.
+
 ## Decisions
 
 - **(a) What grype reads:** the Alpine base by its pinned digest, `linux/arm64`, blocking with `--only-fixed
@@ -181,12 +195,11 @@ own; the `Dockerfile` pin is not touched here).
 - **(c) MobSF:** a plain `docker run` with `MOBSF_API_KEY` in the environment, then `POST /api/v1/upload`,
   `POST /api/v1/scan` and `POST /api/v1/report_json`, authenticated by the `Authorization` header (read from
   `MobSF/Mobile-Security-Framework-MobSF@9e15fccef0dc3f8843ca94664300771c8faf1d48`, `mobsf/MobSF/init.py`,
-  `views/api/api_middleware.py`, `urls.py`; its docs site does not render). The APK should be the artifact
-  `gradle-gate` already builds, uploaded and downloaded between jobs, not a second `assembleDebug`. A driver script,
-  `scripts/mobsf_scan.py` with a `_test.py`, is warranted by the report-to-summary logic. **Open for T6:** the
-  12.3 GiB peak is the container as `docker stats` reports it, with its cause unexamined; GitHub's runner memory for
-  a private repository is to be read from its runner reference and the job measured on a real runner before it is
-  wired. If it does not fit, MobSF joins the guarded jobs.
+  `views/api/api_middleware.py`, `urls.py`; its docs site does not render). `scripts/mobsf_scan.py` with a `_test.py`
+  drives those calls. The job builds its own APK with `assembleDebug` rather than fetching `gradle-gate`'s: the two are
+  separate workflows, and handing an artifact across them needs a run lookup and an `actions: read` scope for a
+  52-second build. It runs on `main`, the weekly cron and dispatch, and joins no guard: the private runner it was
+  measured on is the one it runs on (see *First runs on GitHub (T6)*).
 - **(d) opengrep rules:** the project's own `opengrep-rules` at the pinned SHA above. It is a mirror of `semgrep-rules`
   under LGPL-2.1 with a Commons Clause that bars selling it, not scanning with it; the repository is **archived**
   (last push 2025-11-28), so the rules will not move. Fetched by SHA in the job, never vendored. The registry
@@ -232,7 +245,7 @@ is the run that must fail once (Demo step 2); any script this item writes is TDD
 - [x] T3 — `osv-scanner` over `uv.lock`, `tools/rootfs/*.lock` and the Gradle lockfiles
 - [x] T4 — `opengrep` over the Kotlin and Python sources
 - [x] T5 — `grype` over the input T1 chose for (a)
-- [ ] T6 — `mobsf` static scan of the debug APK, with a tested driver script if (c) needs one
+- [x] T6 — `mobsf` static scan of the debug APK, with a tested driver script if (c) needs one
 - [ ] T7 — the guarded jobs: `codeql` (Python, Actions, and Kotlin per (e)), `scorecard`, and the SARIF upload
 - [ ] T8 — close: Demo steps 1–4, an ADR for what outlives the item (the visibility guard; blocking output in place of
   SARIF), delete this PRD, edit the backlog row to `shipped`, and move `← next` to `OPS-008`
