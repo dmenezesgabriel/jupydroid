@@ -1,0 +1,47 @@
+name: Scorecard
+
+# A file of its own: Scorecard runs on default-branch pushes and weekly, never on a pull request
+# (`pull_request` is experimental upstream), and its results publishing refuses a workflow that
+# mixes in `run:` steps or `env`. Like `codeql` in `security.yml`, it waits for a public repository:
+# the OIDC publish and the SARIF upload both need one.
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Mondays 06:30 UTC, away from `security.yml`'s 04:17.
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+# Default-deny: the job re-declares the scopes it needs.
+permissions: {}
+
+# Keyed on the commit, so consecutive pushes to `main` never cancel a run that is mid-publish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  scorecard:
+    name: scorecard
+    # Skipped, not failed, until the repository is public.
+    if: ${{ github.event.repository.visibility == 'public' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write # upload results.sarif to code scanning
+      id-token: write # OIDC for publish_results
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@fa7117db83c52d787ae5a89f350999701505d78e # v2.5.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: results.sarif
