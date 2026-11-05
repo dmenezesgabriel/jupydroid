@@ -301,10 +301,13 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      # The build CodeQL traces to extract the Kotlin: the same `assembleDebug` that `gradle-gate` runs.
+      # The build CodeQL traces to extract the Kotlin. A compiler task that Gradle serves from its build
+      # cache never runs, so the tracer sees no source and `analyze` fails with "didn't build any of it"
+      # (measured: `compileDebugKotlin FROM-CACHE` after setup-gradle restored the cache). Hence no
+      # build cache, and no daemon, which would outlive the traced shell.
       - name: Assemble the debug APK
         if: ${{ matrix.build-mode == 'manual' }}
-        run: ./gradlew assembleDebug
+        run: ./gradlew --no-daemon --no-build-cache assembleDebug
 
       - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
