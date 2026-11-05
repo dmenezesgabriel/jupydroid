@@ -112,8 +112,14 @@ commitlint alone was 71 (the T1 lock). `npm audit signatures --min-release-age=0
 signatures and 18 provenance attestations. `es-toolkit@1.53.1` (published 2026-10-30, required by
 `@commitlint/load` and `@commitlint/ensure`) entered the T1 lock before `.npmrc` existed, so it is inside
 the 7-day window until 2026-11-06 and `npm audit signatures` refuses to resolve it under
-`min-release-age=7`. T3 decides how the CI step treats that: verification is not resolution, so the step
-may need the override with a comment saying why.
+`min-release-age=7`. The CI step lifts the cooldown for that one command, with a comment saying why:
+verification is not resolution, and the cooldown is enforced where a version is chosen (Dependabot,
+`npm install`), not where a signature is checked.
+
+The job's own commands, run locally in T3: a range holding `spike(rootfs): …` exits 1; this branch's range
+exits 0; the title `Bump x from 1 to 2` exits 1 and `build(deps): bump x from 1 to 2` exits 0; a
+Dependabot-shaped message (a YAML block and a `Signed-off-by` footer in the body) exits 0. `actionlint` and
+`zizmor` pass over `ci.yml`, `security.yml` and `dependabot.yml`. The job itself has not run on GitHub.
 
 ## Decisions
 
@@ -131,8 +137,8 @@ may need the override with a comment saying why.
   dependencies and take a release the minute it is published. `.npmrc` turns that off: `ignore-scripts`,
   `allow-git=none`, `engine-strict`, `save-exact`, `min-release-age` of 7 days (the Dependabot cooldown).
   CI adds `npm audit signatures` (registry signatures and provenance, which `osv-scanner` does not read) and
-  `osv-scanner` gains `-L package-lock.json`, which it does not scan today because its lockfiles are listed
-  one by one.
+  `osv-scanner` gains `-L package-lock.json`, which it did not scan because its lockfiles are listed one by
+  one. `setup-node` runs without a dependency cache.
 
 ## Surface
 
@@ -157,8 +163,10 @@ may need the override with a comment saying why.
   commitlint), the `commitlint-config-tests` hook `files` extended, `CONTRIBUTING.md` Commits section
 - [x] T2c — npm supply-chain settings: `.npmrc` (above) with a test that `npm config get` reports each
   setting from the repository root, and `-L package-lock.json` in `security.yml`'s `osv-scanner` step
-- [ ] T3 — the `commit-messages` job in `ci.yml` (range and title; `npm ci`, `npm audit signatures`, then
-  `commitlint-config-tests`) and the Dependabot `npm` block with the 7-day cooldown
+- [x] T3 — the `commit-messages` job in `ci.yml` (`npm ci`, `npm audit signatures --min-release-age=0`,
+  `npm test`, then the range and the title) and the Dependabot `npm` block with the 7-day cooldown. No
+  `commit-message` block: Dependabot infers its prefix from the history, and its three commits here are
+  already `build(deps): …` and `build(deps-dev): …`; a wrong prefix would show as a red check
 - [ ] T4 — close: Demo steps 1–4, `ADR-0139`, the `AGENTS.md` tooling row, the `CONTRIBUTING.md` Commits
   section, delete this PRD, edit `docs/backlog.md`
 

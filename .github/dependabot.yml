@@ -26,6 +26,15 @@ updates:
     cooldown:
       default-days: 7
 
+  # `npm` rewrites package.json and package-lock.json together; `npm ci` in the commit-messages job then
+  # fails on a mismatch, as the uv lock does. The cooldown matches `min-release-age` in .npmrc.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
   # Gradle gets security updates only (ADR-0137). Dependabot edits the catalog and some lockfiles but
   # does not run Gradle, so it never updates gradle/verification-metadata.xml or
   # buildscript-gradle.lockfile, and every version-update pull request failed gradle-gate. A limit of 0
