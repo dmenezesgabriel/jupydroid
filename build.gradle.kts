@@ -16,7 +16,7 @@ buildscript {
       add("classpath", "com.google.guava:guava:33.7.2-jre").because(
         "https://github.com/advisories/GHSA-xxph-c9ww-hj94",
       )
-      add("classpath", "org.apache.commons:commons-lang3:3.18.0").because(
+      add("classpath", "org.apache.commons:commons-lang3:3.21.0").because(
         "https://github.com/advisories/GHSA-j288-q9x7-2f5v",
       )
       add("classpath", "org.bitbucket.b_c:jose4j:0.9.7").because(

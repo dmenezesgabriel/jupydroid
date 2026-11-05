@@ -18,7 +18,7 @@ commonsCompress = "1.27.1"
 # A floor only: commons-compress 1.27.1 brings 3.16.0, below the GHSA-j288-q9x7-2f5v fix, and
 # 3.18.0 is the version compress's own next release (1.28.0) declares. Nothing calls it - it is
 # declared so `app/build.gradle.kts` can constrain it.
-commonsLang3 = "3.18.0"
+commonsLang3 = "3.21.0"
 # >=1.5.7-13 is the release line whose Android .so links full RELRO - `-z relro -z now` with
 # `common-page-size=16384`, after -10/-11/-12 each shipped a wrong fix first
 # (https://github.com/luben/zstd-jni/issues/381). -24 is the newest tagged release; -25 was a
