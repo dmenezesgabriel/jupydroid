@@ -104,16 +104,18 @@ Each needs evidence gathered in the task that owns it, and an ADR (0140) when th
 | ~~Whether a rootfs-only change cuts a release~~ **Decided in T2:** by commit type alone. `tools/rootfs` history is 18 `build`, 13 `feat`, 5 `fix`, 3 `perf`; a rootfs `feat`/`fix`/`perf` changes the bundled APK and cuts, a `build` does not | | T2 |
 | ~~First version~~ **Decided in T2:** `0.1.0` (`allow_zero_version`), no tag exists in 1614 commits; the first notes are PSR's masked "Initial Release" | | T2 |
 | ~~qemu build time of the arm64 rootfs against the 6 hour job limit~~ **Decided in T3:** one run on a 2 vCPU `ubuntu-24.04` runner took 31 min 06 s for `build.sh` and 16 s for `sbom.sh`, 31 min 39 s for the job, a tenth of the limit. The job's `timeout-minutes` is 90. No native runner and no layer cache are needed for that | | T3 |
+| ~~Where the Release notes come from~~ **Decided in T5:** the tag's own `CHANGELOG.md` section, cut by `scripts/release_notes.py`. `semantic-release publish` refuses the detached HEAD a tag-triggered job checks out (the sibling's finding), and the sibling's awk prefix-matches, so `## v1.2.3` would also take `## v1.2.30`; the script matches the whole `## vX.Y.Z (date)` header. Checked against a real PSR changelog, masked first release included | | T5 |
+| ~~Whether a release without the signing secrets may fall back~~ **Decided in T5:** it fails. `release-cut.yml` and `release-tag.yml` skip a step without their credential; the `apk` job would publish an unsigned APK that no install can be updated from, so an empty secret stops the job, and `apksigner verify` and the badging check run before anything is uploaded | | T5 |
 | ~~Where the release keystore lives and who rotates it~~ **Decided in T4:** an Actions secret. GitHub documents that "Users with GitHub Free plans can only configure environments for public repositories", so an environment with a required reviewer is unavailable on this private repository. Four variables, `JUPYDROID_RELEASE_KEYSTORE_FILE`, `_KEYSTORE_PASSWORD`, `_KEY_ALIAS` and `_KEY_PASSWORD`, are read by `app/build.gradle.kts`; the release workflow decodes the base64 secret to a file and passes its path. The key is not rotated: a new key cannot update installs signed by the old one | | T4 |
 
 ## Surface
 
 | Layer | Files |
 |---|---|
-| host scripts | `scripts/release_version.py` (T1), `scripts/pending_release.py` (T2) |
+| host scripts | `scripts/release_version.py` (T1), `scripts/pending_release.py` (T2), `scripts/release_notes.py` (T5) |
 | build | `app/build.gradle.kts` (T1 version properties; T4 `signingConfig`), `scripts/release_signing_config_test.py` (T4) |
-| workflows | `.github/workflows/release-cut.yml`, `release-tag.yml`, `release.yml` (T2, T3, T5) |
-| unit tests | `scripts/release_version_test.py` (T1), `scripts/pending_release_test.py`, `scripts/release_cut_config_test.py` (T2) |
+| workflows | `.github/workflows/release-cut.yml`, `release-tag.yml` (T2), `release.yml`: `rootfs` (T3), `version`, `apk`, `publish`, `attest` (T5) |
+| unit tests | `scripts/release_version_test.py` (T1), `scripts/pending_release_test.py`, `scripts/release_cut_config_test.py` (T2), `scripts/release_rootfs_workflow_test.py` (T3), `scripts/release_notes_test.py`, `scripts/release_publish_workflow_test.py`, `scripts/workflow_reader.py` + `_test.py` (T5) |
 | `.maestro/` flow + `scripts/` driver | install-and-run-a-cell flow, T6 |
 
 No `domain`, `data`, `ui` or `di` change: this item ships no port.
@@ -124,7 +126,7 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port.
 - [x] T2 — the release cut and the tag workflow, the locked release tool and the changelog; both degrade to a warning without the credential
 - [x] T3 — the arm64 rootfs and its SBOM built in CI under qemu from the digest-pinned image; the duration measured
 - [x] T4 — a release `signingConfig` read from environment variables; `assembleRelease` verified with `apksigner verify`
-- [ ] T5 — `release.yml` publishes the Release: APK, `SHA256SUMS`, SBOM, notes, `SOURCE_OFFER.md`; attestation guarded on a public repository
+- [x] T5 — `release.yml` publishes the Release: APK, `SHA256SUMS`, SBOM, notes, `SOURCE_OFFER.md`; attestation guarded on a public repository
 - [ ] T6 — the demo on the tablet; ADR-0140; delete this PRD; the backlog row to shipped
 
 ## Out of scope

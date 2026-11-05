@@ -10,24 +10,17 @@ from __future__ import annotations
 
 import re
 import unittest
-from pathlib import Path
 from typing import Any
 
-import yaml
+from workflow_reader import FULL_SHA, Step, triggers_of
+from workflow_reader import load_workflow as read_workflow
 
-WORKFLOW = Path(__file__).resolve().parent.parent / ".github" / "workflows" / "release.yml"
-FULL_SHA = re.compile(r"@[0-9a-f]{40}$")
 DIGEST_PINNED_BINFMT = re.compile(r"tonistiigi/binfmt@sha256:[0-9a-f]{64}\s+--install\s+arm64")
 ARTIFACT_FILES = ("rootfs-arm64-v8a.tzst", "rootfs-arm64-v8a.manifest.txt", "sbom-arm64-v8a.json")
 
-Step = dict[str, Any]
 
-
-def load_workflow() -> dict[str, Any]:
-    loaded = yaml.safe_load(WORKFLOW.read_text(encoding="utf-8"))
-    if not isinstance(loaded, dict):
-        raise AssertionError(f"{WORKFLOW} must parse to a mapping, got {type(loaded).__name__}")
-    return loaded
+def load_workflow() -> dict[Any, Any]:
+    return read_workflow("release.yml")
 
 
 def rootfs_steps() -> list[Step]:
@@ -44,9 +37,7 @@ def index_of_run(steps: list[Step], command: str) -> int:
 class ReleaseRootfsWorkflowTest(unittest.TestCase):
     def test_it_is_dispatched_by_ref_and_denies_the_token_by_default(self) -> None:
         workflow = load_workflow()
-        # YAML 1.1 reads the key `on` as the boolean True.
-        triggers = workflow.get("on", workflow.get(True))
-        self.assertIn("ref", triggers["workflow_dispatch"]["inputs"])
+        self.assertIn("ref", triggers_of(workflow)["workflow_dispatch"]["inputs"])
         self.assertEqual(workflow["permissions"], {})
 
     def test_the_job_reads_the_repository_and_nothing_else(self) -> None:
@@ -83,7 +74,7 @@ class ReleaseRootfsWorkflowTest(unittest.TestCase):
         for step in rootfs_steps():
             self.assertNotIn("inputs.ref", str(step.get("run", "")), f"inputs.ref interpolated into {step!r}")
         checkout = next(step for step in rootfs_steps() if str(step.get("uses", "")).startswith("actions/checkout@"))
-        self.assertEqual(checkout["with"]["ref"], "${{ inputs.ref }}")
+        self.assertEqual(checkout["with"]["ref"], "${{ inputs.ref || github.ref }}")
         self.assertIs(checkout["with"]["persist-credentials"], False)
 
     def test_the_artifact_names_the_three_files_the_apk_job_consumes(self) -> None:
