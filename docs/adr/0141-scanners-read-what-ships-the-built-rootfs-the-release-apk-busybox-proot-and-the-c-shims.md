@@ -50,7 +50,9 @@ digest, and 3.21 reached end of life on 2026-11-01 (grype prints
 rebuild and a `BUNDLED_ROOTFS_VERSION` bump. That is its own item.
 
 **Not proven yet.** The `release.yml` step has not run: it runs after a 30-minute qemu build, on the next
-release. The `security.yml` changes are proven by a `workflow_dispatch` run.
+release. The `security.yml` changes ran green on a `workflow_dispatch` of the branch that introduced them: both
+CPE lookups printed `No vulnerabilities found`, opengrep listed the `c` and `dockerfile` findings, and MobSF
+reported the same 2 high and 7 warning as the local run on the release APK.
 
 **Named residuals.**
 - Kotlin SAST has no blocking scanner while the repository is private. CodeQL's `java-kotlin` leg waits for a

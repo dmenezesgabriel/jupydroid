@@ -26,6 +26,7 @@ No device flow ([ADR-0122](../adr/0122-work-that-ships-no-app-capability-is-an-o
 - [x] T2 — `security.yml`: CPE step for busybox and proot, `c` and `dockerfile` rules, MobSF on `assembleRelease`
 - [x] T3 — `release.yml`: grype over the SBOM before the `apk` job
 - [x] T4 — actionlint and zizmor pass on both workflows
-- [ ] T5 — dispatch `security.yml` on a branch and read the three changed jobs
+- [x] T5 — dispatch `security.yml` on a branch and read the three changed jobs
+- [ ] T6 — the next release run reaches `Scan the rootfs SBOM`; then delete this PRD
 
 Out of scope, and its own item: moving the Alpine base to a supported release (rootfs rebuild and version bump).
