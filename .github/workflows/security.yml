@@ -144,12 +144,14 @@ jobs:
       # Reports and does not block: on this tree every hit is a design choice or a repeat of what
       # ShellCheck already passes, and a scanner that always fails teaches the reader to ignore it
       # (ADR-0131). No `--error`, so findings exit 0. Re-read the findings when a rule is chosen
-      # that has a real one to catch.
+      # that has a real one to catch. `c` reads the three shims preloaded into every Space process and
+      # `dockerfile` the rootfs image recipe, both under `tools`.
       - name: Scan the sources
         run: |
           rules="${RUNNER_TEMP}/opengrep-rules"
           "${RUNNER_TEMP}/opengrep" scan --quiet --disable-version-check \
             --config "${rules}/kotlin" --config "${rules}/python" --config "${rules}/bash" \
+            --config "${rules}/c" --config "${rules}/dockerfile" \
             --text-output "${RUNNER_TEMP}/opengrep.txt" \
             --sarif-output "${RUNNER_TEMP}/opengrep.sarif" \
             app/src extension-api/src extensions/ai/src extensions/git/src scripts tools
@@ -197,16 +199,31 @@ jobs:
       # blocks: an unfixed one (busybox, CVE-2025-60876) is listed and nothing can be done about it
       # (ADR-0131). The vulnerability database is fetched fresh on purpose, since a weekly run
       # exists to meet advisories published after the last commit. The source-built busybox is not
-      # an apk package, so grype reads Alpine's, not ours.
+      # an apk package, so grype reads Alpine's here, not ours; the step below reads ours.
       - name: Scan the Alpine base
         run: |
           image="$(grep -E '^FROM alpine:' tools/rootfs/Dockerfile | tail -1 | cut -d' ' -f2)"
           "${RUNNER_TEMP}/grype" "registry:${image}" --platform linux/arm64 \
             --only-fixed --fail-on medium
 
+      # The two executables no apk row describes: busybox, built from the tarball the Dockerfile names,
+      # and proot, staged from an Alpine edge package into the APK's native libraries. Each version is
+      # read from the file that pins it, so a bump cannot leave this scan on the old one, and each is
+      # looked up by CPE, which matches NVD by upstream version. Same policy as the base: only a CVE
+      # with a fix blocks (busybox's three today have none).
+      - name: Scan busybox and proot by CPE
+        run: |
+          busybox="$(sed -nE 's#.*downloads/busybox-([0-9.]+)\.tar\.bz2.*#\1#p' tools/rootfs/Dockerfile)"
+          proot="$(sed -nE 's#^PROOT_URL = .*/proot-static-([0-9.]+)-r[0-9]+\.apk"$#\1#p' scripts/stage_proot.py)"
+          for version in "${busybox}" "${proot}"; do
+            [ -n "${version}" ] || { echo "::error::no version read; expected busybox in tools/rootfs/Dockerfile and proot in scripts/stage_proot.py (busybox='${busybox}' proot='${proot}')"; exit 1; }
+          done
+          "${RUNNER_TEMP}/grype" "cpe:2.3:a:busybox:busybox:${busybox}:*:*:*:*:*:*:*" --only-fixed --fail-on medium
+          "${RUNNER_TEMP}/grype" "cpe:2.3:a:proot:proot:${proot}:*:*:*:*:*:*:*" --only-fixed --fail-on medium
+
   mobsf:
     name: mobsf
-    # A debug build costs minutes and the APK changes with any code, so like grype it runs on `main`,
+    # A release build costs minutes and the APK changes with any code, so like grype it runs on `main`,
     # the weekly cron and a manual dispatch, not on every pull request.
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-24.04
@@ -239,8 +256,11 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      - name: Assemble the debug APK
-        run: ./gradlew assembleDebug
+      # The release variant, because it is what a user installs: the debug one adds `debuggable=true` and
+      # a debug signing key that never ship. No keystore is set here, so the APK is unsigned and MobSF
+      # lists "Missing Code Signing certificate"; the release workflow signs it.
+      - name: Assemble the release APK
+        run: ./gradlew assembleRelease
 
       # MobSF's decompiler (jadx) is the memory cost: capped at 6 GB the kernel killed it at 5.9 GB of
       # anonymous memory, so Gradle's daemons stop first to leave the runner's RAM to the container.
@@ -253,7 +273,7 @@ jobs:
           echo "::add-mask::${key}"
           docker run -d --name mobsf -e MOBSF_API_KEY="${key}" -p 127.0.0.1:8000:8000 "${MOBSF_IMAGE}"
           MOBSF_API_KEY="${key}" uv run --locked --no-default-groups python scripts/mobsf_scan.py \
-            app/build/outputs/apk/debug/app-debug.apk --out-dir "${RUNNER_TEMP}/mobsf"
+            app/build/outputs/apk/release/app-release-unsigned.apk --out-dir "${RUNNER_TEMP}/mobsf"
 
       - name: Show the container's last lines
         if: ${{ failure() }}
