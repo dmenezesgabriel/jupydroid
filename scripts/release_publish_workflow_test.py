@@ -129,6 +129,14 @@ class VersionJobTest(unittest.TestCase):
     def test_it_refuses_a_tag_that_is_not_on_main(self) -> None:
         step_running("version", "merge-base --is-ancestor")
 
+    def test_it_reads_main_from_the_checkout_because_a_fetch_has_no_credentials(self) -> None:
+        # Regression: checkout runs with persist-credentials: false and the repository is private, so a later
+        # `git fetch origin` died with "could not read Username" and the first release never started. A full
+        # checkout (fetch-depth: 0) already holds origin/main, which is all the ancestry check reads.
+        for step in steps_of(release(), "version"):
+            self.assertNotIn("git fetch", str(step.get("run", "")), f"a fetch without credentials in {step!r}")
+        self.assertIn("refs/remotes/origin/main", step_running("version", "merge-base --is-ancestor")["run"])
+
     def test_the_ref_reaches_checkout_and_the_script_through_with_and_env(self) -> None:
         checkout = next(
             s for s in steps_of(release(), "version") if str(s.get("uses", "")).startswith("actions/checkout@")

@@ -49,7 +49,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.ref || github.ref }}
-          # The ancestry check below walks the history between the tag and main.
+          # The full history brings refs/remotes/origin/main, which the ancestry check below reads. It is not
+          # fetched later: persist-credentials is off and the repository is private, so a fetch has no login.
           fetch-depth: 0
           persist-credentials: false
 
@@ -63,7 +64,6 @@ jobs:
           set -euo pipefail
           git rev-parse -q --verify "refs/tags/${RELEASE_TAG}" > /dev/null \
             || { echo "::error::'${RELEASE_TAG}' is not a tag of this repository; expected an existing vMAJOR.MINOR.PATCH tag"; exit 1; }
-          git fetch --no-tags origin main:refs/remotes/origin/main
           git merge-base --is-ancestor "$(git rev-list -n 1 "refs/tags/${RELEASE_TAG}")" refs/remotes/origin/main \
             || { echo "::error::tag '${RELEASE_TAG}' does not point to a commit on main"; exit 1; }
           echo "tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
