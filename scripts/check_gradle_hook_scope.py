@@ -44,6 +44,7 @@ NOT_GRADLE_INPUTS: tuple[tuple[str, str], ...] = (
     (".maestro/", "device flows and fixtures: read by Maestro on a device"),
     (".claude/", "agent skills and settings: read by agents"),
     ("docs/", "documentation"),
+    ("docs-site/", "the user documentation site: read by MkDocs, never by Gradle"),
     ("scripts/", "host tooling and device drivers; the two wrappers the hooks call match the pattern first"),
     ("tools/", "rootfs and grammar tooling; the vendored grammar the build reads matches the pattern first"),
     (".gitignore", "git"),

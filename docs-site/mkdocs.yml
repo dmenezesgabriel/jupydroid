@@ -1,0 +1,47 @@
+# The user documentation site, built by .github/workflows/docs.yml and published to GitHub Pages once the
+# repository is public. The engineering documents stay in docs/ and are linked by their GitHub URL.
+#
+# Plain Material config on purpose: Zensical reads mkdocs.yml natively, so no third-party plugin and no
+# custom_dir keeps a move to it a drop-in (scripts/docs_site_config_test.py asserts both).
+site_name: JupyterDroid
+site_description: Offline Jupyter notebook app for Android, running a real jupyter_server and ipykernel.
+site_url: https://dmenezesgabriel.github.io/jupydroid/
+repo_url: https://github.com/dmenezesgabriel/jupydroid
+
+docs_dir: pages
+# Under /build, which .gitignore already holds out of the tree.
+site_dir: ../build/site
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - navigation.top
+    - content.code.copy
+
+plugins:
+  - search
+
+# `mkdocs build --strict` turns each of these into an error, so a page left out of `nav` or a link to a
+# file that does not exist fails the build instead of shipping. The nav is explicit for the same reason.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+
+nav:
+  - Home: index.md

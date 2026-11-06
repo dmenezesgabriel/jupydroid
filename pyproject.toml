@@ -31,6 +31,13 @@ dev = [
     "zizmor>=1.32,<2",
 ]
 
+# The user documentation site (docs-site/). Outside `default-groups`, so no hook or unit test installs it:
+# only `uv run --group docs mkdocs build --strict` does. The theme alone, with no plugin, keeps a move to
+# Zensical, which reads mkdocs.yml natively, a drop-in (scripts/docs_site_config_test.py).
+docs = [
+    "mkdocs-material>=9.8,<10",
+]
+
 # The release cut. The git tag is the only record of a version: no file holds one, so nothing is edited by regex
 # and the release commit carries only CHANGELOG.md. 0.x because the app has no stable contract yet, and a breaking
 # change stays 0.x until `major_on_zero` is turned on. The default parser bumps on feat (minor) and fix/perf (patch)
