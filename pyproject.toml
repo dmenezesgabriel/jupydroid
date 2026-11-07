@@ -117,6 +117,7 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/read_node_fill.py" = ["S314"]
 "scripts/read_pane_widths.py" = ["S314"]
 "scripts/read_search_box_width.py" = ["S314"]
+"scripts/read_text_contrast.py" = ["S314"]
 "scripts/read_touch_target_bounds.py" = ["S314"]
 # S310: PROOT_URL is a literal https URL, and the download is refused unless it matches PROOT_SHA256.
 "scripts/stage_proot.py" = ["S310"]

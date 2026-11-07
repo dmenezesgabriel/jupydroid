@@ -34,32 +34,12 @@ restore_device() {
 }
 trap restore_device EXIT
 
-# The status bar's ground is its modal colour; its ink is the pixel farthest from that ground, and
-# the WCAG contrast ratio between the two says whether the icons can still be read on it.
-read_status_bar() { # read_status_bar <png>
-  python3 -I - "$1" <<'PY'
-import collections, sys
-from PIL import Image
-image = Image.open(sys.argv[1]).convert("RGB")
-band = [image.getpixel((x, y)) for y in range(4, 40) for x in range(0, image.width, 2)]
-ground = collections.Counter(band).most_common(1)[0][0]
-def luminance(rgb):
-    def channel(c):
-        c /= 255
-        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
-    r, g, b = map(channel, rgb)
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-ink = max(band, key=lambda rgb: abs(luminance(rgb) - luminance(ground)))
-light, dark = sorted((luminance(ground), luminance(ink)), reverse=True)
-print(f"  status bar ground #{bytes(ground).hex().upper()}  ink #{bytes(ink).hex().upper()}"
-      f"  contrast {(light + 0.05) / (dark + 0.05):.2f}:1")
-PY
-}
-
 measure() { # measure <dir>
   for png in "$1"/*.png; do
-    python3 -I "$ROOT/scripts/read_chrome_parts.py" "$png" | sed "s#$EVIDENCE/##"
-    read_status_bar "$png"
+    # No -I: Python 3.14's isolated mode drops the script's own directory, so the readers could not
+    # import the sibling modules they are built from. A script run by path never puts the cwd on sys.path.
+    python3 "$ROOT/scripts/read_chrome_parts.py" "$png" | sed "s#$EVIDENCE/##"
+    python3 "$ROOT/scripts/read_text_contrast.py" --status-bar "$png"
   done | tee -a "$EVIDENCE/pixels.txt"
 }
 
