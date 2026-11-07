@@ -86,7 +86,7 @@ presentation and IntelliJ for the editor and everything below the palette.
 | `vscode-jupyter`, `termux-app`, `winlator`, the shipped rootfs | ABSENT | — | no presentation of their own to compare against (§8.3) |
 
 **Count:** 3 of 7 carry a theme-and-chrome system; 2 of them (VS Code, IntelliJ) both ship a
-**high-contrast theme**, which this app has no analogue of — recorded for T3's verdict, not assumed to
+**high-contrast theme**, which this app has no analogue of — recorded for T3d's verdict, not assumed to
 be a gap.
 
 **Where VS Code and IntelliJ disagree is the decision this item reads:** VS Code states a part's
@@ -126,7 +126,7 @@ read of text contrast exists.
 | Concern | Ours today | Best reference | Gap |
 |---|---|---|---|
 | Theme matrix | `ThemeOverride` × device night mode, six combinations measured for four surfaces | JupyterLab `adaptive-theme` | present and partial — surfaces beyond Settings, a file, a notebook, a terminal are unmeasured |
-| High-contrast theme | none | VS Code `hc_black`/`hc_light`, IntelliJ `HighContrast.theme.json` | to be verdicted at T3: `absent` or `adapted` (Android's own high-contrast text setting) |
+| High-contrast theme | none | VS Code `hc_black`/`hc_light`, IntelliJ `HighContrast.theme.json` | to be verdicted at T3d: `absent` or `adapted` (Android's own high-contrast text setting) |
 | Text contrast | status bar only, inline in a driver | WCAG 1.4.3 | absent as an instrument — T2 |
 | Insets and gaps | `Spacing.kt` + `check_ui_dimensions.py` gate the *literals*, not what is on screen | IntelliJ `expUI_*.theme.json` | present as a rule, unmeasured as a result — T5 |
 | Unused space | `read_pane_widths.py` reads widths | VS Code parts, IntelliJ tool windows | per-surface read of what an empty state leaves blank — T5 |
@@ -168,8 +168,16 @@ One unit each, one conventional commit each. A task that is still too large spli
       `scripts/testdata/`) pairing each text node's bounds from a dump with ink and ground from its
       screenshot; the status-bar reader in `theme-six-combinations-driver.sh` calls it rather than
       carrying its own copy.
-- [ ] T3 — **The tablet half.** Every surface in all six combinations at one and two panes,
-      contrast read per node, verdicts honouring ADR-0041 and ADR-0053; the high-contrast question.
+- [ ] T3a — **Per-node contrast on the four surfaces the capture already has** — Settings, a file, a
+      notebook, a terminal — on the tablet at two panes (landscape), in all six combinations, verdicts
+      honouring ADR-0041 and ADR-0053.
+- [ ] T3b — **The surfaces the capture lacks**, still the tablet at two panes: each side panel (Files,
+      Search, Running, Table of contents, Debugger, Source Control, Chat) and the launcher and Spaces home.
+- [ ] T3c — **One pane on the tablet** (portrait) across the surfaces of T3a and T3b, plus the dialogs
+      that carry text.
+- [ ] T3d — **The high-contrast question:** VS Code's `hc_*` themes, IntelliJ's `HighContrast.theme.json`
+      and Android's own high-contrast text setting, read from the references' code, verdicted `absent` or
+      `adapted`.
 - [ ] T4 — **The phone half** on `dev36`, one pane, kernel-free surfaces only, same reads.
 - [ ] T5 — **Insets, gaps and unused space** against VS Code's parts and IntelliJ's `expUI_*` values,
       measured off node bounds before any opinion is written.

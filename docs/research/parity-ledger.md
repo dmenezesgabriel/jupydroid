@@ -4144,12 +4144,13 @@ this item adds IntelliJ's New UI and the matrix rather than redoing them.
 the New UI's spacing as theme values
 (`reference/research_repos/intellij-community/platform/platform-resources/src/themes/expUI/`,
 `.../themes/HighContrast.theme.json`). Both ship a high-contrast theme; this app has none, and whether
-that is `absent` or `adapted` to Android's own high-contrast text setting is a `T3` verdict, not an
+that is `absent` or `adapted` to Android's own high-contrast text setting is a `T3d` verdict, not an
 assumption.
 
 **Tasks own the reads.** `T1` this section; `T2` a text-contrast reader (`scripts/read_text_contrast.py`),
-none of the existing instruments reading text off a frame; `T3` the tablet half in all six combinations;
-`T4` the phone half; `T5` insets, gaps and unused space; `T6` 48dp targets, the screen-reader names and
+none of the existing instruments reading text off a frame; `T3a`–`T3c` the tablet half in all six
+combinations (the capture's four surfaces, the rest at two panes, then one pane); `T3d` the
+high-contrast verdict; `T4` the phone half; `T5` insets, gaps and unused space; `T6` 48dp targets, the screen-reader names and
 200% font scale; `T7` the close.
 
 **What the existing instruments leave open.** The six-combination capture covers four surfaces
