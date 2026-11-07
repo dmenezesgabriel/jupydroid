@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import pathlib
 import tempfile
 import unittest
 
 from PIL import Image
-from read_text_contrast import STATUS_BAR_ROWS, region_contrast, status_bar_contrast, text_contrasts
+from read_text_contrast import STATUS_BAR_ROWS, main, region_contrast, status_bar_contrast, text_contrasts
 
 WHITE = (0xFF, 0xFF, 0xFF)
 #: The darkest grey that still clears 4.5:1 on white (4.54:1), and the one just under it (4.48:1).
@@ -123,6 +125,53 @@ class RealFrameTest(unittest.TestCase):
         self.assertEqual(readings["Search"], ("#FAFAFD", "#202020", 15.64))
         self.assertEqual(readings["Aa"], ("#DADADA", "#202020", 11.66))
         self.assertEqual(readings["ab"], ("#FAFAFD", "#606060", 6.04))
+
+
+class BelowFloorTest(unittest.TestCase):
+    """`--below` is how a driver reads 24 frames: the pairs under the floor, and how many it read."""
+
+    def _run(self, *args: str) -> tuple[int, str]:
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = main(["read_text_contrast.py", *args])
+        return status, output.getvalue()
+
+    def _files(self) -> tuple[str, str]:
+        image = _frame_with_ink((320, 640), JUST_UNDER, (20, 20, 30, 30))
+        image.paste(Image.new("RGB", (10, 10), (0, 0, 0)), (110, 110))
+        dump = _dump({"Faint": (10, 10, 60, 40), "Strong": (100, 100, 150, 130), "Blank": (200, 200, 250, 230)})
+        directory = pathlib.Path(tempfile.mkdtemp())
+        (directory / "hierarchy.xml").write_text(dump, encoding="utf-8")
+        image.save(directory / "frame.png")
+        return str(directory / "hierarchy.xml"), str(directory / "frame.png")
+
+    def test_only_the_pairs_under_the_floor_are_listed(self) -> None:
+        status, printed = self._run(*self._files(), "--below", "4.5")
+        self.assertEqual(status, 0)
+        self.assertIn("'Faint'", printed)
+        self.assertNotIn("'Strong'", printed)
+
+    def test_a_region_with_no_ink_is_named_apart_from_the_pairs_under_the_floor(self) -> None:
+        # A node a scroll container clips to a sliver has no glyph in view: 1.00:1 is not its ratio.
+        printed = self._run(*self._files(), "--below", "4.5")[1]
+        self.assertIn("no ink in view  'Blank'", printed)
+        self.assertNotIn("1.00:1", printed)
+
+    def test_the_last_line_counts_what_was_under_and_what_had_no_ink_against_what_was_read(self) -> None:
+        printed = self._run(*self._files(), "--below", "4.5")[1]
+        self.assertEqual(printed.splitlines()[-1], "  1 of 3 text nodes under 4.5:1, 1 with no ink in view")
+
+    def test_the_count_line_says_nothing_of_ink_when_every_node_has_some(self) -> None:
+        image = _frame_with_ink((320, 640), (0, 0, 0), (110, 110, 120, 120))
+        directory = pathlib.Path(tempfile.mkdtemp())
+        (directory / "hierarchy.xml").write_text(_dump({"Strong": (100, 100, 150, 130)}), encoding="utf-8")
+        image.save(directory / "frame.png")
+        printed = self._run(str(directory / "hierarchy.xml"), str(directory / "frame.png"), "--below", "4.5")[1]
+        self.assertEqual(printed.splitlines()[-1], "  0 of 1 text nodes under 4.5:1")
+
+    def test_a_floor_that_is_not_a_number_is_refused_with_its_value(self) -> None:
+        status, _ = self._run(*self._files(), "--below", "AA")
+        self.assertEqual(status, 2)
 
 
 class StatusBarContrastTest(unittest.TestCase):

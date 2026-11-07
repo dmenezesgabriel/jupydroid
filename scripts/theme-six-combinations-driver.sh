@@ -2,8 +2,9 @@
 # Every surface in each of the six combinations of the app's Theme row (System, Light, Dark)
 # against the device's own night mode (no, yes). Each combination leaves a screenshot per surface -
 # Settings, a file, a notebook, a terminal - and the driver reads their pixels: the shell's vertical
-# parts and the seams between them (read_chrome_parts.py), and the status bar's ground and the ink
-# drawn on it. One measurement, run before a repair and after it, into the directory it is named.
+# parts and the seams between them (read_chrome_parts.py), the status bar's ground and the ink drawn on
+# it, and every text node's ink against its ground, listed when under 4.5:1 (read_text_contrast.py).
+# One measurement, run before a repair and after it, into the directory it is named.
 #
 #   scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo>
 #
@@ -21,6 +22,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo>}"
 FLOWS="$ROOT/.maestro/theme-six-combinations"
+SURFACES=(settings file notebook terminal)
 FILE="notes.py"
 NOTEBOOK="theme-baseline"
 export MAESTRO_FILE="$FILE" MAESTRO_NOTEBOOK="$NOTEBOOK.ipynb"
@@ -34,13 +36,30 @@ restore_device() {
 }
 trap restore_device EXIT
 
-measure() { # measure <dir>
-  for png in "$1"/*.png; do
-    # No -I: Python 3.14's isolated mode drops the script's own directory, so the readers could not
-    # import the sibling modules they are built from. A script run by path never puts the cwd on sys.path.
-    python3 "$ROOT/scripts/read_chrome_parts.py" "$png" | sed "s#$EVIDENCE/##"
-    python3 "$ROOT/scripts/read_text_contrast.py" --status-bar "$png"
-  done | tee -a "$EVIDENCE/pixels.txt"
+# The frame and the dump of the same moment. Taken here and not in the flow: a dump cannot be taken
+# while Maestro holds the device, and a frame taken apart from it need not be the screen it describes.
+capture_frame() { # capture_frame <dir> <surface>
+  "${adb[@]}" exec-out screencap -p >"$1/$2.png"
+  "${adb[@]}" shell uiautomator dump /sdcard/contrast.xml >/dev/null
+  "${adb[@]}" exec-out cat /sdcard/contrast.xml >"$1/$2.xml"
+  "${adb[@]}" shell rm -f /sdcard/contrast.xml
+}
+
+measure() { # measure <dir> <surface>
+  local png="$1/$2.png"
+  # No -I: Python 3.14's isolated mode drops the script's own directory, so the readers could not
+  # import the sibling modules they are built from. A script run by path never puts the cwd on sys.path.
+  python3 "$ROOT/scripts/read_chrome_parts.py" "$png" | sed "s#$EVIDENCE/##"
+  python3 "$ROOT/scripts/read_text_contrast.py" --status-bar "$png"
+  python3 "$ROOT/scripts/read_text_contrast.py" "$1/$2.xml" "$png" --below 4.5
+}
+
+show_and_measure() { # show_and_measure <dir> <surface>
+  # The flow's log goes to stderr so that stdout holds the readings and nothing else.
+  run_flow "$FLOWS-part2-show-a-surface.yaml" "$1/maestro-$2" >&2 || exit 1
+  capture_frame "$1" "$2"
+  echo "-- $2"
+  measure "$1" "$2"
 }
 
 run_device_mode() { # run_device_mode <no|yes>
@@ -51,10 +70,13 @@ run_device_mode() { # run_device_mode <no|yes>
   run_flow "$FLOWS-part1-open.yaml" "$EVIDENCE/device-night-$1/opened" || exit 1
   for theme in System Light Dark; do
     export MAESTRO_THEME="$theme"
-    run_flow "$FLOWS-part2-each-surface.yaml" \
-      "$EVIDENCE/device-night-$1/app-$theme" || exit 1
+    local dir="$EVIDENCE/device-night-$1/app-$theme" surface
+    mkdir -p "$dir"
     echo "== device night $1, app $theme" | tee -a "$EVIDENCE/pixels.txt"
-    measure "$EVIDENCE/device-night-$1/app-$theme"
+    for surface in "${SURFACES[@]}"; do
+      export MAESTRO_SURFACE="$surface"
+      show_and_measure "$dir" "$surface" | tee -a "$EVIDENCE/pixels.txt"
+    done
   done
 }
 

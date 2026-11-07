@@ -21,9 +21,12 @@ An icon has no text in the dump; which of those are decorative and which unnamed
 **A measurement, not a gate**, the footing `read_node_fill.py` and `read_pane_widths.py` stand on: it
 prints what it found and exits 0, and the floor (4.5:1 for text) belongs to the caller, because an
 accepted exception such as ADR-0041's `constant.numeric` is a verdict and not a property of a frame.
+`--below <ratio>` lists only the pairs under that ratio and ends with how many of the text nodes that
+was, which is how a driver reads many frames without printing every node of each.
 
     adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml hierarchy.xml
     python3 scripts/read_text_contrast.py hierarchy.xml frame.png
+    python3 scripts/read_text_contrast.py hierarchy.xml frame.png --below 4.5
     python3 scripts/read_text_contrast.py --status-bar frame.png
 
 Tests in read_text_contrast_test.py, including a run over this repository's own committed device
@@ -152,18 +155,56 @@ def _hex(rgb: tuple[int, ...]) -> str:
     return "#{:02X}{:02X}{:02X}".format(*rgb[:3])
 
 
+USAGE = "usage: read_text_contrast.py <hierarchy.xml> <frame.png> [--below <ratio>] | --status-bar <frame.png>"
+
+
+def _print_reading(at: NodeReading) -> None:
+    print(f"{at.reading.ratio:>6.2f}:1  ground {at.reading.ground}  ink {at.reading.ink}  {at.text!r}")
+
+
+def _print_below(readings: list[NodeReading], floor: float) -> None:
+    """The pairs under [floor], the nodes with no ink to read, then the counts, for a caller reading many frames.
+
+    A node a scroll container clips to a sliver holds one colour, so its ratio is 1.00:1 whatever its
+    text is drawn in. That is not a pair under the floor, and it is named apart so a person looks at it.
+    """
+    blank = [at for at in readings if at.reading.ground == at.reading.ink]
+    under = [at for at in readings if at.reading.ratio < floor and at not in blank]
+    for at in under:
+        _print_reading(at)
+    for at in blank:
+        print(f"  no ink in view  {at.text!r}")
+    suffix = f", {len(blank)} with no ink in view" if blank else ""
+    print(f"  {len(under)} of {len(readings)} text nodes under {floor:g}:1{suffix}")
+
+
+def _parse_floor(raw: str) -> float | None:
+    try:
+        return float(raw)
+    except ValueError:
+        print(f"--below {raw!r} is not a ratio; expected a number such as 4.5", file=sys.stderr)
+        return None
+
+
 def main(argv: list[str]) -> int:
     if len(argv) == 3 and argv[1] == "--status-bar":
         with Image.open(argv[2]) as frame:
             reading = status_bar_contrast(frame)
         print(f"  status bar ground {reading.ground}  ink {reading.ink}  contrast {reading.ratio:.2f}:1")
         return 0
-    if len(argv) != 3:
-        print("usage: read_text_contrast.py <hierarchy.xml> <frame.png> | --status-bar <frame.png>", file=sys.stderr)
+    if len(argv) not in (3, 5) or (len(argv) == 5 and argv[3] != "--below"):
+        print(USAGE, file=sys.stderr)
+        return 2
+    floor = _parse_floor(argv[4]) if len(argv) == 5 else None
+    if len(argv) == 5 and floor is None:
         return 2
     with open(argv[1], encoding="utf-8") as dump:
-        for at in text_contrasts(dump.read(), argv[2]):
-            print(f"{at.reading.ratio:>6.2f}:1  ground {at.reading.ground}  ink {at.reading.ink}  {at.text!r}")
+        readings = text_contrasts(dump.read(), argv[2])
+    if floor is None:
+        for at in readings:
+            _print_reading(at)
+    else:
+        _print_below(readings, floor)
     return 0
 
 

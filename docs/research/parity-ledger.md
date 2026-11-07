@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | opened — below, no verdicts yet |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the four-surface tablet read's verdicts so far |
 
 ---
 
@@ -4173,4 +4173,25 @@ grep -r 'contentDescription = null' $A extensions/*/src/main | wc -l            
 ls .maestro/theme-six-combinations-*.yaml                                                    # what the capture covers today
 python3 scripts/read_ledger_partition.py --unassigned                                        # unchanged
 python3 scripts/read_ledger_verdicts.py --missing                                            # unchanged
+```
+
+### The tablet half, four surfaces — verdicts
+
+Settings, a file, a notebook and a terminal, on the tablet at two panes, each in the six combinations
+(24 frames, each with the `uiautomator dump` of its own moment): **27, 8, 11 and 19 text nodes** read
+against 4.5:1. Whatever sits under it was looked at on the frame before it was written down.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| Light, every surface | 0 of 65 text nodes under 4.5:1 in each of the twelve frames that draw light (app `Light` at either night mode, app `System` with it off); lowest is the dim secondary text at 5.09:1 on the open row's wash | `present` |
+| App `System` follows the device | `System` reads the counts `Light` does with night mode off and `Dark` does with it on, on all four surfaces ([ADR-0094](../adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md)) | `present` |
+| Dark, the Files row of the open document | its name and its age are `#8C8C8C` on the row's wash `#2C2D2E`: **4.10:1**, against 5.18:1 on a row at rest. 2026 Dark states `list.inactiveSelectionForeground` `#ededed` for this row (11.79:1) and `sideBar.foreground` `#bfbfbf` at rest (9.48:1); the row states neither and takes `descriptionForeground` for both text lines. Light passes only because its wash is translucent (5.09:1) | `defect`, provisional: the name has no colour of its own in `ExplorerScreen.kt`, so it is inherited, which reads as unintended against [ADR-0058](../adr/0058-the-breadcrumb-is-ancestors-only-and-the-chrome-ramp-is-vs-codes.md)'s chrome ramp; `T7` traces the inheritance and writes the failing test before the fix |
+| Settings, `Autosave interval` | a node 3px inside its scroll container's lower edge, so no glyph is in view and the pair reads 1.00:1 in all six combinations | not a finding: an instrument case, and `read_text_contrast.py --below` now names it apart from a pair under the floor |
+| The terminal's own text | the dump carries the 19 chrome nodes and none of the shell's lines, which the canvas draws (`cross-cutting.md` §8.6); its foreground and ground are resolved, not contrast-checked ([ADR-0020](../adr/0020-the-terminals-colour-ramp-lives-in-terminal.md)) | `adapted`; its text is unmeasured here |
+| ADR-0041's `number` and ADR-0053's resting border | neither is a text node on these four frames (the file's one line is a string), so this read neither confirms nor contradicts them | not exercised |
+
+```sh
+scripts/theme-six-combinations-driver.sh evidence/<step>           # the tablet; writes the frames, dumps and pixels.txt
+python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
+python3 scripts/read_text_contrast.py <surface>.xml <surface>.png   # every text node, lowest first
 ```
