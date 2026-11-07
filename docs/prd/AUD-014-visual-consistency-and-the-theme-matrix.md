@@ -161,7 +161,7 @@ read of text contrast exists.
 
 One unit each, one conventional commit each. A task that is still too large splits here first.
 
-- [ ] T1 — **The surface, produced.** The command above, run twice with the same output; the
+- [x] T1 — **The surface, produced.** The command above, run twice with the same output; the
       `AUD-014` section opened in `docs/research/parity-ledger.md` with the matrix, the reuse table and
       what each task owns; the backlog row to `in-progress`. No verdicts.
 - [ ] T2 — **A text-contrast reader, TDD.** `scripts/read_text_contrast.py` (+ `_test.py`, frames in
