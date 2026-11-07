@@ -173,8 +173,13 @@ One unit each, one conventional commit each. A task that is still too large spli
       honouring ADR-0041 and ADR-0053.
 - [x] T3b — **The surfaces the capture lacks**, still the tablet at two panes: each side panel (Files,
       Search, Running, Table of contents, Debugger, Source Control, Chat) and the launcher and Spaces home.
-- [ ] T3c — **One pane on the tablet** (portrait) across the surfaces of T3a and T3b, plus the dialogs
-      that carry text.
+- [x] T3c — **One pane on the tablet** (portrait) across the surfaces of T3a and T3b, in all six
+      combinations: Settings, a file, a notebook, a terminal, the launcher, Files, Sessions and Tabs and
+      Search from the bottom bar, More's modal rail, Source Control and Chat from it, the table of
+      contents overlay, and the Spaces home. The Debugger has no route at one pane
+      (`onShowDebugger ... takeIf { twoPane }`, `Navigation.kt`) and is recorded as not exercised.
+- [ ] T3c2 — **The dialogs that carry text, at one pane**, same six combinations: the set (Delete
+      confirm, Rename, Save before close, Space settings on the home) is fixed here before it runs.
 - [ ] T3d — **The high-contrast question:** VS Code's `hc_*` themes, IntelliJ's `HighContrast.theme.json`
       and Android's own high-contrast text setting, read from the references' code, verdicted `absent` or
       `adapted`.

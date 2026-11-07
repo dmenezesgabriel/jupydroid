@@ -1,0 +1,98 @@
+appId: com.jupydroid.app
+---
+# Run by scripts/theme-six-combinations-driver.sh `one-pane`, once per app theme and surface, with
+# MAESTRO_THEME naming the Settings row's choice (System, Light or Dark), MAESTRO_SURFACE the surface
+# and MAESTRO_RAIL the label of the bar item or More row that shows it (`none` for a tab). Picks the
+# theme, then shows that surface and stops. The one-pane twin of
+# theme-six-combinations-part2-show-a-surface.yaml, and like it takes no screenshot: the driver reads the
+# frame and the `uiautomator dump` of the same moment after this flow ends.
+#
+# Every surface is reached from the same place - the browser under its bottom bar - so no surface
+# depends on the one before it, which the two-pane flow gets from its ordering instead. Settings, the
+# file, the notebook and the terminal are tabs and are opened from the strip; the strip is drawn over a
+# tab and not over a panel, which is why Settings is reached through More and the bar again after it.
+#
+# TABLET ONLY (SM-X216B), in portrait: the terminal is the Space's real shell.
+- launchApp:
+    stopApp: false
+- runFlow: theme-six-combinations-one-pane-to-the-bar.yaml
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Theme"
+    timeout: 5000
+- tapOn: "${MAESTRO_THEME}"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'file'}
+    commands:
+      - tapOn: "Tab: ${MAESTRO_FILE}"
+      - extendedWaitUntil:
+          visible: "notes = \"seeded\"\\s*"
+          timeout: 10000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'notebook'}
+    commands:
+      - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+      - extendedWaitUntil:
+          visible: "tab_marker_first = 1"
+          timeout: 10000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'terminal'}
+    commands:
+      - tapOn: "Tab: Terminal .*"
+      - extendedWaitUntil:
+          visible:
+            id: "terminal-input"
+          timeout: 10000
+      # Showing the tab focuses the shell's input and raises the soft keyboard over the terminal.
+      - hideKeyboard
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'toc-overlay'}
+    commands:
+      - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+      - tapOn: "Notebook actions"
+      - tapOn: "Show table of contents"
+      - extendedWaitUntil:
+          visible: "No headings in this notebook"
+          timeout: 5000
+# A bar item or a More row: back to the browser first, because the theme pick left Settings on top.
+- runFlow:
+    when:
+      true: ${MAESTRO_RAIL != 'none'}
+    commands:
+      - runFlow: theme-six-combinations-one-pane-to-the-bar.yaml
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'running-panel' || MAESTRO_SURFACE == 'search-panel' || MAESTRO_SURFACE == 'launcher'}
+    commands:
+      - tapOn: "${MAESTRO_RAIL}"
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'files-panel'}
+    commands:
+      # The notebook's crumb leads to the browser, but the panel the bar had last chosen is what it
+      # shows - Chat, after the surface before this one - so Files is chosen, not assumed. The crumb
+      # only the browser draws is what says it is on screen.
+      - tapOn: "Files"
+      - assertVisible: "Workspace"
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'more-rail'}
+    commands:
+      - tapOn: "More"
+      - extendedWaitUntil:
+          visible: "New terminal"
+          timeout: 5000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'source-control-panel' || MAESTRO_SURFACE == 'chat-panel'}
+    commands:
+      - tapOn: "More"
+      - tapOn: "${MAESTRO_RAIL}"
+- waitForAnimationToEnd:
+    timeout: 3000

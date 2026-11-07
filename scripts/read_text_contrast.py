@@ -119,12 +119,44 @@ def text_contrasts(xml_text: str, image_path: str) -> list[NodeReading]:
     ```
     """
     tree = ElementTree.fromstring(xml_text)
-    screen = screen_of(tree)
     with Image.open(image_path) as opened:
         frame = opened.convert("RGB")
-    scale = frame_scale(frame.size, screen)
+    scale = _scale_of(tree, frame.size)
     found = [_read_node(frame, node, scale) for node in tree.iter("node") if node.get("text")]
     return sorted((reading for reading in found if reading), key=lambda at: at.reading.ratio)
+
+
+def _scale_of(tree: ElementTree.Element, frame_size: tuple[int, int]) -> float:
+    """How much larger the frame is than the dump's space, which a popup window's dump cannot say.
+
+    A popup (the notebook's table-of-contents overlay) is a window of its own, and `uiautomator dump`
+    of it states only the popup's corner of the display, so its right and bottom edges are not the
+    display's. A dump that does not start at the origin is read at the frame's own scale, which is the
+    display's: the tablet's `screencap` is at native size. One that reaches past the frame is refused.
+
+    ```
+    _scale_of(ElementTree.fromstring(popup_dump), (1200, 1920))  # -> 1.0
+    ```
+    """
+    left, top = _outermost_origin(tree)
+    right, bottom = screen_of(tree)
+    if (left, top) == (0, 0):
+        return frame_scale(frame_size, (right, bottom))
+    if right > frame_size[0] or bottom > frame_size[1]:
+        raise ValueError(
+            f"popup window reaching {right}x{bottom} does not fit a frame of {frame_size[0]}x{frame_size[1]}; "
+            "the two captures are of different screens"
+        )
+    return 1.0
+
+
+def _outermost_origin(tree: ElementTree.Element) -> tuple[int, int]:
+    """The top-left corner the outermost node that states bounds gives, as `screen_of` finds its far one."""
+    for node in tree.iter("node"):
+        match = BOUNDS.match(node.get("bounds", ""))
+        if match:
+            return int(match.group(1)), int(match.group(2))
+    raise LookupError('no node in the dump states bounds; expected one with bounds="[0,0][w,h]"')
 
 
 def _read_node(frame: Image.Image, node: ElementTree.Element, scale: float) -> NodeReading | None:

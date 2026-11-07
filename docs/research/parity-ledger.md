@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes: the four surfaces, the launcher, the side panels and the Spaces home) |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail and the Spaces home) |
 
 ---
 
@@ -4148,8 +4148,8 @@ that is `absent` or `adapted` to Android's own high-contrast text setting is a `
 assumption.
 
 **Tasks own the reads.** `T1` this section; `T2` a text-contrast reader (`scripts/read_text_contrast.py`),
-none of the existing instruments reading text off a frame; `T3a`–`T3c` the tablet half in all six
-combinations (the capture's four surfaces, the rest at two panes, then one pane); `T3d` the
+none of the existing instruments reading text off a frame; `T3a`–`T3c2` the tablet half in all six
+combinations (the capture's four surfaces, the rest at two panes, the surfaces at one pane, then the dialogs); `T3d` the
 high-contrast verdict; `T4` the phone half; `T5` insets, gaps and unused space; `T6` 48dp targets, the screen-reader names and
 200% font scale; `T7` the close.
 
@@ -4218,5 +4218,34 @@ panel's frame also holds the Settings tab drawn beside it, so its node count inc
 
 ```sh
 scripts/theme-six-combinations-driver.sh evidence/<step>           # 13 surfaces x 6 combinations; the home runs last, per theme
+python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
+```
+
+### The tablet half at one pane — verdicts
+
+The tablet in portrait, 800dp, below the 840dp rule (`isWindowWideEnoughForTwoPanes`), so no rail: a
+bottom bar of Files, Sessions and Tabs, Search, `+` and More. Thirteen surfaces in the six combinations
+(78 frames, each with the `uiautomator dump` of its own moment): Settings, a file, a notebook and a
+terminal as tabs, the launcher (a tab with no bar), the table-of-contents overlay, the Files, Sessions and
+Tabs and Search panels, More's modal rail, Source Control and Chat from it, and the Spaces home. Each
+panel is in its idle state, as at two panes. Text nodes read per surface: 25, 3, 6, 12, 9, 1, 5, 13, 4, 4,
+1 or 2, 4 and 6.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| Every surface but two | 0 text nodes under 4.5:1 in all six combinations; the lowest readable pair per surface is 5.18:1 (the dim secondary text on the dark ground) or higher, except the terminal's extra-keys row, whose `End` key is 4.77:1 in light | `present` |
+| Running, `Save All` and both `Shut Down All` | the same three disabled buttons as at two panes, **1.74:1** light and **1.82:1** dark in every combination, beside the live `Close All` | `adapted`: inactive components are outside [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum), as recorded for two panes |
+| Spaces home, `Open` | **1.76:1** light and **1.82:1** dark on a stopped Space, in every combination | `adapted`, as at two panes |
+| App `System` follows the device | `System` draws the grounds `Light` does at night mode off and `Dark` does at on, on all thirteen surfaces ([ADR-0094](../adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md)) | `present` |
+| Dark Files row of the open document | not exercised: at one pane the browser is on screen only when no document is, so no row carries the selected wash (`openDocumentPath` is `takeIf { twoPane }`, `Navigation.kt`). The provisional `defect` from two panes stands on its own frames | not exercised |
+| Debugger | no route at one pane: its panel is reached by `onShowDebugger`, passed as `takeIf { twoPane }` (`Navigation.kt`), and the bottom bar and More's rail list no Debugger | not exercised: absent by construction at this width |
+| Table-of-contents overlay | a popup window, so its dump holds only the popup's own corner (`[833,318][1194,424]`) and `read_text_contrast.py` refused it as a frame of another shape. The reader now reads a dump that does not start at the origin at the frame's own scale and refuses one that overruns the frame (`read_text_contrast_test.py`); the overlay's one node, `No headings in this notebook`, reads 5.18:1 dark | `present`; instrument gap closed |
+| Source Control, `System` frames | the panel was captured before its first status arrived, so its empty-state line is missing: 1 text node (the title, 15.64:1) under `System` against 2 under `Light` and `Dark`, where the line reads 6.04:1 light and 5.18:1 dark. `System` draws those same two grounds, so the line's pair is covered, but not by a `System` frame | instrument gap: the flow does not wait for the panel's content, which `T7` decides |
+| The terminal's own text | the frames show the shell's canvas with no line of output, and the dump carries the chrome only (12 nodes), as at two panes | `adapted` ([ADR-0020](../adr/0020-the-terminals-colour-ramp-lives-in-terminal.md)); its text is unmeasured here |
+| Tab strip with five tabs | seen on the frames, not measured: the fifth tab's label is cut to `L` beside the Reload and Save actions. Whether the strip scrolls is a layout read | `T5` |
+
+```sh
+scripts/theme-six-combinations-driver.sh evidence/<step> one-pane       # 13 surfaces x 6 combinations, the home last per theme
+NIGHT_MODES=yes scripts/theme-six-combinations-driver.sh evidence/<step>-night-yes one-pane   # one device mode alone
 python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
 ```

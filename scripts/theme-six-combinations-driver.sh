@@ -7,9 +7,12 @@
 # it, and every text node's ink against its ground, listed when under 4.5:1 (read_text_contrast.py).
 # One measurement, run before a repair and after it, into the directory it is named.
 #
-#   scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo>
+#   [NIGHT_MODES="no yes"] scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo> [two-panes|one-pane]
 #
-# The terminal is the Space's real shell, so this goes on the arm64 tablet.
+# The layout is the tablet's own turn: landscape is two panes (1280dp) and portrait one (800dp), the
+# 840dp rule `isWindowWideEnoughForTwoPanes` draws. One pane has no rail, so each surface is reached by
+# the bottom bar instead and the surfaces differ (More's rail, the table of contents as an overlay, no
+# Debugger). The terminal is the Space's real shell, so this goes on the arm64 tablet.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -21,21 +24,53 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/rotation-reads.sh
 . "$ROOT/scripts/rotation-reads.sh"
 
-EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo>}"
-FLOWS="$ROOT/.maestro/theme-six-combinations"
+EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo> [two-panes|one-pane]}"
+LAYOUT="${2:-two-panes}"
+# The home is the same flow in both layouts: it relaunches the app, so it starts from nothing.
+HOME_FLOW="$ROOT/.maestro/theme-six-combinations-part3-show-the-home.yaml"
 # Each surface and the rail label that shows it, `none` for a tab. Two panels in a row would be the
 # second tap collapsing the area the first opened, so no panel is listed after itself.
-declare -A RAIL=(
-  [settings]=none [file]=none [notebook]=none [terminal]=none
-  [launcher]="New Launcher" [running-panel]="Sessions and Tabs" [search-panel]="Search"
-  [source-control-panel]="Source Control" [chat-panel]="Chat" [toc-panel]="Table of contents"
-  [debugger-panel]="Debugger" [files-panel]="Files"
-)
-SURFACES=(settings file notebook terminal launcher running-panel search-panel source-control-panel
-  chat-panel toc-panel debugger-panel files-panel)
+declare -A RAIL
+case "$LAYOUT" in
+  two-panes)
+    FLOWS="$ROOT/.maestro/theme-six-combinations"
+    TURN=1
+    RAIL=(
+      [settings]=none [file]=none [notebook]=none [terminal]=none
+      [launcher]="New Launcher" [running-panel]="Sessions and Tabs" [search-panel]="Search"
+      [source-control-panel]="Source Control" [chat-panel]="Chat" [toc-panel]="Table of contents"
+      [debugger-panel]="Debugger" [files-panel]="Files"
+    )
+    SURFACES=(settings file notebook terminal launcher running-panel search-panel source-control-panel
+      chat-panel toc-panel debugger-panel files-panel)
+    ;;
+  one-pane)
+    FLOWS="$ROOT/.maestro/theme-six-combinations-one-pane"
+    TURN=0
+    # The Debugger has no route at one pane (`onShowDebugger` is `takeIf { twoPane }`, Navigation.kt),
+    # and the table of contents is the overlay the notebook's menu opens, so neither is a bar item.
+    RAIL=(
+      [settings]=none [file]=none [notebook]=none [terminal]=none [toc-overlay]=none
+      [launcher]="New Launcher" [files-panel]="Files" [running-panel]="Sessions and Tabs"
+      [search-panel]="Search" [more-rail]="More" [source-control-panel]="Source Control"
+      [chat-panel]="Chat"
+    )
+    # Ends on a surface with the bar under it, because the home is reached from a state that has More.
+    SURFACES=(settings file notebook terminal launcher toc-overlay files-panel running-panel search-panel
+      more-rail source-control-panel chat-panel)
+    ;;
+  *)
+    echo "layout '$LAYOUT' is not one of: two-panes, one-pane" >&2
+    exit 1
+    ;;
+esac
 HOME_SURFACE=home
 FILE="notes.py"
 NOTEBOOK="theme-baseline"
+# A document at the workspace root draws no crumb, and one pane needs the crumb to leave it with its
+# tab still open (`.maestro/tabs-narrow.yaml`).
+FOLDER=""
+if [ "$LAYOUT" = one-pane ]; then FOLDER="reports/"; fi
 export MAESTRO_FILE="$FILE" MAESTRO_NOTEBOOK="$NOTEBOOK.ipynb"
 
 # The device's own mode is put back as it was found: a forced one would decide the look of every
@@ -88,8 +123,8 @@ measure_theme() { # measure_theme <theme> <night> <flow> <surface>...
 run_device_mode() { # run_device_mode <no|yes>
   "${adb[@]}" shell cmd uimode night "$1" >/dev/null
   reset_notebooks
-  seed_file "$ROOT/.maestro/fixtures/notes.py" "$FILE"
-  seed_notebook "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$NOTEBOOK"
+  seed_file "$ROOT/.maestro/fixtures/notes.py" "$FOLDER$FILE"
+  seed_file "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$FOLDER$NOTEBOOK.ipynb"
   run_flow "$FLOWS-part1-open.yaml" "$EVIDENCE/device-night-$1/opened" || exit 1
   local theme
   for theme in System Light Dark; do
@@ -97,12 +132,30 @@ run_device_mode() { # run_device_mode <no|yes>
   done
   # Last, because reaching the home ends the shell and the tabs the surfaces above need.
   for theme in System Light Dark; do
-    measure_theme "$theme" "$1" "$FLOWS-part3-show-the-home.yaml" "$HOME_SURFACE"
+    measure_theme "$theme" "$1" "$HOME_FLOW" "$HOME_SURFACE"
   done
+}
+
+# The width in force decides the layout, not the turn that was asked for: a tablet that did not turn
+# would otherwise be measured as the layout it is not, and the run would still look green.
+assert_layout_in_force() {
+  local width_dp
+  width_dp="$(window_width_dp)"
+  case "$LAYOUT:$((width_dp >= 840))" in
+    two-panes:1 | one-pane:0) echo "layout $LAYOUT, ${width_dp}dp wide" ;;
+    *)
+      echo "layout '$LAYOUT' does not fit a ${width_dp}dp window: two-panes needs >= 840dp, one-pane < 840dp" >&2
+      exit 1
+      ;;
+  esac
 }
 
 mkdir -p "$EVIDENCE"
 rm -f "$EVIDENCE/pixels.txt"
-rotate_to 1
-run_device_mode no
-run_device_mode yes
+rotate_to "$TURN"
+assert_layout_in_force
+# One device mode alone (`NIGHT_MODES=yes`) into its own evidence directory, for a capture that was
+# cut short: maestro's link to the device can drop partway through a run of two hours.
+for night_mode in ${NIGHT_MODES:-no yes}; do
+  run_device_mode "$night_mode"
+done

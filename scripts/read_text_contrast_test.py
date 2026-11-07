@@ -32,6 +32,13 @@ def _dump(texts: dict[str, tuple[int, int, int, int]], screen: tuple[int, int] =
     )
 
 
+def _popup_dump(text: str, window: tuple[int, int, int, int]) -> str:
+    """A `uiautomator dump` of a popup: one [text] node whose root states only the popup's own [window]."""
+    left, top, right, bottom = window
+    bounds = f'bounds="[{left},{top}][{right},{bottom}]"'
+    return f'<hierarchy rotation="0"><node text="" {bounds}><node text="{text}" {bounds} /></node></hierarchy>'
+
+
 def _frame_with_ink(size: tuple[int, int], ink: tuple[int, int, int], inked: tuple[int, int, int, int]) -> Image.Image:
     """A white frame with one [ink] rectangle, `inked` as left, top, right, bottom."""
     image = Image.new("RGB", size, WHITE)
@@ -83,6 +90,18 @@ class TextContrastsTest(unittest.TestCase):
     def test_a_frame_of_another_shape_is_refused_with_both_sizes(self) -> None:
         with self.assertRaisesRegex(ValueError, r"640x640.*320x640"):
             text_contrasts(_dump({"Search": (10, 10, 60, 40)}), _saved(Image.new("RGB", (640, 640), WHITE)))
+
+    def test_a_popup_windows_dump_is_read_at_the_frames_own_scale(self) -> None:
+        # A popup's dump states only its own corner of the display, so it has no scale to derive.
+        image = _frame_with_ink((320, 640), AA_EDGE, (210, 110, 220, 120))
+        (found,) = text_contrasts(_popup_dump("No headings", (200, 100, 300, 140)), _saved(image))
+        self.assertEqual(found.box, (200, 100, 300, 140))
+        self.assertGreaterEqual(found.reading.ratio, 4.5)
+
+    def test_a_popup_that_overruns_the_frame_is_refused_with_both_sizes(self) -> None:
+        small_frame = _saved(Image.new("RGB", (100, 100), WHITE))
+        with self.assertRaisesRegex(ValueError, r"300x140.*100x100"):
+            text_contrasts(_popup_dump("No headings", (200, 100, 300, 140)), small_frame)
 
     def test_nodes_without_text_or_area_produce_no_reading(self) -> None:
         dump = _dump({"": (10, 10, 60, 40), "Hidden": (70, 70, 70, 90)})
