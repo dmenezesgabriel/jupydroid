@@ -178,7 +178,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       Search from the bottom bar, More's modal rail, Source Control and Chat from it, the table of
       contents overlay, and the Spaces home. The Debugger has no route at one pane
       (`onShowDebugger ... takeIf { twoPane }`, `Navigation.kt`) and is recorded as not exercised.
-- [ ] T3c2 — **The dialogs that carry text, at one pane**, same six combinations: the set (Delete
+- [x] T3c2 — **The dialogs that carry text, at one pane**, same six combinations: the set (Delete
       confirm, Rename, Save before close, Space settings on the home) is fixed here before it runs.
 - [ ] T3d — **The high-contrast question:** VS Code's `hc_*` themes, IntelliJ's `HighContrast.theme.json`
       and Android's own high-contrast text setting, read from the references' code, verdicted `absent` or

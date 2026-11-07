@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail and the Spaces home) |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs) |
 
 ---
 
@@ -4248,4 +4248,32 @@ panel is in its idle state, as at two panes. Text nodes read per surface: 25, 3,
 scripts/theme-six-combinations-driver.sh evidence/<step> one-pane       # 13 surfaces x 6 combinations, the home last per theme
 NIGHT_MODES=yes scripts/theme-six-combinations-driver.sh evidence/<step>-night-yes one-pane   # one device mode alone
 python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
+```
+
+### The dialogs at one pane — verdicts
+
+The tablet in portrait (800dp), five dialogs in the six combinations, 36 frames each with the `uiautomator
+dump` of its own moment: the shared Delete confirm, Rename, Rename with a name it refuses, the
+Save-before-close gate, and a Space's settings on the home. A dialog is a window of its own, so its dump
+holds the dialog's nodes alone and the screen behind it is not read here (it was read as the surface it is:
+Files, a file, the home). **The set is by colour role, not by dialog.** Every dialog is an `AlertDialog`
+under `MaterialTheme` and none overrides a colour, so a dialog draws its text in one of: title and body on
+the dialog's ground; a neutral `TextButton`; a `TextButton` in `error` (Delete, Discard); a field's label
+and its refusal in `error`; a hint line under a field. These five reach all of them. The dialogs left out
+repeat a role on the same container: Overwrite, File changed, Open Link, Revert, Reload, Replace all,
+Restart, Shut down, the kernel picker, the breakpoint condition, rename symbol and the Error OKs.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| Every enabled text pair, all five dialogs | 0 text nodes under 4.5:1 in all six combinations. The lowest readable pair is **4.77:1** in light (the primary blue of `Cancel`, `Save` and `Add variable` on `#F0F1F2`) and **4.80:1** in dark (the dim secondary text on `#202122`), closer to the floor than the panels' 5.18:1 because a dialog stands on a lighter or lifted ground than the chrome | `present` |
+| `error` text on the dialog | `Delete`, `Discard`, the field's label and its refusal: **6.61:1** light (`#AD0707` on `#F0F1F2`) and **6.57:1** dark (`#F48771` on `#202122`) | `present` |
+| Rename, `Rename` on a refused name | `#BABABB` on `#F0F1F2` (**1.71:1**) in light and `#494A4A` on `#202122` (**1.81:1**) in dark, in every combination: the confirm is disabled while the name is refused (`RenameFileDialog.kt` passes `enabled = isValidName(renamed)`). `uiautomator` reports it `enabled="true"`, so the reader lists it, as it does `Save All` and `Open` | `adapted`: an inactive component is outside [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum) |
+| App `System` follows the device | `System` draws the grounds `Light` does at night mode off and `Dark` does at on, on all five dialogs ([ADR-0094](../adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md)) | `present` |
+| Space settings, scrolled | the whole dialog fits at 800dp, from `Idle shutdown` to `Cancel` and `Save`, so the frame taken after scrolling to `Environments` is the first frame again, 17 text nodes in both. It adds no coverage here; a window short enough to scroll it is the phone's (`T4`) | not exercised: nothing below the first screen at this height |
+| Save-before-close and the soft keyboard | the gate is raised over the file editor with its keyboard down; the refused-name frame has the keyboard up over the bottom bar, which the dialog's own dump does not include | `present`; the keyboard is not part of the dialog's pairs |
+
+```sh
+scripts/theme-six-combinations-driver.sh evidence/<step> one-pane-dialogs                       # device night no
+NIGHT_MODES=yes scripts/theme-six-combinations-driver.sh evidence/<step>-night-yes one-pane-dialogs   # device night yes, alone
+python3 scripts/read_text_contrast.py <dialog>.xml <dialog>.png --below 4.5
 ```

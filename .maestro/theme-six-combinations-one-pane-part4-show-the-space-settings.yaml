@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Run by scripts/theme-six-combinations-driver.sh `one-pane-dialogs`, once per app theme, after every other
+# dialog of a device mode, with MAESTRO_THEME naming the Settings row's choice and MAESTRO_SURFACE
+# `space-settings-dialog` or `space-settings-scrolled-dialog`. Raises the settings dialog of the stopped
+# base Space on the Spaces home and stops there; the scrolled one goes on to the end of the dialog, whose
+# startup script, default kernel and environments are below the first screen.
+#
+# Its own flow because the home is the bottom of the back stack and reaching it relaunches the app, which
+# ends the tabs the other dialogs need (theme-six-combinations-part3-show-the-home.yaml, which sets the
+# theme and does the relaunch). The first `launchApp` starts the app afresh, so no dialog or dirty tab of
+# the flows before this one is still there when that flow looks for the home.
+#
+# Settings is enabled only while the row reads Stopped (`SpacesHomeScreen`), which a relaunch leaves it.
+#
+# TABLET ONLY (SM-X216B): entering base starts the Space's real server, which only arm64 ships.
+- launchApp
+- runFlow: theme-six-combinations-part3-show-the-home.yaml
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Settings · Base \\(base\\)"
+    timeout: 10000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'space-settings-scrolled-dialog'}
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "Environments"
+          direction: DOWN
+          timeout: 10000
+      - scroll
+- waitForAnimationToEnd:
+    timeout: 3000

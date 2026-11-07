@@ -7,12 +7,14 @@
 # it, and every text node's ink against its ground, listed when under 4.5:1 (read_text_contrast.py).
 # One measurement, run before a repair and after it, into the directory it is named.
 #
-#   [NIGHT_MODES="no yes"] scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo> [two-panes|one-pane]
+#   [NIGHT_MODES="no yes"] scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo> [two-panes|one-pane|one-pane-dialogs]
 #
 # The layout is the tablet's own turn: landscape is two panes (1280dp) and portrait one (800dp), the
 # 840dp rule `isWindowWideEnoughForTwoPanes` draws. One pane has no rail, so each surface is reached by
 # the bottom bar instead and the surfaces differ (More's rail, the table of contents as an overlay, no
-# Debugger). The terminal is the Space's real shell, so this goes on the arm64 tablet.
+# Debugger). `one-pane-dialogs` is the same portrait tablet with a dialog on screen instead of a surface:
+# the Delete confirm, Rename (valid and refused), the Save-before-close gate, and the Space settings on
+# the home. The terminal is the Space's real shell, so this goes on the arm64 tablet.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -24,16 +26,21 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=scripts/rotation-reads.sh
 . "$ROOT/scripts/rotation-reads.sh"
 
-EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo> [two-panes|one-pane]}"
+EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo> [two-panes|one-pane|one-pane-dialogs]}"
 LAYOUT="${2:-two-panes}"
-# The home is the same flow in both layouts: it relaunches the app, so it starts from nothing.
+# What every layout runs, in order: the open flow once per device mode, the surface flow once per theme
+# and surface, then the home flow once per theme and home surface, last, because reaching the home
+# relaunches the app and ends the tabs the surfaces need. The home flow is the same in the first two
+# layouts and the dialogs' own in the third.
 HOME_FLOW="$ROOT/.maestro/theme-six-combinations-part3-show-the-home.yaml"
+HOME_SURFACES=(home)
 # Each surface and the rail label that shows it, `none` for a tab. Two panels in a row would be the
 # second tap collapsing the area the first opened, so no panel is listed after itself.
 declare -A RAIL
 case "$LAYOUT" in
   two-panes)
-    FLOWS="$ROOT/.maestro/theme-six-combinations"
+    OPEN_FLOW="$ROOT/.maestro/theme-six-combinations-part1-open.yaml"
+    SURFACE_FLOW="$ROOT/.maestro/theme-six-combinations-part2-show-a-surface.yaml"
     TURN=1
     RAIL=(
       [settings]=none [file]=none [notebook]=none [terminal]=none
@@ -45,7 +52,8 @@ case "$LAYOUT" in
       chat-panel toc-panel debugger-panel files-panel)
     ;;
   one-pane)
-    FLOWS="$ROOT/.maestro/theme-six-combinations-one-pane"
+    OPEN_FLOW="$ROOT/.maestro/theme-six-combinations-one-pane-part1-open.yaml"
+    SURFACE_FLOW="$ROOT/.maestro/theme-six-combinations-one-pane-part2-show-a-surface.yaml"
     TURN=0
     # The Debugger has no route at one pane (`onShowDebugger` is `takeIf { twoPane }`, Navigation.kt),
     # and the table of contents is the overlay the notebook's menu opens, so neither is a bar item.
@@ -59,18 +67,28 @@ case "$LAYOUT" in
     SURFACES=(settings file notebook terminal launcher toc-overlay files-panel running-panel search-panel
       more-rail source-control-panel chat-panel)
     ;;
+  one-pane-dialogs)
+    # The open flow is one pane's: the dialogs need its tabs (a file to dirty, a notebook whose crumb leads
+    # back to the browser) and its `reports` folder, which Delete and Rename act on.
+    OPEN_FLOW="$ROOT/.maestro/theme-six-combinations-one-pane-part1-open.yaml"
+    SURFACE_FLOW="$ROOT/.maestro/theme-six-combinations-one-pane-part3-show-a-dialog.yaml"
+    HOME_FLOW="$ROOT/.maestro/theme-six-combinations-one-pane-part4-show-the-space-settings.yaml"
+    TURN=0
+    # No bar item or rail row shows a dialog, so RAIL stays empty and every surface reads `none`.
+    SURFACES=(delete-dialog rename-dialog rename-invalid-dialog save-before-close-dialog)
+    HOME_SURFACES=(space-settings-dialog space-settings-scrolled-dialog)
+    ;;
   *)
-    echo "layout '$LAYOUT' is not one of: two-panes, one-pane" >&2
+    echo "layout '$LAYOUT' is not one of: two-panes, one-pane, one-pane-dialogs" >&2
     exit 1
     ;;
 esac
-HOME_SURFACE=home
 FILE="notes.py"
 NOTEBOOK="theme-baseline"
 # A document at the workspace root draws no crumb, and one pane needs the crumb to leave it with its
 # tab still open (`.maestro/tabs-narrow.yaml`).
 FOLDER=""
-if [ "$LAYOUT" = one-pane ]; then FOLDER="reports/"; fi
+if [ "$LAYOUT" != two-panes ]; then FOLDER="reports/"; fi
 export MAESTRO_FILE="$FILE" MAESTRO_NOTEBOOK="$NOTEBOOK.ipynb"
 
 # The device's own mode is put back as it was found: a forced one would decide the look of every
@@ -120,19 +138,30 @@ measure_theme() { # measure_theme <theme> <night> <flow> <surface>...
   done
 }
 
+# Autosave off, or the debounce would clear a dirty document 500 ms after the last keystroke and the
+# Save-before-close gate would be a race rather than a state. base64 as `seed_file` does it, because
+# `adb shell` eats the quotes around the JSON (`scripts/close-gate-driver.sh`).
+seed_autosave_off() {
+  local payload
+  payload="$(printf '%s' '{"autosaveEnabled":false}' | base64 -w0)"
+  "${adb[@]}" shell "run-as $APP sh -c 'mkdir -p files && echo $payload | base64 -d > $EDITOR_SETTINGS_STORE'" ||
+    { echo "the seeded settings did not land at $EDITOR_SETTINGS_STORE" >&2; exit 1; }
+}
+
 run_device_mode() { # run_device_mode <no|yes>
   "${adb[@]}" shell cmd uimode night "$1" >/dev/null
   reset_notebooks
   seed_file "$ROOT/.maestro/fixtures/notes.py" "$FOLDER$FILE"
   seed_file "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$FOLDER$NOTEBOOK.ipynb"
-  run_flow "$FLOWS-part1-open.yaml" "$EVIDENCE/device-night-$1/opened" || exit 1
+  if [ "$LAYOUT" = one-pane-dialogs ]; then seed_autosave_off; fi
+  run_flow "$OPEN_FLOW" "$EVIDENCE/device-night-$1/opened" || exit 1
   local theme
   for theme in System Light Dark; do
-    measure_theme "$theme" "$1" "$FLOWS-part2-show-a-surface.yaml" "${SURFACES[@]}"
+    measure_theme "$theme" "$1" "$SURFACE_FLOW" "${SURFACES[@]}"
   done
   # Last, because reaching the home ends the shell and the tabs the surfaces above need.
   for theme in System Light Dark; do
-    measure_theme "$theme" "$1" "$HOME_FLOW" "$HOME_SURFACE"
+    measure_theme "$theme" "$1" "$HOME_FLOW" "${HOME_SURFACES[@]}"
   done
 }
 
@@ -142,9 +171,9 @@ assert_layout_in_force() {
   local width_dp
   width_dp="$(window_width_dp)"
   case "$LAYOUT:$((width_dp >= 840))" in
-    two-panes:1 | one-pane:0) echo "layout $LAYOUT, ${width_dp}dp wide" ;;
+    two-panes:1 | one-pane:0 | one-pane-dialogs:0) echo "layout $LAYOUT, ${width_dp}dp wide" ;;
     *)
-      echo "layout '$LAYOUT' does not fit a ${width_dp}dp window: two-panes needs >= 840dp, one-pane < 840dp" >&2
+      echo "layout '$LAYOUT' does not fit a ${width_dp}dp window: two-panes needs >= 840dp, one-pane and one-pane-dialogs < 840dp" >&2
       exit 1
       ;;
   esac
