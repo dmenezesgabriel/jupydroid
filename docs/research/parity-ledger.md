@@ -63,6 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
+| Visual consistency and the theme matrix | `AUD-014` | opened — below, no verdicts yet |
 
 ---
 
@@ -4113,4 +4114,62 @@ grep -n 'WEB_LINK_SCHEMES\|fun String.isWebLinkDestination' -A2 app/src/main/jav
 grep -n '_refusal' -A10 tools/rootfs/jupydroid_mcp_bearer.py                                    # closed on no token
 grep -n 'runCatching' -A5 app/src/main/java/com/jupydroid/app/DocumentOpeners.kt               # the quiet arm
 grep -n 'exported' reference/research_repos/winlator/app/app/src/main/AndroidManifest.xml      # 1 true, 4 false
+```
+
+## Visual consistency and the theme matrix — `AUD-014`
+
+**The surface is every screen the shell shows, taken under the conditions a user changes — device,
+pane count, the app's theme against the device's night mode, and font scale — and read four ways:
+contrast, insets and gaps, touch targets, and the names a screen reader hears.** No command ids are
+claimed: this area has no reference command surface, so `read_ledger_partition.py` and
+`read_ledger_verdicts.py` have nothing to own here and are unchanged. Verdicts land with the tasks
+that produce them, and each is a measurement a command reproduces.
+
+**The matrix.** Tablet (`SM-X216B`, two panes at 1280dp) and phone (the `dev36` emulator, one pane,
+no cell run — a phone is a device, never the tablet with a forced width, per
+`scripts/adaptive-panes-driver.sh`) × `ThemeOverride` (System, Light, Dark) × the device's night mode
+(no, yes) × font scale (1.0, 2.0). System follows the device, Light and Dark ignore it, so the six
+combinations of theme and night mode are the claim, not twelve.
+
+**Decided before the audit began, so a finding must be new.** The eight syntax values are pinned to the
+resolved VS Code themes by equality and light's `constant.numeric` is the one bounded shortfall
+(ADR-0041); the resting cell border is under 3:1 on purpose (ADR-0053); the chrome ramp is VS Code's
+(ADR-0058); the app's theme is pushed down to the platform's night mode (ADR-0094); the terminal ramp
+lives in `terminal/` (ADR-0020). `GAP-120`–`GAP-144` already compare the workbench with VS Code, and
+this item adds IntelliJ's New UI and the matrix rather than redoing them.
+
+**References.** VS Code is authoritative for presentation
+(`reference/research_repos/vscode/src/vs/workbench/browser/parts/`,
+`.../platform/theme/common/colorRegistry.ts`, `.../extensions/theme-defaults/themes/`) and IntelliJ for
+the New UI's spacing as theme values
+(`reference/research_repos/intellij-community/platform/platform-resources/src/themes/expUI/`,
+`.../themes/HighContrast.theme.json`). Both ship a high-contrast theme; this app has none, and whether
+that is `absent` or `adapted` to Android's own high-contrast text setting is a `T3` verdict, not an
+assumption.
+
+**Tasks own the reads.** `T1` this section; `T2` a text-contrast reader (`scripts/read_text_contrast.py`),
+none of the existing instruments reading text off a frame; `T3` the tablet half in all six combinations;
+`T4` the phone half; `T5` insets, gaps and unused space; `T6` 48dp targets, the screen-reader names and
+200% font scale; `T7` the close.
+
+**What the existing instruments leave open.** The six-combination capture covers four surfaces
+(Settings, a file, a notebook, a terminal) on the tablet at one font scale and reads one contrast pair,
+the status bar's. `fontScale` appears in four comment lines of three instrumented tests and nowhere in
+`app/src/main`.
+
+Produced, never stored:
+
+```sh
+A=app/src/main/java/com/jupydroid/app
+grep -nE '^  [A-Z_]+,$' $A/SidePanel.kt                                                      # the shell's side panels
+grep -rhE 'SidePanelContribution\(.*label = "|^ +label = "' extensions/*/src/main            # the contributed ones
+grep -rhoE '^(internal |private )?fun [A-Z][A-Za-z]*(Screen|Pane|Panel)\(' $A extensions/*/src/main | sort -u
+grep -rlE 'AlertDialog|Dialog\(' $A extensions/*/src/main | sed 's|.*/||' | sort            # the dialogs
+sed -n 10,14p $A/domain/model/ThemeOverride.kt                                               # the theme choice
+grep -rn 'fontScale' app/src | wc -l                                                         # font scale, measured nowhere
+grep -rl 'contentDescription' $A extensions/*/src/main | wc -l                               # the files that name an icon
+grep -r 'contentDescription = null' $A extensions/*/src/main | wc -l                         # the sites that deliberately do not
+ls .maestro/theme-six-combinations-*.yaml                                                    # what the capture covers today
+python3 scripts/read_ledger_partition.py --unassigned                                        # unchanged
+python3 scripts/read_ledger_verdicts.py --missing                                            # unchanged
 ```

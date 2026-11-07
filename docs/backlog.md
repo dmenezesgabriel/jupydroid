@@ -316,7 +316,7 @@ empty space is used.
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `AUD-014` | **Visual consistency and the theme matrix, measured:** every screen at one and two panes, on a phone and a tablet, under the app's System, Light and Dark against the device's Light and Dark; insets, gaps and unused space against VS Code and IntelliJ; contrast of every text and icon pair read from the screenshots against WCAG's 4.5:1 and 3:1; TalkBack labels, 48dp targets and 200% font scale | open ← next | — | — |
+| `AUD-014` | **Visual consistency and the theme matrix, measured:** every screen at one and two panes, on a phone and a tablet, under the app's System, Light and Dark against the device's Light and Dark; insets, gaps and unused space against VS Code and IntelliJ; contrast of every text and icon pair read from the screenshots against WCAG's 4.5:1 and 3:1; TalkBack labels, 48dp targets and 200% font scale | in-progress ← next | [AUD-014](prd/AUD-014-visual-consistency-and-the-theme-matrix.md) | — |
 | `JD-067` | **The terminal's text sits inside a margin:** the grid is inset from the pane's edges, as VS Code's and IntelliJ's terminals are, and the columns and rows sent to the PTY account for it; measured before and after | open | — | — |
 | `JD-068` | **Repair what `AUD-014` names:** one item per gap, each holding in every theme combination. Nothing exists here until the measurement names it | open | — | — |
 
