@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Every surface in each of the six combinations of the app's Theme row (System, Light, Dark)
 # against the device's own night mode (no, yes). Each combination leaves a screenshot per surface -
-# Settings, a file, a notebook, a terminal - and the driver reads their pixels: the shell's vertical
+# Settings, a file, a notebook, a terminal, the launcher, each side panel and the Spaces home - and
+# the driver reads their pixels: the shell's vertical
 # parts and the seams between them (read_chrome_parts.py), the status bar's ground and the ink drawn on
 # it, and every text node's ink against its ground, listed when under 4.5:1 (read_text_contrast.py).
 # One measurement, run before a repair and after it, into the directory it is named.
@@ -22,7 +23,17 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo>}"
 FLOWS="$ROOT/.maestro/theme-six-combinations"
-SURFACES=(settings file notebook terminal)
+# Each surface and the rail label that shows it, `none` for a tab. Two panels in a row would be the
+# second tap collapsing the area the first opened, so no panel is listed after itself.
+declare -A RAIL=(
+  [settings]=none [file]=none [notebook]=none [terminal]=none
+  [launcher]="New Launcher" [running-panel]="Sessions and Tabs" [search-panel]="Search"
+  [source-control-panel]="Source Control" [chat-panel]="Chat" [toc-panel]="Table of contents"
+  [debugger-panel]="Debugger" [files-panel]="Files"
+)
+SURFACES=(settings file notebook terminal launcher running-panel search-panel source-control-panel
+  chat-panel toc-panel debugger-panel files-panel)
+HOME_SURFACE=home
 FILE="notes.py"
 NOTEBOOK="theme-baseline"
 export MAESTRO_FILE="$FILE" MAESTRO_NOTEBOOK="$NOTEBOOK.ipynb"
@@ -54,12 +65,24 @@ measure() { # measure <dir> <surface>
   python3 "$ROOT/scripts/read_text_contrast.py" "$1/$2.xml" "$png" --below 4.5
 }
 
-show_and_measure() { # show_and_measure <dir> <surface>
+show_and_measure() { # show_and_measure <dir> <surface> <flow>
   # The flow's log goes to stderr so that stdout holds the readings and nothing else.
-  run_flow "$FLOWS-part2-show-a-surface.yaml" "$1/maestro-$2" >&2 || exit 1
+  run_flow "$3" "$1/maestro-$2" >&2 || exit 1
   capture_frame "$1" "$2"
   echo "-- $2"
   measure "$1" "$2"
+}
+
+measure_theme() { # measure_theme <theme> <night> <flow> <surface>...
+  export MAESTRO_THEME="$1"
+  local night="$2" flow="$3" dir="$EVIDENCE/device-night-$2/app-$1" surface
+  shift 3
+  mkdir -p "$dir"
+  echo "== device night $night, app $MAESTRO_THEME" | tee -a "$EVIDENCE/pixels.txt"
+  for surface in "$@"; do
+    export MAESTRO_SURFACE="$surface" MAESTRO_RAIL="${RAIL[$surface]:-none}"
+    show_and_measure "$dir" "$surface" "$flow" | tee -a "$EVIDENCE/pixels.txt"
+  done
 }
 
 run_device_mode() { # run_device_mode <no|yes>
@@ -68,15 +91,13 @@ run_device_mode() { # run_device_mode <no|yes>
   seed_file "$ROOT/.maestro/fixtures/notes.py" "$FILE"
   seed_notebook "$ROOT/.maestro/fixtures/tabs-first.ipynb" "$NOTEBOOK"
   run_flow "$FLOWS-part1-open.yaml" "$EVIDENCE/device-night-$1/opened" || exit 1
+  local theme
   for theme in System Light Dark; do
-    export MAESTRO_THEME="$theme"
-    local dir="$EVIDENCE/device-night-$1/app-$theme" surface
-    mkdir -p "$dir"
-    echo "== device night $1, app $theme" | tee -a "$EVIDENCE/pixels.txt"
-    for surface in "${SURFACES[@]}"; do
-      export MAESTRO_SURFACE="$surface"
-      show_and_measure "$dir" "$surface" | tee -a "$EVIDENCE/pixels.txt"
-    done
+    measure_theme "$theme" "$1" "$FLOWS-part2-show-a-surface.yaml" "${SURFACES[@]}"
+  done
+  # Last, because reaching the home ends the shell and the tabs the surfaces above need.
+  for theme in System Light Dark; do
+    measure_theme "$theme" "$1" "$FLOWS-part3-show-the-home.yaml" "$HOME_SURFACE"
   done
 }
 

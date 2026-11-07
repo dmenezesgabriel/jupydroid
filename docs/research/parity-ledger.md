@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the four-surface tablet read's verdicts so far |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes: the four surfaces, the launcher, the side panels and the Spaces home) |
 
 ---
 
@@ -4194,4 +4194,29 @@ against 4.5:1. Whatever sits under it was looked at on the frame before it was w
 scripts/theme-six-combinations-driver.sh evidence/<step>           # the tablet; writes the frames, dumps and pixels.txt
 python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
 python3 scripts/read_text_contrast.py <surface>.xml <surface>.png   # every text node, lowest first
+```
+
+### The tablet half, the surfaces the capture lacked — verdicts
+
+The launcher, each of the seven side panels and the Spaces home, on the tablet at two panes, each in the
+six combinations (54 frames, each with the `uiautomator dump` of its own moment). The four surfaces
+above were captured again in the same run and read the same counts (27, 8, 11 and 19 text nodes, the
+same two dark Files-row pairs), so the instrument did not move. Every panel is read in its **idle
+state**: Chat has no chat open, Debugger is not stopped, Source Control is outside a repository, the
+table of contents has no headings, Search has an empty query. A populated panel is not read here. A
+panel's frame also holds the Settings tab drawn beside it, so its node count includes Settings' own.
+
+| Surface | What was measured | Verdict |
+|---|---|---|
+| Launcher | 16 text nodes, 0 under 4.5:1 in all six combinations; lowest 5.18:1 (the rail's `Workspace` label, `#8C8C8C` on `#191A1B`, dark) | `present` |
+| Files, Search, Source Control, Chat, Table of contents, Debugger (idle) | 0 text nodes under 4.5:1 in every combination; lowest readable pair 5.18:1, the dim secondary text on the dark ground | `present` |
+| Files panel, open document | not exercised: the active tab was Settings, so no row carried the selected wash behind the provisional dark `defect` above | not exercised |
+| Running, `Save All` and both `Shut Down All` | `#C0C0C2` on `#FAFAFD` (**1.74:1**) in light and `#454546` on `#191A1B` (**1.82:1**) in dark: three buttons with nothing to act on (no tab owes a write, no kernel session or terminal listed), drawn greyed beside the live `Close All` (5.18:1). `RunningSidePanel.kt` passes `enabled = saveAllEnabled`. WCAG 1.4.3 exempts "inactive user interface components" | `adapted`: a disabled control is outside the floor ([WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum)); the number is the ledger's record, not a finding |
+| Spaces home, `Open` | `#C3C3C3` on `#FFFFFF` (**1.76:1**) in light and `#404141` on `#121314` (**1.82:1**) in dark, on a stopped Space, where Open is enabled only while the row reads Running (`SpacesHomeScreen.kt`). `Run` beside it is 5.39:1 in light | `adapted`, as the row above |
+| Spaces home under app `System` | follows the device: light at night mode off, dark at on, as on every other surface ([ADR-0094](../adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md)) | `present` |
+| The reader on a disabled control | `uiautomator dump` reports `enabled="true"` for all four of these nodes, so `read_text_contrast.py` cannot tell a disabled control from a faint one and lists each as under the floor | provisional instrument gap: `T7` decides whether the reader names them apart, as it does a node with no ink in view |
+
+```sh
+scripts/theme-six-combinations-driver.sh evidence/<step>           # 13 surfaces x 6 combinations; the home runs last, per theme
+python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
 ```

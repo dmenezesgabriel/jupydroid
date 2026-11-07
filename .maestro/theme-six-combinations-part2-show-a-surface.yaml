@@ -2,7 +2,12 @@ appId: com.jupydroid.app
 ---
 # Run by scripts/theme-six-combinations-driver.sh once per app theme and surface, with MAESTRO_THEME
 # naming the Settings row's choice (System, Light or Dark) and MAESTRO_SURFACE one of settings, file,
-# notebook, terminal. Picks the theme, then shows that surface and stops.
+# notebook, terminal, or a rail entry. MAESTRO_RAIL names that entry's label (a side panel, or the
+# launcher) and is `none` for a surface that is a tab. Picks the theme, then shows that surface and stops.
+#
+# A rail entry is only ever tapped from a different panel than the one it opens: picking the panel
+# already showing collapses the area, so the driver orders the surfaces so that no two in a row
+# are the same panel.
 #
 # It takes no screenshot: the driver reads the frame and the `uiautomator dump` of the same moment
 # after this flow ends, because a dump cannot be taken while Maestro holds the device, and a frame
@@ -49,3 +54,10 @@ appId: com.jupydroid.app
       - hideKeyboard
 - waitForAnimationToEnd:
     timeout: 3000
+- runFlow:
+    when:
+      true: ${MAESTRO_RAIL != 'none'}
+    commands:
+      - tapOn: "${MAESTRO_RAIL}"
+      - waitForAnimationToEnd:
+          timeout: 3000

@@ -171,7 +171,7 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T3a — **Per-node contrast on the four surfaces the capture already has** — Settings, a file, a
       notebook, a terminal — on the tablet at two panes (landscape), in all six combinations, verdicts
       honouring ADR-0041 and ADR-0053.
-- [ ] T3b — **The surfaces the capture lacks**, still the tablet at two panes: each side panel (Files,
+- [x] T3b — **The surfaces the capture lacks**, still the tablet at two panes: each side panel (Files,
       Search, Running, Table of contents, Debugger, Source Control, Chat) and the launcher and Spaces home.
 - [ ] T3c — **One pane on the tablet** (portrait) across the surfaces of T3a and T3b, plus the dialogs
       that carry text.
