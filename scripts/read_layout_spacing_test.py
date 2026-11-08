@@ -183,6 +183,25 @@ class RealTabletFrameTest(unittest.TestCase):
         self.assertEqual((64.0, 16.0), (header.box.height, header.left_inset))
 
 
+class RealPhoneFrameTest(unittest.TestCase):
+    """A notebook on a 320dp phone at 160 dpi, one pixel to the dp: the one-pane numbers the audit reads."""
+
+    def setUp(self) -> None:
+        self.columns = column_layouts((TESTDATA / "notebook-phone.xml").read_text(), 160)
+
+    def test_the_window_is_one_320dp_column(self) -> None:
+        self.assertEqual([(0.0, 320.0)], [(column.left, column.right) for column in self.columns])
+
+    def test_the_top_bar_is_48dp_directly_under_the_24dp_status_bar(self) -> None:
+        top_bar = self.columns[0].rows[0]
+        self.assertEqual((24.0, 48.0, 12.0), (top_bar.box.top, top_bar.box.height, top_bar.left_inset))
+
+    def test_the_document_starts_24dp_under_the_top_bar(self) -> None:
+        column = self.columns[0]
+        self.assertEqual([24.0], row_gaps(column.rows)[:1])
+        self.assertEqual((72.0, 96.0), blank_bands(column)[0])
+
+
 class PopupSurfaceTest(unittest.TestCase):
     """A dump with no node as tall as the window is one popup: a dialog's window, or an overlay's.
 

@@ -190,7 +190,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       dump's bounds, against VS Code's parts and IntelliJ's `expUI_*` values, measured before any
       opinion is written. The six combinations are a determinism check, not six measurements.
 - [x] T5b — **The same reads on the tablet at one pane and in the dialogs.**
-- [ ] T5c — **The same reads on the phone** (`dev36`, one pane, kernel-free surfaces).
+- [x] T5c — **The same reads on the phone** (`dev36`, one pane, kernel-free surfaces).
 - [ ] T6 — **Targets, names and font scale:** 48dp for every actionable node, the 48 null
       `contentDescription` sites classified, 200% font scale read for clipping and overlap.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first

@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs, and of the phone |
 
 ---
 
@@ -4269,7 +4269,7 @@ Restart, Shut down, the kernel picker, the breakpoint condition, rename symbol a
 | `error` text on the dialog | `Delete`, `Discard`, the field's label and its refusal: **6.61:1** light (`#AD0707` on `#F0F1F2`) and **6.57:1** dark (`#F48771` on `#202122`) | `present` |
 | Rename, `Rename` on a refused name | `#BABABB` on `#F0F1F2` (**1.71:1**) in light and `#494A4A` on `#202122` (**1.81:1**) in dark, in every combination: the confirm is disabled while the name is refused (`RenameFileDialog.kt` passes `enabled = isValidName(renamed)`). `uiautomator` reports it `enabled="true"`, so the reader lists it, as it does `Save All` and `Open` | `adapted`: an inactive component is outside [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum) |
 | App `System` follows the device | `System` draws the grounds `Light` does at night mode off and `Dark` does at on, on all five dialogs ([ADR-0094](../adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md)) | `present` |
-| Space settings, scrolled | the whole dialog fits at 800dp, from `Idle shutdown` to `Cancel` and `Save`, so the frame taken after scrolling to `Environments` is the first frame again, 17 text nodes in both. It adds no coverage here; the phone's window is short enough to scroll it, and it is read in "The phone half" below | `present` on the phone; at 800dp not exercised: nothing below the first screen |
+| Space settings, scrolled | the scroll container (24.0 to 296.0, 96.0 to 520.0, 424.0dp) is the same in both frames and the rows inside it moved: unscrolled it ends with a 16.0dp row and 26.0dp of blank above the buttons, scrolled with a 20.0dp row and a 32.0dp row at 468.0 to 520.0, flush with its foot | `present`: the first frame in the capture where this dialog's scroll moves anything, since the tablet's 800dp window fits it whole |
 | Save-before-close and the soft keyboard | the gate is raised over the file editor with its keyboard down; the refused-name frame has the keyboard up over the bottom bar, which the dialog's own dump does not include | `present`; the keyboard is not part of the dialog's pairs |
 
 ```sh
@@ -4402,4 +4402,36 @@ scripts/theme-six-combinations-driver.sh evidence/<step> one-pane-dialogs      #
 python3 scripts/read_layout_spacing.py <surface>.xml 240 <the other five>.xml  # rows, insets, gaps, margins, blank runs
 # the library's numbers: unpack material3.aar's classes.jar into an empty directory, then
 javap -p -c -cp <dir> androidx.compose.material3.AlertDialogKt                 # the static initialiser's constants
+```
+
+### Insets, gaps and unused space on the phone — verdicts
+
+The same reader, unchanged: it read the 12 one-pane surfaces and the 6 dialogs of the phone capture (the
+`dev36` emulator, 320dp x 640dp at 160 dpi, so a pixel is a dp) in all six combinations without a change.
+The phone is one window of one width, so each surface is one column. **What it cannot see** is what it
+could not on the tablet: the file editor's lines have no node, so the `file` frame's 520.0dp of blank is
+the reader's blindness and not space, and a clickable that the next row's box clips reads as a row of its
+own (the Running panel's rows at 300.0 to 358.0 and to 364.0, gaps -58 and -6). The phone runs no cell and
+no terminal (ADR-0003), so those surfaces are not in this section.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| The six combinations lay out the same | each surface in Light with the device at day against the other five: 86 of 90 comparisons on the 18 frames read `same rows`. The 4 that differ are Settings in Dark and System: the Theme control is a segmented button and its selected segment draws a check icon, which moves that segment's label, so the row's insets change and its box `[16,128][304,176]` does not | `present`: a state of the control, not the theme. The screenshots show the check on the selected segment |
+| The status bar and the system bar | 24.0dp at the top (`statusBars frame=[0,0][320,24]` in every frame's `dumpsys window`) and 24.0dp across the foot; the tablet's are 30.0dp and 48.0dp (the status bar's 45 px at 240 dpi) | `present`: the system's, not the app's |
+| The top bar | 48.0dp from 24.0 to 72.0 with a left inset of 12.0dp (`md`): the back arrow's 48dp box, the tab strip, Reload and Save, the same 48.0dp the tablet reads at one pane (30.0 to 78.0). Not the 34.0dp strip of the tablet's two panes | `present`: one top bar at one pane, whatever the device |
+| The document starts 24dp below the top bar | the notebook: the bar ends at 72.0 and the first row begins at **96.0**, a 24.0dp band, which is the phone's status bar height (the tablet's is 30.0, its status bar). Settings: the strip ends at 72.0 and the `Theme` label (104.0 to 128.0) begins 32.0dp under it, the 24.0dp band and 8.0dp more, which is the pad the tablet's Settings rows carry above their labels. The file frame has no band. The launcher's first section label sits at 164.0, 92.0dp under the strip | `defect`, provisional, the third reading of it: the status-bar inset applied a second time (2 panes on the tablet 9 of 13, one pane 3 of 4, the phone 2 of 3 document frames). `T7` reads who pads the body and writes the failing test first. The launcher's 92.0dp is the band plus the launcher's own top padding, to be read there too |
+| The pane header | 64.0dp from 24.0 to 88.0, left inset 16.0dp (`lg`) on Files, Search, Source Control, Chat, Sessions and Tabs and the Spaces home, its trailing control's right inset 16.0dp on Files and the home | `present`: the tablet's header unchanged by width. Material's margin for the compact window class was not found on the pages read, so it is not compared |
+| The bottom bar | 64.0dp from 552.0 to 616.0 above the 24.0dp system bar, its five items edge to edge (inset 0 left and right). The tablet's bar is 64.0dp with its first and last item boxes 80.0dp inside its edges | `present`: the bar is Material's `ShortNavigationBar` and `SidePanelBar.kt` sets no inset; why the tablet insets its items and a phone does not was not read |
+| More's rail | 220.0dp wide (68.8% of 320; 27.5% of 800 on the tablet), a 100.0dp scrim, items 56.0dp tall and 0 apart, the first at 68.0 (the tablet's 74.0), Settings 56.0dp at the foot ending 44.0dp above the system bar's top | `present`: 220dp is a fixed width on both devices, not a share, so the scrim is what a narrower window gives up |
+| The table-of-contents sheet | a bottom sheet from 516.0 to 616.0: a drag handle in a 48.0dp box (516.0 to 564.0, the visible bar 4.0dp tall at 538.0) and one 52.0dp row (564.0 to 616.0) whose text sits 16.0dp (`lg`) from the left edge and 16.0dp above and below its 20.0dp line | `present`; the tablet's overlay is a centred popup with 24.0dp (`xl`) above and below its row, so a sheet and a popup pad differently, as two components |
+| Dialog padding | all six: **24.0dp (`xl`) on the left, top, right and bottom**, 16.0dp from title to content, 24.0dp from content to the buttons, the buttons' row 48.0dp with its last touch box 24.0dp from the edge | `adapted`: the tablet's values, Material 3's defaults. The padding does not shrink with the window |
+| Dialog width | **320.0dp, the window's whole width, no margin to either edge** in Rename (content 272.0dp, 24.0 to 296.0), Rename refused, Space settings and Save before close (319.0dp); Delete's dialog is the same in its screenshot. The app passes no `DialogProperties`. On the tablet the same dialogs are 328.0 to 560.0dp in an 800dp window | `present` at 320dp. Whether a 360dp or 412dp phone keeps a margin was not measured: 320dp is the narrowest window and `dev36` the only phone here. A dialog that touches both edges is a candidate for `T7` to settle against Material's rule for the margin, and no verdict is written for it on this one width |
+| A dialog's height changes with its state | Rename 80.0dp of content, Rename refused 116.0dp (36.0dp more for the message; the tablet's was 42.0); the dialog is centred, so the buttons move **18.0dp** down (254.0 to 272.0) and the title 18.0dp up (102.0 to 84.0) | `present`: Material's centring, as on the tablet (21.4dp) |
+| Space settings, scrolled | 424.0dp of content from 96.0 to 520.0 in a viewport the dialog caps below its buttons; unscrolled it ends with a 16.0dp row and 26.0dp of blank above the buttons, scrolled the rows are 26.0dp higher and nothing remains below the last | `present`: the first frame in the capture where the dialog's scroll moves, since the tablet's 800dp window fits it whole. The swipe reaches the end |
+| Unused space | below the last row: Files 294.0dp, Search 296.0, Chat 372.0, Source Control 404.0, the Spaces home 472.0, under the notebook's one cell 257.0; the launcher has none (its cards run under the foot and are cut at it) | `present`: an empty list leaves its area empty, as on the tablet (898.7 to 1051.3dp there, from a taller window) |
+
+```sh
+ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<step> one-pane phone              # the 12 surfaces
+ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<step>-dialogs one-pane-dialogs phone  # the 6 dialogs
+python3 scripts/read_layout_spacing.py <surface>.xml 160 <the other five>.xml  # rows, insets, gaps, margins, blank runs
 ```
