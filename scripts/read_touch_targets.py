@@ -9,7 +9,9 @@ tab's close button is declared 24dp (`TAB_CLOSE_TOUCH` in
 is what ADR-0048 asks and the instrumented `assertReservesMinimumTouchTarget` answers. Its name is what
 TalkBack reads: the node's own text or description, else those of the nodes beneath it. A descendant that is
 itself a target is left out, since it is announced as its own stop and a tab is not renamed by the close
-button inside it. A text field's typed value is its content, so only its description or hint names it.
+button inside it. A text field's own `text` is the typed value, which is its content, so only its description or
+hint is its own name; Compose draws a field's label and supporting text as `TextView` children of the
+`EditText`, so those name it like they would any other control.
 
 `uiautomator` reports the visible part of a node, so one scrolled half out of its scroller reads short. Such a
 target is listed apart as cut by its scroller and is neither counted under 48dp nor dropped.
@@ -160,10 +162,7 @@ def _own_name(element: ElementTree.Element) -> str:
 
 def _name_of(element: ElementTree.Element) -> str:
     """The node's own name, else the names beneath it up to the next control, joined by a space."""
-    own = _own_name(element)
-    if own or element.get("class") == TEXT_FIELD_CLASS:
-        return own
-    return " ".join(_names_beneath(element))
+    return _own_name(element) or " ".join(_names_beneath(element))
 
 
 def _names_beneath(element: ElementTree.Element) -> list[str]:

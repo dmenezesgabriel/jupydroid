@@ -106,7 +106,39 @@ class NameTest(unittest.TestCase):
         self.assertEqual(("", "Close tab"), (tab.name, close.name))
 
 
+#: Compose draws a field's label and supporting text as `TextView` children of the `EditText`, whose own
+#: `text` is the typed value; a search field also holds its option toggles, which are controls of their own.
+LABELLED_FIELD = """<hierarchy>
+  <node bounds="[0,0][400,100]" class="android.widget.EditText" package="app" text="5" clickable="true">
+    <node bounds="[10,0][200,20]" class="android.widget.TextView" package="app" text="Thread cap"/>
+    <node bounds="[10,80][200,100]" class="android.widget.TextView" package="app" text="1-64"/>
+    <node bounds="[300,10][348,58]" class="android.view.View" package="app" clickable="true" content-desc="Match case"/>
+  </node>
+</hierarchy>"""
+
+
+class FieldNameTest(unittest.TestCase):
+    def test_a_field_is_named_by_the_label_and_supporting_text_drawn_inside_it(self) -> None:
+        field = touch_targets(LABELLED_FIELD, 160, "app")[0]
+        self.assertEqual("Thread cap 1-64", field.name)
+
+    def test_a_control_inside_a_field_is_its_own_stop_and_does_not_name_the_field(self) -> None:
+        field, toggle = touch_targets(LABELLED_FIELD, 160, "app")
+        self.assertEqual(("Match case", False), (toggle.name, "Match case" in field.name))
+
+    def test_a_field_with_only_a_typed_value_is_still_unnamed(self) -> None:
+        typed = _targets()[4]
+        self.assertEqual([typed.box], [at.box for at in unnamed([typed])])
+
+
 class DumpTest(unittest.TestCase):
+    def test_the_space_settings_dialog_names_two_of_its_three_fields_by_their_labels(self) -> None:
+        found = touch_targets((TESTDATA / "space-settings-dialog.xml").read_text(), 240, "com.jupydroid.app")
+        fields = [at.name for at in found if at.kind == "EditText"]
+        self.assertEqual(
+            ["Idle shutdown (minutes) 0-1440; 0 = never", "Thread cap 1-64; blank = library default", ""], fields
+        )
+
     def test_the_tablets_two_pane_files_panel_has_43_targets_11_under_48dp_2_cut_and_all_named(self) -> None:
         found = touch_targets((TESTDATA / "files-panel-two-panes.xml").read_text(), 240, "com.jupydroid.app")
         self.assertEqual(

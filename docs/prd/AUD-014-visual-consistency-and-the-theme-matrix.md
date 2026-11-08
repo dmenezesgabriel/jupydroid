@@ -195,8 +195,9 @@ One unit each, one conventional commit each. A task that is still too large spli
       `scripts/testdata/`) reading every actionable node's layout bound in dp against 48 and the name a
       screen reader gives it (its own text or description, else its descendants'), over the dumps already
       captured on the tablet at two panes, at one pane, in the dialogs and on the phone.
-- [ ] T6b — **The 48 null `contentDescription` sites classified:** each decorative (a sibling or parent
+- [x] T6b — **The 48 null `contentDescription` sites classified:** each decorative (a sibling or parent
       names it) or an unnamed control, from the source, cross-checked against the unnamed nodes T6a finds.
+      The reader also names a text field from what is beneath it, as Compose draws a label.
 - [ ] T6c — **200% font scale:** the capture driver takes a scale, and a reader measures clipping and
       overlap against node bounds before calling either a defect; tablet and phone.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first
