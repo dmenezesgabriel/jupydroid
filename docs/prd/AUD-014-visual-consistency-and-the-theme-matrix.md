@@ -191,7 +191,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       opinion is written. The six combinations are a determinism check, not six measurements.
 - [x] T5b — **The same reads on the tablet at one pane and in the dialogs.**
 - [x] T5c — **The same reads on the phone** (`dev36`, one pane, kernel-free surfaces).
-- [ ] T6a — **Targets and names, the reader:** `scripts/read_touch_targets.py` (+ `_test.py`, fixtures in
+- [x] T6a — **Targets and names, the reader:** `scripts/read_touch_targets.py` (+ `_test.py`, fixtures in
       `scripts/testdata/`) reading every actionable node's layout bound in dp against 48 and the name a
       screen reader gives it (its own text or description, else its descendants'), over the dumps already
       captured on the tablet at two panes, at one pane, in the dialogs and on the phone.

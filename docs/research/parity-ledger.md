@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs, and of the phone |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs, and of the phone, and the touch targets and names off the captured dumps |
 
 ---
 
@@ -4434,4 +4434,31 @@ no terminal (ADR-0003), so those surfaces are not in this section.
 ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<step> one-pane phone              # the 12 surfaces
 ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<step>-dialogs one-pane-dialogs phone  # the 6 dialogs
 python3 scripts/read_layout_spacing.py <surface>.xml 160 <the other five>.xml  # rows, insets, gaps, margins, blank runs
+```
+
+### Touch targets and the names a screen reader hears — verdicts
+
+`scripts/read_touch_targets.py` reads every control of the app's window off a `uiautomator dump` — a node that is
+`clickable`, `checkable` or a text field — and reports its size in dp, the name a screen reader gives it (its own
+description or text, else the nodes beneath it up to the next control; a text field's typed value is content and
+does not name it) and whether a scroller shows only part of it. It read the dumps already captured: the tablet at
+two panes (17 frames, 605 controls), at one pane (13 frames, 175), the tablet's dialogs (6, 25), and the phone's
+one-pane surfaces (12, 132) and dialogs (6, 25). **What its size is.** It is the bound the platform reports, which
+is what Accessibility Scanner reads, and not the layout bound: the tab's close button is declared 24dp
+(`TAB_CLOSE_TOUCH`, `MainAreaTab.kt`) and the dump reports 40 x 40. So a bound under 48dp is a confirmed shortfall
+and one at 48dp or more does not prove that the layout reserves it. **What it cannot see:** what TalkBack says (a
+dump is not a screen reader), and a node a scroller half hides, which reads short and is listed apart.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| The six combinations read the same | each surface's counts in all six combinations of one capture are equal, but for the Launcher's tab and its close (two controls) in the Light and Dark runs and not in System, a state of the Space as the layout read found | `present`; one capture reads the controls |
+| The tab strip at two panes | a tab is **40.0dp tall** (69.3 to 191.3 wide), its close button 40.0 x 40.0, Reload 40.0 x 40.7 and Save 44.0 x 40.7, on 12 of the 17 frames. The source declares the row 32dp (`TAB_HEIGHT`) and the close 24dp. At one pane the strip is the top bar: close 40.0 x 48.0, Reload 40.0 x 47.3, Save 44.0 x 47.3; on the phone close 40 x 48, Reload 40 x 48, Save 44 x 48 | Reload and Save: `adapted`, ADR-0093 and ADR-0096 keep them in the strip's own height "rather than an `IconButton`'s 48dp". The tab and its close: `undocumented`, no ADR states their size and ADR-0048's 48dp names a bare `clickable` as what its guard exists for; the source comment says "at a touchable size". `T7` writes the ADR or fixes it |
+| Shut Down All | 122.7 x 43.3dp in the Running panel at two panes and at one pane, 114.0 x 42.0 on the phone, short in height on all three | `defect`, provisional: 43.3 against 48 with no ADR; the source is `RunningSidePanel.kt` and `T7` reads it before the test is written |
+| The Settings list's last rows | `Decrease` and `Increase autosave interval` read 48.0 x 36.7dp on 8 of the 17 frames (the tablet at two panes). The screenshot shows the list ending at "Autosave documents", so the steppers lie below the window's foot | `present`: cut by the scroller, not short. The reader lists them apart. Not exercised: the row scrolled into view |
+| Controls with no name in the dump | 3 text fields on the tablet at two panes and at one: one on the notebook's frame (667.3 x 48.0 at two panes), the terminal's (764.0 x 498.0) and Search's (388.0 x 56.0); 8 in the tablet's dialogs and 7 on the phone's (Rename, Rename refused, and the Space settings' idle shutdown, thread cap, startup script). In Space settings the label ("Thread cap") is a sibling `TextView` inside the field's bounds, not part of the field. On the phone's Settings a 320.0 x 24.0dp clickable with no name lies under the list at 616.0 to 640.0, the system bar's own height | not exercised: the dump gives a field no name, and whether TalkBack reads the label beside it was not run. `T6b` reads each field's source for a label or `semantics` and the 320 x 24 view's owner |
+| The instrument and ADR-0048 | the close button is a bare `clickable` declared 24dp and reported at 40 x 40, 16dp more than it declares; `read_touch_target_bounds.py` says the accessibility tree is where the layout bound can be read and ADR-0048 says the layout bound is what tells a reserved 32dp from a reserved 48 | `undocumented`: what the platform reports for a bare `clickable` is more than it reserves. The cause was not read (`touchBoundsInRoot` against an ancestor's clip), so no number above is called a layout bound. `T7` reads it and corrects the docstring or the ADR |
+
+```sh
+python3 scripts/read_touch_targets.py <surface>.xml <density> <more>.xml    # sizes under 48dp, names, controls a scroller cuts; counts for the rest
+scripts/theme-six-combinations-driver.sh evidence/<step> two-panes          # the captures it reads: two-panes, one-pane, one-pane-dialogs, and `phone`
 ```
