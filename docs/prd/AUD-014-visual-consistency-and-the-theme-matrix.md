@@ -180,7 +180,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       (`onShowDebugger ... takeIf { twoPane }`, `Navigation.kt`) and is recorded as not exercised.
 - [x] T3c2 — **The dialogs that carry text, at one pane**, same six combinations: the set (Delete
       confirm, Rename, Save before close, Space settings on the home) is fixed here before it runs.
-- [ ] T3d — **The high-contrast question:** VS Code's `hc_*` themes, IntelliJ's `HighContrast.theme.json`
+- [x] T3d — **The high-contrast question:** VS Code's `hc_*` themes, IntelliJ's `HighContrast.theme.json`
       and Android's own high-contrast text setting, read from the references' code, verdicted `absent` or
       `adapted`.
 - [ ] T4 — **The phone half** on `dev36`, one pane, kernel-free surfaces only, same reads.

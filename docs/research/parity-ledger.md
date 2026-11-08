@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs) |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs) and the high-contrast verdict |
 
 ---
 
@@ -4144,8 +4144,8 @@ this item adds IntelliJ's New UI and the matrix rather than redoing them.
 the New UI's spacing as theme values
 (`reference/research_repos/intellij-community/platform/platform-resources/src/themes/expUI/`,
 `.../themes/HighContrast.theme.json`). Both ship a high-contrast theme; this app has none, and whether
-that is `absent` or `adapted` to Android's own high-contrast text setting is a `T3d` verdict, not an
-assumption.
+that is `absent` or `adapted` to Android's own high-contrast text setting is the verdict in "High
+contrast" below, read off a frame rather than assumed.
 
 **Tasks own the reads.** `T1` this section; `T2` a text-contrast reader (`scripts/read_text_contrast.py`),
 none of the existing instruments reading text off a frame; `T3a`–`T3c2` the tablet half in all six
@@ -4276,4 +4276,34 @@ Restart, Shut down, the kernel picker, the breakpoint condition, rename symbol a
 scripts/theme-six-combinations-driver.sh evidence/<step> one-pane-dialogs                       # device night no
 NIGHT_MODES=yes scripts/theme-six-combinations-driver.sh evidence/<step>-night-yes one-pane-dialogs   # device night yes, alone
 python3 scripts/read_text_contrast.py <dialog>.xml <dialog>.png --below 4.5
+```
+
+### High contrast — verdict
+
+The three references that carry a theme system each ship a high-contrast palette as a named sibling of
+light and dark. This app ships none, and reads neither of the two signals Android offers for it. The
+frame says that is not the whole story: with the platform's high-contrast text on, the platform outlines
+every run of text the app draws, so the need is met for text without the app being told. One surface was
+read (the Spaces home, app `Dark`, device night mode off, the tablet at its landscape width), before and
+after `high_text_contrast_enabled`, with the setting restored to unset afterwards.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| What the references ship | `vscode@3f3380c6` has `hc_black.json` and `hc_light.json` beside the 2026 pair, and registers `contrastBorder` with a value only in a high-contrast theme (`hcDark #6FC3DF`, `hcLight #0F4A85`, `src/vs/platform/theme/common/colors/baseColors.ts:41`) that its parts then draw (`sidebarPart.ts:175`, `statusbarPart.ts:720`). `intellij-community@406a27a8` has `HighContrast.theme.json` (`#000000` ground, `#FFFFFF` text, `borderColor #E6E6E6`, `focusColor #1AEBFF`). `jupyterlab@7f0e6906` has `theme-dark-high-contrast-extension`, picked by name | — |
+| How the references choose it | VS Code follows the OS by default (`window.autoDetectHighContrast` is `true`, `themeMainServiceImpl.ts:45`, reading `nativeTheme.shouldUseHighContrastColors`, `:144-161`). IntelliJ does on Windows only (`LafManagerImpl.kt:615-626`). JupyterLab's `adaptive-theme` follows light and dark and never high contrast (`schema/themes.json:130`) | — |
+| What Android offers | [`AccessibilityManager.isHighContrastTextEnabled()`](https://developer.android.com/reference/android/view/accessibility/AccessibilityManager#isHighContrastTextEnabled()) and its change listener, API 36; [`UiModeManager.getContrast()`](https://developer.android.com/reference/android/app/UiModeManager#getContrast()) and its listener, API 34, a float in -1..1. Both are documented as needed only by an app that does its own rendering. The app's `minSdk` is 32 and it reads neither: `grep -rnE 'getContrast\|high_text_contrast\|HighContrast\|isHighContrastTextEnabled' app/src/main extensions/*/src/main` finds nothing, and its one `UiModeManager` use is night mode (`UiModeManagerPlatformNightMode.kt`) | `absent` as a signal the app reads |
+| Text under the platform's setting | the dump is byte-identical with the setting on and off, so the app is not told. The frame is not: each text run gets a plate of the inverse colour. `Spaces` and `Base` go from 9.95:1 to **20.15:1**, `Run` from 6.31:1 to 15.54:1, `base · 8h ago` and `Stopped` from 5.53:1 to 9.46:1, and the disabled `Open` from **1.82:1 to 9.46:1**, so the outline lifts the one pair under the floor on this surface as well. The status bar's clock is outlined too, which is the platform's own text and shows the effect is not the app's | `adapted`: the need is met for text drawn through the platform, by the platform |
+| What the setting leaves alone | the ground is `#121314` in both frames and the `+` and the gear are drawn as before: the platform strengthens text only, where VS Code's `contrastBorder` and IntelliJ's `borderColor` and `focusColor` strengthen borders and focus. This surface has no border to compare. The reader pairs a text run with the plate behind it, so these ratios say the text is legible against its outline, not that the app's ground changed | `absent` for icons: unchanged on this frame. Borders and focus rings are not exercised here; whether either is wanted is `T7`'s, with the borders [ADR-0053](../adr/0053-a-cell-at-rest-carries-no-mark-and-the-editor-border-is-the-boundary.md) already holds under 3:1 on purpose |
+| Text the platform does not draw | the terminal's lines are a canvas (`cross-cutting.md` §8.6, [ADR-0020](../adr/0020-the-terminals-colour-ramp-lives-in-terminal.md)) and the notebook's rendered output and the editor are not this surface | not exercised: only the Spaces home was read, so "text drawn through the platform" is one Compose surface, not every renderer |
+| A named high-contrast palette | none. A palette would be a third value of `ThemeOverride` and a third `ChromePalette` and `EditorPalette`; no frame here argues for or against it, since every pair read in the six combinations is at 4.5:1 or above except the three exceptions already recorded, and what the references' palettes buy beyond that is borders and focus, not text ratio | hypothesis, not a finding: `T7` decides whether it becomes a `JD-068` row |
+| `getContrast()` | the contrast level moves the platform's dynamic colour, which the PRD puts out of scope; the tablet exposes no `cmd uimode` read for it and none was taken | not exercised |
+
+```sh
+adb shell settings get secure high_text_contrast_enabled          # null: unset, the baseline
+adb shell uiautomator dump /sdcard/f.xml && adb exec-out screencap -p > baseline.png
+adb shell settings put secure high_text_contrast_enabled 1
+adb shell uiautomator dump /sdcard/f.xml && adb exec-out screencap -p > high-contrast-text.png
+adb shell settings delete secure high_text_contrast_enabled       # restore, back to null
+python3 scripts/read_text_contrast.py <frame>.xml <frame>.png     # each of the two frames
+grep -rnE 'getContrast|high_text_contrast|HighContrast|isHighContrastTextEnabled' app/src/main extensions/*/src/main
 ```
