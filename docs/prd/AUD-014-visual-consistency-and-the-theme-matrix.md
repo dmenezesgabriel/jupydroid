@@ -198,8 +198,18 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T6b — **The 48 null `contentDescription` sites classified:** each decorative (a sibling or parent
       names it) or an unnamed control, from the source, cross-checked against the unnamed nodes T6a finds.
       The reader also names a text field from what is beneath it, as Compose draws a label.
-- [ ] T6c — **200% font scale:** the capture driver takes a scale, and a reader measures clipping and
-      overlap against node bounds before calling either a defect; tablet and phone.
+- [x] T6c1 — **200% font scale, the reader, TDD:** `scripts/read_font_scale_fit.py` (+ `_test.py`, real
+      2.0 frames in `scripts/testdata/`) comparing a 2.0 dump with its 1.0 pair: named nodes that newly
+      overlap in part, targets newly under 48dp. A target cut by its scroller is not compared (more content
+      only moves the fold). A dump has no text extent (a tab's label node is 130px wide at both scales and
+      its string is cut anyway), so **truncation is read off the screenshot**, recorded as seen, with the
+      dump's numbers beside it. Read on the tablet at two panes by hand, two surfaces: 0 and 0; the
+      tablet's own `font_scale` is 1.1, not 1.0.
+- [ ] T6c2 — **The driver takes a scale, the tablet capture:** `FONT_SCALE` (default 1.0) and `THEMES`
+      envs in `theme-six-combinations-driver.sh`, the user's own `font_scale` restored on `EXIT`; one
+      combination (font scale does not interact with theme) at two panes, one pane and in the dialogs,
+      a verdict per finding; the tab label's room at one pane (the tab strip's `provisional`).
+- [ ] T6c3 — **The phone** on `dev36`, the same reads.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first
       fix per `defect`, `JD-068`'s rows named from the measurement, this PRD deleted, the backlog row
       edited, and `← next` moved to `JD-067`.

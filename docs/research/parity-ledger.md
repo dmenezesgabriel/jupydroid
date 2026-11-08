@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs, and of the phone, and the touch targets and names off the captured dumps |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs, and of the phone, and the touch targets and names off the captured dumps, and 200% font scale on the tablet at two panes |
 
 ---
 
@@ -4150,7 +4150,7 @@ contrast" below, read off a frame rather than assumed.
 **Tasks own the reads.** `T1` this section; `T2` a text-contrast reader (`scripts/read_text_contrast.py`),
 none of the existing instruments reading text off a frame; `T3a`–`T3c2` the tablet half in all six
 combinations (the capture's four surfaces, the rest at two panes, the surfaces at one pane, then the dialogs); `T3d` the
-high-contrast verdict; `T4` the phone half; `T5a`–`T5c` insets, gaps and unused space (the reader and the tablet at two panes, the tablet at one pane and the dialogs, the phone); `T6a`–`T6c` 48dp targets and screen-reader names off the dumps already captured, the 48 null
+high-contrast verdict; `T4` the phone half; `T5a`–`T5c` insets, gaps and unused space (the reader and the tablet at two panes, the tablet at one pane and the dialogs, the phone); `T6a`–`T6c3` 48dp targets and screen-reader names off the dumps already captured, the 48 null
 descriptions classified, and 200% font scale; `T7` the close.
 
 **What the existing instruments leave open.** The six-combination capture covers four surfaces
@@ -4478,4 +4478,33 @@ grep -rn 'contentDescription = null' $A extensions/*/src/main | wc -l          #
 python3 scripts/read_touch_targets.py <surface>.xml <density> <more>.xml    # sizes under 48dp, names, controls a scroller cuts; counts for the rest
 for f in $(find evidence/<step> -name '*.xml'); do python3 scripts/read_touch_targets.py $f 160 | grep '^unnamed:'; done | grep -v EditText | sort | uniq -c   # 6 of one 320 x 24 row; without the grep -v, the 68 unnamed text fields (a name does not depend on the density, a size does)
 scripts/theme-six-combinations-driver.sh evidence/<step> two-panes          # the captures it reads: two-panes, one-pane, one-pane-dialogs, and `phone`
+```
+
+### 200% font scale — the reader and the tablet at two panes
+
+`scripts/read_font_scale_fit.py` compares two `uiautomator dump`s of one screen taken at two font scales and reports
+two things a dump's bounds can establish: **named nodes that newly overlap in part** (a text or a description each,
+sharing pixels, neither inside the other, absent at the first scale) and **targets that cleared 48dp and no longer
+do**. **What a dump cannot say is whether a string was cut.** A node reports its box and not its text's extent, so
+truncation is read off the screenshot and recorded as seen. A target cut by its scroller is not compared: more
+content at a larger scale moves what lies below the fold, which is scroll position and not fit (Settings at 2.0
+lists 176 nodes against 185, and its cut set changes from the two steppers to "Autosave documents").
+**The tablet's own `font_scale` is 1.1**, read before the capture and put back after it; the 1.0 here is a capture
+taken at 1.0 for this read, and the earlier tablet captures did not record theirs. Read: the tablet at two panes
+(Files panel beside a notebook, and the Settings tab), `System` theme, device night mode off, at 1.0 and 2.0.
+**Not exercised:** one pane, the dialogs and the phone, and the five other theme combinations (font scale does not
+interact with the theme, as the six combinations read the same layout).
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| New overlaps | **0** on both surfaces. 11 named pairs overlap at both scales with the same area to the tenth of a dp²: a tab and its close button (1280.0 dp², four tabs), the tab strip and the Close, Reload and Save buttons it holds (1360.0 and 1496.0), and the last tab and Reload (128.0) | `present`; the layout's own, unchanged by the scale |
+| Targets newly under 48dp | **0** on both surfaces. The 11 targets short at 2.0 (tab 152.7 x 40.0, close 40.0 x 40.0, Reload 40.0 x 40.7, Save 44.0 x 40.7, Launcher 69.3 x 40.0) are the ones short at 1.0, to the tenth | `present`; the platform's report of these does not follow the font (see the touch-target section for its size) |
+| Tab labels | the screenshot shows "theme-…", "Termin…" and the Launcher tab as "Laur" at 2.0 (at 1.0: "theme-baseline…", "Launche"). The dump's label node is **130px wide at both scales** and its height grows from 24px to **48px, which is the tab's own box** (`TAB_HEIGHT` 32dp at 240 dpi): the text has no vertical room left, and a tab is a fixed width | `present`, provisional: ellipsis on a fixed-width tab is how it already behaves at 1.0 and the Launcher tab is the strip's scroller edge at both. Whether text taller than the 32dp row clips is not decidable off one tablet frame; `T6c2` reads it at one pane, where the strip is the top bar, and `T6c3` on the phone |
+| Rows and controls elsewhere | the screenshots of the Files panel, the notebook's bar (`Code`, `No Kernel`) and Settings at 2.0 show every label whole and no overlap. The Theme options' labels widen from 72, 49 and 45px (System, Light, Dark) to 134, 91 and 82px and Settings' rows grow, which moves the foot of the first screen: "Autosave documents" is below the fold | `present` |
+
+```sh
+python3 scripts/read_font_scale_fit.py <dump at 1.0>.xml <dump at 2.0>.xml 240   # newly overlapping, newly under 48dp
+python3 scripts/read_font_scale_fit.py scripts/testdata/font-scale/notebook-and-files-1.0.xml scripts/testdata/font-scale/notebook-and-files-2.0.xml 240
+adb shell settings get system font_scale                                          # read first, put back last: the tablet's own is 1.1
+adb shell settings put system font_scale 2.0                                      # the activity is recreated: wait, then `screencap` and `uiautomator dump`
 ```

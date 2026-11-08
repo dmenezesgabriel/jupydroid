@@ -115,6 +115,7 @@ select = ["E", "F", "I", "B", "UP", "S"]
 # S314: these parse `adb uiautomator dump` of our own app on our own device, not untrusted XML.
 "scripts/read_gutter_x.py" = ["S314"]
 "scripts/read_layout_spacing.py" = ["S314"]
+"scripts/read_font_scale_fit.py" = ["S314"]
 "scripts/read_node_fill.py" = ["S314"]
 "scripts/read_pane_widths.py" = ["S314"]
 "scripts/read_search_box_width.py" = ["S314"]
