@@ -6,6 +6,7 @@ from __future__ import annotations
 import contextlib
 import io
 import pathlib
+import tempfile
 import unittest
 
 from read_font_scale_fit import (
@@ -50,8 +51,31 @@ SHORT_ROWS = """<hierarchy>
   <node bounds="[0,120][200,180]" class="android.view.View" package="app" clickable="true" content-desc="Row"/>
 </hierarchy>"""
 
+#: A list scrolled so its last row shows 10dp of itself: uiautomator clips the row to the scroller's foot
+#: and leaves its button's box whole, so the two "overlap" where the scroller cut them. The same pair
+#: with the scroller tall enough to show both is a real overlap.
+CUT_AT_THE_FOOT = """<hierarchy>
+  <node bounds="[0,0][200,100]" class="android.widget.ScrollView" package="app" scrollable="true">
+    <node bounds="[0,90][200,100]" class="android.view.View" package="app" content-desc="Open row"/>
+    <node bounds="[150,92][198,140]" class="android.view.View" package="app" content-desc="Shut Down row"/>
+  </node>
+</hierarchy>"""
+SHOWN_WHOLE = """<hierarchy>
+  <node bounds="[0,0][200,150]" class="android.widget.ScrollView" package="app" scrollable="true">
+    <node bounds="[0,90][200,140]" class="android.view.View" package="app" content-desc="Open row"/>
+    <node bounds="[150,92][198,148]" class="android.view.View" package="app" content-desc="Shut Down row"/>
+  </node>
+</hierarchy>"""
+
 
 class NamedOverlapTest(unittest.TestCase):
+    def test_a_pair_the_scroller_cut_at_its_foot_is_not_an_overlap(self) -> None:
+        self.assertEqual([], named_overlaps(CUT_AT_THE_FOOT, 160, "app"))
+
+    def test_the_same_pair_shown_whole_is_an_overlap(self) -> None:
+        found = named_overlaps(SHOWN_WHOLE, 160, "app")
+        self.assertEqual([("Open row", "Shut Down row")], [(at.first, at.second) for at in found])
+
     def test_a_label_and_a_button_that_share_pixels_overlap_in_part(self) -> None:
         found = named_overlaps(OVERLAPPING, 160, "app")
         self.assertEqual([("Title", "Close")], [(at.first, at.second) for at in found])
@@ -117,13 +141,27 @@ class RealFramesTest(unittest.TestCase):
     def test_the_tab_strips_overlaps_are_there_at_both_scales_and_so_not_new(self) -> None:
         before = named_overlaps(self.before, 240)
         after = named_overlaps(self.after, 240)
-        self.assertIn(("Tab: Launcher", "Reload tab: theme-baseline.ipynb"), [(at.first, at.second) for at in after])
+        self.assertIn(("Tab: Settings", "Close tab: Settings"), [(at.first, at.second) for at in after])
         self.assertEqual([], newly_overlapping(before, after))
+
+    def test_the_launcher_tab_the_strips_scroller_cuts_is_not_compared(self) -> None:
+        after = [(at.first, at.second) for at in named_overlaps(self.after, 240)]
+        self.assertNotIn(("Tab: Launcher", "Reload tab: theme-baseline.ipynb"), after)
 
     def test_no_target_falls_under_48dp_at_two_hundred_percent(self) -> None:
         before = touch_targets(self.before, 240)
         after = touch_targets(self.after, 240)
         self.assertEqual([], newly_short_targets(before, after))
+
+
+def _directories_holding(root: pathlib.Path, surfaces: list[str]) -> tuple[pathlib.Path, pathlib.Path]:
+    """Two directories, one per scale, each holding the real notebook frames under every surface's name."""
+    before, after = root / "scale-1.0", root / "scale-2.0"
+    for directory, scale in ((before, "1.0"), (after, "2.0")):
+        directory.mkdir()
+        for surface in surfaces:
+            (directory / f"{surface}.xml").write_text((TESTDATA / f"notebook-and-files-{scale}.xml").read_text())
+    return before, after
 
 
 class MainTest(unittest.TestCase):
@@ -139,6 +177,31 @@ class MainTest(unittest.TestCase):
         self.assertEqual(0, code)
         self.assertIn("0 newly overlapping", text)
         self.assertIn("0 newly under 48dp", text)
+
+    def test_two_directories_are_read_one_surface_at_a_time(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            before, after = _directories_holding(pathlib.Path(tmp), ["files-panel", "notebook"])
+            code, text = self._run(["read_font_scale_fit.py", str(before), str(after), "240"])
+        self.assertEqual(0, code)
+        self.assertEqual(
+            ["-- files-panel", "-- notebook"], [line for line in text.splitlines() if line.startswith("--")]
+        )
+        self.assertEqual(2, text.count("0 newly overlapping, 0 newly under 48dp"))
+
+    def test_a_surface_captured_at_one_scale_only_is_named(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            before, after = _directories_holding(pathlib.Path(tmp), ["notebook"])
+            (before / "terminal.xml").write_text("<hierarchy/>")
+            (after / "launcher.xml").write_text("<hierarchy/>")
+            _, text = self._run(["read_font_scale_fit.py", str(before), str(after), "240"])
+        self.assertIn("-- launcher: captured at the second scale only", text)
+        self.assertIn("-- terminal: captured at the first scale only", text)
+
+    def test_a_directory_beside_a_file_is_refused(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            before, after = _directories_holding(pathlib.Path(tmp), ["notebook"])
+            with self.assertRaisesRegex(ValueError, "both be directories or both be dumps"):
+                self._run(["read_font_scale_fit.py", str(before), str(after / "notebook.xml"), "240"])
 
     def test_without_arguments_it_prints_its_usage(self) -> None:
         code, text = self._run(["read_font_scale_fit.py"])

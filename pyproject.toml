@@ -105,6 +105,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/installed_release_check_test.py" = ["S603"]
 # The test sources java-home.sh with `sh` and a fixture HOME; the argv is literal.
 "scripts/java_home_test.py" = ["S603", "S607"]
+# The test sources font-scale.sh with `bash` beside a fake `adb`; the argv is literal.
+"scripts/font_scale_script_test.py" = ["S603", "S607"]
 # The test builds a scratch git repository and runs the locked semantic-release in it; both argvs are literal.
 "scripts/release_cut_config_test.py" = ["S603", "S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]

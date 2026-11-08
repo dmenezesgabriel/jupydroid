@@ -110,14 +110,14 @@ def _collect(
 ) -> None:
     if element.get("package") == package and _is_target(element):
         box = _box_dp(element, scale)
-        found.append(TouchTarget(box, _kind(element), _name_of(element), _is_cut(box, scroller)))
+        found.append(TouchTarget(box, _kind(element), _name_of(element), is_cut(box, scroller)))
     if element.get("scrollable") == "true" and element.get("bounds"):
         scroller = Scroller(_box_dp(element, scale), element.get("class") == HORIZONTAL_SCROLLER_CLASS)
     for child in element:
         _collect(child, scale, package, scroller, found)
 
 
-def _is_cut(box: Box, scroller: Scroller | None) -> bool:
+def is_cut(box: Box, scroller: Scroller | None) -> bool:
     """Whether the scroller's own axis shows only part of [box]; the other axis is the layout's, not its."""
     if scroller is None:
         return False

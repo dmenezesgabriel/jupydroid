@@ -9,7 +9,7 @@ not an overlap, and a pair that overlapped already at the first scale is the lay
 
 **What a dump cannot say is whether a string was cut.** A node reports its box and not the extent of its text:
 a tab's label is 130px wide at font scale 1.0 and at 2.0, and its string ends in an ellipsis at 2.0. That is read
-off the screenshot, and the dump's numbers are quoted beside it. A target cut by its scroller is not compared
+off the screenshot, and the dump's numbers are quoted beside it. A node cut by its scroller is not compared
 either: more content at a larger scale only moves what lies below the fold, which is scroll position and not fit.
 
 **A measurement, not a gate.** It reports and exits 0.
@@ -17,6 +17,8 @@ either: more content at a larger scale only moves what lies below the fold, whic
     python3 scripts/read_font_scale_fit.py <dump at the first scale.xml> <dump at the second scale.xml> <density>
 
 Both dumps must be of the same screen in the same state, the second taken after `settings put system font_scale`.
+Two directories read every `<surface>.xml` they share, which is what `theme-six-combinations-driver.sh` leaves
+per surface when run once at each `FONT_SCALE`; a surface captured at one scale only is named.
 """
 
 from __future__ import annotations
@@ -29,7 +31,16 @@ import xml.etree.ElementTree as ElementTree
 from read_layout_spacing import Box
 from read_pane_widths import BASELINE_DPI, BOUNDS
 from read_touch_target_bounds import MINIMUM_DP
-from read_touch_targets import APP_PACKAGE, NAME_ATTRIBUTES, TouchTarget, touch_targets, under_minimum
+from read_touch_targets import (
+    APP_PACKAGE,
+    HORIZONTAL_SCROLLER_CLASS,
+    NAME_ATTRIBUTES,
+    Scroller,
+    TouchTarget,
+    is_cut,
+    touch_targets,
+    under_minimum,
+)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,7 +65,7 @@ def named_overlaps(xml_text: str, density: int, package: str = APP_PACKAGE) -> l
     ```
     """
     named: list[tuple[str, Box]] = []
-    _collect_named(ElementTree.fromstring(xml_text), density / BASELINE_DPI, package, named)
+    _collect_named(ElementTree.fromstring(xml_text), density / BASELINE_DPI, package, None, named)
     pairs = ((one, other) for index, one in enumerate(named) for other in named[index + 1 :])
     return [found for one, other in pairs if (found := _partial_overlap(one, other))]
 
@@ -74,12 +85,18 @@ def newly_short_targets(before: list[TouchTarget], after: list[TouchTarget]) -> 
     return [at for at in under_minimum(after) if (at.kind, at.name) in cleared]
 
 
-def _collect_named(element: ElementTree.Element, scale: float, package: str, found: list[tuple[str, Box]]) -> None:
+def _collect_named(
+    element: ElementTree.Element, scale: float, package: str, scroller: Scroller | None, found: list[tuple[str, Box]]
+) -> None:
     name = next((value for attribute in NAME_ATTRIBUTES if (value := element.get(attribute))), "")
     if name and element.get("package") == package:
-        found.append((name, _box_dp(element, scale)))
+        box = _box_dp(element, scale)
+        if not is_cut(box, scroller):
+            found.append((name, box))
+    if element.get("scrollable") == "true" and element.get("bounds"):
+        scroller = Scroller(_box_dp(element, scale), element.get("class") == HORIZONTAL_SCROLLER_CLASS)
     for child in element:
-        _collect_named(child, scale, package, found)
+        _collect_named(child, scale, package, scroller, found)
 
 
 def _box_dp(element: ElementTree.Element, scale: float) -> Box:
@@ -104,17 +121,43 @@ def _describe(target: TouchTarget) -> str:
     return f"{target.kind} {target.size[0]:g} x {target.size[1]:g} dp {target.name!r}"
 
 
-def main(argv: list[str]) -> int:
-    if len(argv) != 4:
-        print(__doc__)
-        return 2
-    before_xml, after_xml = (pathlib.Path(path).read_text() for path in argv[1:3])
-    density = int(argv[3])
+def _report(before_xml: str, after_xml: str, density: int) -> list[str]:
     overlaps = newly_overlapping(named_overlaps(before_xml, density), named_overlaps(after_xml, density))
     short = newly_short_targets(touch_targets(before_xml, density), touch_targets(after_xml, density))
     lines = [f"{len(overlaps)} newly overlapping, {len(short)} newly under {MINIMUM_DP:g}dp"]
     lines += [f"overlapping: {at.first!r} and {at.second!r} share {at.area:g} dp2" for at in overlaps]
     lines += [f"under {MINIMUM_DP:g}dp: {_describe(at)}" for at in short]
+    return lines
+
+
+def _report_directories(before: pathlib.Path, after: pathlib.Path, density: int) -> list[str]:
+    """One block per surface, a dump named alike in both directories; a surface in one is named, not skipped."""
+    first = {at.stem: at for at in before.glob("*.xml")}
+    second = {at.stem: at for at in after.glob("*.xml")}
+    lines: list[str] = []
+    for surface in sorted(first.keys() | second.keys()):
+        if surface not in second:
+            lines.append(f"-- {surface}: captured at the first scale only")
+        elif surface not in first:
+            lines.append(f"-- {surface}: captured at the second scale only")
+        else:
+            lines.append(f"-- {surface}")
+            lines += _report(first[surface].read_text(), second[surface].read_text(), density)
+    return lines
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) != 4:
+        print(__doc__)
+        return 2
+    before, after = pathlib.Path(argv[1]), pathlib.Path(argv[2])
+    density = int(argv[3])
+    if before.is_dir() != after.is_dir():
+        raise ValueError(f"{before} and {after} must both be directories or both be dumps")
+    if before.is_dir():
+        lines = _report_directories(before, after, density)
+    else:
+        lines = _report(before.read_text(), after.read_text(), density)
     print("\n".join(lines))
     return 0
 

@@ -7,7 +7,13 @@
 # it, and every text node's ink against its ground, listed when under 4.5:1 (read_text_contrast.py).
 # One measurement, run before a repair and after it, into the directory it is named.
 #
-#   [NIGHT_MODES="no yes"] scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo> [two-panes|one-pane|one-pane-dialogs] [tablet|phone]
+#   [NIGHT_MODES="no yes"] [THEMES="System Light Dark"] [FONT_SCALE=<scale>] scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo> [two-panes|one-pane|one-pane-dialogs] [tablet|phone]
+#
+# `FONT_SCALE` sets the device's font scale for the run and puts its own back on exit; unset, the run
+# captures at whatever the device has. Font scale does not interact with the theme, so a run at two scales
+# is `THEMES=System NIGHT_MODES=no` once at each, into two directories, and
+# `read_font_scale_fit.py <directory at the first scale>/device-night-no/app-System <the second's> <density>`
+# compares their dumps surface by surface.
 #
 # The layout is the tablet's own turn: landscape is two panes (1280dp) and portrait one (800dp), the
 # 840dp rule `isWindowWideEnoughForTwoPanes` draws. One pane has no rail, so each surface is reached by
@@ -29,10 +35,13 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/maestro-run.sh"
 # shellcheck source=scripts/rotation-reads.sh
 . "$ROOT/scripts/rotation-reads.sh"
+# shellcheck source=scripts/font-scale.sh
+. "$ROOT/scripts/font-scale.sh"
 
 EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo> [two-panes|one-pane|one-pane-dialogs]}"
 LAYOUT="${2:-two-panes}"
 DEVICE="${3:-tablet}"
+THEMES="${THEMES:-System Light Dark}"
 # What every layout runs, in order: the open flow once per device mode, the surface flow once per theme
 # and surface, then the home flow once per theme and home surface, last, because reaching the home
 # relaunches the app and ends the tabs the surfaces need. The home flow is the same in the first two
@@ -115,6 +124,7 @@ original_night="$("${adb[@]}" shell cmd uimode night | tr -d '\r' | sed 's/^Nigh
 restore_device() {
   if [ "$DEVICE" = tablet ]; then restore_rotation; fi
   "${adb[@]}" shell cmd uimode night "$original_night" >/dev/null
+  restore_font_scale
 }
 trap restore_device EXIT
 
@@ -177,11 +187,11 @@ run_device_mode() { # run_device_mode <no|yes>
   if [ "$LAYOUT" = one-pane-dialogs ]; then seed_autosave_off; fi
   run_flow "$OPEN_FLOW" "$EVIDENCE/device-night-$1/opened" || exit 1
   local theme
-  for theme in System Light Dark; do
+  for theme in $THEMES; do
     measure_theme "$theme" "$1" "$SURFACE_FLOW" "${SURFACES[@]}"
   done
   # Last, because reaching the home ends the shell and the tabs the surfaces above need.
-  for theme in System Light Dark; do
+  for theme in $THEMES; do
     measure_theme "$theme" "$1" "$HOME_FLOW" "${HOME_SURFACES[@]}"
   done
 }
@@ -210,6 +220,7 @@ mkdir -p "$EVIDENCE"
 record_device "$EVIDENCE"
 rm -f "$EVIDENCE/pixels.txt"
 if [ "$DEVICE" = tablet ]; then rotate_to "$TURN"; fi
+if [ -n "${FONT_SCALE:-}" ]; then set_font_scale "$FONT_SCALE"; fi
 assert_layout_in_force
 # One device mode alone (`NIGHT_MODES=yes`) into its own evidence directory, for a capture that was
 # cut short: maestro's link to the device can drop partway through a run of two hours.
