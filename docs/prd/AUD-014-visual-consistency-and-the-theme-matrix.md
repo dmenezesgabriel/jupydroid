@@ -210,7 +210,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       (`scripts/font-scale.sh`, + `_test.py` over a fake `adb`); `read_font_scale_fit.py` compares two
       directories of dumps by surface; one combination (font scale does not interact with theme) at two
       panes, a verdict per finding.
-- [ ] T6c2b — **One pane and the dialogs, the same reads**, a verdict per finding; the tab label's room
+- [x] T6c2b — **One pane and the dialogs, the same reads**, a verdict per finding; the tab label's room
       at one pane (the tab strip's `provisional`).
 - [ ] T6c3 — **The phone** on `dev36`, the same reads.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first

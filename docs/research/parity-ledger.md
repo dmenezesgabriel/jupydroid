@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs, and of the phone, and the touch targets and names off the captured dumps, and 200% font scale on the tablet at two panes |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs, and of the phone, and the touch targets and names off the captured dumps, and 200% font scale on the tablet at two panes, at one pane and in the dialogs |
 
 ---
 
@@ -4480,7 +4480,7 @@ for f in $(find evidence/<step> -name '*.xml'); do python3 scripts/read_touch_ta
 scripts/theme-six-combinations-driver.sh evidence/<step> two-panes          # the captures it reads: two-panes, one-pane, one-pane-dialogs, and `phone`
 ```
 
-### 200% font scale — the reader and the tablet at two panes
+### 200% font scale — the reader and the tablet
 
 `scripts/read_font_scale_fit.py` compares two `uiautomator dump`s of one screen taken at two font scales and reports
 two things a dump's bounds can establish: **named nodes that newly overlap in part** (a text or a description each,
@@ -4494,15 +4494,17 @@ taken at 1.0 for this read, and the earlier tablet captures did not record their
 two panes (Files panel beside a notebook, and the Settings tab), then by the driver, which sets `FONT_SCALE`, puts the
 device's own back on exit (the tablet read 1.1 before and after both runs) and leaves one directory of dumps per scale:
 13 surfaces (Settings, a file, a notebook, a terminal, the launcher, the seven side panels, the Spaces home), `System`
-theme, device night mode off, at 1.0 and 2.0. **Not exercised:** one pane and the dialogs (`T6c2b`), the phone
-(`T6c3`), and the five other theme combinations (font scale does not interact with the theme, as the six
+theme, device night mode off, at 1.0 and 2.0. The same driver then read the tablet at one pane (portrait, 800dp: 13
+surfaces, `one-pane`) and with a dialog on screen (6 surfaces, `one-pane-dialogs`: Delete, Rename valid and refused,
+Save before close, the Space settings and its scrolled foot), each at 1.0 and 2.0, and the tablet's `font_scale` read 1.1
+after every run. **Not exercised:** the phone (`T6c3`), and the five other theme combinations (font scale does not interact with the theme, as the six
 combinations read the same layout).
 
 | Finding | What was measured | Verdict |
 |---|---|---|
 | New overlaps | **0** on both surfaces. 10 named pairs overlap at both scales with the same area to the tenth of a dp²: a tab and its close button (1280.0 dp², four tabs), and the tab strip and the Close, Reload and Save buttons it holds (1360.0 and 1496.0). An 11th, the last tab and Reload (128.0), is the Launcher tab at the strip's scroller edge and is no longer compared | `present`; the layout's own, unchanged by the scale |
 | Targets newly under 48dp | **0** on both surfaces. The 11 targets short at 2.0 (tab 152.7 x 40.0, close 40.0 x 40.0, Reload 40.0 x 40.7, Save 44.0 x 40.7, Launcher 69.3 x 40.0) are the ones short at 1.0, to the tenth | `present`; the platform's report of these does not follow the font (see the touch-target section for its size) |
-| Tab labels | the screenshot shows "theme-…", "Termin…" and the Launcher tab as "Laur" at 2.0 (at 1.0: "theme-baseline…", "Launche"). The dump's label node is **130px wide at both scales** and its height grows from 24px to **48px, which is the tab's own box** (`TAB_HEIGHT` 32dp at 240 dpi): the text has no vertical room left, and a tab is a fixed width | `present`, provisional: ellipsis on a fixed-width tab is how it already behaves at 1.0 and the Launcher tab is the strip's scroller edge at both. Whether text taller than the 32dp row clips is not decidable off one tablet frame; `T6c2b` reads it at one pane, where the strip is the top bar, and `T6c3` on the phone. With a notebook active the strip's last tab is cut at the scroller edge with no ellipsis ("Setting:", "Laur"), which is scroll position |
+| Tab labels | the screenshot shows "theme-…", "Termin…" and the Launcher tab as "Laur" at 2.0 (at 1.0: "theme-baseline…", "Launche"). The dump's label node is **130px wide at both scales** and its height grows from 24px to **48px, which is the tab's own box** (`TAB_HEIGHT` 32dp at 240 dpi): the text has no vertical room left, and a tab is a fixed width | `present`, provisional: ellipsis on a fixed-width tab is how it already behaves at 1.0 and the Launcher tab is the strip's scroller edge at both. Whether text taller than the 32dp row clips is read at one pane below, and `T6c3` reads the phone. With a notebook active the strip's last tab is cut at the scroller edge with no ellipsis ("Setting:", "Laur"), which is scroll position |
 | Rows and controls elsewhere | the screenshots of the Files panel, the notebook's bar (`Code`, `No Kernel`) and Settings at 2.0 show every label whole and no overlap. The Theme options' labels widen from 72, 49 and 45px (System, Light, Dark) to 134, 91 and 82px and Settings' rows grow, which moves the foot of the first screen: "Autosave documents" is below the fold | `present` |
 
 | 13 surfaces, driver | **0 newly overlapping and 0 newly under 48dp on every surface**, 12 of them showing every label whole in the screenshot (the Chat panel's "MCP servers" chip wraps onto two lines, whole) | `present` |
@@ -4510,10 +4512,23 @@ combinations read the same layout).
 | Terminal symbol row | "Ctrl" and "Alt" are drawn as "Ctrl Alt" at 1.0 and "CtrlAlt" at 2.0. Each key keeps its own target (Ctrl 70.7 x 48 dp, Alt 52.7 x 48 dp, against 48 x 48 dp at 1.0) and its own name, so no target is lost, and the row still fits the pane (PgDn is visible) | `defect`, minor: two keys read as one word; repair is `T7`'s |
 | The reader's own false positive | the first read of Sessions and Tabs reported 1 new overlap, 'Open terminal: terminals/1' and 'Shut Down: terminals/1' (480 dp²). At 2.0 the Terminals row sits at the scroller's foot: the dump clips the row to 27px (`[1101,1128]`) and leaves its button's box whole (`[1113,1164]`), so the two share pixels where the scroller cut them. `named_overlaps` now skips a node the scroller cuts, as `touch_targets` already did (`is_cut`) | `defect` in the reader, fixed: `test_a_pair_the_scroller_cut_at_its_foot_is_not_an_overlap`, and its twin that shows the same pair whole is still an overlap |
 
+**One pane and the dialogs.** Read by the driver, `System` theme, night off, 1.0 against 2.0:
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| New overlaps and targets under 48dp, one pane | **0 and 0 on all 13 surfaces** (Settings, a file, a notebook, a terminal, the launcher, Files, Sessions and Tabs, Search, More's rail, Source Control, Chat, the table of contents overlay, the Spaces home) | `present` |
+| New overlaps and targets under 48dp, dialogs | **0 and 0 on all 6** after the reader's fix below; the screenshots show every title, body and button whole, the refused Rename's four-line message whole, and the Space settings' scrolled frame reaching its Cancel and Save | `present` |
+| Icons against text | Text follows the font and icons do not, which the platform does by design (an icon is `dp`, a label `sp`). Measured off the dump: the notebook's `Code` label goes from 20 to 37.3 dp tall and `No Kernel` from 40 to 53.3, while Undo, Redo and Find stay 48 x 48 dp and a tab's close target 40 x 48. In the source a tab's icon is `TAB_ICON` 14dp, its row `TAB_HEIGHT` 32dp. The screenshots show the 14dp glyphs beside labels more than twice their height in the tab strip and Sessions and Tabs, and More's rail icons beside 37.3 dp labels (20 dp at 1.0). No target shrank and every control keeps its name, so nothing is lost; what is lost is proportion | `present`: Android's default behaviour for `dp` icons; not yet compared with how the references scale theirs (`T7` names the rows `JD-068` takes from it) |
+| Tab labels at one pane | the strip is the top bar here. At 2.0 "theme-baseline.ipynb" shows as "theme-bas…" and the last tab as "Sett" at the scroller's edge (no ellipsis, so scroll position); the glyphs of "notes.py" keep their descenders, so text taller than the 32dp row does **not** clip on the screenshot. The names are whole in Sessions and Tabs one tap away | `present`: this settles the two-pane `provisional` |
+| Launcher cards, terminal symbol row | the two-pane defects repeat: "Python 3" is "Pytho…" on the Notebook and Console cards and "Ctrl" and "Alt" read "CtrlAlt" | `defect`, the same two; repair is `T7`'s |
+| Terminal symbol row's foot | at 1.0 all eight keys fit (PgDn 963–1023 px of 1200); at 2.0 PgDn is **20 px visible** (`[1180,1773][1200,1836]`) and the row scrolls (`horizontalScroll`, `TerminalExtraKeysRow.kt`). The editor's symbol row is cut at the edge the same way | `present`: a clipped key at a scroller's edge is the platform's cue that the row scrolls, and the key is reachable |
+| The reader's second false positive | the first read of Rename reported 1 new overlap in each of the valid and refused frames ('reports' and 'Name', then 'a/b' and 'Name', 2040 dp²). The outlined field's floating label is drawn centred on the field's top border: at 1.0 its box (y 613–637) lay inside the field's (613–733), at 2.0 it starts 3 px above it (603–651 against 606–755). The screenshot shows the label on the outline and no collision. `named_overlaps` now skips a label that sits horizontally within an `EditText` with its centre inside it | `defect` in the reader, fixed: `test_a_fields_floating_label_on_its_border_is_not_an_overlap`, and its twin, which keeps the same label straddling a button an overlap |
+
 ```sh
 python3 scripts/read_font_scale_fit.py <dump at 1.0>.xml <dump at 2.0>.xml 240   # newly overlapping, newly under 48dp
 FONT_SCALE=2.0 THEMES=System NIGHT_MODES=no scripts/theme-six-combinations-driver.sh <dir>/scale-2.0 two-panes tablet   # and 1.0
 python3 scripts/read_font_scale_fit.py <dir>/scale-1.0/device-night-no/app-System <dir>/scale-2.0/device-night-no/app-System 240  # per surface
+FONT_SCALE=<1.0|2.0> THEMES=System NIGHT_MODES=no scripts/theme-six-combinations-driver.sh <dir>/scale-<n> <one-pane|one-pane-dialogs> tablet  # one pane, the dialogs
 python3 scripts/read_font_scale_fit.py scripts/testdata/font-scale/notebook-and-files-1.0.xml scripts/testdata/font-scale/notebook-and-files-2.0.xml 240
 adb shell settings get system font_scale                                          # read first, put back last: the tablet's own is 1.1
 adb shell settings put system font_scale 2.0                                      # the activity is recreated: wait, then `screencap` and `uiautomator dump`

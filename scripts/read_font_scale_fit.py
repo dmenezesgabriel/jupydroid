@@ -42,6 +42,8 @@ from read_touch_targets import (
     under_minimum,
 )
 
+TEXT_FIELD_CLASS = "android.widget.EditText"
+
 
 @dataclasses.dataclass(frozen=True)
 class Overlap:
@@ -64,10 +66,17 @@ def named_overlaps(xml_text: str, density: int, package: str = APP_PACKAGE) -> l
     named_overlaps(open("hierarchy.xml").read(), 240)  # -> [Overlap("Tab: Launcher", "Reload tab: ...", 6.0)]
     ```
     """
-    named: list[tuple[str, Box]] = []
+    named: list[_Named] = []
     _collect_named(ElementTree.fromstring(xml_text), density / BASELINE_DPI, package, None, named)
     pairs = ((one, other) for index, one in enumerate(named) for other in named[index + 1 :])
     return [found for one, other in pairs if (found := _partial_overlap(one, other))]
+
+
+@dataclasses.dataclass(frozen=True)
+class _Named:
+    name: str
+    box: Box
+    is_text_field: bool
 
 
 def newly_overlapping(before: list[Overlap], after: list[Overlap]) -> list[Overlap]:
@@ -86,13 +95,13 @@ def newly_short_targets(before: list[TouchTarget], after: list[TouchTarget]) -> 
 
 
 def _collect_named(
-    element: ElementTree.Element, scale: float, package: str, scroller: Scroller | None, found: list[tuple[str, Box]]
+    element: ElementTree.Element, scale: float, package: str, scroller: Scroller | None, found: list[_Named]
 ) -> None:
     name = next((value for attribute in NAME_ATTRIBUTES if (value := element.get(attribute))), "")
     if name and element.get("package") == package:
         box = _box_dp(element, scale)
         if not is_cut(box, scroller):
-            found.append((name, box))
+            found.append(_Named(name, box, element.get("class") == TEXT_FIELD_CLASS))
     if element.get("scrollable") == "true" and element.get("bounds"):
         scroller = Scroller(_box_dp(element, scale), element.get("class") == HORIZONTAL_SCROLLER_CLASS)
     for child in element:
@@ -106,9 +115,23 @@ def _box_dp(element: ElementTree.Element, scale: float) -> Box:
     return Box(*(int(at) / scale for at in found.groups()))
 
 
-def _partial_overlap(one: tuple[str, Box], other: tuple[str, Box]) -> Overlap | None:
-    (first, box), (second, other_box) = one, other
+def _is_label_on_border(field: _Named, label: _Named) -> bool:
+    """A text field's floating label, which Material draws centred on the field's top border.
+
+    The label's box starts above the field's, so the dump lists the two as sharing pixels in part, where the
+    screenshot shows the label sitting on the outline (`test_a_fields_floating_label_on_its_border_is_not_an_overlap`).
+    """
+    if not field.is_text_field or label.is_text_field:
+        return False
+    centre = (label.box.top + label.box.bottom) / 2
+    return field.box.left <= label.box.left and label.box.right <= field.box.right and field.box.top <= centre
+
+
+def _partial_overlap(one: _Named, other: _Named) -> Overlap | None:
+    (first, box), (second, other_box) = (one.name, one.box), (other.name, other.box)
     if box.contains(other_box) or other_box.contains(box):
+        return None
+    if _is_label_on_border(one, other) or _is_label_on_border(other, one):
         return None
     width = min(box.right, other_box.right) - max(box.left, other_box.left)
     height = min(box.bottom, other_box.bottom) - max(box.top, other_box.top)

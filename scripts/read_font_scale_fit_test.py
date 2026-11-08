@@ -67,8 +67,23 @@ SHOWN_WHOLE = """<hierarchy>
   </node>
 </hierarchy>"""
 
+#: The Rename dialog at 2.0: the outlined field's floating label sits on the field's top border, 3px above the
+#: field's own box, as Material draws it. The same label over a plain button is a real overlap.
+LABEL_ON_THE_FIELDS_BORDER = """<hierarchy>
+  <node bounds="[390,606][810,755]" class="android.widget.EditText" package="app" text="reports"/>
+  <node bounds="[414,603][516,651]" class="android.widget.TextView" package="app" text="Name"/>
+</hierarchy>"""
+LABEL_ON_A_BUTTONS_EDGE = LABEL_ON_THE_FIELDS_BORDER.replace("android.widget.EditText", "android.widget.Button")
+
 
 class NamedOverlapTest(unittest.TestCase):
+    def test_a_fields_floating_label_on_its_border_is_not_an_overlap(self) -> None:
+        self.assertEqual([], named_overlaps(LABEL_ON_THE_FIELDS_BORDER, 160, "app"))
+
+    def test_the_same_label_straddling_a_button_is_an_overlap(self) -> None:
+        found = named_overlaps(LABEL_ON_A_BUTTONS_EDGE, 160, "app")
+        self.assertEqual([("reports", "Name")], [(at.first, at.second) for at in found])
+
     def test_a_pair_the_scroller_cut_at_its_foot_is_not_an_overlap(self) -> None:
         self.assertEqual([], named_overlaps(CUT_AT_THE_FOOT, 160, "app"))
 
