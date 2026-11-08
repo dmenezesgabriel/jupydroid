@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict and the phone half at one pane |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes |
 
 ---
 
@@ -4150,7 +4150,7 @@ contrast" below, read off a frame rather than assumed.
 **Tasks own the reads.** `T1` this section; `T2` a text-contrast reader (`scripts/read_text_contrast.py`),
 none of the existing instruments reading text off a frame; `T3a`–`T3c2` the tablet half in all six
 combinations (the capture's four surfaces, the rest at two panes, the surfaces at one pane, then the dialogs); `T3d` the
-high-contrast verdict; `T4` the phone half; `T5` insets, gaps and unused space; `T6` 48dp targets, the screen-reader names and
+high-contrast verdict; `T4` the phone half; `T5a`–`T5c` insets, gaps and unused space (the reader and the tablet at two panes, the tablet at one pane and the dialogs, the phone); `T6` 48dp targets, the screen-reader names and
 200% font scale; `T7` the close.
 
 **What the existing instruments leave open.** The six-combination capture covers four surfaces
@@ -4337,4 +4337,33 @@ ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<
 ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<step>-dialogs one-pane-dialogs phone
 python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
 python3 scripts/read_text_contrast.py --status-bar <surface>.png <surface>.window.txt    # the bar's own height, 24px here
+```
+
+### Insets, gaps and unused space on the tablet at two panes — verdicts
+
+`scripts/read_layout_spacing.py` reads each column's rows off a `uiautomator dump` — a row is the
+innermost node at least 90% as wide as its column and at most 100dp tall that draws something or holds
+something that does — and reports the insets, the gaps and the runs of height nothing covers, in dp. It
+read the 13 surfaces of the two-pane capture (the tablet at 1280dp and 240 dpi) in all six combinations.
+**What it cannot see**, so a number below is the semantic boxes and not the glyphs: a label that is its
+own touch target is reported with the target's bounds, so it reads inset 0; and a view that draws on a
+canvas, the file editor's lines and the terminal's cells, has no node. The numbers are the boxes a touch
+or a screen reader meets, which is also what `T6` needs.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| The six combinations lay out the same | each surface's rows in Light with the device at day, compared with the other five: 65 comparisons, 63 `same rows`. The two that differ are System in Sessions and Tabs, which has one row more (`[80,674][492,738]`dp), the state of the Space on that run and not the theme | `present`; one capture reads the layout |
+| The rail | 80.0dp wide; eight items 56.0dp tall, 4.0dp (`xs`) apart, then Settings 56.0dp at the foot with 182.0dp blank between. VS Code's `ACTIVITYBAR_WIDTH` and `ACTION_HEIGHT` are 48 (`activitybarPart.ts:47-51`, compact 36 and 28); IntelliJ's `expUI_dark.theme.json` states no stripe size | `adapted`: 56dp clears Material's 48dp minimum, and ADR-0054 measured the rail at 80.0dp |
+| The list pane's width | 412.0dp (80.0 to 492.0), a 24.0dp spacer, the document 764.0dp. ADR-0054 records the list pane at **360.0dp** and the document at 814.7dp when the rail was introduced, and `read_pane_widths_test.py` pins 360 too | `undocumented`: the pane is 52dp wider than the ADR says and nothing records why. The cause is not read yet; `T7` runs `git log -S` on it before the ADR is written |
+| The pane header | 64.0dp tall with a left inset of 16.0dp (`lg`) on the Files, Sessions and Tabs, Search, Source Control, Chat, Table of contents and Debugger panels. Its trailing control is a 48dp button whose edge is 4.0dp from the pane's (Sessions and Tabs reads `R 4`, Files reads `R 16` because it exposes the 24dp glyph inside the same box) | `present`: one header on seven panels, the margin `Spacing.lg` documents |
+| The tab strip | 34.0dp tall (30.0 to 64.0) = `TAB_HEIGHT` 32 plus `ACTIVE_EDGE` 2 (`MainAreaTabStrip.kt`), VS Code's tab 35 (`editorTabsControl.ts:106`, `normal`). A tab's touch box is 40.0dp, from 24.0 to 64.0, so its top 6dp sit in the status bar's 30dp | `adapted` for the height (the source says "between JupyterLab's 26px and VS Code's 35px, at a touchable size"); the 40dp box against the 48dp minimum and its 6dp under the system bar are `T6`'s |
+| The document starts 30dp below the strip | on 9 of 13 frames (Settings, the notebook, and the side panels' frames, whose document column shows Settings) the strip ends at 64.0 and the first row of the document begins at **94.0**: a 30.0dp band, which is the status bar's own height (45px at 240 dpi). In the dump a `ScrollView` begins at 94.0 inside a body that begins at 64.0, and in the screenshot of `file` the first line of code sits at 103dp under a strip that ends at 63. The strip's comment says its `windowInsetsPadding` consumes the inset so "the document's own bar below resolves the same insets to zero rather than double-pad" | `defect`, provisional: the measurement is the status-bar inset applied twice. `T7` reads who pads the body, and writes the failing test first |
+| Row heights | list rows 48.0dp, a two-line recent file 76.7dp, a tab's row on Sessions and Tabs 64.0dp, Settings rows 56.0, 64.0 and 90.7. IntelliJ's `List.rowHeight` and `Tree.rowHeight` are 24 (`expUI_dark.theme.json:378,767`). The 90.7dp rows (Theme, Indentation unit) are an 8dp pad, a 26.7dp label, a 48.0dp control and 8dp | `adapted`: a touch target is 48dp (Material), a desktop list's row is not. 90.7 is the one height off the 4dp grid, and it follows the label's line height, a size `check_ui_dimensions.py` does not gate |
+| Margins and gaps between rows | the left inset is 16.0dp (`lg`) on every Settings row, header and file row; `Recent` reads 40.0 (16 and a 24dp chevron). Rows abut (gap 0) or sit a 1.3dp hairline apart; the rail's 4.0dp (`xs`) is the one gap on the scale. On Sessions and Tabs the section header's 48dp box overlaps the pane header's by 4.7dp and `Save All`'s and `Close All`'s by 4.7dp | `present`; the overlaps are expanded touch margins (`T6` reads them) |
+| Unused space | below the last row: Files 406.0dp (56% of the pane's 722dp), Search 490.0, Chat 576.0, Source Control 619.3, Table of contents 566.0, Debugger 566.0, Sessions and Tabs 82.0; the Spaces home 571.3; under the notebook's one cell 441.3. Each empty panel keeps its empty-state text in the 38.7 to 92.0dp under its header (Search keeps its fields, 168.0) | `present`: an empty list leaves its area empty. Whether it should say more is a content question, no measurement of layout |
+| Where the reader is blind | the `file` frame reads 688.0dp of blank under the strip and holds two lines of code (screenshot), because the editor draws on a canvas; the `terminal` frame reads one 1280dp column and the key row (704.0 to 800.0dp, inset 12.0) | not exercised: the terminal's inset is `JD-067`'s, the editor's would need pixels |
+
+```sh
+scripts/theme-six-combinations-driver.sh evidence/<step> two-panes                       # the 13 surfaces, six combinations
+python3 scripts/read_layout_spacing.py <surface>.xml 240 <the other five>.xml            # rows, insets, gaps, blank runs; `same rows` per file
 ```

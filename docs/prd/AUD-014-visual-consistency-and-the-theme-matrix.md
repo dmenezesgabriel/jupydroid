@@ -184,7 +184,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       and Android's own high-contrast text setting, read from the references' code, verdicted `absent` or
       `adapted`.
 - [x] T4 — **The phone half** on `dev36`, one pane, kernel-free surfaces only, same reads.
-- [ ] T5a — **Insets, gaps and unused space, the reader and the tablet at two panes:**
+- [x] T5a — **Insets, gaps and unused space, the reader and the tablet at two panes:**
       `scripts/read_layout_spacing.py` (+ `_test.py`, fixtures in `scripts/testdata/`) reading each
       column's insets, the gaps between rows, the chrome's sizes and the space no node covers off a
       dump's bounds, against VS Code's parts and IntelliJ's `expUI_*` values, measured before any
