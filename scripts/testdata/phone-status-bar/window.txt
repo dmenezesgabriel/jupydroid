@@ -1,0 +1,1 @@
+        InsetsSource id=6ec90000 type=statusBars frame=[0,0][320,24] visible=true flags= sideHint=TOP boundingRects=null

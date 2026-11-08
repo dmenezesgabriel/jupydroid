@@ -183,7 +183,7 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T3d — **The high-contrast question:** VS Code's `hc_*` themes, IntelliJ's `HighContrast.theme.json`
       and Android's own high-contrast text setting, read from the references' code, verdicted `absent` or
       `adapted`.
-- [ ] T4 — **The phone half** on `dev36`, one pane, kernel-free surfaces only, same reads.
+- [x] T4 — **The phone half** on `dev36`, one pane, kernel-free surfaces only, same reads.
 - [ ] T5 — **Insets, gaps and unused space** against VS Code's parts and IntelliJ's `expUI_*` values,
       measured off node bounds before any opinion is written.
 - [ ] T6 — **Targets, names and font scale:** 48dp for every actionable node, the 48 null

@@ -28,6 +28,7 @@ was, which is how a driver reads many frames without printing every node of each
     python3 scripts/read_text_contrast.py hierarchy.xml frame.png
     python3 scripts/read_text_contrast.py hierarchy.xml frame.png --below 4.5
     python3 scripts/read_text_contrast.py --status-bar frame.png
+    python3 scripts/read_text_contrast.py --status-bar frame.png window.txt   # `adb shell dumpsys window`
 
 Tests in read_text_contrast_test.py, including a run over this repository's own committed device
 frames, with ground and ink sampled by hand rather than by the module.
@@ -39,12 +40,14 @@ import dataclasses
 import sys
 import xml.etree.ElementTree as ElementTree
 
+from crop_system_bars import read_system_bar_insets
 from PIL import Image
 from read_node_fill import BOUNDS, frame_scale, screen_of
 from resolve_vscode_theme import contrast_ratio
 
 #: The rows of the frame the system status bar's icons are drawn in, below its top edge and above
-#: the app. It spans the frame's full width.
+#: the app. It spans the frame's full width. Tuned on the tablet's 45px bar: a caller on any other
+#: device passes the bar's own height instead (`bar_px`), since a phone's is 24px at 160dpi.
 STATUS_BAR_ROWS = (4, 40)
 PixelBox = tuple[int, int, int, int]
 
@@ -93,14 +96,25 @@ def region_contrast(frame: Image.Image, box: PixelBox) -> PairReading:
     return PairReading(ground, ink, contrast_ratio(ground, ink))
 
 
-def status_bar_contrast(frame: Image.Image) -> PairReading:
+def status_bar_contrast(frame: Image.Image, bar_px: int | None = None) -> PairReading:
     """The system status bar's icons against its background, across the frame's full width.
 
+    Args:
+        frame: A full-screen capture.
+        bar_px: The bar's height as the device reports it (`read_system_bar_insets(...).top_px`). The
+            band is the bar less a tenth of it at each edge, so the app's own top bar is never read as
+            the system's. Without it, the band is `STATUS_BAR_ROWS`.
+
+    Raises:
+        ValueError: When [bar_px] is not positive, as with a hidden bar.
+
     ```
-    status_bar_contrast(Image.open("frame.png"))  # PairReading('#191A1B', '#FFFFFF', 17.4)
+    status_bar_contrast(Image.open("frame.png"), bar_px=24)  # PairReading('#191A1B', '#FFFFFF', 17.4)
     ```
     """
-    top, bottom = STATUS_BAR_ROWS
+    if bar_px is not None and bar_px <= 0:
+        raise ValueError(f"status bar height {bar_px}px draws no rows; expected a visible bar, 1px or taller")
+    top, bottom = STATUS_BAR_ROWS if bar_px is None else (bar_px // 10, bar_px - bar_px // 10)
     return region_contrast(frame, (0, top, frame.size[0], bottom))
 
 
@@ -187,7 +201,10 @@ def _hex(rgb: tuple[int, ...]) -> str:
     return "#{:02X}{:02X}{:02X}".format(*rgb[:3])
 
 
-USAGE = "usage: read_text_contrast.py <hierarchy.xml> <frame.png> [--below <ratio>] | --status-bar <frame.png>"
+USAGE = (
+    "usage: read_text_contrast.py <hierarchy.xml> <frame.png> [--below <ratio>]"
+    " | --status-bar <frame.png> [<dumpsys window text>]"
+)
 
 
 def _print_reading(at: NodeReading) -> None:
@@ -218,11 +235,19 @@ def _parse_floor(raw: str) -> float | None:
         return None
 
 
+def _print_status_bar(frame_path: str, window_path: str | None) -> None:
+    bar_px = None
+    if window_path is not None:
+        with open(window_path, encoding="utf-8") as window:
+            bar_px = read_system_bar_insets(window.read()).top_px
+    with Image.open(frame_path) as frame:
+        reading = status_bar_contrast(frame, bar_px)
+    print(f"  status bar ground {reading.ground}  ink {reading.ink}  contrast {reading.ratio:.2f}:1")
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) == 3 and argv[1] == "--status-bar":
-        with Image.open(argv[2]) as frame:
-            reading = status_bar_contrast(frame)
-        print(f"  status bar ground {reading.ground}  ink {reading.ink}  contrast {reading.ratio:.2f}:1")
+    if len(argv) in (3, 4) and argv[1] == "--status-bar":
+        _print_status_bar(argv[2], argv[3] if len(argv) == 4 else None)
         return 0
     if len(argv) not in (3, 5) or (len(argv) == 5 and argv[3] != "--below"):
         print(USAGE, file=sys.stderr)

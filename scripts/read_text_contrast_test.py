@@ -9,6 +9,7 @@ import pathlib
 import tempfile
 import unittest
 
+from crop_system_bars import read_system_bar_insets
 from PIL import Image
 from read_text_contrast import STATUS_BAR_ROWS, main, region_contrast, status_bar_contrast, text_contrasts
 
@@ -17,6 +18,13 @@ WHITE = (0xFF, 0xFF, 0xFF)
 AA_EDGE = (0x76, 0x76, 0x76)
 JUST_UNDER = (0x77, 0x77, 0x77)
 #: Frames and dumps captured on the tablet, tracked so the run below holds in any clone (ADR-0132).
+#: The line `adb shell dumpsys window` printed on the `dev36` emulator, a phone: 24px at 160dpi.
+DEV36_STATUS_BAR_SOURCE = (
+    "    InsetsSource id=ef1a0000 type=statusBars frame=[0,0][320,24] visible=true flags= sideHint=TOP"
+    " boundingRects=null\n"
+)
+#: A `dev36` frame (320x640 at 160dpi) and the `statusBars` line of its `dumpsys window`, tracked likewise.
+PHONE_TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata" / "phone-status-bar"
 TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata" / "toggle-wash-from-the-list-colour"
 
 
@@ -203,6 +211,41 @@ class StatusBarContrastTest(unittest.TestCase):
     def test_ink_below_the_band_is_not_the_status_bars(self) -> None:
         image = _frame_with_ink((320, 640), (0, 0, 0), (0, 300, 320, 400))
         self.assertEqual(status_bar_contrast(image).ratio, 1.0)
+
+    def test_the_band_follows_the_bar_height_the_device_reports(self) -> None:
+        # dev36 draws a 24px bar at 160dpi (`statusBars frame=[0,0][320,24]`); the tablet-tuned band
+        # reaches row 40, so the app's own top bar would be read as the system's.
+        app_bar_ink = _frame_with_ink((320, 640), (0, 0, 0), (16, 30, 120, 38))
+        self.assertEqual(status_bar_contrast(app_bar_ink, bar_px=24).ratio, 1.0)
+
+    def test_ink_inside_a_reported_bar_is_the_status_bars(self) -> None:
+        in_bar = _frame_with_ink((320, 640), AA_EDGE, (250, 6, 300, 18))
+        reading = status_bar_contrast(in_bar, bar_px=24)
+        self.assertEqual((reading.ground, reading.ink), ("#FFFFFF", "#767676"))
+
+    def test_a_real_phone_frame_reads_the_ground_and_ink_sampled_by_hand(self) -> None:
+        # The dev36 Spaces home in the light theme: 24px bar, white ground, the icons `#666666` (5.74:1).
+        insets = read_system_bar_insets((PHONE_TESTDATA / "window.txt").read_text(encoding="utf-8"))
+        with Image.open(PHONE_TESTDATA / "spaces-home-light.png") as frame:
+            reading = status_bar_contrast(frame, insets.top_px)
+        self.assertEqual((insets.top_px, reading.ground, reading.ink), (24, "#FFFFFF", "#666666"))
+        self.assertEqual(round(reading.ratio, 2), 5.74)
+
+    def test_the_cli_takes_the_bar_height_from_a_dumpsys_window_text(self) -> None:
+        window = pathlib.Path(tempfile.mkdtemp()) / "window.txt"
+        window.write_text(DEV36_STATUS_BAR_SOURCE, encoding="utf-8")
+        app_bar_ink = _frame_with_ink((320, 640), (0, 0, 0), (16, 30, 120, 38))
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = main(["read_text_contrast.py", "--status-bar", _saved(app_bar_ink), str(window)])
+        self.assertEqual(status, 0)
+        self.assertIn("contrast 1.00:1", output.getvalue())
+
+    def test_a_dumpsys_text_without_a_status_bar_is_refused_with_its_shape(self) -> None:
+        window = pathlib.Path(tempfile.mkdtemp()) / "window.txt"
+        window.write_text("Window #0 nothing to read here", encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "no statusBars or navigationBars InsetsSource"):
+            main(["read_text_contrast.py", "--status-bar", _saved(Image.new("RGB", (320, 640), WHITE)), str(window)])
 
 
 if __name__ == "__main__":

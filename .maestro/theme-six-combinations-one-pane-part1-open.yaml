@@ -11,7 +11,8 @@ appId: com.jupydroid.app
 # - the terminal and Settings are reached from the bottom bar's More, which only the browser and the
 #   side panels draw, so the flow goes back to the browser through the notebook's crumb each time.
 #
-# TABLET ONLY (SM-X216B), in portrait: the terminal is the Space's real shell, which only arm64 ships.
+# The terminal is the Space's real shell, which only arm64 ships: on the tablet, in portrait, MAESTRO_DEVICE_KIND=tablet
+# opens it; on the phone (dev36, no rootfs) the driver sets `phone` and the flow leaves it out.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
@@ -34,28 +35,35 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "More"
     timeout: 10000
-- tapOn: "More"
-- tapOn: "New terminal"
-- extendedWaitUntil:
-    visible: "Tab: Terminal .*"
-    timeout: 120000
-- waitForAnimationToEnd:
-    timeout: 15000
-- tapOn:
-    id: "terminal-input"
-- inputText: "echo the shell draws here"
-- pressKey: Enter
-- hideKeyboard
-- waitForAnimationToEnd:
-    timeout: 5000
-- tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
-- tapOn: "Workspace"
-- extendedWaitUntil:
-    visible: "More"
-    timeout: 10000
+# No shell on the phone: dev36 ships no rootfs.
+- runFlow:
+    when:
+      true: ${MAESTRO_DEVICE_KIND == 'tablet'}
+    commands:
+      - tapOn: "More"
+      - tapOn: "New terminal"
+      - extendedWaitUntil:
+          visible: "Tab: Terminal .*"
+          timeout: 120000
+      - waitForAnimationToEnd:
+          timeout: 15000
+      - tapOn:
+          id: "terminal-input"
+      - inputText: "echo the shell draws here"
+      - pressKey: Enter
+      - hideKeyboard
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+      - tapOn: "Workspace"
+      - extendedWaitUntil:
+          visible: "More"
+          timeout: 10000
 - runFlow: open-settings.yaml
+# The tab's own action, not the tab: at 320dp the strip's scrolling row holds three tabs and Settings, the
+# newest, opens beyond its edge (`MainAreaTabStrip`), while Reload and Save are fixed beside the row.
 - extendedWaitUntil:
-    visible: "Tab: Settings"
+    visible: "Reload tab: Settings"
     timeout: 5000
 - assertVisible: "Theme"
 - takeScreenshot: 01-opened-on-system

@@ -7,7 +7,7 @@
 # it, and every text node's ink against its ground, listed when under 4.5:1 (read_text_contrast.py).
 # One measurement, run before a repair and after it, into the directory it is named.
 #
-#   [NIGHT_MODES="no yes"] scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo> [two-panes|one-pane|one-pane-dialogs]
+#   [NIGHT_MODES="no yes"] scripts/theme-six-combinations-driver.sh <evidence directory, relative to the repo> [two-panes|one-pane|one-pane-dialogs] [tablet|phone]
 #
 # The layout is the tablet's own turn: landscape is two panes (1280dp) and portrait one (800dp), the
 # 840dp rule `isWindowWideEnoughForTwoPanes` draws. One pane has no rail, so each surface is reached by
@@ -15,6 +15,10 @@
 # Debugger). `one-pane-dialogs` is the same portrait tablet with a dialog on screen instead of a surface:
 # the Delete confirm, Rename (valid and refused), the Save-before-close gate, and the Space settings on
 # the home. The terminal is the Space's real shell, so this goes on the arm64 tablet.
+#
+# The third argument is the device. `phone` is the `dev36` emulator (w320dp, ANDROID_SERIAL naming it),
+# never the tablet with a forced width: it is already one pane, so it takes no turn and leaves the
+# terminal out, since an x86_64 image ships no rootfs and the app falls back to `FakeKernelGateway`.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,6 +32,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 EVIDENCE="$ROOT/${1:?usage: $0 <evidence dir, relative to the repo> [two-panes|one-pane|one-pane-dialogs]}"
 LAYOUT="${2:-two-panes}"
+DEVICE="${3:-tablet}"
 # What every layout runs, in order: the open flow once per device mode, the surface flow once per theme
 # and surface, then the home flow once per theme and home surface, last, because reaching the home
 # relaunches the app and ends the tabs the surfaces need. The home flow is the same in the first two
@@ -83,6 +88,19 @@ case "$LAYOUT" in
     exit 1
     ;;
 esac
+case "$DEVICE:$LAYOUT" in
+  tablet:*) export MAESTRO_DEVICE_KIND=tablet ;;
+  phone:one-pane | phone:one-pane-dialogs)
+    export MAESTRO_DEVICE_KIND=phone
+    : "${ANDROID_SERIAL:?the phone is an emulator beside the tablet: set ANDROID_SERIAL to its serial}"
+    # A surface the shell would draw is not measured where there is no shell.
+    mapfile -t SURFACES < <(printf '%s\n' "${SURFACES[@]}" | grep -vx terminal)
+    ;;
+  *)
+    echo "device '$DEVICE' with layout '$LAYOUT' is not one of: tablet with any layout, phone with one-pane or one-pane-dialogs" >&2
+    exit 1
+    ;;
+esac
 FILE="notes.py"
 NOTEBOOK="theme-baseline"
 # A document at the workspace root draws no crumb, and one pane needs the crumb to leave it with its
@@ -95,7 +113,7 @@ export MAESTRO_FILE="$FILE" MAESTRO_NOTEBOOK="$NOTEBOOK.ipynb"
 # flow that runs after this one, on a tablet someone also uses.
 original_night="$("${adb[@]}" shell cmd uimode night | tr -d '\r' | sed 's/^Night mode: //')"
 restore_device() {
-  restore_rotation
+  if [ "$DEVICE" = tablet ]; then restore_rotation; fi
   "${adb[@]}" shell cmd uimode night "$original_night" >/dev/null
 }
 trap restore_device EXIT
@@ -107,6 +125,9 @@ capture_frame() { # capture_frame <dir> <surface>
   "${adb[@]}" shell uiautomator dump /sdcard/contrast.xml >/dev/null
   "${adb[@]}" exec-out cat /sdcard/contrast.xml >"$1/$2.xml"
   "${adb[@]}" shell rm -f /sdcard/contrast.xml
+  # The status bar's height as the device reports it: a phone's is 24px and a tablet's 45px, and the
+  # dump above lists only the app's own window, so it cannot say.
+  "${adb[@]}" exec-out dumpsys window >"$1/$2.window.txt"
 }
 
 measure() { # measure <dir> <surface>
@@ -114,7 +135,7 @@ measure() { # measure <dir> <surface>
   # No -I: Python 3.14's isolated mode drops the script's own directory, so the readers could not
   # import the sibling modules they are built from. A script run by path never puts the cwd on sys.path.
   python3 "$ROOT/scripts/read_chrome_parts.py" "$png" | sed "s#$EVIDENCE/##"
-  python3 "$ROOT/scripts/read_text_contrast.py" --status-bar "$png"
+  python3 "$ROOT/scripts/read_text_contrast.py" --status-bar "$png" "$1/$2.window.txt"
   python3 "$ROOT/scripts/read_text_contrast.py" "$1/$2.xml" "$png" --below 4.5
 }
 
@@ -170,6 +191,11 @@ run_device_mode() { # run_device_mode <no|yes>
 assert_layout_in_force() {
   local width_dp
   width_dp="$(window_width_dp)"
+  # A phone is under Material's 600dp compact bound, which is what keeps a tablet from standing in for it.
+  if [ "$DEVICE" = phone ] && [ "$width_dp" -ge 600 ]; then
+    echo "device phone does not fit a ${width_dp}dp window: a phone is under 600dp, ANDROID_SERIAL=$ANDROID_SERIAL" >&2
+    exit 1
+  fi
   case "$LAYOUT:$((width_dp >= 840))" in
     two-panes:1 | one-pane:0 | one-pane-dialogs:0) echo "layout $LAYOUT, ${width_dp}dp wide" ;;
     *)
@@ -180,8 +206,10 @@ assert_layout_in_force() {
 }
 
 mkdir -p "$EVIDENCE"
+# Says which device produced the directory, so a phone's capture is never read as the tablet's.
+record_device "$EVIDENCE"
 rm -f "$EVIDENCE/pixels.txt"
-rotate_to "$TURN"
+if [ "$DEVICE" = tablet ]; then rotate_to "$TURN"; fi
 assert_layout_in_force
 # One device mode alone (`NIGHT_MODES=yes`) into its own evidence directory, for a capture that was
 # cut short: maestro's link to the device can drop partway through a run of two hours.

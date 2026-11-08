@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts so far (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs) and the high-contrast verdict |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict and the phone half at one pane |
 
 ---
 
@@ -4269,7 +4269,7 @@ Restart, Shut down, the kernel picker, the breakpoint condition, rename symbol a
 | `error` text on the dialog | `Delete`, `Discard`, the field's label and its refusal: **6.61:1** light (`#AD0707` on `#F0F1F2`) and **6.57:1** dark (`#F48771` on `#202122`) | `present` |
 | Rename, `Rename` on a refused name | `#BABABB` on `#F0F1F2` (**1.71:1**) in light and `#494A4A` on `#202122` (**1.81:1**) in dark, in every combination: the confirm is disabled while the name is refused (`RenameFileDialog.kt` passes `enabled = isValidName(renamed)`). `uiautomator` reports it `enabled="true"`, so the reader lists it, as it does `Save All` and `Open` | `adapted`: an inactive component is outside [WCAG 1.4.3](https://www.w3.org/TR/WCAG22/#contrast-minimum) |
 | App `System` follows the device | `System` draws the grounds `Light` does at night mode off and `Dark` does at on, on all five dialogs ([ADR-0094](../adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md)) | `present` |
-| Space settings, scrolled | the whole dialog fits at 800dp, from `Idle shutdown` to `Cancel` and `Save`, so the frame taken after scrolling to `Environments` is the first frame again, 17 text nodes in both. It adds no coverage here; a window short enough to scroll it is the phone's (`T4`) | not exercised: nothing below the first screen at this height |
+| Space settings, scrolled | the whole dialog fits at 800dp, from `Idle shutdown` to `Cancel` and `Save`, so the frame taken after scrolling to `Environments` is the first frame again, 17 text nodes in both. It adds no coverage here; the phone's window is short enough to scroll it, and it is read in "The phone half" below | `present` on the phone; at 800dp not exercised: nothing below the first screen |
 | Save-before-close and the soft keyboard | the gate is raised over the file editor with its keyboard down; the refused-name frame has the keyboard up over the bottom bar, which the dialog's own dump does not include | `present`; the keyboard is not part of the dialog's pairs |
 
 ```sh
@@ -4306,4 +4306,35 @@ adb shell uiautomator dump /sdcard/f.xml && adb exec-out screencap -p > high-con
 adb shell settings delete secure high_text_contrast_enabled       # restore, back to null
 python3 scripts/read_text_contrast.py <frame>.xml <frame>.png     # each of the two frames
 grep -rnE 'getContrast|high_text_contrast|HighContrast|isHighContrastTextEnabled' app/src/main extensions/*/src/main
+```
+
+### The phone half — verdicts
+
+The `dev36` emulator, a phone: 320dp by 640dp at 160 dpi, x86_64, so the app runs on `FakeKernelGateway`
+and has no shell (`device.txt` of each capture says so). It is one pane, in portrait, and takes no turn.
+Twelve surfaces and six dialog frames in the six combinations, 72 and 36 frames, each with the
+`uiautomator dump` and the `dumpsys window` of its own moment: Settings, a file, a notebook, the launcher,
+the table-of-contents overlay, Files, Sessions and Tabs, Search, More's rail, Source Control, Chat and the
+Spaces home, then the five dialogs of the tablet's set and the Space settings dialog scrolled. **The
+terminal is not exercised**: it is the Space's real shell and an x86_64 image ships no rootfs, so it stays
+the tablet's. Font scale is 1.0 here; the 2.0 read is `T6`'s.
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| Every enabled text pair, 12 surfaces | 0 text nodes under 4.5:1 in all six combinations. The lowest readable pair is **5.18:1** on the panels and More's rail, the value the tablet's panels read; the notebook's is 5.39:1 and the launcher's 9.32:1. Each surface reads the same node count in all six combinations | `present` |
+| Every enabled text pair, the dialogs | 0 text nodes under 4.5:1 in all six combinations. The lowest readable pair is **4.77:1** in light (`Add variable`, `#0069CC` on `#F0F1F2`) and **4.80:1** in dark (`Save changes in "notes.py"…`, `#8C8C8C` on `#202122`), the tablet's dialog pairs to the second decimal | `present` |
+| The disabled controls | `Save All` and `Shut Down All` on Sessions and Tabs (1.74:1 light, 1.81:1 dark), `Open` on the stopped Space (1.76:1, 1.82:1) and Rename's confirm on a refused name (1.71:1, 1.79:1). `uiautomator` reports them `enabled="true"`, so the reader lists them; WCAG 1.4.3 exempts a disabled control | `adapted`, as at both tablet widths |
+| App `System` follows the device | `System` draws the grounds `Light` does at night mode off and `Dark` does at on, on all 18 surfaces and dialogs ([ADR-0094](../adr/0094-the-apps-theme-is-pushed-down-to-the-platforms-night-mode.md)) | `present` |
+| Space settings, scrolled | the dialog does not fit 640dp: the first frame reads 15 text nodes from `Idle shutdown` to `What a new notebook in this Space starts`, and the frame after scrolling reads 16: the `Idle shutdown` label has left the top and `Environments` and its hint (`None found directly in ~ or in a folder like ~/envs`) have come in. The extra frame is real coverage here and it reads 0 under 4.5:1 | `present` |
+| The status bar under the table-of-contents sheet | on every other surface the system bar's icons read 5.67:1 or better. With the sheet open they read **4.19:1** in every combination that draws light and **1.07:1** in every one that draws dark (`#070707` on a scrimmed `#111212`): the sheet dims the status bar, and the icons stay dark on a dark scrim. The tablet's overlay is a popup that leaves its bar alone, 8.36:1 to 17.43:1 | `defect`, provisional: the clock, the signal and the battery are unreadable while the sheet is open in the dark theme. `T7` reads the sheet's window for the status-bar appearance it sets and writes the failing test first |
+| The newest tab opens beyond the strip's edge | `MainAreaTabStrip` is a `horizontalScroll` row with no scroll to the active tab. At 320dp it shows two tabs of three, and the third, Settings, is listed at `[0,0][0,0]` in the dump a minute after it opened, with its `Reload tab` and `Save tab` still fixed at the right. With the launcher a fourth, the notebook's tab was no longer in the tree, and the flow's tap on its name did not bring the notebook up. A tab fills the screen, so no pair is under a floor; the question is whether the user sees which tab is active | `defect`, provisional: the active tab is not visible to the user or to a screen reader until the row is scrolled. `T7` reads the strip for the scroll that reveals it and writes the failing test first |
+| Source Control, Chat and Sessions and Tabs in a Space with no rootfs | Source Control reads "You are not currently in a Git repository." (2 text nodes, the tablet's 1 or 2), Chat "No chat opened" with `New chat` and `MCP servers` (4, the tablet's 4) and Sessions and Tabs 11 against the tablet's 13, the two fewer being `Terminal 1` and `Launcher`, the tabs the tablet's run had open and the phone's did not. These are the states an emulator gives, read as they are and not compared to the tablet's as like for like | `present`; not comparable below the empty state |
+| Settings and the launcher read fewer nodes than at 800dp | Settings 17 text nodes against the tablet's 25, the launcher 7 against 9, the notebook 4 against 6: the dump lists what a 640dp window shows, and the rest is below the fold. The colours are the same widgets on the same grounds | not exercised: nothing below the first screen, at either size. `T6` scrolls Settings at 200% font scale |
+| Soft keyboard | the refused-name and valid-name Rename frames have the soft keyboard up over the bottom bar; the dialog's own dump holds the dialog's nodes alone, so the keyboard is not part of any pair | `present`; the keyboard is not part of the dialog's pairs |
+
+```sh
+ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<step> one-pane phone
+ANDROID_SERIAL=emulator-5554 scripts/theme-six-combinations-driver.sh evidence/<step>-dialogs one-pane-dialogs phone
+python3 scripts/read_text_contrast.py <surface>.xml <surface>.png --below 4.5
+python3 scripts/read_text_contrast.py --status-bar <surface>.png <surface>.window.txt    # the bar's own height, 24px here
 ```

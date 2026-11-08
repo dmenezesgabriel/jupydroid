@@ -20,6 +20,15 @@ appId: com.jupydroid.app
       visible: "No headings in this notebook"
     commands:
       - back
+# On the phone four tabs overflow the strip's row and the notebook's scrolls out of the tree, where a tap
+# cannot reach it. The launcher is the tab no later surface needs, so it is closed instead; it is the
+# one whose "Reload tab" the strip shows only while it is on top.
+- runFlow:
+    when:
+      visible: "Reload tab: Launcher"
+      true: ${MAESTRO_DEVICE_KIND == 'phone'}
+    commands:
+      - tapOn: "Back to files"
 - runFlow:
     when:
       notVisible: "More"
