@@ -128,8 +128,8 @@ read of text contrast exists.
 | Theme matrix | `ThemeOverride` × device night mode, six combinations measured for four surfaces | JupyterLab `adaptive-theme` | present and partial — surfaces beyond Settings, a file, a notebook, a terminal are unmeasured |
 | High-contrast theme | none | VS Code `hc_black`/`hc_light`, IntelliJ `HighContrast.theme.json` | to be verdicted at T3d: `absent` or `adapted` (Android's own high-contrast text setting) |
 | Text contrast | status bar only, inline in a driver | WCAG 1.4.3 | absent as an instrument — T2 |
-| Insets and gaps | `Spacing.kt` + `check_ui_dimensions.py` gate the *literals*, not what is on screen | IntelliJ `expUI_*.theme.json` | present as a rule, unmeasured as a result — T5 |
-| Unused space | `read_pane_widths.py` reads widths | VS Code parts, IntelliJ tool windows | per-surface read of what an empty state leaves blank — T5 |
+| Insets and gaps | `Spacing.kt` + `check_ui_dimensions.py` gate the *literals*, not what is on screen | IntelliJ `expUI_*.theme.json` | present as a rule, unmeasured as a result — T5a–T5c |
+| Unused space | `read_pane_widths.py` reads widths | VS Code parts, IntelliJ tool windows | per-surface read of what an empty state leaves blank — T5a–T5c |
 | 48dp targets | two rows measured | Material | partial — T6 reads every actionable node |
 | Screen-reader names | `launcher-a11y-driver.sh` for one screen; 48 `contentDescription = null` sites | TalkBack's rule | unaudited for whether each null is decorative or an unnamed control — T6 |
 | Font scale 200% | none in `app/src/main`; instrumented tests already hit 1.1 non-linear scaling | Android's 200% maximum | absent as a measure — T6 |
@@ -184,8 +184,13 @@ One unit each, one conventional commit each. A task that is still too large spli
       and Android's own high-contrast text setting, read from the references' code, verdicted `absent` or
       `adapted`.
 - [x] T4 — **The phone half** on `dev36`, one pane, kernel-free surfaces only, same reads.
-- [ ] T5 — **Insets, gaps and unused space** against VS Code's parts and IntelliJ's `expUI_*` values,
-      measured off node bounds before any opinion is written.
+- [ ] T5a — **Insets, gaps and unused space, the reader and the tablet at two panes:**
+      `scripts/read_layout_spacing.py` (+ `_test.py`, fixtures in `scripts/testdata/`) reading each
+      column's insets, the gaps between rows, the chrome's sizes and the space no node covers off a
+      dump's bounds, against VS Code's parts and IntelliJ's `expUI_*` values, measured before any
+      opinion is written. The six combinations are a determinism check, not six measurements.
+- [ ] T5b — **The same reads on the tablet at one pane and in the dialogs.**
+- [ ] T5c — **The same reads on the phone** (`dev36`, one pane, kernel-free surfaces).
 - [ ] T6 — **Targets, names and font scale:** 48dp for every actionable node, the 48 null
       `contentDescription` sites classified, 200% font scale read for clipping and overlap.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first
