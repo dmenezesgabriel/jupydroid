@@ -191,8 +191,14 @@ One unit each, one conventional commit each. A task that is still too large spli
       opinion is written. The six combinations are a determinism check, not six measurements.
 - [x] T5b — **The same reads on the tablet at one pane and in the dialogs.**
 - [x] T5c — **The same reads on the phone** (`dev36`, one pane, kernel-free surfaces).
-- [ ] T6 — **Targets, names and font scale:** 48dp for every actionable node, the 48 null
-      `contentDescription` sites classified, 200% font scale read for clipping and overlap.
+- [ ] T6a — **Targets and names, the reader:** `scripts/read_touch_targets.py` (+ `_test.py`, fixtures in
+      `scripts/testdata/`) reading every actionable node's layout bound in dp against 48 and the name a
+      screen reader gives it (its own text or description, else its descendants'), over the dumps already
+      captured on the tablet at two panes, at one pane, in the dialogs and on the phone.
+- [ ] T6b — **The 48 null `contentDescription` sites classified:** each decorative (a sibling or parent
+      names it) or an unnamed control, from the source, cross-checked against the unnamed nodes T6a finds.
+- [ ] T6c — **200% font scale:** the capture driver takes a scale, and a reader measures clipping and
+      overlap against node bounds before calling either a defect; tablet and phone.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first
       fix per `defect`, `JD-068`'s rows named from the measurement, this PRD deleted, the backlog row
       edited, and `← next` moved to `JD-067`.

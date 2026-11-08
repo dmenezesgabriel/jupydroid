@@ -4150,8 +4150,8 @@ contrast" below, read off a frame rather than assumed.
 **Tasks own the reads.** `T1` this section; `T2` a text-contrast reader (`scripts/read_text_contrast.py`),
 none of the existing instruments reading text off a frame; `T3a`–`T3c2` the tablet half in all six
 combinations (the capture's four surfaces, the rest at two panes, the surfaces at one pane, then the dialogs); `T3d` the
-high-contrast verdict; `T4` the phone half; `T5a`–`T5c` insets, gaps and unused space (the reader and the tablet at two panes, the tablet at one pane and the dialogs, the phone); `T6` 48dp targets, the screen-reader names and
-200% font scale; `T7` the close.
+high-contrast verdict; `T4` the phone half; `T5a`–`T5c` insets, gaps and unused space (the reader and the tablet at two panes, the tablet at one pane and the dialogs, the phone); `T6a`–`T6c` 48dp targets and screen-reader names off the dumps already captured, the 48 null
+descriptions classified, and 200% font scale; `T7` the close.
 
 **What the existing instruments leave open.** The six-combination capture covers four surfaces
 (Settings, a file, a notebook, a terminal) on the tablet at one font scale and reads one contrast pair,
