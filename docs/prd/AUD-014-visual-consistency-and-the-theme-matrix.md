@@ -205,10 +205,13 @@ One unit each, one conventional commit each. A task that is still too large spli
       its string is cut anyway), so **truncation is read off the screenshot**, recorded as seen, with the
       dump's numbers beside it. Read on the tablet at two panes by hand, two surfaces: 0 and 0; the
       tablet's own `font_scale` is 1.1, not 1.0.
-- [ ] T6c2 — **The driver takes a scale, the tablet capture:** `FONT_SCALE` (default 1.0) and `THEMES`
-      envs in `theme-six-combinations-driver.sh`, the user's own `font_scale` restored on `EXIT`; one
-      combination (font scale does not interact with theme) at two panes, one pane and in the dialogs,
-      a verdict per finding; the tab label's room at one pane (the tab strip's `provisional`).
+- [x] T6c2a — **The driver takes a scale, the tablet at two panes:** `FONT_SCALE` and `THEMES` envs in
+      `theme-six-combinations-driver.sh`, the user's own `font_scale` restored on `EXIT`
+      (`scripts/font-scale.sh`, + `_test.py` over a fake `adb`); `read_font_scale_fit.py` compares two
+      directories of dumps by surface; one combination (font scale does not interact with theme) at two
+      panes, a verdict per finding.
+- [ ] T6c2b — **One pane and the dialogs, the same reads**, a verdict per finding; the tab label's room
+      at one pane (the tab strip's `provisional`).
 - [ ] T6c3 — **The phone** on `dev36`, the same reads.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first
       fix per `defect`, `JD-068`'s rows named from the measurement, this PRD deleted, the backlog row
