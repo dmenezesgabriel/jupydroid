@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import pathlib
 import unittest
 
@@ -13,6 +15,7 @@ from read_layout_spacing import (
     column_layouts,
     layout_differences,
     load_spacing_scale,
+    main,
     row_gaps,
     spacing_step,
 )
@@ -178,6 +181,65 @@ class RealTabletFrameTest(unittest.TestCase):
     def test_the_list_pane_header_is_64dp_with_a_16dp_margin(self) -> None:
         header = self.columns[1].rows[0]
         self.assertEqual((64.0, 16.0), (header.box.height, header.left_inset))
+
+
+class PopupSurfaceTest(unittest.TestCase):
+    """A dump with no node as tall as the window is one popup: a dialog's window, or an overlay's.
+
+    The Delete confirm at 240 dpi: a 431dp dialog holding a title, a sentence and two buttons, each
+    measured here as a band of the dialog's height with a 24dp margin on every side.
+    """
+
+    def setUp(self) -> None:
+        self.dialog = column_layouts((TESTDATA / "delete-dialog-popup.xml").read_text(), 240)
+
+    def test_the_dialog_is_the_one_column(self) -> None:
+        self.assertEqual([(184.0, 615.3)], [(column.left, column.right) for column in self.dialog])
+
+    def test_its_rows_are_the_title_the_sentence_and_the_row_of_buttons(self) -> None:
+        self.assertEqual([33.3, 22.7, 48.0], [row.box.height for row in self.dialog[0].rows])
+
+    def test_the_gaps_are_16dp_under_the_title_and_24dp_above_the_buttons(self) -> None:
+        self.assertEqual([16.0, 24.0], row_gaps(self.dialog[0].rows))
+
+    def test_text_is_24dp_from_the_dialogs_left_edge(self) -> None:
+        self.assertEqual([24.0, 24.0], [row.left_inset for row in self.dialog[0].rows[:2]])
+
+    def test_the_buttons_touch_boxes_end_24dp_from_the_right_edge(self) -> None:
+        self.assertEqual(24.0, self.dialog[0].rows[2].right_inset)
+
+    def test_the_margins_to_the_first_and_last_row_are_24dp(self) -> None:
+        self.assertEqual((24.0, 24.0), self.dialog[0].edge_margins)
+
+    def test_only_the_24dp_above_the_buttons_is_a_blank_band_not_the_padding_below_them(self) -> None:
+        bands = [(round(top, 1), round(bottom, 1)) for top, bottom in blank_bands(self.dialog[0])]
+        self.assertEqual([(630.7, 654.7)], bands)
+
+    def test_an_overlay_is_read_the_same_way(self) -> None:
+        overlay = column_layouts((TESTDATA / "toc-overlay-popup.xml").read_text(), 240)
+        self.assertEqual([(555.3, 796.0)], [(overlay[0].left, overlay[0].right)])
+        self.assertEqual((24.0, 24.0), overlay[0].edge_margins)
+
+    def test_a_shell_column_states_no_margins(self) -> None:
+        self.assertIsNone(_list_pane().edge_margins)
+
+
+class ColumnWithoutRowsTest(unittest.TestCase):
+    def test_a_scrim_with_nothing_in_it_is_reported_not_raised(self) -> None:
+        """More's rail leaves a 220dp scrim beside it that holds only a 'Close rail' target."""
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = main(["read_layout_spacing.py", str(TESTDATA / "more-rail-one-pane.xml"), "240"])
+        self.assertEqual(0, code)
+        self.assertIn("column 220.0..800.0dp  width 580.0dp", out.getvalue())
+
+
+class DrawerItemsTest(unittest.TestCase):
+    def test_items_that_wrap_their_labels_are_rows_by_their_bands(self) -> None:
+        """More's rail: four items 176 to 283 px wide in a 330 px column, so none is 90% of it."""
+        rail = column_layouts((TESTDATA / "more-rail-one-pane.xml").read_text(), 240)[0]
+        self.assertEqual([56.0, 56.0, 56.0, 56.0], [row.box.height for row in rail.rows])
+        self.assertEqual([0.0, 0.0], row_gaps(rail.rows)[:2])
 
 
 if __name__ == "__main__":

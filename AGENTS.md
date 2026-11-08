@@ -237,7 +237,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
 | palette-consumers gate | a palette states colours something draws | `scripts/check_palette_consumers.py` (+ `_test.py`) |
 | pane-width measure | what each column of the shell gets, on device | `scripts/read_pane_widths.py` (+ `_test.py`) — a measurement, not a gate |
-| layout-spacing measure | what each column's rows leave around and between them and what no row covers, off a dump's bounds, against `theme/Spacing.kt` | `scripts/read_layout_spacing.py` (+ `_test.py`) — a measurement, not a gate |
+| layout-spacing measure | what each column's (or a popup's) rows leave around and between them and what no row covers, off a dump's bounds, against `theme/Spacing.kt` | `scripts/read_layout_spacing.py` (+ `_test.py`) — a measurement, not a gate |
 | launch-frames measure | what colour each frame of a cold launch is, from screenrecord's raw frames | `scripts/read_launch_frames.py` (+ `_test.py`) — a measurement, not a gate |
 | import-profile measure | what importing one module costs, self time by top-level package, from `-X importtime` | `scripts/read_import_profile.py` (+ `_test.py`) — a measurement, not a gate |
 | vscode-theme resolve | what colour a VS Code role *actually* is, after its `include` chain | `scripts/resolve_vscode_theme.py` (+ `_test.py`) — a measurement, not a gate |

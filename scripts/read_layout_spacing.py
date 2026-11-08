@@ -94,6 +94,7 @@ class Node:
 
     box: Box
     drawn: bool
+    clickable: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -107,13 +108,18 @@ class RowLayout:
 
 @dataclasses.dataclass(frozen=True)
 class ColumnLayout:
-    """One column: its span, its rows top to bottom, what covers it and where its usable height ends."""
+    """One column: its span, its rows top to bottom, what covers it and where its usable height ends.
+
+    [edge_margins] is set only for a popup surface: how far its first row is from its top edge and its last
+    row from its bottom edge, which are its padding rather than unused space.
+    """
 
     left: float
     right: float
     rows: list[RowLayout]
     covered: list[tuple[float, float]]
     floor: float
+    edge_margins: tuple[float, float] | None = None
 
 
 def load_spacing_scale(source: pathlib.Path) -> dict[str, float]:
@@ -153,6 +159,10 @@ def spacing_step(value_dp: float, scale: dict[str, float]) -> str:
 def column_layouts(xml_text: str, density: int) -> list[ColumnLayout]:
     """The shell's columns, left to right, each with the rows and the coverage this module reads.
 
+    A dump with no node as tall as the window - a dialog's window, an overlay - has no shell in it, and is
+    read as one popup column instead (`_popup_layout`). A column the width rule finds no row in is read by
+    its bands (`_band_rows`).
+
     Args:
         xml_text: One `uiautomator dump`.
         density: The device's dpi, from `wm density`.
@@ -162,11 +172,14 @@ def column_layouts(xml_text: str, density: int) -> list[ColumnLayout]:
     ```
     """
     nodes = _nodes(xml_text, density)
-    window = max((node.box for node in nodes), key=lambda box: box.width * box.height)
+    spans = shell_columns(xml_text, density)
+    window = _largest_box(nodes)
+    if not spans:
+        return [_popup_layout(nodes, window)]
     floor = _foot_of(nodes, window)
     layouts = []
-    for left, right in shell_columns(xml_text, density):
-        rows = _rows_in(nodes, left, right)
+    for left, right in spans:
+        rows = _rows_in(nodes, left, right) or _band_rows(nodes, Box(left, window.top, right, window.bottom))
         layouts.append(ColumnLayout(left, right, rows, _covered(nodes, rows, left, right, window), floor))
     return layouts
 
@@ -229,8 +242,52 @@ def _nodes(xml_text: str, density: int) -> list[Node]:
         if not found:
             continue
         box = Box(*(int(at) / scale for at in found.groups()))
-        nodes.append(Node(box, bool(element.get("text") or element.get("content-desc"))))
+        drawn = bool(element.get("text") or element.get("content-desc"))
+        nodes.append(Node(box, drawn, element.get("clickable") == "true"))
     return nodes
+
+
+def _largest_box(nodes: list[Node]) -> Box:
+    return max((node.box for node in nodes), key=lambda box: box.width * box.height)
+
+
+def _popup_layout(nodes: list[Node], surface: Box) -> ColumnLayout:
+    """A popup as one column of its bands; the padding to its first and last row is its margins, not blank."""
+    rows = _band_rows(nodes, surface)
+    margins = (rows[0].box.top - surface.top, surface.bottom - rows[-1].box.bottom) if rows else None
+    floor = rows[-1].box.bottom if rows else surface.bottom
+    left, right = round(surface.left, 1), round(surface.right, 1)
+    return ColumnLayout(left, right, rows, [(row.box.top, row.box.bottom) for row in rows], floor, _rounded(margins))
+
+
+def _band_rows(nodes: list[Node], area: Box) -> list[RowLayout]:
+    """The rows of [area] as bands of its height that something drawn or pressable fills, each as wide as it.
+
+    Rows with no common width - a dialog's title, sentence and pair of buttons, a drawer whose items wrap their
+    labels - are found by no rule about width. A band is every node that overlaps the one above it vertically,
+    which makes two buttons side by side one row, spanning [area] so its insets are the padding around them.
+    A pressable node counts as drawn here: a button's touch box, not its label, is what a spec measures.
+    """
+    content = [
+        Node(node.box, True) for node in nodes if (node.drawn or node.clickable) and _strictly_in(area, node.box)
+    ]
+    strips = [Box(area.left, top, area.right, bottom) for top, bottom in _vertical_bands(content)]
+    return [_row_layout(strip, content) for strip in strips]
+
+
+def _rounded(margins: tuple[float, float] | None) -> tuple[float, float] | None:
+    return None if margins is None else (round(margins[0], 1), round(margins[1], 1))
+
+
+def _vertical_bands(content: list[Node]) -> list[tuple[float, float]]:
+    """The (top, bottom) runs that nodes cover, where one that starts above the run's end joins it."""
+    bands: list[tuple[float, float]] = []
+    for node in sorted(content, key=lambda node: node.box.top):
+        if bands and node.box.top < bands[-1][1] - _EPSILON:
+            bands[-1] = (bands[-1][0], max(bands[-1][1], node.box.bottom))
+        else:
+            bands.append((node.box.top, node.box.bottom))
+    return bands
 
 
 def _foot_of(nodes: list[Node], window: Box) -> float:
@@ -292,11 +349,18 @@ def _covered(
 
 def _report(column: ColumnLayout, scale: dict[str, float]) -> list[str]:
     lines = [f"column {column.left:.1f}..{column.right:.1f}dp  width {column.right - column.left:.1f}dp"]
-    gaps = row_gaps(column.rows) + [None]
+    gaps = [*row_gaps(column.rows), None][: len(column.rows)]
     for row, gap in zip(column.rows, gaps, strict=True):
         lines.append(_row_line(row, gap, scale))
+    if column.edge_margins is not None:
+        lines.append(_margin_line(column.edge_margins, scale))
     lines += [f"  blank {top:.1f}..{bottom:.1f}dp  ({bottom - top:.1f}dp)" for top, bottom in blank_bands(column)]
     return lines
+
+
+def _margin_line(margins: tuple[float, float], scale: dict[str, float]) -> str:
+    top, bottom = margins
+    return f"  margin top {top:g} ({spacing_step(top, scale)}) bottom {bottom:g} ({spacing_step(bottom, scale)})"
 
 
 def _row_line(row: RowLayout, gap: float | None, scale: dict[str, float]) -> str:

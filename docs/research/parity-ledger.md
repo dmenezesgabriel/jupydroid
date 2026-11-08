@@ -63,7 +63,7 @@ Five, each obliging something different. The full definition is in
 | Spaces and runtime | `AUD-010` | examined — below |
 | Code health | `AUD-011` | examined — below |
 | Security posture | `AUD-012` | examined — below |
-| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes |
+| Visual consistency and the theme matrix | `AUD-014` | in progress — below, the tablet half's verdicts (two panes, then one pane: the tab surfaces, the launcher, the side panels, More's rail, the Spaces home and the dialogs), the high-contrast verdict, the phone half at one pane and the insets, gaps and unused space of the tablet at two panes, at one pane and in the dialogs |
 
 ---
 
@@ -4366,4 +4366,40 @@ or a screen reader meets, which is also what `T6` needs.
 ```sh
 scripts/theme-six-combinations-driver.sh evidence/<step> two-panes                       # the 13 surfaces, six combinations
 python3 scripts/read_layout_spacing.py <surface>.xml 240 <the other five>.xml            # rows, insets, gaps, blank runs; `same rows` per file
+```
+
+### Insets, gaps and unused space on the tablet at one pane and in the dialogs — verdicts
+
+The same reader, widened twice because the one-pane captures broke it: a dump with no node as tall as
+the window (a dialog's window, the table-of-contents overlay) is read as one popup whose rows are the
+bands of its height something drawn or pressable fills, with a pressable's touch box counted as drawn;
+a column in which the width rule finds no row (More's rail, whose items wrap their labels, 176 to 283 px
+in a 330 px column) is read by its bands too; and a column with no row at all no longer raises. Read off
+the 13 one-pane surfaces and the 6 dialogs in all six combinations (800dp x 1280dp, 240 dpi). The 102
+two-pane dumps of the previous section read the same through the widened reader, so none of those numbers
+moved. **What it still cannot see:** the file editor's lines and the terminal's cells (no node), and a
+clickable the next row's box clips reads as a row of its own beside the full one (the Running panel's
+Launcher tab is read as 59.3dp and as 64.0dp, a gap of -59.3).
+
+| Finding | What was measured | Verdict |
+|---|---|---|
+| The six combinations lay out the same at one pane and in the dialogs | each surface in Light with the device at day against the other five: 65 comparisons on the 13 surfaces and 30 on the 6 dialogs, all `same rows` | `present`; one capture reads the layout, as at two panes |
+| The bottom bar | 64.0dp tall at 1168.0 to 1232.0, its first and last items' boxes 80.0dp inside the bar's edges, above the system bar (1232.0 to 1280.0). `SidePanelBar.kt` sets no height: it is Material's `ShortNavigationBar` | `present`: ADR-0109 recorded five 64dp items across x 80 to 720dp before this read |
+| The pane header | 64.0dp tall directly under the status bar (30.0 to 94.0), left inset 16.0dp (`lg`) on Files, Search, Source Control, Chat, Sessions and Tabs and the Spaces home; no tab strip above a side panel at one pane | `present`: the header of the previous section, unchanged by width |
+| The document starts 30dp below the top bar | Settings, the notebook and the terminal: the top bar ends at 78.0 and the first row of the document begins at **108.0**, a 30.0dp band the dump and the screenshots agree on (the notebook's breadcrumb text is at y 198 px, the file's at 153 px, under the same strip). The file frame has no band: its breadcrumb begins at 78.0 | `defect`, provisional, the same measurement as at two panes (9 of 13 there, 3 of 4 document frames here): the status-bar inset applied a second time. `T7` reads who pads the body and writes the failing test first |
+| More's rail | 220.0dp wide (27.5% of 800), the scrim 580.0dp; items 56.0dp tall and **0** apart where the two-pane rail's are 56.0 and 4.0 (`xs`); the first at 74.0, Settings 56.0dp at the foot ending 44.0dp above the bar's top | `present`: ADR-0109 decides a modal rail from the bar's last item and states no width or gap. The 0 against 4.0 is not recorded as a choice: `T7` decides whether it needs an ADR |
+| The table-of-contents overlay | a 240.7dp popup with 24.0dp (`xl`) above and below its one 22.7dp row and a 16.0dp (`lg`) left inset | `present`; 24 above and below against 16 beside is the one popup of the seven read (this and the six dialogs) whose sides differ |
+| Unused space | below the last row: Files 898.7dp, Search 906.0, Chat 992.0, Source Control 1035.3, Sessions and Tabs 498.0, the Spaces home 1051.3, under the notebook's one cell 859.3; the launcher begins 100.7dp under the strip and leaves 637.3dp below | `present`: an empty list leaves its area empty, as at two panes. The file's and the terminal's blank (1106.0 and 1012.0dp) is the reader's blindness, not space |
+| Dialog padding | all six: **24.0dp (`xl`) on the left, top, right and bottom**, 16.0dp (`lg`) from title to content, 24.0dp from content to the buttons, the buttons' row 48.0dp with its last touch box 24.0dp from the edge and the two 8.0dp apart (`[772]` and `[784]` px in the Delete dump) | `adapted`: every one of those is a Material 3 default, read from `material3-android-1.4.0` (`AlertDialogKt`: `DialogPadding` 24, `TitlePadding` bottom 16, `TextPadding` bottom 24, `ButtonsMainAxisSpacing` 8). The app sets none of them |
+| Dialog width | Delete 431.3dp, Rename 328.0, Save before close 351.3, Space settings 560.0 in an 800dp window; the library's range is `DialogMinWidth` 280 to `DialogMaxWidth` 560, so Space settings is at the cap and the rest wrap their text | `adapted` |
+| Against VS Code and IntelliJ | VS Code's dialog (`dialog.css`): box padding 8px, message row 12px, 20px above the footer, buttons 4px margin, `min-width` 480px, `max-width` 90vw. IntelliJ: `UIUtil.getRegularPanelInsets()` 8 top and bottom and 12 left and right (`UIUtil.java:370-371`), a 12 gap between buttons (`DialogWrapper.java:856`), `DialogSizes.small()` 350 x 250 (`JBUI.java:2854`); `expUI_light.theme.json`'s `Popup` states colours and no inset | `adapted`: both are pointer-sized, 8 to 20px; a finger's dialog is Material's 24dp. Neither reference's number is a gap in ours |
+| A dialog's height changes with its state | Rename 80.7dp of content, Rename refused 122.7dp (42.0dp more for the message); the dialog stays centred, so the buttons move **21.4dp** down (513.3 to 534.7) and the title 20.6dp up | `present`: Material's own centring. Recorded because a button that moves under a finger is a cost, not a repair for here |
+| The scrolled Space settings frame | identical to the unscrolled one, to the pixel: the content ends exactly at its viewport (1287 px), so the swipe had nothing to move | `not exercised`: the dialog's scrolling is not read by these frames |
+
+```sh
+scripts/theme-six-combinations-driver.sh evidence/<step> one-pane              # the 13 surfaces, six combinations
+scripts/theme-six-combinations-driver.sh evidence/<step> one-pane-dialogs      # the 6 dialogs, six combinations
+python3 scripts/read_layout_spacing.py <surface>.xml 240 <the other five>.xml  # rows, insets, gaps, margins, blank runs
+# the library's numbers: unpack material3.aar's classes.jar into an empty directory, then
+javap -p -c -cp <dir> androidx.compose.material3.AlertDialogKt                 # the static initialiser's constants
 ```
