@@ -18,6 +18,15 @@ appId: com.jupydroid.app
 # (`.maestro/close-gate-dialog.yaml`).
 - launchApp:
     stopApp: false
+# At 200% font scale on a 320dp phone the refused Rename's buttons sit under the keyboard it left up, so
+# Cancel is not on screen. Back hides the keyboard; with none up it closes the dialog, which is this
+# step's job anyway.
+- runFlow:
+    when:
+      visible: "Rename folder"
+      notVisible: "Cancel"
+    commands:
+      - back
 # The dialog the surface before this one left. Cancel is on every dialog of the set, and on the gate it
 # keeps the document, so this never loses the dirty tab the gate needs again.
 - runFlow:
