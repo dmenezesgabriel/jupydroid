@@ -212,7 +212,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       panes, a verdict per finding.
 - [x] T6c2b — **One pane and the dialogs, the same reads**, a verdict per finding; the tab label's room
       at one pane (the tab strip's `provisional`).
-- [ ] T6c3 — **The phone** on `dev36`, the same reads.
+- [x] T6c3 — **The phone** on `dev36`, the same reads.
 - [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first
       fix per `defect`, `JD-068`'s rows named from the measurement, this PRD deleted, the backlog row
       edited, and `← next` moved to `JD-067`.
