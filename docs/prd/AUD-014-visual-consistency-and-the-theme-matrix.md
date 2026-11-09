@@ -222,8 +222,11 @@ One unit each, one conventional commit each. A task that is still too large spli
       the boot, with the emulator idle, before the install and the driver.
 - [x] T7b — **The phone's status-bar icons under the table-of-contents sheet:** dark on a dark scrim,
       1.07:1. Read the sheet's window appearance, red test first, repair.
-- [ ] T7c — **The newest tab opens beyond the strip's edge on the phone:** the strip scrolls to no active
-      tab. Red test first, repair.
+- [x] T7c — **The newest tab opens beyond the strip's edge on the phone:** the strip scrolls to no active
+      tab. Red test first, repair. The phone driver's taps on a tab the strip now scrolls off the left
+      (`notes.py`, the notebook, with Settings on top) need a swipe of the strip first; that flow edit was
+      not run (two `dev36` runs stopped at the SystemUI dialog) and is left out: the next task that runs
+      the phone driver adds it and runs it.
 - [ ] T7d — **The three `undocumented` rows:** the list pane's 412dp against ADR-0054's 360dp (`git log -S`
       first), the tab and its close button's size, and what the platform reports for a bare `clickable`
       against ADR-0048's docstring. An ADR or a corrected comment each.
