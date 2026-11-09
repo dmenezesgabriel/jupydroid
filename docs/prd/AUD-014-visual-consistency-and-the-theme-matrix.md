@@ -217,9 +217,9 @@ One unit each, one conventional commit each. A task that is still too large spli
       (phone) under the strip or top bar on the frames that have a `Scaffold`. Read who pads the body, red
       test first, repair, and the before and after off `read_layout_spacing.py` on the tablet at two panes
       and at one pane.
-- [ ] T7a2 — **The same before and after on the phone** (`dev36`, one pane): the driver's one run stopped at
-      a SystemUI ANR dialog with the host loaded. Needs a stretch where `devjob --status` shows no other
-      repository's job for the whole run; not retried in a loop.
+- [x] T7a2 — **The same before and after on the phone** (`dev36`, one pane): the driver's first two runs
+      stopped at a SystemUI ANR dialog, the second on a quiet host. The run that read it waited 180 s after
+      the boot, with the emulator idle, before the install and the driver.
 - [ ] T7b — **The phone's status-bar icons under the table-of-contents sheet:** dark on a dark scrim,
       1.07:1. Read the sheet's window appearance, red test first, repair.
 - [ ] T7c — **The newest tab opens beyond the strip's edge on the phone:** the strip scrolls to no active
