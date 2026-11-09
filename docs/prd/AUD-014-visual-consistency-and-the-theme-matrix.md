@@ -227,15 +227,21 @@ One unit each, one conventional commit each. A task that is still too large spli
       (`notes.py`, the notebook, with Settings on top) need a swipe of the strip first; that flow edit was
       not run (two `dev36` runs stopped at the SystemUI dialog) and is left out: the next task that runs
       the phone driver adds it and runs it.
-- [ ] T7d — **The three `undocumented` rows:** the list pane's 412dp against ADR-0054's 360dp (`git log -S`
-      first), the tab and its close button's size, and what the platform reports for a bare `clickable`
-      against ADR-0048's docstring. An ADR or a corrected comment each.
+- [ ] T7d1 — **The list pane's 412dp against ADR-0054's 360dp.** The library's width-class default
+      (360dp at Expanded, 412dp from Large at 1200dp) is what the tablet gets since the pane directive
+      moved to `currentWindowAdaptiveInfoV2`. A JVM test pins both numbers, an ADR accepts the
+      library's value, ADR-0054's list-pane line is superseded, the ledger row is edited.
+- [ ] T7d2 — **The tab and its close button's size, and what the platform reports for a bare
+      `clickable` against ADR-0048's decision text:** one cause, read before any ADR is written
+      (`boundsInRoot`, `touchBoundsInRoot` and the dump's bounds side by side on `dev36`). An ADR or a
+      corrected comment each; a `defect` if the close's 24dp reserve breaks ADR-0048's "reserved space".
 - [ ] T7e — **The font-scale `defect`s, one demo each** (split again if a piece is too big): the Launcher
       card's label, the terminal's Ctrl and Alt, Settings' Theme row, the Spaces home row, Chat's MCP chip,
       the Running panel's close column, a refused Rename under the keyboard.
 - [ ] T7f — **The rest of the provisionals:** Shut Down All at 43.3dp, the dark Files row's inherited
-      colour, the three fields with no name, and whether `read_text_contrast.py` names a disabled control
-      apart.
+      colour, the three fields with no name, whether `read_text_contrast.py` names a disabled control
+      apart, and the `undocumented` row for "the control carries the name": an ADR for the rule the code
+      comments state, with the field rule.
 - [ ] T7g — **Close.** The high-contrast borders and focus verdict, a `GAP-NNN` per `absent`, `JD-068`'s
       rows named from the measurement, the ledger's counts, this PRD deleted, the backlog row edited, and
       `← next` moved to `JD-067`.
