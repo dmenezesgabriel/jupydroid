@@ -92,6 +92,7 @@ private fun TableOfContentsSheet(rows: List<TocRow>, onDismiss: () -> Unit, onCh
     onDismissRequest = onDismiss,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
   ) {
+    SheetStatusBarFollowsTheme()
     Column(
       modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding(),
     ) {

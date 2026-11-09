@@ -166,6 +166,7 @@ private fun CellActionSheet(
     onDismissRequest = onDismiss,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
   ) {
+    SheetStatusBarFollowsTheme()
     Column(
       modifier = Modifier
         .fillMaxWidth()
