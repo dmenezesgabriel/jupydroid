@@ -4,9 +4,10 @@
 A target is a node the user can act on: `clickable`, `checkable`, or a text field. Its size is the bound
 the platform reports for it, which is what Accessibility Scanner reads, and **not** the layout bound: the
 tab's close button is declared 24dp (`TAB_CLOSE_TOUCH` in
-`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTab.kt`) and the dump reports 40 x 40. So a bound under
-48dp is a confirmed shortfall, while one at 48dp or more does not prove the layout reserves that much, which
-is what ADR-0048 asks and the instrumented `assertReservesMinimumTouchTarget` answers. Its name is what
+`app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTab.kt`) and the dump reports 40 x 40: the 48dp area
+Compose puts around a clickable, cut where an ancestor ends (ADR-0142). So a bound under 48dp is a confirmed
+shortfall of that area, while one at 48dp or more does not prove the layout reserves that much, which is what
+ADR-0048 asks and the instrumented `assertReservesMinimumTouchTarget` answers. Its name is what
 TalkBack reads: the node's own text or description, else those of the nodes beneath it. A descendant that is
 itself a target is left out, since it is announced as its own stop and a tab is not renamed by the close
 button inside it. A text field's own `text` is the typed value, which is its content, so only its description or

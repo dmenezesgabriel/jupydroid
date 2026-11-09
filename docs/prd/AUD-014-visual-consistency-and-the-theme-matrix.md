@@ -231,7 +231,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       (360dp at Expanded, 412dp from Large at 1200dp) is what the tablet gets since the pane directive
       moved to `currentWindowAdaptiveInfoV2`. A JVM test pins both numbers, an ADR accepts the
       library's value, ADR-0054's list-pane line is superseded, the ledger row is edited.
-- [ ] T7d2 — **The tab and its close button's size, and what the platform reports for a bare
+- [x] T7d2 — **The tab and its close button's size, and what the platform reports for a bare
       `clickable` against ADR-0048's decision text:** one cause, read before any ADR is written
       (`boundsInRoot`, `touchBoundsInRoot` and the dump's bounds side by side on `dev36`). An ADR or a
       corrected comment each; a `defect` if the close's 24dp reserve breaks ADR-0048's "reserved space".

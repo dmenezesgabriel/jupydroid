@@ -425,7 +425,10 @@ private val TAB_MAX_WIDTH = 216.dp
  */
 private val TAB_MIN_WIDTH = 80.dp
 
-/** The strip's own height - between JupyterLab's 26px and VS Code's 35px, at a touchable size. */
+/**
+ * The strip's own height - between JupyterLab's 26px and VS Code's 35px. A control in the strip reserves this,
+ * not Material's 48dp (ADR-0142).
+ */
 internal val TAB_HEIGHT = 32.dp
 
 /** `tab.activeBorderTop`'s 2px, and `--jp-private-horizontal-tab-active-top-border` beside it. */

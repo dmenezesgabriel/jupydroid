@@ -269,5 +269,9 @@ internal fun tabIcon(key: NavKey, documentContributions: List<DocumentContributi
  */
 private val TAB_ICON = 14.dp
 
-/** A ✕-sized slot - JupyterLab's close icon is ~16px; the tap target is the slot around it. */
+/**
+ * A ✕-sized slot - JupyterLab's close icon is ~16px. The slot is all the close reserves; a press reaches
+ * further, 40dp across and the row's 32dp down at two panes, because Compose widens a clickable's area to
+ * 48dp and a neighbour's direct hit cuts it (ADR-0142, `TabCloseTouchAreaTest`).
+ */
 private val TAB_CLOSE_TOUCH = 24.dp
