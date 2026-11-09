@@ -327,6 +327,7 @@ empty space is used.
 | `JD-080` | **The Source Control panel says what is happening in every state:** reading, not a repository, and a failed read with a way to retry; no state draws nothing | open | — | `GAP-198` |
 | `JD-081` | **A crash that closes the app is identified:** the cause read from a device log, then repaired with a regression test | open | — | `GAP-199` |
 | `JD-082` | **The app keeps an automatic, bounded local log of its crashes and errors that a person can open, share, clear and that can be pulled over adb:** handler and exit reasons, redaction when written, size and age caps pruned without being asked, "Clear logs" in Settings, a pull script and a reader that groups entries, an ADR for the policy | open | — | `GAP-200` |
+| `JD-083` | **A harness for the Chat is installed from the Space's settings:** a shipped catalog of the harnesses measured to run, each with its install script expandable to what it adds to the Space, run bounded with its output shown, and offered again after a rootfs upgrade; first slice OpenCode and Claude | open | — | `GAP-201` |
 
 ### M12 — Documentation site
 

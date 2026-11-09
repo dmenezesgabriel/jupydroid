@@ -2184,6 +2184,60 @@ The plan, a proposal: local, automatic, bounded, and nothing sent anywhere; no c
 Until it ships, the reading path on a debug build is the two adb commands in `GAP-199` plus the server-log
 command above. On the published package only `logcat` and `exit-info` answer.
 
+### GAP-201 — A harness for the Chat cannot be installed from inside the app
+
+The image ships no harness, on purpose: the ACP client's personas "spawn an agent CLI the user installs in
+the Space" (`tools/rootfs/Dockerfile:278-282`), and a rootfs upgrade deletes what was installed
+(`opencode`, `claude-agent-acp` and the `apk add`ed and `npm -g` packages in `usr/`, ADR-0125). Nothing in the
+app installs one: no source line names an install command for a harness, and `ChatPanel.kt:147` says only
+that questions queue while there is no agent. Reported: from inside the app there should be an easy way to
+install a harness that works with the Chat extension, with the choice in the Space's settings dialog and
+the install script expandable, so the person sees exactly what it will put in the Space.
+
+What the Space has, read on the tablet on 2026-11-09: `python3` and `pip`, and **no `node`, `npm`, `npx` or
+`uv`**, the image adding only `python3 py3-pip git` (`tools/rootfs/Dockerfile:87`). `sbin/apk` is there with
+Alpine 3.21's `main` and `community` repositories in `etc/apk/repositories`. `usr/local/bin` was empty:
+the last rootfs bump had cleared both harnesses. So an `npm install -g` is not runnable until a runtime is
+installed first, and the script the person is shown has to say so.
+
+What "compatible with our extension" means, from the persona code. `jupyter-ai-acp-client@77016f63530f`
+provides eight personas, each needing one executable and naming its install (`README.md:57-79`): Claude,
+`claude-agent-acp`, `npm install -g @zed-industries/claude-agent-acp`; OpenCode, `opencode` at least 1.0.0 and
+below 2, `npm install -g opencode-ai`; Codex, `codex-acp`, `npm install -g @zed-industries/codex-acp`;
+Mistral-Vibe, `vibe-acp`, `uv tool install mistral-vibe` or `pip install mistral-vibe`; Copilot, `npm install -g
+@github/copilot` among other routes; and Kilo (at least 7.0.0), Kiro (at least 1.25.0, below 2) and Goose (at least
+1.8.0, below 2), each from its vendor's page. Only two have been run on a Space: OpenCode and Claude
+(`GAP-179`'s sign-ins). They disagree on a name: the README says `@zed-industries/claude-agent-acp`, and
+`GAP-179` records `@agentclientprotocol/claude-agent-acp` 0.97.0 on the tablet. Which scope the script
+installs is read from the registry, not assumed. Whether the other six start on musl and arm64 under
+Android's filter is not measured.
+
+The plan, a proposal, in the order a person meets it:
+
+1. **A catalog the app ships as data.** One entry per harness: its persona, its executable and the version
+   range the persona requires, the package at one **exact** version, and the install script as a file. It
+   starts with the two that have run, OpenCode and Claude, and gains an entry when that harness has been
+   run on the tablet, because "compatible" is a measurement. Only official packages the ACP client's README
+   names go in.
+2. **A section in the Space settings dialog** (`SpaceSettingsDialog.kt`, beside the startup script and default
+   kernel): each harness with whether the Space has it (its executable found, and its version) and, once one
+   is chosen, its install script **expanded** in the monospace the startup script field already uses, under a
+   plain summary of what it adds: a runtime (`apk add nodejs npm`, when `node` is absent), the harness at its
+   pinned version, and the size, which is measured, not guessed. Nothing runs until the person presses
+   Install. A test holds that the bytes shown are the bytes run.
+3. **It runs the way the startup script does**: in the Space's shell, bounded by `timeout`, with the
+   output shown while it runs and a log excerpt when it fails (`SpaceStartupScript.kt`, a five-minute
+   bound that is kept only if a measured install fits it). Whether it needs the Space's server running is
+   read, not assumed.
+4. **It does not run while the app is behind another.** An install is a download, and `GAP-179` records the
+   platform destroying a Space program's sockets seconds after the app leaves the screen. The install screen
+   says so, keeps the app in front, and a re-run after an interruption finishes the job.
+5. **It comes back after a rootfs upgrade.** ADR-0125 deletes the harness, so the section shows it as not
+   installed again and one press reinstalls it. Signing in to the harness is its own step and is not part of
+   this item; `GAP-179` covers why it can fail.
+6. Open until the first slice is on a phone: a pointer from the Chat panel when no harness is installed, so a
+   person who opens Chat first finds the install. What the panel shows now with no agent was not read.
+
 ---
 
 ## 12. Glossary
