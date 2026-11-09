@@ -6,9 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -175,7 +178,15 @@ fun TabbedDocumentPane(
       onDeleteTab = { key -> key.documentIn(openDocuments)?.let { delete(key, it) } },
       onSaved = { document -> scope.launch { documentCheckpoints.checkpointSaved(document.path) } },
     )
-    Box(modifier = Modifier.weight(1f)) { content() }
+    // The strip's `windowInsetsPadding` consumes for the strip's own children, never for this
+    // sibling, so a document below it read the status bar's inset a second time and began that
+    // far under the strip. Only the top is taken: the document still pads a cutout at its sides.
+    // Pinned by `TabbedDocumentPaneInsetsTest`.
+    Box(
+      modifier = Modifier
+        .weight(1f)
+        .consumeWindowInsets(TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top)),
+    ) { content() }
   }
 
   // `docmanager:rename` (`docmanager-extension/schema/plugin.json:75`, bound to the tab's own
@@ -273,8 +284,8 @@ private fun MainAreaTabStrip(
       .bottomBorder(chrome.tabStripBorder)
       // The strip is the detail pane's topmost thing - the status bar is the window's, and
       // without its inset the strip draws *behind* it and the system window eats the taps.
-      // `windowInsetsPadding` consumes as it pads, so the document's own bar below resolves the
-      // same insets to zero rather than double-pad (`EditorTopBar` draws bare in tests).
+      // The document below is told the top inset is spent by [TabbedDocumentPane], because this
+      // padding consumes only for the strip's own children (`EditorTopBar` draws bare in tests).
       .windowInsetsPadding(TopAppBarDefaults.windowInsets)
       .semantics { contentDescription = TAB_STRIP },
   ) {
