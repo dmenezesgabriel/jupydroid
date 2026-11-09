@@ -324,6 +324,9 @@ empty space is used.
 | `JD-077` | **A package `%pip` installed imports in the next cell, without selecting the kernel again:** the cause measured on the tablet, then repaired | open | — | `GAP-195` |
 | `JD-078` | **`%pip install` of duckdb and scikit-learn works in a Space, or says why it cannot:** which packages lack musllinux aarch64 wheels measured, then the option chosen on that evidence | open | — | `GAP-196` |
 | `JD-079` | **A notebook ends in "Code" and "Markdown" buttons that add a cell:** always visible after the last cell and alone in an empty notebook, absent read-only, the new cell active and in view; shown on a phone and a tablet at 1.0 and 2.0 font scale | open | — | `GAP-197` |
+| `JD-080` | **The Source Control panel says what is happening in every state:** reading, not a repository, and a failed read with a way to retry; no state draws nothing | open | — | `GAP-198` |
+| `JD-081` | **A crash that closes the app is identified:** the cause read from a device log, then repaired with a regression test | open | — | `GAP-199` |
+| `JD-082` | **The app keeps a local log of its crashes and errors that a person can open, share and report from Settings:** handler, exit reasons, rotating file, redaction before sharing, an ADR for the policy | open | — | `GAP-200` |
 
 ### M12 — Documentation site
 

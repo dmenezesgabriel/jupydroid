@@ -2097,6 +2097,71 @@ The choice of the footer rests on a heuristic, not a measurement: an act repeate
 should be one tap from where the reader already is, and the end of a notebook is where they scroll to
 append. How often each insert is used is not counted here.
 
+### GAP-198 — The Source Control panel can draw nothing at all
+
+Reported on the published build: the Source Control extension is sometimes blank, with not even a
+message that the folder is not a Git repository. The panel does have that message
+(`SourceControlPanel.kt`, `SourceControlWording.kt`), but only when the server answers with git's own
+"fatal: not a git repository" (`GitStatusAnswer.kt:45-49`). Read against the source, two paths leave the
+panel blank, and neither was reproduced here. While the read is in flight the panel draws nothing
+(`StatusReading.Pending -> Unit`), and `OkHttpGitStatusReader.status` makes its call with
+`client.newCall(request).execute()` on a default `OkHttpClient()` (10 s read timeout; no other client was found
+in `di/`), so a stopped or slow server leaves it blank for that long. A refused connection or a timeout then
+throws an `IOException`, and the panel catches only `GitStatusException`
+(`LaunchedEffect` in `SourceControlPanel`), so nothing is drawn for it either. A `Failed` state is not
+blank: `GitStatusException`'s message always names the path and the reason. The repair starts with two red
+tests, a reader that never answers and one that throws `IOException`, and draws a message with a way to
+retry in every state, "not a Git repository" included.
+
+### GAP-199 — The app sometimes closes itself while navigating, and nothing records why
+
+Reported on the published build, on a phone: now and then the app crashes and closes while moving
+through it, the example given being the extensions. Not reproduced, and there is no log to read on this
+host: no `logcat*.txt` file the audit runs saved holds a `FATAL EXCEPTION`, and the tablet's process-exit
+history (`adb shell dumpsys activity exit-info com.jupydroid.app`, 16 entries on 2026-11-09) holds only
+force stops and package updates that installs and drivers caused, with no crash, ANR or native crash.
+The crash was on the reporter's phone, so the log is there. Read it straight after a crash with
+`adb logcat -b crash -d` and the same `exit-info` command: the first names the exception and its stack, the
+second says whether the process died of a crash, a native crash, an ANR or the system. One code lead,
+unproven: GAP-198's `IOException` escapes a `LaunchedEffect` that catches only `GitStatusException`, and
+an exception that leaves one is not handled by the panel. A test that throws it from the reader says
+whether it ends the process. Until a log names the cause, the repair is not chosen.
+
+### GAP-200 — The app keeps no record of its own crashes and errors that a person can read or share
+
+Nothing in `app/src/main` installs an uncaught-exception handler or reads the platform's exit reasons,
+and nothing in `docs/` mentions telemetry, crash reports or analytics, so there is no decision to follow.
+The one durable log is the server's: `run/jupyter_server.log`, "truncated at every server start, so it is
+one run's worth of file", readable only through `adb shell run-as com.jupydroid.app cat
+files/spaces/base/run/jupyter_server.log` (`JupyterServerLauncher.kt`). The app's own side of a crash leaves
+only what logcat's ring buffer still holds. Two references show the shape: `termux-app@3df69d1da197`
+installs a `Thread.UncaughtExceptionHandler` that writes the crash to a log file and then hands the
+exception on to the default handler (`termux-shared/src/main/java/com/termux/shared/crash/CrashHandler.java:18,35-41`),
+and tells the user from that file the next time it starts (`TermuxCrashUtils.java:130-131`); VS Code ships
+an issue reporter (`vscode@3f3380c668d0 src/vs/workbench/contrib/issue/browser/baseIssueReporterService.ts`).
+The platform also keeps why a process died, which `dumpsys activity exit-info` read on the tablet; the API
+behind it, `ActivityManager.getHistoricalProcessExitReasons`, reaches the app from Android 11.
+
+The plan, a proposal: local only, nothing sent anywhere, and no crash-reporting library (the handler
+needs none).
+
+1. An uncaught-exception handler installed once per process in `JupydroidApplication`, writing one
+   structured JSON line (time, thread, exception class and message, stack, app version) to a bounded,
+   rotating file under the app's files, then chaining to the default handler as Termux does. The writer sits
+   behind a port with a `Fake` in `data/fake/`, as every port does.
+2. At the next start, the platform's exit reasons for a crash, native crash, ANR or kill are added to the same
+   file: the handler never runs for a native crash or an ANR.
+3. A Settings row, "Diagnostics", lists the entries and offers "Share log" through the existing `FileProvider`
+   (`${applicationId}.exports`) and "Report an issue", which opens the repository's issue tracker for the person
+   to submit themselves. The server's log stops being truncated and rotates instead, so a crash is not
+   overwritten by the restart that follows it.
+4. **A shared log is cleaned first**: the server's bearer token appears in server artifacts (`GAP-188`,
+   `GAP-191`), so a redaction rule with a test runs before anything leaves the app, and the person sees what
+   will be shared.
+5. An ADR for the policy: local record, person-initiated sharing, no network call of the app's own.
+
+Until it ships, the reading path is the two adb commands above plus the server-log command.
+
 ---
 
 ## 12. Glossary
