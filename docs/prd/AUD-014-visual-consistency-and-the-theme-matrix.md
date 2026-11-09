@@ -213,9 +213,26 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T6c2b — **One pane and the dialogs, the same reads**, a verdict per finding; the tab label's room
       at one pane (the tab strip's `provisional`).
 - [x] T6c3 — **The phone** on `dev36`, the same reads.
-- [ ] T7 — **Close.** Verdicts, a `GAP-NNN` per `absent`, an ADR per `undocumented`, a red-test-first
-      fix per `defect`, `JD-068`'s rows named from the measurement, this PRD deleted, the backlog row
-      edited, and `← next` moved to `JD-067`.
+- [ ] T7a — **The status-bar inset applied twice:** the document's first row sits 30dp (tablet) or 24dp
+      (phone) under the strip or top bar on the frames that have a `Scaffold`. Read who pads the body, red
+      test first, repair, and the before and after off `read_layout_spacing.py` on the tablet at two panes,
+      at one pane and on the phone.
+- [ ] T7b — **The phone's status-bar icons under the table-of-contents sheet:** dark on a dark scrim,
+      1.07:1. Read the sheet's window appearance, red test first, repair.
+- [ ] T7c — **The newest tab opens beyond the strip's edge on the phone:** the strip scrolls to no active
+      tab. Red test first, repair.
+- [ ] T7d — **The three `undocumented` rows:** the list pane's 412dp against ADR-0054's 360dp (`git log -S`
+      first), the tab and its close button's size, and what the platform reports for a bare `clickable`
+      against ADR-0048's docstring. An ADR or a corrected comment each.
+- [ ] T7e — **The font-scale `defect`s, one demo each** (split again if a piece is too big): the Launcher
+      card's label, the terminal's Ctrl and Alt, Settings' Theme row, the Spaces home row, Chat's MCP chip,
+      the Running panel's close column, a refused Rename under the keyboard.
+- [ ] T7f — **The rest of the provisionals:** Shut Down All at 43.3dp, the dark Files row's inherited
+      colour, the three fields with no name, and whether `read_text_contrast.py` names a disabled control
+      apart.
+- [ ] T7g — **Close.** The high-contrast borders and focus verdict, a `GAP-NNN` per `absent`, `JD-068`'s
+      rows named from the measurement, the ledger's counts, this PRD deleted, the backlog row edited, and
+      `← next` moved to `JD-067`.
 
 ## Out of scope
 
