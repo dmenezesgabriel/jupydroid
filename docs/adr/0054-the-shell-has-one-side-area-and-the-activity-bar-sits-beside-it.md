@@ -1,6 +1,6 @@
 # ADR-0054 — The shell has one side area, and the activity bar sits beside the whole thing
 
-Status: accepted
+Status: accepted; its 1280dp widths are the Expanded ones, and the list pane is wider at Large per [ADR-0141](0141-the-list-pane-takes-the-librarys-width-class-width.md)
 Date: 2026-08-22
 
 ## Context

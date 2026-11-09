@@ -70,6 +70,10 @@ def detail_width_at(window_dp: float, columns: list[tuple[float, float]]) -> flo
     the list pane and the spacer between the panes are all fixed - so the document pane absorbs the
     whole of the difference. That is the number the threshold has to clear.
 
+    It holds only inside the width class the dump was taken in. The list pane is 360dp below 1200dp
+    and 412dp from it (ADR-0141), so a 1280dp dump understates what a window under 1200dp gives the
+    document by 52dp.
+
     Raises:
         ValueError: When fewer than two columns were measured, which means the dump came from a
             one-pane window and there is no split to re-do the arithmetic on.

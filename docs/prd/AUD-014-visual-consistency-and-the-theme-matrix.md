@@ -227,7 +227,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       (`notes.py`, the notebook, with Settings on top) need a swipe of the strip first; that flow edit was
       not run (two `dev36` runs stopped at the SystemUI dialog) and is left out: the next task that runs
       the phone driver adds it and runs it.
-- [ ] T7d1 — **The list pane's 412dp against ADR-0054's 360dp.** The library's width-class default
+- [x] T7d1 — **The list pane's 412dp against ADR-0054's 360dp.** The library's width-class default
       (360dp at Expanded, 412dp from Large at 1200dp) is what the tablet gets since the pane directive
       moved to `currentWindowAdaptiveInfoV2`. A JVM test pins both numbers, an ADR accepts the
       library's value, ADR-0054's list-pane line is superseded, the ledger row is edited.
