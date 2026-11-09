@@ -1990,6 +1990,113 @@ that grows without bound. Upstream prunes only a dead `jpserver-<pid>.json`, laz
 is not configurable, so the `-open.html` is written regardless. The repair is clearing a Space's `run/`
 before its server starts.
 
+### GAP-193 — Nothing on screen says how to leave a Space for the Spaces list
+
+Reported on the published build, on a phone: once inside a Space there is no easy, intuitive way back to
+the Spaces screen. The route exists but is the end of an unwinding, not a control: `Navigation.kt` roots
+the back stack at `SpacesHome`, and the main area's up button reads "Back to Spaces" only when the
+Spaces list is what lies beneath the current screen (`upDestinationLabel`, `MainAreaTabStrip.kt`). With
+documents open the arrow goes to the previous tab or the explorer first. Not measured: what a first-time
+user sees on a phone from each surface, how many taps the route takes, and how VS Code and IntelliJ name
+the act of leaving a workspace. The repair starts there, and ends in one entry that is visible from every
+surface of a Space, with a test that it is.
+
+### GAP-194 — A line's diagnostic and its breakpoint share a touch target
+
+Reported on the published build, on a phone: on a code cell's line that carries a language-server
+warning or error and a breakpoint, the breakpoint's circle draws over the diagnostic's icon. A tap meant
+to read the diagnostic's message sets a breakpoint, and a tap on the breakpoint to remove it opens the
+diagnostic's message instead, so the breakpoint stays. The source states two columns, a breakpoint dot "in
+its own column" and a diagnostic's "mark column" (`LineNumbers.kt`, `rememberGutterMetrics`, `gutterPress`),
+so the overlap is a case the geometry does not cover, found by a person and not yet reproduced here. The
+repair starts by reproducing it at a phone's width on a line holding both, red test first on the gutter's
+metrics. Two references for the shape of the answer: JupyterLab gives the breakpoint a gutter of its own
+(`jupyterlab@7f0e690680a7 packages/debugger/src/handlers/editor.ts:231`, `cm-breakpoint-gutter`), and VS
+Code draws a breakpoint in the glyph margin (`vscode@3f3380c668d0
+src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts`) while its markers contribution
+sets no glyph-margin decoration (`glyphMargin` finds nothing under `contrib/markers`): a diagnostic is a
+squiggle in the text. A suggestion to weigh, not a decision: keep the breakpoint in its own column and
+make the squiggle (`DiagnosticSquiggles.kt`) the place a tap reads the message, so each tappable area has
+one meaning.
+
+### GAP-195 — A package installed with `%pip` is sometimes not importable in the next cell
+
+Reported on the published build: after `%pip install <package>` in one cell, an `import` in the cell
+below sometimes says the package was not found, and selecting the kernel again makes it work. Not
+measured, and the two readings below predict different fixes. The first is Python's import caches: a
+directory that appeared after the interpreter first listed its parent is not seen until
+`importlib.invalidate_caches()`. Whether IPython's `%pip` calls it after an install is not read here:
+`IPython/core/magics/packaging.py` in the shipped rootfs says. The second is that the install landed
+outside the kernel's `sys.path`, which a restart's fresh path would hide. The repair starts by
+reproducing on the tablet with a package that installs, `%pip install` then `import` in the next cell,
+and printing `sys.path` and the package's `__file__` when it fails.
+
+### GAP-196 — `%pip` finds no wheel for duckdb or scikit-learn on the Space's platform
+
+Reported on the published build: pandas installs with `%pip`, and duckdb and scikit-learn answer that the
+package could not be found. The cause is partly measured on 2026-11-09. The Space is Alpine 3.21 on musl
+with Python 3.12 (`tools/rootfs/Dockerfile`), so pip looks for `cp312` `musllinux_*_aarch64` wheels. PyPI's
+latest releases list **none** for duckdb 2.0.0 (15 files) or scikit-learn 1.9.1 (43 files), and seven for
+pandas 3.1.1, among them `pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl`. A source build is not an
+exit: the image carries no C toolchain on purpose (`tools/rootfs/Dockerfile`, the comment above its
+builder stages). Not measured: older releases of the two, pip's own message on the device (the report
+paraphrases it), and which other popular packages are in the same case. Options to measure before one
+is chosen: a package the image's `apk` repository carries under the same name, a wheelhouse the build
+produces, or telling the user plainly why pip cannot see a package that exists.
+
+### GAP-197 — Adding a cell, the most repeated notebook act, is only a row in a long menu
+
+Reported on the published build: adding a cell means opening a cell's "⋮" menu and finding the row among
+many; VS Code offers two buttons for it. Read against the source, the report holds. The only insert
+controls are five rows of a cell's menu (`addingItems`, `CellActionItems.kt`: "Insert code above",
+"Insert code below", "Insert markdown below" and the two heading rows), beside the move, duplicate,
+change-type, merge and split rows. The notebook's bottom bar (`NotebookBar.kt`) holds Run all, Interrupt,
+Restart, Restart and run all and Kernel actions, and nothing that adds a cell. The parity ledger marks
+`notebook:insert-cell-below` `present` through that menu and has no row for any of the controls below.
+
+What the references do, read in their code:
+
+- **VS Code** (`vscode@3f3380c668d0`) registers a "Code" and a "Markdown" item in **two** menus:
+  `NotebookCellBetween`, "a toolbar that appears on hover between cells", and `NotebookToolbar`, "the
+  toolbar at the top of the notebook editor" (`src/vs/workbench/contrib/notebook/browser/controller/insertCellActions.ts`
+  `:236-350`). `notebook.insertToolbarLocation` chooses `betweenCells`, `notebookToolbar`, `both` or
+  `hidden`, and its default is `both` (`notebook.contribution.ts:1049-1062`). A hidden-while-read-only rule
+  rides on `NOTEBOOK_EDITOR_EDITABLE`. Commands "Add Code Cell At Top" and "Add Markdown Cell At Top"
+  cover the start of the notebook (`insertCellActions.ts:184,212`).
+- **JupyterLab** (`jupyterlab@7f0e690680a7`) has two: the default toolbar's `insert` button, an `add` icon
+  running `notebook:insert-cell-below` (`packages/notebook-extension/schema/panel.json`, rank 20), and a
+  `NotebookFooter` after the last cell, a button reading "Click to add a cell." that selects the last
+  cell, inserts below it and focuses the new one (`packages/notebook/src/notebookfooter.ts:25,47-53`,
+  attached at `widget.ts:1808`). Neither needs a menu or a hover.
+- **`vscode-jupyter`** (`f01d80ca0aa0`) offers `jupyter.insertCellBelow` and its siblings as key chords
+  for `# %%` cells in a text editor (`package.json:155-170`), and **`colab-vscode`** (`96e23580c6a6`) adds
+  one prefilled code cell after the selection from a command (`src/colab/commands/notebook.ts:65-88`).
+  Neither draws a button. **IntelliJ's community tree has no notebook UI**: the only matches for an
+  insert-cell search are its GUI designer's grid code.
+
+What does not carry over: VS Code's between-cell toolbar appears on hover, and a touch screen has no
+hover (the same reason `resize: vertical` was declined, ADR-0036). JupyterLab's footer and VS Code's top
+toolbar show without one.
+
+The plan, in one slice and one question left open:
+
+1. **A footer after the last cell with two buttons, "Code" and "Markdown", always visible.** It takes
+   JupyterLab's footer behaviour (select the end, insert, focus the new cell) and VS Code's pair of
+   kinds. It calls `insertCellAt(cells.size, kind, "")` (`NotebookCellEdits.kt`), which already makes the new
+   cell the one active cell as one undoable operation, and the new cell is scrolled into view the way
+   `CellScrollTarget.kt` does for a heading. It is the only control on screen in an empty notebook, and
+   absent while the notebook is read-only. The cell menu keeps its rows: the references keep the
+   commands too. Red test first: an instrumented test that the footer is visible with no menu open, that a
+   tap of each button appends a cell of that kind at the end and makes it active, and that it is absent
+   read-only. Shown on a phone and a tablet at font scale 1.0 and 2.0 with every label whole.
+2. **Open until slice 1 is on a phone: a control between cells or at the top.** Hover is not available,
+   so anything between cells must be always visible or tied to the active cell, and either costs vertical
+   space on a screen where space is scarce. The cost is measured on a phone before one is added.
+
+The choice of the footer rests on a heuristic, not a measurement: an act repeated through every session
+should be one tap from where the reader already is, and the end of a notebook is where they scroll to
+append. How often each insert is used is not counted here.
+
 ---
 
 ## 12. Glossary

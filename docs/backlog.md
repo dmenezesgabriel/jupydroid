@@ -319,6 +319,11 @@ empty space is used.
 | `AUD-014` | **Visual consistency and the theme matrix, measured:** every screen at one and two panes, on a phone and a tablet, under the app's System, Light and Dark against the device's Light and Dark; insets, gaps and unused space against VS Code and IntelliJ; contrast of every text and icon pair read from the screenshots against WCAG's 4.5:1 and 3:1; TalkBack labels, 48dp targets and 200% font scale | in-progress ← next | [AUD-014](prd/AUD-014-visual-consistency-and-the-theme-matrix.md) | — |
 | `JD-067` | **The terminal's text sits inside a margin:** the grid is inset from the pane's edges, as VS Code's and IntelliJ's terminals are, and the columns and rows sent to the PTY account for it; measured before and after | open | — | — |
 | `JD-068` | **Repair what `AUD-014` names:** one item per gap, each holding in every theme combination. Nothing exists here until the measurement names it | open | — | — |
+| `JD-075` | **A way back to the Spaces list is on screen from every surface of a Space:** one visible entry, the same on a phone and a tablet, tested on each | open | — | `GAP-193` |
+| `JD-076` | **A line's breakpoint and its diagnostic can each be tapped, and removed, on a phone:** reproduced on a line holding both first, then a column or target each owns | open | — | `GAP-194` |
+| `JD-077` | **A package `%pip` installed imports in the next cell, without selecting the kernel again:** the cause measured on the tablet, then repaired | open | — | `GAP-195` |
+| `JD-078` | **`%pip install` of duckdb and scikit-learn works in a Space, or says why it cannot:** which packages lack musllinux aarch64 wheels measured, then the option chosen on that evidence | open | — | `GAP-196` |
+| `JD-079` | **A notebook ends in "Code" and "Markdown" buttons that add a cell:** always visible after the last cell and alone in an empty notebook, absent read-only, the new cell active and in view; shown on a phone and a tablet at 1.0 and 2.0 font scale | open | — | `GAP-197` |
 
 ### M12 — Documentation site
 
