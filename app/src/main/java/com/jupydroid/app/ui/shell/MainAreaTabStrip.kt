@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,11 +27,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -293,6 +297,20 @@ private fun MainAreaTabStrip(
     // share and never grows. Below the floor the row overflows and the scroll takes over.
     val share = if (tabs.isEmpty()) TAB_MAX_WIDTH else maxWidth / tabs.size
     val tabWidth = share.coerceIn(TAB_MIN_WIDTH, TAB_MAX_WIDTH)
+    // The tab the strip reveals is the one on top of the stack, scrolled the minimum that shows it
+    // whole, as VS Code does (vscode@3f3380c668d0
+    // `src/vs/workbench/browser/parts/editor/multiEditorTabsControl.ts`, "Reveal the active one")
+    // and IntelliJ's `scrollToSelectedTab` (intellij-community@406a27a8da07
+    // `platform/platform-api/src/com/intellij/ui/tabs/impl/multiRow/ScrollableMultiRowLayout.kt`).
+    // Without it a tab opened past the row's edge is active and unseen. A new tab, a close and
+    // the one-pane arrow each change the row's width, so each reveals again, after the frame that
+    // lays the row out: before it the scroller's range is 0 and a request has nowhere to scroll.
+    val active = backStack.lastOrNull()?.takeIf { it in tabs }
+    val revealActive = remember { BringIntoViewRequester() }
+    LaunchedEffect(active, tabs.size, tabWidth, twoPane) {
+      withFrameNanos {}
+      revealActive.bringIntoView()
+    }
     Row(modifier = Modifier.fillMaxWidth()) {
       // The one-pane Up affordance - fixed ahead of the scrollable tabs so it never scrolls
       // away, and present only while something sits beneath to return to. Its label names the
@@ -325,12 +343,13 @@ private fun MainAreaTabStrip(
             // the same `title.label`.
             title = tab.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles),
             document = document,
-            active = backStack.lastOrNull() == tab,
+            active = active == tab,
             // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
             closable = tab !is Launcher || backStack.launcherIsClosable(),
             // `docmanager:rename` only exists for what has a path (`document-title` tabs).
             renameable = tab.documentOpening() != null,
             width = tabWidth,
+            modifier = if (active == tab) Modifier.bringIntoViewRequester(revealActive) else Modifier,
             canCloseOthers = tabs.size > 1,
             canCloseRight = toTheRight.isNotEmpty(),
             onActivate = { backStack.activateMainAreaTab(tab) },
@@ -355,16 +374,15 @@ private fun MainAreaTabStrip(
       // Fixed behind the scrolling tabs as the Up arrow is fixed ahead of them, so neither ever
       // scrolls away. The strip's own height rather than an `IconButton`'s 48dp, which would
       // make the strip taller at two panes than its tabs are.
-      val top = backStack.lastOrNull()?.takeIf { it in tabs }
       ActiveTabReload(
-        title = top?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
-        document = top?.documentIn(openDocuments),
+        title = active?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
+        document = active?.documentIn(openDocuments),
         height = TAB_HEIGHT + ACTIVE_EDGE,
         modifier = Modifier.align(Alignment.CenterVertically),
       )
       ActiveTabSave(
-        title = top?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
-        document = top?.documentIn(openDocuments),
+        title = active?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
+        document = active?.documentIn(openDocuments),
         height = TAB_HEIGHT + ACTIVE_EDGE,
         modifier = Modifier.align(Alignment.CenterVertically),
         onSaved = onSaved,

@@ -102,11 +102,12 @@ internal fun MainAreaTab(
   onDelete: () -> Unit,
   /** `moveChat` from the main area, or null for a tab whose contribution gives no side panel to move to. */
   onMoveToSidePanel: (() -> Unit)? = null,
+  modifier: Modifier = Modifier,
 ) {
   val chrome = chromePalette
   var menuOpen by remember { mutableStateOf(false) }
   val dirty by document?.dirty?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
-  Column(modifier = Modifier.width(width)) {
+  Column(modifier = modifier.width(width)) {
     // `jp-mod-current::before` / `tab.activeBorderTop` - the brand line the current tab wears.
     Box(
       modifier = Modifier

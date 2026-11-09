@@ -8,7 +8,6 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -80,8 +79,7 @@ class TabDuplicateTest {
     }
   }
 
-  private fun openTheMenu(title: String) =
-    compose.onNodeWithContentDescription("Tab: $title").performTouchInput { longClick() }
+  private fun openTheMenu(title: String) = compose.tabInReach(title).performTouchInput { longClick() }
 
   /** Duplicate 21, delete 22 in the reference's ranks: the copy is offered just above the delete. */
   @Test

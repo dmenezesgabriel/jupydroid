@@ -147,7 +147,7 @@ class MainAreaTabStripTest {
   fun tappingATabRevealsItsDocument() {
     strip(Editor("a.ipynb"), FileEditor("b.py"))
 
-    tab("a.ipynb").performClick()
+    compose.tabInReach("a.ipynb").performClick()
 
     assertEquals(Editor("a.ipynb"), backStack.last())
   }
@@ -278,7 +278,7 @@ class MainAreaTabStripTest {
 
     assertEquals(listOf("Tab: a.ipynb", "Tab: b.py", "Tab: Terminal 1"), tabsLeftToRight())
 
-    tab("a.ipynb").performClick()
+    compose.tabInReach("a.ipynb").performClick()
 
     assertEquals(Editor("a.ipynb"), backStack.last())
     assertEquals(listOf("Tab: a.ipynb", "Tab: b.py", "Tab: Terminal 1"), tabsLeftToRight())
@@ -294,7 +294,7 @@ class MainAreaTabStripTest {
     open.opened(FakeTabDocument("dir/a.ipynb"))
     strip(Editor("dir/a.ipynb"), FileEditor("b.py"))
 
-    tab("a.ipynb").performTouchInput { longClick() }
+    compose.tabInReach("a.ipynb").performTouchInput { longClick() }
 
     compose.onNodeWithText("Rename…").assertIsDisplayed()
     compose.onNodeWithText("Save As…").assertIsDisplayed()
@@ -305,7 +305,7 @@ class MainAreaTabStripTest {
   fun renameOnTheTabMenuOpensTheRenameDialog() {
     strip(Editor("dir/a.ipynb"), FileEditor("b.py"))
 
-    tab("a.ipynb").performTouchInput { longClick() }
+    compose.tabInReach("a.ipynb").performTouchInput { longClick() }
     compose.onNodeWithText("Rename…").performClick()
 
     compose.onNodeWithText("Rename file").assertIsDisplayed()
@@ -386,7 +386,7 @@ class MainAreaTabStripTest {
   }
 
   private fun renameTab(title: String, to: String) {
-    tab(title).performTouchInput { longClick() }
+    compose.tabInReach(title).performTouchInput { longClick() }
     compose.onNodeWithText("Rename…").performClick()
     compose.onNodeWithTag(RENAME_FIELD_TAG).performTextClearance()
     compose.onNodeWithTag(RENAME_FIELD_TAG).performTextInput(to)
