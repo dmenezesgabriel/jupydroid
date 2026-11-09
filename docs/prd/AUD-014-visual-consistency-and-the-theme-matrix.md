@@ -235,9 +235,16 @@ One unit each, one conventional commit each. A task that is still too large spli
       `clickable` against ADR-0048's decision text:** one cause, read before any ADR is written
       (`boundsInRoot`, `touchBoundsInRoot` and the dump's bounds side by side on `dev36`). An ADR or a
       corrected comment each; a `defect` if the close's 24dp reserve breaks ADR-0048's "reserved space".
-- [ ] T7e — **The font-scale `defect`s, one demo each** (split again if a piece is too big): the Launcher
-      card's label, the terminal's Ctrl and Alt, Settings' Theme row, the Spaces home row, Chat's MCP chip,
-      the Running panel's close column, a refused Rename under the keyboard.
+- [ ] T7e1 — **The Launcher card's label at 200% font scale:** the card is a fixed 100 x 100 dp, so
+      "Python 3" is "Pytho…" on the Notebook and Console cards. Red test first, repair, the before and
+      after off the dumps on the tablet at one pane and on the phone.
+- [ ] T7e2 — **The terminal's Ctrl and Alt** read as one word, "CtrlAlt", at 2.0.
+- [ ] T7e3 — **Settings' Theme row:** "System" broken mid-word in the segmented control at 2.0.
+- [ ] T7e4 — **The Spaces home row:** "Stopped" broken mid-word beside Run, Open and the gear at 2.0.
+- [ ] T7e5 — **Chat's MCP chip:** "MCP servers" stacked a letter or two per line at 2.0 on the phone.
+- [ ] T7e6 — **The Running panel's close column:** one long name cuts its close button to 43 x 48 dp.
+- [ ] T7e7 — **A refused Rename under the keyboard:** Cancel and Rename sit below the keyboard's top edge
+      at 2.0.
 - [ ] T7f — **The rest of the provisionals:** Shut Down All at 43.3dp, the dark Files row's inherited
       colour, the three fields with no name, whether `read_text_contrast.py` names a disabled control
       apart, and the `undocumented` row for "the control carries the name": an ADR for the rule the code
