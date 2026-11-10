@@ -2,11 +2,7 @@ package com.jupydroid.app
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -20,8 +16,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeKernelGateway
@@ -30,6 +24,9 @@ import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.ui.AtFontScale
+import com.jupydroid.app.ui.breaksInsideAWord
+import com.jupydroid.app.ui.isCut
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LAUNCHER_ITEMS
 import com.jupydroid.app.ui.launcher.LauncherCommand
@@ -153,39 +150,11 @@ class LauncherScreenTest {
     }
   }
 
-  @Composable
-  private fun AtFontScale(scale: Float, content: @Composable () -> Unit) {
-    val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = scale), content = content)
-  }
-
   private fun cardTag(item: LauncherItem): String = "$LAUNCHER_CARD_TAG-${item.command.name}"
 
   /** The label's own node: the card merges its descendants, so the text is only in the unmerged tree. */
   private fun labelOf(item: LauncherItem): SemanticsNodeInteraction =
     compose.onNode(hasText(item.label) and hasAnyAncestor(hasTestTag(cardTag(item))), useUnmergedTree = true)
-
-  private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
-    val layouts = mutableListOf<TextLayoutResult>()
-    fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
-    return layouts.single()
-  }
-
-  /** Whether any line of this node's text ends in an ellipsis. */
-  private fun SemanticsNodeInteraction.isCut(): Boolean {
-    val layout = textLayout()
-    return (0 until layout.lineCount).any(layout::isLineEllipsized)
-  }
-
-  /**
-   * Whether a line other than the last ends mid-word: a soft wrap at a space keeps the space on the
-   * line it ends, so a line whose last character is not one was broken because a word did not fit.
-   */
-  private fun SemanticsNodeInteraction.breaksInsideAWord(): Boolean {
-    val layout = textLayout()
-    val text = layout.layoutInput.text.text
-    return (0 until layout.lineCount - 1).any { text[layout.getLineEnd(it) - 1] != ' ' }
-  }
 
   private companion object {
     val CARD_MINIMUM = 100.dp

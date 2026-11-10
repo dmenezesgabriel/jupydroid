@@ -1,16 +1,27 @@
 package com.jupydroid.app.ui.settings
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
@@ -23,12 +34,16 @@ import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.AtFontScale
+import com.jupydroid.app.ui.breaksInsideAWord
+import com.jupydroid.app.ui.isCut
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -334,6 +349,37 @@ class SettingsScreenTest {
   }
 
   @Test
+  fun everyThemeChoiceKeepsItsWholeWordOnAPhoneAtTwiceTheFontScale() {
+    startPhoneScreenAt(fontScale = 2f)
+
+    assertEveryChoiceIsWhole(THEME_CHOICES)
+  }
+
+  @Test
+  fun everyThemeChoiceKeepsItsWholeWordOnAPhoneAtTheDefaultFontScale() {
+    startPhoneScreenAt(fontScale = 1f)
+
+    assertEveryChoiceIsWhole(THEME_CHOICES)
+  }
+
+  @Test
+  fun everyIndentChoiceKeepsItsWholeWordOnAPhoneAtTwiceTheFontScale() {
+    startPhoneScreenAt(fontScale = 2f)
+    compose.onNodeWithText(INDENT_UNIT).performScrollTo()
+
+    assertEveryChoiceIsWhole(INDENT_CHOICES)
+  }
+
+  @Test
+  fun themeChoicesAreRadioButtonsForAScreenReader() {
+    startScreen()
+
+    THEME_CHOICES.forEach { label ->
+      compose.onNodeWithText(label).assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+  }
+
+  @Test
   fun tappingTheLicencesRowAsksToOpenThem() {
     var opened = 0
     startScreen(onOpenLicences = { opened++ })
@@ -347,18 +393,36 @@ class SettingsScreenTest {
     editorSettingsRepository: EditorSettingsRepository = FakeEditorSettingsRepository(),
     themeSettingsRepository: ThemeSettingsRepository = FakeThemeSettingsRepository(),
     onOpenLicences: () -> Unit = {},
+    frame: @Composable (@Composable () -> Unit) -> Unit = { screen -> screen() },
   ) {
     compose.setContent {
       JupyterDroidTheme {
-        SettingsScreen(
-          editorSettingsRepository = editorSettingsRepository,
-          themeSettingsRepository = themeSettingsRepository,
-          applicationScope = scope,
-          onOpenLicences = onOpenLicences,
-        )
+        frame {
+          SettingsScreen(
+            editorSettingsRepository = editorSettingsRepository,
+            themeSettingsRepository = themeSettingsRepository,
+            applicationScope = scope,
+            onOpenLicences = onOpenLicences,
+          )
+        }
       }
     }
   }
+
+  /** The screen at the phone emulator's width, because the tablet's pane has room the Theme row never runs out of. */
+  private fun startPhoneScreenAt(fontScale: Float) =
+    startScreen(frame = { screen -> Box(Modifier.requiredWidth(PHONE_WIDTH)) { AtFontScale(fontScale, screen) } })
+
+  private fun assertEveryChoiceIsWhole(labels: List<String>) {
+    labels.forEach { label ->
+      assertFalse("$label is cut", choiceLabel(label).isCut())
+      assertFalse("$label breaks inside a word", choiceLabel(label).breaksInsideAWord())
+    }
+  }
+
+  /** The label's own node: the segment merges its descendants, so the text layout is only in the unmerged tree. */
+  private fun choiceLabel(label: String): SemanticsNodeInteraction =
+    compose.onNode(hasText(label), useUnmergedTree = true)
 
   private fun EditorSettingsRepository.currentSettings(): EditorSettings = runBlocking { observeSettings().first() }
 
@@ -366,5 +430,8 @@ class SettingsScreenTest {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+    val PHONE_WIDTH = 320.dp
+    val THEME_CHOICES = listOf(THEME_SYSTEM, THEME_LIGHT, THEME_DARK)
+    val INDENT_CHOICES = IndentUnit.entries.map { it.option }
   }
 }

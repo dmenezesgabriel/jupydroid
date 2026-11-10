@@ -5,10 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -23,7 +20,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -33,6 +29,7 @@ import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import com.jupydroid.app.ui.shell.WindowKeyRowHosted
 import com.jupydroid.app.ui.terminal.TERMINAL_EXTRA_KEYS_TAG
@@ -210,12 +207,6 @@ class TerminalExtraKeysRowTest {
     }
     compose.waitUntil(TIMEOUT_MILLIS) { gateway.attached }
     return gateway
-  }
-
-  @Composable
-  private fun AtFontScale(scale: Float, content: @Composable () -> Unit) {
-    val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = scale), content = content)
   }
 
   /** Composes [TerminalPaneScreen] against a fresh, attached [RecordingTerminalGateway]. */
