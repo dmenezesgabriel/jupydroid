@@ -1,5 +1,9 @@
 package com.jupydroid.extension.api
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -18,6 +22,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.window.DialogProperties
 
 public const val RENAME_FIELD_TAG: String = "rename-field"
 
@@ -79,6 +84,12 @@ public fun RenameFileDialog(
 
   AlertDialog(
     onDismissRequest = onDismiss,
+    // The dialog's window is panned, not resized, when the keyboard opens, which keeps the field in
+    // view and leaves the buttons under it once a refusal makes the dialog taller than the room above
+    // the keyboard. Taking the keyboard as an inset bounds the dialog by it instead, and the field
+    // and its message scroll within what is left (`RenameFileDialogKeyboardTest`, ADR-0048).
+    properties = DialogProperties(decorFitsSystemWindows = false),
+    modifier = Modifier.safeDrawingPadding(),
     title = { Text(heading) },
     text = {
       // Refused, not rewritten. JupyterLab validates in this dialog and names the characters at
@@ -86,18 +97,20 @@ public fun RenameFileDialog(
       // named (`packages/docmanager/src/dialogs.ts`). The name *is* the file here, so an
       // invalid one is not a matter of taste - the filesystem cannot store it.
       val refused = title.text.isNotBlank() && !isValidName(title.text)
-      OutlinedTextField(
-        value = title,
-        onValueChange = { title = it },
-        isError = refused,
-        supportingText = { if (refused) Text(refusalMessage) },
-        modifier = Modifier
-          .focusRequester(field)
-          .semantics { testTagsAsResourceId = true }
-          .testTag(RENAME_FIELD_TAG),
-        singleLine = true,
-        label = { Text(fieldLabel) },
-      )
+      Column(Modifier.verticalScroll(rememberScrollState())) {
+        OutlinedTextField(
+          value = title,
+          onValueChange = { title = it },
+          isError = refused,
+          supportingText = { if (refused) Text(refusalMessage) },
+          modifier = Modifier
+            .focusRequester(field)
+            .semantics { testTagsAsResourceId = true }
+            .testTag(RENAME_FIELD_TAG),
+          singleLine = true,
+          label = { Text(fieldLabel) },
+        )
+      }
       // Without this the dialog opens with no caret and the first keystroke goes nowhere - the
       // defect audit A1c cost a device run to find. JupyterLab asks for the same thing
       // declaratively, with `focusNodeSelector: 'input'`.
