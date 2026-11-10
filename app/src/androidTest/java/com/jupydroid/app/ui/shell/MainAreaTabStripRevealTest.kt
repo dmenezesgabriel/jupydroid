@@ -11,7 +11,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
-import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.Explorer
@@ -25,6 +24,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.ui.PHONE_WIDTH
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -110,9 +110,5 @@ class MainAreaTabStripRevealTest {
     activate(Terminal("1"))
 
     assertEquals(before, boundsOf("Tab: Terminal 1"))
-  }
-
-  private companion object {
-    val PHONE_WIDTH = 320.dp
   }
 }

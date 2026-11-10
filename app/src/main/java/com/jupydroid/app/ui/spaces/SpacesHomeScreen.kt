@@ -1,10 +1,14 @@
 package com.jupydroid.app.ui.spaces
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -29,10 +33,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.BASE_SPACE
@@ -252,40 +259,60 @@ private class RowStatus(val isRunning: Boolean, val defaultKernelNote: String?)
  * (`SpaceRepositoryContract.twoSpacesMayShareAName`) and the id is what tells two such rows apart.
  * Base draws no rename or delete control at all: its directory is the rootfs every Space reads
  * (ADR-0074).
+ *
+ * **The controls drop under the text, together, when they would leave it less than its widest
+ * status word.** They are fixed-width, so at twice the font scale on a 320 dp phone five of them
+ * need about the whole row and "Stopped" was drawn "Stoppe / d" in what was left
+ * (`SpacesHomeScreenFontScaleTest`). At the default size they share the text's line.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SpaceRow(space: SpaceConfig, now: Instant, status: RowStatus, actsEnabled: Boolean, acts: SpaceRowActs) {
-  val isRunning = status.isRunning
-  val isBase = space.id == BASE_SPACE.id
-  val onRename = { acts.onRename(space) }.takeUnless { isBase }
-  val onDelete = { acts.onDelete(space) }.takeUnless { isBase }
-  Row(
+  FlowRow(
     modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.xs),
-    verticalAlignment = Alignment.CenterVertically,
+    horizontalArrangement = Arrangement.End,
+    itemVerticalAlignment = Alignment.CenterVertically,
   ) {
-    SpaceRowText(space, now, status, Modifier.weight(1f))
-    RunOrStopButton(space, isRunning, actsEnabled, acts)
-    TextButton(
-      onClick = { acts.onOpen(space) },
-      enabled = actsEnabled && isRunning,
-      modifier = Modifier.semantics { contentDescription = "Open ${space.name} (${space.id})" },
-    ) {
-      Text("Open")
+    SpaceRowText(space, now, status, Modifier.weight(1f).widthIn(min = rememberStatusWordWidth()))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+      SpaceRowControls(space, status.isRunning, actsEnabled, acts)
     }
-    IconButton(onClick = { acts.onSettings(space) }, enabled = actsEnabled && !isRunning) {
-      Icon(Icons.Filled.Settings, contentDescription = "Settings ${space.name} (${space.id})")
-    }
-    onRename?.let {
-      // Named with the id, as the row is: "Rename Thesis" would not say which of two Thesis rows.
-      IconButton(onClick = it, enabled = actsEnabled) {
-        Icon(Icons.Filled.Edit, contentDescription = "Rename ${space.name} (${space.id})")
-      }
-    }
-    onDelete?.let {
-      IconButton(onClick = it, enabled = actsEnabled) {
-        Icon(Icons.Filled.Delete, contentDescription = "Delete ${space.name} (${space.id})")
-      }
-    }
+  }
+}
+
+/** The widest of the two status words as the row draws them, so the text column is never narrower. */
+@Composable
+private fun rememberStatusWordWidth(): Dp {
+  val measurer = rememberTextMeasurer()
+  val style = MaterialTheme.typography.labelMedium
+  val density = LocalDensity.current
+  return remember(measurer, style, density) {
+    val widestPx = listOf(RUNNING, STOPPED).maxOf { measurer.measure(it, style).size.width }
+    with(density) { widestPx.toDp() }
+  }
+}
+
+@Composable
+private fun SpaceRowControls(space: SpaceConfig, isRunning: Boolean, actsEnabled: Boolean, acts: SpaceRowActs) {
+  val isBase = space.id == BASE_SPACE.id
+  RunOrStopButton(space, isRunning, actsEnabled, acts)
+  TextButton(
+    onClick = { acts.onOpen(space) },
+    enabled = actsEnabled && isRunning,
+    modifier = Modifier.semantics { contentDescription = "Open ${space.name} (${space.id})" },
+  ) {
+    Text("Open")
+  }
+  IconButton(onClick = { acts.onSettings(space) }, enabled = actsEnabled && !isRunning) {
+    Icon(Icons.Filled.Settings, contentDescription = "Settings ${space.name} (${space.id})")
+  }
+  if (isBase) return
+  // Named with the id, as the row is: "Rename Thesis" would not say which of two Thesis rows.
+  IconButton(onClick = { acts.onRename(space) }, enabled = actsEnabled) {
+    Icon(Icons.Filled.Edit, contentDescription = "Rename ${space.name} (${space.id})")
+  }
+  IconButton(onClick = { acts.onDelete(space) }, enabled = actsEnabled) {
+    Icon(Icons.Filled.Delete, contentDescription = "Delete ${space.name} (${space.id})")
   }
 }
 

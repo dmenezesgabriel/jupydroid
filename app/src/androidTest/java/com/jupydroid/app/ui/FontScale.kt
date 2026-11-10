@@ -7,6 +7,11 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
+/** The narrowest phone the app is laid out for, where a large font scale leaves a row the least room. */
+internal val PHONE_WIDTH: Dp = 320.dp
 
 /**
  * Composes [content] at a user font [scale] while keeping the screen's own density, which is what the

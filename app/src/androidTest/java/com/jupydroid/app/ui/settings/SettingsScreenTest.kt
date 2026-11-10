@@ -21,7 +21,6 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
@@ -35,6 +34,7 @@ import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.app.ui.AtFontScale
+import com.jupydroid.app.ui.PHONE_WIDTH
 import com.jupydroid.app.ui.breaksInsideAWord
 import com.jupydroid.app.ui.isCut
 import kotlinx.coroutines.CoroutineScope
@@ -430,7 +430,6 @@ class SettingsScreenTest {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
-    val PHONE_WIDTH = 320.dp
     val THEME_CHOICES = listOf(THEME_SYSTEM, THEME_LIGHT, THEME_DARK)
     val INDENT_CHOICES = IndentUnit.entries.map { it.option }
   }
