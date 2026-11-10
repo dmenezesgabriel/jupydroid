@@ -258,6 +258,7 @@ fun FileEditorScreen(
           wrapEnabled = editorSettings.codeWrapEnabled,
           input = fileInput,
           onLayoutMeasured = { layout = it },
+          fieldName = FILE_EDITOR_NAME,
           modifier = Modifier.fillMaxSize().verticalScroll(scroll),
         )
       }
@@ -298,6 +299,9 @@ internal fun autoClosesBrackets(fileName: String, autoClosingBrackets: Boolean):
   autoClosingBrackets && isBracketed(fileName)
 
 private fun isBracketed(fileName: String): Boolean = fileName.substringAfterLast('.', "").lowercase() in BRACKETED
+
+/** What a screen reader calls the open file's text field; the tab already says which file. */
+private const val FILE_EDITOR_NAME = "File editor"
 
 private val BRACKETED = setOf("py", "json", "ipynb")
 

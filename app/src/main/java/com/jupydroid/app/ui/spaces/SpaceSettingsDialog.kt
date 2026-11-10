@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardType
@@ -43,6 +44,9 @@ const val THREAD_CAP_FIELD_TAG = "space-thread-cap-field"
 
 /** The startup-script field's tag, for a test and - as a resource id - for a Maestro flow. */
 const val STARTUP_SCRIPT_FIELD_TAG = "space-startup-script-field"
+
+/** The startup script's name: its heading, and what a screen reader calls the field under it. */
+internal const val STARTUP_SCRIPT_NAME = "Startup script"
 
 /** The dialog's accept button. */
 internal const val SAVE_SETTINGS = "Save"
@@ -181,13 +185,16 @@ private fun SettingsNumberField(
 internal fun StartupScriptField(script: TextFieldState) {
   var focused by remember { mutableStateOf(false) }
   Column(Modifier.padding(top = Spacing.sm)) {
-    Text("Startup script", style = MaterialTheme.typography.labelLarge)
+    // The field carries the name, so the heading is drawn and cleared out of the tree: two nodes
+    // answering to one string sent a flow to the label (`SearchSidePanelTest`).
+    Text(STARTUP_SCRIPT_NAME, Modifier.clearAndSetSemantics { }, style = MaterialTheme.typography.labelLarge)
     CodeCellField(
       state = script,
       onSourceEdited = {},
       highlighter = remember { ShellSyntax() },
       typing = InputTransformation { },
       completionEnabled = false,
+      fieldName = STARTUP_SCRIPT_NAME,
       modifier = Modifier.fillMaxWidth()
         .cellEditorBox(editing = focused)
         .onFocusChanged { focused = it.isFocused }

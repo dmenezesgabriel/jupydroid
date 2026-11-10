@@ -35,6 +35,9 @@ import com.jupydroid.app.ui.editor.cellRunIcon
 /** Locates the input field in a test, the same role `EVALUATE_FIELD_TAG` plays for the debugger's. */
 const val CONSOLE_INPUT_FIELD_TAG = "console-input-field"
 
+/** What a screen reader calls the Console's input field. */
+internal const val CONSOLE_INPUT_NAME = "Console input"
+
 /**
  * Where a Console entry is typed and run.
  *
@@ -125,6 +128,7 @@ fun ConsoleInputRow(
           autoClosingBrackets = autoClosingBrackets,
           indentUnit = indentUnit,
           input = input,
+          fieldName = CONSOLE_INPUT_NAME,
         )
       }
       IconButton(onClick = onSubmit, enabled = !running) {

@@ -25,6 +25,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.Dp
@@ -132,6 +134,11 @@ fun CodeCellField(
    * match into view; everything else takes the default and never hears about layout.
    */
   onLayoutMeasured: (TextLayoutResult) -> Unit = {},
+  /**
+   * What a screen reader calls this field. It sits on the node that takes the text, so one string is
+   * both what is spoken and what a flow addresses; a caller that knows what the field edits says so.
+   */
+  fieldName: String = CODE_EDITOR_NAME,
 ) {
   val styles = syntaxStyles()
   val matched = bracketMatchStyle()
@@ -178,7 +185,7 @@ fun CodeCellField(
   // The field's own modifier: the focus requester a definition landing asks for is hoisted out
   // of the wrap/no-wrap split, since both branches want the same one - and `symbolFlash` lands
   // on the same `TextLayoutResult` coordinates `diagnosticSquiggles` draws in.
-  val fieldModifier = modifier.focusRequester(landingFocus)
+  val fieldModifier = modifier.focusRequester(landingFocus).semantics { contentDescription = fieldName }
 
   Box {
     SourceKeyboard {
@@ -342,6 +349,9 @@ private fun definitionLandingFlash(
   }
   return symbolFlash
 }
+
+/** The name of a field whose caller says nothing more specific: a focusable field is never anonymous. */
+internal const val CODE_EDITOR_NAME = "Code editor"
 
 /** How long a definition's `symbolHighlight` mark stays on - `_openReference`, 350 ms. */
 private const val SYMBOL_FLASH_MILLIS = 350L
