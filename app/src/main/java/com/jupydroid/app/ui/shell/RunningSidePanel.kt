@@ -325,23 +325,28 @@ private fun RunningRow(
       tint = MaterialTheme.colorScheme.onSurfaceVariant,
       modifier = Modifier.size(ROW_ICON),
     )
-    Text(
-      text = label,
-      style = MaterialTheme.typography.bodyMedium,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
-      modifier = Modifier.padding(start = Spacing.sm),
-    )
-    detail?.let {
+    // The weighted wrapper is what keeps the close button at one x: an unweighted label is measured first
+    // with all the width left, so a long name would push the button past the edge. The detail is measured
+    // before the label, so it keeps its width and the label is the part that is cut
+    // (RunningSidePanelFontScaleTest).
+    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
       Text(
-        text = it,
+        text = label,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
-        modifier = Modifier.padding(start = Spacing.xs),
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f, fill = false).padding(start = Spacing.sm),
       )
+      detail?.let {
+        Text(
+          text = it,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 1,
+          modifier = Modifier.padding(start = Spacing.xs),
+        )
+      }
     }
-    Spacer(modifier = Modifier.weight(1f))
     IconButton(
       onClick = onShutdown,
       modifier = Modifier.semantics { contentDescription = shutdownDescription },
