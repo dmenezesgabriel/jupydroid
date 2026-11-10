@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -23,6 +24,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -251,7 +253,14 @@ private fun RunningSection(
   Column(modifier = Modifier.fillMaxWidth()) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(Spacing.sm),
+      // The header reserves Material's minimum itself. A 40dp bare `clickable` borrows the other 8dp from its
+      // neighbours at press time and took the top 4dp of the toolbar row's button (ADR-0048,
+      // `RunningSidePanelTest.aPressInTheStripReservedAboveShutDownAllReachesTheButton`).
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable(onClick = onToggle)
+        .heightIn(min = LocalMinimumInteractiveComponentSize.current)
+        .padding(Spacing.sm),
     ) {
       Icon(
         imageVector = if (title in
