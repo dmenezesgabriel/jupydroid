@@ -260,8 +260,11 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T7e6 — **The Running panel's close column:** one long name cut its close button to 43 x 48 dp. Red
       first on `dev36` at 320 dp, repaired with the label and the kernel id in one weighted `Row` so the button
       keeps one x; read on the phone width before and after, and on the tablet at two panes.
-- [ ] T7e7 — **A refused Rename under the keyboard:** Cancel and Rename sit below the keyboard's top edge
-      at 2.0.
+- [x] T7e7 — **A refused Rename under the keyboard:** Cancel and Rename sat below the keyboard's top edge
+      at 2.0. Red first on `dev36` at 320 dp with the real keyboard; repaired by taking the keyboard as the
+      dialog window's inset (`decorFitsSystemWindows = false`, `safeDrawingPadding`) and scrolling the field
+      with its message; read on the phone at 2.0 and on the tablet. The dialog now sits on the keyboard
+      instead of centred, recorded as a cost.
 - [ ] T7f — **The rest of the provisionals:** Shut Down All at 43.3dp, the dark Files row's inherited
       colour, the three fields with no name, whether `read_text_contrast.py` names a disabled control
       apart, and the `undocumented` row for "the control carries the name": an ADR for the rule the code
