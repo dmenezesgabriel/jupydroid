@@ -244,7 +244,8 @@ One unit each, one conventional commit each. A task that is still too large spli
       tapping the file's tab and the notebook's (`reveal-leading-tabs.yaml`, which now starts from
       whichever tab is on screen: at 2.0 on the phone its first swipe pushes Settings off the edge). Read
       on a quiet host; the Other row's lower cards are below the first screen and not read there.
-- [ ] T7e2 — **The terminal's Ctrl and Alt** read as one word, "CtrlAlt", at 2.0.
+- [x] T7e2 — **The terminal's Ctrl and Alt** read as one word, "CtrlAlt", at 2.0. Red first, repaired with
+      the `TextButton` keys' own padding, read on the tablet at two panes and at one pane; the phone has no terminal.
 - [ ] T7e3 — **Settings' Theme row:** "System" broken mid-word in the segmented control at 2.0.
 - [ ] T7e4 — **The Spaces home row:** "Stopped" broken mid-word beside Run, Open and the gear at 2.0.
 - [ ] T7e5 — **Chat's MCP chip:** "MCP servers" stacked a letter or two per line at 2.0 on the phone.
