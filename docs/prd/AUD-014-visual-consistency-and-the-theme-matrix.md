@@ -253,7 +253,10 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T7e4 — **The Spaces home row:** "Stopped" broken mid-word beside Run, Open and the gear at 2.0. Red
       first on `dev36` at 320 dp, repaired with a `FlowRow` whose controls drop together under the text when
       they would leave it less than its widest status word; a user Space's five controls are the worse case.
-- [ ] T7e5 — **Chat's MCP chip:** "MCP servers" stacked a letter or two per line at 2.0 on the phone.
+- [x] T7e5 — **Chat's MCP chip:** "MCP servers" stacked a letter or two per line at 2.0 on the phone. Red
+      first on `dev36` at 320 dp, repaired with a `FlowRow` (`ChatListActions`): the buttons share a line
+      while both fit and the second drops under the first when they do not. On the narrowest phone at 1.0
+      they are now stacked too (a change from two lines for the chip), read and recorded.
 - [ ] T7e6 — **The Running panel's close column:** one long name cuts its close button to 43 x 48 dp.
 - [ ] T7e7 — **A refused Rename under the keyboard:** Cancel and Rename sit below the keyboard's top edge
       at 2.0.
