@@ -42,6 +42,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -69,6 +70,9 @@ import kotlinx.coroutines.flow.drop
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
 const val TERMINAL_INPUT_TAG = "terminal-input"
+
+/** What a screen reader calls the terminal's input, which paints nothing and so has no label to read. */
+internal const val TERMINAL_INPUT_NAME = "Terminal input"
 
 /**
  * A shell, reachable, typeable and drawn faithfully, sub-steps 1 and 2:
@@ -418,7 +422,10 @@ private fun TerminalInputField(
         onEncodedKey(bytes)
         true
       }
-      .semantics { testTagsAsResourceId = true }
+      .semantics {
+        testTagsAsResourceId = true
+        contentDescription = TERMINAL_INPUT_NAME
+      }
       .testTag(TERMINAL_INPUT_TAG),
   )
 }
