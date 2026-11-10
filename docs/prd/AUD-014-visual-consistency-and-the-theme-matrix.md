@@ -239,10 +239,11 @@ One unit each, one conventional commit each. A task that is still too large spli
       100 x 100 dp, so "Python 3" was "Pytho…". Red test first, repair (the card keeps 100 dp as its
       minimum and grows to its longest word and, with its row, to the row's tallest), the before and after
       off the dumps.
-- [ ] T7e1b — **The same on the phone** (`dev36`, one pane): three runs stopped at a SystemUI ANR dialog
-      before the launcher, so none reached it. The one-pane surface flow now swipes the tab strip before
-      tapping the file's tab (`reveal-leading-tabs.yaml`) and has not run on the phone; the notebook's tab
-      may need the same step there.
+- [x] T7e1b — **The same on the phone** (`dev36`, one pane): three runs stopped at a SystemUI ANR dialog
+      before the launcher, so none reached it. The one-pane surface flow swipes the tab strip before
+      tapping the file's tab and the notebook's (`reveal-leading-tabs.yaml`, which now starts from
+      whichever tab is on screen: at 2.0 on the phone its first swipe pushes Settings off the edge). Read
+      on a quiet host; the Other row's lower cards are below the first screen and not read there.
 - [ ] T7e2 — **The terminal's Ctrl and Alt** read as one word, "CtrlAlt", at 2.0.
 - [ ] T7e3 — **Settings' Theme row:** "System" broken mid-word in the segmented control at 2.0.
 - [ ] T7e4 — **The Spaces home row:** "Stopped" broken mid-word beside Run, Open and the gear at 2.0.
