@@ -270,7 +270,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       any test. A layout bound under 48dp with no ADR is a `defect`: red test first, repair, before and
       after off `read_touch_targets.py`. A bound the platform reports clipped, with 48dp of layout and
       reach, is `present` with the cause read, and the ledger row says so.
-- [ ] T7f2 — **The dark Files row's inherited colour:** trace where the open document's name and age take
+- [x] T7f2 — **The dark Files row's inherited colour:** trace where the open document's name and age take
       `#8C8C8C` in `ExplorerScreen.kt`, red test first, repair.
 - [ ] T7f3 — **The three fields with no name:** the code cell and the startup script (`CodeCellField`),
       the terminal's input. Red test first for each; then the ADR for the rule the code comments state
