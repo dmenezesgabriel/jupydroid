@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
@@ -145,6 +147,11 @@ private fun ExtraKey(label: String, onClick: () -> Unit) {
  * button on **[TerminalModifierLatch.isActive]** alone, not on [TerminalModifierLatch.isLocked]
  * separately, so a locked latch reads identically to a freshly tapped one; [describedAs] is what
  * tells a screen reader (and this sub-step's own test) the difference.
+ *
+ * The label carries the padding a `TextButton` key does ([ButtonDefaults.TextButtonContentPadding]):
+ * the box only floors at the touch target, so once the label outgrows it - at the platform's largest
+ * font - nothing else keeps "Ctrl" and "Alt" apart and they read as one word
+ * (`TerminalExtraKeysRowTest.ctrlAndAltLabelsAreAKeyPaddingApartAtTwiceTheFontScale`).
  */
 @Composable
 private fun ModifierExtraKey(label: String, latch: TerminalModifierLatch, onTap: () -> Unit, onLongPress: () -> Unit) {
@@ -157,7 +164,12 @@ private fun ModifierExtraKey(label: String, latch: TerminalModifierLatch, onTap:
       .combinedClickable(onClick = onTap, onLongClick = onLongPress)
       .semantics { contentDescription = describedAs(label, latch) },
   ) {
-    Text(text = label, style = symbolKeyStyle(), color = contentColor)
+    Text(
+      text = label,
+      style = symbolKeyStyle(),
+      color = contentColor,
+      modifier = Modifier.padding(ButtonDefaults.TextButtonContentPadding),
+    )
   }
 }
 

@@ -4,8 +4,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -16,6 +23,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -32,6 +42,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -156,6 +167,57 @@ class TerminalExtraKeysRowTest {
     compose.onNodeWithContentDescription("Alt").performScrollTo().assertIsAtLeastMinimumTouchTarget(compose.density)
   }
 
+  @Test
+  fun ctrlAndAltLabelsAreAKeyPaddingApartAtTwiceTheFontScale() {
+    openTerminalScreenAtFontScale(2f)
+
+    assertLabelsAreAKeyPaddingApart("Ctrl", "Alt")
+  }
+
+  @Test
+  fun ctrlAndAltLabelsAreAKeyPaddingApartAtTheDefaultFontScale() {
+    openTerminalScreenAtFontScale(1f)
+
+    assertLabelsAreAKeyPaddingApart("Ctrl", "Alt")
+  }
+
+  /**
+   * Two neighbouring keys' labels sit at least the two paddings a `TextButton` key carries apart, so the
+   * Ctrl and Alt keys read as two words however wide the font makes them: at 2.0 `Esc` and `Tab` are exactly
+   * that far apart, and a modifier key with no padding of its own touched its neighbour.
+   */
+  private fun assertLabelsAreAKeyPaddingApart(leftLabel: String, rightLabel: String) {
+    val padding = ButtonDefaults.TextButtonContentPadding
+    val minimumGap =
+      padding.calculateRightPadding(LayoutDirection.Ltr) + padding.calculateLeftPadding(LayoutDirection.Ltr)
+    val gap = gapBetween(leftLabel, rightLabel)
+    assertTrue("$leftLabel and $rightLabel are $gap apart, under $minimumGap", gap >= minimumGap - ONE_PIXEL)
+  }
+
+  /** The room between two neighbouring keys' labels, read unclipped: the row scrolls past the window at 2.0. */
+  private fun gapBetween(leftLabel: String, rightLabel: String): Dp =
+    label(rightLabel).getUnclippedBoundsInRoot().left - label(leftLabel).getUnclippedBoundsInRoot().right
+
+  /** A key's own text node: a key merges its descendants, so the label is only in the unmerged tree. */
+  private fun label(text: String): SemanticsNodeInteraction = compose.onNode(hasText(text), useUnmergedTree = true)
+
+  private fun openTerminalScreenAtFontScale(scale: Float): RecordingTerminalGateway {
+    val gateway = RecordingTerminalGateway()
+    compose.setContent {
+      JupyterDroidTheme {
+        AtFontScale(scale) { TerminalPaneScreen(session = TerminalSession("1"), terminalGateway = gateway) }
+      }
+    }
+    compose.waitUntil(TIMEOUT_MILLIS) { gateway.attached }
+    return gateway
+  }
+
+  @Composable
+  private fun AtFontScale(scale: Float, content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = scale), content = content)
+  }
+
   /** Composes [TerminalPaneScreen] against a fresh, attached [RecordingTerminalGateway]. */
   private fun openTerminalScreen(): RecordingTerminalGateway {
     val gateway = RecordingTerminalGateway()
@@ -194,5 +256,8 @@ class TerminalExtraKeysRowTest {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+
+    /** A pixel of rounding in a dp value read back off the layout. */
+    val ONE_PIXEL = 1.dp
   }
 }
