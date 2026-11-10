@@ -282,10 +282,20 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T7f4 — **Whether `read_text_contrast.py` names a disabled control apart,** as it does a node with
       no ink in view: it does. The dump states `enabled="false"` on the merged parent of the text, not on the
       text node the first read looked at.
-- [ ] T7g — **Close.** The high-contrast borders and focus verdict, a `GAP-NNN` per `absent`, `JD-068`'s
-      rows named from the measurement, the ledger's counts (the null-description grep reads 49, not 48: the
-      check `Icon` in `ChoiceSegments` is a ninth "visible text in the same control" site), this PRD deleted, the backlog row edited, and
-      `← next` moved to `JD-067`.
+- [ ] T7g1 — **Borders and focus under the platform's high-contrast text:** what the app draws for each
+      border role and for a keyboard focus ring, in Light and Dark, with `high_text_contrast_enabled` off and
+      on, against WCAG 1.4.11's 3:1 and against VS Code's `contrastBorder` and `focusBorder` and IntelliJ's
+      `borderColor` and `focusColor`. A verdict per role (`present`, `adapted` citing ADR-0053, or `absent`),
+      and the named-palette row decided on the numbers.
+- [ ] T7g2 — **The rows the ledger leaves to `T7`, each given a verdict from a read:** More's rail items
+      0dp apart where the two-pane rail's are 4dp; the dialog's 320dp, edge to edge on the phone (a phone is
+      never a costume, so `not exercised` unless the library's rule can be read); the Source Control `System`
+      frames captured before the panel's content; icons in `dp` against text in `sp` at 200%, against how the
+      references scale theirs; the phone's 68dp blank under the launcher strip and its bottom bar's 0 inset.
+- [ ] T7g3 — **Close.** A `GAP-NNN` per `absent`, `JD-068`'s rows named from the measurement, the ledger's
+      counts (the null-description grep reads 49, not 48: the check `Icon` in `ChoiceSegments` is a ninth
+      "visible text in the same control" site), the ledger's index row set to examined, this PRD deleted, the
+      backlog row edited, and `← next` moved to `JD-067`.
 
 ## Out of scope
 
