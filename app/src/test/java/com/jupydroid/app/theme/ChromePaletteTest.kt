@@ -32,6 +32,8 @@ class ChromePaletteTest {
     assertEquals(Color(0xFF191A1B), DarkChromePalette.activityBarBackground)
     assertEquals(Color(0xFF191A1B), DarkChromePalette.sideBarBackground)
     assertEquals(Color(0xFF2C2D2E), DarkChromePalette.listInactiveSelectionBackground)
+    assertEquals(Color(0xFFBFBFBF), DarkChromePalette.sideBarForeground)
+    assertEquals(Color(0xFFEDEDED), DarkChromePalette.listInactiveSelectionForeground)
     assertEquals(Color(0xFF2A2B2C), DarkChromePalette.activityBarBorder)
     assertEquals(Color(0xFF2A2B2C), DarkChromePalette.sideBarBorder)
     assertEquals(Color(0xFF191A1B), DarkChromePalette.tabStripBackground)
@@ -48,6 +50,8 @@ class ChromePaletteTest {
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.sideBarBackground)
     // Translucent, and the alpha is the whole point - see [theLightRowIsAWashAndNotAFill].
     assertEquals(Color(0x99DADADA), LightChromePalette.listInactiveSelectionBackground)
+    assertEquals(Color(0xFF202020), LightChromePalette.sideBarForeground)
+    assertEquals(Color(0xFF202020), LightChromePalette.listInactiveSelectionForeground)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.activityBarBorder)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.sideBarBorder)
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.tabStripBackground)

@@ -337,6 +337,12 @@ private fun BringCreatedItemIntoView(
 }
 
 /**
+ * How much of the row's foreground its time is drawn with: vscode's `.label-description` is the
+ * label at `opacity: .7`, not a colour of its own (`iconlabel.css:66-69` at `3f3380c668d`).
+ */
+private const val DESCRIPTION_ALPHA = 0.7f
+
+/**
  * One entry: an icon that says what it is, and its name.
  *
  * The icon carries the kind for a scanning eye and its `contentDescription` carries it for a
@@ -353,6 +359,10 @@ private fun EntryRow(
   onDelete: () -> Unit,
 ) {
   val directory = entry.kind == WorkspaceEntryKind.DIRECTORY
+  // Stated, not inherited: this screen's `Scaffold` derives its content colour from
+  // `sideBarBackground` by hex, which lands on `surfaceVariant` and so on the secondary text colour
+  // (`ExplorerRowColourTest`).
+  val rowForeground = if (isOpen) chromePalette.listInactiveSelectionForeground else chromePalette.sideBarForeground
   var menuOpen by remember { mutableStateOf(false) }
   // The same items the long press opens, in the local context menu TalkBack reads. A long press is
   // not reachable by a screen reader at all, which the cell actions already paid to learn.
@@ -405,13 +415,14 @@ private fun EntryRow(
       Text(
         text = entry.name,
         style = MaterialTheme.typography.bodyLarge,
+        color = rowForeground,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
       )
       Text(
         text = relativeTime(entry.updatedAt, now),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = rowForeground.copy(alpha = DESCRIPTION_ALPHA),
       )
     }
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
