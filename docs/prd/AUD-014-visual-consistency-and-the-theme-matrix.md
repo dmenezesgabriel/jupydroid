@@ -305,8 +305,11 @@ One unit each, one conventional commit each. A task that is still too large spli
       60 s wait, the `System` frame has both nodes (2 recaptures); one earlier run's read outlasted a 10 s
       wait, and the pending panel draws nothing, a `JD-068` row for T7g3 ("a pending status read shows a
       loading state").
-- [ ] T7g2d — **Icons in `dp` against text in `sp` at 200%,** against how VS Code and IntelliJ scale theirs: a
-      verdict per reference, and the `JD-068` rows named from the numbers.
+- [x] T7g2d — **Icons in `dp` against text in `sp` at 200%,** against how VS Code and IntelliJ scale theirs: a
+      verdict per reference, and the `JD-068` rows named from the numbers. Read: `absent` against IntelliJ (one
+      font-derived factor sizes icons and text), `adapted` against VS Code (fixed 16px codicons, zoom moves both).
+      Measured at one pane on the tablet: More's rail icon is 1.20 of its label's line at 1.0 and 0.64 at 2.0, a tab's
+      0.88 and 0.44. A `JD-068` row for T7g3: an icon beside text follows its scale, the fixed 32dp tab row the cost.
 - [ ] T7g2e — **The phone's 68dp blank under the launcher strip and its bottom bar's 0 inset:** read the
       launcher's layout above "Notebook" and why the tablet insets its bar items 80dp where the phone's go edge
       to edge. Red test first only if it is a `defect`.
