@@ -289,11 +289,20 @@ One unit each, one conventional commit each. A task that is still too large spli
       and the named-palette row decided on the numbers. Read on the tablet: the seams are `adapted`, the
       controls' outlines and the tab's line `present`, the palette not wanted, and **keyboard focus is `absent`**
       (a pale plate at 1.14:1, no ring) — T7g3 opens its `GAP-NNN`. `read_text_contrast.py --region` is the reader.
-- [ ] T7g2 — **The rows the ledger leaves to `T7`, each given a verdict from a read:** More's rail items
-      0dp apart where the two-pane rail's are 4dp; the dialog's 320dp, edge to edge on the phone (a phone is
-      never a costume, so `not exercised` unless the library's rule can be read); the Source Control `System`
-      frames captured before the panel's content; icons in `dp` against text in `sp` at 200%, against how the
-      references scale theirs; the phone's 68dp blank under the launcher strip and its bottom bar's 0 inset.
+- [ ] T7g2a — **More's rail items 0dp apart where the two-pane rail's are 4dp:** read `MoreRail.kt` beside
+      `SidePanelRail.kt`, ADR-0109, and VS Code's activity bar and IntelliJ's tool-window stripe spacing. A
+      verdict from the read: `adapted` (a library default, stated in ADR-0109), a `defect` (red test first) or a
+      `JD-068` row.
+- [ ] T7g2b — **The dialog's 320dp, edge to edge on the phone:** read the Compose `Dialog` and Material 3
+      `AlertDialog` source at the pinned version for the window's margin. A phone is never a costume, so
+      `not exercised` unless the library's rule can be read.
+- [ ] T7g2c — **The Source Control `System` frames captured before the panel's content:** the flow waits for
+      the empty-state line, recaptured on the tablet; the reproducing command in the commit body.
+- [ ] T7g2d — **Icons in `dp` against text in `sp` at 200%,** against how VS Code and IntelliJ scale theirs: a
+      verdict per reference, and the `JD-068` rows named from the numbers.
+- [ ] T7g2e — **The phone's 68dp blank under the launcher strip and its bottom bar's 0 inset:** read the
+      launcher's layout above "Notebook" and why the tablet insets its bar items 80dp where the phone's go edge
+      to edge. Red test first only if it is a `defect`.
 - [ ] T7g3 — **Close.** A `GAP-NNN` per `absent`, `JD-068`'s rows named from the measurement, the ledger's
       counts (the null-description grep reads 49, not 48: the check `Icon` in `ChoiceSegments` is a ninth
       "visible text in the same control" site), the ledger's index row set to examined, this PRD deleted, the
