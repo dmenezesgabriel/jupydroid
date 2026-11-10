@@ -265,10 +265,18 @@ One unit each, one conventional commit each. A task that is still too large spli
       dialog window's inset (`decorFitsSystemWindows = false`, `safeDrawingPadding`) and scrolling the field
       with its message; read on the phone at 2.0 and on the tablet. The dialog now sits on the keyboard
       instead of centred, recorded as a cost.
-- [ ] T7f — **The rest of the provisionals:** Shut Down All at 43.3dp, the dark Files row's inherited
-      colour, the three fields with no name, whether `read_text_contrast.py` names a disabled control
-      apart, and the `undocumented` row for "the control carries the name": an ADR for the rule the code
-      comments state, with the field rule.
+- [ ] T7f1 — **Shut Down All at 43.3dp:** read `boundsInRoot`, `touchBoundsInRoot` and the semantics
+      node's size of `SectionActionButton` side by side on `dev36` (as T7d2 did for the tab's close) before
+      any test. A layout bound under 48dp with no ADR is a `defect`: red test first, repair, before and
+      after off `read_touch_targets.py`. A bound the platform reports clipped, with 48dp of layout and
+      reach, is `present` with the cause read, and the ledger row says so.
+- [ ] T7f2 — **The dark Files row's inherited colour:** trace where the open document's name and age take
+      `#8C8C8C` in `ExplorerScreen.kt`, red test first, repair.
+- [ ] T7f3 — **The three fields with no name:** the code cell and the startup script (`CodeCellField`),
+      the terminal's input. Red test first for each; then the ADR for the rule the code comments state
+      (the `undocumented` row for "the control carries the name"), with the field rule.
+- [ ] T7f4 — **Whether `read_text_contrast.py` names a disabled control apart,** as it does a node with
+      no ink in view: a dump reports `enabled="true"` for all four nodes the ledger lists.
 - [ ] T7g — **Close.** The high-contrast borders and focus verdict, a `GAP-NNN` per `absent`, `JD-068`'s
       rows named from the measurement, the ledger's counts, this PRD deleted, the backlog row edited, and
       `← next` moved to `JD-067`.
