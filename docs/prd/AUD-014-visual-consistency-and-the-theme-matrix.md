@@ -246,7 +246,10 @@ One unit each, one conventional commit each. A task that is still too large spli
       on a quiet host; the Other row's lower cards are below the first screen and not read there.
 - [x] T7e2 — **The terminal's Ctrl and Alt** read as one word, "CtrlAlt", at 2.0. Red first, repaired with
       the `TextButton` keys' own padding, read on the tablet at two panes and at one pane; the phone has no terminal.
-- [ ] T7e3 — **Settings' Theme row:** "System" broken mid-word in the segmented control at 2.0.
+- [x] T7e3 — **Settings' Theme row:** "System" broken mid-word in the segmented control at 2.0. The
+      indentation row had the same defect ("Tab"), found by the same Compose test. Material3's row gives every
+      segment the widest one's width; red first, repaired with segments sized to their labels
+      (`ChoiceSegments`), read at 320 dp on `dev36` and on the tablet's `theme-override` flow.
 - [ ] T7e4 — **The Spaces home row:** "Stopped" broken mid-word beside Run, Open and the gear at 2.0.
 - [ ] T7e5 — **Chat's MCP chip:** "MCP servers" stacked a letter or two per line at 2.0 on the phone.
 - [ ] T7e6 — **The Running panel's close column:** one long name cuts its close button to 43 x 48 dp.
