@@ -275,8 +275,8 @@ One unit each, one conventional commit each. A task that is still too large spli
 - [x] T7f3a — **The code field's name:** `CodeCellField` takes a required name, so the code cell and the
       startup script (and the two callers the dumps never captured, the file editor and the console
       input) are named. Red test first, before and after off `read_touch_targets.py`.
-- [ ] T7f3b — **The terminal's input:** the invisible `BasicTextField` in `TerminalPaneScreen.kt` is named.
-      Red test first.
+- [x] T7f3b — **The terminal's input:** the invisible `BasicTextField` in `TerminalPaneScreen.kt` is named.
+      Red test first, before and after off `read_touch_targets.py` on the tablet.
 - [ ] T7f3c — **The ADR for the rule the code comments state** (the `undocumented` row for "the control
       carries the name"), with the field rule.
 - [ ] T7f4 — **Whether `read_text_contrast.py` names a disabled control apart,** as it does a node with
