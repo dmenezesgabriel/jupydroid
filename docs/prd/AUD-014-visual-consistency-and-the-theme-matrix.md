@@ -257,7 +257,9 @@ One unit each, one conventional commit each. A task that is still too large spli
       first on `dev36` at 320 dp, repaired with a `FlowRow` (`ChatListActions`): the buttons share a line
       while both fit and the second drops under the first when they do not. On the narrowest phone at 1.0
       they are now stacked too (a change from two lines for the chip), read and recorded.
-- [ ] T7e6 — **The Running panel's close column:** one long name cuts its close button to 43 x 48 dp.
+- [x] T7e6 — **The Running panel's close column:** one long name cut its close button to 43 x 48 dp. Red
+      first on `dev36` at 320 dp, repaired with the label and the kernel id in one weighted `Row` so the button
+      keeps one x; read on the phone width before and after, and on the tablet at two panes.
 - [ ] T7e7 — **A refused Rename under the keyboard:** Cancel and Rename sit below the keyboard's top edge
       at 2.0.
 - [ ] T7f — **The rest of the provisionals:** Shut Down All at 43.3dp, the dark Files row's inherited
