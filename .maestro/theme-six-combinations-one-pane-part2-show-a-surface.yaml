@@ -36,6 +36,7 @@ appId: com.jupydroid.app
     when:
       true: ${MAESTRO_SURFACE == 'notebook'}
     commands:
+      - runFlow: reveal-leading-tabs.yaml
       - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
       - extendedWaitUntil:
           visible: "tab_marker_first = 1"
@@ -55,6 +56,7 @@ appId: com.jupydroid.app
     when:
       true: ${MAESTRO_SURFACE == 'toc-overlay'}
     commands:
+      - runFlow: reveal-leading-tabs.yaml
       - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
       - tapOn: "Notebook actions"
       - tapOn: "Show table of contents"

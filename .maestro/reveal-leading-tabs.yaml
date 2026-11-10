@@ -7,14 +7,16 @@ appId: com.jupydroid.app
 #
 # The strip scrolls the active tab into view (`MainAreaTabStripRevealTest`), so with Settings on top
 # at 320dp, or at 2.0 font scale on one pane, the first tabs sit past the left edge and a tap on their
-# label finds nothing to press. The swipe starts on the Settings tab, which the caller has just opened
-# and so is on screen, and drags the strip right; a second one is a no-op once the strip is at its
-# start, so the number of swipes need not match how far the tabs were scrolled.
+# label finds nothing to press. The swipe starts on whichever tab is on screen and drags the strip right;
+# a second one is a no-op once the strip is at its start, so the number of swipes need not match how far
+# the tabs were scrolled. It cannot name the Settings tab: at 320dp and 2.0 the first swipe already
+# pushes Settings off the right edge, and the second then finds no tab to start from. The regex does not
+# match a tab's "Reload tab: ..." button, whose lower-case "tab" is outside it.
 - repeat:
     times: 2
     commands:
       - swipe:
           from:
-            text: "Tab: Settings"
+            text: "Tab: .*"
           direction: RIGHT
           duration: 300
