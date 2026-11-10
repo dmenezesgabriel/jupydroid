@@ -4,6 +4,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -183,10 +185,18 @@ private fun ChatListing.withNotice(notice: String): ChatListing =
 /** One of a chat row's actions: an item of its long-press menu, and a custom action of its own. */
 private class ChatRowAction(val label: String, val run: () -> Unit)
 
-/** What the list offers above its chats: a new chat, and the MCP servers every chat's agent gets. */
+/**
+ * What the list offers above its chats: a new chat, and the MCP servers every chat's agent gets.
+ *
+ * The buttons share a line while they fit and the second drops under the first when they do not. In
+ * a `Row` the first kept its full width and the second got the remainder, so at twice the font scale
+ * on a 320 dp phone "MCP servers" was drawn a letter or two to a line
+ * (`ChatListFontScaleTest.mcpServersKeepsItsWholeWordsOnAPhoneAtTwiceTheFontScale`).
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChatListActions(onNew: () -> Unit, onOpenMcpSettings: () -> Unit) {
-  Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+  FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     // jupyter-chat's New chat, its `addIcon` before the label (jupyter-chat@2c224bc `placeholder.tsx`).
     ChatListButton("New chat", Icons.Filled.Add, onNew)
     // VS Code's MCP entries carry `Codicon.server` (vscode@3f3380c
