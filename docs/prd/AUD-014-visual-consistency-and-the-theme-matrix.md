@@ -294,9 +294,12 @@ One unit each, one conventional commit each. A task that is still too large spli
       verdict from the read: `adapted` (a library default, stated in ADR-0109), a `defect` (red test first) or a
       `JD-068` row. Read: `adapted`, both are Material's defaults (4dp is `NavigationRailItemVerticalPadding`, the
       wide rail has none) and VS Code's default gap is 0; ADR-0109 states it. No `JD-068` row.
-- [ ] T7g2b — **The dialog's 320dp, edge to edge on the phone:** read the Compose `Dialog` and Material 3
+- [x] T7g2b — **The dialog's 320dp, edge to edge on the phone:** read the Compose `Dialog` and Material 3
       `AlertDialog` source at the pinned version for the window's margin. A phone is never a costume, so
-      `not exercised` unless the library's rule can be read.
+      `not exercised` unless the library's rule can be read. Read: `present`, the library's rule. Compose
+      clears the platform's 16dp window inset and M3 adds none, so a wrapping dialog fills any phone width;
+      Material Components' own dialog keeps 24dp. A `JD-068` row for T7g3: a dialog keeps a margin on a
+      compact window.
 - [ ] T7g2c — **The Source Control `System` frames captured before the panel's content:** the flow waits for
       the empty-state line, recaptured on the tablet; the reproducing command in the commit body.
 - [ ] T7g2d — **Icons in `dp` against text in `sp` at 200%,** against how VS Code and IntelliJ scale theirs: a
