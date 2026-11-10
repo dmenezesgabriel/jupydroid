@@ -72,9 +72,9 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
       // on. The caret is what says it is pressable, which is Material's own menu-button
       // affordance.
       colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
-      // The name goes on the button and not on the icon inside it, which is [UndoRedo]'s rule and
-      // load-bearing for the same reason: one node carries the label a screen reader reads and the
-      // state a flow asserts. See [cellTypeDescription] for why the state is *in* the name.
+      // The name goes on the button and not on the icon inside it, which is [UndoRedo]'s rule
+      // (ADR-0143) and load-bearing for the same reason: one node carries the label a screen reader
+      // reads and the state a flow asserts. See [cellTypeDescription] for why the state is *in* the name.
       modifier = Modifier
         .minimumInteractiveComponentSize()
         .semantics { contentDescription = cellTypeDescription(kind) },

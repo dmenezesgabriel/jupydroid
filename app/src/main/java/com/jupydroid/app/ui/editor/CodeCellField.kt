@@ -136,7 +136,8 @@ fun CodeCellField(
   onLayoutMeasured: (TextLayoutResult) -> Unit = {},
   /**
    * What a screen reader calls this field. It sits on the node that takes the text, so one string is
-   * both what is spoken and what a flow addresses; a caller that knows what the field edits says so.
+   * both what is spoken and what a flow addresses; a caller that knows what the field edits says so
+   * (ADR-0143).
    */
   fieldName: String = CODE_EDITOR_NAME,
 ) {

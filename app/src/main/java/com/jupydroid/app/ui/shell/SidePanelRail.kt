@@ -73,8 +73,8 @@ fun SidePanelRail(
         // was chosen: "Table of contents" is wider than the rail and spilled across the panel
         // beside it (the run before this). Material allows a rail
         // item with no label, and the name is still on the item for a screen reader and a flow.
-        // The name on the item rather than on the icon inside it, which is a rule a flow already
-        // cost this project: a screen reader and a Maestro flow address one string.
+        // The name on the item rather than on the icon inside it, so a screen reader and a Maestro
+        // flow address one string (ADR-0143).
         modifier = Modifier.semantics { contentDescription = label },
       )
     }

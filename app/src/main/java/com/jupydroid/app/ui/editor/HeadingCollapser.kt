@@ -51,9 +51,9 @@ import androidx.compose.ui.semantics.semantics
  * open. `ExpandLess`/`ExpandMore` would claim the cell itself folds, and the cell is exactly what
  * stays on screen.
  *
- * **The name goes on the button, not on the icon inside it** - a rule a flow already cost us:
- * `contentDescription` on the `Icon` lands on a child node, so the label and the state would be
- * one level apart. And it names what a tap will *do*, as every other control here does.
+ * **The name goes on the button, not on the icon inside it**: `contentDescription` on the `Icon`
+ * lands on a child node, so the label and the state would be one level apart (ADR-0143). And it
+ * names what a tap will *do*, as every other control here does.
  *
  * ```
  * HeadingCollapser(collapsed = cell.headingCollapsed) { act(CellAction.ToggleHeadingCollapse) }

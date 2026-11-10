@@ -71,7 +71,7 @@ import kotlinx.coroutines.flow.drop
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
 const val TERMINAL_INPUT_TAG = "terminal-input"
 
-/** What a screen reader calls the terminal's input, which paints nothing and so has no label to read. */
+/** What a screen reader calls the terminal's input, which paints nothing and so has no label to read (ADR-0143). */
 internal const val TERMINAL_INPUT_NAME = "Terminal input"
 
 /**

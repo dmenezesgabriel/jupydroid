@@ -147,8 +147,8 @@ internal fun TableOfContentsRows(
  * reasoning one rank along: this is a tree node's disclosure and the row itself stays put.
  *
  * **Its own control inside the row, so a tap on it is not a pick.** The name goes on the button
- * rather than on the icon for the reason a flow already cost us - and names the entry, since a screen
- * reader meets one of these per row.
+ * rather than on the icon (ADR-0143) - and names the entry, since a screen reader meets one of these
+ * per row.
  */
 @Composable
 private fun TocRowDisclosure(row: TocRow, onToggleCollapsed: ((String) -> Unit)?) {
