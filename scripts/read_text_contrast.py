@@ -34,6 +34,12 @@ was, which is how a driver reads many frames without printing every node of each
     python3 scripts/read_text_contrast.py hierarchy.xml frame.png --below 4.5
     python3 scripts/read_text_contrast.py --status-bar frame.png
     python3 scripts/read_text_contrast.py --status-bar frame.png window.txt   # `adb shell dumpsys window`
+    python3 scripts/read_text_contrast.py --region frame.png 100 690 140 710  # a seam, an outline, a focus mark
+
+`--region` takes a box in the frame's pixels and prints the ground and ink inside it, the way the
+status bar is read. Put a box across a border and it reads the border against what it separates; put it
+across the edge of a focused item and it reads the mark against what is around it. A 1px line is a
+minority of its box, so the line is the ink as a glyph is.
 
 Tests in read_text_contrast_test.py, including a run over this repository's own committed device
 frames, with ground and ink sampled by hand rather than by the module.
@@ -225,6 +231,7 @@ def _hex(rgb: tuple[int, ...]) -> str:
 USAGE = (
     "usage: read_text_contrast.py <hierarchy.xml> <frame.png> [--below <ratio>]"
     " | --status-bar <frame.png> [<dumpsys window text>]"
+    " | --region <frame.png> <left> <top> <right> <bottom>"
 )
 
 
@@ -274,7 +281,21 @@ def _print_status_bar(frame_path: str, window_path: str | None) -> None:
     print(f"  status bar ground {reading.ground}  ink {reading.ink}  contrast {reading.ratio:.2f}:1")
 
 
+def _print_region(frame_path: str, edges: list[str]) -> None:
+    try:
+        left, top, right, bottom = (int(edge) for edge in edges)
+    except ValueError:
+        message = f"box {edges} holds a value that is not a whole number; expected four whole pixel numbers"
+        raise ValueError(message) from None
+    with Image.open(frame_path) as frame:
+        reading = region_contrast(frame, (left, top, right, bottom))
+    print(f"  region ground {reading.ground}  ink {reading.ink}  contrast {reading.ratio:.2f}:1")
+
+
 def main(argv: list[str]) -> int:
+    if len(argv) == 7 and argv[1] == "--region":
+        _print_region(argv[2], argv[3:7])
+        return 0
     if len(argv) in (3, 4) and argv[1] == "--status-bar":
         _print_status_bar(argv[2], argv[3] if len(argv) == 4 else None)
         return 0

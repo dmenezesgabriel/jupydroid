@@ -26,6 +26,8 @@ DEV36_STATUS_BAR_SOURCE = (
 #: A `dev36` frame (320x640 at 160dpi) and the `statusBars` line of its `dumpsys window`, tracked likewise.
 PHONE_TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata" / "phone-status-bar"
 TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata" / "toggle-wash-from-the-list-colour"
+#: Crops of tablet frames around one border or one focus mark, tracked likewise. Each box below is in its crop's pixels.
+BORDER_TESTDATA = pathlib.Path(__file__).resolve().parent / "testdata" / "border-and-focus"
 
 
 def _dump(texts: dict[str, tuple[int, int, int, int]], screen: tuple[int, int] = (320, 640)) -> str:
@@ -313,6 +315,52 @@ class StatusBarContrastTest(unittest.TestCase):
         window.write_text("Window #0 nothing to read here", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "no statusBars or navigationBars InsetsSource"):
             main(["read_text_contrast.py", "--status-bar", _saved(Image.new("RGB", (320, 640), WHITE)), str(window)])
+
+
+def _region_cli(frame: pathlib.Path, box: tuple[int, int, int, int]) -> tuple[int, str]:
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        status = main(["read_text_contrast.py", "--region", str(frame), *(str(edge) for edge in box)])
+    return status, output.getvalue()
+
+
+class RegionCliTest(unittest.TestCase):
+    """`--region` reads a border or a focus mark off a frame, as the status bar's icons are read."""
+
+    def test_the_dark_seam_between_the_rail_and_the_panel_reads_1_23(self) -> None:
+        # `#2A2B2C` on the side bar's `#191A1B`, sampled by hand.
+        status, printed = _region_cli(BORDER_TESTDATA / "dark-seam.png", (8, 0, 32, 20))
+        self.assertEqual(status, 0)
+        self.assertIn("ground #191A1B  ink #2A2B2C  contrast 1.23:1", printed)
+
+    def test_the_light_seam_reads_1_09(self) -> None:
+        _, printed = _region_cli(BORDER_TESTDATA / "light-seam.png", (8, 0, 32, 20))
+        self.assertIn("ground #FAFAFD  ink #F0F1F2  contrast 1.09:1", printed)
+
+    def test_the_dark_segmented_controls_outline_reads_3_76(self) -> None:
+        _, printed = _region_cli(BORDER_TESTDATA / "dark-outline.png", (8, 0, 26, 30))
+        self.assertIn("ground #121314  ink #707070  contrast 3.76:1", printed)
+
+    def test_the_light_segmented_controls_outline_reads_3_64(self) -> None:
+        _, printed = _region_cli(BORDER_TESTDATA / "light-outline.png", (8, 0, 26, 30))
+        self.assertIn("ground #FFFFFF  ink #868686  contrast 3.64:1", printed)
+
+    def test_a_dark_rail_item_under_keyboard_focus_is_a_wash_of_1_14(self) -> None:
+        _, printed = _region_cli(BORDER_TESTDATA / "dark-focus.png", (0, 0, 40, 16))
+        self.assertIn("#191A1B", printed)
+        self.assertIn("#242526", printed)
+        self.assertIn("contrast 1.14:1", printed)
+
+    def test_a_light_rail_item_under_keyboard_focus_is_a_wash_of_1_14(self) -> None:
+        _, printed = _region_cli(BORDER_TESTDATA / "light-focus.png", (0, 0, 40, 16))
+        self.assertIn("#EBEBED", printed)
+        self.assertIn("#FAFAFD", printed)
+        self.assertIn("contrast 1.14:1", printed)
+
+    def test_a_box_that_is_not_four_whole_numbers_is_refused_with_its_value(self) -> None:
+        frame = _saved(Image.new("RGB", (40, 40), WHITE))
+        with self.assertRaisesRegex(ValueError, "'wide'.*four whole pixel numbers"):
+            main(["read_text_contrast.py", "--region", frame, "0", "0", "wide", "10"])
 
 
 if __name__ == "__main__":
