@@ -1,0 +1,20 @@
+appId: com.jupydroid.app
+---
+# Brings the tab strip's first tabs back on screen.
+#
+# **Not a flow.** No driver runs this; the surface flow calls it with `runFlow` before it taps a tab that
+# opened earlier than the one on top.
+#
+# The strip scrolls the active tab into view (`MainAreaTabStripRevealTest`), so with Settings on top
+# at 320dp, or at 2.0 font scale on one pane, the first tabs sit past the left edge and a tap on their
+# label finds nothing to press. The swipe starts on the Settings tab, which the caller has just opened
+# and so is on screen, and drags the strip right; a second one is a no-op once the strip is at its
+# start, so the number of swipes need not match how far the tabs were scrolled.
+- repeat:
+    times: 2
+    commands:
+      - swipe:
+          from:
+            text: "Tab: Settings"
+          direction: RIGHT
+          duration: 300

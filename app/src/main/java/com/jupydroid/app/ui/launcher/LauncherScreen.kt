@@ -5,12 +5,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -150,7 +155,7 @@ fun LauncherScreen(
 /** A `jp-Launcher-section`: title row with the `border-color2` rule under it, then the cards. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LauncherSection(category: LauncherCategory, card: @Composable (LauncherItem) -> Unit) {
+private fun LauncherSection(category: LauncherCategory, card: @Composable FlowRowScope.(LauncherItem) -> Unit) {
   val items = LAUNCHER_ITEMS.filter { it.category == category }
   if (items.isEmpty()) return
   Column(Modifier.padding(bottom = Spacing.md)) {
@@ -180,8 +185,14 @@ private fun LauncherSection(category: LauncherCategory, card: @Composable (Launc
 }
 
 /**
- * One `jp-LauncherCard`: 100dp square, a 1px edge, elevation z2. The icon area is 68dp; the
- * label below wraps at 12sp and is what the CSS calls `ui-font-color1`.
+ * One `jp-LauncherCard`: 100dp wide and at least 100dp tall, a 1px edge, elevation z2. The icon area
+ * is 68dp; the label below wraps at 12sp and is what the CSS calls `ui-font-color1`. The height is a
+ * minimum, as the reference's `min-height` is (`jupyterlab@7f0e690680a7
+ * packages/launcher/style/base.css:102-103`): a fixed square left the label 28dp, one line at 200% font
+ * scale, so "Python 3" drew as "Pytho…" (`LauncherScreenTest.everyCardKeepsItsWholeLabelAtTwiceTheFontScale`).
+ * The width grows to the label's longest word, so no word is broken, and the cards of a row stretch to
+ * its tallest, as the reference's flex row does (`base.css:89-96` sets no `align-items`, so it stretches;
+ * `LauncherScreenTest.cardsInOneRowAreAsTallAsTheTallestAtTwiceTheFontScale`).
  *
  * Two roles land on different tokens than the CSS names, both on the ramp's own convention:
  * the reference's `border-color2` is a decorative separator, but a card edge *bounds a
@@ -190,12 +201,16 @@ private fun LauncherSection(category: LauncherCategory, card: @Composable (Launc
  * `cellBackground` already does, which also keeps the card visible in dark where a z2 shadow
  * over the page colour cannot.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LauncherCard(item: LauncherItem, onClick: () -> Unit) {
+private fun FlowRowScope.LauncherCard(item: LauncherItem, onClick: () -> Unit) {
   Surface(
     onClick = onClick,
     modifier = Modifier
-      .size(CARD_SIZE)
+      .fillMaxRowHeight()
+      .widthIn(min = CARD_SIZE)
+      .width(IntrinsicSize.Min)
+      .heightIn(min = CARD_SIZE)
       .semantics { contentDescription = item.label }
       .testTag("$LAUNCHER_CARD_TAG-${item.command.name}"),
     shape = MaterialTheme.shapes.extraSmall,

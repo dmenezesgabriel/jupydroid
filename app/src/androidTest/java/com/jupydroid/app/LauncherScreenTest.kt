@@ -1,11 +1,28 @@
 package com.jupydroid.app
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSpecs
@@ -14,10 +31,14 @@ import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
+import com.jupydroid.app.ui.launcher.LAUNCHER_ITEMS
 import com.jupydroid.app.ui.launcher.LauncherCommand
+import com.jupydroid.app.ui.launcher.LauncherItem
 import com.jupydroid.app.ui.launcher.LauncherScreen
 import com.jupydroid.app.ui.launcher.LauncherViewModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -93,5 +114,82 @@ class LauncherScreenTest {
     // The fake's createFile throws, so the tap's evidence is the surfaced error - the same
     // assertion `aFailedLaunchSurfacesTheError` makes at the ViewModel layer.
     compose.onNodeWithText("Error").assertIsDisplayed()
+  }
+
+  @Test
+  fun everyCardKeepsItsWholeLabelAtTwiceTheFontScale() {
+    compose.setContent { AtFontScale(2f) { LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}) } }
+
+    LAUNCHER_ITEMS.forEach { item ->
+      assertFalse("${item.command}'s label is cut", labelOf(item).isCut())
+      assertFalse("${item.command}'s label breaks inside a word", labelOf(item).breaksInsideAWord())
+      compose.onNodeWithTag(cardTag(item)).assertHeightIsAtLeast(CARD_MINIMUM)
+    }
+  }
+
+  @Test
+  fun cardsInOneRowAreAsTallAsTheTallestAtTwiceTheFontScale() {
+    // The tablet's one-pane width, which puts the four cards of the Other section in one row. The bounds
+    // are the unclipped ones: the window cuts the row's foot, and a clipped height reads the same for all.
+    compose.setContent {
+      Box(Modifier.requiredWidth(TABLET_ONE_PANE_WIDTH)) {
+        AtFontScale(2f) { LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}) }
+      }
+    }
+
+    val rows = LAUNCHER_ITEMS.map { compose.onNodeWithTag(cardTag(it)).getUnclippedBoundsInRoot() }.groupBy { it.top }
+    rows.values.forEach { row ->
+      val heights = row.map { it.bottom - it.top }
+      assertTrue("a row's cards are $heights tall", heights.max() - heights.min() < ONE_PIXEL_TOLERANCE)
+    }
+  }
+
+  @Test
+  fun aCardIsASquareAtTheDefaultFontScale() {
+    compose.setContent { AtFontScale(1f) { LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}) } }
+
+    LAUNCHER_ITEMS.forEach { item ->
+      compose.onNodeWithTag(cardTag(item)).assertHeightIsEqualTo(CARD_MINIMUM)
+    }
+  }
+
+  @Composable
+  private fun AtFontScale(scale: Float, content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = scale), content = content)
+  }
+
+  private fun cardTag(item: LauncherItem): String = "$LAUNCHER_CARD_TAG-${item.command.name}"
+
+  /** The label's own node: the card merges its descendants, so the text is only in the unmerged tree. */
+  private fun labelOf(item: LauncherItem): SemanticsNodeInteraction =
+    compose.onNode(hasText(item.label) and hasAnyAncestor(hasTestTag(cardTag(item))), useUnmergedTree = true)
+
+  private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
+    val layouts = mutableListOf<TextLayoutResult>()
+    fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+    return layouts.single()
+  }
+
+  /** Whether any line of this node's text ends in an ellipsis. */
+  private fun SemanticsNodeInteraction.isCut(): Boolean {
+    val layout = textLayout()
+    return (0 until layout.lineCount).any(layout::isLineEllipsized)
+  }
+
+  /**
+   * Whether a line other than the last ends mid-word: a soft wrap at a space keeps the space on the
+   * line it ends, so a line whose last character is not one was broken because a word did not fit.
+   */
+  private fun SemanticsNodeInteraction.breaksInsideAWord(): Boolean {
+    val layout = textLayout()
+    val text = layout.layoutInput.text.text
+    return (0 until layout.lineCount - 1).any { text[layout.getLineEnd(it) - 1] != ' ' }
+  }
+
+  private companion object {
+    val CARD_MINIMUM = 100.dp
+    val ONE_PIXEL_TOLERANCE = 0.5.dp
+    val TABLET_ONE_PANE_WIDTH = 800.dp
   }
 }

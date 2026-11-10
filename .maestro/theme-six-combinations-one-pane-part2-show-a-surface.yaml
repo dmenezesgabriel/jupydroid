@@ -27,6 +27,7 @@ appId: com.jupydroid.app
     when:
       true: ${MAESTRO_SURFACE == 'file'}
     commands:
+      - runFlow: reveal-leading-tabs.yaml
       - tapOn: "Tab: ${MAESTRO_FILE}"
       - extendedWaitUntil:
           visible: "notes = \"seeded\"\\s*"

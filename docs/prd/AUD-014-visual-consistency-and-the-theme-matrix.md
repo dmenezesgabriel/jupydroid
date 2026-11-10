@@ -235,9 +235,14 @@ One unit each, one conventional commit each. A task that is still too large spli
       `clickable` against ADR-0048's decision text:** one cause, read before any ADR is written
       (`boundsInRoot`, `touchBoundsInRoot` and the dump's bounds side by side on `dev36`). An ADR or a
       corrected comment each; a `defect` if the close's 24dp reserve breaks ADR-0048's "reserved space".
-- [ ] T7e1 — **The Launcher card's label at 200% font scale:** the card is a fixed 100 x 100 dp, so
-      "Python 3" is "Pytho…" on the Notebook and Console cards. Red test first, repair, the before and
-      after off the dumps on the tablet at one pane and on the phone.
+- [x] T7e1 — **The Launcher card's label at 200% font scale, the tablet at one pane:** the card was a fixed
+      100 x 100 dp, so "Python 3" was "Pytho…". Red test first, repair (the card keeps 100 dp as its
+      minimum and grows to its longest word and, with its row, to the row's tallest), the before and after
+      off the dumps.
+- [ ] T7e1b — **The same on the phone** (`dev36`, one pane): three runs stopped at a SystemUI ANR dialog
+      before the launcher, so none reached it. The one-pane surface flow now swipes the tab strip before
+      tapping the file's tab (`reveal-leading-tabs.yaml`) and has not run on the phone; the notebook's tab
+      may need the same step there.
 - [ ] T7e2 — **The terminal's Ctrl and Alt** read as one word, "CtrlAlt", at 2.0.
 - [ ] T7e3 — **Settings' Theme row:** "System" broken mid-word in the segmented control at 2.0.
 - [ ] T7e4 — **The Spaces home row:** "Stopped" broken mid-word beside Run, Open and the gear at 2.0.
