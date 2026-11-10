@@ -265,7 +265,7 @@ One unit each, one conventional commit each. A task that is still too large spli
       dialog window's inset (`decorFitsSystemWindows = false`, `safeDrawingPadding`) and scrolling the field
       with its message; read on the phone at 2.0 and on the tablet. The dialog now sits on the keyboard
       instead of centred, recorded as a cost.
-- [ ] T7f1 — **Shut Down All at 43.3dp:** read `boundsInRoot`, `touchBoundsInRoot` and the semantics
+- [x] T7f1 — **Shut Down All at 43.3dp:** read `boundsInRoot`, `touchBoundsInRoot` and the semantics
       node's size of `SectionActionButton` side by side on `dev36` (as T7d2 did for the tab's close) before
       any test. A layout bound under 48dp with no ADR is a `defect`: red test first, repair, before and
       after off `read_touch_targets.py`. A bound the platform reports clipped, with 48dp of layout and
