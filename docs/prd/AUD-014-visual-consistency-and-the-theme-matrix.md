@@ -272,9 +272,13 @@ One unit each, one conventional commit each. A task that is still too large spli
       reach, is `present` with the cause read, and the ledger row says so.
 - [x] T7f2 — **The dark Files row's inherited colour:** trace where the open document's name and age take
       `#8C8C8C` in `ExplorerScreen.kt`, red test first, repair.
-- [ ] T7f3 — **The three fields with no name:** the code cell and the startup script (`CodeCellField`),
-      the terminal's input. Red test first for each; then the ADR for the rule the code comments state
-      (the `undocumented` row for "the control carries the name"), with the field rule.
+- [x] T7f3a — **The code field's name:** `CodeCellField` takes a required name, so the code cell and the
+      startup script (and the two callers the dumps never captured, the file editor and the console
+      input) are named. Red test first, before and after off `read_touch_targets.py`.
+- [ ] T7f3b — **The terminal's input:** the invisible `BasicTextField` in `TerminalPaneScreen.kt` is named.
+      Red test first.
+- [ ] T7f3c — **The ADR for the rule the code comments state** (the `undocumented` row for "the control
+      carries the name"), with the field rule.
 - [ ] T7f4 — **Whether `read_text_contrast.py` names a disabled control apart,** as it does a node with
       no ink in view: a dump reports `enabled="true"` for all four nodes the ledger lists.
 - [ ] T7g — **Close.** The high-contrast borders and focus verdict, a `GAP-NNN` per `absent`, `JD-068`'s
