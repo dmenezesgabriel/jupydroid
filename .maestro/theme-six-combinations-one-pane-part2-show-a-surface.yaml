@@ -97,5 +97,16 @@ appId: com.jupydroid.app
     commands:
       - tapOn: "More"
       - tapOn: "${MAESTRO_RAIL}"
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'source-control-panel'}
+    commands:
+      # The panel draws its title at once and its empty-state line only after the first status arrives, and
+      # the driver reads the frame the moment this flow ends: without the wait the `System` frames had
+      # the title alone. The read takes about 0.25 s, but one run waited over 10.7 s for it, so the wait is
+      # a minute.
+      - extendedWaitUntil:
+          visible: "You are not currently in a Git repository."
+          timeout: 60000
 - waitForAnimationToEnd:
     timeout: 3000

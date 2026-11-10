@@ -300,8 +300,11 @@ One unit each, one conventional commit each. A task that is still too large spli
       clears the platform's 16dp window inset and M3 adds none, so a wrapping dialog fills any phone width;
       Material Components' own dialog keeps 24dp. A `JD-068` row for T7g3: a dialog keeps a margin on a
       compact window.
-- [ ] T7g2c — **The Source Control `System` frames captured before the panel's content:** the flow waits for
-      the empty-state line, recaptured on the tablet; the reproducing command in the commit body.
+- [x] T7g2c — **The Source Control `System` frames captured before the panel's content:** the flow waits for
+      the empty-state line, recaptured on the tablet; the reproducing command in the commit body. Read: a
+      60 s wait, the `System` frame has both nodes (2 recaptures); one earlier run's read outlasted a 10 s
+      wait, and the pending panel draws nothing, a `JD-068` row for T7g3 ("a pending status read shows a
+      loading state").
 - [ ] T7g2d — **Icons in `dp` against text in `sp` at 200%,** against how VS Code and IntelliJ scale theirs: a
       verdict per reference, and the `JD-068` rows named from the numbers.
 - [ ] T7g2e — **The phone's 68dp blank under the launcher strip and its bottom bar's 0 inset:** read the
