@@ -18,6 +18,11 @@ looks at the frame before calling it a defect; one that finds a pair over it can
 **Text nodes only.** A node is read when its `text` is non-empty and it covers pixels of the frame.
 An icon has no text in the dump; which of those are decorative and which unnamed is a separate read.
 
+**A disabled control is named apart.** Compose states `enabled="false"` on the node that merges a
+button, which is the *parent* of its text; the text node itself reports `enabled="true"`. A text node
+is read as disabled when it or any ancestor states `enabled="false"`, because WCAG 1.4.3 exempts
+"inactive user interface components" and its faint pair is not a finding.
+
 **A measurement, not a gate**, the footing `read_node_fill.py` and `read_pane_widths.py` stand on: it
 prints what it found and exits 0, and the floor (4.5:1 for text) belongs to the caller, because an
 accepted exception such as ADR-0041's `constant.numeric` is a verdict and not a property of a frame.
@@ -39,6 +44,7 @@ from __future__ import annotations
 import dataclasses
 import sys
 import xml.etree.ElementTree as ElementTree
+from collections.abc import Iterator
 
 from crop_system_bars import read_system_bar_insets
 from PIL import Image
@@ -68,6 +74,7 @@ class NodeReading:
     text: str
     box: PixelBox
     reading: PairReading
+    disabled: bool = False
 
 
 def region_contrast(frame: Image.Image, box: PixelBox) -> PairReading:
@@ -136,8 +143,22 @@ def text_contrasts(xml_text: str, image_path: str) -> list[NodeReading]:
     with Image.open(image_path) as opened:
         frame = opened.convert("RGB")
     scale = _scale_of(tree, frame.size)
-    found = [_read_node(frame, node, scale) for node in tree.iter("node") if node.get("text")]
+    found = [
+        _read_node(frame, node, scale, disabled)
+        for node, disabled in _nodes_with_disabled_ancestry(tree, False)
+        if node.get("text")
+    ]
     return sorted((reading for reading in found if reading), key=lambda at: at.reading.ratio)
+
+
+def _nodes_with_disabled_ancestry(
+    parent: ElementTree.Element, inherited: bool
+) -> Iterator[tuple[ElementTree.Element, bool]]:
+    """Every `node` below [parent], each with whether it or an ancestor states `enabled="false"`."""
+    for child in parent.findall("node"):
+        disabled = inherited or child.get("enabled") == "false"
+        yield child, disabled
+        yield from _nodes_with_disabled_ancestry(child, disabled)
 
 
 def _scale_of(tree: ElementTree.Element, frame_size: tuple[int, int]) -> float:
@@ -173,7 +194,7 @@ def _outermost_origin(tree: ElementTree.Element) -> tuple[int, int]:
     raise LookupError('no node in the dump states bounds; expected one with bounds="[0,0][w,h]"')
 
 
-def _read_node(frame: Image.Image, node: ElementTree.Element, scale: float) -> NodeReading | None:
+def _read_node(frame: Image.Image, node: ElementTree.Element, scale: float, disabled: bool) -> NodeReading | None:
     """The node's reading, or nothing when it has no bounds or none of it is on the frame."""
     match = BOUNDS.match(node.get("bounds", ""))
     if not match:
@@ -181,7 +202,7 @@ def _read_node(frame: Image.Image, node: ElementTree.Element, scale: float) -> N
     box = _clamped(tuple(round(int(group) * scale) for group in match.groups()), frame.size)  # type: ignore[arg-type]
     if box[2] <= box[0] or box[3] <= box[1]:
         return None
-    return NodeReading(node.get("text", ""), box, region_contrast(frame, box))
+    return NodeReading(node.get("text", ""), box, region_contrast(frame, box), disabled)
 
 
 def _clamped(box: PixelBox, size: tuple[int, int]) -> PixelBox:
@@ -208,22 +229,30 @@ USAGE = (
 
 
 def _print_reading(at: NodeReading) -> None:
-    print(f"{at.reading.ratio:>6.2f}:1  ground {at.reading.ground}  ink {at.reading.ink}  {at.text!r}")
+    marker = "  (disabled)" if at.disabled else ""
+    print(f"{at.reading.ratio:>6.2f}:1  ground {at.reading.ground}  ink {at.reading.ink}  {at.text!r}{marker}")
 
 
 def _print_below(readings: list[NodeReading], floor: float) -> None:
-    """The pairs under [floor], the nodes with no ink to read, then the counts, for a caller reading many frames.
+    """The pairs under [floor], the nodes not to read as pairs, then the counts, for a caller reading many frames.
 
     A node a scroll container clips to a sliver holds one colour, so its ratio is 1.00:1 whatever its
     text is drawn in. That is not a pair under the floor, and it is named apart so a person looks at it.
+
+    A disabled control is drawn faint on purpose and is outside the floor, so it is named apart whatever
+    its ratio, and is not counted as a pair under it.
     """
-    blank = [at for at in readings if at.reading.ground == at.reading.ink]
-    under = [at for at in readings if at.reading.ratio < floor and at not in blank]
+    disabled = [at for at in readings if at.disabled]
+    blank = [at for at in readings if at.reading.ground == at.reading.ink and not at.disabled]
+    under = [at for at in readings if at.reading.ratio < floor and at not in blank and not at.disabled]
     for at in under:
         _print_reading(at)
     for at in blank:
         print(f"  no ink in view  {at.text!r}")
+    for at in disabled:
+        print(f"  disabled  {at.text!r}  {at.reading.ratio:.2f}:1")
     suffix = f", {len(blank)} with no ink in view" if blank else ""
+    suffix += f", {len(disabled)} disabled" if disabled else ""
     print(f"  {len(under)} of {len(readings)} text nodes under {floor:g}:1{suffix}")
 
 

@@ -279,8 +279,9 @@ One unit each, one conventional commit each. A task that is still too large spli
       Red test first, before and after off `read_touch_targets.py` on the tablet.
 - [x] T7f3c — **The ADR for the rule the code comments state** (the `undocumented` row for "the control
       carries the name"), with the field rule: ADR-0143, cited from the six comments that state it.
-- [ ] T7f4 — **Whether `read_text_contrast.py` names a disabled control apart,** as it does a node with
-      no ink in view: a dump reports `enabled="true"` for all four nodes the ledger lists.
+- [x] T7f4 — **Whether `read_text_contrast.py` names a disabled control apart,** as it does a node with
+      no ink in view: it does. The dump states `enabled="false"` on the merged parent of the text, not on the
+      text node the first read looked at.
 - [ ] T7g — **Close.** The high-contrast borders and focus verdict, a `GAP-NNN` per `absent`, `JD-068`'s
       rows named from the measurement, the ledger's counts (the null-description grep reads 49, not 48: the
       check `Icon` in `ChoiceSegments` is a ninth "visible text in the same control" site), this PRD deleted, the backlog row edited, and

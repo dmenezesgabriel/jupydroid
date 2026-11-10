@@ -201,6 +201,73 @@ class BelowFloorTest(unittest.TestCase):
         self.assertEqual(status, 2)
 
 
+def _button_dump() -> str:
+    """Two text buttons as the platform dumps them: the merged node is the text's parent and carries `enabled`."""
+    return (
+        '<hierarchy rotation="0"><node text="" bounds="[0,0][320,640]">'
+        '<node text="" enabled="false" bounds="[0,0][160,60]">'
+        '<node text="Dead" enabled="true" bounds="[10,10][150,50]" /></node>'
+        '<node text="" enabled="true" bounds="[160,0][320,60]">'
+        '<node text="Live" enabled="true" bounds="[170,10][310,50]" /></node>'
+        '<node text="Own" enabled="false" bounds="[0,100][160,160]" />'
+        "</node></hierarchy>"
+    )
+
+
+class DisabledControlTest(unittest.TestCase):
+    """A disabled text button states `enabled="false"` on the node that merges it, never on its text."""
+
+    def _readings(self) -> dict[str, bool]:
+        image = _frame_with_ink((320, 640), (0, 0, 0), (20, 20, 30, 30))
+        return {at.text: at.disabled for at in text_contrasts(_button_dump(), _saved(image))}
+
+    def test_a_text_under_a_disabled_parent_is_disabled(self) -> None:
+        self.assertTrue(self._readings()["Dead"])
+
+    def test_a_text_under_an_enabled_parent_is_not(self) -> None:
+        self.assertFalse(self._readings()["Live"])
+
+    def test_a_text_node_that_states_enabled_false_itself_is_disabled(self) -> None:
+        self.assertTrue(self._readings()["Own"])
+
+    def test_below_names_a_disabled_text_apart_and_counts_it(self) -> None:
+        directory = pathlib.Path(tempfile.mkdtemp())
+        (directory / "hierarchy.xml").write_text(_button_dump(), encoding="utf-8")
+        image = _frame_with_ink((320, 640), JUST_UNDER, (20, 20, 30, 30))
+        image.paste(Image.new("RGB", (10, 10), (0, 0, 0)), (200, 20))
+        image.save(directory / "frame.png")
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            main(
+                [
+                    "read_text_contrast.py",
+                    str(directory / "hierarchy.xml"),
+                    str(directory / "frame.png"),
+                    "--below",
+                    "4.5",
+                ]
+            )
+        lines = output.getvalue().splitlines()
+        self.assertEqual([line for line in lines if "'Dead'" in line], ["  disabled  'Dead'  4.48:1"])
+        self.assertEqual(lines[-1], "  0 of 3 text nodes under 4.5:1, 2 disabled")
+
+
+class RealDisabledButtonsTest(unittest.TestCase):
+    """The Running panel on the tablet: `Save All` and both `Shut Down All` are drawn greyed, `Close All` is live."""
+
+    def test_the_greyed_buttons_are_disabled_and_the_live_one_is_not(self) -> None:
+        directory = pathlib.Path(__file__).resolve().parent / "testdata" / "disabled-text-buttons"
+        found = text_contrasts(
+            (directory / "running-panel.xml").read_text(encoding="utf-8"), str(directory / "running-panel.png")
+        )
+        disabled = sorted(
+            at.text for at in found if at.disabled and at.text in ("Save All", "Shut Down All", "Close All")
+        )
+        self.assertEqual(disabled, ["Save All", "Shut Down All", "Shut Down All"])
+        close_all = next(at for at in found if at.text == "Close All")
+        self.assertFalse(close_all.disabled)
+
+
 class StatusBarContrastTest(unittest.TestCase):
     def test_the_band_is_read_across_the_frames_full_width(self) -> None:
         top, bottom = STATUS_BAR_ROWS
