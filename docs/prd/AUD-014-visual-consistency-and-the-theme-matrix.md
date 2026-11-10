@@ -289,10 +289,11 @@ One unit each, one conventional commit each. A task that is still too large spli
       and the named-palette row decided on the numbers. Read on the tablet: the seams are `adapted`, the
       controls' outlines and the tab's line `present`, the palette not wanted, and **keyboard focus is `absent`**
       (a pale plate at 1.14:1, no ring) — T7g3 opens its `GAP-NNN`. `read_text_contrast.py --region` is the reader.
-- [ ] T7g2a — **More's rail items 0dp apart where the two-pane rail's are 4dp:** read `MoreRail.kt` beside
+- [x] T7g2a — **More's rail items 0dp apart where the two-pane rail's are 4dp:** read `MoreRail.kt` beside
       `SidePanelRail.kt`, ADR-0109, and VS Code's activity bar and IntelliJ's tool-window stripe spacing. A
       verdict from the read: `adapted` (a library default, stated in ADR-0109), a `defect` (red test first) or a
-      `JD-068` row.
+      `JD-068` row. Read: `adapted`, both are Material's defaults (4dp is `NavigationRailItemVerticalPadding`, the
+      wide rail has none) and VS Code's default gap is 0; ADR-0109 states it. No `JD-068` row.
 - [ ] T7g2b — **The dialog's 320dp, edge to edge on the phone:** read the Compose `Dialog` and Material 3
       `AlertDialog` source at the pinned version for the window's margin. A phone is never a costume, so
       `not exercised` unless the library's rule can be read.
