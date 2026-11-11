@@ -1,7 +1,10 @@
 package com.jupydroid.app
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -24,6 +27,7 @@ import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.breaksInsideAWord
 import com.jupydroid.app.ui.isCut
@@ -79,6 +83,22 @@ class LauncherScreenTest {
     // The reference renders the h3 with `cwd` verbatim - empty at the root. A bare "/" was our
     // own fallback, and it read as a stray breadcrumb.
     assertEquals(0, compose.onAllNodesWithText("/").fetchSemanticsNodes().size)
+  }
+
+  @Test
+  fun anEmptyCwdHeadingLeavesOneMarginRatherThanALineBetweenTwo() {
+    // The tab strip above the launcher consumes the status bar's inset (`MainAreaTabStrip`), so the
+    // screen is measured with it consumed, not with whatever status bar the device draws.
+    compose.setContent {
+      Box(Modifier.consumeWindowInsets(WindowInsets.statusBars)) {
+        LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {})
+      }
+    }
+
+    // The reference's empty `h3` has no line box, so its two 1em margins collapse into one: the first
+    // section starts one top padding plus one margin down, not 16 + 16 + a 20dp line + 16.
+    val firstSectionTop = compose.onNodeWithText("Notebook").getUnclippedBoundsInRoot().top
+    assertEquals(Spacing.lg.value * 2, firstSectionTop.value, ONE_PIXEL_TOLERANCE.value)
   }
 
   @Test

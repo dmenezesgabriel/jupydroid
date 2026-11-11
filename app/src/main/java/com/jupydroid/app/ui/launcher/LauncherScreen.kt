@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.FlowRowScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -125,14 +126,7 @@ fun LauncherScreen(
       Column(
         modifier = Modifier.fillMaxWidth(CONTENT_WIDTH).padding(top = Spacing.lg),
       ) {
-        // `jp-Launcher-cwd h3` - font-size2, ui-font-color1, margin 1em 0. The reference draws
-        // the path verbatim, so at the root this is an empty heading - no stray "/".
-        Text(
-          text = cwd,
-          style = MaterialTheme.typography.titleSmall,
-          color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier.padding(vertical = Spacing.lg),
-        )
+        CwdHeading(cwd)
         LauncherCategory.entries.forEach { category ->
           LauncherSection(category) { item ->
             LauncherCard(item) { viewModel.launch(item, cwd, onLaunched) }
@@ -150,6 +144,29 @@ fun LauncherScreen(
       confirmButton = { TextButton(onClick = viewModel::dismissError) { Text("OK") } },
     )
   }
+}
+
+/**
+ * `jp-Launcher-cwd h3` - font-size2, ui-font-color1, margin 1em 0. The reference draws the path
+ * verbatim, so at the root this is an empty heading - no stray "/".
+ *
+ * An empty `h3` has no line box, so its two 1em margins collapse into one
+ * (`jupyterlab@7f0e690680a7 packages/launcher/style/base.css:43-48`): at the root the heading is one
+ * [Spacing.lg] of space, not a 20dp line between two of them
+ * (`LauncherScreenTest.anEmptyCwdHeadingLeavesOneMarginRatherThanALineBetweenTwo`).
+ */
+@Composable
+private fun CwdHeading(cwd: String) {
+  if (cwd.isEmpty()) {
+    Spacer(Modifier.height(Spacing.lg))
+    return
+  }
+  Text(
+    text = cwd,
+    style = MaterialTheme.typography.titleSmall,
+    color = MaterialTheme.colorScheme.onSurface,
+    modifier = Modifier.padding(vertical = Spacing.lg),
+  )
 }
 
 /** A `jp-Launcher-section`: title row with the `border-color2` rule under it, then the cards. */
