@@ -310,9 +310,13 @@ One unit each, one conventional commit each. A task that is still too large spli
       font-derived factor sizes icons and text), `adapted` against VS Code (fixed 16px codicons, zoom moves both).
       Measured at one pane on the tablet: More's rail icon is 1.20 of its label's line at 1.0 and 0.64 at 2.0, a tab's
       0.88 and 0.44. A `JD-068` row for T7g3: an icon beside text follows its scale, the fixed 32dp tab row the cost.
-- [ ] T7g2e — **The phone's 68dp blank under the launcher strip and its bottom bar's 0 inset:** read the
+- [x] T7g2e — **The phone's 68dp blank under the launcher strip and its bottom bar's 0 inset:** read the
       launcher's layout above "Notebook" and why the tablet insets its bar items 80dp where the phone's go edge
-      to edge. Red test first only if it is a `defect`.
+      to edge. Red test first only if it is a `defect`. Read: the inset is Material's `Centered` arrangement
+      (10% of the bar for five items, 80dp of 800; `EqualWeight` below 600dp), `present`. The blank is a
+      `defect`, and the tablet's too (68dp at one pane and at two): the empty `cwd` heading drew a 20dp line
+      between two 16dp margins where the reference's empty `h3` collapses them into one. Red first at 68 on
+      `dev36`, repaired in `CwdHeading`, 32dp on the tablet at both.
 - [ ] T7g3 — **Close.** A `GAP-NNN` per `absent`, `JD-068`'s rows named from the measurement, the ledger's
       counts (the null-description grep reads 49, not 48: the check `Icon` in `ChoiceSegments` is a ninth
       "visible text in the same control" site), the ledger's index row set to examined, this PRD deleted, the
