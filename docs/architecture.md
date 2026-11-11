@@ -2238,6 +2238,33 @@ The plan, a proposal, in the order a person meets it:
 6. Open until the first slice is on a phone: a pointer from the Chat panel when no harness is installed, so a
    person who opens Chat first finds the install. What the panel shows now with no agent was not read.
 
+### GAP-202 — Keyboard focus is a pale plate at 1.14:1, not an indicator
+
+Read on the tablet at two panes, in Dark and in Light: Tab to each of ten stops, from the rail's first item to
+the Workspace header, changes one rounded plate behind the item and nothing else, at 1.14:1 to 1.15:1 against
+what was there (`#191A1B` to `#242526` on a rail item, `#FAFAFD` to `#EBEBED` in Light). No outline or ring is
+drawn, and the platform's high-contrast text setting does not reach it. VS Code draws `focusBorder`, a 1px
+outline of `#3994BC` at 70% in 2026 Dark (3.13:1 over the side bar) and `#0069CC` in Light (5.18:1)
+(`vscode@3f3380c6 extensions/theme-defaults/themes/2026-dark.json:12`, `2026-light.json:12`); IntelliJ's
+`HighContrast.theme.json` sets `focusColor` `#1AEBFF` (`intellij-community@406a27a8`). [WCAG 1.4.11](https://www.w3.org/TR/WCAG22/#non-text-contrast)
+holds a focus indicator to 3:1. The source overrides no indication (the only `collectIsFocusedAsState` readers
+are the three cell fields, for their border) and no ADR records why the mark is that small. The repair starts
+with a test that reads the indicator's contrast off a focused control in both palettes, red at 1.14:1.
+
+### GAP-203 — An icon beside text stays the same size while the text grows to 200%
+
+Text follows the font scale and an icon in `dp` does not, which Android does by default. Measured on the
+tablet at one pane: More's rail icon is 1.20 of its label's line at 1.0 and 0.64 at 2.0, a tab's icon 0.88 and
+0.44, while the notebook's `Code` label goes from 20 to 37.3dp tall and Undo, Redo and Find stay 48 x 48dp.
+In the source a tab's icon is `TAB_ICON` 14dp in a `TAB_HEIGHT` 32dp row, and none of the 98 `Icon(` sites is
+sized from the font. IntelliJ cannot arrive here: its UI font size is the one input to `userScaleFactor`, which
+sizes icons and geometry alike (`intellij-community@406a27a8
+platform/platform-impl/src/com/intellij/ide/ui/laf/LafManagerImpl.kt`, `patchLafFonts`;
+`platform/util/ui/src/com/intellij/ui/scale/JBUIScale.kt`). VS Code's 16px codicons do not scale with text but
+no setting scales text alone (`window.zoomLevel` moves both). The row an icon sits in already grows to hold
+its label, so the one place a larger glyph clips is the fixed 32dp tab row. The repair starts with a test of
+a tab at 2.0 whose icon has not outgrown its row.
+
 ---
 
 ## 12. Glossary
