@@ -95,8 +95,10 @@ No port, domain or adapter change.
 
 ## Tasks
 
-- [ ] T1 — One name for the margin, pinned: columns equal `(width - 2 x margin) / cell`, and a tap at
-  `margin + half a cell` lands in column 0. Red by mutation: removing the padding fails both.
+- [x] T1 — One name for the margin, pinned: columns equal `(width - 2 x margin) / cell`, and a tap at
+  `margin + half a cell` selects the word at that column. Red by mutation, one per pin: removing the
+  canvas's padding fails the columns pin, and removing the offset from `terminalCellAt`'s argument
+  fails the press pin, which cannot see the padding because it adds the margin the pane subtracts.
 - [ ] T2 — Measure on the tablet: the margin in dp from the screenshot, and the columns the shell sees
   from `vi`'s reflow, at two widths.
 - [ ] T3 — Close: a verdict in the ledger's terminal row, the ADR, the backlog row rewritten and

@@ -61,7 +61,6 @@ import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.LocalAnsiPalette
-import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
@@ -131,8 +130,8 @@ fun TerminalPaneScreen(
   val haptics = LocalHapticFeedback.current
   // Where the gesture `Box` sits in the root, which is where the floating toolbar is placed.
   var gestureBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
-  // The canvas sits `Spacing.md` in from the `Box` the gestures are read on.
-  val canvasInsetPx = with(LocalDensity.current) { Spacing.md.toPx() }
+  // The canvas sits `terminalMargin` in from the `Box` the gestures are read on.
+  val canvasInsetPx = with(LocalDensity.current) { terminalMargin.toPx() }
   val cellAt = { point: Offset ->
     val screen = viewModel.emulator.screen
     terminalCellAt(point - Offset(canvasInsetPx, 0f), cellPx, IntSize(screen.columns, screen.rows), state.topRow)
@@ -232,7 +231,7 @@ fun TerminalPaneScreen(
               viewModel.resize(grid, cell.width, cell.height)
               cellPx = cell
             },
-            modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
+            modifier = Modifier.fillMaxSize().padding(horizontal = terminalMargin),
             textStyle = textStyle,
             topRow = state.topRow,
             selection = selection,

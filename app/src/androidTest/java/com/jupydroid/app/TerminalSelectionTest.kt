@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.IntSize
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.theme.JupyterDroidTheme
-import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_END_TAG
 import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_START_TAG
@@ -36,6 +35,7 @@ import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneViewModel
 import com.jupydroid.app.ui.terminal.TerminalSelectionEnd
 import com.jupydroid.app.ui.terminal.terminalCellMetrics
+import com.jupydroid.app.ui.terminal.terminalMargin
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -219,7 +219,7 @@ class TerminalSelectionTest {
   private fun cellCentreInRoot(column: Int): Offset {
     val measured = requireNotNull(cell)
     val field = compose.onNodeWithTag(TERMINAL_INPUT_TAG).getBoundsInRoot()
-    val inset = with(compose.density) { Spacing.md.toPx() }
+    val inset = with(compose.density) { terminalMargin.toPx() }
     val origin = with(compose.density) { Offset(field.left.toPx(), field.top.toPx()) }
     return origin + Offset(inset + measured.width * (column + 0.5f), measured.height * 0.5f)
   }

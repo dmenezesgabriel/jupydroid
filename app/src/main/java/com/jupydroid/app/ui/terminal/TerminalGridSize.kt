@@ -1,6 +1,18 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import com.jupydroid.app.theme.Spacing
+
+/**
+ * How far the terminal's text sits in from the pane's left and right edges. One name because three
+ * things must agree on it: the padding the canvas is drawn inside, which is the width
+ * [terminalGridSize] counts columns of, and the offset a press subtracts to find its cell.
+ * VS Code insets the left only, by 20px (`vscode@3f3380c6
+ * src/vs/workbench/contrib/terminal/browser/media/terminal.css:76-77`); a phone has no gutter to
+ * align to, so both sides take the same `Spacing.md`.
+ */
+val terminalMargin: Dp = Spacing.md
 
 /** Below this, `TerminalEmulator.resize` itself throws (its own `< 2` guard). */
 private const val MINIMUM_CELLS = 2
