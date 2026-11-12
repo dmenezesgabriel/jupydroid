@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import com.jupydroid.extension.api.FocusRingIconButton
 import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extension.api.NotebookCells
 import com.jupydroid.extension.api.WorkspaceFileOpener
@@ -94,7 +94,9 @@ fun ChatsPanel(
 @Composable
 private fun OpenChatHeader(name: String, onBack: () -> Unit, onMoveToTab: () -> Unit) {
   Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "All chats") }
+    FocusRingIconButton(onClick = onBack) {
+      Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "All chats")
+    }
     Text(
       name,
       style = MaterialTheme.typography.titleSmall,
@@ -102,6 +104,8 @@ private fun OpenChatHeader(name: String, onBack: () -> Unit, onMoveToTab: () -> 
       overflow = TextOverflow.Ellipsis,
       modifier = Modifier.weight(1f),
     )
-    IconButton(onClick = onMoveToTab) { Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Move to tab") }
+    FocusRingIconButton(onClick = onMoveToTab) {
+      Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Move to tab")
+    }
   }
 }

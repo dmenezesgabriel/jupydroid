@@ -116,6 +116,12 @@ outside it. Width is a decision below.
   dialog's button draws is read on the tablet with a hardware Tab; `FocusRingTextButtonTest` pins the wrapper
   in the test's own window, and `FocusRingGuardTest` pins that the dialogs go through it. T2f2's dialogs
   take the same route.
+- **Found by T2f2: the chat panel's other stops need a connected agent.** `SendButton` is enabled by
+  `agent != null && read`, and the Base Space offered no agent, so Send, Stop, the toolbar chips, the
+  code-block actions, the queued-question pill and the permission options could not be focused on the
+  tablet; the guard pins that they go through the ring, and T3 reads them once an agent answers. The chat
+  key row is published to the window above the keyboard, outside the panel's focus chain. A multi-line
+  question field takes Tab as a tab character, so a hardware Tab cannot leave it: Shift+Tab does.
 - Width, as above. Settled by reading frames; goes into the ADR.
 - **Found by T2c: a card's ring replaces an outline, so "3:1 against the frame before" does not fit it.**
   The launcher card already draws a 1dp outline at 3.5:1 over its fill, and the ring is drawn over it: on
@@ -165,7 +171,7 @@ ship in one task.
   guard in `:extension-api` refuses a raw material3 `IconButton` or `TextButton`. Red on the guard and on the
   dialog's Cancel, green at 3:1 in both themes, none on a finger tap; Tab the three dialogs on the tablet in
   Dark and Light.
-- [ ] T2f2 — `extensions/ai` (`ChatKeyRow`, `AgentControls`, `ChatPanel`, `ChatsPanel`, `CodeBlockActions`,
+- [x] T2f2 — `extensions/ai` (`ChatKeyRow`, `AgentControls`, `ChatPanel`, `ChatsPanel`, `CodeBlockActions`,
   `QueuedQuestions`, `ChatList`, `ToolCallRows`): its `IconButton`, `TextButton`, `FilledIconButton` and
   `OutlinedButton` sites take T2f1's wrappers, or `focusRing()` where a kind has one or two sites, and a guard in
   the module refuses a raw one. The module is built against `:extension-api`, never `:app`

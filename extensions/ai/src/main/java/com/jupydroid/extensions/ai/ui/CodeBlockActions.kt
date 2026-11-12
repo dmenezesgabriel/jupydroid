@@ -10,7 +10,6 @@ import androidx.compose.material.icons.outlined.AddBox
 import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -28,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
+import com.jupydroid.extension.api.FocusRingIconButton
 import com.jupydroid.extension.api.NotebookCells
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -91,7 +91,7 @@ private fun CodeBlockAction(description: String, icon: ImageVector, enabled: Boo
     tooltip = { PlainTooltip { Text(description) } },
     state = rememberTooltipState(),
   ) {
-    IconButton(onClick = onClick, enabled = enabled) { Icon(icon, contentDescription = description) }
+    FocusRingIconButton(onClick = onClick, enabled = enabled) { Icon(icon, contentDescription = description) }
   }
 }
 

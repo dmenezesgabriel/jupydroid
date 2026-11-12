@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.jupydroid.extension.api.focusRing
 import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
 import com.jupydroid.extensions.ai.domain.ToolCallPermission
@@ -84,7 +85,7 @@ private fun PermissionButtons(
           scope.launch { submitting = onChoose(call, option) }
         },
         enabled = !submitting,
-        modifier = Modifier.testTag("chat-tool-call-option"),
+        modifier = Modifier.testTag("chat-tool-call-option").focusRing(),
       ) { Text(option.name) }
     }
   }

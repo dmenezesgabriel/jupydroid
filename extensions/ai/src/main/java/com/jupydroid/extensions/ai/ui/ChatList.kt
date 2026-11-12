@@ -48,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jupydroid.extension.api.DeleteFileDialog
 import com.jupydroid.extension.api.RenameFileDialog
+import com.jupydroid.extension.api.focusRing
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
@@ -207,7 +208,7 @@ private fun ChatListActions(onNew: () -> Unit, onOpenMcpSettings: () -> Unit) {
 
 @Composable
 private fun ChatListButton(label: String, icon: ImageVector, onClick: () -> Unit) {
-  OutlinedButton(onClick = onClick, modifier = Modifier.padding(vertical = 8.dp)) {
+  OutlinedButton(onClick = onClick, modifier = Modifier.padding(vertical = 8.dp).focusRing()) {
     Icon(icon, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
     Text(label, modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
   }
