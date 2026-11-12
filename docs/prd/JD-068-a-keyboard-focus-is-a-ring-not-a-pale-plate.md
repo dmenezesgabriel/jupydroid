@@ -100,6 +100,11 @@ outside it. Width is a decision below.
   plate on `Run` (a `TextButton`), the settings gear and `+` (`IconButton`, which calls `ripple` itself
   at two sites in `IconButtonKt` of material3 1.4.0) and every rail item. How to reach those without
   a ring added at each site is what T2 decides, by reading how Material draws each.
+- **Answered by T2's reading: there is no single hook.** material3 1.4.0 names `ripple()` inside every
+  control (`IconButton.kt:182,331`, `Surface.kt:227,333,440`, `Menu.kt:437`, `NavigationItem.kt:1106`,
+  `Checkbox.kt:285`, `Switch.kt:168`, `RadioButton.kt:97`), and `LocalRippleConfiguration` carries only a
+  colour and a state-layer alpha, which is the plate again. The route is one `Modifier.focusRing()` in
+  the caller's `modifier`, a task per kind, because the sites number about 160.
 - Width, as above. Settled by reading frames; goes into the ADR.
 
 ## Surface
@@ -121,9 +126,14 @@ ship in one task.
 
 - [x] T1 — A `focusBorder` token on both chrome palettes and a `FocusRingIndication` that draws it,
   provided as `LocalIndication`: red at 1.14:1 on a focused `clickable`, green at 3:1 in both themes.
-- [ ] T2 — Controls that bypass `LocalIndication`: `IconButton`, `TextButton`, the rail's items. Read how
-  Material draws each, pick one route, repair with a test per kind, and Tab the rail and Settings on
-  the tablet in Light as well as Dark (T1's tablet frames are Dark only).
+- [x] T2a — `Modifier.focusRing()` and the rail's items: the primitive watches `hasFocus` in keyboard input
+  mode and draws T1's stroke through one shared `drawFocusRing`; the three `NavigationRailItem`s in
+  `SidePanelRail.kt` take it. Red on a rail item, green at 3:1 in both themes, none on a finger tap;
+  Tab the rail on the tablet in Dark and Light.
+- [ ] T2b — `IconButton` (54 sites): the gear, `+`, the bars' actions. A test of its own kind.
+- [ ] T2c — `TextButton` and `Surface(onClick)` (50 and 11 sites): `Run`, dialog buttons, cards.
+- [ ] T2d — `DropdownMenuItem` (41 sites) and `WideNavigationRailItem` (`MoreRail.kt`).
+- [ ] T2e — `Checkbox`, `Switch` and `RadioButton` (one site each).
 - [ ] T3 — The before and after on the tablet for all ten stops in both themes and under the
   high-contrast setting; the ADR for the mark, colour and width; close `GAP-202`; one backlog line;
   delete this file.

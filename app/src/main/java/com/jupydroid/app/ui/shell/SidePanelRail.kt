@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.railOrder
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.theme.focusRing
 import com.jupydroid.extension.api.SidePanelContribution
 
 /**
@@ -75,7 +76,7 @@ fun SidePanelRail(
         // item with no label, and the name is still on the item for a screen reader and a flow.
         // The name on the item rather than on the icon inside it, so a screen reader and a Maestro
         // flow address one string (ADR-0143).
-        modifier = Modifier.semantics { contentDescription = label },
+        modifier = Modifier.semantics { contentDescription = label }.focusRing(),
       )
     }
     // `launcher:create` as the tab strip's `+` - JupyterLab's own reach point for a launcher,
@@ -86,7 +87,7 @@ fun SidePanelRail(
       onClick = onOpenLauncher,
       icon = { Icon(Icons.Filled.Add, contentDescription = null) },
       label = null,
-      modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER },
+      modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER }.focusRing(),
     )
     // **VS Code's Manage**: the gear is the global activity, drawn after the view containers at the
     // activity bar's foot (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`,
@@ -99,7 +100,7 @@ fun SidePanelRail(
       onClick = onOpenSettings,
       icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
       label = null,
-      modifier = Modifier.semantics { contentDescription = OPEN_SETTINGS },
+      modifier = Modifier.semantics { contentDescription = OPEN_SETTINGS }.focusRing(),
     )
   }
 }
