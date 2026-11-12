@@ -10,7 +10,7 @@ import com.jupydroid.app.theme.Spacing
  * [terminalGridSize] counts columns of, and the offset a press subtracts to find its cell.
  * VS Code insets the left only, by 20px (`vscode@3f3380c6
  * src/vs/workbench/contrib/terminal/browser/media/terminal.css:76-77`); a phone has no gutter to
- * align to, so both sides take the same `Spacing.md`.
+ * align to, so both sides take the same `Spacing.md` (ADR-0144).
  */
 val terminalMargin: Dp = Spacing.md
 
