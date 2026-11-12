@@ -109,7 +109,7 @@ internal fun KernelPickerDialog(
  * whose real height already meets the touch target has nothing to inflate.
  */
 @Composable
-private fun KernelPickRow(option: KernelPickOption, picked: Boolean, onClick: () -> Unit) {
+internal fun KernelPickRow(option: KernelPickOption, picked: Boolean, onClick: () -> Unit) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier

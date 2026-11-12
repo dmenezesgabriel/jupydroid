@@ -32,6 +32,7 @@ import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.focusRing
 
 /**
  * The glyph every cell's Run control draws - **outlined, not filled**.
@@ -81,15 +82,7 @@ internal fun CellHeader(
   ) {
     // Leading, where a Material selection list puts its tick, and before the prompt so the eye
     // runs down one column of ticks rather than hunting them among four different labels.
-    if (mark != null) {
-      Checkbox(
-        checked = mark.checked,
-        onCheckedChange = { onToggleSelected() },
-        // On the Checkbox itself, so a screen reader reads which cell and whether it is in the
-        // run off one node - the same rule the undo buttons cost a flow to learn.
-        modifier = Modifier.semantics { contentDescription = mark.label },
-      )
-    }
+    if (mark != null) CellSelectionCheckbox(mark, onToggleSelected)
     // Nothing at all on a markdown or raw cell, which is the reference's own arrangement:
     // `_setPrompt`'s only caller is `CodeCell._updatePrompt`
     // (`packages/cells/src/widget.ts:1693-1700`), so their prompt node is drawn and left textless.
@@ -196,3 +189,16 @@ private val SPINNER_SIZE = 16.dp
 
 /** `CircularProgressIndicator`'s own default is 4dp, which at [SPINNER_SIZE] is a disc. */
 private val SPINNER_STROKE = 2.dp
+
+/** The tick a run is marked with, leading the header; see [CellMark]. */
+@Composable
+internal fun CellSelectionCheckbox(mark: CellMark, onToggleSelected: () -> Unit) {
+  Checkbox(
+    checked = mark.checked,
+    onCheckedChange = { onToggleSelected() },
+    // On the Checkbox itself, so a screen reader reads which cell and whether it is in the
+    // run off one node - the same rule the undo buttons cost a flow to learn. The ring is here
+    // because `Checkbox` names its own `ripple()`, which `FocusRingIndication` cannot reach.
+    modifier = Modifier.focusRing().semantics { contentDescription = mark.label },
+  )
+}

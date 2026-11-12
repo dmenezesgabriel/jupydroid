@@ -187,7 +187,7 @@ private fun LicencesLinkRow(onClick: () -> Unit) {
  * row), so a tap anywhere on the row reaches it, not only the small control.
  */
 @Composable
-private fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+internal fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
   ListItem(
     headlineContent = { Text(label) },
     trailingContent = { Switch(checked = checked, onCheckedChange = null) },

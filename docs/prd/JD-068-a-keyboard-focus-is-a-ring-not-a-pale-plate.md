@@ -128,6 +128,18 @@ outside it. Width is a decision below.
   numbers. `FocusRingDropdownMenuItemTest` pins the wrapper in the test's own window and does not try the popup, because a dialog's
   window took no input focus under `am instrument` (T2f1) and a popup is a window too; the tablet read is the popup's. In Dark a menu item and a rail row leave their own focus plate under the 70% ring,
   0.0314 on a channel from the ring over the bare edge (a card's was 0.0157), so `FocusRingEdgeProbe`'s tolerance is 0.04.
+- **Found by T2e: a toggle with no callback is not the focusable, so two of the three needed nothing.**
+  `SettingsToggleRow`'s `Switch` and `KernelPickRow`'s `RadioButton` pass `null` and the row's `toggleable`
+  / `selectable` takes focus, which reads `LocalIndication`, so T1's ring already drew on the whole row
+  (`SettingsToggleRowFocusRingTest`, `KernelPickRowFocusRingTest` green before any change). The `Checkbox`
+  has a real `onCheckedChange` and names its own `ripple()`, so it takes `Modifier.focusRing()`
+  (`CellSelectionCheckboxFocusRingTest`, red then green). On the tablet, a hardware Tab rings the Settings
+  toggle rows at 3.29:1 in Dark (`#2D6E8A` over `#121314`) and 5.39:1 in Light (`#0069CC` over `#FFFFFF`),
+  the cell tick the same two numbers, and the picker's rows 3.02:1 in Dark (`#32728E` over the dialog's
+  `#202122`) and 4.77:1 in Light (`#0069CC` over `#F0F1F2`). Dark's picker row is the thinnest margin so
+  far, because a dialog's surface is lighter than the page; T3 decides whether that stays. A finger tap on a
+  tick ends selection mode when it was the only one marked, so no tick is left to judge and
+  `aFingerTapOnASelectionTickDrawsNoRing` is what pins the tap.
 - Width, as above. Settled by reading frames; goes into the ADR.
 - **Found by T2c: a card's ring replaces an outline, so "3:1 against the frame before" does not fit it.**
   The launcher card already draws a 1dp outline at 3.5:1 over its fill, and the ring is drawn over it: on
@@ -188,7 +200,10 @@ ship in one task.
   refusing a raw one; `MoreRailRow` takes `Modifier.focusRing()` directly. Red on a plain item and a plain row,
   green at 3:1 in both themes, none on a finger tap; Tab the Files `+` menu in Dark and Light and the More rail at
   one pane in Dark and Light on the tablet.
-- [ ] T2e — `Checkbox`, `Switch` and `RadioButton` (one site each).
+- [x] T2e — `Checkbox`, `Switch` and `RadioButton` (one site each): only the `Checkbox` needed the ring, on
+  `CellSelectionCheckbox`'s modifier. Red on the checkbox in both themes; the `Switch` row and the
+  `RadioButton` row were already green. Tab a cell's tick, the Settings toggle rows and the kernel picker's
+  rows on the tablet in Dark and Light.
 - [ ] T3 — The before and after on the tablet for all ten stops in both themes and under the
   high-contrast setting; the ADR for the mark, colour and width; close `GAP-202`; one backlog line;
   delete this file.
