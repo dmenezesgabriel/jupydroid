@@ -46,11 +46,11 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
-import com.jupydroid.app.theme.FocusRingIconButton
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.relativeTime
 import com.jupydroid.extension.api.DeleteFileDialog
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extension.api.RenameFileDialog
 import java.time.Instant
 

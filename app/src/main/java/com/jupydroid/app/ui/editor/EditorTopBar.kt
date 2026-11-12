@@ -20,9 +20,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.ancestorCrumbsFor
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The notebook's app bar: its actions, with the breadcrumb trail above them.

@@ -1,0 +1,43 @@
+package com.jupydroid.extension.api
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.File
+
+/**
+ * A button the contract hands out draws the keyboard-focus ring, because it goes through
+ * `FocusRingIconButton` or `FocusRingTextButton`.
+ *
+ * material3 1.4.0's `IconButton` and `TextButton` call `ripple()` themselves, so the ring never
+ * reaches them and a Tab changes only a plate at 1.14:1. A file that names the raw one brings that
+ * plate back on the control; this is `:app`'s `ArchitectureGuardTest.uiLayer_callsNoMaterialTextButton`
+ * for the module that holds the dialogs every extension asks the host for.
+ */
+class FocusRingGuardTest {
+  private val sourceRoot = File("src/main/java/com/jupydroid/extension/api")
+
+  private val wrappers = setOf("FocusRingIconButton.kt", "FocusRingTextButton.kt")
+
+  @Test
+  fun theContractNamesNoMaterialIconButtonOrTextButton() {
+    val sources = sourceRoot.walkTopDown().filter { it.extension == "kt" }.toList()
+    assertTrue("no Kotlin sources under ${sourceRoot.absolutePath}", sources.isNotEmpty())
+
+    val offenders = sources.filterNot { it.name in wrappers }.flatMap { source ->
+      source.readLines()
+        .filter { line -> RAW_BUTTONS.any { line.trim() == "import androidx.compose.material3.$it" } }
+        .map { "${source.name}: ${it.trim()}" }
+    }
+
+    assertEquals(
+      "use FocusRingIconButton / FocusRingTextButton, not material3's own (expected no import of $RAW_BUTTONS)",
+      emptyList<String>(),
+      offenders,
+    )
+  }
+
+  private companion object {
+    val RAW_BUTTONS = listOf("IconButton", "TextButton")
+  }
+}

@@ -7,7 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.jupydroid.app.theme.FocusRingTextButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * What the last replace had to say, and - while there is something to take back - the offer to.

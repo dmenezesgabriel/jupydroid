@@ -100,27 +100,27 @@ class ArchitectureGuardTest {
 
   /**
    * material3's `IconButton` draws its own ripple, so the keyboard-focus ring never reaches it;
-   * `theme/FocusRingIconButton.kt` is the one that does, and a screen that reaches past it
+   * `extension-api`'s `FocusRingIconButton` is the one that does, and a screen that reaches past it
    * brings back the plate at 1.14:1 on that control.
    */
   @Test
   fun uiLayer_callsNoMaterialIconButton() {
     val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.IconButton"))
     assertTrue(
-      "ui must use theme.FocusRingIconButton, not material3's IconButton: $offenders",
+      "ui must use extension.api.FocusRingIconButton, not material3's IconButton: $offenders",
       offenders.isEmpty(),
     )
   }
 
   /**
    * material3's `TextButton` is a `Surface(onClick)` that draws its own ripple, so the
-   * keyboard-focus ring never reaches it; `theme/FocusRingTextButton.kt` is the one that does.
+   * keyboard-focus ring never reaches it; `extension-api`'s `FocusRingTextButton` is the one that does.
    */
   @Test
   fun uiLayer_callsNoMaterialTextButton() {
     val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.TextButton"))
     assertTrue(
-      "ui must use theme.FocusRingTextButton, not material3's TextButton: $offenders",
+      "ui must use extension.api.FocusRingTextButton, not material3's TextButton: $offenders",
       offenders.isEmpty(),
     )
   }

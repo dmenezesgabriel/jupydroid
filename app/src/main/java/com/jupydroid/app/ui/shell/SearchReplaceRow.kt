@@ -17,14 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.jupydroid.app.theme.FocusRingIconButton
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.HIDE_REPLACE
 import com.jupydroid.app.ui.editor.PRESERVE_CASE
 import com.jupydroid.app.ui.editor.REPLACE_VERBATIM
 import com.jupydroid.app.ui.editor.SHOW_REPLACE
 import com.jupydroid.app.ui.editor.codeTextStyle
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * What a replace would write - the `.replace-container` under the query box

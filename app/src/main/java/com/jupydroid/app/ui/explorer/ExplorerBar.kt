@@ -14,8 +14,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * What the screen is, above the breadcrumb that says where in it you are.

@@ -10,6 +10,7 @@ import androidx.compose.ui.node.DelegatableNode
 import androidx.compose.ui.node.DelegatingNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.invalidateDraw
+import com.jupydroid.extension.api.drawFocusRing
 import kotlinx.coroutines.launch
 
 /**
@@ -25,7 +26,7 @@ import kotlinx.coroutines.launch
  * **It does not reach a control that names its own ripple.** material3 1.4.0's `IconButton` calls
  * `ripple` itself and never reads `LocalIndication`, and a Tab on the tablet draws only the plate
  * on it and on `TextButton`; the explorer's file row, a plain clickable, draws this ring at 3.17:1
- * over the side bar. Those controls take [focusRing] in their `modifier` instead.
+ * over the side bar. Those controls take [com.jupydroid.extension.api.focusRing] in their `modifier` instead.
  *
  * **A ring, because every reference draws one**: VS Code an outline of `focusBorder` at 1px
  * (`vscode@3f3380c6 src/vs/workbench/browser/media/style.css:257-272`), JupyterLab one at 2px on

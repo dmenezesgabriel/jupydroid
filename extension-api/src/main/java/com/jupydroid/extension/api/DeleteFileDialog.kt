@@ -3,7 +3,6 @@ package com.jupydroid.extension.api
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 
 /**
@@ -33,10 +32,10 @@ public fun DeleteFileDialog(name: String, onDelete: () -> Unit, onDismiss: () ->
     title = { Text("Delete") },
     text = { Text("Are you sure you want to permanently delete: $name?") },
     confirmButton = {
-      TextButton(onClick = onDelete) {
+      FocusRingTextButton(onClick = onDelete) {
         Text("Delete", color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }

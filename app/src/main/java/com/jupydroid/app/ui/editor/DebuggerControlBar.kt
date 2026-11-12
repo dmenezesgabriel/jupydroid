@@ -12,7 +12,7 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * `next`/`stepIn`/`stepOut`/`continue` plus `terminate`, shown only while

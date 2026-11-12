@@ -39,9 +39,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.replacementFor
-import com.jupydroid.app.theme.FocusRingIconButton
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * The bar that stands in for [EditorTopBar] while the notebook is being searched -

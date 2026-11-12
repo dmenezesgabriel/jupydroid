@@ -29,9 +29,9 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The glyph every cell's Run control draws - **outlined, not filled**.

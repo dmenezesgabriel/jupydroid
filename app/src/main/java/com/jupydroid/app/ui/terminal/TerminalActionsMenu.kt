@@ -13,7 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.TerminalFontSize
-import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The terminal's overflow: `terminal:increase-font`/`terminal:decrease-font`

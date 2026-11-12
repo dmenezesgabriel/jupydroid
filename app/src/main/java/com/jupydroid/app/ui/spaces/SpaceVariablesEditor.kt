@@ -16,9 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import com.jupydroid.app.theme.FocusRingIconButton
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /** The button that appends an empty row. */
 const val ADD_VARIABLE = "Add variable"

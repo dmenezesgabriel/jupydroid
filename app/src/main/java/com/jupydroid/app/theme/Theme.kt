@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.jupydroid.app.terminal.TerminalPalette
+import com.jupydroid.extension.api.LocalFocusRingColor
 
 /**
  * The editor tokens in scope. Static because the palette changes only with the system theme -
@@ -64,6 +65,7 @@ fun JupyterDroidTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Comp
   CompositionLocalProvider(
     LocalEditorPalette provides palette,
     LocalChromePalette provides chrome,
+    LocalFocusRingColor provides chrome.focusBorder,
     LocalAnsiPalette provides ansi,
   ) {
     MaterialTheme(

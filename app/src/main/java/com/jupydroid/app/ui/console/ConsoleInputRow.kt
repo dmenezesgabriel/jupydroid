@@ -22,7 +22,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.domain.model.IndentUnit
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.FocusedCellInput
@@ -31,6 +30,7 @@ import com.jupydroid.app.ui.editor.RECALL_PREVIOUS_ENTRY
 import com.jupydroid.app.ui.editor.SymbolRowWhileTyping
 import com.jupydroid.app.ui.editor.cellEditorBox
 import com.jupydroid.app.ui.editor.cellRunIcon
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /** Locates the input field in a test, the same role `EVALUATE_FIELD_TAG` plays for the debugger's. */
 const val CONSOLE_INPUT_FIELD_TAG = "console-input-field"

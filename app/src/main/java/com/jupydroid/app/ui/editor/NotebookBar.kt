@@ -16,7 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The bar along the bottom: what you ask the *kernel*, as opposed to what you ask a cell.

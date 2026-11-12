@@ -46,9 +46,9 @@ import androidx.compose.ui.window.Popup
 import com.jupydroid.app.domain.port.LanguageSignature
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.syntax.SyntaxHighlighter
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.LocalEditorPalette
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingIconButton
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged

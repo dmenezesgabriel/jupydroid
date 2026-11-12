@@ -12,9 +12,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.domain.model.PythonEnvironment
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeTextStyle
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /** The section's tag, for a test and - as a resource id - for a Maestro flow. */
 const val SPACE_ENVIRONMENTS_TAG = "space-environments"

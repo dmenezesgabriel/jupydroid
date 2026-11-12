@@ -31,8 +31,8 @@ import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.extension.api.FocusRingIconButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 

@@ -14,8 +14,8 @@ import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.railOrder
 import com.jupydroid.app.theme.chromePalette
-import com.jupydroid.app.theme.focusRing
 import com.jupydroid.extension.api.SidePanelContribution
+import com.jupydroid.extension.api.focusRing
 
 /**
  * The activity bar: which side panel is showing, and the only control that changes it.

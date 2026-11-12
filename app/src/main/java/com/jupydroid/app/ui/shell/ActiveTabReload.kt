@@ -21,7 +21,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import com.jupydroid.app.OpenDocument
-import com.jupydroid.app.theme.FocusRingTextButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * `docmanager:reload` as something to press: the document on top is read back from its file.

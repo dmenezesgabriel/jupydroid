@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.ui.editor.symbolKeyStyle
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * [TerminalExtraKeysRow]'s handle for an external driver, `SYMBOL_ROW_TAG`'s reason: Gboard carries

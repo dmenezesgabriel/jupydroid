@@ -12,7 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The Recents section's overflow - `docmanager:clear-recents` and, today, nothing else.

@@ -11,8 +11,8 @@ import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.port.WorkspaceFiles
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.extension.api.DeleteFileDialog
+import com.jupydroid.extension.api.FocusRingTextButton
 import kotlinx.coroutines.launch
 
 /** How far a Delete's asking has got: the ask over one tab's document, or why the disk refused it. */

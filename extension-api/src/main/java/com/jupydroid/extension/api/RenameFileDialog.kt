@@ -7,7 +7,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -122,7 +121,7 @@ public fun RenameFileDialog(
     },
     confirmButton = {
       val renamed = title.text.trim()
-      TextButton(
+      FocusRingTextButton(
         onClick = { if (renamed == currentTitle) onDismiss() else onConfirm(renamed) },
         enabled = isValidName(renamed),
       ) {
@@ -130,7 +129,7 @@ public fun RenameFileDialog(
       }
     },
     dismissButton = {
-      TextButton(onClick = onDismiss) { Text("Cancel") }
+      FocusRingTextButton(onClick = onDismiss) { Text("Cancel") }
     },
   )
 }

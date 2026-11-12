@@ -60,11 +60,11 @@ import com.jupydroid.app.mainAreaTabTitle
 import com.jupydroid.app.moveToSidePanel
 import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.sidePanelMoveOf
-import com.jupydroid.app.theme.FocusRingIconButton
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.DocumentContribution
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extension.api.RenameFileDialog
 import kotlinx.coroutines.launch
 

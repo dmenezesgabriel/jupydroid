@@ -14,8 +14,8 @@ import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.isValidWorkspacePath
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.WorkspaceRepository
-import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.ui.OverwriteFileDialog
+import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extension.api.RenameFileDialog
 import com.jupydroid.extension.api.titleStemEnd
 import kotlinx.coroutines.launch

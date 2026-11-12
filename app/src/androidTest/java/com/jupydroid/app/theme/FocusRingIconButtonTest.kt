@@ -6,6 +6,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.extension.api.FocusRingIconButton
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith

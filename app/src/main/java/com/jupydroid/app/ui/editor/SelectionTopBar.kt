@@ -22,7 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The bar that stands in for [EditorTopBar] while a run of cells is marked.

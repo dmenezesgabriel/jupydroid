@@ -20,7 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.FocusRingTextButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * What the active cell **is**, and the one gesture that changes it.

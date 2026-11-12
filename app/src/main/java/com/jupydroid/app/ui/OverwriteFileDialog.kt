@@ -4,7 +4,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.jupydroid.app.theme.FocusRingTextButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * "…already exists, overwrite?" - the question the reference asks before replacing a file.

@@ -1,10 +1,12 @@
-package com.jupydroid.app.theme
+package com.jupydroid.extension.api
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ProvidableCompositionLocal
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.focus.onFocusChanged
@@ -25,14 +27,30 @@ import androidx.compose.ui.unit.dp
 private val RING_WIDTH = 2.dp
 
 /**
+ * The colour the host draws a keyboard-focus ring in, which the host provides from its palette's
+ * `focusBorder`.
+ *
+ * It lives here and not in the host because an extension is built against this module and never
+ * against `:app` (ADR-0104), so the host's palette is out of its reach. Transparent where nothing
+ * provides it, so a composable previewed without the host's theme draws no ring rather than a wrong
+ * one.
+ *
+ * ```
+ * CompositionLocalProvider(LocalFocusRingColor provides chrome.focusBorder) { content() }
+ * ```
+ */
+public val LocalFocusRingColor: ProvidableCompositionLocal<Color> = staticCompositionLocalOf { Color.Transparent }
+
+/**
  * Strokes the focus ring just inside this scope's bounds, as VS Code's `outline-offset: -1px` does
  * (`vscode@3f3380c6 src/vs/workbench/browser/media/style.css:257-272`), so a control that fills its
  * row never has the ring clipped by the row's neighbour.
  *
- * This is the one place the ring's geometry lives: [FocusRingIndication] and [focusRing] both draw
+ * This is the one place the ring's geometry lives: the host's `FocusRingIndication`
+ * (`app/src/main/java/com/jupydroid/app/theme/FocusRingIndication.kt`) and [focusRing] both draw
  * through it, so a control reached by either looks the same.
  */
-internal fun DrawScope.drawFocusRing(color: Color) {
+public fun DrawScope.drawFocusRing(color: Color) {
   val stroke = RING_WIDTH.toPx()
   drawRect(
     color = color,
@@ -43,13 +61,12 @@ internal fun DrawScope.drawFocusRing(color: Color) {
 }
 
 /**
- * Draws the palette's `focusBorder` on this node's edge while a control inside it holds keyboard
- * focus.
+ * Draws [LocalFocusRingColor] on this node's edge while a control inside it holds keyboard focus.
  *
- * **For the controls [FocusRingIndication] cannot reach.** material3 1.4.0 names `ripple()` inside
- * `IconButton`, `Surface` (so `TextButton`), `DropdownMenuItem`, the toggles and the rail's items
- * (`NavigationItem.kt` draws its own with `indication = null`), and none of them reads
- * `LocalIndication`. Each takes a `modifier` that wraps its whole bounds, so this goes there.
+ * **For the controls the host's `FocusRingIndication` cannot reach.** material3 1.4.0 names
+ * `ripple()` inside `IconButton`, `Surface` (so `TextButton`), `DropdownMenuItem`, the toggles and
+ * the rail's items (`NavigationItem.kt` draws its own with `indication = null`), and none of them
+ * reads `LocalIndication`. Each takes a `modifier` that wraps its whole bounds, so this goes there.
  *
  * `hasFocus` rather than `isFocused`, because the node this goes on is a container and the
  * focusable is a descendant (`ui/editor/CellInputFocus.kt` asks the same question). The ring shows
@@ -61,9 +78,9 @@ internal fun DrawScope.drawFocusRing(color: Color) {
  * ```
  */
 @Composable
-internal fun Modifier.focusRing(): Modifier {
+public fun Modifier.focusRing(): Modifier {
   var focused by remember { mutableStateOf(false) }
-  val ring = chromePalette.focusBorder
+  val ring = LocalFocusRingColor.current
   val inputMode = LocalInputModeManager.current
   return onFocusChanged { focused = it.hasFocus }.drawWithContent {
     drawContent()

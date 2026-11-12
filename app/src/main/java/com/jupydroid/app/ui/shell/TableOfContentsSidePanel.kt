@@ -23,7 +23,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.DocumentOutline
 import com.jupydroid.app.SidePanel
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.TableOfContentsRows
@@ -31,6 +30,7 @@ import com.jupydroid.app.ui.editor.TocFolds
 import com.jupydroid.app.ui.editor.tocRows
 import com.jupydroid.app.ui.editor.tocSectionOwners
 import com.jupydroid.app.ui.editor.tocSomeExpanded
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * `shell.add(toc, 'left', { rank: 400 })` - the open document's structure as a **sidebar panel**,

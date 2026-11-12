@@ -21,9 +21,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.SearchScope
-import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeTextStyle
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * Which files the walk reaches - the `.query-details` block under the query box

@@ -15,7 +15,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
-import com.jupydroid.app.theme.FocusRingTextButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * A breakpoint's own condition, reached by a long-press on an armed line's gutter dot -

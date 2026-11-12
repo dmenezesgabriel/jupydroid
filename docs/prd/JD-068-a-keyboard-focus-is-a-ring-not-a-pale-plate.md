@@ -110,6 +110,12 @@ outside it. Width is a decision below.
 - **Answered before T2f1: the primitive lives in `:extension-api`.** An extension cannot import `:app`
   (ADR-0104), and a copy in each module would be two homes for the ring's geometry. The ring is public API
   there, and its colour is `LocalFocusRingColor`, which `Theme.kt` provides from `chrome.focusBorder`.
+- **Found by T2f1: no instrumented test can Tab inside a dialog.** A dialog's window never takes input
+  focus under `am instrument` on `dev36` (`hasWindowFocus()` stayed false), so `sendKeyDownUpSync` reaches the
+  window beneath it, and a `KeyEvent` dispatched to the dialog's own view moved no focus either. What a
+  dialog's button draws is read on the tablet with a hardware Tab; `FocusRingTextButtonTest` pins the wrapper
+  in the test's own window, and `FocusRingGuardTest` pins that the dialogs go through it. T2f2's dialogs
+  take the same route.
 - Width, as above. Settled by reading frames; goes into the ADR.
 - **Found by T2c: a card's ring replaces an outline, so "3:1 against the frame before" does not fit it.**
   The launcher card already draws a 1dp outline at 3.5:1 over its fill, and the ring is drawn over it: on
@@ -152,7 +158,7 @@ ship in one task.
   `Modifier.focusRing()` directly, because one site is not a kind. Red on a plain one, green in both
   themes, none on a finger tap; Tab Spaces home, the Space settings dialog and the launcher on the tablet
   in Dark and Light.
-- [ ] T2f1 — The ring becomes part of `:extension-api`, and its dialogs take it: `focusRing()`,
+- [x] T2f1 — The ring becomes part of `:extension-api`, and its dialogs take it: `focusRing()`,
   `drawFocusRing`, `FocusRingIconButton` and `FocusRingTextButton` move from `:app`'s `theme/` into the
   contract as public API, with `LocalFocusRingColor` that `Theme.kt` provides from `chrome.focusBorder`;
   `RenameFileDialog` and `DeleteFileDialog` (the New Space, rename and delete dialogs) call the wrappers, and a
