@@ -138,4 +138,13 @@ data class ChromePalette(
    * a different id, the rule [activityBarBorder]'s own note already records.
    */
   val tabBorder: Color,
+  /**
+   * The ring a control that takes keyboard focus draws on its edge - `focusBorder`, VS Code's
+   * "overall border colour for focused elements" (`vscode@3f3380c6`
+   * `src/vs/platform/theme/common/colors/baseColors.ts:37-39`).
+   *
+   * **Dark states it translucent** (`#3994BCB3`), so contrast is read from the colour as painted
+   * over the part it sits on, never from this value alone: 3.13:1 over the side bar.
+   */
+  val focusBorder: Color,
 )

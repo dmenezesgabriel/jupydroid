@@ -39,6 +39,9 @@ internal val DarkChromePalette = ChromePalette(
   tabInactiveBackground = Color(0xFF191A1B),
   tabActiveBorderTop = Color(0xFF3994BC),
   tabBorder = Color(0xFF2A2B2C),
+  // `focusBorder`, `#3994BCB3` in `2026-dark.json:12`: 70% of the colour the active tab's top line
+  // states opaque. Compose writes the alpha first.
+  focusBorder = Color(0xB33994BC),
 )
 
 /** 2026 Light's parts. Both ids are `#FAFAFD` here, a step *down* from a white page. */
@@ -63,4 +66,6 @@ internal val LightChromePalette = ChromePalette(
   tabInactiveBackground = Color(0xFFFAFAFD),
   tabActiveBorderTop = Color(0xFF000000),
   tabBorder = Color(0xFFF0F1F2),
+  // `focusBorder`, `#0069CCFF` in `2026-light.json:12`, opaque here.
+  focusBorder = Color(0xFF0069CC),
 )

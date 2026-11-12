@@ -76,7 +76,7 @@ outside it. Width is a decision below.
 | Mark | state layer (ours today, winlator buttons) · outline (VS Code, JupyterLab, IntelliJ) | a state layer cannot reach 3:1 without becoming a fill that hides the control | an outline; three mature references and WCAG 1.4.11 agree |
 | Colour | VS Code `focusBorder` · JupyterLab brand colour · IntelliJ `focusColor` | VS Code answers for presentation here (ADR-0040) | `focusBorder` from the resolved 2026 files, a `ChromePalette` token pinned by equality as `ChromePaletteTest` pins the others |
 | Width | 1px inside · 2px | 1px at 160dpi on a touch tablet may fall under what a reader can see | settled by reading both on the tablet, recorded in the ADR |
-| Where it is drawn | one `Indication` in `LocalIndication` · a modifier at each site | about 50 `clickable`/`selectable` sites and the Material components all read `LocalIndication` | one `Indication`, one home; sites that bypass it are found by Tab and repaired in T2 |
+| Where it is drawn | one `Indication` in `LocalIndication` · a modifier at each site | about 50 `clickable`/`selectable` sites read `LocalIndication`; Material's `IconButton` does not (measured in T1) | one `Indication` for what reads it; what names its own ripple is T2's |
 | When | every focus · keyboard focus only | a finger tap also focuses some controls | the platform's focus mode decides; the ring follows `FocusInteraction`, which is what the indication receives |
 
 ## Gap analysis
@@ -95,8 +95,11 @@ outside it. Width is a decision below.
 
 ## Open decisions
 
-- Whether Material's navigation rail item draws its own pill from `interactionSource` and so bypasses
-  `LocalIndication`. Read in T2 by Tab on the tablet, not assumed.
+- **Answered by T1: Material's own controls bypass `LocalIndication`.** A real Tab on the tablet draws
+  the ring on the explorer's file row (a custom clickable, 3.17:1 over the side bar) and only the pale
+  plate on `Run` (a `TextButton`), the settings gear and `+` (`IconButton`, which calls `ripple` itself
+  at two sites in `IconButtonKt` of material3 1.4.0) and every rail item. How to reach those without
+  a ring added at each site is what T2 decides, by reading how Material draws each.
 - Width, as above. Settled by reading frames; goes into the ADR.
 
 ## Surface
@@ -116,10 +119,11 @@ ship in one task.
 
 ## Tasks
 
-- [ ] T1 — A `focusBorder` token on both chrome palettes and a `FocusRingIndication` that draws it,
+- [x] T1 — A `focusBorder` token on both chrome palettes and a `FocusRingIndication` that draws it,
   provided as `LocalIndication`: red at 1.14:1 on a focused `clickable`, green at 3:1 in both themes.
-- [ ] T2 — Controls that bypass `LocalIndication`, found by Tab across the rail and Settings on the
-  tablet, each repaired with a test.
+- [ ] T2 — Controls that bypass `LocalIndication`: `IconButton`, `TextButton`, the rail's items. Read how
+  Material draws each, pick one route, repair with a test per kind, and Tab the rail and Settings on
+  the tablet in Light as well as Dark (T1's tablet frames are Dark only).
 - [ ] T3 — The before and after on the tablet for all ten stops in both themes and under the
   high-contrast setting; the ADR for the mark, colour and width; close `GAP-202`; one backlog line;
   delete this file.
