@@ -11,7 +11,6 @@ import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -21,6 +20,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.ancestorCrumbsFor
 
@@ -168,7 +168,7 @@ fun EditorTopBar(
         // view toggle nor something asked of the kernel, and both Material and the reference put it
         // where a thumb can reach it in one tap - `documentsearch:start` is `Ctrl F` there, the
         // shortest binding in the app.
-        IconButton(onClick = onFind, modifier = Modifier.semantics { contentDescription = FIND_ACTION }) {
+        FocusRingIconButton(onClick = onFind, modifier = Modifier.semantics { contentDescription = FIND_ACTION }) {
           Icon(Icons.Filled.Search, contentDescription = null)
         }
         // **Between Find and the overflow, which is the reference's own far right.** JupyterLab
@@ -220,14 +220,14 @@ fun EditorTopBar(
  */
 @Composable
 private fun UndoRedo(canUndo: Boolean, canRedo: Boolean, onUndo: () -> Unit, onRedo: () -> Unit) {
-  IconButton(
+  FocusRingIconButton(
     onClick = onUndo,
     enabled = canUndo,
     modifier = Modifier.semantics { contentDescription = "Undo cell operation" },
   ) {
     Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = null)
   }
-  IconButton(
+  FocusRingIconButton(
     onClick = onRedo,
     enabled = canRedo,
     modifier = Modifier.semantics { contentDescription = "Redo cell operation" },

@@ -115,7 +115,7 @@ internal fun notebookKernelCommands(
  *
  * ```
  * Box {
- *   IconButton(onClick = { open = true }) { Icon(Icons.Filled.MoreVert, "Kernel actions") }
+ *   FocusRingIconButton(onClick = { open = true }) { Icon(Icons.Filled.MoreVert, "Kernel actions") }
  *   KernelMenu(expanded = open, onDismiss = { open = false }, notebookTitle = state.title, …)
  * }
  * ```

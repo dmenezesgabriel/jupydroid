@@ -98,6 +98,20 @@ class ArchitectureGuardTest {
     )
   }
 
+  /**
+   * material3's `IconButton` draws its own ripple, so the keyboard-focus ring never reaches it;
+   * `theme/FocusRingIconButton.kt` is the one that does, and a screen that reaches past it
+   * brings back the plate at 1.14:1 on that control.
+   */
+  @Test
+  fun uiLayer_callsNoMaterialIconButton() {
+    val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.IconButton"))
+    assertTrue(
+      "ui must use theme.FocusRingIconButton, not material3's IconButton: $offenders",
+      offenders.isEmpty(),
+    )
+  }
+
   @Test
   fun dataLayer_namesNoUiOrDi() {
     val sources = ktSourcesUnder(dataRoot)

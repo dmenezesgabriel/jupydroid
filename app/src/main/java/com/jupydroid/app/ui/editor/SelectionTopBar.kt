@@ -8,7 +8,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SelectAll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -23,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.theme.FocusRingIconButton
 
 /**
  * The bar that stands in for [EditorTopBar] while a run of cells is marked.
@@ -90,7 +90,7 @@ fun SelectionTopBar(
     navigationIcon = {
       // `notebook:deselect-all`, under Material's close affordance: leaving the mode and clearing
       // the run are one act, because a run of one is what "no selection" already means.
-      IconButton(
+      FocusRingIconButton(
         onClick = onDeselectAll,
         modifier = Modifier.semantics { contentDescription = "Deselect all cells" },
       ) {
@@ -102,13 +102,13 @@ fun SelectionTopBar(
       // this bar reshapes the notebook; this is the only one that asks the kernel anything, and it
       // is the one command here with no per-cell equivalent while the bar is up - the cell's `⋮` is
       // hidden and its own Run still means that one cell.
-      IconButton(
+      FocusRingIconButton(
         onClick = onRunMarked,
         modifier = Modifier.semantics { contentDescription = RUN_MARKED_CELLS },
       ) {
         Icon(Icons.Filled.PlayArrow, contentDescription = null)
       }
-      IconButton(
+      FocusRingIconButton(
         onClick = onSelectAll,
         modifier = Modifier.semantics { contentDescription = "Select all cells" },
       ) {
@@ -117,7 +117,7 @@ fun SelectionTopBar(
       // Boxed for the reason CellHeader's is: a DropdownMenu anchors to its parent layout node,
       // and left in the actions Row it opens against the whole row rather than under the button.
       Box {
-        IconButton(
+        FocusRingIconButton(
           onClick = { menuOpen = true },
           modifier = Modifier.semantics { contentDescription = SELECTED_CELL_ACTIONS },
         ) {

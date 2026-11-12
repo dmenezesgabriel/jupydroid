@@ -7,7 +7,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.theme.FocusRingIconButton
 
 /**
  * The notebook's overflow: everything the reference files under **View**, and under **File** as
@@ -101,7 +101,7 @@ internal fun NotebookActionsMenu(
   // row that opens something must not also dismiss the surface it opened.
   var cellTypeOpen by remember { mutableStateOf(false) }
   Box {
-    IconButton(onClick = { open = true }) {
+    FocusRingIconButton(onClick = { open = true }) {
       Icon(Icons.Filled.MoreVert, contentDescription = "Notebook actions")
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

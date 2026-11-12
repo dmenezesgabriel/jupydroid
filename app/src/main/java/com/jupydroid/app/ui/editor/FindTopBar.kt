@@ -17,7 +17,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,6 +40,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.replacementFor
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 
 /**
@@ -110,7 +110,7 @@ fun FindTopBar(
         actionIconContentColor = MaterialTheme.colorScheme.onSecondaryContainer,
       ),
       navigationIcon = {
-        IconButton(onClick = onClose, modifier = named(CLOSE_SEARCH)) {
+        FocusRingIconButton(onClick = onClose, modifier = named(CLOSE_SEARCH)) {
           Icon(Icons.Filled.Close, contentDescription = null)
         }
       },
@@ -140,10 +140,10 @@ fun FindTopBar(
         // Greyed rather than absent while there is nothing to step through, which is the rule this
         // app already applies to every command whose two states would look identical - and here it
         // also keeps the bar's shape from changing under a thumb as the query is typed.
-        IconButton(onClick = onPrevious, enabled = steppable, modifier = named(PREVIOUS_MATCH)) {
+        FocusRingIconButton(onClick = onPrevious, enabled = steppable, modifier = named(PREVIOUS_MATCH)) {
           Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null)
         }
-        IconButton(onClick = onNext, enabled = steppable, modifier = named(NEXT_MATCH)) {
+        FocusRingIconButton(onClick = onNext, enabled = steppable, modifier = named(NEXT_MATCH)) {
           Icon(Icons.Filled.KeyboardArrowDown, contentDescription = null)
         }
         SearchOptionsMenu(
@@ -241,7 +241,7 @@ private fun SearchOptionsMenu(
   // Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader],
   // [NotebookBar] and [EditorTopBar] each record.
   Box {
-    IconButton(onClick = { open = true }, modifier = named(SEARCH_OPTIONS)) {
+    FocusRingIconButton(onClick = { open = true }, modifier = named(SEARCH_OPTIONS)) {
       Icon(Icons.Filled.MoreVert, contentDescription = null)
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

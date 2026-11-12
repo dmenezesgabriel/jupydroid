@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -19,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.HIDE_REPLACE
 import com.jupydroid.app.ui.editor.PRESERVE_CASE
@@ -106,7 +106,7 @@ fun SearchReplaceRow(
 /** `search-hide-replace` / `search-show-replace` (`searchIcons.ts:14-15`) - see [SearchReplaceRow]. */
 @Composable
 private fun ReplaceChevron(shown: Boolean, onToggleShown: () -> Unit) {
-  IconButton(
+  FocusRingIconButton(
     onClick = onToggleShown,
     modifier = Modifier
       .padding(start = Spacing.xs)

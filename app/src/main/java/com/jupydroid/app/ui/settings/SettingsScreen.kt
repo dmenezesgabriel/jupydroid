@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -32,6 +31,7 @@ import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.editorPalette
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -217,11 +217,11 @@ private fun SettingsStepperRow(
     headlineContent = { Text(label) },
     trailingContent = {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onDecrease, enabled = value > minimum) {
+        FocusRingIconButton(onClick = onDecrease, enabled = value > minimum) {
           Icon(Icons.Filled.Remove, contentDescription = decreaseDescription)
         }
         Text("$value$unit")
-        IconButton(onClick = onIncrease, enabled = value < maximum) {
+        FocusRingIconButton(onClick = onIncrease, enabled = value < maximum) {
           Icon(Icons.Filled.Add, contentDescription = increaseDescription)
         }
       }

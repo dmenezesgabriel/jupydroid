@@ -10,13 +10,13 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.jupydroid.app.theme.FocusRingIconButton
 
 /**
  * The bar along the bottom: what you ask the *kernel*, as opposed to what you ask a cell.
@@ -59,12 +59,12 @@ internal fun NotebookBar(
   BottomAppBar(modifier = modifier.imePadding()) {
     // Disabled while a cell runs: a second Run All would queue every cell again behind the one
     // already going.
-    IconButton(onClick = onRunAll, enabled = !busy) {
+    FocusRingIconButton(onClick = onRunAll, enabled = !busy) {
       Icon(Icons.Filled.PlayArrow, contentDescription = "Run all cells")
     }
     // Only while something is running - interrupting an idle kernel is a no-op the user cannot
     // tell from a broken button.
-    IconButton(onClick = onInterrupt, enabled = busy) {
+    FocusRingIconButton(onClick = onInterrupt, enabled = busy) {
       // **A stop square, which is what the reference draws**: `createInterruptButton` takes
       // `stopIcon` (`apputils/src/toolbar/widget.tsx:50`) and that icon is `M6 6h12v12H6z`
       // (`ui-components/style/icons/toolbar/stop.svg`) - a filled square, never a cross. This drew
@@ -74,17 +74,17 @@ internal fun NotebookBar(
       // "stop what the kernel is doing" and "close this document".
       Icon(Icons.Filled.Stop, contentDescription = "Interrupt kernel")
     }
-    IconButton(onClick = { confirming = RestartRequest.RESTART }) {
+    FocusRingIconButton(onClick = { confirming = RestartRequest.RESTART }) {
       Icon(Icons.Filled.Refresh, contentDescription = "Restart kernel")
     }
-    IconButton(onClick = { confirming = RestartRequest.RESTART_AND_RUN_ALL }) {
+    FocusRingIconButton(onClick = { confirming = RestartRequest.RESTART_AND_RUN_ALL }) {
       RestartAndRunAllIcon()
     }
     // Boxed with its menu, which anchors to its parent layout node: left in the bar's own Row a
     // DropdownMenu opens at the far left, a whole bar away from the button that was tapped. The
     // same lesson `CellHeader` records.
     Box {
-      IconButton(onClick = { kernelMenuOpen = true }) {
+      FocusRingIconButton(onClick = { kernelMenuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Kernel actions")
       }
       KernelMenu(

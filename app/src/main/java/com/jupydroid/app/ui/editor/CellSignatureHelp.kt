@@ -16,7 +16,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -47,6 +46,7 @@ import androidx.compose.ui.window.Popup
 import com.jupydroid.app.domain.port.LanguageSignature
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
 import com.jupydroid.app.syntax.SyntaxHighlighter
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.LocalEditorPalette
 import com.jupydroid.app.theme.Spacing
 import kotlinx.coroutines.delay
@@ -208,7 +208,7 @@ internal fun SignatureHelpPopup(cellHelp: CellSignatureHelp, caret: IntRect) {
 @Composable
 private fun SignatureControls(current: Int, count: Int, onPrevious: () -> Unit, onNext: () -> Unit) {
   Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = Spacing.xs)) {
-    IconButton(
+    FocusRingIconButton(
       onClick = onPrevious,
       modifier = Modifier
         .size(CONTROL_SIZE)
@@ -221,7 +221,7 @@ private fun SignatureControls(current: Int, count: Int, onPrevious: () -> Unit, 
       style = codeTextStyle(),
       modifier = Modifier.semantics { contentDescription = "$SIGNATURE_COUNT ${current + 1} of $count" },
     )
-    IconButton(
+    FocusRingIconButton(
       onClick = onNext,
       modifier = Modifier
         .size(CONTROL_SIZE)

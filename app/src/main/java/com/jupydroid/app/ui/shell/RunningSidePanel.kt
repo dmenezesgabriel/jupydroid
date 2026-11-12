@@ -23,7 +23,6 @@ import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -53,6 +52,7 @@ import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.DocumentContribution
@@ -129,7 +129,7 @@ fun RunningSidePanel(
         colors = sideBarTopAppBarColors(),
         title = { Text(SidePanel.RUNNING.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         actions = {
-          IconButton(
+          FocusRingIconButton(
             onClick = viewModel::refresh,
             modifier = Modifier.semantics { contentDescription = "Refresh list" },
           ) {
@@ -356,7 +356,7 @@ private fun RunningRow(
         )
       }
     }
-    IconButton(
+    FocusRingIconButton(
       onClick = onShutdown,
       modifier = Modifier.semantics { contentDescription = shutdownDescription },
     ) {

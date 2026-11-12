@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.domain.model.IndentUnit
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.FocusedCellInput
@@ -103,10 +103,10 @@ fun ConsoleInputRow(
   input.indentUnit = indentUnit
   Column(modifier = modifier) {
     Row(modifier = Modifier.padding(vertical = Spacing.xs), verticalAlignment = Alignment.Bottom) {
-      IconButton(onClick = onRecallPreviousEntry) {
+      FocusRingIconButton(onClick = onRecallPreviousEntry) {
         Icon(Icons.Filled.KeyboardArrowUp, contentDescription = RECALL_PREVIOUS_ENTRY)
       }
-      IconButton(onClick = onRecallNextEntry) {
+      FocusRingIconButton(onClick = onRecallNextEntry) {
         Icon(Icons.Filled.KeyboardArrowDown, contentDescription = RECALL_NEXT_ENTRY)
       }
       // The weighted node `Row` actually reads parent data from - see this function's own doc
@@ -131,7 +131,7 @@ fun ConsoleInputRow(
           fieldName = CONSOLE_INPUT_NAME,
         )
       }
-      IconButton(onClick = onSubmit, enabled = !running) {
+      FocusRingIconButton(onClick = onSubmit, enabled = !running) {
         Icon(cellRunIcon, contentDescription = "Run")
       }
     }

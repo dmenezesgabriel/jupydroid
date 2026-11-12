@@ -22,7 +22,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -62,6 +61,7 @@ import com.jupydroid.app.mainAreaTabTitle
 import com.jupydroid.app.moveToSidePanel
 import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.sidePanelMoveOf
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.DocumentContribution
@@ -316,7 +316,7 @@ private fun MainAreaTabStrip(
       // away, and present only while something sits beneath to return to. Its label names the
       // destination rather than saying "Back", which is the system bar's own button.
       if (!twoPane && backStack.size > 1) {
-        IconButton(onClick = { onCloseTab(backStack.last()) }) {
+        FocusRingIconButton(onClick = { onCloseTab(backStack.last()) }) {
           Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = upDestinationLabel(

@@ -8,7 +8,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -18,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 
 /** The button that appends an empty row. */
@@ -90,7 +90,7 @@ private fun SpaceVariableRowFields(
       singleLine = true,
       modifier = Modifier.weight(1f).semantics { testTagsAsResourceId = true }.testTag(variableValueTag(index)),
     )
-    IconButton(onClick = onRemove) {
+    FocusRingIconButton(onClick = onRemove) {
       Icon(Icons.Filled.Close, contentDescription = removeVariableLabel(row.name))
     }
   }

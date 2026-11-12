@@ -6,13 +6,13 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.app.theme.FocusRingIconButton
 
 /**
  * The Recents section's overflow - `docmanager:clear-recents` and, today, nothing else.
@@ -39,7 +39,7 @@ fun RecentsActionsMenu(onClear: () -> Unit) {
     // Named for the surface it acts on, as every other overflow in this app is - the reference's
     // own label for this glyph is *"More Actions…"* (`toolbar.ts:734`), which says nothing about
     // *whose* actions on a screen that has several.
-    IconButton(onClick = { open = true }) {
+    FocusRingIconButton(onClick = { open = true }) {
       Icon(Icons.Filled.MoreVert, contentDescription = "Recent actions")
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {

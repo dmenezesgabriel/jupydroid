@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -22,6 +21,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.SearchScope
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeTextStyle
 
@@ -44,7 +44,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
 fun SearchScopeBoxes(scope: SearchScope, shown: Boolean, onToggle: () -> Unit, onScopeChanged: (SearchScope) -> Unit) {
   Column(modifier = Modifier.fillMaxWidth()) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-      IconButton(
+      FocusRingIconButton(
         onClick = onToggle,
         modifier = Modifier
           .padding(end = Spacing.md)

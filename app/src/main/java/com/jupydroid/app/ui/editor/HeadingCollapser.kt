@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -15,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.jupydroid.app.theme.FocusRingIconButton
 
 /**
  * The chevron that folds a heading's section away, drawn **beside the heading it folds** - and
@@ -74,7 +74,7 @@ internal fun HeadingCollapser(fold: HeadingFold, onToggle: () -> Unit, modifier:
     modifier = modifier.height(with(LocalDensity.current) { line.toDp() }),
     contentAlignment = Alignment.Center,
   ) {
-    IconButton(
+    FocusRingIconButton(
       onClick = onToggle,
       modifier = Modifier.semantics {
         contentDescription = if (fold.collapsed) EXPAND_HEADING else COLLAPSE_HEADING

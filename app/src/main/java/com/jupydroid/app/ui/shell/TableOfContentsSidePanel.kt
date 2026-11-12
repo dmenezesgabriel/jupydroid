@@ -11,7 +11,6 @@ import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,6 +23,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.DocumentOutline
 import com.jupydroid.app.SidePanel
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.TableOfContentsRows
@@ -116,7 +116,7 @@ private fun CollapseAllEntries(someExpanded: Boolean?, onToggleAllCollapsed: () 
   // One control for both halves of one command, named for the half the next tap performs -
   // `someExpanded` is the reference's own predicate (`index.ts:174-210`), and a name that flips is
   // what a Maestro flow can read where a toggled state is not.
-  IconButton(
+  FocusRingIconButton(
     onClick = onToggleAllCollapsed,
     modifier = Modifier.semantics {
       contentDescription = if (someExpanded) COLLAPSE_ALL_TOC_ENTRIES else EXPAND_ALL_TOC_ENTRIES

@@ -15,7 +15,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -25,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 
 /**
@@ -157,7 +157,7 @@ private fun TocRowDisclosure(row: TocRow, onToggleCollapsed: ((String) -> Unit)?
     Spacer(modifier = indent.width(TOC_DISCLOSURE_WIDTH))
     return
   }
-  IconButton(
+  FocusRingIconButton(
     onClick = { onToggleCollapsed(row.heading.key) },
     modifier = indent.width(TOC_DISCLOSURE_WIDTH).semantics {
       contentDescription = if (row.collapsed) "Expand ${row.heading.text}" else "Collapse ${row.heading.text}"

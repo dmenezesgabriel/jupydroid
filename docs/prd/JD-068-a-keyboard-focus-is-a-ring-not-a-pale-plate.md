@@ -104,7 +104,9 @@ outside it. Width is a decision below.
   control (`IconButton.kt:182,331`, `Surface.kt:227,333,440`, `Menu.kt:437`, `NavigationItem.kt:1106`,
   `Checkbox.kt:285`, `Switch.kt:168`, `RadioButton.kt:97`), and `LocalRippleConfiguration` carries only a
   colour and a state-layer alpha, which is the plate again. The route is one `Modifier.focusRing()` in
-  the caller's `modifier`, a task per kind, because the sites number about 160.
+  the caller's `modifier`, a task per kind, because the sites number about 160; a kind with one
+  signature across its sites (`IconButton`) takes a thin wrapper in `theme/` and a guard instead of 54
+  modifiers.
 - Width, as above. Settled by reading frames; goes into the ADR.
 
 ## Surface
@@ -130,7 +132,10 @@ ship in one task.
   mode and draws T1's stroke through one shared `drawFocusRing`; the three `NavigationRailItem`s in
   `SidePanelRail.kt` take it. Red on a rail item, green at 3:1 in both themes, none on a finger tap;
   Tab the rail on the tablet in Dark and Light.
-- [ ] T2b — `IconButton` (54 sites): the gear, `+`, the bars' actions. A test of its own kind.
+- [x] T2b — `IconButton` (54 sites): the gear, `+`, the bars' actions. One `FocusRingIconButton` in `theme/`
+  puts `Modifier.focusRing()` on the touch target, every call site takes it, and `ArchitectureGuardTest`
+  refuses a raw material3 `IconButton` under `ui/`. Red on a plain one, green at 3:1 in both themes, none
+  on a finger tap; Tab Spaces home in Dark and Settings and the explorer in Light on the tablet.
 - [ ] T2c — `TextButton` and `Surface(onClick)` (50 and 11 sites): `Run`, dialog buttons, cards.
 - [ ] T2d — `DropdownMenuItem` (41 sites) and `WideNavigationRailItem` (`MoreRail.kt`).
 - [ ] T2e — `Checkbox`, `Switch` and `RadioButton` (one site each).

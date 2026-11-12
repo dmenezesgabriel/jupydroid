@@ -13,7 +13,6 @@ import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +29,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 
@@ -110,7 +110,7 @@ internal fun CellHeader(
     when (cell.kind) {
       CellKind.CODE -> RunControl(status = status, onRun = onRun, onStop = onStop)
       CellKind.MARKDOWN ->
-        IconButton(onClick = onRun) { Icon(cellRunIcon, contentDescription = "Run cell") }
+        FocusRingIconButton(onClick = onRun) { Icon(cellRunIcon, contentDescription = "Run cell") }
       CellKind.RAW -> Unit
     }
     // How long the last one took, in the reference's own `EXECUTION_TIME_COLOR`. Absent while a
@@ -134,7 +134,7 @@ internal fun CellHeader(
     // Boxed together on purpose: a DropdownMenu anchors to its parent layout node, and left in
     // the full-width Row it opened at the far left - a whole cell away from the button tapped.
     Box {
-      IconButton(onClick = { menuOpen = true }) {
+      FocusRingIconButton(onClick = { menuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Cell actions")
       }
       CellActions(
@@ -159,13 +159,13 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
   // Found by looking at the evidence: every queued cell had a spinner and a Stop button
   // (before this).
   if (status == ExecutionStatus.QUEUED) {
-    IconButton(onClick = onRun, enabled = false) {
+    FocusRingIconButton(onClick = onRun, enabled = false) {
       Icon(cellRunIcon, contentDescription = "Run cell")
     }
     return
   }
   if (status != ExecutionStatus.RUNNING) {
-    IconButton(onClick = onRun) {
+    FocusRingIconButton(onClick = onRun) {
       Icon(cellRunIcon, contentDescription = "Run cell")
     }
     return
@@ -176,7 +176,7 @@ private fun RunControl(status: ExecutionStatus, onRun: () -> Unit, onStop: () ->
     modifier = Modifier.padding(start = Spacing.sm).size(SPINNER_SIZE).semantics { contentDescription = "Running" },
     strokeWidth = SPINNER_STROKE,
   )
-  IconButton(onClick = onStop) {
+  FocusRingIconButton(onClick = onStop) {
     // The real glyph now that material-icons-extended is a dependency. It was a drawn Box
     // only because importing the whole icon set for one square was the worse trade; that reason
     // is gone. The button around it still reserves 48dp, which `CellTouchTargetTest` pins.

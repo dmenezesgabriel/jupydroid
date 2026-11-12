@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -48,6 +47,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
+import com.jupydroid.app.theme.FocusRingIconButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.relativeTime
 import com.jupydroid.extension.api.DeleteFileDialog
@@ -124,7 +124,7 @@ fun SpacesHomeScreen(
       TopAppBar(
         title = { Text(SPACES_TITLE, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         actions = {
-          IconButton(onClick = { creating = true }, enabled = !state.busy) {
+          FocusRingIconButton(onClick = { creating = true }, enabled = !state.busy) {
             Icon(Icons.Filled.Add, contentDescription = NEW_SPACE)
           }
         },
@@ -303,15 +303,15 @@ private fun SpaceRowControls(space: SpaceConfig, isRunning: Boolean, actsEnabled
   ) {
     Text("Open")
   }
-  IconButton(onClick = { acts.onSettings(space) }, enabled = actsEnabled && !isRunning) {
+  FocusRingIconButton(onClick = { acts.onSettings(space) }, enabled = actsEnabled && !isRunning) {
     Icon(Icons.Filled.Settings, contentDescription = "Settings ${space.name} (${space.id})")
   }
   if (isBase) return
   // Named with the id, as the row is: "Rename Thesis" would not say which of two Thesis rows.
-  IconButton(onClick = { acts.onRename(space) }, enabled = actsEnabled) {
+  FocusRingIconButton(onClick = { acts.onRename(space) }, enabled = actsEnabled) {
     Icon(Icons.Filled.Edit, contentDescription = "Rename ${space.name} (${space.id})")
   }
-  IconButton(onClick = { acts.onDelete(space) }, enabled = actsEnabled) {
+  FocusRingIconButton(onClick = { acts.onDelete(space) }, enabled = actsEnabled) {
     Icon(Icons.Filled.Delete, contentDescription = "Delete ${space.name} (${space.id})")
   }
 }
