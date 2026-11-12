@@ -99,9 +99,10 @@ No port, domain or adapter change.
   `margin + half a cell` selects the word at that column. Red by mutation, one per pin: removing the
   canvas's padding fails the columns pin, and removing the offset from `terminalCellAt`'s argument
   fails the press pin, which cannot see the padding because it adds the margin the pane subtracts.
-- [ ] T2 — Measure on the tablet: the margin in dp from the screenshot, and the columns the shell sees
+- [x] T2 — Measure on the tablet: the margin in dp from the screenshot, and the columns the shell sees
   from `vi`'s reflow, at two widths.
-- [ ] T3 — Close: a verdict in the ledger's terminal row, the ADR, the backlog row rewritten and
+- [ ] T3 — Close: a verdict in the ledger's terminal row, the drawn-pitch finding T2 made named as its own
+  item, the ADR, the backlog row rewritten and
   `shipped`, this PRD deleted.
 
 ## Out of scope

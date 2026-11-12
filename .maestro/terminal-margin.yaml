@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# The margin's measurement: a row of `#` exactly as wide as the columns the shell was told, so a
+# screenshot shows where the first and the last column are drawn against the pane's edges.
+# TABLET ONLY (SM_X216B): a real shell answers `TIOCGWINSZ`; `FakeTerminalGateway` echoes the
+# source back and writes no file, so the driver's wait for `columns.txt` is what refuses it.
+#
+# The columns are `os.get_terminal_size(0)` written through `tee`, the live answer `stty size` could
+# not give (`research/closed-questions.md` CLOSED-006), on fd 0 because under the pipe stdout is the
+# pipe and an ioctl on it raises `ENOTTY`. The ruler is `chr(35)` rather than a typed `#` so the shell
+# never sees a comment character.
+#
+# **What this flow cannot assert on its own:** where the glyphs are drawn. A `Canvas` carries no
+# semantics (`docs/architecture/cross-cutting.md` §8.6), so the numbers come from the driver's reader
+# over a screenshot and a layout dump, and the screenshot has to be looked at: if the typed command
+# wraps, its first row is as wide as the ruler and the reader may take its edges instead, a glyph's
+# bearing apart.
+#
+# NOT A SUITE FLOW: the driver rotates the device, which every flow after it would inherit.
+- launchApp
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- runFlow: open-new-terminal.yaml
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap is the user's own focus move, and the one that settles the IME connection before typing starts
+# (`terminal-resize-before-rotation`'s own reason).
+- tapOn:
+    id: "terminal-input"
+- inputText: "python3 -c 'import os;print(os.get_terminal_size(0)[0])' | tee columns.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- inputText: "python3 -c 'import os;print(chr(35)*os.get_terminal_size(0)[0])'"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+# The keyboard shortens the pane, not its width, but a frame without it is the one the dump pairs with.
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-ruler
