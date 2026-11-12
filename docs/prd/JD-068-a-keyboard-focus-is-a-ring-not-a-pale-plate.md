@@ -107,6 +107,9 @@ outside it. Width is a decision below.
   the caller's `modifier`, a task per kind, because the sites number about 160; a kind with one
   signature across its sites (`IconButton`) takes a thin wrapper in `theme/` and a guard instead of 54
   modifiers.
+- **Answered before T2f1: the primitive lives in `:extension-api`.** An extension cannot import `:app`
+  (ADR-0104), and a copy in each module would be two homes for the ring's geometry. The ring is public API
+  there, and its colour is `LocalFocusRingColor`, which `Theme.kt` provides from `chrome.focusBorder`.
 - Width, as above. Settled by reading frames; goes into the ADR.
 - **Found by T2c: a card's ring replaces an outline, so "3:1 against the frame before" does not fit it.**
   The launcher card already draws a 1dp outline at 3.5:1 over its fill, and the ring is drawn over it: on
@@ -149,12 +152,18 @@ ship in one task.
   `Modifier.focusRing()` directly, because one site is not a kind. Red on a plain one, green in both
   themes, none on a finger tap; Tab Spaces home, the Space settings dialog and the launcher on the tablet
   in Dark and Light.
-- [ ] T2f — The extension modules' buttons: `:extension-api` (`RenameFileDialog`, `DeleteFileDialog`: the
-  New Space, rename and delete dialogs) and `extensions/ai` (`ChatKeyRow`, `AgentControls`, and the raw
-  `IconButton`s T2b's guard does not reach) are built against `:extension-api`, never `:app`
-  ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)), so
-  `focusRing()` is out of their reach. How they get it, and a guard in each module, is this task's
-  decision; read the New Space dialog's Cancel on the tablet first, which today shows the plate only.
+- [ ] T2f1 — The ring becomes part of `:extension-api`, and its dialogs take it: `focusRing()`,
+  `drawFocusRing`, `FocusRingIconButton` and `FocusRingTextButton` move from `:app`'s `theme/` into the
+  contract as public API, with `LocalFocusRingColor` that `Theme.kt` provides from `chrome.focusBorder`;
+  `RenameFileDialog` and `DeleteFileDialog` (the New Space, rename and delete dialogs) call the wrappers, and a
+  guard in `:extension-api` refuses a raw material3 `IconButton` or `TextButton`. Red on the guard and on the
+  dialog's Cancel, green at 3:1 in both themes, none on a finger tap; Tab the three dialogs on the tablet in
+  Dark and Light.
+- [ ] T2f2 — `extensions/ai` (`ChatKeyRow`, `AgentControls`, `ChatPanel`, `ChatsPanel`, `CodeBlockActions`,
+  `QueuedQuestions`, `ChatList`, `ToolCallRows`): its `IconButton`, `TextButton`, `FilledIconButton` and
+  `OutlinedButton` sites take T2f1's wrappers, or `focusRing()` where a kind has one or two sites, and a guard in
+  the module refuses a raw one. The module is built against `:extension-api`, never `:app`
+  ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)).
 - [ ] T2d — `DropdownMenuItem` (41 sites) and `WideNavigationRailItem` (`MoreRail.kt`).
 - [ ] T2e — `Checkbox`, `Switch` and `RadioButton` (one site each).
 - [ ] T3 — The before and after on the tablet for all ten stops in both themes and under the
