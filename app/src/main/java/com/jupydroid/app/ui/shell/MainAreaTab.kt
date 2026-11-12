@@ -34,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -54,6 +56,7 @@ import com.jupydroid.app.Settings
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
@@ -105,6 +108,7 @@ internal fun MainAreaTab(
   modifier: Modifier = Modifier,
 ) {
   val chrome = chromePalette
+  val glyph = LocalDensity.current.glyphBesideText(TAB_ICON)
   var menuOpen by remember { mutableStateOf(false) }
   val dirty by document?.dirty?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
   Column(modifier = modifier.width(width)) {
@@ -137,7 +141,7 @@ internal fun MainAreaTab(
         imageVector = icon,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(TAB_ICON),
+        modifier = Modifier.size(glyph).testTag(TAB_GLYPH_TAG),
       )
       Text(
         text = title,
@@ -164,7 +168,7 @@ internal fun MainAreaTab(
               imageVector = Icons.Filled.Close,
               contentDescription = null,
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.size(TAB_ICON),
+              modifier = Modifier.size(glyph),
             )
           }
         }
@@ -268,6 +272,9 @@ internal fun tabIcon(key: NavKey, documentContributions: List<DocumentContributi
  * label keeps the extra room where a tab is squeezed to the 80dp floor.
  */
 private val TAB_ICON = 14.dp
+
+/** The leading glyph's node, which has no description to find it by; `MainAreaTabFontScaleTest` reads its size. */
+internal const val TAB_GLYPH_TAG = "Tab glyph"
 
 /**
  * A ✕-sized slot - JupyterLab's close icon is ~16px. The slot is all the close reserves; a press reaches

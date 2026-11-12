@@ -18,7 +18,8 @@ On the arm64 tablet (`SM-X216B`) at one pane, and on `dev36` for the phone. Noth
    three tabs. Read More's rows and a tab off `uiautomator dump`: the icon's side over its label's height.
 2. Set font scale 2.0 and read the same nodes. The ratio is within the tolerance T2 names of the 1.0 value
    (1.20 for More's rail, 0.88 for a tab), where today it is 0.64 and 0.44 (`GAP-203`).
-3. The tab row is taller at 2.0 by what its label grew by, and no glyph or label is cut in the screenshot.
+3. The tab row is still 32dp at 2.0, because the label's line is 28dp there and the grown glyph is 26dp, and
+   no glyph is cut in the screenshot.
 4. Every control that was 48dp or more is still so, and `read_font_scale_fit.py` reports no overlap that was
    not there at 1.0 and no target newly under 48dp.
 5. Repeat 1 to 4 on `dev36` at 320dp wide, where a tab is already squeezed to its 80dp floor.
@@ -84,7 +85,7 @@ extension and both Android references scale nothing. The decision is which of ou
 | Conversion | `base.value * fontScale` · `base.sp.toDp()` through `LocalDensity` | the first overshoots the platform's non-linear curve at 2.0 | `sp.toDp()`, because it follows the same curve the label's size does |
 | Which glyphs | every `Icon(` · only those beside text | a standalone glyph (the Launcher's 40dp, a 48dp `IconButton`'s centre) has no label to keep a ratio to | only an icon in a row with text of the same line. Read each site in T3, not swept |
 | Targets | grow with the glyph · stay | ADR-0048 sets 48dp as a minimum, not a size | stay: a touch target is not a glyph, and `read_touch_targets.py` must show none under 48dp |
-| The tab row | stay 32dp · be a minimum | the label already fills the row at 2.0 and the row holds the glyph, the label and the close | `TAB_HEIGHT` becomes a minimum, so the row is as tall as its tallest child. [ADR-0142](../adr/0142-the-tab-strips-controls-keep-the-strips-height.md) has Reload and Save and the Up arrow reserve `TAB_HEIGHT + ACTIVE_EDGE`, so T1 reads whether they follow the row |
+| The tab row | stay 32dp · be a minimum | the label's line is 28dp at 2.0 (`dev36`, API 36) and the glyph that follows it 26dp, so the row holds both | stay 32dp: no scale the platform offers needs more, so a minimum would be code nothing reaches. [ADR-0142](../adr/0142-the-tab-strips-controls-keep-the-strips-height.md)'s Reload, Save and Up arrow therefore keep `TAB_HEIGHT + ACTIVE_EDGE` |
 
 Anything here that outlives the item becomes an ADR before the PRD is deleted.
 
@@ -113,10 +114,10 @@ Ours is absent, not present-but-unreachable. A label already grows (`sp`), so on
 
 - Whether Material's `WideNavigationRailItem` lays out a larger icon in its slot or clips it at 24dp.
   Read on the tablet in T2, not assumed.
-- Whether Reload, Save and the Up arrow follow a taller tab row (ADR-0142 reserves one height for them).
-  Read on both devices in T1.
-- The tolerance for "keeps its ratio". The conversion is non-linear and a label's line height is not its
-  `sp`, so equality is wrong; T1 measures the spread at 1.0, 1.3, 1.5 and 2.0 and states it.
+- Closed in T1: the tab row does not grow, so Reload, Save and the Up arrow have no taller row to follow.
+- Closed in T1: the tolerance for "keeps its ratio" is 0.10 of the glyph over label ratio at 1.0. Measured on
+  `dev36`: 0.875 at 1.0 against 0.941, 0.957 and 0.929 at 1.3, 1.5 and 2.0, a spread of at most 0.082, because
+  Android 14's curve grows 14sp by 1.86 at 2.0 and the label's 16sp by 1.75. Before: 0.693, 0.609 and 0.500.
 - Which of the 87 unsized sites sit beside text. Read one by one in T3.
 
 ## Surface
@@ -134,9 +135,9 @@ A theme item with no domain, port or adapter layer.
 
 ## Tasks
 
-- [ ] T1 — The conversion in `theme/` and the tab: red at a tab at 2.0 whose 14dp glyph is 0.44 of its
-  label, green when it follows the label and the row is a minimum, not a fixed 32dp; the tolerance stated
-  from the measured spread, and whether Reload, Save and the Up arrow follow the row read.
+- [x] T1 — The conversion in `theme/` (`Density.glyphBesideText`) and the tab: the glyph follows the label, the
+  tolerance is 0.10 from the measured spread, and the row stays 32dp because it already holds both, so Reload, Save
+  and the Up arrow are untouched. The tablet at two panes reads 0 newly overlapping and 0 newly under 48dp.
 - [ ] T2 — More's rail row: red at 0.64 at 2.0, green within the tolerance; a Material slot that will not
   take the size is replaced rather than worked around.
 - [ ] T3 — The other sites that sit beside text, each read before it is touched, each with a test.
