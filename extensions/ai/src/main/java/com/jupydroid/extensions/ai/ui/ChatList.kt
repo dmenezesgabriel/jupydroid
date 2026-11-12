@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +46,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jupydroid.extension.api.DeleteFileDialog
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.RenameFileDialog
 import com.jupydroid.extension.api.focusRing
 import com.jupydroid.extensions.ai.domain.ChatFile
@@ -275,7 +275,7 @@ private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, actions: List<ChatRowAct
     )
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
       actions.forEach { action ->
-        DropdownMenuItem(
+        FocusRingDropdownMenuItem(
           text = { Text(action.label) },
           onClick = {
             menuOpen = false

@@ -122,6 +122,12 @@ outside it. Width is a decision below.
   tablet; the guard pins that they go through the ring, and T3 reads them once an agent answers. The chat
   key row is published to the window above the keyboard, outside the panel's focus chain. A multi-line
   question field takes Tab as a tab character, so a hardware Tab cannot leave it: Shift+Tab does.
+- **Found by T2d: a menu's popup does take a Tab on the tablet, and its focus plate shows through Dark's ring.** The
+  Files `+` menu (a popup window) draws the ring on each of its three items under a hardware Tab, 3.31:1 in Dark
+  (`#33738F` over `#191A1B`) and 5.18:1 in Light (`#0069CC` over `#FAFAFD`), and the More rail's four rows read the same
+  numbers. `FocusRingDropdownMenuItemTest` pins the wrapper in the test's own window and does not try the popup, because a dialog's
+  window took no input focus under `am instrument` (T2f1) and a popup is a window too; the tablet read is the popup's. In Dark a menu item and a rail row leave their own focus plate under the 70% ring,
+  0.0314 on a channel from the ring over the bare edge (a card's was 0.0157), so `FocusRingEdgeProbe`'s tolerance is 0.04.
 - Width, as above. Settled by reading frames; goes into the ADR.
 - **Found by T2c: a card's ring replaces an outline, so "3:1 against the frame before" does not fit it.**
   The launcher card already draws a 1dp outline at 3.5:1 over its fill, and the ring is drawn over it: on
@@ -176,7 +182,12 @@ ship in one task.
   `OutlinedButton` sites take T2f1's wrappers, or `focusRing()` where a kind has one or two sites, and a guard in
   the module refuses a raw one. The module is built against `:extension-api`, never `:app`
   ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)).
-- [ ] T2d — `DropdownMenuItem` (41 sites) and `WideNavigationRailItem` (`MoreRail.kt`).
+- [x] T2d — `DropdownMenuItem` (44 sites in 15 files, 3 of them in `extensions/ai`) and `WideNavigationRailItem`
+  (`MoreRail.kt`, one site): `FocusRingDropdownMenuItem` joins `FocusRingTextButton` in `:extension-api` and every
+  site takes it, with `ArchitectureGuardTest.uiLayer_callsNoMaterialDropdownMenuItem` and both module guards
+  refusing a raw one; `MoreRailRow` takes `Modifier.focusRing()` directly. Red on a plain item and a plain row,
+  green at 3:1 in both themes, none on a finger tap; Tab the Files `+` menu in Dark and Light and the More rail at
+  one pane in Dark and Light on the tablet.
 - [ ] T2e — `Checkbox`, `Switch` and `RadioButton` (one site each).
 - [ ] T3 — The before and after on the tablet for all ten stops in both themes and under the
   high-contrast setting; the ADR for the mark, colour and width; close `GAP-202`; one backlog line;

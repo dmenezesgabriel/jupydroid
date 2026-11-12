@@ -7,7 +7,7 @@ import java.io.File
 
 /**
  * A button the contract hands out draws the keyboard-focus ring, because it goes through
- * `FocusRingIconButton` or `FocusRingTextButton`.
+ * `FocusRingIconButton`, `FocusRingTextButton` or `FocusRingDropdownMenuItem`.
  *
  * material3 1.4.0's `IconButton` and `TextButton` call `ripple()` themselves, so the ring never
  * reaches them and a Tab changes only a plate at 1.14:1. A file that names the raw one brings that
@@ -17,7 +17,11 @@ import java.io.File
 class FocusRingGuardTest {
   private val sourceRoot = File("src/main/java/com/jupydroid/extension/api")
 
-  private val wrappers = setOf("FocusRingIconButton.kt", "FocusRingTextButton.kt")
+  private val wrappers = setOf(
+    "FocusRingIconButton.kt",
+    "FocusRingTextButton.kt",
+    "FocusRingDropdownMenuItem.kt",
+  )
 
   @Test
   fun theContractNamesNoMaterialIconButtonOrTextButton() {
@@ -31,13 +35,13 @@ class FocusRingGuardTest {
     }
 
     assertEquals(
-      "use FocusRingIconButton / FocusRingTextButton, not material3's own (expected no import of $RAW_BUTTONS)",
+      "use the FocusRing wrappers, not material3's own (expected no import of $RAW_BUTTONS)",
       emptyList<String>(),
       offenders,
     )
   }
 
   private companion object {
-    val RAW_BUTTONS = listOf("IconButton", "TextButton")
+    val RAW_BUTTONS = listOf("IconButton", "TextButton", "DropdownMenuItem")
   }
 }

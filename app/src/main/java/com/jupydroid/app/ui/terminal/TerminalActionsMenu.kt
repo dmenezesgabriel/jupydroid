@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.TerminalFontSize
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
@@ -43,7 +43,7 @@ fun TerminalActionsMenu(
       Icon(Icons.Filled.MoreVert, contentDescription = "Terminal actions")
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(INCREASE_TERMINAL_FONT_SIZE) },
         enabled = fontSizeSp < TerminalFontSize.MAX,
         onClick = {
@@ -51,7 +51,7 @@ fun TerminalActionsMenu(
           onIncreaseFontSize()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(DECREASE_TERMINAL_FONT_SIZE) },
         enabled = fontSizeSp > TerminalFontSize.MIN,
         onClick = {
@@ -61,7 +61,7 @@ fun TerminalActionsMenu(
       )
       // `terminal:paste` (`:717`) has no selection to need, so it is a row here as well as on the
       // floating toolbar - the one way to paste while nothing is selected.
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(PASTE_INTO_TERMINAL) },
         onClick = {
           open = false

@@ -13,10 +13,12 @@ import androidx.compose.material3.WideNavigationRailItem
 import androidx.compose.material3.WideNavigationRailState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.SidePanelContribution
+import com.jupydroid.extension.api.focusRing
 import kotlinx.coroutines.launch
 
 /**
@@ -87,13 +89,14 @@ fun MoreRail(
  * selection. A contributed panel's row is, while that panel fills the pane.
  */
 @Composable
-private fun MoreRailRow(label: String, icon: ImageVector, selected: Boolean = false, onClick: () -> Unit) {
+internal fun MoreRailRow(label: String, icon: ImageVector, selected: Boolean = false, onClick: () -> Unit) {
   WideNavigationRailItem(
     selected = selected,
     onClick = onClick,
     icon = { Icon(icon, contentDescription = null) },
     label = { Text(label) },
     railExpanded = true,
+    modifier = Modifier.focusRing(),
   )
 }
 

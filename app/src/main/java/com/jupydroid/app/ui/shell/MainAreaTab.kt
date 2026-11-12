@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -57,6 +56,7 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.extension.api.DocumentContribution
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 
 /**
  * One `lm-TabBar-tab`: the kind's icon, the `title.label`, and the close icon that swaps for the
@@ -171,7 +171,7 @@ internal fun MainAreaTab(
       }
     }
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Close All Other Tabs") },
         enabled = canCloseOthers,
         onClick = {
@@ -179,7 +179,7 @@ internal fun MainAreaTab(
           onCloseOthers()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Close Tabs to Right") },
         enabled = canCloseRight,
         onClick = {
@@ -189,7 +189,7 @@ internal fun MainAreaTab(
       )
       if (onMoveToSidePanel != null) {
         HorizontalDivider()
-        DropdownMenuItem(
+        FocusRingDropdownMenuItem(
           text = { Text("Move to side panel") },
           onClick = {
             menuOpen = false
@@ -200,7 +200,7 @@ internal fun MainAreaTab(
       // `docmanager:*` binds to `[data-type="document-title"]` alone: a tab without a path stops here.
       if (!renameable) return@DropdownMenu
       HorizontalDivider()
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Rename…") },
         onClick = {
           menuOpen = false
@@ -208,7 +208,7 @@ internal fun MainAreaTab(
         },
       )
       // Greyed for a tab whose document has not registered: nothing is held on screen to copy.
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Save As…") },
         enabled = document != null,
         onClick = {
@@ -216,7 +216,7 @@ internal fun MainAreaTab(
           onSaveAs()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Revert to Checkpoint…") },
         enabled = document != null,
         onClick = {
@@ -224,7 +224,7 @@ internal fun MainAreaTab(
           onRevert()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Duplicate") },
         enabled = document != null,
         onClick = {
@@ -232,7 +232,7 @@ internal fun MainAreaTab(
           onDuplicate()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Delete…") },
         enabled = document != null,
         onClick = {

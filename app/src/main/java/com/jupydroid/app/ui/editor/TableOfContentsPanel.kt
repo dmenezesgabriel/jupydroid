@@ -12,7 +12,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +24,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
@@ -127,7 +127,7 @@ internal fun TableOfContentsRows(
     return
   }
   rows.forEach { row ->
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(row.prefix + row.heading.text) },
       onClick = { onChoose(row.heading.cellId) },
       // The disclosure goes where the indent would have been, so a row that owns something and one

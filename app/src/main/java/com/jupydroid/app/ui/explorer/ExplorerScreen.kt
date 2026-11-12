@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -59,6 +58,7 @@ import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.relativeTime
 import com.jupydroid.extension.api.DeleteFileDialog
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.RenameFileDialog
 import kotlinx.coroutines.delay
 import java.time.Instant
@@ -426,14 +426,14 @@ private fun EntryRow(
       )
     }
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Rename") },
         onClick = {
           menuOpen = false
           onRename()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Delete") },
         onClick = {
           menuOpen = false

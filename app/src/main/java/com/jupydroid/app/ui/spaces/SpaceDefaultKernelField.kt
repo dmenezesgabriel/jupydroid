@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +19,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
@@ -73,7 +73,7 @@ internal fun SpaceDefaultKernelField(choices: List<KernelSpec>?, selected: Strin
       }
       DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
         choices.orEmpty().forEach { spec ->
-          DropdownMenuItem(
+          FocusRingDropdownMenuItem(
             modifier = Modifier.semantics { contentDescription = defaultKernelPickDescription(spec.displayName) },
             text = { Text(spec.displayName) },
             onClick = {

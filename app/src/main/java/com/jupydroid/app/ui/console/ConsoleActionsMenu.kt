@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -12,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
@@ -38,7 +38,7 @@ fun ConsoleActionsMenu(onClear: () -> Unit, onInterrupt: () -> Unit, running: Bo
       Icon(Icons.Filled.MoreVert, contentDescription = "Console actions")
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(INTERRUPT_KERNEL) },
         enabled = running,
         onClick = {
@@ -46,7 +46,7 @@ fun ConsoleActionsMenu(onClear: () -> Unit, onInterrupt: () -> Unit, running: Bo
           onInterrupt()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(CLEAR_CONSOLE_CELLS) },
         onClick = {
           open = false

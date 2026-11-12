@@ -5,7 +5,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
@@ -108,7 +108,7 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
 internal fun CellTypePicker(expanded: Boolean, onDismiss: () -> Unit, onPick: (CellKind) -> Unit) {
   DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
     CellKind.entries.forEach { kind ->
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         modifier = Modifier.semantics { contentDescription = cellTypePickDescription(kind) },
         text = { Text(cellTypeLabel(kind)) },
         onClick = { onPick(kind) },

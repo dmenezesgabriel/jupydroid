@@ -125,6 +125,19 @@ class ArchitectureGuardTest {
     )
   }
 
+  /**
+   * material3's `DropdownMenuItem` calls `ripple()` itself, so the keyboard-focus ring never reaches
+   * it; `extension-api`'s `FocusRingDropdownMenuItem` is the one that does.
+   */
+  @Test
+  fun uiLayer_callsNoMaterialDropdownMenuItem() {
+    val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.DropdownMenuItem"))
+    assertTrue(
+      "ui must use extension.api.FocusRingDropdownMenuItem, not material3's DropdownMenuItem: $offenders",
+      offenders.isEmpty(),
+    )
+  }
+
   @Test
   fun dataLayer_namesNoUiOrDi() {
     val sources = ktSourcesUnder(dataRoot)

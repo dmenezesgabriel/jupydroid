@@ -102,10 +102,11 @@ internal class FocusRingEdgeProbe(private val compose: ComposeContentTestRule) {
 
     /**
      * The ring's edge is the ring composited over what was there, to within the capture's 8-bit
-     * quantisation and, on a card whose own state layer lightens the edge under Dark's 70% ring, a
-     * shift of up to 0.016 on a channel (measured at 0.0157).
+     * quantisation and, on a control whose own state layer shows through Dark's 70% ring, a shift
+     * of up to 0.032 on a channel (measured at 0.0157 on a card, 0.0314 on a menu item and a More
+     * rail row). A missing ring leaves the edge 0.43 or more from the ring, so the margin is wide.
      */
-    const val RING_PRESENT_TOLERANCE = 0.03f
+    const val RING_PRESENT_TOLERANCE = 0.04f
 
     /**
      * A tap may still lighten the edge with Material's own state layer (a card's fills its whole

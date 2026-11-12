@@ -4,7 +4,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -15,6 +14,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
@@ -59,7 +59,7 @@ private fun NewMenu(onCreate: (NewItem) -> Unit) {
   }
   DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
     NEW_MENU_ITEMS.forEach { (item, label) ->
-      DropdownMenuItem(text = { Text(label) }, onClick = {
+      FocusRingDropdownMenuItem(text = { Text(label) }, onClick = {
         open = false
         onCreate(item)
       })

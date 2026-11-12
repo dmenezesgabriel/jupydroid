@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -32,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentPick
@@ -174,9 +174,9 @@ private fun ChoiceList(control: ChatControl, tallest: Dp, onPick: (String) -> Un
 internal fun ChoiceRows(control: ChatControl, query: String, onPick: (String) -> Unit) {
   val inUse = control.choice.inUse(control.picked)
   val listing = control.choice.listing(control.picked, query)
-  if (listing.isEmpty()) DropdownMenuItem(text = { Text("No matches") }, onClick = {}, enabled = false)
+  if (listing.isEmpty()) FocusRingDropdownMenuItem(text = { Text("No matches") }, onClick = {}, enabled = false)
   listing.forEach { option ->
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(option.name) },
       leadingIcon = { if (option.id == inUse) Icon(Icons.Filled.Check, contentDescription = "In use") },
       onClick = { onPick(option.id) },

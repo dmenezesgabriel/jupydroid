@@ -31,7 +31,7 @@ class FocusRingGuardTest {
     }
 
     assertEquals(
-      "use FocusRingIconButton / FocusRingTextButton, not material3's own (expected no import of $WRAPPED_KINDS)",
+      "use the FocusRing wrappers, not material3's own (expected no import of $WRAPPED_KINDS)",
       emptyList<String>(),
       offenders,
     )
@@ -54,7 +54,7 @@ class FocusRingGuardTest {
   }
 
   private companion object {
-    val WRAPPED_KINDS = listOf("IconButton", "TextButton")
+    val WRAPPED_KINDS = listOf("IconButton", "TextButton", "DropdownMenuItem")
     val DIRECT_KINDS = listOf("FilledIconButton", "OutlinedButton")
   }
 }
