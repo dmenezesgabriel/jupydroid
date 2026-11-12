@@ -21,8 +21,9 @@ import androidx.compose.ui.unit.dp
 
 /**
  * The ring's width: JupyterLab's `--jp-focus-outline-width` (`jupyterlab@7f0e6906
- * packages/theme-light-extension/style/variables.css:460`). VS Code draws 1px; a touch tablet at
- * one pane is read at both before this is settled.
+ * packages/theme-light-extension/style/variables.css:460`), not VS Code's 1px. At the tablet's 240dpi
+ * 1dp is one and a half pixels and its far edges blend out, where 2dp is three full rows
+ * (ADR-0145).
  */
 private val RING_WIDTH = 2.dp
 
