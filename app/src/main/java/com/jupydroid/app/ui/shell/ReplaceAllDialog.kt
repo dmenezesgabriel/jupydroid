@@ -2,8 +2,8 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.jupydroid.app.theme.FocusRingTextButton
 
 /**
  * *"Replace 5 occurrences across 2 files with 'dog'?"* - asked before a single file is written.
@@ -31,8 +31,8 @@ fun ReplaceAllDialog(asked: ReplaceAllRequest, onReplace: () -> Unit, onDismiss:
     onDismissRequest = onDismiss,
     title = { Text(REPLACE_ALL_TITLE) },
     text = { Text(replaceAllConfirmation(asked.occurrences, asked.fileCount, asked.replaceValue)) },
-    confirmButton = { TextButton(onClick = onReplace) { Text(REPLACE_ALL_CONFIRM) } },
-    dismissButton = { TextButton(onClick = onDismiss) { Text(REPLACE_ALL_CANCEL) } },
+    confirmButton = { FocusRingTextButton(onClick = onReplace) { Text(REPLACE_ALL_CONFIRM) } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text(REPLACE_ALL_CANCEL) } },
   )
 }
 

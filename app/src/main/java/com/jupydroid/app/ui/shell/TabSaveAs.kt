@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +14,7 @@ import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.isValidWorkspacePath
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.RenameFileDialog
 import com.jupydroid.extension.api.titleStemEnd
@@ -107,7 +107,7 @@ private fun SaveAsRefusalDialog(message: String, onDismiss: () -> Unit) {
     onDismissRequest = onDismiss,
     title = { Text("Save Error") },
     text = { Text(message) },
-    confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+    confirmButton = { FocusRingTextButton(onClick = onDismiss) { Text("OK") } },
   )
 }
 

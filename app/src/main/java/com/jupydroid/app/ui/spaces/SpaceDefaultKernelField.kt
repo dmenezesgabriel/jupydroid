@@ -10,7 +10,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 
 /**
@@ -63,7 +63,7 @@ internal fun SpaceDefaultKernelField(choices: List<KernelSpec>?, selected: Strin
   Column(Modifier.padding(top = Spacing.sm)) {
     Text("Default kernel", style = MaterialTheme.typography.labelLarge)
     Box {
-      TextButton(
+      FocusRingTextButton(
         onClick = { open = true },
         enabled = choices != null,
         modifier = Modifier.semantics { contentDescription = defaultKernelDescription(shown) },

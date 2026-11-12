@@ -112,6 +112,19 @@ class ArchitectureGuardTest {
     )
   }
 
+  /**
+   * material3's `TextButton` is a `Surface(onClick)` that draws its own ripple, so the
+   * keyboard-focus ring never reaches it; `theme/FocusRingTextButton.kt` is the one that does.
+   */
+  @Test
+  fun uiLayer_callsNoMaterialTextButton() {
+    val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.TextButton"))
+    assertTrue(
+      "ui must use theme.FocusRingTextButton, not material3's TextButton: $offenders",
+      offenders.isEmpty(),
+    )
+  }
+
   @Test
   fun dataLayer_namesNoUiOrDi() {
     val sources = ktSourcesUnder(dataRoot)

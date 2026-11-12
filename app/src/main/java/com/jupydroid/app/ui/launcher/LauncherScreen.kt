@@ -31,7 +31,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -50,8 +49,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.app.theme.focusRing
 
 /** What Maestro and Compose tests address - one tag per card, suffixed by its command. */
 const val LAUNCHER_CARD_TAG = "launcher-card"
@@ -141,7 +142,7 @@ fun LauncherScreen(
       onDismissRequest = viewModel::dismissError,
       title = { Text("Error") },
       text = { Text(message) },
-      confirmButton = { TextButton(onClick = viewModel::dismissError) { Text("OK") } },
+      confirmButton = { FocusRingTextButton(onClick = viewModel::dismissError) { Text("OK") } },
     )
   }
 }
@@ -229,7 +230,8 @@ private fun FlowRowScope.LauncherCard(item: LauncherItem, onClick: () -> Unit) {
       .width(IntrinsicSize.Min)
       .heightIn(min = CARD_SIZE)
       .semantics { contentDescription = item.label }
-      .testTag("$LAUNCHER_CARD_TAG-${item.command.name}"),
+      .testTag("$LAUNCHER_CARD_TAG-${item.command.name}")
+      .focusRing(),
     shape = MaterialTheme.shapes.extraSmall,
     color = editorPalette.cellBackground,
     border = BorderStroke(CARD_BORDER, MaterialTheme.colorScheme.outline),

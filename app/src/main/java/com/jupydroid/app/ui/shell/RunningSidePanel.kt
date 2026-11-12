@@ -27,7 +27,6 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +52,7 @@ import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.DocumentContribution
@@ -293,7 +293,7 @@ private fun RunningSection(
 /** A section toolbar's button, named with its section so "Close All" in two sections stays two acts. */
 @Composable
 private fun SectionActionButton(label: String, section: String, enabled: Boolean, onClick: () -> Unit) {
-  TextButton(
+  FocusRingTextButton(
     onClick = onClick,
     enabled = enabled,
     modifier = Modifier.semantics { contentDescription = "$label: $section" },
@@ -381,14 +381,14 @@ private fun BulkConfirmationDialog(pending: PendingBulk, onConfirm: () -> Unit, 
     title = { Text(pending.title) },
     text = { Text(pending.body) },
     confirmButton = {
-      TextButton(
+      FocusRingTextButton(
         onClick = onConfirm,
         modifier = Modifier.semantics { contentDescription = "Confirm ${pending.confirmLabel}" },
       ) {
         Text(pending.confirmLabel, color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }
 

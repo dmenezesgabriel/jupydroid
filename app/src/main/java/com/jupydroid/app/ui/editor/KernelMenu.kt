@@ -6,13 +6,13 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.app.theme.FocusRingTextButton
 
 /**
  * Everything [KernelMenu] asks of a notebook - wired **once**, for both of its anchors.
@@ -286,11 +286,11 @@ private fun CloseAndShutDownDialog(notebookTitle: String, onDismiss: () -> Unit,
     title = { Text("Shut down the notebook?") },
     text = { Text("Are you sure you want to close \"$notebookTitle\"?") },
     confirmButton = {
-      TextButton(onClick = onConfirm) {
+      FocusRingTextButton(onClick = onConfirm) {
         Text("Shut Down", color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }
 
@@ -334,10 +334,10 @@ internal fun RestartDialog(request: RestartRequest, onDismiss: () -> Unit, onCon
     title = { Text(request.question()) },
     text = { Text("All variables will be lost.") },
     confirmButton = {
-      TextButton(onClick = onConfirm) {
+      FocusRingTextButton(onClick = onConfirm) {
         Text("Restart", color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }

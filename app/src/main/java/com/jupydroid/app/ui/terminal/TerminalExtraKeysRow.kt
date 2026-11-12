@@ -16,7 +16,6 @@ import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.ui.editor.symbolKeyStyle
 
 /**
@@ -129,7 +129,7 @@ private val NAVIGATION_KEYS =
 /** A plain tap, [SymbolRow]'s own `SymbolKey` - a `TextButton` for Material's 48dp minimum touch target. */
 @Composable
 private fun ExtraKey(label: String, onClick: () -> Unit) {
-  TextButton(onClick = onClick) {
+  FocusRingTextButton(onClick = onClick) {
     Text(text = label, style = symbolKeyStyle())
   }
 }

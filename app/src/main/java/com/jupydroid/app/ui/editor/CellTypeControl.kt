@@ -10,7 +10,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -21,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.theme.FocusRingTextButton
 
 /**
  * What the active cell **is**, and the one gesture that changes it.
@@ -61,7 +61,7 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
   // Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader],
   // [NotebookBar] and [NotebookActionsMenu] each record.
   Box {
-    TextButton(
+    FocusRingTextButton(
       onClick = { open = true },
       // **Neutral, not the brand colour a `TextButton` defaults to.** Two reasons, and the
       // screenshot is what raised it: the reference's own

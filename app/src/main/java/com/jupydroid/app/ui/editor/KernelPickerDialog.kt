@@ -10,7 +10,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +25,7 @@ import com.jupydroid.app.domain.model.KernelPickGroup
 import com.jupydroid.app.domain.model.KernelPickOption
 import com.jupydroid.app.domain.model.initialPick
 import com.jupydroid.app.domain.port.KernelChoice
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 
 /**
@@ -91,8 +91,10 @@ internal fun KernelPickerDialog(
         }
       }
     },
-    confirmButton = { TextButton(onClick = { onPick(picked) }) { Text("Select") } },
-    dismissButton = { TextButton(onClick = onDismiss) { Text(if (noKernel) kernelDisplayName else "Cancel") } },
+    confirmButton = { FocusRingTextButton(onClick = { onPick(picked) }) { Text("Select") } },
+    dismissButton = {
+      FocusRingTextButton(onClick = onDismiss) { Text(if (noKernel) kernelDisplayName else "Cancel") }
+    },
   )
 }
 

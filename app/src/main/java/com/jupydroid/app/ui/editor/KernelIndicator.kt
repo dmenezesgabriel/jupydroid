@@ -12,7 +12,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -20,6 +19,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 
 /** The reference's own `circleIconProps.height`, `'24px'` (`apputils/src/toolbar/widget.tsx:210`). */
@@ -82,7 +82,7 @@ internal fun KernelIndicator(
    */
   kernelName: String = "No Kernel",
 ) {
-  TextButton(
+  FocusRingTextButton(
     onClick = onPickKernel,
     // Neutral, not the brand colour a `TextButton` defaults to - see this file's header.
     colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),

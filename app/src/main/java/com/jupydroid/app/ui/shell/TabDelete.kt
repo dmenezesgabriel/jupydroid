@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -12,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.navigation3.runtime.NavKey
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.port.WorkspaceFiles
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.extension.api.DeleteFileDialog
 import kotlinx.coroutines.launch
 
@@ -64,7 +64,7 @@ internal fun rememberTabDelete(
       onDismissRequest = { ask = null },
       title = { Text("Delete Error") },
       text = { Text(open.message) },
-      confirmButton = { TextButton(onClick = { ask = null }) { Text("OK") } },
+      confirmButton = { FocusRingTextButton(onClick = { ask = null }) { Text("OK") } },
     )
     null -> Unit
   }

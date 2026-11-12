@@ -22,7 +22,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +47,7 @@ import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.relativeTime
 import com.jupydroid.extension.api.DeleteFileDialog
@@ -296,7 +296,7 @@ private fun rememberStatusWordWidth(): Dp {
 private fun SpaceRowControls(space: SpaceConfig, isRunning: Boolean, actsEnabled: Boolean, acts: SpaceRowActs) {
   val isBase = space.id == BASE_SPACE.id
   RunOrStopButton(space, isRunning, actsEnabled, acts)
-  TextButton(
+  FocusRingTextButton(
     onClick = { acts.onOpen(space) },
     enabled = actsEnabled && isRunning,
     modifier = Modifier.semantics { contentDescription = "Open ${space.name} (${space.id})" },
@@ -320,7 +320,7 @@ private fun SpaceRowControls(space: SpaceConfig, isRunning: Boolean, actsEnabled
 @Composable
 private fun RunOrStopButton(space: SpaceConfig, isRunning: Boolean, actsEnabled: Boolean, acts: SpaceRowActs) {
   val label = if (isRunning) "Stop" else "Run"
-  TextButton(
+  FocusRingTextButton(
     onClick = { if (isRunning) acts.onStop(space) else acts.onRun(space) },
     enabled = actsEnabled,
     modifier = Modifier.semantics { contentDescription = "$label ${space.name} (${space.id})" },

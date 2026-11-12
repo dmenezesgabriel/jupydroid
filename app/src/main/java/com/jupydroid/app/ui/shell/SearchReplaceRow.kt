@@ -12,13 +12,13 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.HIDE_REPLACE
 import com.jupydroid.app.ui.editor.PRESERVE_CASE
@@ -87,7 +87,7 @@ fun SearchReplaceRow(
       ReplaceBox(replaceText, preserveCase, onReplaceTextChanged, onTogglePreserveCase)
     }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-      TextButton(
+      FocusRingTextButton(
         onClick = onReplaceAll,
         enabled = replaceAllEnabled,
         // The reference's disabled label is a *tooltip*, and a phone has no hover to raise one. It

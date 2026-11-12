@@ -9,13 +9,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.extension.api.KeyRowPublished
 
 /**
@@ -127,7 +127,7 @@ internal fun SymbolRowWhileTyping(input: FocusedCellInput, shown: Boolean) {
  */
 @Composable
 private fun SymbolKey(label: String, onClick: () -> Unit, describedAs: String? = null) {
-  TextButton(
+  FocusRingTextButton(
     onClick = onClick,
     modifier = if (describedAs == null) Modifier else Modifier.semantics { contentDescription = describedAs },
   ) {

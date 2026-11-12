@@ -21,7 +21,6 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -41,6 +40,7 @@ import androidx.compose.ui.text.input.ImeAction
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.replacementFor
 import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 
 /**
@@ -207,8 +207,8 @@ private fun ReplaceRow(
           field()
         },
       )
-      TextButton(onClick = onReplace, enabled = canReplace) { Text(REPLACE_ONE) }
-      TextButton(onClick = onReplaceAll, enabled = canReplace) { Text(REPLACE_ALL) }
+      FocusRingTextButton(onClick = onReplace, enabled = canReplace) { Text(REPLACE_ONE) }
+      FocusRingTextButton(onClick = onReplaceAll, enabled = canReplace) { Text(REPLACE_ALL) }
     }
   }
 }

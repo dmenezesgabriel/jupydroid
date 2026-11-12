@@ -3,8 +3,8 @@ package com.jupydroid.app.ui
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.jupydroid.app.theme.FocusRingTextButton
 
 /**
  * "…already exists, overwrite?" - the question the reference asks before replacing a file.
@@ -28,10 +28,10 @@ fun OverwriteFileDialog(name: String, onOverwrite: () -> Unit, onDismiss: () -> 
     title = { Text("Overwrite file?") },
     text = { Text("\"$name\" already exists, overwrite?") },
     confirmButton = {
-      TextButton(onClick = onOverwrite) {
+      FocusRingTextButton(onClick = onOverwrite) {
         Text("Overwrite", color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }

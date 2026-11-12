@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.jupydroid.app.theme.FocusRingTextButton
 
 /**
  * "X has changed on disk" - what a save asks when the file is no longer the one that was opened.
@@ -32,12 +32,12 @@ fun FileChangedDialog(name: String, onOverwrite: () -> Unit, onRevert: () -> Uni
       )
     },
     confirmButton = {
-      TextButton(onClick = onOverwrite) { Text("Overwrite", color = MaterialTheme.colorScheme.error) }
+      FocusRingTextButton(onClick = onOverwrite) { Text("Overwrite", color = MaterialTheme.colorScheme.error) }
     },
     dismissButton = {
       Row {
-        TextButton(onClick = onCancel) { Text("Cancel") }
-        TextButton(onClick = onRevert) { Text("Revert") }
+        FocusRingTextButton(onClick = onCancel) { Text("Cancel") }
+        FocusRingTextButton(onClick = onRevert) { Text("Revert") }
       }
     },
   )

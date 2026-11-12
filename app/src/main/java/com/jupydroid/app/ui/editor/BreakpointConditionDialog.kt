@@ -4,7 +4,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,6 +15,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jupydroid.app.theme.FocusRingTextButton
 
 /**
  * A breakpoint's own condition, reached by a long-press on an armed line's gutter dot -
@@ -66,10 +66,10 @@ fun BreakpointConditionDialog(currentCondition: String?, onConfirm: (String?) ->
       LaunchedEffect(Unit) { field.requestFocus() }
     },
     confirmButton = {
-      TextButton(onClick = { onConfirm(condition.text.trim().ifBlank { null }) }) { Text("Set") }
+      FocusRingTextButton(onClick = { onConfirm(condition.text.trim().ifBlank { null }) }) { Text("Set") }
     },
     dismissButton = {
-      TextButton(onClick = onDismiss) { Text("Cancel") }
+      FocusRingTextButton(onClick = onDismiss) { Text("Cancel") }
     },
   )
 }

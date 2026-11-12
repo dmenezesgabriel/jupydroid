@@ -12,7 +12,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,6 +31,7 @@ import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.THREAD_CAP_RANGE
 import com.jupydroid.app.syntax.ShellSyntax
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.cellEditorBox
@@ -103,7 +103,7 @@ fun SpaceSettingsDialog(
       }
     },
     confirmButton = {
-      TextButton(
+      FocusRingTextButton(
         onClick = {
           savable?.let {
             onSave(
@@ -122,7 +122,7 @@ fun SpaceSettingsDialog(
         Text(SAVE_SETTINGS)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }
 

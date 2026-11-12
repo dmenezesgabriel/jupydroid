@@ -108,6 +108,13 @@ outside it. Width is a decision below.
   signature across its sites (`IconButton`) takes a thin wrapper in `theme/` and a guard instead of 54
   modifiers.
 - Width, as above. Settled by reading frames; goes into the ADR.
+- **Found by T2c: a card's ring replaces an outline, so "3:1 against the frame before" does not fit it.**
+  The launcher card already draws a 1dp outline at 3.5:1 over its fill, and the ring is drawn over it: on
+  the tablet in Dark the card's top edge reads 1.27:1 against the unfocused frame, while the ring reads
+  4.79:1 against the page outside and 3.95:1 against the fill over the outline's rows; in Light 1.48:1,
+  5.39:1 and 5.18:1. The inner row over the fill is 2.92:1 against the card's own focused state layer in
+  Dark. T3 decides whether the demo's second step reads a ring against what it separates rather than
+  against the frame before, and whether Dark's 70% alpha stays.
 
 ## Surface
 
@@ -136,7 +143,18 @@ ship in one task.
   puts `Modifier.focusRing()` on the touch target, every call site takes it, and `ArchitectureGuardTest`
   refuses a raw material3 `IconButton` under `ui/`. Red on a plain one, green at 3:1 in both themes, none
   on a finger tap; Tab Spaces home in Dark and Settings and the explorer in Light on the tablet.
-- [ ] T2c — `TextButton` and `Surface(onClick)` (50 and 11 sites): `Run`, dialog buttons, cards.
+- [x] T2c — `TextButton` (50 sites in `:app`) and the launcher card, the only `Surface(onClick)`: one
+  `FocusRingTextButton` in `theme/` as `FocusRingIconButton` is, every call site takes it, and
+  `ArchitectureGuardTest` refuses a raw material3 `TextButton` under `ui/`; the card takes
+  `Modifier.focusRing()` directly, because one site is not a kind. Red on a plain one, green in both
+  themes, none on a finger tap; Tab Spaces home, the Space settings dialog and the launcher on the tablet
+  in Dark and Light.
+- [ ] T2f — The extension modules' buttons: `:extension-api` (`RenameFileDialog`, `DeleteFileDialog`: the
+  New Space, rename and delete dialogs) and `extensions/ai` (`ChatKeyRow`, `AgentControls`, and the raw
+  `IconButton`s T2b's guard does not reach) are built against `:extension-api`, never `:app`
+  ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)), so
+  `focusRing()` is out of their reach. How they get it, and a guard in each module, is this task's
+  decision; read the New Space dialog's Cancel on the tablet first, which today shows the plate only.
 - [ ] T2d — `DropdownMenuItem` (41 sites) and `WideNavigationRailItem` (`MoreRail.kt`).
 - [ ] T2e — `Checkbox`, `Switch` and `RadioButton` (one site each).
 - [ ] T3 — The before and after on the tablet for all ten stops in both themes and under the

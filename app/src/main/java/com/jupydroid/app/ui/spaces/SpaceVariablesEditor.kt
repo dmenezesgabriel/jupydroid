@@ -10,7 +10,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.Spacing
 
 /** The button that appends an empty row. */
@@ -57,7 +57,7 @@ fun SpaceVariablesEditor(rows: List<SpaceVariableRow>, onRowsChange: (List<Space
         onRemove = { onRowsChange(rows.filterIndexed { at, _ -> at != index }) },
       )
     }
-    TextButton(onClick = { onRowsChange(rows + SpaceVariableRow("", "")) }) {
+    FocusRingTextButton(onClick = { onRowsChange(rows + SpaceVariableRow("", "")) }) {
       Icon(Icons.Filled.Add, contentDescription = null)
       Text(ADD_VARIABLE)
     }

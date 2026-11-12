@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +61,7 @@ import com.jupydroid.app.moveToSidePanel
 import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.sidePanelMoveOf
 import com.jupydroid.app.theme.FocusRingIconButton
+import com.jupydroid.app.theme.FocusRingTextButton
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.DocumentContribution
@@ -245,7 +245,7 @@ fun TabbedDocumentPane(
       onDismissRequest = { refusal = null },
       title = { Text("Rename Error") },
       text = { Text(message) },
-      confirmButton = { TextButton(onClick = { refusal = null }) { Text("OK") } },
+      confirmButton = { FocusRingTextButton(onClick = { refusal = null }) { Text("OK") } },
     )
   }
 }

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.Checkpoint
 import com.jupydroid.app.domain.port.DocumentCheckpoints
+import com.jupydroid.app.theme.FocusRingTextButton
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -85,12 +85,12 @@ private fun RevertToCheckpointDialog(
       }
     },
     confirmButton = {
-      TextButton(onClick = {
+      FocusRingTextButton(onClick = {
         onCancel()
         onRevert()
       }) { Text("Revert", color = MaterialTheme.colorScheme.error) }
     },
-    dismissButton = { TextButton(onClick = onCancel) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onCancel) { Text("Cancel") } },
   )
 }
 
@@ -100,7 +100,7 @@ private fun CheckpointMessageDialog(title: String, message: String, onDismiss: (
     onDismissRequest = onDismiss,
     title = { Text(title) },
     text = { Text(message) },
-    confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+    confirmButton = { FocusRingTextButton(onClick = onDismiss) { Text("OK") } },
   )
 }
 

@@ -2,7 +2,6 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,6 +10,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.port.WorkspaceFiles
+import com.jupydroid.app.theme.FocusRingTextButton
 import kotlinx.coroutines.launch
 
 /**
@@ -38,7 +38,7 @@ internal fun rememberTabDuplicate(workspaceFiles: WorkspaceFiles): (OpenDocument
       onDismissRequest = { refusal = null },
       title = { Text("Duplicate Error") },
       text = { Text(message) },
-      confirmButton = { TextButton(onClick = { refusal = null }) { Text("OK") } },
+      confirmButton = { FocusRingTextButton(onClick = { refusal = null }) { Text("OK") } },
     )
   }
   return { document ->

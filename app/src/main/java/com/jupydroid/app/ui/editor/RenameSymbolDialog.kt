@@ -3,7 +3,6 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jupydroid.app.theme.FocusRingTextButton
 
 internal const val RENAME_SYMBOL_FIELD_TAG = "rename-symbol-field"
 
@@ -66,7 +66,7 @@ internal fun RenameSymbolDialog(currentName: String, onConfirm: (String) -> Unit
       LaunchedEffect(Unit) { field.requestFocus() }
     },
     confirmButton = {
-      TextButton(
+      FocusRingTextButton(
         onClick = { if (name.text == currentName) onDismiss() else onConfirm(name.text) },
         enabled = name.text.isPythonIdentifier(),
       ) {
@@ -74,7 +74,7 @@ internal fun RenameSymbolDialog(currentName: String, onConfirm: (String) -> Unit
       }
     },
     dismissButton = {
-      TextButton(onClick = onDismiss) { Text("Cancel") }
+      FocusRingTextButton(onClick = onDismiss) { Text("Cancel") }
     },
   )
 }
