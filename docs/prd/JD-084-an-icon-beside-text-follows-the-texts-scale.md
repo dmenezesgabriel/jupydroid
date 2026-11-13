@@ -121,7 +121,10 @@ Ours is absent, not present-but-unreachable. A label already grows (`sp`), so on
 - Closed in T1: the tolerance for "keeps its ratio" is 0.10 of the glyph over label ratio at 1.0. Measured on
   `dev36`: 0.875 at 1.0 against 0.941, 0.957 and 0.929 at 1.3, 1.5 and 2.0, a spread of at most 0.082, because
   Android 14's curve grows 14sp by 1.86 at 2.0 and the label's 16sp by 1.75. Before: 0.693, 0.609 and 0.500.
-- Which of the 87 unsized sites sit beside text. Read one by one in T3.
+- Closed by reading: of the 98 `Icon(` sites, about 17 sit beside text and are the tasks T3 to T6. The rest keep
+  their `dp`: an icon inside a `FocusRingIconButton` (a 48dp target), a label-less rail item, `ActiveTabSave` and
+  `ActiveTabReload`, the launcher's tile and `LineNumbers`.
+- Open until T6: whether a Material button's icon slot clips or fixes a size, as More's rail did not.
 
 ## Surface
 
@@ -145,8 +148,15 @@ A theme item with no domain, port or adapter layer.
   the label's size (default: the glyph's own, which is the tab's T1 behaviour). Red at 0.63 at 2.0, then 0.95 when
   converted from its own 24sp, green at 1.185 to 1.188 against 1.200. The tablet at one pane reads 0 newly
   overlapping and 0 newly under 48dp on every surface; the row is 56.0dp at 1.0 and 76.7dp at 2.0.
-- [ ] T3 — The other sites that sit beside text, each read before it is touched, each with a test.
-- [ ] T4 — The before and after on the tablet at one pane and on `dev36` at 1.0 and 2.0, the ADR for the
+- [ ] T3 — The Running panel's row icon (`ROW_ICON`) and section caret (`SECTION_CARET`), each with a test.
+- [ ] T4 — The list rows with a leading glyph: Explorer (`ExplorerScreen`), Recents (`RecentsSection`) and the
+  `Twistie` callers, each with a test.
+- [ ] T5 — The editor rows: the debugger's disclosure, a diagnostic's detail glyph, the kernel status glyph and the
+  breadcrumb's separator, each with a test.
+- [ ] T6 — The glyphs inside a Material button beside its label (the drop-down arrows of `CellTypeControl`,
+  `SpaceDefaultKernelField` and `AgentControls`, `ChoiceSegments`' check, `SpaceVariablesEditor`'s add,
+  `ChatList`'s button icon). Material owns the slot, so each is measured first and may need a replaced slot.
+- [ ] T7 — The before and after on the tablet at one pane and on `dev36` at 1.0 and 2.0, the ADR for the
   mechanism and the deviation, `GAP-203` closed, one edited backlog line, this file deleted.
 
 ## Out of scope
