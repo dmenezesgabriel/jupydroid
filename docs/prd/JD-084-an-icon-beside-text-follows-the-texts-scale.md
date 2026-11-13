@@ -148,7 +148,9 @@ A theme item with no domain, port or adapter layer.
   the label's size (default: the glyph's own, which is the tab's T1 behaviour). Red at 0.63 at 2.0, then 0.95 when
   converted from its own 24sp, green at 1.185 to 1.188 against 1.200. The tablet at one pane reads 0 newly
   overlapping and 0 newly under 48dp on every surface; the row is 56.0dp at 1.0 and 76.7dp at 2.0.
-- [ ] T3 — The Running panel's row icon (`ROW_ICON`) and section caret (`SECTION_CARET`), each with a test.
+- [x] T3 — The Running panel's row icon (`ROW_ICON`) and section caret (`SECTION_CARET`), each with a test. Both
+  16dp glyphs follow their 14sp label's font size: red at 0.59, 0.50 and 0.42 at 1.3, 1.5 and 2.0 against 0.80 at
+  1.0, green at 0.78 to 0.79, so the tolerance is 0.05. The row (64dp) and header (48dp, 54dp at 2.0) did not grow.
 - [ ] T4 — The list rows with a leading glyph: Explorer (`ExplorerScreen`), Recents (`RecentsSection`) and the
   `Twistie` callers, each with a test.
 - [ ] T5 — The editor rows: the debugger's disclosure, a diagnostic's detail glyph, the kernel status glyph and the

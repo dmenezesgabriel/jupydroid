@@ -38,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,6 +55,7 @@ import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.FocusRingIconButton
 import com.jupydroid.extension.api.FocusRingTextButton
@@ -250,6 +253,7 @@ private fun RunningSection(
   leadingAction: @Composable () -> Unit = {},
   rows: @Composable () -> Unit,
 ) {
+  val caret = LocalDensity.current.glyphBesideText(SECTION_CARET, MaterialTheme.typography.titleSmall.fontSize)
   Column(modifier = Modifier.fillMaxWidth()) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
@@ -271,7 +275,7 @@ private fun RunningSection(
           Icons.Filled.KeyboardArrowDown
         },
         contentDescription = null,
-        modifier = Modifier.size(SECTION_CARET),
+        modifier = Modifier.size(caret).testTag(SECTION_CARET_TAG),
       )
       Text(
         text = title,
@@ -317,6 +321,7 @@ private fun RunningRow(
   onOpen: () -> Unit,
   onShutdown: () -> Unit,
 ) {
+  val glyph = LocalDensity.current.glyphBesideText(ROW_ICON, MaterialTheme.typography.bodyMedium.fontSize)
   Row(
     verticalAlignment = Alignment.CenterVertically,
     // A clickable row names its act, not just its label - "running-panel-kernel.ipynb" alone is also the
@@ -332,7 +337,7 @@ private fun RunningRow(
       imageVector = icon,
       contentDescription = null,
       tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.size(ROW_ICON),
+      modifier = Modifier.size(glyph).testTag(ROW_ICON_TAG),
     )
     // The weighted wrapper is what keeps the close button at one x: an unweighted label is measured first
     // with all the width left, so a long name would push the button past the edge. The detail is measured
@@ -431,3 +436,6 @@ private val SECTION_CARET = 16.dp
 
 /** `jp-RunningSessions-icon`'s own slot - `width: 16px; height: 16px` (`running/style/base.css:86-89`). */
 private val ROW_ICON = 16.dp
+
+internal const val SECTION_CARET_TAG = "Running section caret"
+internal const val ROW_ICON_TAG = "Running row icon"
