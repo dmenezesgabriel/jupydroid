@@ -22,9 +22,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.theme.chromePalette
-import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.focusRing
+import com.jupydroid.extension.api.glyphBesideText
 import kotlinx.coroutines.launch
 
 /**

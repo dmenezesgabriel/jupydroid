@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import com.jupydroid.app.theme.glyphBesideText
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * The chevron that says whether a section is shut, and which way it opens.

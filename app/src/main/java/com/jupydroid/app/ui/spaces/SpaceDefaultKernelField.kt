@@ -23,9 +23,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * The control's accessible name, carrying the current choice so a test and a Maestro flow read the

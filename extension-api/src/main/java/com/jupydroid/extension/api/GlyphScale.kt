@@ -1,4 +1,4 @@
-package com.jupydroid.app.theme
+package com.jupydroid.extension.api
 
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -28,5 +28,5 @@ import androidx.compose.ui.unit.sp
  *   own size, which suits a glyph about as large as its label's font (a 14dp tab glyph); a glyph much larger than
  *   the font it sits beside (24dp beside 14sp) must state it, or the curve grows it less than the label.
  */
-fun Density.glyphBesideText(size: Dp, labelSize: TextUnit = size.value.sp): Dp =
+public fun Density.glyphBesideText(size: Dp, labelSize: TextUnit = size.value.sp): Dp =
   size * (labelSize.toDp() / labelSize.value.dp)

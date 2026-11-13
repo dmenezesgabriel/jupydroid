@@ -30,7 +30,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.jupydroid.app.theme.glyphBesideText
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * A single-choice row of segments, each as wide as its own label.

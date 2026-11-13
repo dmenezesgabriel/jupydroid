@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.glyphBesideText
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * An ancestry, scrolling sideways rather than eliding, with every segment a target.

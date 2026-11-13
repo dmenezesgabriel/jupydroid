@@ -23,9 +23,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * What the active cell **is**, and the one gesture that changes it.

@@ -41,7 +41,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.jupydroid.app.theme.EditorPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
-import com.jupydroid.app.theme.glyphBesideText
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * How a cell's language-server diagnostics appear in the gutter, kept

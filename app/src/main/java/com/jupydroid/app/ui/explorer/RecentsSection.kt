@@ -30,9 +30,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.app.ui.Twistie
 import com.jupydroid.app.ui.shell.MINIMUM_TAP_TARGET
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * What was opened, above the directory being browsed.

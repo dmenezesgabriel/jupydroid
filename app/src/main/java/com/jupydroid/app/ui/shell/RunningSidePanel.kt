@@ -55,10 +55,10 @@ import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
-import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.FocusRingIconButton
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 

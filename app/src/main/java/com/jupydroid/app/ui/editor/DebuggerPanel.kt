@@ -39,7 +39,7 @@ import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.theme.CodeText
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.glyphBesideText
+import com.jupydroid.extension.api.glyphBesideText
 import kotlinx.coroutines.launch
 
 /**

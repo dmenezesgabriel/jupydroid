@@ -1,4 +1,4 @@
-package com.jupydroid.app.theme
+package com.jupydroid.extension.api
 
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp

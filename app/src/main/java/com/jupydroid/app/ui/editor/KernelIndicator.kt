@@ -22,8 +22,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 
 /** The reference's own `circleIconProps.height`, `'24px'` (`apputils/src/toolbar/widget.tsx:210`). */
 private val STATUS_GLYPH_SIZE = 24.dp

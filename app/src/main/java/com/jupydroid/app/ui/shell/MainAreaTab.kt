@@ -56,10 +56,10 @@ import com.jupydroid.app.Settings
 import com.jupydroid.app.Terminal
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
-import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * One `lm-TabBar-tab`: the kind's icon, the `title.label`, and the close icon that swaps for the
