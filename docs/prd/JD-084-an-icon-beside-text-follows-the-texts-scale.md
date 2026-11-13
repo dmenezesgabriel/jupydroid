@@ -157,8 +157,13 @@ A theme item with no domain, port or adapter layer.
   0.69 and 0.57 for a row against 1.00 at 1.0, and 0.89, 0.75 and 0.63 for a chevron against 1.20, green at 0.97 to
   1.00 and 1.18 to 1.19, so the tolerance is 0.05. `Twistie` takes the label's size. The Explorer row (84dp at 1.3) and
   the Recent heading (48dp) did not grow; a search file header does, 51dp to 61dp at 2.0, because its chevron is now 45dp.
-- [ ] T5 — The editor rows: the debugger's disclosure, a diagnostic's detail glyph, the kernel status glyph and the
-  breadcrumb's separator, each with a test.
+- [x] T5 — The editor rows: the debugger's disclosure, a diagnostic's detail glyph, the kernel status glyph and the
+  breadcrumb's separator, each with a test (`EditorGlyphFontScaleTest`, and `DiagnosticGlyphFontScaleTest` because the
+  detail card is a popup window that `AtFontScale` does not reach). Each glyph follows its label's font size: red at
+  0.42 (separator, 0.80 at 1.0), 0.63 (kernel, 1.20), 0.47 (disclosure, 0.89) and 0.375 (detail, 0.75) at 2.0, green at
+  0.78 to 0.79, 1.18 to 1.19, 0.84 to 0.88 and 0.75 to 0.76, so the tolerance is 0.06 (0.05 for the card). A kernel
+  glyph with no name beside it keeps 24dp. The breadcrumb row (48dp) did not grow; the kernel button does, 40dp to 61dp
+  at 2.0, because its glyph is now 45dp.
 - [ ] T6 — The glyphs inside a Material button beside its label (the drop-down arrows of `CellTypeControl`,
   `SpaceDefaultKernelField` and `AgentControls`, `ChoiceSegments`' check, `SpaceVariablesEditor`'s add,
   `ChatList`'s button icon). Material owns the slot, so each is measured first and may need a replaced slot.
