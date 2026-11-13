@@ -79,6 +79,11 @@ appId: com.jupydroid.app
     when:
       true: ${MAESTRO_SURFACE == 'save-before-close-dialog'}
     commands:
+      # Opening Settings last scrolls the strip to it, which leaves the file's tab a 108px sliver under the
+      # notebook's; a tap on that lands on the notebook's tab. Drag the strip back to its start first.
+      - swipe:
+          start: "40%,4%"
+          end: "95%,4%"
       - tapOn: "Tab: ${MAESTRO_FILE}"
       - extendedWaitUntil:
           visible: "(?s).*notes = \"seeded\".*"
