@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.ButtonDefaults
@@ -16,9 +17,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
 
@@ -80,7 +85,12 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
         .semantics { contentDescription = cellTypeDescription(kind) },
     ) {
       Text(text = cellTypeLabel(kind), style = MaterialTheme.typography.labelLarge)
-      Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+      val caret = LocalDensity.current.glyphBesideText(CELL_TYPE_CARET, MaterialTheme.typography.labelLarge.fontSize)
+      Icon(
+        Icons.Filled.ArrowDropDown,
+        contentDescription = null,
+        modifier = Modifier.size(caret).testTag(CELL_TYPE_CARET_TAG),
+      )
     }
     CellTypePicker(expanded = open, onDismiss = { open = false }, onPick = {
       open = false
@@ -172,3 +182,9 @@ internal fun cellTypeRowLabel(kind: CellKind) = "$CELL_TYPE_ACTION: ${cellTypeLa
 
 /** The reference's own `aria-label` for this control (`default-toolbar.tsx:394`). */
 internal const val CELL_TYPE_ACTION = "Cell type"
+
+/** The drop-down arrow beside the type's name at the default font scale: Material's own icon size. */
+private val CELL_TYPE_CARET = 24.dp
+
+/** The drop-down arrow beside the type's name, for a test that reads its size against the name's line. */
+internal const val CELL_TYPE_CARET_TAG = "Cell type caret"

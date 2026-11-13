@@ -25,9 +25,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.jupydroid.app.theme.glyphBesideText
 
 /**
  * A single-choice row of segments, each as wide as its own label.
@@ -69,6 +72,10 @@ private fun ChoiceSegment(label: String, isSelected: Boolean, shape: Shape, onCl
   val container = if (isSelected) colors.activeContainerColor else colors.inactiveContainerColor
   val content = if (isSelected) colors.activeContentColor else colors.inactiveContentColor
   val border = if (isSelected) colors.activeBorderColor else colors.inactiveBorderColor
+  val check = LocalDensity.current.glyphBesideText(
+    SegmentedButtonDefaults.IconSize,
+    MaterialTheme.typography.labelLarge.fontSize,
+  )
   Row(
     modifier = Modifier
       .zIndex(if (isSelected) 1f else 0f)
@@ -87,7 +94,7 @@ private fun ChoiceSegment(label: String, isSelected: Boolean, shape: Shape, onCl
       Icon(
         Icons.Filled.Check,
         contentDescription = null,
-        modifier = Modifier.size(SegmentedButtonDefaults.IconSize),
+        modifier = Modifier.size(check).testTag(CHOICE_CHECK_TAG),
         tint = content,
       )
       Spacer(Modifier.width(ICON_SPACING))
@@ -95,6 +102,9 @@ private fun ChoiceSegment(label: String, isSelected: Boolean, shape: Shape, onCl
     Text(label, color = content, style = MaterialTheme.typography.labelLarge)
   }
 }
+
+/** The check on the selected segment, for a test that reads its size against the label's line. */
+internal const val CHOICE_CHECK_TAG = "Choice check"
 
 /** The gap between the check icon and the label, Material3's own 8 dp, which its defaults do not expose. */
 private val ICON_SPACING = 8.dp

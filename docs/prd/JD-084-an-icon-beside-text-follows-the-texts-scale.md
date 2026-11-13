@@ -124,8 +124,8 @@ Ours is absent, not present-but-unreachable. A label already grows (`sp`), so on
 - Closed by reading: of the 98 `Icon(` sites, about 17 sit beside text and are the tasks T3 to T7. The rest keep
   their `dp`: an icon inside a `FocusRingIconButton` (a 48dp target), a label-less rail item, `ActiveTabSave` and
   `ActiveTabReload`, the launcher's tile and `LineNumbers`.
-- Open until T6 (the four in `:app`) and T7 (the two in the AI extension): whether a Material button's icon slot
-  clips or fixes a size, as More's rail did not.
+- Closed in T6: a Material button's content slot fixes no size and clips nothing, as More's rail did not.
+- Open until T7: whether the two Material buttons in the AI extension differ.
 
 ## Surface
 
@@ -165,9 +165,12 @@ A theme item with no domain, port or adapter layer.
   0.78 to 0.79, 1.18 to 1.19, 0.84 to 0.88 and 0.75 to 0.76, so the tolerance is 0.06 (0.05 for the card). A kernel
   glyph with no name beside it keeps 24dp. The breadcrumb row (48dp) did not grow; the kernel button does, 40dp to 61dp
   at 2.0, because its glyph is now 45dp.
-- [ ] T6 — The glyphs inside a Material button beside its label in `:app` (the drop-down arrows of
-  `CellTypeControl` and `SpaceDefaultKernelField`, `ChoiceSegments`' check, `SpaceVariablesEditor`'s add). Material
-  owns the slot, so each is measured first and may need a replaced slot.
+- [x] T6 — The glyphs inside a Material button beside its label in `:app` (the drop-down arrows of
+  `CellTypeControl` and `SpaceDefaultKernelField`, `ChoiceSegments`' check, `SpaceVariablesEditor`'s add), each with
+  a test (`ButtonGlyphFontScaleTest`). Material's button content slot fixes no size and clips nothing, so no slot was
+  replaced: each glyph follows `labelLarge`'s font size. Red at 0.89, 0.75 and 0.63 (the three 24dp glyphs, 1.20 at 1.0)
+  and 0.67, 0.56 and 0.47 (the check, 0.90) at 1.3, 1.5 and 2.0, green at 1.184 to 1.188 and 0.868 to 0.889, so the
+  tolerance is 0.05. The cell type button grows 54dp to 61dp at 2.0, because its caret is now 45dp.
 - [ ] T7 — The same in the AI extension (`AgentControls`' drop-down arrow, `ChatList`'s button icon). An extension is
   built against `:extension-api` and never against `:app` ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)),
   so `glyphBesideText` moves into `:extension-api` first, as the focus ring did, and its callers in `:app` follow.

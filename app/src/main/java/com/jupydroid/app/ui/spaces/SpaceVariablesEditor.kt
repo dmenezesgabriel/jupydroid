@@ -3,25 +3,36 @@ package com.jupydroid.app.ui.spaces
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.FocusRingIconButton
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /** The button that appends an empty row. */
 const val ADD_VARIABLE = "Add variable"
+
+/** The plus beside [ADD_VARIABLE] at the default font scale: Material's own icon size. */
+private val ADD_VARIABLE_GLYPH = 24.dp
+
+/** The plus beside [ADD_VARIABLE], for a test that reads its size against the label's line. */
+internal const val ADD_VARIABLE_GLYPH_TAG = "Add variable glyph"
 
 /** Row [index]'s name field, for a test and - as a resource id - for a Maestro flow. */
 fun variableNameTag(index: Int): String = "space-variable-name-$index"
@@ -58,7 +69,8 @@ fun SpaceVariablesEditor(rows: List<SpaceVariableRow>, onRowsChange: (List<Space
       )
     }
     FocusRingTextButton(onClick = { onRowsChange(rows + SpaceVariableRow("", "")) }) {
-      Icon(Icons.Filled.Add, contentDescription = null)
+      val plus = LocalDensity.current.glyphBesideText(ADD_VARIABLE_GLYPH, MaterialTheme.typography.labelLarge.fontSize)
+      Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(plus).testTag(ADD_VARIABLE_GLYPH_TAG))
       Text(ADD_VARIABLE)
     }
   }
