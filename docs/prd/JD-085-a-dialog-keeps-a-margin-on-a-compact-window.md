@@ -68,7 +68,7 @@ background in the window, so there is nothing to inset. The decision is where ou
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Where the margin lives | an override of `BasicAlertDialog` · a wrapper over `AlertDialog` · `Modifier.padding` at each of 20 sites | the override is internal, so it cannot be provided; 20 sites repeat one fact | a wrapper in `theme/`, as `FocusRingTextButton` is for `TextButton`; the call sites pass nothing new |
+| Where the margin lives | an override of `BasicAlertDialog` · a wrapper over `AlertDialog` · `Modifier.padding` at each of 20 sites | the override is internal, so it cannot be provided; 20 sites repeat one fact | a wrapper, as `FocusRingTextButton` is for `TextButton`; the call sites pass nothing new. It began in `theme/`, but `DeleteFileDialog` and `RenameFileDialog` live in `:extension-api`, which cannot import `:app`, so it moves to `:extension-api` beside `FocusRingTextButton` and `GlyphScale` |
 | How | `padding` on the dialog's modifier · `DialogProperties(usePlatformDefaultWidth = false)` and a width | padding outside `sizeIn` shrinks the constraints before the 280 to 560dp clamp, and the window wraps content plus margin, so a wide window is unchanged; the other needs a width computed from the window | the padding, `Spacing.xl` (24dp) a side |
 | Guarding it | a review note · an `ArchitectureGuardTest` rule | a new `AlertDialog(` would pass unseen | the rule, beside the one for `TextButton` |
 | Under 480dp tall | MDC's 10dp · one 24dp | MDC changes it for a short landscape window, which this item does not measure | 24dp until a measurement says otherwise |
@@ -79,8 +79,8 @@ Anything here that outlives the item becomes an ADR before the PRD is deleted.
 
 | Concern | Ours today (file) | Best reference | Gap |
 |---|---|---|---|
-| A dialog's side margin | none: 20 `AlertDialog(` calls in 18 files under `ui/` | Material Components, 24dp | absent |
-| A guard against a raw dialog | `ArchitectureGuardTest` bans `TextButton`, `IconButton`, `DropdownMenuItem` | — | absent for `AlertDialog` |
+| A dialog's side margin | none: 20 `AlertDialog(` calls in 18 files under `ui/`, and 2 in `:extension-api` (`DeleteFileDialog.kt:30`, `RenameFileDialog.kt:84`) that the first count missed | Material Components, 24dp | absent |
+| A guard against a raw dialog | `ArchitectureGuardTest` bans `TextButton`, `IconButton`, `DropdownMenuItem` | — | absent for `AlertDialog` in `:extension-api`, which the `ui/` rule does not scan |
 | Measuring tools | `theme-six-combinations-driver.sh` (`one-pane-dialogs`), `read_layout_spacing.py` | — | complete: this item adds none |
 
 `:extensions:ai` has no `AlertDialog`. Ours is absent, not present-but-unreachable.
@@ -104,7 +104,8 @@ A theme and UI item with no domain, port or adapter.
 
 | Layer | Files |
 |---|---|
-| `theme/` | `MarginedAlertDialog.kt`, using `Spacing.xl` |
+| `:extension-api` | `MarginedAlertDialog.kt` (moved from `theme/`), `DeleteFileDialog.kt`, `RenameFileDialog.kt` |
+| `theme/` | `Spacing.xl`; the wrapper's first home |
 | `ui/` | the 18 files that call `AlertDialog(`; `SaveBeforeCloseDialog.kt` first |
 | unit tests | `ArchitectureGuardTest` |
 | instrumented tests | `MarginedAlertDialogTest` on `dev36` |
@@ -115,8 +116,15 @@ A theme and UI item with no domain, port or adapter.
 - [x] T1 — `MarginedAlertDialog` and its first caller, `SaveBeforeCloseDialog`: a wrapped-text dialog sits
   at least 24dp inside the window on both sides (red at 0 and 0 on `dev36`).
 - [x] T2 — the 17 other files, and `ArchitectureGuardTest` bans material3's `AlertDialog` in `ui/`.
-- [ ] T3 — read the six dialogs at 320, 360 and 412dp and on the tablet, settle the margin tap, write the ADR,
-  edit the ledger row in `parity-ledger.md`.
+- [ ] T3 — `DeleteFileDialog` and `RenameFileDialog` in `:extension-api` keep the margin too. A device read at
+  800dp found their windows equal to their cards (647px and 492px for 431.3dp and 328.0dp), where Save before close
+  and Space settings had grown by 48dp. Move `MarginedAlertDialog` into `:extension-api` (public, explicit API),
+  import it in `ui/`, and widen the guard to `:extension-api`. Red first: a 320dp instrumented test on the Delete
+  dialog beside `DialogMarginTest`.
+- [ ] T4 — read the six dialogs at 320, 360 and 412dp and on the tablet, settle the margin tap, write the ADR, edit
+  the ledger row in `parity-ledger.md`. Before the first read, check the installed APK: the dex that holds a
+  migrated caller (`TabDeleteKt`) must also name `MarginedAlertDialogKt`. A stale `app-debug.apk` from a T1-only
+  build was installed once and its frames read as if they were the change.
 
 ## Out of scope
 
