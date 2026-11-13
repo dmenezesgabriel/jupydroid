@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -31,8 +33,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentPick
 import com.jupydroid.extensions.ai.domain.ChatTranscript
@@ -128,13 +132,21 @@ private fun AgentChoiceChip(control: ChatControl) {
   }
 }
 
+/** The size of Material's `Icon`, from which a chip's arrow grows with the name beside it. */
+private val CHIP_ARROW = 24.dp
+
 /** A toolbar chip reading [name], ellipsized when the row is narrower, with the arrow that says it opens. */
 @Composable
 internal fun ChipButton(name: String, modifier: Modifier, onClick: () -> Unit) {
+  val arrow = LocalDensity.current.glyphBesideText(CHIP_ARROW, MaterialTheme.typography.labelLarge.fontSize)
   FocusRingTextButton(onClick = onClick, modifier = modifier) {
     // Weighted, so a long name ellipsizes rather than pushing the arrow out of the button.
     Text(name, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-    Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+    Icon(
+      Icons.Filled.ArrowDropDown,
+      contentDescription = null,
+      modifier = Modifier.size(arrow).testTag("chat-chip-arrow"),
+    )
   }
 }
 

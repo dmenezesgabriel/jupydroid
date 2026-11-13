@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -49,6 +50,7 @@ import com.jupydroid.extension.api.DeleteFileDialog
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.RenameFileDialog
 import com.jupydroid.extension.api.focusRing
+import com.jupydroid.extension.api.glyphBesideText
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
@@ -208,8 +210,17 @@ private fun ChatListActions(onNew: () -> Unit, onOpenMcpSettings: () -> Unit) {
 
 @Composable
 private fun ChatListButton(label: String, icon: ImageVector, onClick: () -> Unit) {
-  OutlinedButton(onClick = onClick, modifier = Modifier.padding(vertical = 8.dp).focusRing()) {
-    Icon(icon, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+  val labelSize = MaterialTheme.typography.labelLarge.fontSize
+  val glyph = LocalDensity.current.glyphBesideText(ButtonDefaults.IconSize, labelSize)
+  OutlinedButton(
+    onClick = onClick,
+    modifier = Modifier.padding(vertical = 8.dp).focusRing().testTag("chat-list-button-$label"),
+  ) {
+    Icon(
+      icon,
+      contentDescription = null,
+      modifier = Modifier.size(glyph).testTag("chat-list-glyph-$label"),
+    )
     Text(label, modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
   }
 }
@@ -239,6 +250,9 @@ private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, actionsF
   }
 }
 
+/** The size of a Material list item's leading icon, from which the icon grows with the name beside it. */
+private val CHAT_ROW_ICON = 24.dp
+
 /**
  * A Material one-line list item: 56 dp, the whole width pressable, an icon before the name.
  *
@@ -248,6 +262,7 @@ private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, actionsF
  */
 @Composable
 private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, actions: List<ChatRowAction>) {
+  val glyph = LocalDensity.current.glyphBesideText(CHAT_ROW_ICON, MaterialTheme.typography.bodyLarge.fontSize)
   var menuOpen by remember { mutableStateOf(false) }
   val spoken = actions.map { action ->
     CustomAccessibilityAction(action.label) {
@@ -265,7 +280,12 @@ private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, actions: List<ChatRowAct
       .testTag("chat-row"),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    Icon(
+      Icons.AutoMirrored.Outlined.Chat,
+      contentDescription = null,
+      tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.size(glyph).testTag("chat-row-glyph"),
+    )
     Text(
       chat.name,
       style = MaterialTheme.typography.bodyLarge,

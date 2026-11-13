@@ -125,7 +125,8 @@ Ours is absent, not present-but-unreachable. A label already grows (`sp`), so on
   their `dp`: an icon inside a `FocusRingIconButton` (a 48dp target), a label-less rail item, `ActiveTabSave` and
   `ActiveTabReload`, the launcher's tile and `LineNumbers`.
 - Closed in T6: a Material button's content slot fixes no size and clips nothing, as More's rail did not.
-- Open until T7: whether the two Material buttons in the AI extension differ.
+- Closed in T7: the two Material buttons in the AI extension do not differ: their content slot fixes no size and clips
+  nothing, as `:app`'s did.
 
 ## Surface
 
@@ -171,9 +172,14 @@ A theme item with no domain, port or adapter layer.
   replaced: each glyph follows `labelLarge`'s font size. Red at 0.89, 0.75 and 0.63 (the three 24dp glyphs, 1.20 at 1.0)
   and 0.67, 0.56 and 0.47 (the check, 0.90) at 1.3, 1.5 and 2.0, green at 1.184 to 1.188 and 0.868 to 0.889, so the
   tolerance is 0.05. The cell type button grows 54dp to 61dp at 2.0, because its caret is now 45dp.
-- [ ] T7 — The same in the AI extension (`AgentControls`' drop-down arrow, `ChatList`'s button icon). An extension is
-  built against `:extension-api` and never against `:app` ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)),
-  so `glyphBesideText` moves into `:extension-api` first, as the focus ring did, and its callers in `:app` follow.
+- [x] T7 — The same in the AI extension: `glyphBesideText` moved into `:extension-api` first, as the focus ring did
+  ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)), then the model chip's
+  drop-down arrow (`ChipButton`), the Chat list's two button icons and a chat row's icon, each with a test
+  (`AiGlyphFontScaleTest`). Each glyph follows its label's font size: red at 0.63 (arrow, 1.20 at 1.0), 0.47 (icons,
+  0.90) and 0.57 (row, 1.00) at 2.0, green at 1.184 to 1.188, 0.868 to 0.889 and 0.968 to 1.000, so the tolerance is
+  0.05. The chip grows to 61dp at 2.0 because its arrow is now 45dp; on the tablet the Chat list's buttons read 48.0dp
+  at 1.0 and 53.3dp at 2.0, and the chat row (56dp) did not grow. The model menu's check and the search field's icon
+  keep their `dp`: Material's menu item and text field set those slots' size.
 - [ ] T8 — The before and after on the tablet at one pane and on `dev36` at 1.0 and 2.0, the ADR for the
   mechanism and the deviation, `GAP-203` closed, one edited backlog line, this file deleted.
 
