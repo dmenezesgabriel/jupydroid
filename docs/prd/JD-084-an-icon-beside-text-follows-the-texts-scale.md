@@ -82,7 +82,7 @@ extension and both Android references scale nothing. The decision is which of ou
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
 | Mechanism | an `Icon` wrapper · a `Modifier` that sizes from `LocalDensity` · a `Dp` helper called at each site | the app has 98 `Icon(` sites, 11 with a fixed `Modifier.size` | one function in `theme/` beside `Spacing.kt` returning a `Dp` from an `sp`, so a site keeps its `Modifier.size(...)` and the diff is the argument. Settled in T1 by the smaller diff |
-| Conversion | `base.value * fontScale` · `base.sp.toDp()` through `LocalDensity` | the first overshoots the platform's non-linear curve at 2.0 | `sp.toDp()`, because it follows the same curve the label's size does |
+| Conversion | `base.value * fontScale` · `base.sp.toDp()` through `LocalDensity` | the first overshoots the platform's non-linear curve at 2.0 | `sp.toDp()` of the **label's font size**, applied to the glyph as a factor: a glyph about as large as its label's font (a 14dp tab glyph) may be converted from its own size, but a 24dp glyph beside a 14sp label reached only 0.95 of the label's line at 2.0, because the curve grows 24sp by 1.5 and 14sp by 1.9. T2 measured it |
 | Which glyphs | every `Icon(` · only those beside text | a standalone glyph (the Launcher's 40dp, a 48dp `IconButton`'s centre) has no label to keep a ratio to | only an icon in a row with text of the same line. Read each site in T3, not swept |
 | Targets | grow with the glyph · stay | ADR-0048 sets 48dp as a minimum, not a size | stay: a touch target is not a glyph, and `read_touch_targets.py` must show none under 48dp |
 | The tab row | stay 32dp · be a minimum | the label's line is 28dp at 2.0 (`dev36`, API 36) and the glyph that follows it 26dp, so the row holds both | stay 32dp: no scale the platform offers needs more, so a minimum would be code nothing reaches. [ADR-0142](../adr/0142-the-tab-strips-controls-keep-the-strips-height.md)'s Reload, Save and Up arrow therefore keep `TAB_HEIGHT + ACTIVE_EDGE` |
@@ -112,8 +112,11 @@ Ours is absent, not present-but-unreachable. A label already grows (`sp`), so on
 
 ## Open decisions
 
-- Whether Material's `WideNavigationRailItem` lays out a larger icon in its slot or clips it at 24dp.
-  Read on the tablet in T2, not assumed.
+- Closed in T2: Material's `WideNavigationRailItem` places its icon at the size the icon measured and clips
+  nothing (`NavigationItem.kt`, material3 1.4.0), so no slot is replaced. The row grows with the glyph: 56.0dp at
+  1.0 and 76.7dp at 2.0 on the tablet, where the label alone made it 69.3dp.
+- Closed in T2: the tolerance on a More row is 0.05 of the glyph over label ratio at 1.0 (1.200). Measured on
+  `dev36`: 1.185, 1.188 and 1.184 at 1.3, 1.5 and 2.0, a spread of 0.016.
 - Closed in T1: the tab row does not grow, so Reload, Save and the Up arrow have no taller row to follow.
 - Closed in T1: the tolerance for "keeps its ratio" is 0.10 of the glyph over label ratio at 1.0. Measured on
   `dev36`: 0.875 at 1.0 against 0.941, 0.957 and 0.929 at 1.3, 1.5 and 2.0, a spread of at most 0.082, because
@@ -138,8 +141,10 @@ A theme item with no domain, port or adapter layer.
 - [x] T1 — The conversion in `theme/` (`Density.glyphBesideText`) and the tab: the glyph follows the label, the
   tolerance is 0.10 from the measured spread, and the row stays 32dp because it already holds both, so Reload, Save
   and the Up arrow are untouched. The tablet at two panes reads 0 newly overlapping and 0 newly under 48dp.
-- [ ] T2 — More's rail row: red at 0.64 at 2.0, green within the tolerance; a Material slot that will not
-  take the size is replaced rather than worked around.
+- [x] T2 — More's rail row (`MoreRailRow`): the glyph follows the label's font size, so `glyphBesideText` takes
+  the label's size (default: the glyph's own, which is the tab's T1 behaviour). Red at 0.63 at 2.0, then 0.95 when
+  converted from its own 24sp, green at 1.185 to 1.188 against 1.200. The tablet at one pane reads 0 newly
+  overlapping and 0 newly under 48dp on every surface; the row is 56.0dp at 1.0 and 76.7dp at 2.0.
 - [ ] T3 — The other sites that sit beside text, each read before it is touched, each with a test.
 - [ ] T4 — The before and after on the tablet at one pane and on `dev36` at 1.0 and 2.0, the ADR for the
   mechanism and the deviation, `GAP-203` closed, one edited backlog line, this file deleted.

@@ -2,10 +2,12 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalWideNavigationRail
 import androidx.compose.material3.Text
 import androidx.compose.material3.WideNavigationRailDefaults
@@ -15,8 +17,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.theme.glyphBesideText
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.focusRing
 import kotlinx.coroutines.launch
@@ -90,15 +96,25 @@ fun MoreRail(
  */
 @Composable
 internal fun MoreRailRow(label: String, icon: ImageVector, selected: Boolean = false, onClick: () -> Unit) {
+  val glyph = LocalDensity.current.glyphBesideText(MORE_ROW_ICON, MaterialTheme.typography.labelLarge.fontSize)
   WideNavigationRailItem(
     selected = selected,
     onClick = onClick,
-    icon = { Icon(icon, contentDescription = null) },
+    icon = { Icon(icon, contentDescription = null, modifier = Modifier.size(glyph).testTag(MORE_ROW_GLYPH_TAG)) },
     label = { Text(label) },
     railExpanded = true,
     modifier = Modifier.focusRing(),
   )
 }
+
+/**
+ * A row's glyph at the default font scale: Material's `NavigationRailBaselineItemTokens.IconSize`, which
+ * `Icon` also defaults to, so a row at 1.0 is as it was. It grows with the label from there.
+ */
+private val MORE_ROW_ICON = 24.dp
+
+/** A row's glyph, which has no description to find it by; `MoreRailFontScaleTest` reads its size. */
+internal const val MORE_ROW_GLYPH_TAG = "More row glyph"
 
 /** The bar's fifth item's name, the menu Material opens a modal rail from. */
 const val MORE = "More"
