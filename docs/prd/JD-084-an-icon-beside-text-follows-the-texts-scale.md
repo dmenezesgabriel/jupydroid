@@ -151,8 +151,12 @@ A theme item with no domain, port or adapter layer.
 - [x] T3 — The Running panel's row icon (`ROW_ICON`) and section caret (`SECTION_CARET`), each with a test. Both
   16dp glyphs follow their 14sp label's font size: red at 0.59, 0.50 and 0.42 at 1.3, 1.5 and 2.0 against 0.80 at
   1.0, green at 0.78 to 0.79, so the tolerance is 0.05. The row (64dp) and header (48dp, 54dp at 2.0) did not grow.
-- [ ] T4 — The list rows with a leading glyph: Explorer (`ExplorerScreen`), Recents (`RecentsSection`) and the
-  `Twistie` callers, each with a test.
+- [x] T4 — The list rows with a leading glyph: Explorer (`ExplorerScreen`), Recents (`RecentsSection`) and the
+  `Twistie` callers, each with a test (`ListGlyphFontScaleTest`). Each 24dp glyph follows its label's font size
+  (`bodyLarge` for a row, `labelLarge` for the Recent heading, `bodyMedium` for a search file header): red at 0.77,
+  0.69 and 0.57 for a row against 1.00 at 1.0, and 0.89, 0.75 and 0.63 for a chevron against 1.20, green at 0.97 to
+  1.00 and 1.18 to 1.19, so the tolerance is 0.05. `Twistie` takes the label's size. The Explorer row (84dp at 1.3) and
+  the Recent heading (48dp) did not grow; a search file header does, 51dp to 61dp at 2.0, because its chevron is now 45dp.
 - [ ] T5 — The editor rows: the debugger's disclosure, a diagnostic's detail glyph, the kernel status glyph and the
   breadcrumb's separator, each with a test.
 - [ ] T6 — The glyphs inside a Material button beside its label (the drop-down arrows of `CellTypeControl`,
