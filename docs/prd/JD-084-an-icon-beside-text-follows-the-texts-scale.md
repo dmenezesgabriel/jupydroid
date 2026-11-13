@@ -121,10 +121,11 @@ Ours is absent, not present-but-unreachable. A label already grows (`sp`), so on
 - Closed in T1: the tolerance for "keeps its ratio" is 0.10 of the glyph over label ratio at 1.0. Measured on
   `dev36`: 0.875 at 1.0 against 0.941, 0.957 and 0.929 at 1.3, 1.5 and 2.0, a spread of at most 0.082, because
   Android 14's curve grows 14sp by 1.86 at 2.0 and the label's 16sp by 1.75. Before: 0.693, 0.609 and 0.500.
-- Closed by reading: of the 98 `Icon(` sites, about 17 sit beside text and are the tasks T3 to T6. The rest keep
+- Closed by reading: of the 98 `Icon(` sites, about 17 sit beside text and are the tasks T3 to T7. The rest keep
   their `dp`: an icon inside a `FocusRingIconButton` (a 48dp target), a label-less rail item, `ActiveTabSave` and
   `ActiveTabReload`, the launcher's tile and `LineNumbers`.
-- Open until T6: whether a Material button's icon slot clips or fixes a size, as More's rail did not.
+- Open until T6 (the four in `:app`) and T7 (the two in the AI extension): whether a Material button's icon slot
+  clips or fixes a size, as More's rail did not.
 
 ## Surface
 
@@ -164,10 +165,13 @@ A theme item with no domain, port or adapter layer.
   0.78 to 0.79, 1.18 to 1.19, 0.84 to 0.88 and 0.75 to 0.76, so the tolerance is 0.06 (0.05 for the card). A kernel
   glyph with no name beside it keeps 24dp. The breadcrumb row (48dp) did not grow; the kernel button does, 40dp to 61dp
   at 2.0, because its glyph is now 45dp.
-- [ ] T6 — The glyphs inside a Material button beside its label (the drop-down arrows of `CellTypeControl`,
-  `SpaceDefaultKernelField` and `AgentControls`, `ChoiceSegments`' check, `SpaceVariablesEditor`'s add,
-  `ChatList`'s button icon). Material owns the slot, so each is measured first and may need a replaced slot.
-- [ ] T7 — The before and after on the tablet at one pane and on `dev36` at 1.0 and 2.0, the ADR for the
+- [ ] T6 — The glyphs inside a Material button beside its label in `:app` (the drop-down arrows of
+  `CellTypeControl` and `SpaceDefaultKernelField`, `ChoiceSegments`' check, `SpaceVariablesEditor`'s add). Material
+  owns the slot, so each is measured first and may need a replaced slot.
+- [ ] T7 — The same in the AI extension (`AgentControls`' drop-down arrow, `ChatList`'s button icon). An extension is
+  built against `:extension-api` and never against `:app` ([ADR-0104](../adr/0104-extensions-are-compile-time-modules-against-an-extension-api.md)),
+  so `glyphBesideText` moves into `:extension-api` first, as the focus ring did, and its callers in `:app` follow.
+- [ ] T8 — The before and after on the tablet at one pane and on `dev36` at 1.0 and 2.0, the ADR for the
   mechanism and the deviation, `GAP-203` closed, one edited backlog line, this file deleted.
 
 ## Out of scope
