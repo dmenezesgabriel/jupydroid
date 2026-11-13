@@ -1,10 +1,10 @@
 package com.jupydroid.app.ui
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
@@ -24,7 +24,7 @@ import com.jupydroid.extension.api.FocusRingTextButton
  */
 @Composable
 fun SaveBeforeCloseDialog(name: String, onSave: () -> Unit, onDiscard: () -> Unit, onCancel: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onCancel,
     title = { Text("Save your work") },
     text = { Text("Save changes in \"$name\" before closing?") },

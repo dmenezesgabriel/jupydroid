@@ -112,7 +112,7 @@ A theme and UI item with no domain, port or adapter.
 
 ## Tasks
 
-- [ ] T1 — `MarginedAlertDialog` and its first caller, `SaveBeforeCloseDialog`: a wrapped-text dialog sits
+- [x] T1 — `MarginedAlertDialog` and its first caller, `SaveBeforeCloseDialog`: a wrapped-text dialog sits
   at least 24dp inside the window on both sides (red at 0 and 0 on `dev36`).
 - [ ] T2 — the 17 other files, and `ArchitectureGuardTest` bans material3's `AlertDialog` in `ui/`.
 - [ ] T3 — read the six dialogs at 320, 360 and 412dp and on the tablet, settle the margin tap, write the ADR,
