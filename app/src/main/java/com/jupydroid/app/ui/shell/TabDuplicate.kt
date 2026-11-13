@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.shell
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -10,6 +9,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.port.WorkspaceFiles
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 import kotlinx.coroutines.launch
 
@@ -34,7 +34,7 @@ internal fun rememberTabDuplicate(workspaceFiles: WorkspaceFiles): (OpenDocument
   var refusal by remember { mutableStateOf<String?>(null) }
   val scope = rememberCoroutineScope()
   refusal?.let { message ->
-    AlertDialog(
+    MarginedAlertDialog(
       onDismissRequest = { refusal = null },
       title = { Text("Duplicate Error") },
       text = { Text(message) },

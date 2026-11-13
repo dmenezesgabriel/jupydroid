@@ -1,7 +1,6 @@
 package com.jupydroid.app.ui.shell
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -14,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.Checkpoint
 import com.jupydroid.app.domain.port.DocumentCheckpoints
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -74,7 +74,7 @@ private fun RevertToCheckpointDialog(
   onCancel: () -> Unit,
   onRevert: () -> Unit,
 ) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onCancel,
     title = { Text("Revert $documentType to checkpoint") },
     text = {
@@ -96,7 +96,7 @@ private fun RevertToCheckpointDialog(
 
 @Composable
 private fun CheckpointMessageDialog(title: String, message: String, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(title) },
     text = { Text(message) },

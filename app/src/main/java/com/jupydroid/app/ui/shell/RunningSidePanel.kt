@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
@@ -53,6 +52,7 @@ import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.DocumentContribution
@@ -381,7 +381,7 @@ private fun RunningRow(
  */
 @Composable
 private fun BulkConfirmationDialog(pending: PendingBulk, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(pending.title) },
     text = { Text(pending.body) },

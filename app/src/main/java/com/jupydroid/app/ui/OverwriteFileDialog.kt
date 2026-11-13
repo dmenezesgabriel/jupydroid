@@ -1,9 +1,9 @@
 package com.jupydroid.app.ui
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
@@ -23,7 +23,7 @@ import com.jupydroid.extension.api.FocusRingTextButton
  */
 @Composable
 fun OverwriteFileDialog(name: String, onOverwrite: () -> Unit, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Overwrite file?") },
     text = { Text("\"$name\" already exists, overwrite?") },

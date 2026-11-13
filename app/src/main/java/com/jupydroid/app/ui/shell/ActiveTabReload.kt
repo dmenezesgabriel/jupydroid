@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +20,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import com.jupydroid.app.OpenDocument
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
@@ -79,7 +79,7 @@ internal fun ActiveTabReload(title: String, document: OpenDocument?, height: Dp,
 /** The command's dirty guard: Cancel, and the warning Reload, in its own order. */
 @Composable
 private fun ReloadFromDiskDialog(documentType: String, onReload: () -> Unit, onCancel: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onCancel,
     title = { Text("Reload $documentType from Disk") },
     text = { Text("Are you sure you want to reload the $documentType from the disk?") },

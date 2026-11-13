@@ -8,7 +8,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,6 +30,7 @@ import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.THREAD_CAP_RANGE
 import com.jupydroid.app.syntax.ShellSyntax
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.cellEditorBox
@@ -89,7 +89,7 @@ fun SpaceSettingsDialog(
   val idleMinutes = idleText.trim().toIntOrNull()?.takeIf { it in IDLE_SHUTDOWN_MINUTES_RANGE }
   val threadCap = threadCapOf(capText)
   val savable = idleMinutes?.takeIf { threadCap.isSuccess && variableRows.refusals().all { it == null } }
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Settings · ${space.name} (${space.id})") },
     text = {

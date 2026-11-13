@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +16,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 
 internal const val RENAME_SYMBOL_FIELD_TAG = "rename-symbol-field"
@@ -42,7 +42,7 @@ internal fun RenameSymbolDialog(currentName: String, onConfirm: (String) -> Unit
     mutableStateOf(TextFieldValue(currentName, TextRange(0, currentName.length)))
   }
   val field = remember { FocusRequester() }
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Rename symbol") },
     text = {

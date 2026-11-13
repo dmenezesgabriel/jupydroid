@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -49,6 +48,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.extension.api.FocusRingTextButton
@@ -138,7 +138,7 @@ fun LauncherScreen(
   }
   error?.let { message ->
     // `showErrorMessage('Error', error)` - the reference reports a failed command in a dialog.
-    AlertDialog(
+    MarginedAlertDialog(
       onDismissRequest = viewModel::dismissError,
       title = { Text("Error") },
       text = { Text(message) },

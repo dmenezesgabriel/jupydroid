@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
@@ -25,6 +24,7 @@ import com.jupydroid.app.domain.model.KernelPickGroup
 import com.jupydroid.app.domain.model.KernelPickOption
 import com.jupydroid.app.domain.model.initialPick
 import com.jupydroid.app.domain.port.KernelChoice
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.extension.api.FocusRingTextButton
 
@@ -56,7 +56,7 @@ internal fun KernelPickerDialog(
   // The `<select>`'s untouched answer: the marked row, or the first - the browser picks one
   // either way, so "Select" on a dialog nobody tapped still has an answer.
   var picked by remember(groups) { mutableStateOf(groups.initialPick()) }
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Select Kernel") },
     text = {

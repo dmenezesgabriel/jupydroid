@@ -1,7 +1,6 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +14,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
@@ -40,7 +40,7 @@ fun BreakpointConditionDialog(currentCondition: String?, onConfirm: (String?) ->
   var condition by remember(currentCondition) { mutableStateOf(TextFieldValue(currentCondition.orEmpty())) }
   val field = remember { FocusRequester() }
 
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Breakpoint condition") },
     text = {

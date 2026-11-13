@@ -1,8 +1,8 @@
 package com.jupydroid.app.ui.shell
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
@@ -27,7 +27,7 @@ import com.jupydroid.extension.api.FocusRingTextButton
  */
 @Composable
 fun ReplaceAllDialog(asked: ReplaceAllRequest, onReplace: () -> Unit, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(REPLACE_ALL_TITLE) },
     text = { Text(replaceAllConfirmation(asked.occurrences, asked.fileCount, asked.replaceValue)) },

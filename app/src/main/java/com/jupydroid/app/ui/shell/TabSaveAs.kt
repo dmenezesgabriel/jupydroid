@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.shell
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,6 +13,7 @@ import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.isValidWorkspacePath
 import com.jupydroid.app.domain.model.notebookLeafOf
 import com.jupydroid.app.domain.port.WorkspaceRepository
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extension.api.RenameFileDialog
@@ -103,7 +103,7 @@ private fun SaveAsPathDialog(path: String, onConfirm: (String) -> Unit, onDismis
 /** `File Save Error for %1` - a refusal shown rather than lost, as the tab's rename shows its own. */
 @Composable
 private fun SaveAsRefusalDialog(message: String, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Save Error") },
     text = { Text(message) },

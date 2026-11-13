@@ -20,7 +20,6 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -60,6 +59,7 @@ import com.jupydroid.app.mainAreaTabTitle
 import com.jupydroid.app.moveToSidePanel
 import com.jupydroid.app.runningTabTitle
 import com.jupydroid.app.sidePanelMoveOf
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.DocumentContribution
@@ -241,7 +241,7 @@ fun TabbedDocumentPane(
   // packages/filebrowser/src/listing.ts), while `context.rename` lets the tab's refusal reach the
   // console alone - which, on a device, is silence.
   refusal?.let { message ->
-    AlertDialog(
+    MarginedAlertDialog(
       onDismissRequest = { refusal = null },
       title = { Text("Rename Error") },
       text = { Text(message) },

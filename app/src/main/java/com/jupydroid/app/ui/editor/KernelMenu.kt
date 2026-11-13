@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -11,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.FocusRingTextButton
 
@@ -281,7 +281,7 @@ internal const val RESTART_AND_RUN_TO_SELECTED = "Restart Kernel and Run up to S
  */
 @Composable
 private fun CloseAndShutDownDialog(notebookTitle: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Shut down the notebook?") },
     text = { Text("Are you sure you want to close \"$notebookTitle\"?") },
@@ -329,7 +329,7 @@ private fun RestartRequest.question(): String = when (this) {
  */
 @Composable
 internal fun RestartDialog(request: RestartRequest, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(request.question()) },
     text = { Text("All variables will be lost.") },
