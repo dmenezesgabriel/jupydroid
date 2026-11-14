@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -10,7 +11,7 @@ import org.junit.Test
  * `BoxWithConstraints`.
  */
 class TerminalGridSizeTest {
-  private val cell = IntSize(width = 10, height = 20)
+  private val cell = Size(width = 10f, height = 20f)
 
   @Test
   fun fitsWholeCellsExactly() {
@@ -40,5 +41,16 @@ class TerminalGridSizeTest {
     val grid = terminalGridSize(containerPixels = IntSize(800, 5), cell = cell)
 
     assertEquals(IntSize(width = 80, height = 2), grid)
+  }
+
+  /**
+   * A font advances 14.8 px where a whole-pixel cell says 15: 1000 px holds 67 columns drawn at the
+   * pitch and only 66 counted at the rounded-up one, so the last column sits short of the edge.
+   */
+  @Test
+  fun countsColumnsAtTheFontsFractionalAdvance() {
+    val grid = terminalGridSize(containerPixels = IntSize(1000, 600), cell = Size(width = 14.8f, height = 20f))
+
+    assertEquals(IntSize(width = 67, height = 30), grid)
   }
 }

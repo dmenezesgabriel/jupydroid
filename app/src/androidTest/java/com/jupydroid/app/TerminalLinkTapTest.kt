@@ -4,13 +4,13 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.IntSize
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeExternalLinkOpener
 import com.jupydroid.app.data.fake.FakeTerminalGateway
@@ -43,7 +43,7 @@ class TerminalLinkTapTest {
   private val session = runBlocking { gateway.open() }
   private val viewModel = TerminalPaneViewModel(session, gateway)
   private val opener = FakeExternalLinkOpener()
-  private var cell by mutableStateOf<IntSize?>(null)
+  private var cell by mutableStateOf<Size?>(null)
 
   @Test
   fun aTapOnAPrintedAddressAsksBeforeOpeningIt() {

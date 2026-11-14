@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -66,6 +67,7 @@ import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
 import com.jupydroid.extension.api.KeyRowPublished
 import kotlinx.coroutines.flow.drop
+import kotlin.math.roundToInt
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
 const val TERMINAL_INPUT_TAG = "terminal-input"
@@ -120,7 +122,7 @@ fun TerminalPaneScreen(
   // pixel delta can be turned into rows, and a press into a cell, without waiting for a fresh
   // `onGridSizeChanged` call - `terminalCellMetrics`'s own measurement never changes mid-gesture,
   // only mid-recomposition.
-  var cellPx by remember { mutableStateOf(IntSize(1, 1)) }
+  var cellPx by remember { mutableStateOf(Size(1f, 1f)) }
   val selection by viewModel.selector.selection.collectAsStateWithLifecycle()
   val copyToClipboard = rememberTerminalClipboardCopy()
   val pasteFromClipboard = rememberTerminalClipboardPaste(viewModel.emulator::paste)
@@ -198,7 +200,9 @@ fun TerminalPaneScreen(
     Box(Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)) {
       Box(
         modifier = Modifier.fillMaxSize()
-          .pointerInput(cellPx) { detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellPx.height) } }
+          .pointerInput(cellPx) {
+            detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellPx.height.toInt()) }
+          }
           .onGloballyPositioned { gestureBox = it }
           .pointerInput(cellPx, state.topRow) {
             detectTerminalLongPress(
@@ -228,7 +232,7 @@ fun TerminalPaneScreen(
           TerminalCanvas(
             emulator = viewModel.emulator,
             onGridSizeChanged = { grid, cell ->
-              viewModel.resize(grid, cell.width, cell.height)
+              viewModel.resize(grid, cell.width.roundToInt(), cell.height.roundToInt())
               cellPx = cell
             },
             modifier = Modifier.fillMaxSize().padding(horizontal = terminalMargin),

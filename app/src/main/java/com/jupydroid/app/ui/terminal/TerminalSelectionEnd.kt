@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.terminal
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
 
 /**
@@ -23,12 +24,12 @@ enum class TerminalSelectionEnd {
    * Where this end's handle hangs from, in pixels from the top-left of column `0` of the view whose
    * top row is [topRow].
    */
-  fun anchorIn(selection: TerminalTextSelection, cell: IntSize, topRow: Int): Offset {
+  fun anchorIn(selection: TerminalTextSelection, cell: Size, topRow: Int): Offset {
     val (column, row) = when (this) {
       START -> selection.startColumn to selection.startRow
       END -> selection.endColumn + 1 to selection.endRow
     }
-    return Offset((column * cell.width).toFloat(), ((row - topRow + 1) * cell.height).toFloat())
+    return Offset(column * cell.width, (row - topRow + 1) * cell.height)
   }
 
   /**
@@ -36,8 +37,8 @@ enum class TerminalSelectionEnd {
    * cell on this end's side of the nearest boundary between cells, through [terminalCellAt], so it
    * is clamped to the view as a press is.
    */
-  fun cellUnder(anchor: Offset, cell: IntSize, grid: IntSize, topRow: Int): TerminalCellPosition {
-    val halfCell = Offset(cell.width / 2f, cell.height / 2f)
+  fun cellUnder(anchor: Offset, cell: Size, grid: IntSize, topRow: Int): TerminalCellPosition {
+    val halfCell = Offset(cell.width / 2, cell.height / 2)
     val inside = when (this) {
       START -> Offset(anchor.x + halfCell.x, anchor.y - halfCell.y)
       END -> anchor - halfCell

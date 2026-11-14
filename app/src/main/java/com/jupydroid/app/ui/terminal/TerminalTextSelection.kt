@@ -1,7 +1,7 @@
 package com.jupydroid.app.ui.terminal
 
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.geometry.Size
 import com.jupydroid.app.terminal.TerminalGrid
 import com.jupydroid.app.terminal.wordColumnsAt
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,15 +52,15 @@ data class TerminalTextSelection(val startColumn: Int, val startRow: Int, val en
    * `TextSelectionCursorController.onGetContentRect` (termux-app `3df69d1d`) does. A span over
    * several rows covers them across all [columns].
    */
-  fun boundsIn(cell: IntSize, columns: Int, topRow: Int): Rect {
+  fun boundsIn(cell: Size, columns: Int, topRow: Int): Rect {
     val oneRow = startRow == endRow
     val left = if (oneRow) startColumn else 0
     val right = if (oneRow) endColumn + 1 else columns
     return Rect(
-      left = (left * cell.width).toFloat(),
-      top = ((startRow - topRow) * cell.height).toFloat(),
-      right = (right * cell.width).toFloat(),
-      bottom = ((endRow - topRow + 1) * cell.height).toFloat(),
+      left = left * cell.width,
+      top = (startRow - topRow) * cell.height,
+      right = right * cell.width,
+      bottom = (endRow - topRow + 1) * cell.height,
     )
   }
 }

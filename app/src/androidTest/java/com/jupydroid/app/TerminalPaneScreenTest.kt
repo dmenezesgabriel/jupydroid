@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
@@ -12,7 +13,6 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
-import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -53,7 +53,7 @@ class TerminalPaneScreenTest {
     val gateway = FakeTerminalGateway()
     val session = runBlocking { gateway.open() }
     val viewModel = TerminalPaneViewModel(session, gateway)
-    var cell by mutableStateOf<IntSize?>(null)
+    var cell by mutableStateOf<Size?>(null)
 
     // Pinned rather than left to whatever the physical device was last rotated to - the tablet's
     // own landscape default has already cost `terminal-resize`/`terminal-font-size`
@@ -79,7 +79,7 @@ class TerminalPaneScreenTest {
     }
     val rowsWithIme = settledRows(viewModel)
 
-    val cellHeight = requireNotNull(cell) { "terminalCellMetrics was never composed" }.height
+    val cellHeight = requireNotNull(cell) { "terminalCellMetrics was never composed" }.height.toInt()
     val shrunkByRows = rowsWithoutIme - rowsWithIme
     // `terminalGridSize`'s own floor division, not a hand-derived ratio - the same arithmetic
     // `TerminalCanvas` uses to turn pixels into rows. Measured on device rather than treated as

@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
@@ -23,7 +24,6 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
-import androidx.compose.ui.unit.IntSize
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -57,7 +57,7 @@ class TerminalSelectionTest {
   private val session = runBlocking { gateway.open() }
   private val viewModel = TerminalPaneViewModel(session, gateway)
   private val toolbar = RecordingTextToolbar()
-  private var cell by mutableStateOf<IntSize?>(null)
+  private var cell by mutableStateOf<Size?>(null)
 
   @Test
   fun aLongPressOnAWordShowsTheToolbarOverItAndItsCopyPutsTheWordOnTheClipboard() {

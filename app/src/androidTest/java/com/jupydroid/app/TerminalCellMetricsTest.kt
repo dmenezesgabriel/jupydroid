@@ -3,8 +3,8 @@ package com.jupydroid.app
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.unit.IntSize
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.terminal.TerminalEmulator
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -28,8 +28,8 @@ class TerminalCellMetricsTest {
 
   @Test
   fun measuresARealGlyphRatherThanTheReferencesPlaceholder() {
-    var first: IntSize? by mutableStateOf(null)
-    var second: IntSize? by mutableStateOf(null)
+    var first: Size? by mutableStateOf(null)
+    var second: Size? by mutableStateOf(null)
 
     compose.setContent {
       JupyterDroidTheme {
@@ -44,7 +44,8 @@ class TerminalCellMetricsTest {
     assertTrue("height $height should be positive", height > 0)
     assertTrue(
       "($width, $height) looks like the reference's own placeholder, not a device measurement",
-      width != TerminalEmulator.DEFAULT_CELL_WIDTH_PIXELS || height != TerminalEmulator.DEFAULT_CELL_HEIGHT_PIXELS,
+      width != TerminalEmulator.DEFAULT_CELL_WIDTH_PIXELS.toFloat() ||
+        height != TerminalEmulator.DEFAULT_CELL_HEIGHT_PIXELS.toFloat(),
     )
   }
 }

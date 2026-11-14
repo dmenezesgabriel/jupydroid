@@ -48,7 +48,7 @@ const val TERMINAL_SELECTION_END_TAG = "terminal-selection-end"
 @Composable
 fun TerminalSelectionHandles(
   selection: TerminalTextSelection,
-  cell: IntSize,
+  cell: Size,
   grid: IntSize,
   topRow: Int,
   origin: Offset,

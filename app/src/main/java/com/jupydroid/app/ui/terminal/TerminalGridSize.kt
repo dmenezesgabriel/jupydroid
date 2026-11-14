@@ -1,5 +1,6 @@
 package com.jupydroid.app.ui.terminal
 
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import com.jupydroid.app.theme.Spacing
@@ -25,10 +26,10 @@ private const val MINIMUM_CELLS = 2
  * the floor [com.jupydroid.app.terminal.TerminalEmulator.resize] itself enforces.
  *
  * ```
- * terminalGridSize(containerPixels = IntSize(800, 600), cell = IntSize(10, 20))  // 80 x 30
+ * terminalGridSize(containerPixels = IntSize(800, 600), cell = Size(10f, 20f))  // 80 x 30
  * ```
  */
-fun terminalGridSize(containerPixels: IntSize, cell: IntSize): IntSize = IntSize(
-  width = (containerPixels.width / cell.width).coerceAtLeast(MINIMUM_CELLS),
-  height = (containerPixels.height / cell.height).coerceAtLeast(MINIMUM_CELLS),
+fun terminalGridSize(containerPixels: IntSize, cell: Size): IntSize = IntSize(
+  width = (containerPixels.width / cell.width).toInt().coerceAtLeast(MINIMUM_CELLS),
+  height = (containerPixels.height / cell.height).toInt().coerceAtLeast(MINIMUM_CELLS),
 )

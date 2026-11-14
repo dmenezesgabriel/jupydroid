@@ -220,7 +220,7 @@ class TerminalPaneViewModel(
    * keeps a redraw that changes nothing about the layout from writing the wire again.
    *
    * ```
-   * viewModel.resize(terminalGridSize(containerPixels, cell), cell.width, cell.height)
+   * viewModel.resize(terminalGridSize(containerPixels, cell), cell.width.roundToInt(), cell.height.roundToInt())
    * ```
    */
   fun resize(gridSize: IntSize, cellWidthPixels: Int, cellHeightPixels: Int) {

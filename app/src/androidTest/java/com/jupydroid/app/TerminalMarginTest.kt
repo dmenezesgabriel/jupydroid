@@ -5,10 +5,10 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.unit.IntSize
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -37,7 +37,7 @@ class TerminalMarginTest {
   private val gateway = FakeTerminalGateway()
   private val session = runBlocking { gateway.open() }
   private val viewModel = TerminalPaneViewModel(session, gateway)
-  private var cell by mutableStateOf<IntSize?>(null)
+  private var cell by mutableStateOf<Size?>(null)
 
   @Before
   fun showTheTerminal() {
@@ -60,7 +60,7 @@ class TerminalMarginTest {
 
     assertEquals(
       "a $paneWidth px pane with a $margin px margin on each side, at $cellWidth px per column",
-      (paneWidth - 2 * margin) / cellWidth,
+      ((paneWidth - 2 * margin) / cellWidth).toInt(),
       settledColumns(),
     )
   }

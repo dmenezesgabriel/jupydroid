@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.terminal
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.unit.IntSize
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -11,7 +12,7 @@ import org.junit.Test
  * `TextSelectionCursorController.updatePosition` (termux-app `3df69d1d`).
  */
 class TerminalSelectionEndTest {
-  private val cell = IntSize(width = 10, height = 20)
+  private val cell = Size(width = 10f, height = 20f)
   private val grid = IntSize(width = 8, height = 4)
   private val selection = TerminalTextSelection(startColumn = 3, startRow = 1, endColumn = 5, endRow = 1)
 

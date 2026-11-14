@@ -94,7 +94,7 @@ A UI item with no domain, port or adapter.
 
 ## Tasks
 
-- [ ] T1 — red tests that a fractional cell counts, maps and bounds at its own width, then the `Size` cell
+- [x] T1 — red tests that a fractional cell counts, maps and bounds at its own width, then the `Size` cell
   through the files above.
 - [ ] T2 — read both widths on the tablet before and after, look at the frames, run the regression flows that
   read columns or a press, and edit `parity-ledger.md` and ADR-0144's consequences to match.
