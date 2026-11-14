@@ -1,0 +1,267 @@
+import { readFile } from "node:fs/promises";
+import { basename, join, resolve } from "node:path";
+import { ActivityLedger } from "./activity-ledger.ts";
+import { systemClock } from "./clock.ts";
+import { ClaudeAgent, type PromptBlock } from "./claude-agent.ts";
+import { GitCli } from "./git-probe.ts";
+import { buildHandlers } from "./handlers.ts";
+import {
+  runIteration,
+  type IterationOutcome,
+  type IterationTiming,
+} from "./iteration.ts";
+import { RpcError } from "./json-rpc.ts";
+import { DirectoryMailboxFiles, Mailbox, type LoopEvent } from "./mailbox.ts";
+import {
+  nextBacklogRow,
+  readHostReadings,
+  readProcEntries,
+  waitUntilReady,
+  type PreflightDeps,
+} from "./preflight.ts";
+import { ProgressTracker } from "./progress.ts";
+import { DEFAULT_RUN_DIR, RunDir, isProcessAlive } from "./run-dir.ts";
+import { summarizeJournal } from "./journal-summary.ts";
+import {
+  DEFAULT_AGENT_COMMAND,
+  spawnClaudeAcp,
+  type SpawnedAgent,
+} from "./spawn-agent.ts";
+import { isEntryPoint } from "./entry-point.ts";
+import {
+  BackgroundExitWatcher,
+  fileTaskOutputs,
+} from "./background-exit-watcher.ts";
+
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+
+// Claude Code bounds a foreground command with its Bash timeout and moves
+// longer work to a background task, so an hour of total silence is not a test
+// suite, and three hours is not a working agent.
+const TIMING: IterationTiming = {
+  possiblyHungAfterMs: 45 * MINUTE,
+  cancelAfterSilenceMs: 3 * HOUR,
+  backgroundCeilingMs: 3 * HOUR,
+  limitPollMs: 30 * MINUTE,
+  limitMarginMs: MINUTE,
+  watchEveryMs: MINUTE,
+};
+const BACKGROUND_POLL_MS = 10_000;
+
+type LoopContext = {
+  repoRoot: string;
+  promptFile: string;
+  agentCommand: string;
+  runDir: RunDir;
+  git: GitCli;
+  mailbox: Mailbox;
+  emit(event: LoopEvent): Promise<void>;
+};
+
+/**
+ * Flags: `--repo <dir>` (default: cwd), `--run-dir <dir>`, `--prompt <file>`
+ * (default: prompt-execution.md in the repo), `--agent-command <path>`
+ * (default: `claude-agent-acp` from PATH).
+ */
+export function parseArguments(argv: string[], cwd: string) {
+  const flag = (name: string): string | undefined => {
+    const at = argv.indexOf(name);
+    return at === -1 ? undefined : argv[at + 1];
+  };
+  const repoRoot = resolve(flag("--repo") ?? cwd);
+  return {
+    repoRoot,
+    runDir: resolve(flag("--run-dir") ?? join(repoRoot, DEFAULT_RUN_DIR)),
+    promptFile: resolve(repoRoot, flag("--prompt") ?? "prompt-execution.md"),
+    agentCommand: flag("--agent-command") ?? DEFAULT_AGENT_COMMAND,
+  };
+}
+
+async function openingPrompt(promptFile: string): Promise<PromptBlock[]> {
+  const text = await readFile(promptFile, "utf8");
+  return [
+    {
+      type: "resource",
+      resource: {
+        uri: `file://${promptFile}`,
+        mimeType: "text/markdown",
+        text,
+      },
+    },
+    { type: "text", text: `Follow ${basename(promptFile)} (attached).` },
+  ];
+}
+
+type Session = {
+  spawned: SpawnedAgent;
+  ledger: ActivityLedger;
+  watcher: BackgroundExitWatcher;
+  agent: ClaudeAgent;
+};
+
+/**
+ * Starts the adapter and wires its callbacks. Claude reports no exit for a
+ * background command, so the watcher reads the command's output file and
+ * feeds the exit back through the same handler a frame would have used.
+ */
+function openSession(context: LoopContext): Session {
+  const stamp = new Date().toISOString().replaceAll(":", "-");
+  const spawned = spawnClaudeAcp(
+    context.repoRoot,
+    join(context.runDir.path, `acp-${stamp}.jsonl`),
+    context.agentCommand,
+  );
+  const ledger = new ActivityLedger();
+  const handlers = buildHandlers({
+    ledger,
+    clock: systemClock,
+    emit: context.emit,
+    askQuestions: (questions) => context.mailbox.askQuestions(questions),
+    watchBackground: (shellId, outputPath) =>
+      watcher.watch(shellId, outputPath),
+  });
+  const watcher = new BackgroundExitWatcher(
+    systemClock,
+    fileTaskOutputs,
+    (shellId, exitCode) =>
+      handlers.onSignal({ type: "background_exited", shellId, exitCode }),
+    BACKGROUND_POLL_MS,
+  );
+  const agent = new ClaudeAgent(spawned.channel, handlers);
+  return { spawned, ledger, watcher, agent };
+}
+
+async function driveSession(
+  context: LoopContext,
+  { agent, ledger }: Session,
+): Promise<IterationOutcome> {
+  await agent.initialize();
+  const sessionId = await agent.newSession(context.repoRoot);
+  await context.emit({ type: "session_started", sessionId });
+  return runIteration({
+    agent,
+    ledger,
+    git: context.git,
+    clock: systemClock,
+    askReply: (why, last) => context.mailbox.askReply(why, last),
+    emit: context.emit,
+    openingPrompt: await openingPrompt(context.promptFile),
+    timing: TIMING,
+  });
+}
+
+async function runSession(context: LoopContext): Promise<IterationOutcome> {
+  const session = openSession(context);
+  try {
+    return await driveSession(context, session);
+  } catch (error) {
+    if (error instanceof RpcError) {
+      return {
+        kind: "halted",
+        reason: `session setup failed: ${error.message}`,
+      };
+    }
+    throw error;
+  } finally {
+    session.watcher.stopAll();
+    await session.spawned.stop();
+  }
+}
+
+function preflightDeps(context: LoopContext): PreflightDeps {
+  return {
+    repoRoot: context.repoRoot,
+    readBacklog: () =>
+      readFile(join(context.repoRoot, "docs/backlog.md"), "utf8"),
+    readHost: readHostReadings,
+    readProcs: readProcEntries,
+    stopRequested: () => context.runDir.stopRequested(),
+    clock: systemClock,
+    emit: context.emit,
+    recheckMs: MINUTE,
+    repeatReportMs: 10 * MINUTE,
+  };
+}
+
+async function runLoop(context: LoopContext): Promise<number> {
+  const tracker = new ProgressTracker();
+  for (;;) {
+    const ready = await waitUntilReady(preflightDeps(context));
+    if (ready !== "ready") {
+      await context.emit({ type: ready });
+      return 0;
+    }
+    const row = nextBacklogRow(
+      await readFile(join(context.repoRoot, "docs/backlog.md"), "utf8"),
+    );
+    await context.emit({
+      type: "iteration_started",
+      row,
+      head: await context.git.head(),
+    });
+    const outcome = await runSession(context);
+    await context.emit({ type: `iteration_${outcome.kind}`, ...outcome });
+    const verdict = tracker.record(outcome);
+    if (!verdict.keepGoing) {
+      await context.emit({ type: "loop_halted", reason: verdict.reason });
+      return 1;
+    }
+  }
+}
+
+/** A previous loop died mid-iteration: say so in the journal, so the unfinished work is not forgotten. */
+async function recordInterrupted(context: LoopContext): Promise<void> {
+  const { open } = summarizeJournal(await context.runDir.readEvents());
+  if (!open) return;
+  await context.emit({
+    type: "iteration_interrupted",
+    n: open.n,
+    row: open.row,
+    sessionId: open.sessionId,
+    pending: open.pending.map((ask) => ask.id),
+    running: open.running,
+  });
+}
+
+async function main(): Promise<number> {
+  const {
+    repoRoot,
+    runDir: runDirPath,
+    promptFile,
+    agentCommand,
+  } = parseArguments(process.argv.slice(2), process.cwd());
+  const runDir = new RunDir(runDirPath);
+  await runDir.acquireLock(process.pid, isProcessAlive);
+  const files = new DirectoryMailboxFiles(runDirPath, () =>
+    new Date().toISOString(),
+  );
+  const context: LoopContext = {
+    repoRoot,
+    promptFile,
+    agentCommand,
+    runDir,
+    git: new GitCli(repoRoot),
+    mailbox: new Mailbox(files, systemClock),
+    emit: (event) => files.appendEvent(event),
+  };
+  try {
+    await context.emit({ type: "loop_started", repoRoot, pid: process.pid });
+    await recordInterrupted(context);
+    return await runLoop(context);
+  } finally {
+    await runDir.releaseLock();
+  }
+}
+
+if (isEntryPoint(import.meta.url)) {
+  main().then(
+    (code) => process.exit(code),
+    (error: unknown) => {
+      console.error(
+        JSON.stringify({ type: "loop_crashed", error: String(error) }),
+      );
+      process.exit(2);
+    },
+  );
+}

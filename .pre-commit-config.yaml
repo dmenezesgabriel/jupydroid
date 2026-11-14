@@ -170,12 +170,20 @@ repos:
         language: system
         stages: [commit-msg]
       # Only when the rules, the npm settings or the lockfile change (any root-level .mjs is a config or
-      # its test); the hook above is what runs on every commit.
+      # its test), or the claude-autopilot loop or the recorded sessions its tests read (ADR-0147); the
+      # hook above is what runs on every commit.
       - id: commitlint-config-tests
-        name: the commit tooling's own tests (commitlint, commitizen, .npmrc)
+        name: the commit tooling's and the autopilot loop's own tests
         entry: npm test
         language: system
-        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs)$'
+        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs|scripts/claude-autopilot/.*|scripts/testdata/claude-autopilot-frames/.*)$'
+        pass_filenames: false
+      # `tsc --noEmit` over the loop and its tests: Node strips the types without checking them.
+      - id: claude-autopilot-typecheck
+        name: the autopilot loop typechecks
+        entry: npm run typecheck
+        language: system
+        files: '^(package(-lock)?\.json|scripts/claude-autopilot/.*)$'
         pass_filenames: false
       - id: ktlint-check
         name: ktlint format check

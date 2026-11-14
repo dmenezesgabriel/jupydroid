@@ -223,6 +223,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | workflow audit | unpinned actions, token scopes, persisted credentials, template injection; offline | `.pre-commit-config.yaml` (`zizmor`), `uv.lock` |
 | commit-message gate | a subject is `type(scope): subject`, with the ten types the history uses and no `revert`; refused at `commit-msg` before the commit exists | `commitlint.config.mjs` (+ `.test.mjs`), `.pre-commit-config.yaml` (`commitlint`, `commitlint-config-tests`), [ADR-0139](docs/adr/0139-commit-subjects-are-checked-by-commitlint-from-a-locked-npm-tree-and-written-with-commitizen.md) |
 | commit writer | `npm run commit` asks for the type, scope and subject from the same rules the gate checks | `package.json` (`config.commitizen`), `commitizen.config.test.mjs` |
+| autopilot loop | `scripts/claude-autopilot/` repeats `prompt-execution.md` one session per commit, a Claude session answering its questions from `ORCHESTRATOR.md`; tests by `node --test`, types by `tsc` | `package.json` (`test`, `typecheck`), `.pre-commit-config.yaml` (`commitlint-config-tests`, `claude-autopilot-typecheck`), [ADR-0147](docs/adr/0147-a-claude-session-orchestrates-a-loop-that-runs-one-execution-session-per-commit.md) |
 | npm supply chain | no install script, git dependency or release younger than 7 days; exact pins; `npm ci` from a sha512 lock | `.npmrc` (+ `npmrc.test.mjs`), `package-lock.json`, `.github/dependabot.yml` (`npm`) |
 | CI | the hooks above, verbatim, on every push to `main` and every pull request: `python-gate` for the Python and ShellCheck hooks, `gradle-gate` for the Gradle ones and `assembleDebug`; `commit-messages` on a pull request only, for its commits and its title | `.github/workflows/ci.yml` |
 | duplication gate | no Kotlin block of 150+ tokens is copied, tests included; PMD CPD, which Gradle's PMD plugin does not run | `:app:cpd` in `app/build.gradle.kts` (`cpdTool`, `libs.versions.toml` `pmd`) |
@@ -275,7 +276,7 @@ nothing about one that does not.
 ktlint check is a formatter, which parses without resolving.
 
 And `uv run --locked ruff check scripts tools`, `uv run --locked ruff format --check scripts tools`, `uv run --locked mypy`, `uv run --locked mypy --config-file tools/rootfs/mypy.ini` and
-`uv run --locked python -m unittest discover -s scripts -p '*_test.py'` and `npm test`
+`uv run --locked python -m unittest discover -s scripts -p '*_test.py'`, `npm test` and `npm run typecheck`
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current

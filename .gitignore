@@ -43,3 +43,11 @@ __pycache__/
 .venv/
 # The commit-message tooling's dependencies (package-lock.json is the record).
 node_modules/
+
+# claude-autopilot's journal, answer files and raw ACP transcripts. Outside scripts/ because the
+# doc-citations gate reads every file under it.
+/.autopilot-run/
+
+# Claude Code's own lock for a scheduled task. It is rewritten by every session that runs in this
+# tree, and a tracked copy left the tree dirty, which the autopilot reads as an unfinished commit.
+/.claude/scheduled_tasks.lock
