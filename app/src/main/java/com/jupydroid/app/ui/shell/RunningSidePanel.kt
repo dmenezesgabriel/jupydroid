@@ -4,7 +4,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -53,7 +51,6 @@ import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.FocusRingIconButton
 import com.jupydroid.extension.api.FocusRingTextButton
@@ -124,9 +121,8 @@ fun RunningSidePanel(
   var collapsed by rememberSaveable { mutableStateOf(listOf<String>()) }
   var pendingBulk by remember { mutableStateOf<PendingBulk?>(null) }
 
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    containerColor = chromePalette.sideBarBackground,
+  SideBarScaffold(
+    modifier = modifier,
     topBar = {
       TopAppBar(
         colors = sideBarTopAppBarColors(),

@@ -14,7 +14,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -35,7 +34,6 @@ import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.port.WorkspaceSearcher
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.codeTextStyle
 
 /**
@@ -72,9 +70,8 @@ fun SearchSidePanel(
   // Which files are folded away. Keyed on the query, so a fold set cannot outlive the results it
   // folds - `TocFolds`' own lifetime rule, and the reference rebuilds its tree per search anyway.
   var collapsed by remember(state.query.text) { mutableStateOf(emptySet<String>()) }
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    containerColor = chromePalette.sideBarBackground,
+  SideBarScaffold(
+    modifier = modifier,
     topBar = { TopAppBar(title = { Text(SidePanel.SEARCH.label) }, colors = sideBarTopAppBarColors()) },
   ) { padding ->
     // **`imePadding`, and a screenshot is what asked for it.** Typing into the box raises the

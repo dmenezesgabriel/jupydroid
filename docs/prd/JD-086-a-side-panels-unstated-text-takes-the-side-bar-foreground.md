@@ -68,8 +68,8 @@ The item is not `shipped` until this has run on the tablet and the frames were l
 
 | Concern | Ours today (file) | Best reference | Gap |
 |---|---|---|---|
-| Unstated text in five panels | takes `onSurfaceVariant` by hex match (`containerColor = sideBarBackground`, five calls) | `vscode@3f3380c6 sidebarPart.ts:173` | present and wrong; **not yet measured per panel**, T1's red test does it |
-| A test that holds it | `ExplorerRowColourTest` for the Files rows only | — | absent for the five |
+| Unstated text in five panels | takes `onSurfaceVariant` by hex match (`containerColor = sideBarBackground`, five calls) | `vscode@3f3380c6 sidebarPart.ts:173` | present and wrong in all five: unstated text resolved to `#8C8C8C` where `#BFBFBF` is stated (`SideBarForegroundTest`, red 5 of 5 on `dev36`) |
+| A test that holds it | `ExplorerRowColourTest` for the Files rows, `SideBarForegroundTest` for the five | — | complete |
 
 ## Deviations
 
@@ -77,8 +77,7 @@ None. Contributed panels' content is an extension's; it inherits the same colour
 
 ## Open decisions
 
-- Whether each panel actually has unstated text today. If one states every colour itself, its test stays as a
-  regression guard and the PRD says so.
+- Settled by T1's red run: every panel had unstated text, and none was already correct.
 
 ## Surface
 
@@ -93,7 +92,7 @@ A theme and UI item with no domain, port or adapter.
 
 ## Tasks
 
-- [ ] T1 — red test that each of the five panels' unstated text resolves to `sideBarForeground`, then
+- [x] T1 — red test that each of the five panels' unstated text resolves to `sideBarForeground`, then
   `SideBarScaffold` and the five callers.
 - [ ] T2 — read the five panels on the tablet in the six combinations, with the numbers before and after, and
   edit the ledger row in `parity-ledger.md`.

@@ -1,13 +1,11 @@
 package com.jupydroid.app.ui.shell
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -15,7 +13,6 @@ import androidx.compose.ui.Modifier
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.port.DebugVariable
-import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.DebugStackRows
 
 /**
@@ -49,9 +46,8 @@ fun DebuggerSidePanel(
   onEvaluate: suspend (String) -> DebugVariable?,
   modifier: Modifier = Modifier,
 ) {
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    containerColor = chromePalette.sideBarBackground,
+  SideBarScaffold(
+    modifier = modifier,
     topBar = { TopAppBar(colors = sideBarTopAppBarColors(), title = { Text(SidePanel.DEBUGGER.label) }) },
   ) { padding ->
     Column(
