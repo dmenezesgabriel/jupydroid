@@ -22,6 +22,11 @@ appId: com.jupydroid.app
     visible: "Theme"
     timeout: 5000
 - tapOn: "${MAESTRO_THEME}"
+# Opening Settings scrolls the strip to it, which leaves the file's tab a sliver under its neighbour's:
+# a tap on that lands on the wrong tab. Drag the strip back to its start, as the one-pane dialogs flow does.
+- swipe:
+    start: "50%,6%"
+    end: "95%,6%"
 - waitForAnimationToEnd:
     timeout: 3000
 - runFlow:
