@@ -74,7 +74,19 @@ Choose by this order. It is the rule the user applies by hand.
 3. The more conservative and reversible option. An existing tool or library over a new dependency; never one from an unofficial source. Strict TDD stays.
 4. The skills under `.claude/skills/` are the session's tools, not an authority: where one disagrees with `AGENTS.md`, `AGENTS.md` wins (item 1). Never answer toward "no new test" because `tdd` allows it.
 5. Never an option that skips a gate, a test, the Maestro flow or the one-task-per-session scope. A device choice is not free: anything that runs a cell goes on the arm64 tablet (`AGENTS.md` rule 2), because the x86_64 emulator echoes the cell's source back.
-6. Grep the PRD or ADR row the question names before answering. A question that needs the user is an ESCALATE: push-notify, leave it unanswered, and let the overdue path run. That means money, credentials, a destructive action, a force-push, rewriting history, a package from an unofficial source, signing in to an account, and the human demo that closes an item (an item is `shipped` only after a person has run it, so otherwise it stays `partial`) unless the user delegated it.
+6. Grep the PRD or ADR row the question names before answering. A question that needs the user is an ESCALATE: push-notify, leave it unanswered, and let the overdue path run. That means money, credentials, a destructive action, a force-push, rewriting history, a package from an unofficial source, and signing in to an account. A demo is not on this list: the user delegated it, see the standing rule below.
+
+## Standing rule: the agent runs every demo itself, and says it was not a human
+
+Stated by the user on 2026-11-14 ([ADR-0150](../../docs/adr/0150-the-loops-agent-runs-every-demo-itself-and-says-no-human-did.md)). Whenever a step, a task or a question asks for a person to run an item's demo, the agent in the loop runs it itself, as a person would: it drives the real app with `adb` and Maestro on the device `AGENTS.md` rule 2 names, takes a screenshot and a UI dump at every step that changes the screen, and looks at and analyzes the screenshots, not only the dumps and logs. A demo run this way counts as run. It is not run by a human, and that is explicit: the commit body says `Demo run by the agent, not by a human`, then what was seen at each step and every difference from what the item expects.
+
+What the orchestrator does:
+
+- A question that asks "has the demo been run, ship it?" is never answered "run" on the agent's word and never by claiming a human ran it. Answer "Prepare only" or the equivalent, then reply: run the demo yourself with `adb` and Maestro as above, read the screenshots, and ship only if it passes.
+- A session that stops with "waiting on the human demo" gets a `needs_reply` with the same instruction.
+- `STANDING_RULES` in `run.ts` states the rule to every session, so most need no reminder.
+- Check the shipping commit before reporting it: its body must contain `Demo run by the agent, not by a human` and what each screenshot showed, and the session's `.autopilot-run/acp-*.jsonl` must show the `adb`/Maestro calls and screenshot reads. If they are missing, say so in the report.
+- The device is still not a free choice: a flow that runs a cell on the x86_64 emulator proves nothing, because it echoes the source back. A demo that ran a cell there does not count; reply with that.
 
 ## Facts the loop relies on
 

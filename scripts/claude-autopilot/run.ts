@@ -79,6 +79,18 @@ export function parseArguments(argv: string[], cwd: string) {
 }
 
 /**
+ * Whenever a task, a PRD or the backlog asks for a person to run a demo, the loop's agent runs it
+ * itself and says so (ADR-0150). The wording is a rule because an agent left to guess either stops to
+ * ask a person who is not there, or calls a green log a demo; the statement that no human ran it is
+ * required so a reader of the commit is never led to think one did.
+ */
+export const DEMO_RULE = [
+  "Standing rule for demos: whenever these instructions, a PRD or the backlog ask for a person to run a demo, run it yourself, as a person would: drive the real app with adb and Maestro on the device AGENTS.md rule 2 names (anything that runs a cell goes on the arm64 tablet), through real input along the item's Demo steps.",
+  "Take a screenshot and a UI dump at every step that changes the screen, and look at the screenshots and analyze them, not only the dumps and logs: a dump describes the tree, only the image shows what a person sees.",
+  "A demo run this way counts as run, but it is run by the agent, not by a human, and that must be explicit: in the commit body write `Demo run by the agent, not by a human`, then what you saw at each step and every difference from what the item expects. Do not stop to ask a person to run it.",
+].join("\n");
+
+/**
  * The skills under .claude/skills/ are announced to every session but a session that is not told
  * to use one does not (ADR-0149), so every session is told here, once, in its opening prompt.
  * AGENTS.md is ranked above them because `tdd` allows "no new test" where AGENTS.md allows none.
@@ -87,6 +99,7 @@ export const STANDING_RULES = [
   "Standing rule for this run: before you change code, invoke the engineering-mode skill and follow it, loading the principle and find-* skills it routes to only where their situation fits.",
   "Where a skill disagrees with AGENTS.md, AGENTS.md wins: test-first work and the commit gate are never relaxed.",
   "Name in the commit body each principle that changed a decision.",
+  DEMO_RULE,
 ].join("\n");
 
 export async function openingPrompt(
