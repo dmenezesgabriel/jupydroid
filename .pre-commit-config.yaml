@@ -185,6 +185,13 @@ repos:
         language: system
         files: '^(package(-lock)?\.json|scripts/claude-autopilot/.*)$'
         pass_filenames: false
+      # The vendored agent-harness skills are the pinned ones, byte for byte (ADR-0149).
+      - id: agent-harness-skills
+        name: the vendored agent-harness skills equal the pin
+        entry: uv run --locked python scripts/check_agent_harness_skills.py
+        language: system
+        files: '^(\.claude/(skills/|agent-harness-skills\.sha256)|scripts/check_agent_harness_skills\.py)'
+        pass_filenames: false
       - id: ktlint-check
         name: ktlint format check
         entry: >-

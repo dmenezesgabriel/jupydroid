@@ -63,7 +63,9 @@ target-version = "py314"
 # window-key-row.py is `def area` with no body, on purpose: its flow types the rest into the editor, so it is not
 # valid Python and ruff cannot lint it. CI hands the hooks every file (`--all-files`), where a commit hands only the
 # staged ones, which is how neither fixture was ever read by ruff before.
-extend-exclude = ["evidence", ".maestro/fixtures/window-key-row.py"]
+# .claude/skills/ is vendored from agent-harness at a pin and never edited (ADR-0149): its Python is that
+# project's own scripts and tests, written to its style, and a reformat would change bytes the manifest checks.
+extend-exclude = ["evidence", ".maestro/fixtures/window-key-row.py", ".claude/skills"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "S"]

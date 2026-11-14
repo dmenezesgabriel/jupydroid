@@ -78,7 +78,20 @@ export function parseArguments(argv: string[], cwd: string) {
   };
 }
 
-async function openingPrompt(promptFile: string): Promise<PromptBlock[]> {
+/**
+ * The skills under .claude/skills/ are announced to every session but a session that is not told
+ * to use one does not (ADR-0149), so every session is told here, once, in its opening prompt.
+ * AGENTS.md is ranked above them because `tdd` allows "no new test" where AGENTS.md allows none.
+ */
+export const STANDING_RULES = [
+  "Standing rule for this run: before you change code, invoke the engineering-mode skill and follow it, loading the principle and find-* skills it routes to only where their situation fits.",
+  "Where a skill disagrees with AGENTS.md, AGENTS.md wins: test-first work and the commit gate are never relaxed.",
+  "Name in the commit body each principle that changed a decision.",
+].join("\n");
+
+export async function openingPrompt(
+  promptFile: string,
+): Promise<PromptBlock[]> {
   const text = await readFile(promptFile, "utf8");
   return [
     {
@@ -90,6 +103,7 @@ async function openingPrompt(promptFile: string): Promise<PromptBlock[]> {
       },
     },
     { type: "text", text: `Follow ${basename(promptFile)} (attached).` },
+    { type: "text", text: STANDING_RULES },
   ];
 }
 
