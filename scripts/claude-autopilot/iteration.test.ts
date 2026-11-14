@@ -128,6 +128,41 @@ describe("runIteration", () => {
     assert.equal(outcome.kind, "done");
   });
 
+  it("tells the agent a background command was killed, not that it exited with a made-up code", async () => {
+    const { deps, agent, clock, ledger } = build((parts) => [
+      () => {
+        parts.ledger.apply({
+          type: "background_started",
+          shellId: "k1",
+          command: "./gradlew testDebugUnitTest",
+          outputPath: "/o/k1.output",
+        });
+        return "end_turn";
+      },
+      commitsInBypass(parts),
+    ]);
+    clock.holdSleepsLongerThanMs = TIMING.backgroundCeilingMs - 1;
+    const baseEmit = deps.emit;
+    deps.emit = async (event) => {
+      await baseEmit(event);
+      if (event.type === "awaiting_work") {
+        ledger.apply({
+          type: "background_exited",
+          shellId: "k1",
+          exitCode: null,
+        });
+      }
+    };
+
+    await runIteration(deps);
+
+    assertContains(
+      agent.promptTexts()[1],
+      "`./gradlew testDebugUnitTest` was killed",
+    );
+    assert.equal(agent.promptTexts()[1]?.includes("null"), false);
+  });
+
   it("halts, reporting the work, when a background command outlives its ceiling", async () => {
     const { deps, clock, events } = build((parts) => [
       () => {

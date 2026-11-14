@@ -65,9 +65,12 @@ export class FakeClock implements Clock {
 export class FakeTaskOutputs implements TaskOutputReader {
   readonly files = new Map<string, string>();
   reads = 0;
+  /** When set, every read fails with it, as an unreadable file would. */
+  failWith: Error | null = null;
 
   async read(path: string): Promise<string | null> {
     this.reads += 1;
+    if (this.failWith) throw this.failWith;
     return this.files.get(path) ?? null;
   }
 }

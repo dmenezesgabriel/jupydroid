@@ -45,7 +45,12 @@ export class RunDir {
     await rm(join(this.path, "STOP"), { force: true });
   }
 
-  /** Records this process as the loop; refuses when another live loop already owns the directory. */
+  /**
+   * Records this process as the loop; refuses when another live loop already
+   * owns the directory. A stop request belongs to the loop that was running:
+   * taking the lock spends it, otherwise a restart after `ctl stop` would stop
+   * at its first preflight. A refused lock leaves it for the loop that holds it.
+   */
   async acquireLock(
     pid: number,
     isAlive: (pid: number) => boolean,
@@ -58,6 +63,7 @@ export class RunDir {
       );
     }
     await writeFile(join(this.path, "loop.pid"), String(pid));
+    await this.clearStop();
   }
 
   async lockHolder(): Promise<number | null> {

@@ -93,6 +93,27 @@ describe("RunDir stop and lock", () => {
     );
   });
 
+  it("spends the previous loop's stop request when a new loop takes the lock, so a restart is not stopped at once", async () => {
+    const runDir = new RunDir(dir);
+    await runDir.acquireLock(111, () => true);
+    await runDir.requestStop();
+    await runDir.releaseLock();
+
+    await runDir.acquireLock(222, () => false);
+
+    assert.equal(await runDir.stopRequested(), false);
+  });
+
+  it("keeps a stop request when the lock is refused, because the loop that holds it must still see it", async () => {
+    const runDir = new RunDir(dir);
+    await runDir.acquireLock(111, () => true);
+    await runDir.requestStop();
+
+    await assert.rejects(runDir.acquireLock(222, () => true));
+
+    assert.equal(await runDir.stopRequested(), true);
+  });
+
   it("takes over a lock whose pid is gone", async () => {
     const runDir = new RunDir(dir);
     await runDir.acquireLock(111, () => true);

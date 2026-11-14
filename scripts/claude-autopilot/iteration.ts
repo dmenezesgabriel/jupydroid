@@ -174,10 +174,17 @@ async function awaitWork(deps: IterationDeps): Promise<Next> {
   const report = finished
     .map(
       (shell) =>
-        `The background command \`${shell.command}\` exited with code ${shell.exitCode}.`,
+        `The background command \`${shell.command}\` ${describeShellEnd(shell.exitCode)}.`,
     )
     .join("\n");
   return textPrompt(`${report}\nContinue from there.`);
+}
+
+/** A null code is a task that was killed: no exit code exists, so none is claimed. */
+function describeShellEnd(exitCode: number | null): string {
+  return exitCode === null
+    ? "was killed before it reported an exit code"
+    : `exited with code ${exitCode}`;
 }
 
 function textPrompt(text: string): Next {

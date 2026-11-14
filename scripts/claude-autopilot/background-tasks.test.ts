@@ -80,13 +80,15 @@ describe("BackgroundExitWatcher", () => {
     const clock = new FakeClock();
     const outputs = new FakeTaskOutputs();
     const exits: Array<[string, number | null]> = [];
+    const errors: Array<[string, string]> = [];
     const watcher = new BackgroundExitWatcher(
       clock,
       outputs,
       (shellId, exitCode) => exits.push([shellId, exitCode]),
+      (shellId, error) => errors.push([shellId, error.message]),
       5_000,
     );
-    return { clock, outputs, exits, watcher };
+    return { clock, outputs, exits, errors, watcher };
   }
   const settle = (): Promise<void> =>
     new Promise((resolve) => setImmediate(resolve));
@@ -114,6 +116,47 @@ describe("BackgroundExitWatcher", () => {
 
     assert.deepEqual(exits, [["a", 3]]);
     assert.equal(outputs.reads, 1);
+  });
+
+  it("reports a killed task as an exit with no code, because no code was ever observed", async () => {
+    // 124 of 948 real task output files end in `[killed]`, not in an exit code.
+    const { clock, outputs, exits, watcher } = build();
+    watcher.watch("a", "/o/a.output");
+    outputs.files.set("/o/a.output", "partial output\n\n[killed]\n");
+
+    clock.tickAll();
+    await settle();
+
+    assert.deepEqual(exits, [["a", null]]);
+  });
+
+  it("does not take a killed line in the middle of the output for the end of the task", async () => {
+    const { clock, outputs, exits, watcher } = build();
+    outputs.files.set("/o/a.output", "[killed]\nstill printing\n");
+    watcher.watch("a", "/o/a.output");
+
+    clock.tickAll();
+    await settle();
+
+    assert.deepEqual(exits, []);
+  });
+
+  it("reports a read failure once per task, keeps polling, and still sees the exit afterwards", async () => {
+    const { clock, outputs, exits, errors, watcher } = build();
+    watcher.watch("a", "/o/a.output");
+    outputs.failWith = new Error("EACCES: permission denied");
+
+    for (let tick = 0; tick < 3; tick += 1) {
+      clock.tickAll();
+      await settle();
+    }
+    outputs.failWith = null;
+    outputs.files.set("/o/a.output", "[exited with code 0]\n");
+    clock.tickAll();
+    await settle();
+
+    assert.deepEqual(errors, [["a", "EACCES: permission denied"]]);
+    assert.deepEqual(exits, [["a", 0]]);
   });
 
   it("treats a file that does not exist yet as still running", async () => {

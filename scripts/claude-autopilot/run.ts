@@ -126,6 +126,12 @@ function openSession(context: LoopContext): Session {
     fileTaskOutputs,
     (shellId, exitCode) =>
       handlers.onSignal({ type: "background_exited", shellId, exitCode }),
+    (shellId, error) =>
+      void context.emit({
+        type: "background_watch_error",
+        shellId,
+        error: error.message,
+      }),
     BACKGROUND_POLL_MS,
   );
   const agent = new ClaudeAgent(spawned.channel, handlers);
