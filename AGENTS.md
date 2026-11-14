@@ -239,6 +239,7 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | palette-consumers gate | a palette states colours something draws | `scripts/check_palette_consumers.py` (+ `_test.py`) |
 | pane-width measure | what each column of the shell gets, on device | `scripts/read_pane_widths.py` (+ `_test.py`) — a measurement, not a gate |
 | layout-spacing measure | what each column's (or a popup's) rows leave around and between them and what no row covers, off a dump's bounds, against `theme/Spacing.kt` | `scripts/read_layout_spacing.py` (+ `_test.py`) — a measurement, not a gate |
+| dialog-margin measure | how far a dialog's card stands from the window's left and right edges, in dp, off a frame and the dump of the same moment | `scripts/read_dialog_margin.py` (+ `_test.py`) — a measurement, not a gate |
 | touch-target measure | how big each control is the way the platform reports it and whether a screen reader can name it, off a dump's nodes, with the ones a scroller cuts listed apart | `scripts/read_touch_targets.py` (+ `_test.py`) — a measurement, not a gate |
 | font-scale-fit measure | which named nodes newly overlap in part and which targets newly fall under 48dp at a larger font scale, off two dumps of the same screen; truncation is read off the screenshot, a dump has no text extent | `scripts/read_font_scale_fit.py` (+ `_test.py`) — a measurement, not a gate |
 | launch-frames measure | what colour each frame of a cold launch is, from screenrecord's raw frames | `scripts/read_launch_frames.py` (+ `_test.py`) — a measurement, not a gate |
