@@ -48,10 +48,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 import com.jupydroid.extension.api.focusRing
 
 /** What Maestro and Compose tests address - one tag per card, suffixed by its command. */

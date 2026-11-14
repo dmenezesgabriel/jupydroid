@@ -24,9 +24,9 @@ import com.jupydroid.app.domain.model.KernelPickGroup
 import com.jupydroid.app.domain.model.KernelPickOption
 import com.jupydroid.app.domain.model.initialPick
 import com.jupydroid.app.domain.port.KernelChoice
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * `SessionContextDialogs.selectKernel` (`packages/apputils/src/sessioncontext.tsx:1398-1460) -

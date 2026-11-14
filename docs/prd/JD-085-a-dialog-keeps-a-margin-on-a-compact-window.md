@@ -116,7 +116,7 @@ A theme and UI item with no domain, port or adapter.
 - [x] T1 — `MarginedAlertDialog` and its first caller, `SaveBeforeCloseDialog`: a wrapped-text dialog sits
   at least 24dp inside the window on both sides (red at 0 and 0 on `dev36`).
 - [x] T2 — the 17 other files, and `ArchitectureGuardTest` bans material3's `AlertDialog` in `ui/`.
-- [ ] T3 — `DeleteFileDialog` and `RenameFileDialog` in `:extension-api` keep the margin too. A device read at
+- [x] T3 — `DeleteFileDialog` and `RenameFileDialog` in `:extension-api` keep the margin too. A device read at
   800dp found their windows equal to their cards (647px and 492px for 431.3dp and 328.0dp), where Save before close
   and Space settings had grown by 48dp. Move `MarginedAlertDialog` into `:extension-api` (public, explicit API),
   import it in `ui/`, and widen the guard to `:extension-api`. Red first: a 320dp instrumented test on the Delete

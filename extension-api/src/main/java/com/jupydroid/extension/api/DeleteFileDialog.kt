@@ -1,6 +1,5 @@
 package com.jupydroid.extension.api
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,7 +26,7 @@ import androidx.compose.runtime.Composable
  */
 @Composable
 public fun DeleteFileDialog(name: String, onDelete: () -> Unit, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Delete") },
     text = { Text("Are you sure you want to permanently delete: $name?") },

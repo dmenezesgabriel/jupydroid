@@ -13,8 +13,8 @@ import androidx.compose.ui.text.font.FontWeight
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.model.Checkpoint
 import com.jupydroid.app.domain.port.DocumentCheckpoints
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter

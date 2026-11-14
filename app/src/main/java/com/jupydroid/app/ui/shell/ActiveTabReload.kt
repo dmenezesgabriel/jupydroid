@@ -20,8 +20,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import com.jupydroid.app.OpenDocument
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * `docmanager:reload` as something to press: the document on top is read back from its file.

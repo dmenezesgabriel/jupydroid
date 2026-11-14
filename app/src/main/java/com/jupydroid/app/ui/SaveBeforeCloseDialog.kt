@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * "Save changes in X before closing?" - what a dirty document asks on its way out.

@@ -30,11 +30,11 @@ import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.model.THREAD_CAP_RANGE
 import com.jupydroid.app.syntax.ShellSyntax
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.cellEditorBox
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /** The idle-shutdown field's tag, for a test and - as a resource id - for a Maestro flow. */
 const val IDLE_SHUTDOWN_FIELD_TAG = "space-idle-shutdown-field"

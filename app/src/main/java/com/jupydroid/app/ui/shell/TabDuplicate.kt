@@ -9,8 +9,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.domain.port.WorkspaceFiles
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 import kotlinx.coroutines.launch
 
 /**

@@ -3,8 +3,8 @@ package com.jupydroid.app.ui
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * "…already exists, overwrite?" - the question the reference asks before replacing a file.

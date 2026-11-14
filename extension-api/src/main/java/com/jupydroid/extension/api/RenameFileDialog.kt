@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -81,7 +80,7 @@ public fun RenameFileDialog(
   }
   val field = remember { FocusRequester() }
 
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     // The dialog's window is panned, not resized, when the keyboard opens, which keeps the field in
     // view and leaves the buttons under it once a refusal makes the dialog taller than the room above

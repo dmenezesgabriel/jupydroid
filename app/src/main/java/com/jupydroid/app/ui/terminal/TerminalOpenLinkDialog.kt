@@ -3,8 +3,8 @@ package com.jupydroid.app.ui.terminal
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * "Open Link?" - asked before a web address the terminal printed leaves the app.

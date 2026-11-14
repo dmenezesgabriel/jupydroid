@@ -128,13 +128,13 @@ class ArchitectureGuardTest {
   /**
    * Compose's dialog window draws no background to inset, and M3's `AlertDialog` is `sizeIn(280dp, 560dp)`
    * with nothing outside it, so a dialog whose text wraps fills a phone edge to edge.
-   * `theme.MarginedAlertDialog` keeps 24dp beside the surface; a screen that reaches past it loses that.
+   * `extension.api.MarginedAlertDialog` keeps 24dp beside the surface; a screen that reaches past it loses that.
    */
   @Test
   fun uiLayer_callsNoMaterialAlertDialog() {
     val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.AlertDialog"))
     assertTrue(
-      "ui must use theme.MarginedAlertDialog, not material3's AlertDialog: $offenders",
+      "ui must use extension.api.MarginedAlertDialog, not material3's AlertDialog: $offenders",
       offenders.isEmpty(),
     )
   }

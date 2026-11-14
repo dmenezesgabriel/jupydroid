@@ -2,8 +2,8 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import com.jupydroid.app.theme.MarginedAlertDialog
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * *"Replace 5 occurrences across 2 files with 'dog'?"* - asked before a single file is written.

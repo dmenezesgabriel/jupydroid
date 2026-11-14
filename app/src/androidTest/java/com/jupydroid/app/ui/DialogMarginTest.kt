@@ -7,6 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.extension.api.DeleteFileDialog
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -32,6 +33,22 @@ class DialogMarginTest {
   fun aWrappedDialogKeepsItsMarginToBothEdges() {
     compose.setContent {
       JupyterDroidTheme { SaveBeforeCloseDialog(longName, onSave = {}, onDiscard = {}, onCancel = {}) }
+    }
+    compose.onNodeWithText(question).assertIsDisplayed()
+
+    val window = compose.onNode(isDialog()).fetchSemanticsNode().boundsInRoot
+    val text = compose.onNodeWithText(question).fetchSemanticsNode().boundsInRoot
+    val inset = with(compose.density) { SURFACE_PADDING_AND_MARGIN.toPx() }
+    assertTrue("text left ${text.left}px is at least ${inset}px in", text.left >= inset)
+    assertTrue("text right ${text.right}px is at most ${window.right - inset}px", text.right <= window.right - inset)
+  }
+
+  /** `DeleteFileDialog` lives in `:extension-api`, which cannot import the app's wrapper, so it owns a check. */
+  @Test
+  fun aWrappedDeleteDialogKeepsItsMarginToBothEdges() {
+    val question = "Are you sure you want to permanently delete: $longName?"
+    compose.setContent {
+      JupyterDroidTheme { DeleteFileDialog(longName, onDelete = {}, onDismiss = {}) }
     }
     compose.onNodeWithText(question).assertIsDisplayed()
 
