@@ -1,0 +1,110 @@
+appId: com.jupydroid.app
+---
+# One named way back to the Spaces list from every surface of a Space, at either width: the browser,
+# a notebook, a file, a terminal, the Launcher and Settings, and a dirty document last.
+#
+# Runs on the tablet in both orientations, because the terminal needs the real shell and the tablet
+# is both widths: 1280dp landscape (two panes) and 800dp portrait (one pane). One flow rather than one
+# per width, since the control carries the same name at both and only the browser's route to it
+# differs (`leave-a-space-from-here.yaml`).
+#
+# `autosaveEnabled: false` is seeded by the driver, as `close-gate-dialog.yaml` explains: with the
+# debounce live the file is clean 500 ms after the last keystroke and the ask would be a race.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: 01-browser
+
+- tapOn: "Root.ipynb"
+- extendedWaitUntil:
+    visible: ".*this one is at the root.*"
+    timeout: 20000
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: 02-notebook
+- assertNotVisible: ".*this one is at the root.*"
+
+- tapOn: "file_editor.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 20000
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: 03-file
+- assertNotVisible: ".*the file editor.*"
+
+- runFlow: open-new-terminal.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+# A terminal raises the IME on open, and at two panes the keyboard covers the rail's foot where the
+# row sits; a person puts it away before reaching for it. Only here, because `hideKeyboard` on a
+# screen with no keyboard is not guaranteed to be a no-op.
+- takeScreenshot: 04-terminal-with-the-keyboard-up
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: 04-terminal
+
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible: "Python 3"
+    timeout: 15000
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: 05-launcher
+
+- runFlow: open-settings.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: 06-settings
+
+# A dirty document is asked about, never dropped: Cancel keeps it, Discard leaves writing nothing.
+- tapOn: "file_editor.py"
+- extendedWaitUntil:
+    visible: ".*the file editor.*"
+    timeout: 20000
+- tapOn: ".*the file editor.*"
+- tapOn:
+    point: "95%,25%"
+- pressKey: Enter
+- inputText: "unsaved_line"
+- assertVisible: "(?s).*unsaved_line.*"
+- takeScreenshot: 07-edited-and-dirty
+# A document has the strip or the rail and no bar, so no More is tapped. The keyboard is put away
+# first so the tap lands on the control and not on the IME.
+- hideKeyboard
+- tapOn: "Spaces"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- takeScreenshot: 08-the-ask-over-the-dirty-file
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Save your work"
+    timeout: 5000
+- assertVisible: "(?s).*unsaved_line.*"
+- takeScreenshot: 09-cancel-kept-the-file
+- tapOn: "Spaces"
+- extendedWaitUntil:
+    visible: "Save your work"
+    timeout: 5000
+- tapOn: "Discard"
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- takeScreenshot: 10-discard-left-for-the-spaces-list
