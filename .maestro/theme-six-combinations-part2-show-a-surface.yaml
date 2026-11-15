@@ -1,0 +1,68 @@
+appId: com.jupydroid.app
+---
+# Run by scripts/theme-six-combinations-driver.sh once per app theme and surface, with MAESTRO_THEME
+# naming the Settings row's choice (System, Light or Dark) and MAESTRO_SURFACE one of settings, file,
+# notebook, terminal, or a rail entry. MAESTRO_RAIL names that entry's label (a side panel, or the
+# launcher) and is `none` for a surface that is a tab. Picks the theme, then shows that surface and stops.
+#
+# A rail entry is only ever tapped from a different panel than the one it opens: picking the panel
+# already showing collapses the area, so the driver orders the surfaces so that no two in a row
+# are the same panel.
+#
+# It takes no screenshot: the driver reads the frame and the `uiautomator dump` of the same moment
+# after this flow ends, because a dump cannot be taken while Maestro holds the device, and a frame
+# and a dump taken apart do not describe the same screen. It asserts only that the surface is on
+# screen: what colour each one takes is the driver's reading, the same before a repair and after it.
+#
+# TABLET ONLY (SM-X216B): the terminal is the Space's real shell.
+- launchApp:
+    stopApp: false
+- tapOn: "Tab: Settings"
+- extendedWaitUntil:
+    visible: "Theme"
+    timeout: 5000
+- tapOn: "${MAESTRO_THEME}"
+# Opening Settings scrolls the strip to it, which leaves the file's tab a sliver under its neighbour's:
+# a tap on that lands on the wrong tab. Drag the strip back to its start, as the one-pane dialogs flow does.
+- swipe:
+    start: "50%,6%"
+    end: "95%,6%"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'file'}
+    commands:
+      - tapOn: "Tab: ${MAESTRO_FILE}"
+      - extendedWaitUntil:
+          visible: "notes = \"seeded\"\\s*"
+          timeout: 10000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'notebook'}
+    commands:
+      - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+      - extendedWaitUntil:
+          visible: "tab_marker_first = 1"
+          timeout: 10000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'terminal'}
+    commands:
+      - tapOn: "Tab: Terminal .*"
+      - extendedWaitUntil:
+          visible:
+            id: "terminal-input"
+          timeout: 10000
+      # Showing the tab focuses the shell's input and raises the soft keyboard over the terminal it
+      # is meant to show.
+      - hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      true: ${MAESTRO_RAIL != 'none'}
+    commands:
+      - tapOn: "${MAESTRO_RAIL}"
+      - waitForAnimationToEnd:
+          timeout: 3000

@@ -170,13 +170,41 @@ repos:
         language: system
         stages: [commit-msg]
       # Only when the rules, the npm settings or the lockfile change (any root-level .mjs is a config or
-      # its test); the hook above is what runs on every commit.
+      # its test), or the claude-autopilot loop or the recorded sessions its tests read (ADR-0147); the
+      # hook above is what runs on every commit.
       - id: commitlint-config-tests
-        name: the commit tooling's own tests (commitlint, commitizen, .npmrc)
+        name: the commit tooling's and the autopilot loop's own tests
         entry: npm test
         language: system
-        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs)$'
+        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs|scripts/claude-autopilot/.*|scripts/testdata/claude-autopilot-frames/.*)$'
         pass_filenames: false
+      # `tsc --noEmit` over the loop and its tests: Node strips the types without checking them.
+      - id: claude-autopilot-typecheck
+        name: the autopilot loop typechecks
+        entry: npm run typecheck
+        language: system
+        files: '^(package(-lock)?\.json|scripts/claude-autopilot/.*)$'
+        pass_filenames: false
+      # The vendored agent-harness skills are the pinned ones, byte for byte (ADR-0149).
+      - id: agent-harness-skills
+        name: the vendored agent-harness skills equal the pin
+        entry: uv run --locked python scripts/check_agent_harness_skills.py
+        language: system
+        files: '^(\.claude/(skills/|agent-harness-skills\.sha256)|scripts/check_agent_harness_skills\.py)'
+        pass_filenames: false
+      # The five Gradle hooks run when a commit touches something Gradle reads, not on every commit: 214
+      # of the last 300 touched nothing it reads, and each run is about 2 minutes, 3.5 CPU-minutes and 1 GB
+      # (ADR-0151). One pattern, defined once on ktlint-check and shared through its anchor, and
+      # scripts/check_gradle_hook_scope.py fails the commit if the five stop sharing it, if a tracked file is
+      # neither matched nor named as not an input, or if a build script reads a path the pattern misses. CI
+      # runs each hook with --all-files, so it still checks everything. This config is in the pattern, so a
+      # change to a hook runs them all.
+      - id: gradle-hook-scope
+        name: the Gradle hooks' file scope is complete
+        entry: uv run --locked python scripts/check_gradle_hook_scope.py
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: ktlint-check
         name: ktlint format check
         entry: >-
@@ -186,25 +214,25 @@ repos:
           :extensions:ai:ktlintMainSourceSetCheck :extensions:ai:ktlintTestSourceSetCheck
         language: system
         pass_filenames: false
-        always_run: true
+        files: &gradle_inputs '^(app/|extension-api/|extensions/|gradle/|config/|tools/grammars/|(build|settings)\.gradle\.kts$|gradle\.properties$|(settings|buildscript)-gradle\.lockfile$|\.editorconfig$|gradlew(\.bat)?$|(LICENSE|NOTICE|THIRD_PARTY\.md|SOURCE_OFFER\.md)$|scripts/(gradlew-jbr|java-home\.sh)$|\.pre-commit-config\.yaml$)'
       - id: detekt
         name: detekt static analysis
         entry: scripts/gradlew-jbr detekt :extension-api:detekt :extensions:git:detekt :extensions:ai:detekt
         language: system
         pass_filenames: false
-        always_run: true
+        files: *gradle_inputs
       - id: cpd
         name: no Kotlin block copied past 150 tokens
         entry: scripts/gradlew-jbr :app:cpd
         language: system
         pass_filenames: false
-        always_run: true
+        files: *gradle_inputs
       - id: android-lint
         name: android lint
         entry: scripts/gradlew-jbr :app:lintDebug :extension-api:lintDebug :extensions:git:lintDebug :extensions:ai:lintDebug
         language: system
         pass_filenames: false
-        always_run: true
+        files: *gradle_inputs
       # `compileDebugAndroidTestKotlin` rides the same call because nothing else reaches the
       # source set: `assembleDebug` compiles `main`, `testDebugUnitTest` compiles `test`, and
       # `ktlintAndroidTestSourceSetCheck` is a formatter, which parses without resolving - so a
@@ -214,4 +242,4 @@ repos:
         entry: scripts/gradlew-jbr :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :extension-api:testDebugUnitTest :extensions:git:testDebugUnitTest :extensions:ai:testDebugUnitTest
         language: system
         pass_filenames: false
-        always_run: true
+        files: *gradle_inputs

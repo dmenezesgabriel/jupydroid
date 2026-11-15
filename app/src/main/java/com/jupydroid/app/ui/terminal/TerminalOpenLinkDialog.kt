@@ -1,10 +1,10 @@
 package com.jupydroid.app.ui.terminal
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * "Open Link?" - asked before a web address the terminal printed leaves the app.
@@ -21,15 +21,15 @@ import androidx.compose.runtime.Composable
  */
 @Composable
 fun TerminalOpenLinkDialog(destination: String, onOpen: () -> Unit, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Open Link?") },
     text = { Text("Do you want to navigate to $destination? This link could potentially be dangerous.") },
     confirmButton = {
-      TextButton(onClick = onOpen) {
+      FocusRingTextButton(onClick = onOpen) {
         Text("Open", color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }

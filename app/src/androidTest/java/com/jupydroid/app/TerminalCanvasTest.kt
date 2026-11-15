@@ -8,6 +8,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toPixelMap
@@ -57,7 +58,7 @@ class TerminalCanvasTest {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
     val sgr = "$ESC[42m ".toByteArray()
     emulator.append(sgr, sgr.size)
-    var cell: IntSize? = null
+    var cell: Size? = null
 
     // `TerminalCanvas` fills whatever bounded size its caller gives it rather than
     // sizing itself to the grid, so the sample point is the real measured cell centre - reported
@@ -68,7 +69,7 @@ class TerminalCanvasTest {
         cell = measured
       }, modifier = Modifier.fillMaxSize())
     }
-    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val (cellWidth, cellHeight) = wholePixels(cell)
     val pixel = image.toPixelMap()[cellWidth / 2, cellHeight / 2]
 
     assertEquals(Color(TerminalPalette.REFERENCE.at(GREEN_INDEX)), pixel)
@@ -81,7 +82,7 @@ class TerminalCanvasTest {
   @Test
   fun aSelectedCellIsDrawnReversed() {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
-    var cell: IntSize? = null
+    var cell: Size? = null
 
     val image = capture {
       TerminalCanvas(
@@ -91,7 +92,7 @@ class TerminalCanvasTest {
         selection = TerminalTextSelection(startColumn = 0, startRow = 0, endColumn = 0, endRow = 0),
       )
     }
-    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val (cellWidth, cellHeight) = wholePixels(cell)
     val pixels = image.toPixelMap()
 
     assertEquals(
@@ -117,7 +118,7 @@ class TerminalCanvasTest {
   fun theCursorIsDrawnOnlyWhileDectcemIsSet() {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
     var redraw by mutableStateOf(0)
-    var cell: IntSize? = null
+    var cell: Size? = null
     compose.setContent {
       JupyterDroidTheme {
         key(redraw) {
@@ -130,7 +131,7 @@ class TerminalCanvasTest {
     compose.waitForIdle()
 
     val enabled = compose.onRoot().captureToImage()
-    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val (cellWidth, cellHeight) = wholePixels(cell)
     val cursorX = cellWidth / 2
     val cursorY = cellHeight / 2
     assertEquals(
@@ -163,14 +164,14 @@ class TerminalCanvasTest {
   fun theBlockCursorShowsTheGlyphUnderIt() {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
     emulator.screen.grid.setChar(0, 0, '█'.code, CellStyle.NORMAL)
-    var cell: IntSize? = null
+    var cell: Size? = null
 
     val image = capture {
       TerminalCanvas(emulator, onGridSizeChanged = { _, measured ->
         cell = measured
       }, modifier = Modifier.fillMaxSize())
     }
-    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val (cellWidth, cellHeight) = wholePixels(cell)
     val pixel = image.toPixelMap()[cellWidth / 2, cellHeight / 2]
 
     assertEquals(Color(TerminalPalette.REFERENCE.at(CellStyle.COLOR_INDEX_BACKGROUND)), pixel)
@@ -185,7 +186,7 @@ class TerminalCanvasTest {
   fun reportsARealMeasuredGridRatherThanTheEmulatorsOwnSize() {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
     var reportedGrid: IntSize? = null
-    var reportedCell: IntSize? = null
+    var reportedCell: Size? = null
 
     compose.setContent {
       JupyterDroidTheme {
@@ -257,8 +258,8 @@ class TerminalCanvasTest {
   @Test
   fun aLargerTextStyleMeasuresAWiderCell() {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
-    var smallCell: IntSize? = null
-    var largeCell: IntSize? = null
+    var smallCell: Size? = null
+    var largeCell: Size? = null
 
     compose.setContent {
       JupyterDroidTheme {
@@ -327,7 +328,7 @@ class TerminalCanvasTest {
     val emulator = silentEmulator(TerminalPalette.REFERENCE)
     emulator.screen.grid.scrollDownOneLine(0, emulator.screen.rows, CellStyle.NORMAL)
     var topRow by mutableStateOf(0)
-    var cell: IntSize? = null
+    var cell: Size? = null
 
     compose.setContent {
       JupyterDroidTheme {
@@ -342,7 +343,7 @@ class TerminalCanvasTest {
       }
     }
     compose.waitForIdle()
-    val (cellWidth, cellHeight) = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    val (cellWidth, cellHeight) = wholePixels(cell)
     val cursorX = cellWidth / 2
     val cursorY = cellHeight / 2
     val atLiveTop = compose.onRoot().captureToImage()
@@ -392,5 +393,11 @@ class TerminalCanvasTest {
 
     /** Comfortably larger than any real cell height, so at least one row is guaranteed to go. */
     const val IME_INSET_PIXELS = 600
+  }
+
+  /** The sampled pixel of a cell is a whole one, as the screenshot it is read from is. */
+  private fun wholePixels(cell: Size?): IntSize {
+    val measured = requireNotNull(cell) { "onGridSizeChanged was never called" }
+    return IntSize(measured.width.toInt(), measured.height.toInt())
   }
 }

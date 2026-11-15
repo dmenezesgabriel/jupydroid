@@ -79,6 +79,16 @@ class ConsoleInputRowTest {
     assertFalse(submitted)
   }
 
+  /** A screen reader calls the field by what it is for; a bare edit box says nothing about the Console. */
+  @Test
+  fun theFieldIsNamedForTheConsole() {
+    compose.setContent {
+      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+    }
+
+    compose.onNodeWithContentDescription(CONSOLE_INPUT_NAME).assertIsDisplayed()
+  }
+
   /** `console:history-back`'s mobile stand-in - see `RECALL_PREVIOUS_ENTRY`. */
   @Test
   fun tappingRecallPreviousInvokesOnRecallPreviousEntry() {

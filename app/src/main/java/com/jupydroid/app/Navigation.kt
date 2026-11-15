@@ -23,7 +23,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.MatchedLine
-import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.console.ConsoleScreen
@@ -42,7 +41,6 @@ import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import com.jupydroid.app.ui.shell.saveAllOpenDocuments
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.spaces.SpacesHomeScreen
-import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -101,7 +99,7 @@ fun MainNavigation(
    * [orderedTabs] is the strip's opening order, so a current tab's close re-selects the sibling
    * the eye expects.
    */
-  val closeTab = rememberMainAreaCloseGate(backStack, orderedTabs, openDocuments, openDocumentPaths)
+  val closeGate = rememberMainAreaCloseGate(backStack, orderedTabs, openDocuments, openDocumentPaths)
   // The Running panel's Open Tabs section - `labShell.widgets('main')` in the strip's own order,
   // titled by the same `title.label` the strip draws.
   val runningTabs = orderedTabs.map { tab ->
@@ -122,7 +120,8 @@ fun MainNavigation(
       // The one width fact the strip reads: below two panes it leads with the Up affordance,
       // because the document is the whole window there and leaving it goes back.
       twoPane = twoPane,
-      onCloseTab = closeTab,
+      onCloseTab = closeGate.closeTab,
+      onLeaveWorkspace = closeGate.leaveWorkspace,
       onOpenDocument = openDocument,
       documentCheckpoints = spacePorts.documentCheckpoints,
       documentContributions = appContainer.documentContributions,
@@ -264,6 +263,7 @@ fun MainNavigation(
         contributions = appContainer.sidePanelContributions,
         onOpenLauncher = openLauncher,
         onOpenSettings = { backStack.openSettings() },
+        onLeaveWorkspace = closeGate.leaveWorkspace,
         modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
       )
     }
@@ -341,7 +341,7 @@ fun MainNavigation(
             openTabs = runningTabs,
             onActivateTab = backStack::activateMainAreaTab,
             // The same gate the strip's ✕ runs through - a panel row's close is the identical act.
-            onCloseTab = closeTab,
+            onCloseTab = closeGate.closeTab,
             saveAllEnabled = anyOpenDocumentDirty(openDocuments),
             // On the application's scope, so closing the panel mid-sweep cannot cut a write short;
             // on Main, because a refused save's reveal moves the back stack.
@@ -360,6 +360,7 @@ fun MainNavigation(
             // cwd the launcher's Terminal card gets, hoisted so both reads answer the same path.
             onNewTerminal = { newTerminal(browsedDirectory) },
             onOpenSettings = { backStack.openSettings() },
+            onLeaveWorkspace = closeGate.leaveWorkspace,
             onOpenLauncher = openLauncher,
             onBrowsedDirectory = { browsedDirectory = it },
             browsedDirectory = browsedDirectory,
@@ -453,19 +454,7 @@ fun MainNavigation(
             )
           }
         }
-        entry<Terminal>(metadata = ListDetailSceneStrategy.detailPane()) { terminal ->
-          tabbedPane {
-            TerminalPaneScreen(
-              session = TerminalSession(terminal.name),
-              terminalGateway = spacePorts.terminalGateway,
-              // `term.onTitleChange` → `title.label` - the tab, so the strip's map is what hears it.
-              onTitleChanged = { title ->
-                if (title == null) liveTabTitles.remove(terminal) else liveTabTitles[terminal] = title
-              },
-              terminalSettingsRepository = appContainer.terminalSettings,
-            )
-          }
-        }
+        terminalEntry(spacePorts.terminalGateway, appContainer.terminalSettings, liveTabTitles, tabbedPane)
         entry<Launcher>(metadata = ListDetailSceneStrategy.detailPane()) {
           tabbedPane {
             LauncherScreen(

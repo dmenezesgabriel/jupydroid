@@ -1,11 +1,18 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import androidx.navigation3.runtime.NavKey
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.Editor
@@ -257,6 +264,26 @@ class RunningSidePanelTest {
     compose.onNodeWithContentDescription("Close All: Open Tabs").assertIsNotEnabled()
   }
 
+  /**
+   * A toolbar button's row reserves 48dp, 4dp above and below its 40dp surface. The accordion header over it is
+   * a bare `clickable` 40dp tall, whose own 48dp press area reached 4dp into that row, so a press in the strip
+   * above the button folded the section instead of asking to shut down: the reserve was borrowed from the
+   * neighbour at press time, which ADR-0048 rules out.
+   */
+  @Test
+  fun aPressInTheStripReservedAboveShutDownAllReachesTheButton() {
+    runBlocking { kernelGateway.connect(BASE_SPACE, "a.ipynb") }
+    show()
+    awaitSessions(1)
+
+    val button = compose.onNodeWithContentDescription("Shut Down All: Kernel Sessions").getUnclippedBoundsInRoot()
+    val x = with(compose.density) { (button.left + button.width / 2).toPx() }
+    val y = with(compose.density) { (button.top - RESERVED_STRIP / 2).toPx() }
+    compose.onRoot().performTouchInput { click(Offset(x, y)) }
+
+    compose.onNodeWithText("Shut Down All?").assertIsDisplayed()
+  }
+
   /** The accordion's own toggle - the section name is the handle, rows go with the fold. */
   @Test
   fun tappingASectionHeaderCollapsesItsRows() {
@@ -312,5 +339,6 @@ class RunningSidePanelTest {
 
   private companion object {
     const val AWAIT_TIMEOUT = 5_000L
+    val RESERVED_STRIP = 4.dp
   }
 }

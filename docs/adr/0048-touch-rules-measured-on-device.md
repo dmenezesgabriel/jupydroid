@@ -1,6 +1,6 @@
 # ADR-0048 — Touch rules, and the four that cost something to learn
 
-Status: accepted
+Status: accepted; a bare `clickable` has Compose's 48dp press area, not a real 24dp target, per [ADR-0142](0142-the-tab-strips-controls-keep-the-strips-height.md)
 Date: 2026-08-14
 
 ## Context

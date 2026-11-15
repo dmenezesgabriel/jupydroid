@@ -8,7 +8,8 @@
   },
   "scripts": {
     "commit": "cz",
-    "test": "node --test \"*.test.mjs\""
+    "test": "node --experimental-transform-types --no-warnings --test \"*.test.mjs\" \"scripts/claude-autopilot/*.test.ts\"",
+    "typecheck": "tsc -p scripts/claude-autopilot/tsconfig.json"
   },
   "config": {
     "commitizen": {
@@ -19,7 +20,9 @@
     "@commitlint/cli": "21.2.4",
     "@commitlint/config-conventional": "21.2.4",
     "@commitlint/cz-commitlint": "21.2.4",
+    "@types/node": "24.19.2",
     "commitizen": "4.3.2",
-    "inquirer": "12.11.1"
+    "inquirer": "12.11.1",
+    "typescript": "6.0.3"
   }
 }

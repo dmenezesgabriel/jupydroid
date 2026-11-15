@@ -4,10 +4,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * What the last replace had to say, and - while there is something to take back - the offer to.
@@ -55,7 +55,7 @@ fun SearchReplaceReport(report: ReplaceReport, onUndo: () -> Unit, modifier: Mod
     // **Absent rather than disabled**, where Replace All is the other way round: a disabled Replace
     // All states its own precondition in its label ([REPLACE_ALL_DISABLED]), and an Undo beside a
     // refusal would have nothing to state - the refusal wrote nothing, so there is nothing to undo.
-    if (!refused) TextButton(onClick = onUndo) { Text(UNDO_THE_REPLACE) }
+    if (!refused) FocusRingTextButton(onClick = onUndo) { Text(UNDO_THE_REPLACE) }
   }
 }
 

@@ -1,0 +1,74 @@
+package com.jupydroid.app.theme
+
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.interaction.FocusInteraction
+import androidx.compose.foundation.interaction.Interaction
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.node.DelegatableNode
+import androidx.compose.ui.node.DelegatingNode
+import androidx.compose.ui.node.DrawModifierNode
+import androidx.compose.ui.node.invalidateDraw
+import com.jupydroid.extension.api.drawFocusRing
+import kotlinx.coroutines.launch
+
+/**
+ * The ring a control that takes keyboard focus draws on its edge, over whatever [base] draws for
+ * a press or a hover.
+ *
+ * **Why an [IndicationNodeFactory] and not a modifier at each site.** Every `clickable` and
+ * `selectable` that takes the default indication reads `LocalIndication`, so providing this one
+ * there reaches them all and leaves the next control a ring by default. Before it, the mark was
+ * Material's state layer: a rounded plate behind the control at 1.14:1 against what was there,
+ * below the 3:1 WCAG 1.4.11 asks of a focus indicator.
+ *
+ * **It does not reach a control that names its own ripple.** material3 1.4.0's `IconButton` calls
+ * `ripple` itself and never reads `LocalIndication`, and a Tab on the tablet draws only the plate
+ * on it and on `TextButton`; the explorer's file row, a plain clickable, draws this ring at 3.17:1
+ * over the side bar. Those controls take [com.jupydroid.extension.api.focusRing] in their `modifier` instead.
+ *
+ * **A ring, because every reference draws one**: VS Code an outline of `focusBorder` at 1px
+ * (`vscode@3f3380c6 src/vs/workbench/browser/media/style.css:257-272`), JupyterLab one at 2px on
+ * `:focus-visible` (`jupyterlab@7f0e6906 packages/theme-light-extension/style/variables.css:459-460`).
+ *
+ * [FocusInteraction] is what `clickable` emits when the platform gives the control focus, which in
+ * touch mode it does not - so a finger tap draws no ring.
+ *
+ * ```
+ * CompositionLocalProvider(LocalIndication provides FocusRingIndication(chrome.focusBorder, ripple()))
+ * ```
+ */
+internal data class FocusRingIndication(val ring: Color, val base: IndicationNodeFactory) : IndicationNodeFactory {
+  override fun create(interactionSource: InteractionSource): DelegatableNode =
+    FocusRingNode(interactionSource, ring, base)
+}
+
+private class FocusRingNode(
+  private val interactionSource: InteractionSource,
+  private val ring: Color,
+  private val base: IndicationNodeFactory,
+) : DelegatingNode(),
+  DrawModifierNode {
+  private var focused = false
+
+  override fun onAttach() {
+    delegate(base.create(interactionSource))
+    coroutineScope.launch { interactionSource.interactions.collect(::follow) }
+  }
+
+  private fun follow(interaction: Interaction) {
+    when (interaction) {
+      is FocusInteraction.Focus -> focused = true
+      is FocusInteraction.Unfocus -> focused = false
+      else -> return
+    }
+    invalidateDraw()
+  }
+
+  override fun ContentDrawScope.draw() {
+    drawContent()
+    if (!focused) return
+    drawFocusRing(ring)
+  }
+}

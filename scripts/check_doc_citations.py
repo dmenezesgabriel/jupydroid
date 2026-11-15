@@ -121,8 +121,10 @@ ADR_CITED = re.compile(r"\bADR-(\d{4})\b")
 
 
 #: Which prose scanner reads which language, keyed by extension - or by whole filename for a file
-#: that has none, which is how `Dockerfile` gets read. `.c`, `.java` and ANTLR's `.g4` all share
-#: Kotlin's `//` and `/* */`.
+#: that has none, which is how `Dockerfile` gets read. `.c`, `.java`, `.ts` and ANTLR's `.g4` all share
+#: Kotlin's `//` and `/* */`. TypeScript's backtick template literal is the one place that sharing is
+#: loose: the scanner does not know it is a string, so a `//` inside one reads as a comment, and the
+#: loop's sources keep a `//` out of them.
 SCANNERS: dict[str, Callable[[str], str]] = {
     ".kt": comments_only,
     ".kts": comments_only,
@@ -130,6 +132,7 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".c": comments_only,
     ".h": comments_only,
     ".g4": comments_only,
+    ".ts": comments_only,
     ".sh": hash_comments,
     ".py": python_prose,
     ".toml": hash_comments,
@@ -149,9 +152,11 @@ SCANNERS: dict[str, Callable[[str], str]] = {
 #: A `.md` under a scanned tree is documentation, and documentation is allowed to name what the code
 #: may not - that is the whole split ADR-0001 records. A `.json` has no comment syntax at all
 #: (RFC 8259), so it cannot carry a citation: the server answers recorded as test fixtures are data.
+#: JSON Lines (`.ndjson`, `.jsonl`) is the same, one value a line: a recorded agent session is a
+#: fixture and a run's journal is output.
 #: So are the `.txt`, `.csv` and `.chat` files a flow opens or types into the app: plain text with
 #: no comment syntax, whose content is what the screen shows.
-NO_PROSE = frozenset({".md", ".json", ".txt", ".csv", ".chat"})
+NO_PROSE = frozenset({".md", ".json", ".ndjson", ".jsonl", ".txt", ".csv", ".chat"})
 
 #: How many leading bytes decide whether a file is binary. Git's own rule, so the gate agrees with
 #: the tool that decides what `git diff` will show: `buffer_is_binary()` looks for a NUL byte in the

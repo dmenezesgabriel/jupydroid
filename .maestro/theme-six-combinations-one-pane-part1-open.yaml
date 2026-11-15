@@ -1,0 +1,69 @@
+appId: com.jupydroid.app
+---
+# Run by scripts/theme-six-combinations-driver.sh `one-pane`, once per device mode, which the driver
+# has already set. The one-pane twin of theme-six-combinations-part1-open.yaml: opens a file, a
+# notebook, a terminal with a line in it, and Settings, so that every later part finds all four as tabs.
+#
+# Where the one-pane route differs from the two-pane one:
+# - the fixtures live in `reports/`, because a document at the workspace root draws no crumb and the
+#   crumb is the way back to the browser that keeps the tab open (`tabs-narrow.yaml`); the bar's
+#   "Back to files" pops the document instead.
+# - the terminal and Settings are reached from the bottom bar's More, which only the browser and the
+#   side panels draw, so the flow goes back to the browser through the notebook's crumb each time.
+#
+# The terminal is the Space's real shell, which only arm64 ships: on the tablet, in portrait, MAESTRO_DEVICE_KIND=tablet
+# opens it; on the phone (dev36, no rootfs) the driver sets `phone` and the flow leaves it out.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "reports"
+- tapOn: "${MAESTRO_FILE}"
+- extendedWaitUntil:
+    visible: "Tab: ${MAESTRO_FILE}"
+    timeout: 10000
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "More"
+    timeout: 10000
+- tapOn: "reports"
+- tapOn: "${MAESTRO_NOTEBOOK}"
+- extendedWaitUntil:
+    visible: "tab_marker_first = 1"
+    timeout: 30000
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "More"
+    timeout: 10000
+# No shell on the phone: dev36 ships no rootfs.
+- runFlow:
+    when:
+      true: ${MAESTRO_DEVICE_KIND == 'tablet'}
+    commands:
+      - tapOn: "More"
+      - tapOn: "New terminal"
+      - extendedWaitUntil:
+          visible: "Tab: Terminal .*"
+          timeout: 120000
+      - waitForAnimationToEnd:
+          timeout: 15000
+      - tapOn:
+          id: "terminal-input"
+      - inputText: "echo the shell draws here"
+      - pressKey: Enter
+      - hideKeyboard
+      - waitForAnimationToEnd:
+          timeout: 5000
+      - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+      - tapOn: "Workspace"
+      - extendedWaitUntil:
+          visible: "More"
+          timeout: 10000
+- runFlow: open-settings.yaml
+# The tab's own action, not the tab: at 320dp the strip's scrolling row holds three tabs and Settings, the
+# newest, opens beyond its edge (`MainAreaTabStrip`), while Reload and Save are fixed beside the row.
+- extendedWaitUntil:
+    visible: "Reload tab: Settings"
+    timeout: 5000
+- assertVisible: "Theme"
+- takeScreenshot: 01-opened-on-system

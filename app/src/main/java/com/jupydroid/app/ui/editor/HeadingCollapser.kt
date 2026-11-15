@@ -6,7 +6,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -15,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The chevron that folds a heading's section away, drawn **beside the heading it folds** - and
@@ -51,9 +51,9 @@ import androidx.compose.ui.semantics.semantics
  * open. `ExpandLess`/`ExpandMore` would claim the cell itself folds, and the cell is exactly what
  * stays on screen.
  *
- * **The name goes on the button, not on the icon inside it** - a rule a flow already cost us:
- * `contentDescription` on the `Icon` lands on a child node, so the label and the state would be
- * one level apart. And it names what a tap will *do*, as every other control here does.
+ * **The name goes on the button, not on the icon inside it**: `contentDescription` on the `Icon`
+ * lands on a child node, so the label and the state would be one level apart (ADR-0143). And it
+ * names what a tap will *do*, as every other control here does.
  *
  * ```
  * HeadingCollapser(collapsed = cell.headingCollapsed) { act(CellAction.ToggleHeadingCollapse) }
@@ -74,7 +74,7 @@ internal fun HeadingCollapser(fold: HeadingFold, onToggle: () -> Unit, modifier:
     modifier = modifier.height(with(LocalDensity.current) { line.toDp() }),
     contentAlignment = Alignment.Center,
   ) {
-    IconButton(
+    FocusRingIconButton(
       onClick = onToggle,
       modifier = Modifier.semantics {
         contentDescription = if (fold.collapsed) EXPAND_HEADING else COLLAPSE_HEADING

@@ -86,18 +86,23 @@ def node_fill(xml_text: str, attribute: str, value: str, image_path: str) -> str
     ```
     """
     tree = ElementTree.fromstring(xml_text)
-    screen = _screen_of(tree)
+    screen = screen_of(tree)
     left, top, right, bottom = _bounds_of(tree, attribute, value)
     with Image.open(image_path) as frame:
-        scale = _scale(frame.size, screen)
+        scale = frame_scale(frame.size, screen)
         region = frame.convert("RGB").crop(
             (round(left * scale), round(top * scale), round(right * scale), round(bottom * scale))
         )
         return _mode_colour(region)
 
 
-def _screen_of(tree: ElementTree.Element) -> tuple[int, int]:
-    """The dump's own coordinate space, taken from the outermost node that states bounds."""
+def screen_of(tree: ElementTree.Element) -> tuple[int, int]:
+    """The dump's own coordinate space, taken from the outermost node that states bounds.
+
+    ```
+    screen_of(ElementTree.fromstring(open("hierarchy.xml").read()))  # -> (320, 640)
+    ```
+    """
     for node in tree.iter("node"):
         match = BOUNDS.match(node.get("bounds", ""))
         if match:
@@ -119,8 +124,13 @@ def _bounds_of(tree: ElementTree.Element, attribute: str, value: str) -> tuple[i
     )
 
 
-def _scale(frame: tuple[int, int], screen: tuple[int, int]) -> float:
-    """How much larger the frame is than the dump's own space, refusing a different shape."""
+def frame_scale(frame: tuple[int, int], screen: tuple[int, int]) -> float:
+    """How much larger the frame is than the dump's own space, refusing a different shape.
+
+    ```
+    frame_scale((640, 1280), (320, 640))  # -> 2.0
+    ```
+    """
     across, down = frame[0] / screen[0], frame[1] / screen[1]
     if abs(across - down) > _SCALE_TOLERANCE:
         raise ValueError(

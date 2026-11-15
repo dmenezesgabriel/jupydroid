@@ -12,10 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -26,6 +24,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * `toc:show-panel`, on whichever surface the window has room for - [CellActionSurface]'s own rule
@@ -92,6 +92,7 @@ private fun TableOfContentsSheet(rows: List<TocRow>, onDismiss: () -> Unit, onCh
     onDismissRequest = onDismiss,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
   ) {
+    SheetStatusBarFollowsTheme()
     Column(
       modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding(),
     ) {
@@ -126,7 +127,7 @@ internal fun TableOfContentsRows(
     return
   }
   rows.forEach { row ->
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(row.prefix + row.heading.text) },
       onClick = { onChoose(row.heading.cellId) },
       // The disclosure goes where the indent would have been, so a row that owns something and one
@@ -146,8 +147,8 @@ internal fun TableOfContentsRows(
  * reasoning one rank along: this is a tree node's disclosure and the row itself stays put.
  *
  * **Its own control inside the row, so a tap on it is not a pick.** The name goes on the button
- * rather than on the icon for the reason a flow already cost us - and names the entry, since a screen
- * reader meets one of these per row.
+ * rather than on the icon (ADR-0143) - and names the entry, since a screen reader meets one of these
+ * per row.
  */
 @Composable
 private fun TocRowDisclosure(row: TocRow, onToggleCollapsed: ((String) -> Unit)?) {
@@ -156,7 +157,7 @@ private fun TocRowDisclosure(row: TocRow, onToggleCollapsed: ((String) -> Unit)?
     Spacer(modifier = indent.width(TOC_DISCLOSURE_WIDTH))
     return
   }
-  IconButton(
+  FocusRingIconButton(
     onClick = { onToggleCollapsed(row.heading.key) },
     modifier = indent.width(TOC_DISCLOSURE_WIDTH).semantics {
       contentDescription = if (row.collapsed) "Expand ${row.heading.text}" else "Collapse ${row.heading.text}"

@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -53,9 +52,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.jupydroid.extension.api.FocusRingIconButton
 import com.jupydroid.extension.api.KeyRowPublished
 import com.jupydroid.extension.api.MarkdownRenderer
 import com.jupydroid.extension.api.NotebookCells
+import com.jupydroid.extension.api.focusRing
 import com.jupydroid.extensions.ai.domain.AgentChat
 import com.jupydroid.extensions.ai.domain.AgentChatException
 import com.jupydroid.extensions.ai.domain.AgentCommand
@@ -433,7 +434,7 @@ private fun QuestionText(
  */
 @Composable
 private fun StopButton(onClick: () -> Unit) {
-  IconButton(onClick = onClick, modifier = Modifier.testTag("chat-stop")) {
+  FocusRingIconButton(onClick = onClick, modifier = Modifier.testTag("chat-stop")) {
     Icon(Icons.Filled.Stop, contentDescription = "Stop")
   }
 }
@@ -453,6 +454,6 @@ private fun SendButton(enabled: Boolean, onClick: () -> Unit) {
       containerColor = MaterialTheme.colorScheme.primaryContainer,
       contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     ),
-    modifier = Modifier.testTag("chat-send"),
+    modifier = Modifier.testTag("chat-send").focusRing(),
   ) { Icon(Icons.Filled.ArrowUpward, contentDescription = "Send") }
 }

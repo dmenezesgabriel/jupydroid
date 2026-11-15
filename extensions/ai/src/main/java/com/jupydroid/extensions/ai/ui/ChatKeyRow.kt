@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -16,6 +15,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jupydroid.extension.api.FocusRingTextButton
 import kotlin.math.max
 import kotlin.math.min
 
@@ -51,7 +51,7 @@ internal fun ChatKeyRow(onType: (String) -> Unit, onMoveCaret: (Int) -> Unit) {
  */
 @Composable
 private fun ChatKey(label: String, onClick: () -> Unit) {
-  TextButton(onClick = onClick) { Text(text = label, style = MaterialTheme.typography.bodyLarge) }
+  FocusRingTextButton(onClick = onClick) { Text(text = label, style = MaterialTheme.typography.bodyLarge) }
 }
 
 /** [key] in place of the selection, or at the caret, with the caret after it - what a keyboard key does. */

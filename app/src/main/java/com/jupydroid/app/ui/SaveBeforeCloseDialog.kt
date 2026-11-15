@@ -1,11 +1,11 @@
 package com.jupydroid.app.ui
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * "Save changes in X before closing?" - what a dirty document asks on its way out.
@@ -24,17 +24,17 @@ import androidx.compose.runtime.Composable
  */
 @Composable
 fun SaveBeforeCloseDialog(name: String, onSave: () -> Unit, onDiscard: () -> Unit, onCancel: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onCancel,
     title = { Text("Save your work") },
     text = { Text("Save changes in \"$name\" before closing?") },
     // The reference's own order: Cancel and the warn Discard on the dismiss side, the accepting
     // Save last - `Dialog.cancelButton()`, `Dialog.warnButton(Discard)`, `Dialog.okButton(Save)`.
-    confirmButton = { TextButton(onClick = onSave) { Text("Save") } },
+    confirmButton = { FocusRingTextButton(onClick = onSave) { Text("Save") } },
     dismissButton = {
       Row {
-        TextButton(onClick = onCancel) { Text("Cancel") }
-        TextButton(onClick = onDiscard) {
+        FocusRingTextButton(onClick = onCancel) { Text("Cancel") }
+        FocusRingTextButton(onClick = onDiscard) {
           Text("Discard", color = MaterialTheme.colorScheme.error)
         }
       }

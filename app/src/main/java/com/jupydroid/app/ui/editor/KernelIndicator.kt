@@ -12,18 +12,23 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 
 /** The reference's own `circleIconProps.height`, `'24px'` (`apputils/src/toolbar/widget.tsx:210`). */
 private val STATUS_GLYPH_SIZE = 24.dp
+
+internal const val STATUS_GLYPH_TAG = "Kernel status glyph"
 
 /**
  * Which kernel this notebook runs on, and what it is doing - at the right of the action row.
@@ -82,7 +87,7 @@ internal fun KernelIndicator(
    */
   kernelName: String = "No Kernel",
 ) {
-  TextButton(
+  FocusRingTextButton(
     onClick = onPickKernel,
     // Neutral, not the brand colour a `TextButton` defaults to - see this file's header.
     colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
@@ -100,7 +105,7 @@ internal fun KernelIndicator(
           if (status == KernelStatus.NO_KERNEL) "No Kernel" else "Kernel $kernelName: ${status.label()}"
       },
   ) {
-    KernelStatusGlyph(status)
+    KernelStatusGlyph(status, nameShown)
     if (nameShown) {
       Spacer(modifier = Modifier.width(Spacing.sm))
       // `labelLarge`, Material's own role for a button's text, and [CellTypeControl]'s choice
@@ -114,13 +119,21 @@ internal fun KernelIndicator(
  * The status mark, unnamed to a screen reader on purpose - the button above carries the whole
  * description, so naming the glyph again would give TalkBack two things to say about one control.
  * Same call [NotebookTitleStrip]'s pencil makes.
+ *
+ * It grows with the kernel's name when the name is drawn beside it, to keep its proportion to that text as the
+ * system's font size grows; with no name beside it, it is a glyph alone and keeps its size.
  */
 @Composable
-private fun KernelStatusGlyph(status: KernelStatus) {
+private fun KernelStatusGlyph(status: KernelStatus, nameShown: Boolean) {
+  val size = if (nameShown) {
+    LocalDensity.current.glyphBesideText(STATUS_GLYPH_SIZE, MaterialTheme.typography.labelLarge.fontSize)
+  } else {
+    STATUS_GLYPH_SIZE
+  }
   Icon(
     imageVector = status.glyph(),
     contentDescription = null,
-    modifier = Modifier.size(STATUS_GLYPH_SIZE),
+    modifier = Modifier.size(size).testTag(STATUS_GLYPH_TAG),
     tint = LocalContentColor.current,
   )
 }

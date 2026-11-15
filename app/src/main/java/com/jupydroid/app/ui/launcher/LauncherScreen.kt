@@ -5,12 +5,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,14 +24,12 @@ import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -46,6 +50,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
+import com.jupydroid.extension.api.focusRing
 
 /** What Maestro and Compose tests address - one tag per card, suffixed by its command. */
 const val LAUNCHER_CARD_TAG = "launcher-card"
@@ -120,14 +127,7 @@ fun LauncherScreen(
       Column(
         modifier = Modifier.fillMaxWidth(CONTENT_WIDTH).padding(top = Spacing.lg),
       ) {
-        // `jp-Launcher-cwd h3` - font-size2, ui-font-color1, margin 1em 0. The reference draws
-        // the path verbatim, so at the root this is an empty heading - no stray "/".
-        Text(
-          text = cwd,
-          style = MaterialTheme.typography.titleSmall,
-          color = MaterialTheme.colorScheme.onSurface,
-          modifier = Modifier.padding(vertical = Spacing.lg),
-        )
+        CwdHeading(cwd)
         LauncherCategory.entries.forEach { category ->
           LauncherSection(category) { item ->
             LauncherCard(item) { viewModel.launch(item, cwd, onLaunched) }
@@ -138,19 +138,42 @@ fun LauncherScreen(
   }
   error?.let { message ->
     // `showErrorMessage('Error', error)` - the reference reports a failed command in a dialog.
-    AlertDialog(
+    MarginedAlertDialog(
       onDismissRequest = viewModel::dismissError,
       title = { Text("Error") },
       text = { Text(message) },
-      confirmButton = { TextButton(onClick = viewModel::dismissError) { Text("OK") } },
+      confirmButton = { FocusRingTextButton(onClick = viewModel::dismissError) { Text("OK") } },
     )
   }
+}
+
+/**
+ * `jp-Launcher-cwd h3` - font-size2, ui-font-color1, margin 1em 0. The reference draws the path
+ * verbatim, so at the root this is an empty heading - no stray "/".
+ *
+ * An empty `h3` has no line box, so its two 1em margins collapse into one
+ * (`jupyterlab@7f0e690680a7 packages/launcher/style/base.css:43-48`): at the root the heading is one
+ * [Spacing.lg] of space, not a 20dp line between two of them
+ * (`LauncherScreenTest.anEmptyCwdHeadingLeavesOneMarginRatherThanALineBetweenTwo`).
+ */
+@Composable
+private fun CwdHeading(cwd: String) {
+  if (cwd.isEmpty()) {
+    Spacer(Modifier.height(Spacing.lg))
+    return
+  }
+  Text(
+    text = cwd,
+    style = MaterialTheme.typography.titleSmall,
+    color = MaterialTheme.colorScheme.onSurface,
+    modifier = Modifier.padding(vertical = Spacing.lg),
+  )
 }
 
 /** A `jp-Launcher-section`: title row with the `border-color2` rule under it, then the cards. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LauncherSection(category: LauncherCategory, card: @Composable (LauncherItem) -> Unit) {
+private fun LauncherSection(category: LauncherCategory, card: @Composable FlowRowScope.(LauncherItem) -> Unit) {
   val items = LAUNCHER_ITEMS.filter { it.category == category }
   if (items.isEmpty()) return
   Column(Modifier.padding(bottom = Spacing.md)) {
@@ -180,8 +203,14 @@ private fun LauncherSection(category: LauncherCategory, card: @Composable (Launc
 }
 
 /**
- * One `jp-LauncherCard`: 100dp square, a 1px edge, elevation z2. The icon area is 68dp; the
- * label below wraps at 12sp and is what the CSS calls `ui-font-color1`.
+ * One `jp-LauncherCard`: 100dp wide and at least 100dp tall, a 1px edge, elevation z2. The icon area
+ * is 68dp; the label below wraps at 12sp and is what the CSS calls `ui-font-color1`. The height is a
+ * minimum, as the reference's `min-height` is (`jupyterlab@7f0e690680a7
+ * packages/launcher/style/base.css:102-103`): a fixed square left the label 28dp, one line at 200% font
+ * scale, so "Python 3" drew as "Pytho…" (`LauncherScreenTest.everyCardKeepsItsWholeLabelAtTwiceTheFontScale`).
+ * The width grows to the label's longest word, so no word is broken, and the cards of a row stretch to
+ * its tallest, as the reference's flex row does (`base.css:89-96` sets no `align-items`, so it stretches;
+ * `LauncherScreenTest.cardsInOneRowAreAsTallAsTheTallestAtTwiceTheFontScale`).
  *
  * Two roles land on different tokens than the CSS names, both on the ramp's own convention:
  * the reference's `border-color2` is a decorative separator, but a card edge *bounds a
@@ -190,14 +219,19 @@ private fun LauncherSection(category: LauncherCategory, card: @Composable (Launc
  * `cellBackground` already does, which also keeps the card visible in dark where a z2 shadow
  * over the page colour cannot.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LauncherCard(item: LauncherItem, onClick: () -> Unit) {
+private fun FlowRowScope.LauncherCard(item: LauncherItem, onClick: () -> Unit) {
   Surface(
     onClick = onClick,
     modifier = Modifier
-      .size(CARD_SIZE)
+      .fillMaxRowHeight()
+      .widthIn(min = CARD_SIZE)
+      .width(IntrinsicSize.Min)
+      .heightIn(min = CARD_SIZE)
       .semantics { contentDescription = item.label }
-      .testTag("$LAUNCHER_CARD_TAG-${item.command.name}"),
+      .testTag("$LAUNCHER_CARD_TAG-${item.command.name}")
+      .focusRing(),
     shape = MaterialTheme.shapes.extraSmall,
     color = editorPalette.cellBackground,
     border = BorderStroke(CARD_BORDER, MaterialTheme.colorScheme.outline),

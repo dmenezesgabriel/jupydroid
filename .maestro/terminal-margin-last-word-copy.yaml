@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# Part 2 of the last-column press, run after the driver long-pressed the middle of the last column: Copy is
+# offered over the selection, and the shell is made to write what Copy took into `pasted.txt`, which the
+# driver reads back and compares to `lastword`. A press one column short would have copied `beforeword`.
+# The terminal publishes no per-row text for a flow to assert on, so the file is the observation, and it
+# needs a real shell: `FakeTerminalGateway` writes nothing.
+# TABLET ONLY (SM_X216B), and NOT A SUITE FLOW: it needs the press the driver made.
+- assertVisible:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- takeScreenshot: 03-the-last-word-is-selected
+- tapOn:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "printf %s '"
+- tapOn: "Terminal actions"
+- tapOn: "Paste"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "' > pasted.txt"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 04-the-shell-wrote-the-copied-word

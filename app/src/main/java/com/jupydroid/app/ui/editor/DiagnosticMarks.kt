@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextLayoutResult
@@ -40,6 +41,7 @@ import androidx.compose.ui.window.PopupProperties
 import com.jupydroid.app.theme.EditorPalette
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * How a cell's language-server diagnostics appear in the gutter, kept
@@ -157,6 +159,7 @@ internal fun DiagnosticDetailPopup(diagnostics: List<CellDiagnostic>, anchor: In
 @Composable
 private fun DiagnosticDetailRow(diagnostic: CellDiagnostic) {
   val palette = editorPalette
+  val glyph = LocalDensity.current.glyphBesideText(DETAIL_GLYPH, MaterialTheme.typography.bodySmall.fontSize)
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
@@ -167,7 +170,7 @@ private fun DiagnosticDetailRow(diagnostic: CellDiagnostic) {
       imageVector = severityIcon(diagnostic.severity),
       contentDescription = null,
       tint = severityColour(diagnostic.severity, palette),
-      modifier = Modifier.size(DETAIL_GLYPH),
+      modifier = Modifier.size(glyph).testTag(DETAIL_GLYPH_TAG),
     )
     Column(Modifier.padding(start = Spacing.sm)) {
       Text(
@@ -193,8 +196,13 @@ private fun DiagnosticDetailRow(diagnostic: CellDiagnostic) {
  */
 private const val MARK_ICON = 0.9f
 
-/** The glyph leading a detail row - the mark's own icon, tinted by severity. */
+/**
+ * The glyph leading a detail row - the mark's own icon, tinted by severity - at the default font scale. It grows
+ * with the row's message from there (`glyphBesideText`).
+ */
 private val DETAIL_GLYPH = 12.dp
+
+internal const val DETAIL_GLYPH_TAG = "Diagnostic detail glyph"
 
 /** As wide as the completion popup and no wider - see `CellCompletions.MAX_WIDTH`'s reasoning. */
 private val DETAIL_MAX_WIDTH = 280.dp

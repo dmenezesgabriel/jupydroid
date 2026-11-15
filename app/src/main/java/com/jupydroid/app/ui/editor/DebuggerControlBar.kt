@@ -10,9 +10,9 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * `next`/`stepIn`/`stepOut`/`continue` plus `terminate`, shown only while
@@ -59,23 +59,23 @@ internal fun DebuggerControlBar(
   BottomAppBar(modifier = modifier.imePadding()) {
     // Disabled for the length of one DAP round trip - a second tap before the kernel reports
     // where it landed would send a stale command for a stop it has already left.
-    IconButton(onClick = onContinue, enabled = !stepping) {
+    FocusRingIconButton(onClick = onContinue, enabled = !stepping) {
       Icon(Icons.Filled.PlayArrow, contentDescription = "Continue")
     }
-    IconButton(onClick = onNext, enabled = !stepping) {
+    FocusRingIconButton(onClick = onNext, enabled = !stepping) {
       Icon(Icons.Filled.SkipNext, contentDescription = "Step over")
     }
-    IconButton(onClick = onStepIn, enabled = !stepping) {
+    FocusRingIconButton(onClick = onStepIn, enabled = !stepping) {
       Icon(Icons.Filled.ArrowDownward, contentDescription = "Step into")
     }
-    IconButton(onClick = onStepOut, enabled = !stepping) {
+    FocusRingIconButton(onClick = onStepOut, enabled = !stepping) {
       Icon(Icons.Filled.ArrowUpward, contentDescription = "Step out")
     }
-    IconButton(onClick = onTerminate) {
+    FocusRingIconButton(onClick = onTerminate) {
       Icon(Icons.Filled.Stop, contentDescription = "Terminate")
     }
     if (onToggleVariables != null) {
-      IconButton(onClick = onToggleVariables) {
+      FocusRingIconButton(onClick = onToggleVariables) {
         Icon(Icons.AutoMirrored.Filled.List, contentDescription = SHOW_DEBUGGER_PANEL)
       }
     }

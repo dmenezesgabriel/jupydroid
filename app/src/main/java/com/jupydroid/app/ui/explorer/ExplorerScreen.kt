@@ -17,7 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -32,11 +31,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -59,7 +61,9 @@ import com.jupydroid.app.ui.Breadcrumb
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.app.ui.relativeTime
 import com.jupydroid.extension.api.DeleteFileDialog
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.RenameFileDialog
+import com.jupydroid.extension.api.glyphBesideText
 import kotlinx.coroutines.delay
 import java.time.Instant
 import kotlin.time.Duration
@@ -337,6 +341,20 @@ private fun BringCreatedItemIntoView(
 }
 
 /**
+ * How much of the row's foreground its time is drawn with: vscode's `.label-description` is the
+ * label at `opacity: .7`, not a colour of its own (`iconlabel.css:66-69` at `3f3380c668d`).
+ */
+private const val DESCRIPTION_ALPHA = 0.7f
+
+internal const val ENTRY_ROW_ICON_TAG = "Entry row icon"
+
+/**
+ * A listing or recent row's file and folder icon at the default font scale: Material's `Icon` default, which is
+ * what both rows drew before. It grows with the row's name from there (`glyphBesideText`).
+ */
+internal val LISTING_ROW_ICON = 24.dp
+
+/**
  * One entry: an icon that says what it is, and its name.
  *
  * The icon carries the kind for a scanning eye and its `contentDescription` carries it for a
@@ -353,6 +371,11 @@ private fun EntryRow(
   onDelete: () -> Unit,
 ) {
   val directory = entry.kind == WorkspaceEntryKind.DIRECTORY
+  val glyph = LocalDensity.current.glyphBesideText(LISTING_ROW_ICON, MaterialTheme.typography.bodyLarge.fontSize)
+  // Stated, not inherited: this screen's `Scaffold` derives its content colour from
+  // `sideBarBackground` by hex, which lands on `surfaceVariant` and so on the secondary text colour
+  // (`ExplorerRowColourTest`).
+  val rowForeground = if (isOpen) chromePalette.listInactiveSelectionForeground else chromePalette.sideBarForeground
   var menuOpen by remember { mutableStateOf(false) }
   // The same items the long press opens, in the local context menu TalkBack reads. A long press is
   // not reachable by a screen reader at all, which the cell actions already paid to learn.
@@ -396,6 +419,7 @@ private fun EntryRow(
       imageVector = if (directory) Icons.Filled.Folder else Icons.AutoMirrored.Filled.InsertDriveFile,
       contentDescription = if (directory) "Folder" else "File",
       tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.size(glyph).testTag(ENTRY_ROW_ICON_TAG),
     )
     // The name and its time stack rather than sitting in two columns: `DirListing` gives
     // `last_modified` a column of its own, and a 320dp phone has no second column to give it -
@@ -405,24 +429,25 @@ private fun EntryRow(
       Text(
         text = entry.name,
         style = MaterialTheme.typography.bodyLarge,
+        color = rowForeground,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
       )
       Text(
         text = relativeTime(entry.updatedAt, now),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = rowForeground.copy(alpha = DESCRIPTION_ALPHA),
       )
     }
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Rename") },
         onClick = {
           menuOpen = false
           onRename()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Delete") },
         onClick = {
           menuOpen = false

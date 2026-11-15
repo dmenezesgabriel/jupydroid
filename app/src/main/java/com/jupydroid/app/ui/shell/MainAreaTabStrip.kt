@@ -6,27 +6,32 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -58,6 +63,9 @@ import com.jupydroid.app.sidePanelMoveOf
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.OverwriteFileDialog
 import com.jupydroid.extension.api.DocumentContribution
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 import com.jupydroid.extension.api.RenameFileDialog
 import kotlinx.coroutines.launch
 
@@ -118,6 +126,12 @@ fun TabbedDocumentPane(
    * dirty ask where both can reach it.
    */
   onCloseTab: (NavKey) -> Unit,
+  /**
+   * Leaves the workspace for the Spaces list, asking about a dirty document first - what the
+   * one-pane strip's "Spaces" control runs. Handed in beside [onCloseTab] for the same reason:
+   * the ask is the gate's.
+   */
+  onLeaveWorkspace: () -> Unit = {},
   /** `docmanager:open` on a path - where a Save As's copy opens, recorded in Recents as any open is. */
   onOpenDocument: (String) -> Unit,
   /** Where a document's checkpoint is made by the strip's Save and a Save As, and reverted to from its menu. */
@@ -164,6 +178,7 @@ fun TabbedDocumentPane(
       twoPane = twoPane,
       documentContributions = documentContributions,
       onCloseTab = onCloseTab,
+      onLeaveWorkspace = onLeaveWorkspace,
       onShowSidePanel = onShowSidePanel,
       onRenameTab = { key ->
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
@@ -175,7 +190,15 @@ fun TabbedDocumentPane(
       onDeleteTab = { key -> key.documentIn(openDocuments)?.let { delete(key, it) } },
       onSaved = { document -> scope.launch { documentCheckpoints.checkpointSaved(document.path) } },
     )
-    Box(modifier = Modifier.weight(1f)) { content() }
+    // The strip's `windowInsetsPadding` consumes for the strip's own children, never for this
+    // sibling, so a document below it read the status bar's inset a second time and began that
+    // far under the strip. Only the top is taken: the document still pads a cutout at its sides.
+    // Pinned by `TabbedDocumentPaneInsetsTest`.
+    Box(
+      modifier = Modifier
+        .weight(1f)
+        .consumeWindowInsets(TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top)),
+    ) { content() }
   }
 
   // `docmanager:rename` (`docmanager-extension/schema/plugin.json:75`, bound to the tab's own
@@ -226,11 +249,11 @@ fun TabbedDocumentPane(
   // packages/filebrowser/src/listing.ts), while `context.rename` lets the tab's refusal reach the
   // console alone - which, on a device, is silence.
   refusal?.let { message ->
-    AlertDialog(
+    MarginedAlertDialog(
       onDismissRequest = { refusal = null },
       title = { Text("Rename Error") },
       text = { Text(message) },
-      confirmButton = { TextButton(onClick = { refusal = null }) { Text("OK") } },
+      confirmButton = { FocusRingTextButton(onClick = { refusal = null }) { Text("OK") } },
     )
   }
 }
@@ -257,6 +280,7 @@ private fun MainAreaTabStrip(
   twoPane: Boolean,
   documentContributions: List<DocumentContribution>,
   onCloseTab: (NavKey) -> Unit,
+  onLeaveWorkspace: () -> Unit,
   onShowSidePanel: (ShownPanel) -> Unit,
   onRenameTab: (NavKey) -> Unit,
   onSaveTabAs: (NavKey) -> Unit,
@@ -273,8 +297,8 @@ private fun MainAreaTabStrip(
       .bottomBorder(chrome.tabStripBorder)
       // The strip is the detail pane's topmost thing - the status bar is the window's, and
       // without its inset the strip draws *behind* it and the system window eats the taps.
-      // `windowInsetsPadding` consumes as it pads, so the document's own bar below resolves the
-      // same insets to zero rather than double-pad (`EditorTopBar` draws bare in tests).
+      // The document below is told the top inset is spent by [TabbedDocumentPane], because this
+      // padding consumes only for the strip's own children (`EditorTopBar` draws bare in tests).
       .windowInsetsPadding(TopAppBarDefaults.windowInsets)
       .semantics { contentDescription = TAB_STRIP },
   ) {
@@ -282,12 +306,26 @@ private fun MainAreaTabStrip(
     // share and never grows. Below the floor the row overflows and the scroll takes over.
     val share = if (tabs.isEmpty()) TAB_MAX_WIDTH else maxWidth / tabs.size
     val tabWidth = share.coerceIn(TAB_MIN_WIDTH, TAB_MAX_WIDTH)
+    // The tab the strip reveals is the one on top of the stack, scrolled the minimum that shows it
+    // whole, as VS Code does (vscode@3f3380c668d0
+    // `src/vs/workbench/browser/parts/editor/multiEditorTabsControl.ts`, "Reveal the active one")
+    // and IntelliJ's `scrollToSelectedTab` (intellij-community@406a27a8da07
+    // `platform/platform-api/src/com/intellij/ui/tabs/impl/multiRow/ScrollableMultiRowLayout.kt`).
+    // Without it a tab opened past the row's edge is active and unseen. A new tab, a close and
+    // the one-pane arrow each change the row's width, so each reveals again, after the frame that
+    // lays the row out: before it the scroller's range is 0 and a request has nowhere to scroll.
+    val active = backStack.lastOrNull()?.takeIf { it in tabs }
+    val revealActive = remember { BringIntoViewRequester() }
+    LaunchedEffect(active, tabs.size, tabWidth, twoPane) {
+      withFrameNanos {}
+      revealActive.bringIntoView()
+    }
     Row(modifier = Modifier.fillMaxWidth()) {
       // The one-pane Up affordance - fixed ahead of the scrollable tabs so it never scrolls
       // away, and present only while something sits beneath to return to. Its label names the
       // destination rather than saying "Back", which is the system bar's own button.
       if (!twoPane && backStack.size > 1) {
-        IconButton(onClick = { onCloseTab(backStack.last()) }) {
+        FocusRingIconButton(onClick = { onCloseTab(backStack.last()) }) {
           Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
             contentDescription = upDestinationLabel(
@@ -314,12 +352,13 @@ private fun MainAreaTabStrip(
             // the same `title.label`.
             title = tab.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles),
             document = document,
-            active = backStack.lastOrNull() == tab,
+            active = active == tab,
             // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
             closable = tab !is Launcher || backStack.launcherIsClosable(),
             // `docmanager:rename` only exists for what has a path (`document-title` tabs).
             renameable = tab.documentOpening() != null,
             width = tabWidth,
+            modifier = if (active == tab) Modifier.bringIntoViewRequester(revealActive) else Modifier,
             canCloseOthers = tabs.size > 1,
             canCloseRight = toTheRight.isNotEmpty(),
             onActivate = { backStack.activateMainAreaTab(tab) },
@@ -344,20 +383,27 @@ private fun MainAreaTabStrip(
       // Fixed behind the scrolling tabs as the Up arrow is fixed ahead of them, so neither ever
       // scrolls away. The strip's own height rather than an `IconButton`'s 48dp, which would
       // make the strip taller at two panes than its tabs are.
-      val top = backStack.lastOrNull()?.takeIf { it in tabs }
       ActiveTabReload(
-        title = top?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
-        document = top?.documentIn(openDocuments),
+        title = active?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
+        document = active?.documentIn(openDocuments),
         height = TAB_HEIGHT + ACTIVE_EDGE,
         modifier = Modifier.align(Alignment.CenterVertically),
       )
       ActiveTabSave(
-        title = top?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
-        document = top?.documentIn(openDocuments),
+        title = active?.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles).orEmpty(),
+        document = active?.documentIn(openDocuments),
         height = TAB_HEIGHT + ACTIVE_EDGE,
         modifier = Modifier.align(Alignment.CenterVertically),
         onSaved = onSaved,
       )
+      // The way out to the Spaces list, at the width where this strip is the window's only chrome
+      // and no rail is beside it. The Up arrow's 48dp `IconButton` is already in this row at one
+      // pane, so the strip is no taller for it.
+      if (!twoPane) {
+        FocusRingIconButton(onClick = onLeaveWorkspace) {
+          Icon(imageVector = Icons.Filled.Home, contentDescription = LEAVE_WORKSPACE)
+        }
+      }
     }
   }
 }
@@ -396,7 +442,10 @@ private val TAB_MAX_WIDTH = 216.dp
  */
 private val TAB_MIN_WIDTH = 80.dp
 
-/** The strip's own height - between JupyterLab's 26px and VS Code's 35px, at a touchable size. */
+/**
+ * The strip's own height - between JupyterLab's 26px and VS Code's 35px. A control in the strip reserves this,
+ * not Material's 48dp (ADR-0142).
+ */
 internal val TAB_HEIGHT = 32.dp
 
 /** `tab.activeBorderTop`'s 2px, and `--jp-private-horizontal-tab-active-top-border` beside it. */

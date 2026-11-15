@@ -54,7 +54,8 @@ import java.time.Instant
  * the same reasoning `CellActionsTest` carries.
  *
  * The **size** is still forced, which is a different thing: `ForcedSize` does change the layout
- * constraints, and the list pane prefers 360dp (`PaneScaffoldDirective.defaultPanePreferredWidth`).
+ * constraints, and the list pane prefers 360dp, or 412dp where the activity's window is Large
+ * (`PaneScaffoldDirective.defaultPanePreferredWidth`, ADR-0141).
  * On the 320dp emulator that leaves the detail pane no width at all, so both wide cases failed
  * there while passing on the tablet - a suite that quietly meant "whatever device you happened to
  * run it on". The window a test needs is part of the test.

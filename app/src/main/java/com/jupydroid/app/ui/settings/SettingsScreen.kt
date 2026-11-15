@@ -12,12 +12,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +32,7 @@ import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.editorPalette
+import com.jupydroid.extension.api.FocusRingIconButton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -190,7 +187,7 @@ private fun LicencesLinkRow(onClick: () -> Unit) {
  * row), so a tap anywhere on the row reaches it, not only the small control.
  */
 @Composable
-private fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+internal fun SettingsToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
   ListItem(
     headlineContent = { Text(label) },
     trailingContent = { Switch(checked = checked, onCheckedChange = null) },
@@ -220,11 +217,11 @@ private fun SettingsStepperRow(
     headlineContent = { Text(label) },
     trailingContent = {
       Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = onDecrease, enabled = value > minimum) {
+        FocusRingIconButton(onClick = onDecrease, enabled = value > minimum) {
           Icon(Icons.Filled.Remove, contentDescription = decreaseDescription)
         }
         Text("$value$unit")
-        IconButton(onClick = onIncrease, enabled = value < maximum) {
+        FocusRingIconButton(onClick = onIncrease, enabled = value < maximum) {
           Icon(Icons.Filled.Add, contentDescription = increaseDescription)
         }
       }
@@ -234,7 +231,7 @@ private fun SettingsStepperRow(
 
 /**
  * The theme row: a label and three always-visible, mutually exclusive choices -
- * `SingleChoiceSegmentedButtonRow`, Compose Material3's own widget for 2-5 such options, rather
+ * [ChoiceSegments], Material3's segmented-button look for 2-5 such options, rather
  * than a dropdown that hides the two choices not currently picked.
  *
  * Collapses the reference's `adaptive-theme` boolean plus its two named-theme strings
@@ -247,24 +244,20 @@ private fun ThemeOverrideRow(selected: ThemeOverride, onSelect: (ThemeOverride) 
   ListItem(
     headlineContent = { Text(THEME) },
     supportingContent = {
-      SingleChoiceSegmentedButtonRow {
-        THEME_OPTIONS.forEachIndexed { index, (option, label) ->
-          SegmentedButton(
-            selected = selected == option,
-            onClick = { onSelect(option) },
-            shape = SegmentedButtonDefaults.itemShape(index = index, count = THEME_OPTIONS.size),
-            label = { Text(label) },
-          )
-        }
-      }
+      ChoiceSegments(
+        options = THEME_OPTIONS,
+        selected = THEME_OPTIONS.first { (option, _) -> option == selected },
+        label = { (_, label) -> label },
+        onSelect = { (option, _) -> onSelect(option) },
+      )
     },
   )
 }
 
 /**
  * The `indentUnit` row: five always-visible, mutually exclusive choices -
- * `SingleChoiceSegmentedButtonRow`, the same widget [ThemeOverrideRow] reaches for, and still
- * inside its documented 2-5 option range. The labels are the schema's own enum literals
+ * [ChoiceSegments], the same widget [ThemeOverrideRow] reaches for, and still
+ * inside its 2-5 option range. The labels are the schema's own enum literals
  * (`'Tab'`, `'1'`, `'2'`, `'4'`, `'8'` - `packages/codemirror/src/extension.ts:707-720`), which
  * is why there is no `*_OPTION` constant block here: `IndentUnit.option` *is* the schema string,
  * not a translation of it.
@@ -274,16 +267,7 @@ private fun IndentUnitRow(selected: IndentUnit, onSelect: (IndentUnit) -> Unit) 
   ListItem(
     headlineContent = { Text(INDENT_UNIT) },
     supportingContent = {
-      SingleChoiceSegmentedButtonRow {
-        IndentUnit.entries.forEachIndexed { index, option ->
-          SegmentedButton(
-            selected = selected == option,
-            onClick = { onSelect(option) },
-            shape = SegmentedButtonDefaults.itemShape(index = index, count = IndentUnit.entries.size),
-            label = { Text(option.option) },
-          )
-        }
-      }
+      ChoiceSegments(options = IndentUnit.entries, selected = selected, label = { it.option }, onSelect = onSelect)
     },
   )
 }

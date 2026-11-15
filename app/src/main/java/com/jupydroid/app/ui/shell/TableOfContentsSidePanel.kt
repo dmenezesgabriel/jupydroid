@@ -1,7 +1,6 @@
 package com.jupydroid.app.ui.shell
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -11,9 +10,7 @@ import androidx.compose.material.icons.filled.UnfoldLess
 import androidx.compose.material.icons.filled.UnfoldMore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -25,12 +22,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.jupydroid.app.DocumentOutline
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.editor.TableOfContentsRows
 import com.jupydroid.app.ui.editor.TocFolds
 import com.jupydroid.app.ui.editor.tocRows
 import com.jupydroid.app.ui.editor.tocSectionOwners
 import com.jupydroid.app.ui.editor.tocSomeExpanded
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * `shell.add(toc, 'left', { rank: 400 })` - the open document's structure as a **sidebar panel**,
@@ -59,9 +56,8 @@ fun TableOfContentsSidePanel(outline: DocumentOutline?, modifier: Modifier = Mod
   // title rather than on the outline itself, which is republished on every edit to a heading.
   val folds = remember(outline?.title) { TocFolds() }
   val headings = outline?.headings.orEmpty()
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    containerColor = chromePalette.sideBarBackground,
+  SideBarScaffold(
+    modifier = modifier,
     topBar = {
       TopAppBar(
         colors = sideBarTopAppBarColors(),
@@ -91,7 +87,7 @@ fun TableOfContentsSidePanel(outline: DocumentOutline?, modifier: Modifier = Mod
     // open" and "nothing has headings" (`packages/toc/src/treeview.tsx:31-40`).
     if (outline == null || headings.isEmpty()) {
       NoHeadingsPlaceholder(modifier = Modifier.padding(padding))
-      return@Scaffold
+      return@SideBarScaffold
     }
     Column(modifier = Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
       TableOfContentsRows(
@@ -116,7 +112,7 @@ private fun CollapseAllEntries(someExpanded: Boolean?, onToggleAllCollapsed: () 
   // One control for both halves of one command, named for the half the next tap performs -
   // `someExpanded` is the reference's own predicate (`index.ts:174-210`), and a name that flips is
   // what a Maestro flow can read where a toggled state is not.
-  IconButton(
+  FocusRingIconButton(
     onClick = onToggleAllCollapsed,
     modifier = Modifier.semantics {
       contentDescription = if (someExpanded) COLLAPSE_ALL_TOC_ENTRIES else EXPAND_ALL_TOC_ENTRIES

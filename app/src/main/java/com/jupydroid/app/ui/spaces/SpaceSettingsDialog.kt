@@ -8,11 +8,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,6 +33,8 @@ import com.jupydroid.app.syntax.ShellSyntax
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.CodeCellField
 import com.jupydroid.app.ui.editor.cellEditorBox
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /** The idle-shutdown field's tag, for a test and - as a resource id - for a Maestro flow. */
 const val IDLE_SHUTDOWN_FIELD_TAG = "space-idle-shutdown-field"
@@ -43,6 +44,9 @@ const val THREAD_CAP_FIELD_TAG = "space-thread-cap-field"
 
 /** The startup-script field's tag, for a test and - as a resource id - for a Maestro flow. */
 const val STARTUP_SCRIPT_FIELD_TAG = "space-startup-script-field"
+
+/** The startup script's name: its heading, and what a screen reader calls the field under it. */
+internal const val STARTUP_SCRIPT_NAME = "Startup script"
 
 /** The dialog's accept button. */
 internal const val SAVE_SETTINGS = "Save"
@@ -85,7 +89,7 @@ fun SpaceSettingsDialog(
   val idleMinutes = idleText.trim().toIntOrNull()?.takeIf { it in IDLE_SHUTDOWN_MINUTES_RANGE }
   val threadCap = threadCapOf(capText)
   val savable = idleMinutes?.takeIf { threadCap.isSuccess && variableRows.refusals().all { it == null } }
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Settings · ${space.name} (${space.id})") },
     text = {
@@ -99,7 +103,7 @@ fun SpaceSettingsDialog(
       }
     },
     confirmButton = {
-      TextButton(
+      FocusRingTextButton(
         onClick = {
           savable?.let {
             onSave(
@@ -118,7 +122,7 @@ fun SpaceSettingsDialog(
         Text(SAVE_SETTINGS)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }
 
@@ -181,13 +185,16 @@ private fun SettingsNumberField(
 internal fun StartupScriptField(script: TextFieldState) {
   var focused by remember { mutableStateOf(false) }
   Column(Modifier.padding(top = Spacing.sm)) {
-    Text("Startup script", style = MaterialTheme.typography.labelLarge)
+    // The field carries the name, so the heading is drawn and cleared out of the tree: two nodes
+    // answering to one string sent a flow to the label (`SearchSidePanelTest`).
+    Text(STARTUP_SCRIPT_NAME, Modifier.clearAndSetSemantics { }, style = MaterialTheme.typography.labelLarge)
     CodeCellField(
       state = script,
       onSourceEdited = {},
       highlighter = remember { ShellSyntax() },
       typing = InputTransformation { },
       completionEnabled = false,
+      fieldName = STARTUP_SCRIPT_NAME,
       modifier = Modifier.fillMaxWidth()
         .cellEditorBox(editing = focused)
         .onFocusChanged { focused = it.isFocused }

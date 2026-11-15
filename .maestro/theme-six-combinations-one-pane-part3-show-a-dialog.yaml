@@ -1,0 +1,104 @@
+appId: com.jupydroid.app
+---
+# Run by scripts/theme-six-combinations-driver.sh `one-pane-dialogs`, once per app theme and dialog, with
+# MAESTRO_THEME naming the Settings row's choice (System, Light or Dark) and MAESTRO_SURFACE the dialog.
+# Picks the theme, then raises that dialog and stops with it on screen. Like part 2 it takes no
+# screenshot: the driver reads the frame and the `uiautomator dump` of the same moment after this flow ends.
+#
+# The dialogs are the ones that carry text in a distinct colour role (the set is in the ledger): the
+# shared Delete confirm and Rename dialog, Rename with a name it refuses, and the Save-before-close gate.
+# Delete and Rename act on the `reports` folder the one-pane open flow seeded, and each is left by Cancel,
+# so nothing is deleted or renamed; the next dialog's flow dismisses the one before it the same way.
+#
+# The gate's Cancel keeps the document dirty, so from the second theme on the file reads `notes = "seeded"`
+# and then the earlier probe lines; the editor is found by its first line and not by the whole text.
+#
+# TABLET ONLY (SM-X216B), in portrait. Autosave is seeded off by the driver: with the debounce live the
+# document would be clean 500 ms after the last keystroke and the gate would be a race, not a state
+# (`.maestro/close-gate-dialog.yaml`).
+- launchApp:
+    stopApp: false
+# At 200% font scale on a 320dp phone the refused Rename's buttons sit under the keyboard it left up, so
+# Cancel is not on screen. Back hides the keyboard; with none up it closes the dialog, which is this
+# step's job anyway.
+- runFlow:
+    when:
+      visible: "Rename folder"
+      notVisible: "Cancel"
+    commands:
+      - back
+# The dialog the surface before this one left. Cancel is on every dialog of the set, and on the gate it
+# keeps the document, so this never loses the dirty tab the gate needs again.
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+- runFlow: theme-six-combinations-one-pane-to-the-bar.yaml
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Theme"
+    timeout: 5000
+- tapOn: "${MAESTRO_THEME}"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE != 'save-before-close-dialog'}
+    commands:
+      # The theme pick left Settings on top, and a row's menu is the browser's.
+      - runFlow: theme-six-combinations-one-pane-to-the-bar.yaml
+      - longPressOn: "reports"
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'delete-dialog'}
+    commands:
+      - tapOn: "Delete"
+      - extendedWaitUntil:
+          visible: "Are you sure you want to permanently delete: reports\\?"
+          timeout: 5000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'rename-dialog' || MAESTRO_SURFACE == 'rename-invalid-dialog'}
+    commands:
+      - tapOn: "Rename"
+      - extendedWaitUntil:
+          visible: "Rename folder"
+          timeout: 5000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'rename-invalid-dialog'}
+    commands:
+      # The stem is selected on open, so typing replaces it (`.maestro/tabs-narrow.yaml`); a slash is a
+      # name the dialog refuses and says so in the error colour.
+      - inputText: "a/b"
+      - extendedWaitUntil:
+          visible: "Names must have nonzero length.*"
+          timeout: 5000
+- runFlow:
+    when:
+      true: ${MAESTRO_SURFACE == 'save-before-close-dialog'}
+    commands:
+      # Opening Settings last scrolls the strip to it, which leaves the file's tab a 108px sliver under the
+      # notebook's; a tap on that lands on the notebook's tab. Drag the strip back to its start first.
+      - swipe:
+          start: "40%,4%"
+          end: "95%,4%"
+      - tapOn: "Tab: ${MAESTRO_FILE}"
+      - extendedWaitUntil:
+          visible: "(?s).*notes = \"seeded\".*"
+          timeout: 10000
+      - tapOn: "(?s).*notes = \"seeded\".*"
+      - tapOn:
+          point: "95%,25%"
+      - pressKey: Enter
+      - inputText: "dialog_probe"
+      - extendedWaitUntil:
+          visible: "Unsaved changes"
+          timeout: 10000
+      - tapOn: "Close tab: ${MAESTRO_FILE}"
+      - extendedWaitUntil:
+          visible: "Save your work"
+          timeout: 5000
+- waitForAnimationToEnd:
+    timeout: 3000

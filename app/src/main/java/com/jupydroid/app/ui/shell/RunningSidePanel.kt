@@ -4,8 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -19,14 +19,11 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Terminal
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -38,6 +35,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,8 +51,11 @@ import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.Spacing
-import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.DocumentContribution
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
+import com.jupydroid.extension.api.glyphBesideText
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
 
@@ -119,15 +121,14 @@ fun RunningSidePanel(
   var collapsed by rememberSaveable { mutableStateOf(listOf<String>()) }
   var pendingBulk by remember { mutableStateOf<PendingBulk?>(null) }
 
-  Scaffold(
-    modifier = modifier.fillMaxSize(),
-    containerColor = chromePalette.sideBarBackground,
+  SideBarScaffold(
+    modifier = modifier,
     topBar = {
       TopAppBar(
         colors = sideBarTopAppBarColors(),
         title = { Text(SidePanel.RUNNING.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         actions = {
-          IconButton(
+          FocusRingIconButton(
             onClick = viewModel::refresh,
             modifier = Modifier.semantics { contentDescription = "Refresh list" },
           ) {
@@ -248,10 +249,18 @@ private fun RunningSection(
   leadingAction: @Composable () -> Unit = {},
   rows: @Composable () -> Unit,
 ) {
+  val caret = LocalDensity.current.glyphBesideText(SECTION_CARET, MaterialTheme.typography.titleSmall.fontSize)
   Column(modifier = Modifier.fillMaxWidth()) {
     Row(
       verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle).padding(Spacing.sm),
+      // The header reserves Material's minimum itself. A 40dp bare `clickable` borrows the other 8dp from its
+      // neighbours at press time and took the top 4dp of the toolbar row's button (ADR-0048,
+      // `RunningSidePanelTest.aPressInTheStripReservedAboveShutDownAllReachesTheButton`).
+      modifier = Modifier
+        .fillMaxWidth()
+        .clickable(onClick = onToggle)
+        .heightIn(min = LocalMinimumInteractiveComponentSize.current)
+        .padding(Spacing.sm),
     ) {
       Icon(
         imageVector = if (title in
@@ -262,7 +271,7 @@ private fun RunningSection(
           Icons.Filled.KeyboardArrowDown
         },
         contentDescription = null,
-        modifier = Modifier.size(SECTION_CARET),
+        modifier = Modifier.size(caret).testTag(SECTION_CARET_TAG),
       )
       Text(
         text = title,
@@ -284,7 +293,7 @@ private fun RunningSection(
 /** A section toolbar's button, named with its section so "Close All" in two sections stays two acts. */
 @Composable
 private fun SectionActionButton(label: String, section: String, enabled: Boolean, onClick: () -> Unit) {
-  TextButton(
+  FocusRingTextButton(
     onClick = onClick,
     enabled = enabled,
     modifier = Modifier.semantics { contentDescription = "$label: $section" },
@@ -308,6 +317,7 @@ private fun RunningRow(
   onOpen: () -> Unit,
   onShutdown: () -> Unit,
 ) {
+  val glyph = LocalDensity.current.glyphBesideText(ROW_ICON, MaterialTheme.typography.bodyMedium.fontSize)
   Row(
     verticalAlignment = Alignment.CenterVertically,
     // A clickable row names its act, not just its label - "running-panel-kernel.ipynb" alone is also the
@@ -323,26 +333,31 @@ private fun RunningRow(
       imageVector = icon,
       contentDescription = null,
       tint = MaterialTheme.colorScheme.onSurfaceVariant,
-      modifier = Modifier.size(ROW_ICON),
+      modifier = Modifier.size(glyph).testTag(ROW_ICON_TAG),
     )
-    Text(
-      text = label,
-      style = MaterialTheme.typography.bodyMedium,
-      maxLines = 1,
-      overflow = TextOverflow.Ellipsis,
-      modifier = Modifier.padding(start = Spacing.sm),
-    )
-    detail?.let {
+    // The weighted wrapper is what keeps the close button at one x: an unweighted label is measured first
+    // with all the width left, so a long name would push the button past the edge. The detail is measured
+    // before the label, so it keeps its width and the label is the part that is cut
+    // (RunningSidePanelFontScaleTest).
+    Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
       Text(
-        text = it,
+        text = label,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
-        modifier = Modifier.padding(start = Spacing.xs),
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f, fill = false).padding(start = Spacing.sm),
       )
+      detail?.let {
+        Text(
+          text = it,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          maxLines = 1,
+          modifier = Modifier.padding(start = Spacing.xs),
+        )
+      }
     }
-    Spacer(modifier = Modifier.weight(1f))
-    IconButton(
+    FocusRingIconButton(
       onClick = onShutdown,
       modifier = Modifier.semantics { contentDescription = shutdownDescription },
     ) {
@@ -362,19 +377,19 @@ private fun RunningRow(
  */
 @Composable
 private fun BulkConfirmationDialog(pending: PendingBulk, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(pending.title) },
     text = { Text(pending.body) },
     confirmButton = {
-      TextButton(
+      FocusRingTextButton(
         onClick = onConfirm,
         modifier = Modifier.semantics { contentDescription = "Confirm ${pending.confirmLabel}" },
       ) {
         Text(pending.confirmLabel, color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }
 
@@ -417,3 +432,6 @@ private val SECTION_CARET = 16.dp
 
 /** `jp-RunningSessions-icon`'s own slot - `width: 16px; height: 16px` (`running/style/base.css:86-89`). */
 private val ROW_ICON = 16.dp
+
+internal const val SECTION_CARET_TAG = "Running section caret"
+internal const val ROW_ICON_TAG = "Running row icon"

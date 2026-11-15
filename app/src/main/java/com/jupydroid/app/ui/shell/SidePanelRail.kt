@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
@@ -15,6 +16,7 @@ import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.railOrder
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.SidePanelContribution
+import com.jupydroid.extension.api.focusRing
 
 /**
  * The activity bar: which side panel is showing, and the only control that changes it.
@@ -41,6 +43,8 @@ import com.jupydroid.extension.api.SidePanelContribution
  *   it has no selected state to hold.
  * @param onOpenSettings opens the app-wide Settings screen, from the rail's foot - see the item's
  *   own comment for why there.
+ * @param onLeaveWorkspace leaves the Space for the Spaces list, from the rail's foot above Settings -
+ *   the dirty-gated leave, so an unsaved document is asked about first.
  * @param contributions the panels extensions add (ADR-0104), each drawn with its own label and icon.
  */
 @Composable
@@ -49,6 +53,7 @@ fun SidePanelRail(
   onChoose: (ShownPanel) -> Unit,
   onOpenLauncher: () -> Unit,
   onOpenSettings: () -> Unit,
+  onLeaveWorkspace: () -> Unit,
   contributions: List<SidePanelContribution>,
   modifier: Modifier = Modifier,
 ) {
@@ -73,9 +78,9 @@ fun SidePanelRail(
         // was chosen: "Table of contents" is wider than the rail and spilled across the panel
         // beside it (the run before this). Material allows a rail
         // item with no label, and the name is still on the item for a screen reader and a flow.
-        // The name on the item rather than on the icon inside it, which is a rule a flow already
-        // cost this project: a screen reader and a Maestro flow address one string.
-        modifier = Modifier.semantics { contentDescription = label },
+        // The name on the item rather than on the icon inside it, so a screen reader and a Maestro
+        // flow address one string (ADR-0143).
+        modifier = Modifier.semantics { contentDescription = label }.focusRing(),
       )
     }
     // `launcher:create` as the tab strip's `+` - JupyterLab's own reach point for a launcher,
@@ -86,7 +91,7 @@ fun SidePanelRail(
       onClick = onOpenLauncher,
       icon = { Icon(Icons.Filled.Add, contentDescription = null) },
       label = null,
-      modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER },
+      modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER }.focusRing(),
     )
     // **VS Code's Manage**: the gear is the global activity, drawn after the view containers at the
     // activity bar's foot (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`,
@@ -94,12 +99,21 @@ fun SidePanelRail(
     // panel is - which the Files bar's gear, its home before this, was not. Always unselected for
     // the `+`'s reason: Settings opens in the main area, and selection there is the strip's.
     Spacer(Modifier.weight(1f))
+    // The named way back to the list, beside the gear: always unselected for the same reason - it
+    // leaves the workspace rather than showing a panel.
+    NavigationRailItem(
+      selected = false,
+      onClick = onLeaveWorkspace,
+      icon = { Icon(Icons.Filled.Home, contentDescription = null) },
+      label = null,
+      modifier = Modifier.semantics { contentDescription = LEAVE_WORKSPACE }.focusRing(),
+    )
     NavigationRailItem(
       selected = false,
       onClick = onOpenSettings,
       icon = { Icon(Icons.Filled.Settings, contentDescription = null) },
       label = null,
-      modifier = Modifier.semantics { contentDescription = OPEN_SETTINGS },
+      modifier = Modifier.semantics { contentDescription = OPEN_SETTINGS }.focusRing(),
     )
   }
 }
@@ -109,3 +123,9 @@ fun SidePanelRail(
  * reader and a Maestro flow address Settings the same way at either width.
  */
 const val OPEN_SETTINGS = "Settings"
+
+/**
+ * The way back to the Spaces list's name, on the strip's control, the rail's item and the modal rail's row
+ * alike - one string, so every surface of a Space is addressed the same way.
+ */
+const val LEAVE_WORKSPACE = "Spaces"

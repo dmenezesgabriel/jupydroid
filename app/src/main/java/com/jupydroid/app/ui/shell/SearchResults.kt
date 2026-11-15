@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
@@ -96,7 +97,11 @@ private fun FileMatchHeader(file: MatchedFile, folded: Boolean, onToggle: () -> 
       .padding(horizontal = Spacing.md, vertical = Spacing.sm),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Twistie(collapsed = folded)
+    Twistie(
+      collapsed = folded,
+      labelSize = MaterialTheme.typography.bodyMedium.fontSize,
+      modifier = Modifier.testTag(SEARCH_TWISTIE_TAG),
+    )
     Column(modifier = Modifier.weight(1f).padding(start = Spacing.sm)) {
       Text(
         text = notebookLeafOf(file.path),
@@ -196,6 +201,8 @@ internal val MINIMUM_TAP_TARGET: Dp = 48.dp
  */
 internal fun fileMatchLabel(path: String, matches: Int): String =
   "$path, " + if (matches == 1) "1 match found" else "$matches matches found"
+
+internal const val SEARCH_TWISTIE_TAG = "Search file twistie"
 
 /**
  * What a match row answers to - `getMatchTitle`, which names the line the match is on, **and the

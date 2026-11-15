@@ -4,10 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -15,6 +13,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The notebook's overflow: everything the reference files under **View**, and under **File** as
@@ -101,14 +101,14 @@ internal fun NotebookActionsMenu(
   // row that opens something must not also dismiss the surface it opened.
   var cellTypeOpen by remember { mutableStateOf(false) }
   Box {
-    IconButton(onClick = { open = true }) {
+    FocusRingIconButton(onClick = { open = true }) {
       Icon(Icons.Filled.MoreVert, contentDescription = "Notebook actions")
     }
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
       // Above the reference's two menus and divided off, because it did not come from either: it is
       // the toolbar's own item, arriving here only because the row could not hold it.
       cellTypeInMenu?.let { kind ->
-        DropdownMenuItem(
+        FocusRingDropdownMenuItem(
           text = { Text(cellTypeRowLabel(kind)) },
           onClick = {
             open = false
@@ -119,7 +119,7 @@ internal fun NotebookActionsMenu(
       }
       // The reference's File menu, at the top of the one overflow this bar has - and first,
       // because it is the only row here that changes anything outside the document.
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(EXPORT_NOTEBOOK) },
         onClick = {
           open = false
@@ -130,14 +130,14 @@ internal fun NotebookActionsMenu(
       // The seam between the reference's two menus, drawn the way its own schema draws one:
       // `"type": "separator"`.
       HorizontalDivider()
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(COLLAPSE_ALL_HEADINGS) },
         onClick = {
           open = false
           onSetAllHeadingsCollapsed(true)
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(EXPAND_ALL_HEADINGS) },
         onClick = {
           open = false
@@ -149,7 +149,7 @@ internal fun NotebookActionsMenu(
       // has no toggled state to name (`packages/toc-extension/src/index.ts:161-172`). Without one,
       // it opens the overlay, which is the same row reading the same thing, since a pick dismisses
       // that surface and leaves nothing to name either.
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text(SHOW_TABLE_OF_CONTENTS) },
         onClick = {
           open = false
@@ -161,7 +161,7 @@ internal fun NotebookActionsMenu(
       // [DebuggerControlBar]'s own toggle for this instead, reachable only while a kernel is
       // actually paused, so this menu has nothing to offer in that case at all.
       if (onShowDebuggerPanel != null) {
-        DropdownMenuItem(
+        FocusRingDropdownMenuItem(
           text = { Text(SHOW_DEBUGGER_PANEL) },
           onClick = {
             open = false
@@ -223,18 +223,18 @@ internal fun NotebookActionsMenu(
 private fun ExportPicker(expanded: Boolean, state: ExportState, onDismiss: () -> Unit, onPick: (String) -> Unit) {
   DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
     when {
-      state.loadingFormats -> DropdownMenuItem(
+      state.loadingFormats -> FocusRingDropdownMenuItem(
         text = { Text(LOADING_EXPORT_FORMATS) },
         enabled = false,
         onClick = {},
       )
-      state.offered.isEmpty() -> DropdownMenuItem(
+      state.offered.isEmpty() -> FocusRingDropdownMenuItem(
         text = { Text(NO_EXPORT_FORMATS) },
         enabled = false,
         onClick = {},
       )
       else -> state.offered.forEach { format ->
-        DropdownMenuItem(text = { Text(format.label) }, onClick = { onPick(format.id) })
+        FocusRingDropdownMenuItem(text = { Text(format.label) }, onClick = { onPick(format.id) })
       }
     }
   }

@@ -166,7 +166,9 @@ is skipped "for speed". A step is only finished when all of them hold.
 
 ### 7. Git hooks gate every commit (husky/pre-commit analogue)
 - **pre-commit framework** with local Gradle hooks: file-length → ktlint →
-  detekt → Android Lint → unit tests. Commit is blocked on any failure.
+  detekt → Android Lint → unit tests. Commit is blocked on any failure. The five Gradle hooks run when
+  a commit touches a file Gradle reads, and skip on one that touches none ([ADR-0151](docs/adr/0151-the-gradle-hooks-run-when-a-commit-touches-what-gradle-reads.md)); CI runs every hook
+  with `--all-files`, so the whole tree is still checked before it reaches `main`.
 - Hooks are pure checkers (no mutation). Format locally with `ktlintFormat`.
 - Install: `pip install pre-commit && pre-commit install && npm ci`. `pre-commit install` sets up the
   `commit-msg` hook as well, and the `npm ci` is what that hook runs.
@@ -223,6 +225,9 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | workflow audit | unpinned actions, token scopes, persisted credentials, template injection; offline | `.pre-commit-config.yaml` (`zizmor`), `uv.lock` |
 | commit-message gate | a subject is `type(scope): subject`, with the ten types the history uses and no `revert`; refused at `commit-msg` before the commit exists | `commitlint.config.mjs` (+ `.test.mjs`), `.pre-commit-config.yaml` (`commitlint`, `commitlint-config-tests`), [ADR-0139](docs/adr/0139-commit-subjects-are-checked-by-commitlint-from-a-locked-npm-tree-and-written-with-commitizen.md) |
 | commit writer | `npm run commit` asks for the type, scope and subject from the same rules the gate checks | `package.json` (`config.commitizen`), `commitizen.config.test.mjs` |
+| autopilot loop | `scripts/claude-autopilot/` repeats `prompt-execution.md` one session per commit, a Claude session answering its questions from `ORCHESTRATOR.md`, its agent running every demo itself with `adb` and Maestro and saying no human did ([ADR-0150](docs/adr/0150-the-loops-agent-runs-every-demo-itself-and-says-no-human-did.md)); tests by `node --test`, types by `tsc` | `package.json` (`test`, `typecheck`), `.pre-commit-config.yaml` (`commitlint-config-tests`, `claude-autopilot-typecheck`), [ADR-0147](docs/adr/0147-a-claude-session-orchestrates-a-loop-that-runs-one-execution-session-per-commit.md) |
+| agent-harness skills | 28 skills vendored unedited at a pin under `.claude/skills/`, each file's sha256 in a manifest the gate checks; every autopilot session is told to use `engineering-mode`, with `AGENTS.md` above the skills | `scripts/check_agent_harness_skills.py` (+ `_test.py`), `.claude/agent-harness-skills.sha256`, `STANDING_RULES` in `scripts/claude-autopilot/run.ts`, [ADR-0149](docs/adr/0149-the-agent-harness-skills-are-vendored-at-a-pin-and-a-session-is-told-to-use-them.md) |
+| Gradle-hook scope | the five Gradle hooks share one `files` pattern instead of `always_run`; every tracked file is matched or named as no Gradle input, and every path a build script reads is matched, so a new module, root file or build input cannot arrive unclassified | `scripts/check_gradle_hook_scope.py` (+ `_test.py`), `.pre-commit-config.yaml` (`gradle-hook-scope`, the `&gradle_inputs` anchor), [ADR-0151](docs/adr/0151-the-gradle-hooks-run-when-a-commit-touches-what-gradle-reads.md) |
 | npm supply chain | no install script, git dependency or release younger than 7 days; exact pins; `npm ci` from a sha512 lock | `.npmrc` (+ `npmrc.test.mjs`), `package-lock.json`, `.github/dependabot.yml` (`npm`) |
 | CI | the hooks above, verbatim, on every push to `main` and every pull request: `python-gate` for the Python and ShellCheck hooks, `gradle-gate` for the Gradle ones and `assembleDebug`; `commit-messages` on a pull request only, for its commits and its title | `.github/workflows/ci.yml` |
 | duplication gate | no Kotlin block of 150+ tokens is copied, tests included; PMD CPD, which Gradle's PMD plugin does not run | `:app:cpd` in `app/build.gradle.kts` (`cpdTool`, `libs.versions.toml` `pmd`) |
@@ -237,6 +242,10 @@ step runs this loop start to finish; no stage is skipped or reordered.
 | busybox-seccomp gate | the shell asks Android for no syscall it refuses apps | `scripts/check_busybox_seccomp.py` (+ `_test.py`) |
 | palette-consumers gate | a palette states colours something draws | `scripts/check_palette_consumers.py` (+ `_test.py`) |
 | pane-width measure | what each column of the shell gets, on device | `scripts/read_pane_widths.py` (+ `_test.py`) — a measurement, not a gate |
+| layout-spacing measure | what each column's (or a popup's) rows leave around and between them and what no row covers, off a dump's bounds, against `theme/Spacing.kt` | `scripts/read_layout_spacing.py` (+ `_test.py`) — a measurement, not a gate |
+| dialog-margin measure | how far a dialog's card stands from the window's left and right edges, in dp, off a frame and the dump of the same moment | `scripts/read_dialog_margin.py` (+ `_test.py`) — a measurement, not a gate |
+| touch-target measure | how big each control is the way the platform reports it and whether a screen reader can name it, off a dump's nodes, with the ones a scroller cuts listed apart | `scripts/read_touch_targets.py` (+ `_test.py`) — a measurement, not a gate |
+| font-scale-fit measure | which named nodes newly overlap in part and which targets newly fall under 48dp at a larger font scale, off two dumps of the same screen; truncation is read off the screenshot, a dump has no text extent | `scripts/read_font_scale_fit.py` (+ `_test.py`) — a measurement, not a gate |
 | launch-frames measure | what colour each frame of a cold launch is, from screenrecord's raw frames | `scripts/read_launch_frames.py` (+ `_test.py`) — a measurement, not a gate |
 | import-profile measure | what importing one module costs, self time by top-level package, from `-X importtime` | `scripts/read_import_profile.py` (+ `_test.py`) — a measurement, not a gate |
 | vscode-theme resolve | what colour a VS Code role *actually* is, after its `include` chain | `scripts/resolve_vscode_theme.py` (+ `_test.py`) — a measurement, not a gate |
@@ -272,7 +281,7 @@ nothing about one that does not.
 ktlint check is a formatter, which parses without resolving.
 
 And `uv run --locked ruff check scripts tools`, `uv run --locked ruff format --check scripts tools`, `uv run --locked mypy`, `uv run --locked mypy --config-file tools/rootfs/mypy.ini` and
-`uv run --locked python -m unittest discover -s scripts -p '*_test.py'` and `npm test`
+`uv run --locked python -m unittest discover -s scripts -p '*_test.py'`, `npm test` and `npm run typecheck`
 
 Notes:
 - `JAVA_HOME` must point at a JDK (the Gradle hooks run inside the current

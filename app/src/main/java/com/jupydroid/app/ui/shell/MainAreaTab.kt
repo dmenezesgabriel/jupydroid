@@ -21,7 +21,6 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +34,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
@@ -57,6 +58,8 @@ import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.DirtyMarker
 import com.jupydroid.extension.api.DocumentContribution
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * One `lm-TabBar-tab`: the kind's icon, the `title.label`, and the close icon that swaps for the
@@ -102,11 +105,13 @@ internal fun MainAreaTab(
   onDelete: () -> Unit,
   /** `moveChat` from the main area, or null for a tab whose contribution gives no side panel to move to. */
   onMoveToSidePanel: (() -> Unit)? = null,
+  modifier: Modifier = Modifier,
 ) {
   val chrome = chromePalette
+  val glyph = LocalDensity.current.glyphBesideText(TAB_ICON)
   var menuOpen by remember { mutableStateOf(false) }
   val dirty by document?.dirty?.collectAsStateWithLifecycle() ?: remember { mutableStateOf(false) }
-  Column(modifier = Modifier.width(width)) {
+  Column(modifier = modifier.width(width)) {
     // `jp-mod-current::before` / `tab.activeBorderTop` - the brand line the current tab wears.
     Box(
       modifier = Modifier
@@ -136,7 +141,7 @@ internal fun MainAreaTab(
         imageVector = icon,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(TAB_ICON),
+        modifier = Modifier.size(glyph).testTag(TAB_GLYPH_TAG),
       )
       Text(
         text = title,
@@ -163,14 +168,14 @@ internal fun MainAreaTab(
               imageVector = Icons.Filled.Close,
               contentDescription = null,
               tint = MaterialTheme.colorScheme.onSurfaceVariant,
-              modifier = Modifier.size(TAB_ICON),
+              modifier = Modifier.size(glyph),
             )
           }
         }
       }
     }
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Close All Other Tabs") },
         enabled = canCloseOthers,
         onClick = {
@@ -178,7 +183,7 @@ internal fun MainAreaTab(
           onCloseOthers()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Close Tabs to Right") },
         enabled = canCloseRight,
         onClick = {
@@ -188,7 +193,7 @@ internal fun MainAreaTab(
       )
       if (onMoveToSidePanel != null) {
         HorizontalDivider()
-        DropdownMenuItem(
+        FocusRingDropdownMenuItem(
           text = { Text("Move to side panel") },
           onClick = {
             menuOpen = false
@@ -199,7 +204,7 @@ internal fun MainAreaTab(
       // `docmanager:*` binds to `[data-type="document-title"]` alone: a tab without a path stops here.
       if (!renameable) return@DropdownMenu
       HorizontalDivider()
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Rename…") },
         onClick = {
           menuOpen = false
@@ -207,7 +212,7 @@ internal fun MainAreaTab(
         },
       )
       // Greyed for a tab whose document has not registered: nothing is held on screen to copy.
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Save As…") },
         enabled = document != null,
         onClick = {
@@ -215,7 +220,7 @@ internal fun MainAreaTab(
           onSaveAs()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Revert to Checkpoint…") },
         enabled = document != null,
         onClick = {
@@ -223,7 +228,7 @@ internal fun MainAreaTab(
           onRevert()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Duplicate") },
         enabled = document != null,
         onClick = {
@@ -231,7 +236,7 @@ internal fun MainAreaTab(
           onDuplicate()
         },
       )
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         text = { Text("Delete…") },
         enabled = document != null,
         onClick = {
@@ -268,5 +273,12 @@ internal fun tabIcon(key: NavKey, documentContributions: List<DocumentContributi
  */
 private val TAB_ICON = 14.dp
 
-/** A ✕-sized slot - JupyterLab's close icon is ~16px; the tap target is the slot around it. */
+/** The leading glyph's node, which has no description to find it by; `MainAreaTabFontScaleTest` reads its size. */
+internal const val TAB_GLYPH_TAG = "Tab glyph"
+
+/**
+ * A ✕-sized slot - JupyterLab's close icon is ~16px. The slot is all the close reserves; a press reaches
+ * further, 40dp across and the row's 32dp down at two panes, because Compose widens a clickable's area to
+ * 48dp and a neighbour's direct hit cuts it (ADR-0142, `TabCloseTouchAreaTest`).
+ */
 private val TAB_CLOSE_TOUCH = 24.dp

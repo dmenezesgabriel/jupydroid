@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -20,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 
 /**
  * The actions the `⋮` on a cell header opens, on whichever surface the window has room for.
@@ -130,7 +130,7 @@ private fun CellActionMenu(
 ) {
   DropdownMenu(expanded = true, onDismissRequest = onDismiss) {
     items.forEach { (label, act) ->
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         modifier = Modifier.semantics { contentDescription = cellMenuDescription(label) },
         text = { Text(label) },
         onClick = { onChoose(act) },
@@ -166,6 +166,7 @@ private fun CellActionSheet(
     onDismissRequest = onDismiss,
     sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
   ) {
+    SheetStatusBarFollowsTheme()
     Column(
       modifier = Modifier
         .fillMaxWidth()
@@ -176,7 +177,7 @@ private fun CellActionSheet(
         // A DropdownMenuItem outside a menu: it is the Material row for exactly this - a label
         // that runs an action - and using it keeps the two surfaces' rows the same height and
         // the same shape.
-        DropdownMenuItem(
+        FocusRingDropdownMenuItem(
           modifier = Modifier.fillMaxWidth().semantics { contentDescription = cellMenuDescription(label) },
           text = { Text(label) },
           onClick = { onChoose(act) },

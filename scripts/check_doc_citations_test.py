@@ -136,6 +136,14 @@ class ScannerForTest(unittest.TestCase):
             with self.subTest(suffix=suffix):
                 self.assertIs(comments_only, scanner_for(suffix))
 
+    def test_a_typescript_source_gets_the_slash_scanner(self):
+        """The claude-autopilot loop is TypeScript under `scripts/`, and a type with no scanner fails the run."""
+        self.assertIs(comments_only, scanner_for(".ts"))
+
+    def test_a_comment_in_a_typescript_source_is_a_citation(self):
+        found = citations_in("const x = 1; // see docs/PLAN.md\n", scanner_for(".ts"))
+        self.assertEqual(["docs/PLAN.md"], [text for _, text, _ in found])
+
     def test_the_manifest_gets_the_xml_scanner(self):
         self.assertIs(xml_comments, scanner_for(".xml"))
 
@@ -158,6 +166,10 @@ class ScannerForTest(unittest.TestCase):
     def test_fixture_data_with_no_comment_syntax_is_not_prose(self):
         """A `.txt`, `.csv` or `.chat` fixture is data a flow types or opens, like a `.json`."""
         self.assertLessEqual({".txt", ".csv", ".chat"}, NO_PROSE)
+
+    def test_json_lines_have_no_comment_syntax_either(self):
+        """A recorded agent session (`.ndjson`) and a run journal (`.jsonl`) are JSON, one value a line."""
+        self.assertLessEqual({".ndjson", ".jsonl"}, NO_PROSE)
 
     def test_an_unknown_type_gets_no_scanner_rather_than_a_default(self):
         """A default is how this gate read `.sh` as Kotlin and called `tools/rootfs/` clean.

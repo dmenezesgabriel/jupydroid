@@ -56,6 +56,7 @@ import kotlinx.coroutines.launch
  *   from a launcher card. At one pane the launcher is behind the `+`, so [MoreRail] carries the
  *   second reach; at two the card is already on screen and the bar is not.
  * @param onOpenSettings opens the app-wide Settings screen, from [MoreRail]'s foot.
+ * @param onLeaveWorkspace leaves the Space for the Spaces list, from [MoreRail]'s foot above Settings.
  * @param contributions the panels extensions add (ADR-0104), which [MoreRail] lists.
  */
 @Composable
@@ -65,6 +66,7 @@ fun SidePanelBar(
   onOpenLauncher: () -> Unit,
   onNewTerminal: () -> Unit,
   onOpenSettings: () -> Unit,
+  onLeaveWorkspace: () -> Unit,
   contributions: List<SidePanelContribution>,
   modifier: Modifier = Modifier,
 ) {
@@ -118,7 +120,15 @@ fun SidePanelBar(
       )
     }
   }
-  MoreRail(moreRail, contributions, selected, onChoose, onNewTerminal = onNewTerminal, onOpenSettings = onOpenSettings)
+  MoreRail(
+    moreRail,
+    contributions,
+    selected,
+    onChoose,
+    onNewTerminal = onNewTerminal,
+    onOpenSettings = onOpenSettings,
+    onLeaveWorkspace = onLeaveWorkspace,
+  )
 }
 
 /** The `+` item's name - `launcher-extension`'s own "New Launcher" tooltip. */

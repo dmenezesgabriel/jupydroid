@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -32,6 +33,8 @@ class ChromePaletteTest {
     assertEquals(Color(0xFF191A1B), DarkChromePalette.activityBarBackground)
     assertEquals(Color(0xFF191A1B), DarkChromePalette.sideBarBackground)
     assertEquals(Color(0xFF2C2D2E), DarkChromePalette.listInactiveSelectionBackground)
+    assertEquals(Color(0xFFBFBFBF), DarkChromePalette.sideBarForeground)
+    assertEquals(Color(0xFFEDEDED), DarkChromePalette.listInactiveSelectionForeground)
     assertEquals(Color(0xFF2A2B2C), DarkChromePalette.activityBarBorder)
     assertEquals(Color(0xFF2A2B2C), DarkChromePalette.sideBarBorder)
     assertEquals(Color(0xFF191A1B), DarkChromePalette.tabStripBackground)
@@ -48,6 +51,8 @@ class ChromePaletteTest {
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.sideBarBackground)
     // Translucent, and the alpha is the whole point - see [theLightRowIsAWashAndNotAFill].
     assertEquals(Color(0x99DADADA), LightChromePalette.listInactiveSelectionBackground)
+    assertEquals(Color(0xFF202020), LightChromePalette.sideBarForeground)
+    assertEquals(Color(0xFF202020), LightChromePalette.listInactiveSelectionForeground)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.activityBarBorder)
     assertEquals(Color(0xFFF0F1F2), LightChromePalette.sideBarBorder)
     assertEquals(Color(0xFFFAFAFD), LightChromePalette.tabStripBackground)
@@ -144,5 +149,44 @@ class ChromePaletteTest {
     val painted = LightChromePalette.listInactiveSelectionBackground
       .compositeOver(LightChromePalette.sideBarBackground)
     assertEquals(0xFFE7E7E8.toInt(), painted.toArgb())
+  }
+
+  /**
+   * `focusBorder`, which Dark states **translucent** (`#3994BCB3`, 70%) and Light opaque
+   * (`#0069CCFF`). Compose writes the alpha first, so the Dark value reads `0xB3` at the front.
+   *
+   * ```sh
+   * cd <your vscode clone>/extensions/theme-defaults/themes
+   * python3 ../../../../../../scripts/resolve_vscode_theme.py 2026-dark.json --color focusBorder
+   * ```
+   */
+  @Test
+  fun theFocusBorderIsTheReferencesOwn() {
+    assertEquals(Color(0xB33994BC), DarkChromePalette.focusBorder)
+    assertEquals(Color(0xFF0069CC), LightChromePalette.focusBorder)
+  }
+
+  /**
+   * **A focus indicator is held to 3:1 against what it is drawn over** (WCAG 1.4.11), and the
+   * alpha counts: the ring is read as painted, not as stated. Dark's lands at 3.13:1 over the side
+   * bar - the number the keyboard-focus gap measured the reference at - against 1.14:1 for the
+   * plate this replaces.
+   *
+   * Over the rail and the side panels' own surface and over the page, the two things a control
+   * that takes focus sits on.
+   */
+  @Test
+  fun theFocusBorderClearsThreeToOneOverWhatItSitsOn() {
+    val surfaces = mapOf(
+      "dark side bar" to (DarkChromePalette.focusBorder to DarkChromePalette.sideBarBackground),
+      "dark page" to (DarkChromePalette.focusBorder to DarkEditorPalette.editorBackground),
+      "light side bar" to (LightChromePalette.focusBorder to LightChromePalette.sideBarBackground),
+      "light page" to (LightChromePalette.focusBorder to LightEditorPalette.editorBackground),
+    )
+    surfaces.forEach { (name, ringAndSurface) ->
+      val (ring, surface) = ringAndSurface
+      val ratio = contrastRatio(ring.compositeOver(surface), surface)
+      assertTrue("$name: focus ring is $ratio:1, WCAG 1.4.11 asks 3:1", ratio >= 3.0)
+    }
   }
 }

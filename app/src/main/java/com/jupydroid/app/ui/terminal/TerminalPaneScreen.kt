@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -60,15 +62,18 @@ import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.theme.LocalAnsiPalette
-import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.app.ui.editor.codeSourceStyle
 import com.jupydroid.app.ui.editor.codeTextStyle
 import com.jupydroid.extension.api.KeyRowPublished
 import kotlinx.coroutines.flow.drop
+import kotlin.math.roundToInt
 
 /** So a Compose test - and a Maestro flow, through `testTagsAsResourceId` - can reach the field. */
 const val TERMINAL_INPUT_TAG = "terminal-input"
+
+/** What a screen reader calls the terminal's input, which paints nothing and so has no label to read (ADR-0143). */
+internal const val TERMINAL_INPUT_NAME = "Terminal input"
 
 /**
  * A shell, reachable, typeable and drawn faithfully, sub-steps 1 and 2:
@@ -117,7 +122,7 @@ fun TerminalPaneScreen(
   // pixel delta can be turned into rows, and a press into a cell, without waiting for a fresh
   // `onGridSizeChanged` call - `terminalCellMetrics`'s own measurement never changes mid-gesture,
   // only mid-recomposition.
-  var cellPx by remember { mutableStateOf(IntSize(1, 1)) }
+  var cellPx by remember { mutableStateOf(Size(1f, 1f)) }
   val selection by viewModel.selector.selection.collectAsStateWithLifecycle()
   val copyToClipboard = rememberTerminalClipboardCopy()
   val pasteFromClipboard = rememberTerminalClipboardPaste(viewModel.emulator::paste)
@@ -127,8 +132,8 @@ fun TerminalPaneScreen(
   val haptics = LocalHapticFeedback.current
   // Where the gesture `Box` sits in the root, which is where the floating toolbar is placed.
   var gestureBox by remember { mutableStateOf<LayoutCoordinates?>(null) }
-  // The canvas sits `Spacing.md` in from the `Box` the gestures are read on.
-  val canvasInsetPx = with(LocalDensity.current) { Spacing.md.toPx() }
+  // The canvas sits `terminalMargin` in from the `Box` the gestures are read on.
+  val canvasInsetPx = with(LocalDensity.current) { terminalMargin.toPx() }
   val cellAt = { point: Offset ->
     val screen = viewModel.emulator.screen
     terminalCellAt(point - Offset(canvasInsetPx, 0f), cellPx, IntSize(screen.columns, screen.rows), state.topRow)
@@ -195,7 +200,9 @@ fun TerminalPaneScreen(
     Box(Modifier.padding(padding).fillMaxSize().consumeWindowInsets(WindowInsets.ime)) {
       Box(
         modifier = Modifier.fillMaxSize()
-          .pointerInput(cellPx) { detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellPx.height) } }
+          .pointerInput(cellPx) {
+            detectTerminalScrollDrag { delta -> viewModel.scrollBy(delta, cellPx.height.toInt()) }
+          }
           .onGloballyPositioned { gestureBox = it }
           .pointerInput(cellPx, state.topRow) {
             detectTerminalLongPress(
@@ -225,10 +232,10 @@ fun TerminalPaneScreen(
           TerminalCanvas(
             emulator = viewModel.emulator,
             onGridSizeChanged = { grid, cell ->
-              viewModel.resize(grid, cell.width, cell.height)
+              viewModel.resize(grid, cell.width.roundToInt(), cell.height.roundToInt())
               cellPx = cell
             },
-            modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.md),
+            modifier = Modifier.fillMaxSize().padding(horizontal = terminalMargin),
             textStyle = textStyle,
             topRow = state.topRow,
             selection = selection,
@@ -418,7 +425,10 @@ private fun TerminalInputField(
         onEncodedKey(bytes)
         true
       }
-      .semantics { testTagsAsResourceId = true }
+      .semantics {
+        testTagsAsResourceId = true
+        contentDescription = TERMINAL_INPUT_NAME
+      }
       .testTag(TERMINAL_INPUT_TAG),
   )
 }

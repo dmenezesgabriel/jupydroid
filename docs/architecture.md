@@ -1137,11 +1137,14 @@ Termux's `drawTextRun` measures each run's ink and, when it disagrees with `mFon
 columns` by more than 1%, `canvas.scale`s the run into the cells it was measured for - the
 run-boundary condition itself widens on `fontWidthMismatch`
 (`termux-app/terminal-view/.../TerminalRenderer.java`). Ours draws every run at the grid's cell
-pitch unscaled (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalCanvas.kt`): a font
-whose glyphs do not match the "X" `terminalCellMetrics` measured - ligature-prone or
-mis-declared monospace - drifts ink and cells apart. `CodeText` measures honestly today, so
-this is a dormant rendering risk rather than a visible wrongness; the repair is the same
-per-run measure-and-scale if a font ever lies.
+pitch unscaled (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalCanvas.kt`).
+
+The shipped font does disagree with a whole-pixel "X": a run steps 14.81 px where the cell was counted at 15,
+so the last glyph of a 77-column line was drawn 14 px left of its cell. That is repaired at its cause, not by
+the per-run scale: `terminalCellMetrics` returns the pitch the glyphs are drawn at, as Termux's `mFontWidth`
+stays a float, and the grid, a press and a selection's bounds are counted from it
+(`TerminalCellMetricsTest`, `TerminalGridSizeTest`). The per-run measure-and-scale for a font that lies about
+being monospace stays absent: the shipped font is monospace and agrees with its own pitch.
 
 ### GAP-094 — A markdown file has no rendered preview
 
@@ -1989,6 +1992,295 @@ that grows without bound. Upstream prunes only a dead `jpserver-<pid>.json`, laz
 `list_running_servers` (`usr/lib/python3.12/site-packages/jupyter_server/serverapp.py`). `ServerApp.no_browser_open_file`
 is not configurable, so the `-open.html` is written regardless. The repair is clearing a Space's `run/`
 before its server starts.
+
+### GAP-193 — Nothing on screen says how to leave a Space for the Spaces list
+
+Reported on the published build, on a phone: once inside a Space there is no easy, intuitive way back to
+the Spaces screen. The route exists but is the end of an unwinding, not a control: `Navigation.kt` roots
+the back stack at `SpacesHome`, and the main area's up button reads "Back to Spaces" only when the
+Spaces list is what lies beneath the current screen (`upDestinationLabel`, `MainAreaTabStrip.kt`). With
+documents open the arrow goes to the previous tab or the explorer first. Not measured: what a first-time
+user sees on a phone from each surface, how many taps the route takes, and how VS Code and IntelliJ name
+the act of leaving a workspace. The repair starts there, and ends in one entry that is visible from every
+surface of a Space, with a test that it is.
+
+### GAP-194 — A line's diagnostic and its breakpoint share a touch target
+
+Reported on the published build, on a phone: on a code cell's line that carries a language-server
+warning or error and a breakpoint, the breakpoint's circle draws over the diagnostic's icon. A tap meant
+to read the diagnostic's message sets a breakpoint, and a tap on the breakpoint to remove it opens the
+diagnostic's message instead, so the breakpoint stays. The source states two columns, a breakpoint dot "in
+its own column" and a diagnostic's "mark column" (`LineNumbers.kt`, `rememberGutterMetrics`, `gutterPress`),
+so the overlap is a case the geometry does not cover, found by a person and not yet reproduced here. The
+repair starts by reproducing it at a phone's width on a line holding both, red test first on the gutter's
+metrics. Two references for the shape of the answer: JupyterLab gives the breakpoint a gutter of its own
+(`jupyterlab@7f0e690680a7 packages/debugger/src/handlers/editor.ts:231`, `cm-breakpoint-gutter`), and VS
+Code draws a breakpoint in the glyph margin (`vscode@3f3380c668d0
+src/vs/workbench/contrib/debug/browser/breakpointEditorContribution.ts`) while its markers contribution
+sets no glyph-margin decoration (`glyphMargin` finds nothing under `contrib/markers`): a diagnostic is a
+squiggle in the text. A suggestion to weigh, not a decision: keep the breakpoint in its own column and
+make the squiggle (`DiagnosticSquiggles.kt`) the place a tap reads the message, so each tappable area has
+one meaning.
+
+### GAP-195 — A package installed with `%pip` is sometimes not importable in the next cell
+
+Reported on the published build: after `%pip install <package>` in one cell, an `import` in the cell
+below sometimes says the package was not found, and selecting the kernel again makes it work. Not
+measured, and the two readings below predict different fixes. The first is Python's import caches: a
+directory that appeared after the interpreter first listed its parent is not seen until
+`importlib.invalidate_caches()`. Whether IPython's `%pip` calls it after an install is not read here:
+`IPython/core/magics/packaging.py` in the shipped rootfs says. The second is that the install landed
+outside the kernel's `sys.path`, which a restart's fresh path would hide. The repair starts by
+reproducing on the tablet with a package that installs, `%pip install` then `import` in the next cell,
+and printing `sys.path` and the package's `__file__` when it fails.
+
+### GAP-196 — `%pip` finds no wheel for duckdb or scikit-learn on the Space's platform
+
+Reported on the published build: pandas installs with `%pip`, and duckdb and scikit-learn answer that the
+package could not be found. The cause is partly measured on 2026-11-09. The Space is Alpine 3.21 on musl
+with Python 3.12 (`tools/rootfs/Dockerfile`), so pip looks for `cp312` `musllinux_*_aarch64` wheels. PyPI's
+latest releases list **none** for duckdb 2.0.0 (15 files) or scikit-learn 1.9.1 (43 files), and seven for
+pandas 3.1.1, among them `pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl`. A source build is not an
+exit: the image carries no C toolchain on purpose (`tools/rootfs/Dockerfile`, the comment above its
+builder stages). Not measured: older releases of the two, pip's own message on the device (the report
+paraphrases it), and which other popular packages are in the same case. Options to measure before one
+is chosen: a package the image's `apk` repository carries under the same name, a wheelhouse the build
+produces, or telling the user plainly why pip cannot see a package that exists.
+
+### GAP-197 — Adding a cell, the most repeated notebook act, is only a row in a long menu
+
+Reported on the published build: adding a cell means opening a cell's "⋮" menu and finding the row among
+many; VS Code offers two buttons for it. Read against the source, the report holds. The only insert
+controls are five rows of a cell's menu (`addingItems`, `CellActionItems.kt`: "Insert code above",
+"Insert code below", "Insert markdown below" and the two heading rows), beside the move, duplicate,
+change-type, merge and split rows. The notebook's bottom bar (`NotebookBar.kt`) holds Run all, Interrupt,
+Restart, Restart and run all and Kernel actions, and nothing that adds a cell. The parity ledger marks
+`notebook:insert-cell-below` `present` through that menu and has no row for any of the controls below.
+
+What the references do, read in their code:
+
+- **VS Code** (`vscode@3f3380c668d0`) registers a "Code" and a "Markdown" item in **two** menus:
+  `NotebookCellBetween`, "a toolbar that appears on hover between cells", and `NotebookToolbar`, "the
+  toolbar at the top of the notebook editor" (`src/vs/workbench/contrib/notebook/browser/controller/insertCellActions.ts`
+  `:236-350`). `notebook.insertToolbarLocation` chooses `betweenCells`, `notebookToolbar`, `both` or
+  `hidden`, and its default is `both` (`notebook.contribution.ts:1049-1062`). A hidden-while-read-only rule
+  rides on `NOTEBOOK_EDITOR_EDITABLE`. Commands "Add Code Cell At Top" and "Add Markdown Cell At Top"
+  cover the start of the notebook (`insertCellActions.ts:184,212`).
+- **JupyterLab** (`jupyterlab@7f0e690680a7`) has two: the default toolbar's `insert` button, an `add` icon
+  running `notebook:insert-cell-below` (`packages/notebook-extension/schema/panel.json`, rank 20), and a
+  `NotebookFooter` after the last cell, a button reading "Click to add a cell." that selects the last
+  cell, inserts below it and focuses the new one (`packages/notebook/src/notebookfooter.ts:25,47-53`,
+  attached at `widget.ts:1808`). Neither needs a menu or a hover.
+- **`vscode-jupyter`** (`f01d80ca0aa0`) offers `jupyter.insertCellBelow` and its siblings as key chords
+  for `# %%` cells in a text editor (`package.json:155-170`), and **`colab-vscode`** (`96e23580c6a6`) adds
+  one prefilled code cell after the selection from a command (`src/colab/commands/notebook.ts:65-88`).
+  Neither draws a button. **IntelliJ's community tree has no notebook UI**: the only matches for an
+  insert-cell search are its GUI designer's grid code.
+
+What does not carry over: VS Code's between-cell toolbar appears on hover, and a touch screen has no
+hover (the same reason `resize: vertical` was declined, ADR-0036). JupyterLab's footer and VS Code's top
+toolbar show without one.
+
+The plan, in one slice and one question left open:
+
+1. **A footer after the last cell with two buttons, "Code" and "Markdown", always visible.** It takes
+   JupyterLab's footer behaviour (select the end, insert, focus the new cell) and VS Code's pair of
+   kinds. It calls `insertCellAt(cells.size, kind, "")` (`NotebookCellEdits.kt`), which already makes the new
+   cell the one active cell as one undoable operation, and the new cell is scrolled into view the way
+   `CellScrollTarget.kt` does for a heading. It is the only control on screen in an empty notebook, and
+   absent while the notebook is read-only. The cell menu keeps its rows: the references keep the
+   commands too. Red test first: an instrumented test that the footer is visible with no menu open, that a
+   tap of each button appends a cell of that kind at the end and makes it active, and that it is absent
+   read-only. Shown on a phone and a tablet at font scale 1.0 and 2.0 with every label whole.
+2. **Open until slice 1 is on a phone: a control between cells or at the top.** Hover is not available,
+   so anything between cells must be always visible or tied to the active cell, and either costs vertical
+   space on a screen where space is scarce. The cost is measured on a phone before one is added.
+
+The choice of the footer rests on a heuristic, not a measurement: an act repeated through every session
+should be one tap from where the reader already is, and the end of a notebook is where they scroll to
+append. How often each insert is used is not counted here.
+
+### GAP-198 — The Source Control panel can draw nothing at all
+
+Reported on the published build: the Source Control extension is sometimes blank, with not even a
+message that the folder is not a Git repository. The panel does have that message
+(`SourceControlPanel.kt`, `SourceControlWording.kt`), but only when the server answers with git's own
+"fatal: not a git repository" (`GitStatusAnswer.kt:45-49`). Read against the source, two paths leave the
+panel blank, and neither was reproduced here. While the read is in flight the panel draws nothing
+(`StatusReading.Pending -> Unit`), and `OkHttpGitStatusReader.status` makes its call with
+`client.newCall(request).execute()` on a default `OkHttpClient()` (10 s read timeout; no other client was found
+in `di/`), so a stopped or slow server leaves it blank for that long. A refused connection or a timeout then
+throws an `IOException`, and the panel catches only `GitStatusException`
+(`LaunchedEffect` in `SourceControlPanel`), so nothing is drawn for it either. A `Failed` state is not
+blank: `GitStatusException`'s message always names the path and the reason. The repair starts with two red
+tests, a reader that never answers and one that throws `IOException`, and draws a message with a way to
+retry in every state, "not a Git repository" included.
+
+### GAP-199 — The app sometimes closes itself while navigating, and nothing records why
+
+Reported on the published build, on a phone: now and then the app crashes and closes while moving
+through it, the example given being the extensions. Not reproduced, and there is no log to read on this
+host: no `logcat*.txt` file the audit runs saved holds a `FATAL EXCEPTION`, and the tablet's process-exit
+history (`adb shell dumpsys activity exit-info com.jupydroid.app`, 16 entries on 2026-11-09) holds only
+force stops and package updates that installs and drivers caused, with no crash, ANR or native crash.
+The crash was on the reporter's phone, so the log is there. Read it straight after a crash with
+`adb logcat -b crash -d` and the same `exit-info` command: the first names the exception and its stack, the
+second says whether the process died of a crash, a native crash, an ANR or the system. One code lead,
+unproven: GAP-198's `IOException` escapes a `LaunchedEffect` that catches only `GitStatusException`, and
+an exception that leaves one is not handled by the panel. A test that throws it from the reader says
+whether it ends the process. Until a log names the cause, the repair is not chosen.
+
+### GAP-200 — The app keeps no automatic, bounded record of its crashes and errors
+
+Nothing in `app/src/main` installs an uncaught-exception handler or reads the platform's exit reasons,
+and nothing in `docs/` mentions telemetry, crash reports or analytics, so there is no decision to follow.
+The one durable log is the server's: `run/jupyter_server.log`, "truncated at every server start, so it is
+one run's worth of file", which `JupyterServerLauncher.kt` says to read with `adb shell run-as
+com.jupydroid.app cat files/spaces/base/run/jupyter_server.log`. **`run-as` works only on a debuggable
+build**, and the release build type sets no `debuggable` (`app/build.gradle.kts`, `buildTypes`; nor does the
+manifest), so that path reads the tablet's debug build and not the published package on a phone. The app's
+own side of a crash leaves only what logcat's ring buffer still holds, and nothing is ever cleared because
+nothing is kept. Two references show the shape: `termux-app@3df69d1da197` installs a
+`Thread.UncaughtExceptionHandler` that writes the crash to a log file and then hands the exception on to
+the default handler (`termux-shared/src/main/java/com/termux/shared/crash/CrashHandler.java:18,35-41`), and
+tells the user from that file the next time it starts (`TermuxCrashUtils.java:130-131`); VS Code ships an
+issue reporter (`vscode@3f3380c668d0 src/vs/workbench/contrib/issue/browser/baseIssueReporterService.ts`).
+The platform also keeps why a process died, which `dumpsys activity exit-info` read on the tablet; the API
+behind it, `ActivityManager.getHistoricalProcessExitReasons`, reaches the app from Android 11.
+
+Where a log can sit so that a release build's file can be read over adb: the app-specific external
+directory, `/sdcard/Android/data/com.jupydroid.app/files`, which needs no permission. On the Android 16
+tablet `adb shell ls` lists it. Not measured: pulling a file from it, and the phone's Android version. The
+app uses no external directory today.
+
+The plan, a proposal: local, automatic, bounded, and nothing sent anywhere; no crash-reporting library
+(the handler needs none).
+
+1. **Automatic capture.** An uncaught-exception handler installed once per process in
+   `JupydroidApplication` appends one JSON line per event, with a schema version, the app's version, the
+   device model, the Android version, a kind (`crash`, `anr`, `native`, `exit`, `error`), the thread, the
+   exception class and message and the stack, then chains to the default handler as Termux does. At every start,
+   the platform's exit reasons for a crash, native crash, ANR or kill since the last one are appended too: the
+   handler never runs for a native crash or an ANR. The errors the app already shows a person go through the
+   same writer. The writer sits behind a port with a `Fake` in `data/fake/`, as every port does.
+2. **Stored where it can be pulled.** Under the app-specific external directory, in files a person or `adb
+   pull` can read on a release build. Because other apps holding the storage permission can read that
+   directory on Android 10 and below, **an entry is redacted when it is written**, not only when shared:
+   the server's bearer token turns up in server artifacts (`GAP-188`, `GAP-191`), so a redaction rule with a test
+   runs before a byte lands on disk.
+3. **Bounded, and pruned without being asked.** A size cap and an age cap, oldest first, applied at every
+   start and every rotation, so old logs never consume storage on their own. The caps are set from the
+   measured size of a day's entries, which is not known yet. The server's log rotates under the same caps
+   instead of being truncated, so a crash is not overwritten by the restart that follows it.
+4. **Cleared on request.** A Settings row, "Diagnostics", lists the entries, shows the space the logs take,
+   and offers "Clear logs" behind a confirmation that states the size it frees, as the Running panel's "Shut
+   Down All" confirmation states its count. It also offers "Share log" through the existing `FileProvider`
+   (`${applicationId}.exports`) and "Report an issue", which opens the repository's issue tracker for the
+   person to submit themselves.
+5. **Analysable later.** `scripts/pull-app-logs.sh` pulls the directory into a local, uncommitted folder
+   (ADR-0132), and `scripts/read_app_log.py`, with a test and a fixture, groups entries by exception class
+   and top frame and counts them per app version, in the pattern of the repo's other `read_*.py` measures.
+   That is how crashes are mapped, and what a later session reads.
+6. An ADR for the policy: a local record, person-initiated sharing, no network call of the app's own, and the
+   caps.
+
+Until it ships, the reading path on a debug build is the two adb commands in `GAP-199` plus the server-log
+command above. On the published package only `logcat` and `exit-info` answer.
+
+### GAP-201 — A harness for the Chat cannot be installed from inside the app
+
+The image ships no harness, on purpose: the ACP client's personas "spawn an agent CLI the user installs in
+the Space" (`tools/rootfs/Dockerfile:278-282`), and a rootfs upgrade deletes what was installed
+(`opencode`, `claude-agent-acp` and the `apk add`ed and `npm -g` packages in `usr/`, ADR-0125). Nothing in the
+app installs one: no source line names an install command for a harness, and `ChatPanel.kt:147` says only
+that questions queue while there is no agent. Reported: from inside the app there should be an easy way to
+install a harness that works with the Chat extension, with the choice in the Space's settings dialog and
+the install script expandable, so the person sees exactly what it will put in the Space.
+
+What the Space has, read on the tablet on 2026-11-09: `python3` and `pip`, and **no `node`, `npm`, `npx` or
+`uv`**, the image adding only `python3 py3-pip git` (`tools/rootfs/Dockerfile:87`). `sbin/apk` is there with
+Alpine 3.21's `main` and `community` repositories in `etc/apk/repositories`. `usr/local/bin` was empty:
+the last rootfs bump had cleared both harnesses. So an `npm install -g` is not runnable until a runtime is
+installed first, and the script the person is shown has to say so.
+
+What "compatible with our extension" means, from the persona code. `jupyter-ai-acp-client@77016f63530f`
+provides eight personas, each needing one executable and naming its install (`README.md:57-79`): Claude,
+`claude-agent-acp`, `npm install -g @zed-industries/claude-agent-acp`; OpenCode, `opencode` at least 1.0.0 and
+below 2, `npm install -g opencode-ai`; Codex, `codex-acp`, `npm install -g @zed-industries/codex-acp`;
+Mistral-Vibe, `vibe-acp`, `uv tool install mistral-vibe` or `pip install mistral-vibe`; Copilot, `npm install -g
+@github/copilot` among other routes; and Kilo (at least 7.0.0), Kiro (at least 1.25.0, below 2) and Goose (at least
+1.8.0, below 2), each from its vendor's page. Only two have been run on a Space: OpenCode and Claude
+(`GAP-179`'s sign-ins). They disagree on a name: the README says `@zed-industries/claude-agent-acp`, and
+`GAP-179` records `@agentclientprotocol/claude-agent-acp` 0.97.0 on the tablet. Which scope the script
+installs is read from the registry, not assumed. Whether the other six start on musl and arm64 under
+Android's filter is not measured.
+
+The plan, a proposal, in the order a person meets it:
+
+1. **A catalog the app ships as data.** One entry per harness: its persona, its executable and the version
+   range the persona requires, the package at one **exact** version, and the install script as a file. It
+   starts with the two that have run, OpenCode and Claude, and gains an entry when that harness has been
+   run on the tablet, because "compatible" is a measurement. Only official packages the ACP client's README
+   names go in.
+2. **A section in the Space settings dialog** (`SpaceSettingsDialog.kt`, beside the startup script and default
+   kernel): each harness with whether the Space has it (its executable found, and its version) and, once one
+   is chosen, its install script **expanded** in the monospace the startup script field already uses, under a
+   plain summary of what it adds: a runtime (`apk add nodejs npm`, when `node` is absent), the harness at its
+   pinned version, and the size, which is measured, not guessed. Nothing runs until the person presses
+   Install. A test holds that the bytes shown are the bytes run.
+3. **It runs the way the startup script does**: in the Space's shell, bounded by `timeout`, with the
+   output shown while it runs and a log excerpt when it fails (`SpaceStartupScript.kt`, a five-minute
+   bound that is kept only if a measured install fits it). Whether it needs the Space's server running is
+   read, not assumed.
+4. **It does not run while the app is behind another.** An install is a download, and `GAP-179` records the
+   platform destroying a Space program's sockets seconds after the app leaves the screen. The install screen
+   says so, keeps the app in front, and a re-run after an interruption finishes the job.
+5. **It comes back after a rootfs upgrade.** ADR-0125 deletes the harness, so the section shows it as not
+   installed again and one press reinstalls it. Signing in to the harness is its own step and is not part of
+   this item; `GAP-179` covers why it can fail.
+6. Open until the first slice is on a phone: a pointer from the Chat panel when no harness is installed, so a
+   person who opens Chat first finds the install. What the panel shows now with no agent was not read.
+
+### GAP-202 — Keyboard focus is a pale plate at 1.14:1, not an indicator
+
+Read on the tablet at two panes, in Dark and in Light: Tab to each of ten stops, from the rail's first item to
+the Workspace header, changes one rounded plate behind the item and nothing else, at 1.14:1 to 1.15:1 against
+what was there (`#191A1B` to `#242526` on a rail item, `#FAFAFD` to `#EBEBED` in Light). No outline or ring is
+drawn, and the platform's high-contrast text setting does not reach it. VS Code draws `focusBorder`, a 1px
+outline of `#3994BC` at 70% in 2026 Dark (3.13:1 over the side bar) and `#0069CC` in Light (5.18:1)
+(`vscode@3f3380c6 extensions/theme-defaults/themes/2026-dark.json:12`, `2026-light.json:12`); IntelliJ's
+`HighContrast.theme.json` sets `focusColor` `#1AEBFF` (`intellij-community@406a27a8`). [WCAG 1.4.11](https://www.w3.org/TR/WCAG22/#non-text-contrast)
+holds a focus indicator to 3:1. The source overrides no indication (the only `collectIsFocusedAsState` readers
+are the three cell fields, for their border) and no ADR records why the mark is that small. The repair starts
+with a test that reads the indicator's contrast off a focused control in both palettes, red at 1.14:1.
+
+### GAP-203 — An icon beside text stays the same size while the text grows to 200%
+
+Text follows the font scale and an icon in `dp` does not, which Android does by default. Measured on the
+tablet at one pane: More's rail icon is 1.20 of its label's line at 1.0 and 0.64 at 2.0, a tab's icon 0.88 and
+0.44, while the notebook's `Code` label goes from 20 to 37.3dp tall and Undo, Redo and Find stay 48 x 48dp.
+In the source a tab's icon is `TAB_ICON` 14dp in a `TAB_HEIGHT` 32dp row, and none of the 98 `Icon(` sites is
+sized from the font. IntelliJ cannot arrive here: its UI font size is the one input to `userScaleFactor`, which
+sizes icons and geometry alike (`intellij-community@406a27a8
+platform/platform-impl/src/com/intellij/ide/ui/laf/LafManagerImpl.kt`, `patchLafFonts`;
+`platform/util/ui/src/com/intellij/ui/scale/JBUIScale.kt`). VS Code's 16px codicons do not scale with text but
+no setting scales text alone (`window.zoomLevel` moves both). The row an icon sits in already grows to hold
+its label, so the one place a larger glyph clips is the fixed 32dp tab row. The repair starts with a test of
+a tab at 2.0 whose icon has not outgrown its row.
+
+### GAP-204 — The bottom bar's items are not centred on a medium window
+
+`SidePanelBarTest.theItemsGroupInTheMiddleOnAMediumScreen` fails on `dev36` with `and the group is centred
+expected:<400.0> but was:<396.6667>`: at the 800dp portrait window the group of five items, read from Files'
+left edge to More's right edge, has its centre 3.33dp left of the window's, and the test allows 2dp. The same
+two-test run failed the same way with the author's changes stashed, at `7df2c58e`, so a change under test did
+not cause it. What is not known: the commit that first made it fail (the test was not run at an earlier one),
+and which item's width moved the group. `GAP-182` does not list it: that list was run on 2026-10-27 and this
+test is not in it. In the same run `backClosesTheRailWithoutActing` failed with `RootViewWithoutFocusException`
+(`has-window-focus=false`), the emulator's window never taking focus, which is `GAP-182`'s kind of failure and a
+separate cause. The repair starts by reading the five items' bounds on the failing build, so the 3.33dp is
+attributed to an item before anything is changed; the test is the red test already, and what it then needs is
+either the bar's layout or the test's expectation, decided by what the bounds show.
 
 ---
 

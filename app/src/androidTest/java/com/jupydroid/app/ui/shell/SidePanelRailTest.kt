@@ -2,13 +2,11 @@ package com.jupydroid.app.ui.shell
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -39,6 +37,7 @@ class SidePanelRailTest {
   private val chosen = mutableListOf<ShownPanel>()
 
   private var settingsOpened = 0
+  private var workspaceLeft = 0
 
   /** Five items - one per [SidePanel], which is what the rail iterates. */
   @Test
@@ -52,12 +51,40 @@ class SidePanelRailTest {
     compose.onNodeWithContentDescription(DEBUGGER).assertIsDisplayed()
   }
 
-  /** Spaces are managed from the home, before one is entered - never from a panel inside one. */
+  /**
+   * Spaces is the one named way back to the list (`workbench.action.closeFolder`, in the reference's
+   * File menu), so it is on the rail beside Settings - and, like Settings, opens no panel.
+   */
   @Test
-  fun spacesAreNotOnTheRail() {
+  fun spacesIsOnTheRailAndNeverSelected() {
     show(SidePanel.FILES)
 
-    compose.onAllNodesWithContentDescription(SPACES).assertCountEquals(0)
+    compose.onNodeWithContentDescription(SPACES).assertIsDisplayed().assertIsNotSelected()
+  }
+
+  @Test
+  fun spacesLeavesTheWorkspaceAndMarksNoPanel() {
+    show(SidePanel.FILES)
+
+    compose.onNodeWithContentDescription(SPACES).performClick()
+
+    compose.runOnIdle {
+      assertEquals(1, workspaceLeft)
+      assertEquals(emptyList<ShownPanel>(), chosen)
+    }
+  }
+
+  /** At the foot with the gear: below the `+` and every panel, above Settings. */
+  @Test
+  fun spacesSitsAtTheFootAboveSettings() {
+    show(SidePanel.FILES)
+
+    val spaces = compose.onNodeWithContentDescription(SPACES).getUnclippedBoundsInRoot()
+    val launcher = compose.onNodeWithContentDescription(NEW_LAUNCHER).getUnclippedBoundsInRoot()
+    val gear = compose.onNodeWithContentDescription(SETTINGS).getUnclippedBoundsInRoot()
+
+    assertTrue("Spaces $spaces starts below the + $launcher", spaces.top > launcher.bottom)
+    assertTrue("Spaces $spaces ends above the gear $gear", spaces.bottom <= gear.top)
   }
 
   /** Which one is showing is the rail's own answer, and a screen reader's - `selected`, not a tint. */
@@ -179,6 +206,7 @@ class SidePanelRailTest {
           onChoose = { chosen += it },
           onOpenLauncher = {},
           onOpenSettings = { settingsOpened++ },
+          onLeaveWorkspace = { workspaceLeft++ },
           contributions = listOf(SidePanelContribution(SOURCE_CONTROL_ID, SOURCE_CONTROL, Icons.Filled.AccountTree) {}),
         )
       }

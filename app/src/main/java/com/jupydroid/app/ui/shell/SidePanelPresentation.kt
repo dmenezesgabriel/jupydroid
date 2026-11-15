@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.BugReport
@@ -7,9 +9,11 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.jupydroid.app.SidePanel
 import com.jupydroid.app.theme.chromePalette
@@ -82,3 +86,34 @@ internal val SidePanel.icon: ImageVector
 @Composable
 internal fun sideBarTopAppBarColors(): TopAppBarColors =
   TopAppBarDefaults.topAppBarColors(containerColor = chromePalette.sideBarBackground)
+
+/**
+ * The surface of a side panel, stating the side bar's background **and** its foreground.
+ *
+ * Both, because a `Scaffold` handed only `containerColor` derives its content colour with
+ * `contentColorFor`, which matches the container to a Material role by hex: dark's `#191A1B` is also
+ * `surfaceVariant`, so every colourless `Text` arrived as `onSurfaceVariant`, the secondary colour.
+ * VS Code sets `sideBar.foreground` once on the container and every child inherits it
+ * (`vscode@3f3380c6 src/vs/workbench/browser/parts/sidebar/sidebarPart.ts:173`);
+ * `SideBarForegroundTest` holds it for each panel.
+ *
+ * ```
+ * SideBarScaffold(topBar = { TopAppBar(title = { Text("Debugger") }, colors = sideBarTopAppBarColors()) }) {
+ *   Text("Not stopped", modifier = Modifier.padding(it))
+ * }
+ * ```
+ */
+@Composable
+internal fun SideBarScaffold(
+  modifier: Modifier = Modifier,
+  topBar: @Composable () -> Unit,
+  content: @Composable (PaddingValues) -> Unit,
+) {
+  Scaffold(
+    modifier = modifier.fillMaxSize(),
+    containerColor = chromePalette.sideBarBackground,
+    contentColor = chromePalette.sideBarForeground,
+    topBar = topBar,
+    content = content,
+  )
+}

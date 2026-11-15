@@ -3,24 +3,29 @@ package com.jupydroid.app.ui.spaces
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * The control's accessible name, carrying the current choice so a test and a Maestro flow read the
@@ -35,6 +40,12 @@ internal fun defaultKernelDescription(displayName: String): String = "Default ke
  * the server will start `python3` in its place.
  */
 internal fun missingKernelLabel(name: String): String = "$name (missing)"
+
+/** The drop-down arrow beside the kernel's name at the default font scale: Material's own icon size. */
+private val DEFAULT_KERNEL_CARET = 24.dp
+
+/** The drop-down arrow beside the kernel's name, for a test that reads its size against the name's line. */
+internal const val DEFAULT_KERNEL_CARET_TAG = "Default kernel caret"
 
 /** A choice's accessible name in the open menu. */
 internal fun defaultKernelPickDescription(displayName: String): String = "Make $displayName the default kernel"
@@ -63,17 +74,25 @@ internal fun SpaceDefaultKernelField(choices: List<KernelSpec>?, selected: Strin
   Column(Modifier.padding(top = Spacing.sm)) {
     Text("Default kernel", style = MaterialTheme.typography.labelLarge)
     Box {
-      TextButton(
+      FocusRingTextButton(
         onClick = { open = true },
         enabled = choices != null,
         modifier = Modifier.semantics { contentDescription = defaultKernelDescription(shown) },
       ) {
         Text(shown)
-        Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+        val caret = LocalDensity.current.glyphBesideText(
+          DEFAULT_KERNEL_CARET,
+          MaterialTheme.typography.labelLarge.fontSize,
+        )
+        Icon(
+          Icons.Filled.ArrowDropDown,
+          contentDescription = null,
+          modifier = Modifier.size(caret).testTag(DEFAULT_KERNEL_CARET_TAG),
+        )
       }
       DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
         choices.orEmpty().forEach { spec ->
-          DropdownMenuItem(
+          FocusRingDropdownMenuItem(
             modifier = Modifier.semantics { contentDescription = defaultKernelPickDescription(spec.displayName) },
             text = { Text(spec.displayName) },
             onClick = {

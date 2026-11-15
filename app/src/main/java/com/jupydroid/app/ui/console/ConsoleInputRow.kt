@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,9 +30,13 @@ import com.jupydroid.app.ui.editor.RECALL_PREVIOUS_ENTRY
 import com.jupydroid.app.ui.editor.SymbolRowWhileTyping
 import com.jupydroid.app.ui.editor.cellEditorBox
 import com.jupydroid.app.ui.editor.cellRunIcon
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /** Locates the input field in a test, the same role `EVALUATE_FIELD_TAG` plays for the debugger's. */
 const val CONSOLE_INPUT_FIELD_TAG = "console-input-field"
+
+/** What a screen reader calls the Console's input field. */
+internal const val CONSOLE_INPUT_NAME = "Console input"
 
 /**
  * Where a Console entry is typed and run.
@@ -100,10 +103,10 @@ fun ConsoleInputRow(
   input.indentUnit = indentUnit
   Column(modifier = modifier) {
     Row(modifier = Modifier.padding(vertical = Spacing.xs), verticalAlignment = Alignment.Bottom) {
-      IconButton(onClick = onRecallPreviousEntry) {
+      FocusRingIconButton(onClick = onRecallPreviousEntry) {
         Icon(Icons.Filled.KeyboardArrowUp, contentDescription = RECALL_PREVIOUS_ENTRY)
       }
-      IconButton(onClick = onRecallNextEntry) {
+      FocusRingIconButton(onClick = onRecallNextEntry) {
         Icon(Icons.Filled.KeyboardArrowDown, contentDescription = RECALL_NEXT_ENTRY)
       }
       // The weighted node `Row` actually reads parent data from - see this function's own doc
@@ -125,9 +128,10 @@ fun ConsoleInputRow(
           autoClosingBrackets = autoClosingBrackets,
           indentUnit = indentUnit,
           input = input,
+          fieldName = CONSOLE_INPUT_NAME,
         )
       }
-      IconButton(onClick = onSubmit, enabled = !running) {
+      FocusRingIconButton(onClick = onSubmit, enabled = !running) {
         Icon(cellRunIcon, contentDescription = "Run")
       }
     }

@@ -4,10 +4,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -16,6 +14,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jupydroid.app.ui.shell.sideBarTopAppBarColors
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * What the screen is, above the breadcrumb that says where in it you are.
@@ -31,7 +31,7 @@ internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit) {
     colors = sideBarTopAppBarColors(),
     navigationIcon = {
       onBack?.let {
-        IconButton(onClick = it) {
+        FocusRingIconButton(onClick = it) {
           Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to recents")
         }
       }
@@ -54,12 +54,12 @@ internal fun FilesBar(onBack: (() -> Unit)?, onCreate: (NewItem) -> Unit) {
 @Composable
 private fun NewMenu(onCreate: (NewItem) -> Unit) {
   var open by remember { mutableStateOf(false) }
-  IconButton(onClick = { open = true }) {
+  FocusRingIconButton(onClick = { open = true }) {
     Icon(Icons.Filled.Add, contentDescription = "New")
   }
   DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
     NEW_MENU_ITEMS.forEach { (item, label) ->
-      DropdownMenuItem(text = { Text(label) }, onClick = {
+      FocusRingDropdownMenuItem(text = { Text(label) }, onClick = {
         open = false
         onCreate(item)
       })

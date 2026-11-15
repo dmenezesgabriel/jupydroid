@@ -1,9 +1,11 @@
 name: CI
 
 # The commit gate (AGENTS.md rule 7), run where the author's machine is not the only witness. The
-# job runs `pre-commit run --all-files` verbatim, so CI cannot pass what a commit cannot. This file
-# carries the Python and ShellCheck half; the Gradle hooks are skipped by id and get a job of their
-# own, because they take far longer and one job would report nothing until they ended.
+# job runs `pre-commit run --all-files` verbatim. A commit runs the five Gradle hooks only when it touches
+# a file Gradle reads (ADR-0151), so CI, which runs every hook over the whole tree, is the check a
+# commit that skipped them still owes. This file carries the Python and ShellCheck half; the Gradle hooks
+# are skipped by id and get a job of their own, because they take far longer and one job would report
+# nothing until they ended.
 #
 # Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
 # ruleset in the same commit.
@@ -51,10 +53,10 @@ jobs:
 
       # The Gradle hooks run in gradle-gate. A hook renamed in .pre-commit-config.yaml is no
       # longer skipped by this list and starts running here, where there is no Gradle setup.
-      # commitlint-config-tests needs Node and `npm ci`, which this job does not set up.
+      # commitlint-config-tests and claude-autopilot-typecheck need Node and `npm ci`, which this job does not set up.
       - name: Python and ShellCheck hooks
         env:
-          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests,commitlint-config-tests
+          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests,commitlint-config-tests,claude-autopilot-typecheck
         run: uv run --locked pre-commit run --all-files
 
   gradle-gate:
@@ -141,8 +143,11 @@ jobs:
       - name: Verify the registry signatures
         run: npm audit signatures --min-release-age=0
 
-      - name: The commit tooling's own tests
+      - name: The commit tooling's and the autopilot loop's own tests
         run: npm test
+
+      - name: The autopilot loop typechecks
+        run: npm run typecheck
 
       - name: Commits in the pull request
         env:

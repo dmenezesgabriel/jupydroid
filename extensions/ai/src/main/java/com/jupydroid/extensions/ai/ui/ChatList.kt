@@ -4,6 +4,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,7 +21,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Dns
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -45,7 +47,10 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.jupydroid.extension.api.DeleteFileDialog
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
 import com.jupydroid.extension.api.RenameFileDialog
+import com.jupydroid.extension.api.focusRing
+import com.jupydroid.extension.api.glyphBesideText
 import com.jupydroid.extensions.ai.domain.ChatFile
 import com.jupydroid.extensions.ai.domain.ChatFiles
 import com.jupydroid.extensions.ai.domain.ChatFilesException
@@ -183,10 +188,18 @@ private fun ChatListing.withNotice(notice: String): ChatListing =
 /** One of a chat row's actions: an item of its long-press menu, and a custom action of its own. */
 private class ChatRowAction(val label: String, val run: () -> Unit)
 
-/** What the list offers above its chats: a new chat, and the MCP servers every chat's agent gets. */
+/**
+ * What the list offers above its chats: a new chat, and the MCP servers every chat's agent gets.
+ *
+ * The buttons share a line while they fit and the second drops under the first when they do not. In
+ * a `Row` the first kept its full width and the second got the remainder, so at twice the font scale
+ * on a 320 dp phone "MCP servers" was drawn a letter or two to a line
+ * (`ChatListFontScaleTest.mcpServersKeepsItsWholeWordsOnAPhoneAtTwiceTheFontScale`).
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChatListActions(onNew: () -> Unit, onOpenMcpSettings: () -> Unit) {
-  Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+  FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
     // jupyter-chat's New chat, its `addIcon` before the label (jupyter-chat@2c224bc `placeholder.tsx`).
     ChatListButton("New chat", Icons.Filled.Add, onNew)
     // VS Code's MCP entries carry `Codicon.server` (vscode@3f3380c
@@ -197,8 +210,17 @@ private fun ChatListActions(onNew: () -> Unit, onOpenMcpSettings: () -> Unit) {
 
 @Composable
 private fun ChatListButton(label: String, icon: ImageVector, onClick: () -> Unit) {
-  OutlinedButton(onClick = onClick, modifier = Modifier.padding(vertical = 8.dp)) {
-    Icon(icon, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+  val labelSize = MaterialTheme.typography.labelLarge.fontSize
+  val glyph = LocalDensity.current.glyphBesideText(ButtonDefaults.IconSize, labelSize)
+  OutlinedButton(
+    onClick = onClick,
+    modifier = Modifier.padding(vertical = 8.dp).focusRing().testTag("chat-list-button-$label"),
+  ) {
+    Icon(
+      icon,
+      contentDescription = null,
+      modifier = Modifier.size(glyph).testTag("chat-list-glyph-$label"),
+    )
     Text(label, modifier = Modifier.padding(start = ButtonDefaults.IconSpacing))
   }
 }
@@ -228,6 +250,9 @@ private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, actionsF
   }
 }
 
+/** The size of a Material list item's leading icon, from which the icon grows with the name beside it. */
+private val CHAT_ROW_ICON = 24.dp
+
 /**
  * A Material one-line list item: 56 dp, the whole width pressable, an icon before the name.
  *
@@ -237,6 +262,7 @@ private fun ChatRows(chats: List<ChatFile>, onOpen: (ChatFile) -> Unit, actionsF
  */
 @Composable
 private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, actions: List<ChatRowAction>) {
+  val glyph = LocalDensity.current.glyphBesideText(CHAT_ROW_ICON, MaterialTheme.typography.bodyLarge.fontSize)
   var menuOpen by remember { mutableStateOf(false) }
   val spoken = actions.map { action ->
     CustomAccessibilityAction(action.label) {
@@ -254,7 +280,12 @@ private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, actions: List<ChatRowAct
       .testTag("chat-row"),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Icon(Icons.AutoMirrored.Outlined.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    Icon(
+      Icons.AutoMirrored.Outlined.Chat,
+      contentDescription = null,
+      tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.size(glyph).testTag("chat-row-glyph"),
+    )
     Text(
       chat.name,
       style = MaterialTheme.typography.bodyLarge,
@@ -264,7 +295,7 @@ private fun ChatRow(chat: ChatFile, onOpen: () -> Unit, actions: List<ChatRowAct
     )
     DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
       actions.forEach { action ->
-        DropdownMenuItem(
+        FocusRingDropdownMenuItem(
           text = { Text(action.label) },
           onClick = {
             menuOpen = false

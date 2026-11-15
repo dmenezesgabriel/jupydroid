@@ -17,8 +17,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * An ancestry, scrolling sideways rather than eliding, with every segment a target.
@@ -42,6 +45,10 @@ import com.jupydroid.app.theme.Spacing
  */
 @Composable
 internal fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> Unit, modifier: Modifier = Modifier) {
+  val separatorSize = LocalDensity.current.glyphBesideText(
+    CRUMB_SEPARATOR_SIZE,
+    MaterialTheme.typography.labelLarge.fontSize,
+  )
   Row(
     // **The row states its height and the crumbs no longer pad to it.** Intrinsic height made the
     // row 52dp - a 20dp label inside 16dp of padding - which is 4dp past the minimum it was
@@ -59,7 +66,7 @@ internal fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> 
         Icon(
           Icons.AutoMirrored.Filled.KeyboardArrowRight,
           contentDescription = null,
-          modifier = Modifier.size(CRUMB_SEPARATOR_SIZE),
+          modifier = Modifier.size(separatorSize).testTag(CRUMB_SEPARATOR_TAG),
         )
       }
       Text(
@@ -74,7 +81,10 @@ internal fun Breadcrumb(crumbs: List<Pair<String, String>>, onGoTo: (String) -> 
 }
 
 /**
- * The chevron between two breadcrumbs. A size and not a gap, and named as one: `SEPARATOR` said
- * what it was beside rather than what it is, and `Modifier.size(SEPARATOR)` read as a spacer.
+ * The chevron between two breadcrumbs, at the default font scale. A size and not a gap, and named as one:
+ * `SEPARATOR` said what it was beside rather than what it is, and `Modifier.size(SEPARATOR)` read as a spacer.
+ * It grows with the crumb's label from there (`glyphBesideText`).
  */
 private val CRUMB_SEPARATOR_SIZE = 16.dp
+
+internal const val CRUMB_SEPARATOR_TAG = "Crumb separator"

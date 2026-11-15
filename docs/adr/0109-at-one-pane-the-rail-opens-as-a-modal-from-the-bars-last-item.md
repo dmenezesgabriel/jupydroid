@@ -108,6 +108,13 @@ SM-X216B in portrait the title sits at x 24–246 px, under the rail's 330 px, a
 reports one node, the row. What a flow and the eye address stays unique (ADR-0055). A Compose test
 that reads names with the rail open scopes its lookup to the rail.
 
+**The rows touch, and the two-pane rail's are 4dp apart, and the app chose neither.** The two-pane rail's gap is
+Material's `NavigationRailItemVerticalPadding`, 4dp (`material3-android-1.4.0` `NavigationRailKt`), and the
+modal wide rail declares no item gap, so its rows are 0 apart. VS Code's activity bar has none by default either
+(`vscode@3f3380c6 src/vs/workbench/browser/parts/activitybar/activitybarPart.ts`, `actionGap` is 0 unless the
+floating-panels experiment is on). The app states no spacing for either rail, so a library bump that moves one
+moves the app with it, and a gap the app wants is its own decision to make.
+
 **The rail opens from a tap only.** `ModalWideNavigationRail` has no edge-swipe to open it, so it does
 not compete with the system Back edge on a phone with gesture navigation. SM-X216B uses three-button
 navigation, so that conflict was not exercised there.

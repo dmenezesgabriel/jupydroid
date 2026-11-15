@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -17,6 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.collapse
 import androidx.compose.ui.semantics.expand
@@ -29,6 +32,7 @@ import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.Twistie
 import com.jupydroid.app.ui.shell.MINIMUM_TAP_TARGET
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * What was opened, above the directory being browsed.
@@ -127,7 +131,11 @@ private fun RecentsHeading(collapsed: Boolean, onToggle: () -> Unit, onClear: ()
       .padding(start = Spacing.sm),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Twistie(collapsed = collapsed)
+    Twistie(
+      collapsed = collapsed,
+      labelSize = MaterialTheme.typography.labelLarge.fontSize,
+      modifier = Modifier.testTag(RECENTS_TWISTIE_TAG),
+    )
     Text(
       text = "Recent",
       style = MaterialTheme.typography.labelLarge,
@@ -154,6 +162,7 @@ private fun RecentsHeading(collapsed: Boolean, onToggle: () -> Unit, onClear: ()
 @Composable
 private fun RecentRow(document: RecentDocument, onOpen: () -> Unit) {
   val directory = document.kind == WorkspaceEntryKind.DIRECTORY
+  val glyph = LocalDensity.current.glyphBesideText(LISTING_ROW_ICON, MaterialTheme.typography.bodyLarge.fontSize)
   Row(
     modifier = Modifier
       .fillMaxWidth()
@@ -165,6 +174,7 @@ private fun RecentRow(document: RecentDocument, onOpen: () -> Unit) {
       imageVector = if (directory) Icons.Filled.Folder else Icons.Filled.History,
       contentDescription = if (directory) "Recent folder" else "Recent file",
       tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      modifier = Modifier.size(glyph).testTag(RECENT_ROW_ICON_TAG),
     )
     Text(
       text = document.path,
@@ -184,6 +194,9 @@ private fun RecentRow(document: RecentDocument, onOpen: () -> Unit) {
 private const val RECENTS_HEADING_KEY = "recents-heading"
 private const val RECENTS_DIVIDER_KEY = "recents-divider"
 private const val RECENTS_ROW_TYPE = "recent"
+
+internal const val RECENT_ROW_ICON_TAG = "Recent row icon"
+internal const val RECENTS_TWISTIE_TAG = "Recents twistie"
 
 /** The heading above the recent rows and the divider below them, both items in the same list. */
 private const val HEADING_AND_DIVIDER = 2

@@ -6,11 +6,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +25,8 @@ import com.jupydroid.app.domain.model.KernelPickOption
 import com.jupydroid.app.domain.model.initialPick
 import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * `SessionContextDialogs.selectKernel` (`packages/apputils/src/sessioncontext.tsx:1398-1460) -
@@ -56,7 +56,7 @@ internal fun KernelPickerDialog(
   // The `<select>`'s untouched answer: the marked row, or the first - the browser picks one
   // either way, so "Select" on a dialog nobody tapped still has an answer.
   var picked by remember(groups) { mutableStateOf(groups.initialPick()) }
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Select Kernel") },
     text = {
@@ -91,8 +91,10 @@ internal fun KernelPickerDialog(
         }
       }
     },
-    confirmButton = { TextButton(onClick = { onPick(picked) }) { Text("Select") } },
-    dismissButton = { TextButton(onClick = onDismiss) { Text(if (noKernel) kernelDisplayName else "Cancel") } },
+    confirmButton = { FocusRingTextButton(onClick = { onPick(picked) }) { Text("Select") } },
+    dismissButton = {
+      FocusRingTextButton(onClick = onDismiss) { Text(if (noKernel) kernelDisplayName else "Cancel") }
+    },
   )
 }
 
@@ -107,7 +109,7 @@ internal fun KernelPickerDialog(
  * whose real height already meets the touch target has nothing to inflate.
  */
 @Composable
-private fun KernelPickRow(option: KernelPickOption, picked: Boolean, onClick: () -> Unit) {
+internal fun KernelPickRow(option: KernelPickOption, picked: Boolean, onClick: () -> Unit) {
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier

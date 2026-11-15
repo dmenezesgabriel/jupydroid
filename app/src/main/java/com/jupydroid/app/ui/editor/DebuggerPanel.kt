@@ -29,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -38,6 +39,7 @@ import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.port.DebugVariable
 import com.jupydroid.app.theme.CodeText
 import com.jupydroid.app.theme.Spacing
+import com.jupydroid.extension.api.glyphBesideText
 import kotlinx.coroutines.launch
 
 /**
@@ -206,6 +208,7 @@ private fun VariableRow(variable: DebugVariable, depth: Int, onExpand: suspend (
   val scope = rememberCoroutineScope()
   val expandable = variable.variablesReference != 0
   val indent = Spacing.xl + Spacing.md * depth
+  val disclosure = LocalDensity.current.glyphBesideText(DISCLOSURE_ICON_SIZE, CodeText.size)
   Row(
     verticalAlignment = Alignment.CenterVertically,
     modifier = Modifier
@@ -231,10 +234,10 @@ private fun VariableRow(variable: DebugVariable, depth: Int, onExpand: suspend (
       Icon(
         imageVector = if (children != null) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight,
         contentDescription = null,
-        modifier = Modifier.size(DISCLOSURE_ICON_SIZE),
+        modifier = Modifier.size(disclosure).testTag(DISCLOSURE_TAG),
       )
     } else {
-      Spacer(modifier = Modifier.size(DISCLOSURE_ICON_SIZE))
+      Spacer(modifier = Modifier.size(disclosure))
     }
     Text(text = variableRowText(variable), style = codeTextStyle())
   }
@@ -247,9 +250,12 @@ private fun variableRowText(variable: DebugVariable): String =
 /**
  * Close to [CodeText.size]'s own 14sp cap-height, so the disclosure sits beside a variable row's
  * monospace text without dominating it - `TOC_DISCLOSURE_WIDTH`'s own reason, sized for this row's
- * own text instead of restated at that row's own value.
+ * own text instead of restated at that row's own value. That is at the default font scale; it grows with the
+ * text from there (`glyphBesideText`).
  */
 private val DISCLOSURE_ICON_SIZE = 16.dp
+
+internal const val DISCLOSURE_TAG = "Variable disclosure"
 
 /** So an instrumented test can find [EvaluateRow]'s own field without depending on its label text. */
 const val EVALUATE_FIELD_TAG = "debugger-evaluate-field"

@@ -84,7 +84,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
  * ```
  * TerminalCanvas(
  *   emulator = viewModel.emulator,
- *   onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width, cell.height) },
+ *   onGridSizeChanged = { grid, cell -> viewModel.resize(grid, cell.width.roundToInt(), cell.height.roundToInt()) },
  * )
  * ```
  *
@@ -104,7 +104,7 @@ import com.jupydroid.app.ui.editor.codeTextStyle
 @Composable
 fun TerminalCanvas(
   emulator: TerminalEmulator,
-  onGridSizeChanged: (grid: IntSize, cellPixels: IntSize) -> Unit = { _, _ -> },
+  onGridSizeChanged: (grid: IntSize, cellPixels: Size) -> Unit = { _, _ -> },
   modifier: Modifier = Modifier,
   textStyle: TextStyle = codeTextStyle(),
   topRow: Int = 0,
@@ -135,7 +135,7 @@ fun TerminalCanvas(
 
 /** What every run needs to draw itself - one parameter instead of five, kept under detekt's cap. */
 private class GlyphRenderer(
-  val cell: IntSize,
+  val cell: Size,
   val style: TextStyle,
   val measurer: TextMeasurer,
   val colors: TerminalColors,
@@ -186,11 +186,11 @@ private fun DrawScope.drawRun(
   runStyle: CellStyle,
   renderer: GlyphRenderer,
 ) {
-  val topLeft = Offset((startColumn * renderer.cell.width).toFloat(), (rowIndex * renderer.cell.height).toFloat())
+  val topLeft = Offset(startColumn * renderer.cell.width, rowIndex * renderer.cell.height)
   val (foreColor, backColor) = resolvedRunColors(runStyle, renderer.colors)
   if (backColor != renderer.colors.at(CellStyle.COLOR_INDEX_BACKGROUND)) {
-    val runWidth = ((endColumn - startColumn) * renderer.cell.width).toFloat()
-    drawRect(Color(backColor), topLeft = topLeft, size = Size(runWidth, renderer.cell.height.toFloat()))
+    val runWidth = (endColumn - startColumn) * renderer.cell.width
+    drawRect(Color(backColor), topLeft = topLeft, size = Size(runWidth, renderer.cell.height))
   }
   if (runStyle.effect and CellStyle.INVISIBLE != 0) return
   val text = textOf(row, startColumn, endColumn)
@@ -211,8 +211,8 @@ private fun DrawScope.drawCursor(grid: TerminalGrid, row: Int, column: Int, rend
   val onSecondHalf = column > 0 && terminalRow.findStartOfColumn(column - 1) == glyphIndex
   val glyphColumn = if (onSecondHalf) column - 1 else column
   val glyphCells = CharacterWidth.at(terminalRow.text, glyphIndex)
-  val topLeft = Offset((glyphColumn * renderer.cell.width).toFloat(), (row * renderer.cell.height).toFloat())
-  val size = Size(glyphCells * renderer.cell.width.toFloat(), renderer.cell.height.toFloat())
+  val topLeft = Offset(glyphColumn * renderer.cell.width, row * renderer.cell.height)
+  val size = Size(glyphCells * renderer.cell.width, renderer.cell.height)
   drawRect(Color(renderer.colors.at(CellStyle.COLOR_INDEX_CURSOR)), topLeft = topLeft, size = size)
   val runStyle = grid.styleAt(row, column)
   val text = textOf(terminalRow, glyphColumn, glyphColumn + glyphCells)

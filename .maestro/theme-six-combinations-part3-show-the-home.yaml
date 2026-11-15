@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# Run by scripts/theme-six-combinations-driver.sh once per app theme, after every other surface of a
+# device mode, with MAESTRO_THEME naming the Settings row's choice. Picks the theme inside a Space,
+# then relaunches the app, which opens on the Spaces home (`Navigation.kt`, `SpacesHome`) with the
+# theme it was just given, and stops there.
+#
+# Its own flow because the home is the bottom of the back stack: at two panes nothing inside a
+# Space returns to it, and the relaunch that does ends the shell and the tabs the other surfaces
+# need. The driver therefore runs it last, and the next device mode opens its tabs afresh.
+#
+# The frame and the dump are the driver's, taken after this flow ends, as in part 2.
+#
+# TABLET ONLY (SM-X216B): entering base starts the Space's real server, which only arm64 ships.
+- launchApp:
+    stopApp: false
+- runFlow:
+    when:
+      visible: "(Open|Run) Base \\(base\\)"
+    commands:
+      - runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Theme"
+    timeout: 5000
+- tapOn: "${MAESTRO_THEME}"
+- waitForAnimationToEnd:
+    timeout: 3000
+- launchApp
+- extendedWaitUntil:
+    visible: "(Open|Run) Base \\(base\\)"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 3000

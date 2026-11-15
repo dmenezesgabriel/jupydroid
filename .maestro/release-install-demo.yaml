@@ -1,0 +1,51 @@
+appId: com.jupydroid.app
+---
+# The demo: the released APK, downloaded from a GitHub Release and installed fresh, launches, runs
+# base's kernel and answers a cell. Driven by scripts/release-install-demo-driver.sh.
+#
+# The notebook is created through the UI, not seeded: a release APK is not debuggable, so the
+# `run-as` that `seed_notebook` uses is refused on it.
+#
+# `42` is in no source: the cell reads `print(6 * 7)`, so FakeKernelGateway's echo of the source
+# cannot satisfy the wait, and the assertion is scoped to the output subtree for the same reason.
+#
+# TABLET ONLY (SM-X216B): the cell runs in base's server, and only arm64 ships one.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 01-spaces-home-after-install
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+# The empty cell's field has no text to tap by, so it is tapped at a point inside it: SM-X216B's
+# 1920x1200 puts the field at [805,334][1884,406] (`maestro hierarchy`).
+- tapOn:
+    point: "1300,354"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "print(6 * 7)"
+- hideKeyboard
+- takeScreenshot: 02-cell-typed
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run starts the Space's kernel.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 180000
+- assertNotVisible:
+    text: "print\\(6 \\* 7\\)"
+    childOf: {text: "Cell output"}
+- takeScreenshot: 03-kernel-answered

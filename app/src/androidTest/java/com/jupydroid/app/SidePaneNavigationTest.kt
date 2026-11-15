@@ -413,8 +413,9 @@ class SidePaneNavigationTest {
 
   /**
    * The window a test needs is part of the test - `ForcedSize` changes the layout constraints,
-   * and the list pane prefers 360dp, so a wide case run at the emulator's 320dp leaves the detail
-   * pane no width at all. `TwoPaneLayoutTest` records what that cost.
+   * and the list pane prefers 360dp (412dp on a Large activity window, ADR-0141), so a wide case
+   * run at the emulator's 320dp leaves the detail pane no width at all. `TwoPaneLayoutTest`
+   * records what that cost.
    */
   private fun windowFor(twoPane: Boolean) = if (twoPane) DpSize(1280.dp, 800.dp) else DpSize(360.dp, 800.dp)
 

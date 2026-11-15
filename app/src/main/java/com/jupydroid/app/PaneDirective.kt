@@ -14,6 +14,9 @@ import androidx.compose.runtime.Composable
  * three. Expanded's lower bound is 840dp, which was read out of the library rather than assumed
  * before the hand-written strategy was deleted.
  *
+ * The list pane's width is the library's too, by width class: 360dp up to Expanded and 412dp from
+ * Large (1200dp), which is what the tablet in landscape is (ADR-0141, `PaneWidthByWindowClassTest`).
+ *
  * **A width rule, never a device one.** The tablet in a split-screen window is a compact window
  * and gets one pane, and the class changes under the layout as the divider is dragged.
  */

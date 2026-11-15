@@ -88,6 +88,7 @@ class ShellSidePaneTest {
           onRevealMatch = {},
           onNewTerminal = {},
           onOpenSettings = {},
+          onLeaveWorkspace = {},
           onOpenLauncher = {},
           onBrowsedDirectory = {},
           browsedDirectory = "",

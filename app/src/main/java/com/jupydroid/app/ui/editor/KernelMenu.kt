@@ -1,18 +1,18 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
  * Everything [KernelMenu] asks of a notebook - wired **once**, for both of its anchors.
@@ -115,7 +115,7 @@ internal fun notebookKernelCommands(
  *
  * ```
  * Box {
- *   IconButton(onClick = { open = true }) { Icon(Icons.Filled.MoreVert, "Kernel actions") }
+ *   FocusRingIconButton(onClick = { open = true }) { Icon(Icons.Filled.MoreVert, "Kernel actions") }
  *   KernelMenu(expanded = open, onDismiss = { open = false }, notebookTitle = state.title, …)
  * }
  * ```
@@ -135,7 +135,7 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
     // label, one level above. Measured on device three ways. So the
     // state is asserted by `NotebookBarRangedRunsTest` and the flow proves it by *behaviour*: a
     // dead row leaves this menu open, because [onRun] is what closes it.
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(RUN_ALL_ABOVE) },
       enabled = commands.canRunAllAbove,
       onClick = {
@@ -143,7 +143,7 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
         commands.onRun(RunRange.ABOVE)
       },
     )
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(RUN_SELECTED_AND_BELOW) },
       enabled = commands.canRunSelectedAndBelow,
       onClick = {
@@ -155,14 +155,14 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
     // The two compound restarts, in the group the reference files them under - its Kernel menu
     // carries `restart-and-run-to-selected` (`schema/tracker.json:220-226`) and its palette the
     // other. Both keep the reference's ellipsis, which is what says they will ask first.
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(RESTART_AND_CLEAR) },
       onClick = {
         onDismiss()
         confirming = RestartRequest.RESTART_AND_CLEAR
       },
     )
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(RESTART_AND_RUN_TO_SELECTED) },
       enabled = commands.canRestartAndRunTo,
       onClick = {
@@ -174,7 +174,7 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
     // Its own group: it throws results away rather than producing them, and it is the only row here
     // that asks the kernel nothing at all - `clearAllOutputs` is a model operation
     // (`actions.tsx:1851`). Grouped apart so a thumb reaching for Run All Above does not find it.
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(CLEAR_ALL_OUTPUTS) },
       onClick = {
         onDismiss()
@@ -184,7 +184,7 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
     HorizontalDivider()
     // `mainMenu.fileMenu.consoleCreators` (`notebook-extension/src/index.ts:1413-1417`) - its own
     // group in the reference, filed apart from the ranged runs and apart from the two shutdowns.
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text(NEW_CONSOLE_FOR_NOTEBOOK) },
       onClick = {
         onDismiss()
@@ -196,21 +196,21 @@ internal fun KernelMenu(expanded: Boolean, onDismiss: () -> Unit, commands: Note
     // Kernel menu's order is the restarts, then this, then the two shutdowns
     // (`mainmenu-extension` `kernelUser` group). It asks the same question the indicator's tap
     // does, so the ellipsis the reference gives it is kept.
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text("Change Kernel…") },
       onClick = {
         onDismiss()
         commands.onPickKernel()
       },
     )
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text("Shut Down Kernel") },
       onClick = {
         onDismiss()
         commands.onShutdown()
       },
     )
-    DropdownMenuItem(
+    FocusRingDropdownMenuItem(
       text = { Text("Close and Shut Down Notebook…") },
       onClick = {
         onDismiss()
@@ -281,16 +281,16 @@ internal const val RESTART_AND_RUN_TO_SELECTED = "Restart Kernel and Run up to S
  */
 @Composable
 private fun CloseAndShutDownDialog(notebookTitle: String, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("Shut down the notebook?") },
     text = { Text("Are you sure you want to close \"$notebookTitle\"?") },
     confirmButton = {
-      TextButton(onClick = onConfirm) {
+      FocusRingTextButton(onClick = onConfirm) {
         Text("Shut Down", color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }
 
@@ -329,15 +329,15 @@ private fun RestartRequest.question(): String = when (this) {
  */
 @Composable
 internal fun RestartDialog(request: RestartRequest, onDismiss: () -> Unit, onConfirm: () -> Unit) {
-  AlertDialog(
+  MarginedAlertDialog(
     onDismissRequest = onDismiss,
     title = { Text(request.question()) },
     text = { Text("All variables will be lost.") },
     confirmButton = {
-      TextButton(onClick = onConfirm) {
+      FocusRingTextButton(onClick = onConfirm) {
         Text("Restart", color = MaterialTheme.colorScheme.error)
       }
     },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    dismissButton = { FocusRingTextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }

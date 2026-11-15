@@ -98,6 +98,60 @@ class ArchitectureGuardTest {
     )
   }
 
+  /**
+   * material3's `IconButton` draws its own ripple, so the keyboard-focus ring never reaches it;
+   * `extension-api`'s `FocusRingIconButton` is the one that does, and a screen that reaches past it
+   * brings back the plate at 1.14:1 on that control.
+   */
+  @Test
+  fun uiLayer_callsNoMaterialIconButton() {
+    val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.IconButton"))
+    assertTrue(
+      "ui must use extension.api.FocusRingIconButton, not material3's IconButton: $offenders",
+      offenders.isEmpty(),
+    )
+  }
+
+  /**
+   * material3's `TextButton` is a `Surface(onClick)` that draws its own ripple, so the
+   * keyboard-focus ring never reaches it; `extension-api`'s `FocusRingTextButton` is the one that does.
+   */
+  @Test
+  fun uiLayer_callsNoMaterialTextButton() {
+    val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.TextButton"))
+    assertTrue(
+      "ui must use extension.api.FocusRingTextButton, not material3's TextButton: $offenders",
+      offenders.isEmpty(),
+    )
+  }
+
+  /**
+   * Compose's dialog window draws no background to inset, and M3's `AlertDialog` is `sizeIn(280dp, 560dp)`
+   * with nothing outside it, so a dialog whose text wraps fills a phone edge to edge.
+   * `extension.api.MarginedAlertDialog` keeps 24dp beside the surface; a screen that reaches past it loses that.
+   */
+  @Test
+  fun uiLayer_callsNoMaterialAlertDialog() {
+    val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.AlertDialog"))
+    assertTrue(
+      "ui must use extension.api.MarginedAlertDialog, not material3's AlertDialog: $offenders",
+      offenders.isEmpty(),
+    )
+  }
+
+  /**
+   * material3's `DropdownMenuItem` calls `ripple()` itself, so the keyboard-focus ring never reaches
+   * it; `extension-api`'s `FocusRingDropdownMenuItem` is the one that does.
+   */
+  @Test
+  fun uiLayer_callsNoMaterialDropdownMenuItem() {
+    val offenders = qualifiedRefs(ktSourcesUnder(uiRoot), listOf("material3.DropdownMenuItem"))
+    assertTrue(
+      "ui must use extension.api.FocusRingDropdownMenuItem, not material3's DropdownMenuItem: $offenders",
+      offenders.isEmpty(),
+    )
+  }
+
   @Test
   fun dataLayer_namesNoUiOrDi() {
     val sources = ktSourcesUnder(dataRoot)

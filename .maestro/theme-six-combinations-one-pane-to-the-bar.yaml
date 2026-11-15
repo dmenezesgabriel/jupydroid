@@ -1,0 +1,43 @@
+appId: com.jupydroid.app
+---
+# Brings the app, from wherever the last surface left it, to the browser with the bottom bar under it.
+#
+# **Not a flow.** No driver runs this; theme-six-combinations-one-pane-part2-show-a-surface.yaml calls it
+# with `runFlow`, once on entry and once more before each surface that is a bar item.
+#
+# Three things can be in the way, and each is closed by the gesture that closes it: More's modal rail
+# by its scrim, the table-of-contents overlay by Back (it is a popup over the notebook, not a
+# destination), and a tab by the notebook's crumb, which is what keeps every tab open on the way to the
+# browser (the bar's "Back to files" pops the document it is on). The bar is drawn only by the browser
+# and the side panels, so "More" present means it is already there.
+- runFlow:
+    when:
+      visible: "Close rail"
+    commands:
+      - tapOn: "Close rail"
+- runFlow:
+    when:
+      visible: "No headings in this notebook"
+    commands:
+      - back
+# On the phone four tabs overflow the strip's row and the notebook's scrolls out of the tree, where a tap
+# cannot reach it. The launcher is the tab no later surface needs, so it is closed instead; it is the
+# one whose "Reload tab" the strip shows only while it is on top.
+- runFlow:
+    when:
+      visible: "Reload tab: Launcher"
+      true: ${MAESTRO_DEVICE_KIND == 'phone'}
+    commands:
+      - tapOn: "Back to files"
+- runFlow:
+    when:
+      notVisible: "More"
+    commands:
+      - tapOn: "Tab: ${MAESTRO_NOTEBOOK}"
+      - extendedWaitUntil:
+          visible: "tab_marker_first = 1"
+          timeout: 10000
+      - tapOn: "Workspace"
+      - extendedWaitUntil:
+          visible: "More"
+          timeout: 10000

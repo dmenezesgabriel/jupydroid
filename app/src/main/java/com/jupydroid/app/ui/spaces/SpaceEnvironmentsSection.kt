@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -15,6 +14,7 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.editor.codeTextStyle
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /** The section's tag, for a test and - as a resource id - for a Maestro flow. */
 const val SPACE_ENVIRONMENTS_TAG = "space-environments"
@@ -84,7 +84,7 @@ private fun EnvironmentRow(environment: PythonEnvironment, onRegister: (String) 
       Text(registeredLabel(it), style = MaterialTheme.typography.bodySmall)
       return@Column
     }
-    TextButton(
+    FocusRingTextButton(
       onClick = { onRegister(environment.path) },
       enabled = environment.hasIpykernel,
       modifier = Modifier.semantics { contentDescription = registerLabel(environment.path) },

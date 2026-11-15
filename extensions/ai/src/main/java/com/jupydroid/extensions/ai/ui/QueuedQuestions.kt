@@ -17,7 +17,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.jupydroid.extension.api.FocusRingIconButton
 
 /**
  * The questions waiting their turn, above the input: how many, then one pill each, right-aligned, one
@@ -162,7 +162,7 @@ private fun QueuedPill(modifier: Modifier = Modifier, content: @Composable RowSc
 /** Drawn at the reference's 16 px; Compose still takes a touch 48 dp around it. */
 @Composable
 private fun PillButton(icon: ImageVector, description: String, enabled: Boolean = true, onClick: () -> Unit) {
-  IconButton(onClick = onClick, enabled = enabled, modifier = Modifier.padding(start = 4.dp).size(16.dp)) {
+  FocusRingIconButton(onClick = onClick, enabled = enabled, modifier = Modifier.padding(start = 4.dp).size(16.dp)) {
     Icon(icon, contentDescription = description, modifier = Modifier.size(12.dp))
   }
 }

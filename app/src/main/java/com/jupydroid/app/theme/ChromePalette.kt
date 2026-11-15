@@ -41,6 +41,18 @@ data class ChromePalette(
    */
   val sideBarBackground: Color,
   /**
+   * The text on [sideBarBackground] - `sideBar.foreground`, which 2026 Dark states `#bfbfbf` and
+   * 2026 Light `#202020`.
+   *
+   * **Stated because a `Scaffold` will otherwise choose it by accident.** Handed
+   * `containerColor = sideBarBackground`, it derives its content colour with `contentColorFor`,
+   * which matches the container to a Material role *by hex*. `#191A1B` is also `surfaceVariant` in
+   * dark and `#FAFAFD` in light, so every colourless `Text` on a side panel arrived as
+   * `onSurfaceVariant` - the secondary colour - for a reason no test could hold. A row names the
+   * colour it is drawn in from here instead (ADR-0042).
+   */
+  val sideBarForeground: Color,
+  /**
    * Behind the row whose document is open - `list.inactiveSelectionBackground`.
    *
    * **A part, not a Material role.** It used to arrive as
@@ -55,6 +67,12 @@ data class ChromePalette(
    * the explorer never holds the caret while the row is marked.
    */
   val listInactiveSelectionBackground: Color,
+  /**
+   * The text on that row - `list.inactiveSelectionForeground`: `#ededed` in 2026 Dark, a step
+   * *above* [sideBarForeground] so the open row reads as the one in front, and `#202020` in 2026
+   * Light, where the wash is translucent and both ids coincide.
+   */
+  val listInactiveSelectionForeground: Color,
   /**
    * Between the activity bar and the side panel - `activityBar.border`, the reference's own words
    * being *"border color separating to the side bar"* (`workbench/common/theme.ts:417`).
@@ -120,4 +138,13 @@ data class ChromePalette(
    * a different id, the rule [activityBarBorder]'s own note already records.
    */
   val tabBorder: Color,
+  /**
+   * The ring a control that takes keyboard focus draws on its edge - `focusBorder`, VS Code's
+   * "overall border colour for focused elements" (`vscode@3f3380c6`
+   * `src/vs/platform/theme/common/colors/baseColors.ts:37-39`).
+   *
+   * **Dark states it translucent** (`#3994BCB3`), so contrast is read from the colour as painted
+   * over the part it sits on, never from this value alone: 3.13:1 over the side bar.
+   */
+  val focusBorder: Color,
 )

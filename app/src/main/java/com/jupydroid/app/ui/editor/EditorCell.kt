@@ -236,6 +236,7 @@ internal fun EditorCell(
             indentUnit = indentUnit,
             caretLanding = caretLanding,
             onCaretLanded = onCaretLanded,
+            fieldName = CODE_CELL_NAME,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )
 
@@ -303,6 +304,9 @@ internal fun EditorCell(
     }
   }
 }
+
+/** What a screen reader calls a notebook code cell's text field. */
+private const val CODE_CELL_NAME = "Code cell"
 
 /** A cell whose caller never wired the ask has nothing to show - [NO_COMPLETIONS]'s own rule. */
 private val NO_HOVER: suspend (String, String, Int) -> LanguageHover? = { _, _, _ -> null }

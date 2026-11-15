@@ -8,7 +8,8 @@ import unittest
 from read_pane_widths import _density_from, detail_width_at, shell_columns
 
 #: A shell with an activity bar and two panes, at density 240 - the tablet's own numbers, taken
-#: from a dump of a 1280dp-wide window.
+#: from a dump of a 1280dp-wide window when that was an Expanded one, with a 360dp list pane. Today
+#: it is Large and the pane is 412dp (ADR-0141); the reader's arithmetic is the same at either.
 TWO_PANES = """<hierarchy>
   <node bounds="[0,0][1920,1200]" class="android.widget.FrameLayout"/>
   <node bounds="[0,0][120,1200]" class="android.view.View"/>

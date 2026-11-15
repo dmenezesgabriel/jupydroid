@@ -1,0 +1,29 @@
+appId: com.jupydroid.app
+---
+# Leaves the Space from whatever surface is on screen and enters it again.
+#
+# **Not a flow.** No driver runs this; `leave-a-space.yaml` calls it once per surface with
+# `env: SURFACE`, so the one tap that leaves is written once and every surface is held to it.
+#
+# The control is named "Spaces" at both widths: the strip's Home button on a document at one pane, the
+# row at the rail's foot at two. The browser at one pane draws the bar and no strip, so the row sits
+# behind the bar's More (`MoreRail`). A person's tap count is that More plus the row.
+#
+# The leave is asserted on the Space's own row in the Spaces list, never on the word "Spaces", which
+# the list's own heading also carries.
+- takeScreenshot: ${SURFACE}-before-leaving
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+      - takeScreenshot: ${SURFACE}-more-rail-open
+- assertVisible: "Spaces"
+- tapOn: "Spaces"
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- takeScreenshot: ${SURFACE}-at-the-spaces-list
+# Entering again is a cold entry: the browser, with none of what was open.
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"

@@ -6,6 +6,7 @@ name: Release
 # is attested once the repository is public.
 #
 # release-tag.yml pushes the tag with the app token, because a tag pushed with GITHUB_TOKEN starts no workflow.
+# Why the pieces are the way they are: ADR-0140.
 #
 # The arm64 rootfs is the only one a Space can run (ADR-0003), and the repository is private on the free plan,
 # which has no hosted arm64 runner, so every RUN of the Dockerfile executes under qemu.

@@ -10,10 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +23,8 @@ import com.jupydroid.app.ui.editor.PRESERVE_CASE
 import com.jupydroid.app.ui.editor.REPLACE_VERBATIM
 import com.jupydroid.app.ui.editor.SHOW_REPLACE
 import com.jupydroid.app.ui.editor.codeTextStyle
+import com.jupydroid.extension.api.FocusRingIconButton
+import com.jupydroid.extension.api.FocusRingTextButton
 
 /**
  * What a replace would write - the `.replace-container` under the query box
@@ -87,7 +87,7 @@ fun SearchReplaceRow(
       ReplaceBox(replaceText, preserveCase, onReplaceTextChanged, onTogglePreserveCase)
     }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-      TextButton(
+      FocusRingTextButton(
         onClick = onReplaceAll,
         enabled = replaceAllEnabled,
         // The reference's disabled label is a *tooltip*, and a phone has no hover to raise one. It
@@ -106,7 +106,7 @@ fun SearchReplaceRow(
 /** `search-hide-replace` / `search-show-replace` (`searchIcons.ts:14-15`) - see [SearchReplaceRow]. */
 @Composable
 private fun ReplaceChevron(shown: Boolean, onToggleShown: () -> Unit) {
-  IconButton(
+  FocusRingIconButton(
     onClick = onToggleShown,
     modifier = Modifier
       .padding(start = Spacing.xs)

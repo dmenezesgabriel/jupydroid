@@ -1,16 +1,15 @@
 package com.jupydroid.app.ui.editor
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,9 +17,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.extension.api.FocusRingDropdownMenuItem
+import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.glyphBesideText
 
 /**
  * What the active cell **is**, and the one gesture that changes it.
@@ -61,7 +66,7 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
   // Boxed with its menu, which anchors to its parent layout node - the lesson [CellHeader],
   // [NotebookBar] and [NotebookActionsMenu] each record.
   Box {
-    TextButton(
+    FocusRingTextButton(
       onClick = { open = true },
       // **Neutral, not the brand colour a `TextButton` defaults to.** Two reasons, and the
       // screenshot is what raised it: the reference's own
@@ -72,15 +77,20 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
       // on. The caret is what says it is pressable, which is Material's own menu-button
       // affordance.
       colors = ButtonDefaults.textButtonColors(contentColor = LocalContentColor.current),
-      // The name goes on the button and not on the icon inside it, which is [UndoRedo]'s rule and
-      // load-bearing for the same reason: one node carries the label a screen reader reads and the
-      // state a flow asserts. See [cellTypeDescription] for why the state is *in* the name.
+      // The name goes on the button and not on the icon inside it, which is [UndoRedo]'s rule
+      // (ADR-0143) and load-bearing for the same reason: one node carries the label a screen reader
+      // reads and the state a flow asserts. See [cellTypeDescription] for why the state is *in* the name.
       modifier = Modifier
         .minimumInteractiveComponentSize()
         .semantics { contentDescription = cellTypeDescription(kind) },
     ) {
       Text(text = cellTypeLabel(kind), style = MaterialTheme.typography.labelLarge)
-      Icon(Icons.Filled.ArrowDropDown, contentDescription = null)
+      val caret = LocalDensity.current.glyphBesideText(CELL_TYPE_CARET, MaterialTheme.typography.labelLarge.fontSize)
+      Icon(
+        Icons.Filled.ArrowDropDown,
+        contentDescription = null,
+        modifier = Modifier.size(caret).testTag(CELL_TYPE_CARET_TAG),
+      )
     }
     CellTypePicker(expanded = open, onDismiss = { open = false }, onPick = {
       open = false
@@ -108,7 +118,7 @@ internal fun CellTypeControl(kind: CellKind, onPick: (CellKind) -> Unit) {
 internal fun CellTypePicker(expanded: Boolean, onDismiss: () -> Unit, onPick: (CellKind) -> Unit) {
   DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
     CellKind.entries.forEach { kind ->
-      DropdownMenuItem(
+      FocusRingDropdownMenuItem(
         modifier = Modifier.semantics { contentDescription = cellTypePickDescription(kind) },
         text = { Text(cellTypeLabel(kind)) },
         onClick = { onPick(kind) },
@@ -172,3 +182,9 @@ internal fun cellTypeRowLabel(kind: CellKind) = "$CELL_TYPE_ACTION: ${cellTypeLa
 
 /** The reference's own `aria-label` for this control (`default-toolbar.tsx:394`). */
 internal const val CELL_TYPE_ACTION = "Cell type"
+
+/** The drop-down arrow beside the type's name at the default font scale: Material's own icon size. */
+private val CELL_TYPE_CARET = 24.dp
+
+/** The drop-down arrow beside the type's name, for a test that reads its size against the name's line. */
+internal const val CELL_TYPE_CARET_TAG = "Cell type caret"
