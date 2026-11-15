@@ -74,12 +74,21 @@ commit tooling skips the five hooks: 68 to 110 s of wall time with Gradle warm, 
 cache (the experiment's warm-up took 499 s), and about 0.7 GB of peak memory. The share of a commit's wall time
 that was queue wait is not measured here; `devjob-report` a week after this lands is where to read it.
 
-**It does not make a commit cheap.** Measured on 2026-11-15, each remaining hook run alone over the two files of a
-script-and-test commit, in CPU-seconds: `maestro-gate-tests` 119 (123 s wall), `commitlint-config-tests` 100
-(44 s), `doc-citations` 42, and every other hook under 12; about 5 CPU-minutes in all. `maestro-gate-tests` runs the
-whole `scripts/` test suite on every commit, and the comment above it in `.pre-commit-config.yaml` that calls its
-tests milliseconds no longer holds. Scoping it, as this decision scopes the Gradle hooks, is the next saving and a
-decision of its own.
+**What a commit costs with the scope in place.** A documentation-only commit made after this landed ran every hook
+that applies and skipped the five Gradle ones: 1 min 14 s of wall time, 1 min 9 s of CPU and 131 MB at peak, against
+the 1 min 50 s to 2 min 37 s, 2 min 58 s to 3 min 52 s and about 1 GB of the five commits measured above. The hook
+that costs most of what is left is `maestro-gate-tests`, which runs the whole `scripts/` test suite on every commit:
+the hook's own command, run three times on 2026-11-15 with the host at a load of 8 to 11, took 46 to 49 CPU-seconds,
+50 to 53 s of wall time and 75 MB. The comment above it in `.pre-commit-config.yaml` that calls its tests
+milliseconds does not hold. An earlier reading of 119 CPU-seconds for it, taken through `pre-commit run` for each hook in turn, did not reproduce.
+
+**Why that hook is not scoped by path.** Each of the 76 test modules was run alone with an audit hook that logs
+what it opens, lists and spawns. Ten of them read the live tree broadly (`app/`, `.maestro/`, `docs/`, `tools/`,
+`extensions/`: the gates' own tests over this repository) and cost 16 of the suite's 55 CPU-seconds, so a path rule
+would still run them on nearly every commit. Splitting the other 66, 38 CPU-seconds, from those ten would save that
+on a commit that touches no file under `scripts/`, and would need a list of modules to keep right, with a gate to
+prove it. That is a second list of the kind this decision exists to avoid, for under a minute of CPU on one kind of
+commit, so the hook stays as it is. Revisit it if the suite grows past what a commit should wait for.
 
 A defect reaches CI, not the author's machine, when a non-input file turns out to matter. The experiment and the
 search show none does today, and the gate is what finds the next one. Do not widen `NOT_GRADLE_INPUTS` to make a
