@@ -54,16 +54,46 @@ KDoc is touched anyway.
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Whose number is wrong | the bar's layout · the test's measure | a layout change touches every medium window; a measure change touches one assertion and hides a real offset if one exists | **Settled on T1's bounds**, not on a guess: if the five laid-out boxes are symmetric about 400dp and only the semantics nodes are not, the test is wrong; if the boxes themselves are off, the bar is |
+| Whose number is wrong | the bar's layout · the test's measure | a layout change touches every medium window; a measure change touches one assertion and hides a real offset if one exists | **Settled on T1's bounds**, not on a guess: if the five laid-out boxes are symmetric about 400dp and only the semantics nodes are not, the test is wrong; if the boxes themselves are off, the bar is. **T1's bounds: the boxes are symmetric to within a pixel, so the test's measure is what changes** |
 
 ## Gap analysis
 
 | Concern | Ours today | Best reference | Gap |
 |---|---|---|---|
-| A medium window's group is centred | 3.33dp left at 800dp, on `dev36` | `paneCompositePart.css:60-63` | present and partial; the cause is unattributed |
+| A medium window's group is centred | 3.33dp left at 800dp under `ForcedSize` on `dev36`; 0dp at 800dp on the tablet | `paneCompositePart.css:60-63` | present; the bar is centred, and the test's measure cannot resolve it (T1) |
 
-What is known: the failure reproduces at `7df2c58e` with the author's changes stashed. What is not: the commit that
-first made it fail, because the test was not run at an earlier one.
+What is known: the failure reproduces at `7df2c58e` with the author's changes stashed, and again at `8b13d163` (T1).
+What is not: the commit that first made it fail, because the test was not run at an earlier one.
+
+### T1's measurement
+
+`SidePanelBarTest.theItemsGroupInTheMiddleOnAMediumScreen` on `dev36` (`am instrument`, run from a job that built
+both APKs): `and the group is centred expected:<400.0> but was:<396.6667>`. `dev36` is a 320x640 window at 160dpi, so
+`ForcedSize(800dp x 1280dp)` lays the bar out at **0.45 px per dp**: 360px for 800dp, one pixel being 2.22dp. A
+temporary probe, since deleted, read each item's merged and unmerged bounds at that size:
+
+| Item | left dp | right dp | width dp |
+|---|---|---|---|
+| Files | 80.0 | 206.667 | 126.667 |
+| Sessions and Tabs | 206.667 | 333.333 | 126.667 |
+| Search | 333.333 | 460.0 | 126.667 |
+| New Launcher | 460.0 | 586.667 | 126.667 |
+| More | 586.667 | 713.333 | 126.667 |
+
+The merged and unmerged bounds were identical for every item, so the semantics node is the item's own box and the
+bar is not off by the node. The five widths are equal, so no item is wider than another. The group has 80.0dp (36px,
+10% of the bar) before Files and 86.667dp (39px) after More.
+
+**Attribution: whole-pixel rounding of the item width, not the bar.** The centred padding is 36px a side and the
+five items share the remaining 288px. 288 / 5 = 57.6px, laid out as 57px (126.667dp), so five items take 285px and
+the 3px (6.667dp) left over lands after the last one. The group's centre is therefore 1.5px (3.33dp) left of the
+bar's: (80.0 + 713.333) / 2 = 396.667, to the digit the test printed. At the tablet's own 1.5 px per dp the same
+rule gives 120px a side and 192px an item, no remainder, and the frame read there agrees: Files `[120,1752][312,1848]`
+to More `[888,1752][1080,1848]` in a 1200px window, whose centre is 600px = 400dp exactly.
+
+The offset is at most half of four pixels (an item width can lose up to 4px over five items), so on a real window at
+1 px per dp or finer it is under 2dp, which is the test's own tolerance. Under `ForcedSize` on a 360px-wide window one
+pixel is already 2.22dp, so the tolerance is smaller than the test's resolution.
 
 ## Deviations
 
@@ -72,12 +102,16 @@ items, where a flex row sizes to its content. That is the library's rule and is 
 
 ## Open decisions
 
-Each is settled on T1's measurement, and the one that outlives the item becomes an ADR.
+The one that outlives the item becomes an ADR.
 
-- Which of these moves the group by 3.33dp: an inset on one side of the bar; an item whose box differs in width
-  (Files, the one selected); rounding of the arrangement's padding to whole pixels at `dev36`'s density; or the
-  semantics node's bounds differing from the item's.
-- Then, whether the repair is in the bar or in the test's measure.
+- **Settled by T1:** the 3.33dp is whole-pixel rounding of the item width at `ForcedSize`'s 0.45 px per dp, not an
+  inset, not an item's width and not the semantics node. The bar is centred to within a pixel, and the repair is in
+  the test's measure.
+- Open, for T2: how the measure absorbs the rounding without hiding a real offset. Either the tolerance is stated in
+  pixels of the forced density (the group may be off by `(items - 1) / 2` pixels), which needs the forced density
+  read inside the composition; or the test runs at a size whose item width is a whole pixel count, which pins the
+  test to one density. A red test that names the cause comes first: five items at a width that leaves a remainder
+  must be accepted, and a group moved by a whole item must still fail.
 
 ## Surface
 
@@ -85,16 +119,16 @@ A UI item with no domain, port or adapter.
 
 | Layer | Files |
 |---|---|
-| `ui/shell` | `SidePanelBar.kt`, only if the bounds show the bar is off |
+| `ui/shell` | `SidePanelBar.kt`: none, T1's bounds show the bar is centred; its KDoc line on JupyterLab is T3's |
 | instrumented tests | `SidePanelBarTest`: a test that names the cause, beside the symptom test |
 | `.maestro/` flow + `scripts/` driver | none; the frame is read by hand with `adb`, as the Demo says |
 
 ## Tasks
 
-- [ ] T1 — run the test red on `dev36` and read the five items' bounds and the bar's own; attribute the 3.33dp to an
+- [x] T1 — run the test red on `dev36` and read the five items' bounds and the bar's own; attribute the 3.33dp to an
   item or an inset, and record the attribution in this file.
-- [ ] T2 — a red test that names the cause, then the minimal change, in the bar or in the test's measure, whichever
-  the bounds show.
+- [ ] T2 — a red test that names the cause, then the minimal change in the test's measure (T1: the bar is centred;
+  the tolerance is under one pixel of the forced density).
 - [ ] T3 — read the frame on the tablet and on `dev36`, look at it, record the ADR, and delete this file.
 
 ## Out of scope
