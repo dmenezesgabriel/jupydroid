@@ -91,6 +91,15 @@ export const DEMO_RULE = [
 ].join("\n");
 
 /**
+ * Three sessions ended their turn to wait for the host's load to fall, with a task unfinished and
+ * work staged, and each had to be sent back to work. The loop reads a stop with no commit as a
+ * missing commit, and `devjob` already holds a job until the host has room, so the wait belongs
+ * to the queue and not to the session.
+ */
+export const WAIT_RULE =
+  "Never end your turn to wait for the host's load to fall or for a queued job: devjob holds a job until the host has room, so start it as a background command and carry on from its result, because a turn that ends with unfinished work is read as a task that stopped without its commit. This does not relax a gate: never bypass the host queue and never skip a hook.";
+
+/**
  * The skills under .claude/skills/ are announced to every session but a session that is not told
  * to use one does not (ADR-0149), so every session is told here, once, in its opening prompt.
  * AGENTS.md is ranked above them because `tdd` allows "no new test" where AGENTS.md allows none.
@@ -100,6 +109,7 @@ export const STANDING_RULES = [
   "Where a skill disagrees with AGENTS.md, AGENTS.md wins: test-first work and the commit gate are never relaxed.",
   "Name in the commit body each principle that changed a decision.",
   DEMO_RULE,
+  WAIT_RULE,
 ].join("\n");
 
 export async function openingPrompt(
