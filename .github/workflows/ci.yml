@@ -1,9 +1,11 @@
 name: CI
 
 # The commit gate (AGENTS.md rule 7), run where the author's machine is not the only witness. The
-# job runs `pre-commit run --all-files` verbatim, so CI cannot pass what a commit cannot. This file
-# carries the Python and ShellCheck half; the Gradle hooks are skipped by id and get a job of their
-# own, because they take far longer and one job would report nothing until they ended.
+# job runs `pre-commit run --all-files` verbatim. A commit runs the five Gradle hooks only when it touches
+# a file Gradle reads (ADR-0151), so CI, which runs every hook over the whole tree, is the check a
+# commit that skipped them still owes. This file carries the Python and ShellCheck half; the Gradle hooks
+# are skipped by id and get a job of their own, because they take far longer and one job would report
+# nothing until they ended.
 #
 # Job `name:` values are what a required-check ruleset binds to, so renaming one means updating the
 # ruleset in the same commit.
