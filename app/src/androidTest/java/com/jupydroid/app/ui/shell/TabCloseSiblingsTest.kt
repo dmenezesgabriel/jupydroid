@@ -51,7 +51,7 @@ class TabCloseSiblingsTest {
     compose.setContent {
       JupyterDroidTheme {
         val tabs = backStack.mainAreaTabs()
-        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
+        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths).closeTab
         TabbedDocumentPane(
           backStack = backStack,
           openDocuments = open,

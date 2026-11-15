@@ -20,6 +20,7 @@ import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -125,6 +126,12 @@ fun TabbedDocumentPane(
    * dirty ask where both can reach it.
    */
   onCloseTab: (NavKey) -> Unit,
+  /**
+   * Leaves the workspace for the Spaces list, asking about a dirty document first - what the
+   * one-pane strip's "Spaces" control runs. Handed in beside [onCloseTab] for the same reason:
+   * the ask is the gate's.
+   */
+  onLeaveWorkspace: () -> Unit = {},
   /** `docmanager:open` on a path - where a Save As's copy opens, recorded in Recents as any open is. */
   onOpenDocument: (String) -> Unit,
   /** Where a document's checkpoint is made by the strip's Save and a Save As, and reverted to from its menu. */
@@ -171,6 +178,7 @@ fun TabbedDocumentPane(
       twoPane = twoPane,
       documentContributions = documentContributions,
       onCloseTab = onCloseTab,
+      onLeaveWorkspace = onLeaveWorkspace,
       onShowSidePanel = onShowSidePanel,
       onRenameTab = { key ->
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
@@ -272,6 +280,7 @@ private fun MainAreaTabStrip(
   twoPane: Boolean,
   documentContributions: List<DocumentContribution>,
   onCloseTab: (NavKey) -> Unit,
+  onLeaveWorkspace: () -> Unit,
   onShowSidePanel: (ShownPanel) -> Unit,
   onRenameTab: (NavKey) -> Unit,
   onSaveTabAs: (NavKey) -> Unit,
@@ -387,6 +396,14 @@ private fun MainAreaTabStrip(
         modifier = Modifier.align(Alignment.CenterVertically),
         onSaved = onSaved,
       )
+      // The way out to the Spaces list, at the width where this strip is the window's only chrome
+      // and no rail is beside it. The Up arrow's 48dp `IconButton` is already in this row at one
+      // pane, so the strip is no taller for it.
+      if (!twoPane) {
+        FocusRingIconButton(onClick = onLeaveWorkspace) {
+          Icon(imageVector = Icons.Filled.Home, contentDescription = "Spaces")
+        }
+      }
     }
   }
 }

@@ -194,7 +194,7 @@ class FileEditorCloseGateTest {
           order.clear()
           order.addAll(tabs)
         }
-        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
+        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths).closeTab
         TabbedDocumentPane(
           backStack, open, paths, tabs, liveTitles, repository, FakeWorkspaceFiles(), twoPane = false, closeTab,
           onOpenDocument = {},

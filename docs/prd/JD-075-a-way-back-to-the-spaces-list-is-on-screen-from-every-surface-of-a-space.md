@@ -93,7 +93,7 @@ A UI item with no domain, port or adapter.
 
 - [x] T1 — read what leaving does today (dirty documents, the Space's server), measure the strip's free width at 320,
   360 and 412dp, and settle the placement in this file.
-- [ ] T2 — the strip's "Spaces" control at one pane: red tests that it is on screen and that leaving closes every tab
+- [x] T2 — the strip's "Spaces" control at one pane: red tests that it is on screen and that leaving closes every tab
   through the dirty gate and leaves only when none is left, then the minimal UI.
 - [ ] T3 — the "Spaces" row at the foot of `SidePanelRail` and `MoreRail`: red test per rail, then the rows.
 - [ ] T4 — run the flow on both devices at both widths, look at the frames, and record the ADR.

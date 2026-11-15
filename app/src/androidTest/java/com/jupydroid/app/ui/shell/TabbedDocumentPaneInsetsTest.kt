@@ -95,7 +95,7 @@ class TabbedDocumentPaneInsetsTest {
           order.clear()
           order.addAll(tabs)
         }
-        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
+        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths).closeTab
         TabbedDocumentPane(
           backStack, open, paths, tabs, emptyMap(), FakeWorkspaceRepository(), FakeWorkspaceFiles(),
           twoPane = true, closeTab, onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),

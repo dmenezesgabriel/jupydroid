@@ -101,7 +101,7 @@ fun MainNavigation(
    * [orderedTabs] is the strip's opening order, so a current tab's close re-selects the sibling
    * the eye expects.
    */
-  val closeTab = rememberMainAreaCloseGate(backStack, orderedTabs, openDocuments, openDocumentPaths)
+  val closeGate = rememberMainAreaCloseGate(backStack, orderedTabs, openDocuments, openDocumentPaths)
   // The Running panel's Open Tabs section - `labShell.widgets('main')` in the strip's own order,
   // titled by the same `title.label` the strip draws.
   val runningTabs = orderedTabs.map { tab ->
@@ -122,7 +122,8 @@ fun MainNavigation(
       // The one width fact the strip reads: below two panes it leads with the Up affordance,
       // because the document is the whole window there and leaving it goes back.
       twoPane = twoPane,
-      onCloseTab = closeTab,
+      onCloseTab = closeGate.closeTab,
+      onLeaveWorkspace = closeGate.leaveWorkspace,
       onOpenDocument = openDocument,
       documentCheckpoints = spacePorts.documentCheckpoints,
       documentContributions = appContainer.documentContributions,
@@ -341,7 +342,7 @@ fun MainNavigation(
             openTabs = runningTabs,
             onActivateTab = backStack::activateMainAreaTab,
             // The same gate the strip's ✕ runs through - a panel row's close is the identical act.
-            onCloseTab = closeTab,
+            onCloseTab = closeGate.closeTab,
             saveAllEnabled = anyOpenDocumentDirty(openDocuments),
             // On the application's scope, so closing the panel mid-sweep cannot cut a write short;
             // on Main, because a refused save's reveal moves the back stack.

@@ -116,7 +116,7 @@ class MainAreaTabStripTest {
           order.addAll(tabs)
         }
         // The gate `MainNavigation` mounts for it - the strip's closes run through it.
-        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
+        val closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths).closeTab
         TabbedDocumentPane(
           backStack, open, paths, tabs, liveTitles, FakeWorkspaceRepository(), workspace, twoPane = twoPane, closeTab,
           onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),

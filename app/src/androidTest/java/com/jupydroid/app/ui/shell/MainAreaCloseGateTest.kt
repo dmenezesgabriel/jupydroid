@@ -14,6 +14,7 @@ import com.jupydroid.app.Editor
 import com.jupydroid.app.Explorer
 import com.jupydroid.app.OpenDocument
 import com.jupydroid.app.OpenDocuments
+import com.jupydroid.app.SpacesHome
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.mainAreaTabs
@@ -22,6 +23,7 @@ import com.jupydroid.app.theme.JupyterDroidTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,6 +47,7 @@ class MainAreaCloseGateTest {
   private val paths = mutableStateMapOf<NavKey, String>()
   private val order = mutableStateListOf<NavKey>()
   private var closeTab: (NavKey) -> Unit = {}
+  private var leaveWorkspace: () -> Unit = {}
 
   /** Two dirty tabs asked to leave in one pass - each still gets its own question. */
   @Test
@@ -103,6 +106,62 @@ class MainAreaCloseGateTest {
     compose.onNodeWithText("Save your work").assertDoesNotExist()
   }
 
+  /** Leaving owes the same question closing does: a dirty document is asked about, and nothing is dropped yet. */
+  @Test
+  fun leavingWithADirtyTabAsksBeforeDroppingAnything() {
+    open.opened(UnsavedDocument(FIRST))
+    backStack.add(0, SpacesHome)
+    show()
+
+    compose.runOnIdle { leaveWorkspace() }
+
+    compose.onNodeWithText("Save changes in \"$FIRST\" before closing?").assertIsDisplayed()
+    assertEquals(listOf(SpacesHome, Explorer(BASE_SPACE.id), Editor(FIRST), Editor(SECOND)), backStack.toList())
+  }
+
+  /** Cancel is the user changing their mind about leaving, so every entry stays - the clean ones too. */
+  @Test
+  fun cancellingTheAskKeepsEveryEntry() {
+    open.opened(UnsavedDocument(FIRST))
+    backStack.add(0, SpacesHome)
+    show()
+
+    compose.runOnIdle { leaveWorkspace() }
+    compose.onNodeWithText("Cancel").performClick()
+    compose.waitForIdle()
+
+    assertEquals(listOf(SpacesHome, Explorer(BASE_SPACE.id), Editor(FIRST), Editor(SECOND)), backStack.toList())
+  }
+
+  /** The leave is the continuation of the last answer: it runs once every dirty tab has been answered, not before. */
+  @Test
+  fun leavingWaitsForEveryDirtyTabBeforeItLeaves() {
+    open.opened(UnsavedDocument(FIRST))
+    open.opened(UnsavedDocument(SECOND))
+    backStack.add(0, SpacesHome)
+    show()
+
+    compose.runOnIdle { leaveWorkspace() }
+    compose.onNodeWithText("Discard").performClick()
+    compose.onNodeWithText("Save changes in \"$SECOND\" before closing?").assertIsDisplayed()
+    assertTrue(backStack.contains(Editor(SECOND)))
+    compose.onNodeWithText("Discard").performClick()
+    compose.waitForIdle()
+
+    assertEquals(listOf<NavKey>(SpacesHome), backStack.toList())
+  }
+
+  @Test
+  fun leavingWithNothingDirtyLeavesAtOnce() {
+    backStack.add(0, SpacesHome)
+    show()
+
+    compose.runOnIdle { leaveWorkspace() }
+    compose.waitForIdle()
+
+    assertEquals(listOf<NavKey>(SpacesHome), backStack.toList())
+  }
+
   /** The gate mounted the way `MainNavigation` mounts it - over a real stack of documents. */
   private fun show() {
     compose.setContent {
@@ -112,7 +171,9 @@ class MainAreaCloseGateTest {
           order.clear()
           order.addAll(tabs)
         }
-        closeTab = rememberMainAreaCloseGate(backStack, tabs, open, paths)
+        val gate = rememberMainAreaCloseGate(backStack, tabs, open, paths)
+        closeTab = gate.closeTab
+        leaveWorkspace = gate.leaveWorkspace
       }
     }
   }
