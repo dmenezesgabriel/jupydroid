@@ -2282,6 +2282,20 @@ separate cause. The repair starts by reading the five items' bounds on the faili
 attributed to an item before anything is changed; the test is the red test already, and what it then needs is
 either the bar's layout or the test's expectation, decided by what the bounds show.
 
+### GAP-205 — Tablet flows tap an empty cell at a fixed point that no longer lands on its field
+
+`.maestro/` holds 23 `point: "1300,354"` taps across 20 flows, each meant to focus an empty code cell on the
+tablet; `release-install-demo.yaml` says in its comment that the field is at `[805,334][1884,406]`. Read on
+the tablet from the build of `a2d37992`, with a freshly created notebook open, the field is about
+`[800,284][1895,336]` (the `uiautomator` dump and the screenshot agree), so the point is 18px below it and
+lands on nothing. The flow then types into no field, `hideKeyboard` sends BACK with no keyboard up, the
+notebook's tab closes and the Launcher is what is left; the flow reports "Run cell" not found, which reads as
+a regression in the app and is not one: tapped by hand at the field's real position, the same cell ran on the
+kernel and printed `42`. What is not known: which commit moved the field, and how many of the 20 flows still
+reach their cell some other way. The repair starts by running one such flow red on the tablet to the same
+failure, then replaces the fixed point with the field's own selector, in one flow first and then the rest, so
+the next flow that taps a field cannot be broken by a layout change above it.
+
 ---
 
 ## 12. Glossary
