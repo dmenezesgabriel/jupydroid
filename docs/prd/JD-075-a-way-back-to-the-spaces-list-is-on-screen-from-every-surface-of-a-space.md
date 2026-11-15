@@ -54,7 +54,7 @@ uses a back-stack route for it. A phone has no menu bar, which is the deviation 
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Where the entry lives | a row in both rails · a persistent control in the strip · the Up arrow always going to Spaces · an overflow action on the strip | the rails alone leave a document at one pane with none, because the bar is the browser's; a strip control costs width the strip's height budget ([ADR-0142](../adr/0142-the-tab-strips-controls-keep-the-strips-height.md)) already spends; making Up mean Spaces breaks Up as "the previous tab" | **Recommendation, to be settled on T1's measurement:** one control named "Spaces" in the strip at one pane and at the rail's foot beside Settings at two. If the strip's free width at 320dp cannot hold a 48dp target, an overflow action |
+| Where the entry lives | a row in both rails · a persistent control in the strip · the Up arrow always going to Spaces · an overflow action on the strip | the rails alone leave a document at one pane with none, because the bar is the browser's; a strip control costs width the strip's height budget ([ADR-0142](../adr/0142-the-tab-strips-controls-keep-the-strips-height.md)) already spends; making Up mean Spaces breaks Up as "the previous tab" | **Settled on T1's measurement.** A row named "Spaces" at the foot of the rail beside Settings, in both rails (`SidePanelRail` at two panes, `MoreRail` at one pane on the browser), and a 48dp control named "Spaces" in the strip at one pane. A tab is on screen with the strip and no bar, the browser with the bar and no strip, so each surface draws it once ([ADR-0055](../adr/0055-the-bottom-bar-is-drawn-wherever-the-shell-draws-one-pane.md)). The strip has room: its fixed slots are the Up arrow 48dp, Reload 40dp and Save 44dp, which leave the tab scroller 188, 228 and 280dp at 320, 360 and 412dp, and a 48dp control leaves 140, 180 and 232dp, each over the 80dp tab floor (`TAB_MIN_WIDTH`). No overflow action: the strip has none to extend |
 | What leaving does to open documents | drop them · ask first | `leaveWorkspace` retains only the home; the dirty gate lives in the close path | ask first, through the gate the tabs already use |
 
 ## Gap analysis
@@ -63,7 +63,7 @@ uses a back-stack route for it. A phone has no menu bar, which is the deviation 
 |---|---|---|---|
 | A named act of leaving | `leaveWorkspace` in `SpacesHome.kt` | `workspaceActions.ts:162-175` | present but unreachable from any control |
 | Visible on every surface | the one-pane arrow, conditional on what lies beneath | `workspaceActions.ts:415-423` (always in File) | present and partial |
-| Dirty documents on leaving | not read | — | **unknown**; T1 reads what system Back from the browser does to a dirty document today |
+| Dirty documents on leaving | system Back from a dirty document asks first (`SaveBeforeCloseGate`'s `BackHandler`); `leaveWorkspace` runs only from a lone launcher, which has no tab beneath it, so it has never met a dirty document | `workspaceActions.ts:180-185` (reopens an empty window in place with `hostService.openWindow({ forceReuseWindow })`; where it asks about a dirty editor is in the host's shutdown path, not read) | the new control is the first caller of `leaveWorkspace` that can meet one, so it must close the tabs through `rememberMainAreaCloseGate` first and leave only once none is left |
 
 ## Deviations
 
@@ -72,9 +72,11 @@ before this file is deleted.
 
 ## Open decisions
 
-- Whether leaving stops the Space's server or leaves it running. Not read; T1 reads what the list shows for an
-  entered Space after Back, and the decision follows that evidence.
-- The control's placement at one pane, per the trade-off table.
+- None left from T1. Leaving does not stop the Space's server: `leaveWorkspace` edits the stack alone, the home lists
+  Run and Stop per Space (`SpacesHomeScreen`), and the server is stopped by `IdleServerStopper` once the app is
+  backgrounded with nothing running (`AppContainer`). The control leaves it as Back does today.
+- For T2: the gate asks asynchronously and a cancelled ask must stop the leave, so the leave is the continuation of the
+  last tab's close, not a call placed after `forEach(closeTab)`.
 
 ## Surface
 
@@ -89,10 +91,12 @@ A UI item with no domain, port or adapter.
 
 ## Tasks
 
-- [ ] T1 — read what leaving does today (dirty documents, the Space's server), measure the strip's free width at 320,
+- [x] T1 — read what leaving does today (dirty documents, the Space's server), measure the strip's free width at 320,
   360 and 412dp, and settle the placement in this file.
-- [ ] T2 — red tests that each surface exposes the control and that leaving runs the dirty gate, then the minimal UI.
-- [ ] T3 — run the flow on both devices at both widths, look at the frames, and record the ADR.
+- [ ] T2 — the strip's "Spaces" control at one pane: red tests that it is on screen and that leaving closes every tab
+  through the dirty gate and leaves only when none is left, then the minimal UI.
+- [ ] T3 — the "Spaces" row at the foot of `SidePanelRail` and `MoreRail`: red test per rail, then the rows.
+- [ ] T4 — run the flow on both devices at both widths, look at the frames, and record the ADR.
 
 ## Out of scope
 
