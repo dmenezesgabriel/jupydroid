@@ -12,8 +12,11 @@ under its cores.
 
 Measured on 2026-11-14 and 2026-11-15:
 
-- **The cost.** Five commits of this session, none touching Kotlin, each ran the gate in 1 min 50 s to
-  2 min 37 s of wall time, 2 min 58 s to 3 min 52 s of CPU and 0.96 to 1 GB at peak, about 1.5 cores on average.
+- **The cost.** Five commits of this session, none touching Kotlin, each took 1 min 50 s to 2 min 37 s of
+  wall time, 2 min 58 s to 3 min 52 s of CPU and 0.96 to 1 GB at peak to commit. That is the whole hook set and
+  not the Gradle hooks alone, so it overstates what skipping them saves: their part alone is the 68 to 110 s the
+  experiment below measured with Gradle warm, and the memory, since a commit that skipped them peaked at 336 to
+  347 MB.
 - **Who waits.** `devjob-report` for the previous day: this repository ran 46 jobs for 4.5 CPU-hours, a twentieth
   of the queue's CPU, and waited 3.7 of the 6.6 hours the queue's jobs waited in all. Slot wait was 0.0 hours: the
   wait is the load gate, which admits on host load and not on a job's own size, so a cheaper job of ours is not
@@ -67,9 +70,16 @@ Measured on 2026-11-14 and 2026-11-15:
 ## Consequences
 
 A commit that touches only documentation, scripts, `.maestro`, `.github`, `.claude`, `tools/rootfs` or the
-commit tooling skips the five hooks: about 2 minutes, 3.5 CPU-minutes and 1 GB per such commit. The share of a
-commit's wall time that was queue wait is not measured here; `devjob-report` a week after this lands is where to
-read it.
+commit tooling skips the five hooks: 68 to 110 s of wall time with Gradle warm, far more with a cold daemon and
+cache (the experiment's warm-up took 499 s), and about 0.7 GB of peak memory. The share of a commit's wall time
+that was queue wait is not measured here; `devjob-report` a week after this lands is where to read it.
+
+**It does not make a commit cheap.** Measured on 2026-11-15, each remaining hook run alone over the two files of a
+script-and-test commit, in CPU-seconds: `maestro-gate-tests` 119 (123 s wall), `commitlint-config-tests` 100
+(44 s), `doc-citations` 42, and every other hook under 12; about 5 CPU-minutes in all. `maestro-gate-tests` runs the
+whole `scripts/` test suite on every commit, and the comment above it in `.pre-commit-config.yaml` that calls its
+tests milliseconds no longer holds. Scoping it, as this decision scopes the Gradle hooks, is the next saving and a
+decision of its own.
 
 A defect reaches CI, not the author's machine, when a non-input file turns out to matter. The experiment and the
 search show none does today, and the gate is what finds the next one. Do not widen `NOT_GRADLE_INPUTS` to make a
