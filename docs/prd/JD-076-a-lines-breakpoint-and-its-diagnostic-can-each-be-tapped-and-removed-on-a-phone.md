@@ -73,7 +73,9 @@ A phone has no hover, so VS Code's hover on a marker is a tap here. It becomes a
 ## Open decisions
 
 - Settled after T1: the squiggle's range, not a column of its own.
-- Still open for T2: how a hint's one-character range is hit, and that a tap on a range places the caret as well as opening the card.
+- Settled in T2: a span narrower than 48dp is widened sideways to 48dp, for every span and not only a hint's (one rule; a
+  row is 18dp tall, so widening the other way would take the next line's taps). The tap observes at `Initial` and
+  never consumes, so the card opens and the caret is still placed.
 
 ## Surface
 
@@ -90,7 +92,7 @@ A UI item with no domain, port or adapter.
 
 - [x] T1 — reproduce on a line holding both at 320, 360 and 412dp on `dev36`: the mark's and the dot's pixel rects, what
   each tap does, and what a tap on a squiggled range does to the caret; settle the choice in this file.
-- [ ] T2 — red tests for the chosen meaning (the squiggle's range shows the card and places the caret, the gutter toggles
+- [x] T2 — red tests for the chosen meaning (the squiggle's range shows the card and places the caret, the gutter toggles
   and never shows a card, a hint's range is hittable), then the minimal change so no two glyphs share a cell.
 - [ ] T3 — run the flow on both devices at both widths, look at the frames, record the ADR.
 

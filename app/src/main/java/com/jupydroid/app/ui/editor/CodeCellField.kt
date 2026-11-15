@@ -156,7 +156,7 @@ fun CodeCellField(
   // The code a popup was already answered for, so accepting or dismissing one does not
   // immediately re-offer against the very text it just produced.
   var settled by remember { mutableStateOf<String?>(null) }
-  // The line whose diagnostic mark was pressed, whose findings the detail popup lists.
+  // The line whose squiggle was tapped, whose findings the detail popup lists.
   // Derived visibility: when a republish leaves the line with no
   // findings, there is nothing left to show and the popup goes on its own.
   var detailLine by remember { mutableStateOf<Int?>(null) }
@@ -212,15 +212,16 @@ fun CodeCellField(
               onGutterTap,
               onGutterLongPress,
               stoppedLine,
-              onDiagnosticTap = { detailLine = it },
             )
             .diagnosticSquiggles(diagnostics, layout)
+            .diagnosticTaps(diagnostics, layout) { detailLine = it }
             .symbolFlash(symbolFlash, layout)
         } else {
           fieldModifier
             .horizontalScroll(scroll)
             .padding(start = gutter)
             .diagnosticSquiggles(diagnostics, layout)
+            .diagnosticTaps(diagnostics, layout) { detailLine = it }
             .symbolFlash(symbolFlash, layout)
         },
         onTextLayout = { getResult -> layout = getResult()?.also(onLayoutMeasured) },
@@ -250,7 +251,6 @@ fun CodeCellField(
         onGutterTap = onGutterTap,
         onGutterLongPress = onGutterLongPress,
         stoppedLine = stoppedLine,
-        onDiagnosticTap = { detailLine = it },
       )
     }
     val offered = completions?.takeIf { it.query.code != settled }
@@ -270,7 +270,7 @@ fun CodeCellField(
       diagnostics.filter { it.line == line }.takeIf { it.isNotEmpty() }?.let { line to it }
     }
     val anchor = detail?.let { (line, _) ->
-      layout?.let { diagnosticMarkRect(it, logicalLineStarts(state.text), line, gutterPx) }
+      layout?.let { diagnosticLineRect(it, logicalLineStarts(state.text), line, gutterPx) }
     }
     if (detail != null && anchor != null) {
       DiagnosticDetailPopup(detail.second, anchor) { detailLine = null }
