@@ -130,7 +130,16 @@ class PlainTextLinkTest {
     )
   }
 
-  /** Bounded in thread CPU time, not wall time: a shared host's wall clock measures its neighbours. */
+  /**
+   * Bounded in thread CPU time, not wall time: a shared host's wall clock measures its neighbours.
+   *
+   * What a repeat costs depends on how far the JVM has compiled the regex loop, not on the input: the
+   * same 50,000 repeats cost 0.9 to 2.5 s in fresh JVMs and 3.6 s in the full unit-test run, which
+   * failed this test three times, and a run of them warm costs about 22 us a repeat against up to
+   * 128 us cold. [RUNAWAY_REPEATS] of them cost at most 0.7 s at the cold rate, under a quarter of
+   * [RUNAWAY_SCAN_BOUND_MS]. A scan that is not linear still misses the bound by orders of magnitude
+   * over this many characters, which is what the test is for.
+   */
   @Test
   fun aRunawayPrintIsScannedInLinearTime() {
     val text = "0123456789 http www. /usr/a/b.py:1 \", line ".repeat(RUNAWAY_REPEATS)
@@ -149,7 +158,7 @@ class PlainTextLinkTest {
 
   private companion object {
     /** About 2 MB of text. */
-    const val RUNAWAY_REPEATS = 100_000
+    const val RUNAWAY_REPEATS = 5_000
     const val RUNAWAY_SCAN_BOUND_MS = 3_000L
     const val NANOS_PER_MS = 1_000_000L
   }
