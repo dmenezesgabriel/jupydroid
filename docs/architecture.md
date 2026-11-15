@@ -2318,6 +2318,20 @@ of the current image, then choosing the Alpine release from where the fixed `zli
 Python's lock is recompiled from `requirements.in` as its header says, with the hashes. The proof is an
 image rebuilt from the new base whose kernel answers a cell on the tablet, and both scans green on it.
 
+### GAP-207 — A finding's card covers the line it describes
+
+Read off the frames of the tablet demo for a line holding a breakpoint and a finding, at 1280dp and at 800dp
+(both widths agree): tapping the squiggle under `never_defined_lsp_name` opens the card, and the card's top
+edge lies about 45px inside the 53px line it is anchored to. It hides the lower half of
+`print(never_defined_lsp_name)`, the lower half of the breakpoint's circle on that line, and the next cell's
+header; a reader cannot see the code the card is about while it is open. The card is `DiagnosticDetailPopup`
+(`DiagnosticMarks.kt`), positioned by `CompletionPopupPosition` from the line's rect, the same provider the
+completion popup uses, which is meant to float beside what it completes. Not known: whether the provider puts
+the card at the line's top plus a fixed offset or at a rect the caller computes too small, whether the
+completion popup covers its own line the same way, and where VS Code puts a marker's hover relative to its line
+(`vscode@3f3380c6`, the hover contribution under `src/vs/editor/contrib/hover`). The repair starts by reading
+those, then a test of the card's bounds against its line's, red first.
+
 ---
 
 ## 12. Glossary
