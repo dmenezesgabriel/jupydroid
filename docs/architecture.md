@@ -2296,6 +2296,28 @@ reach their cell some other way. The repair starts by running one such flow red 
 failure, then replaces the fixed point with the field's own selector, in one flow first and then the rest, so
 the next flow that taps a field cannot be broken by a layout change above it.
 
+### GAP-206 — The rootfs ships a Critical zlib CVE and seven vulnerable Python wheels on an end-of-life Alpine
+
+Once the repository was public, the `Security` workflow ran its scans on `main` for the first time, and two
+of its jobs failed on the rootfs, which the app bundles and every Space runs.
+
+1. **`grype` over the Alpine base: one Critical.** `zlib 1.3.2-r1` is vulnerable to `CVE-2026-4738`, fixed in
+   `1.4-r0` (`--only-fixed --fail-on medium`, exit 2). Grype also warns that 15 packages come from an EOL
+   distribution, `alpine 3.21.9`. `tools/rootfs/Dockerfile` names `alpine:3.21` at one digest in all three
+   stages (`sigsys-builder`, `busybox-builder` and the final image).
+2. **`osv-scanner` over the lockfiles: seven vulnerabilities in four packages**, all in
+   `tools/rootfs/requirements.lock`: `dnspython 2.9.0` (7.5, fixed in 2.9.2), `opentelemetry-api 1.45.1`
+   (5.3, 1.45.2), `soupsieve 2.9.1` (four advisories, 3.1 to 7.5, whose fixed versions the scanner lists as
+   2.10.0, 3.0.2 and 4.0.0) and `tornado 6.6` (3.1, 6.6.1). `main` and the branch that was merged pin the same
+   versions, so the merge did not introduce them.
+
+What is not known: which supported Alpine release carries `zlib 1.4-r0`, whether the rootfs's other musl-built
+pieces (the busybox build, the SIGSYS shim, the wheels compiled against the base) still build and run on it, and
+which of the seven are reachable from a Space. The repair starts by reading both scanners' output from a build
+of the current image, then choosing the Alpine release from where the fixed `zlib` is published, in an ADR.
+Python's lock is recompiled from `requirements.in` as its header says, with the hashes. The proof is an
+image rebuilt from the new base whose kernel answers a cell on the tablet, and both scans green on it.
+
 ---
 
 ## 12. Glossary
