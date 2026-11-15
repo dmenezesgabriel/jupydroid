@@ -56,15 +56,15 @@ Not `shipped` until this has run on both devices and the frames were looked at.
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Where a finding is read | the gutter mark kept and given a column of its own · the squiggle's text range · both | a column adds about one row of width per cell on a phone and both targets stay under 48dp; the text range costs no width and is larger, but a tap there also places the caret | **Recommendation, to be settled on T1's measurement:** the squiggle's range is the target and the gutter is the breakpoint's alone, as VS Code. If a tap on a range cannot both show the card and place the caret, a column of its own |
+| Where a finding is read | the gutter mark kept and given a column of its own · the squiggle's text range · both | a column adds 18dp (one row) to every cell, 44dp to 62dp, and both targets stay 18dp; the text range costs no width and is larger, but a tap there also places the caret and a hint's range is one character, 8.25dp | **The squiggle's range** (chosen after T1's measurement): the gutter is the breakpoint's alone, as VS Code, and a tap on a range shows the card and still places the caret. A hint's range needs a hit area wider than its one character |
 | Where a breakpoint is toggled | the dot's column only · the whole gutter | the whole gutter is the larger target and is what a diagnosed line's numbers already do | the whole gutter, as every gutter tap always did |
 
 ## Gap analysis
 
 | Concern | Ours today | Best reference | Gap |
 |---|---|---|---|
-| One meaning per target | one cell, two meanings (`gutterPress`) | `breakpointEditorContribution.ts:55-56` | present and wrong: the overlap is code, found by a person, not yet measured |
-| A target a finger can hit | about one text row wide | Material's 48dp minimum | present and partial; T1 measures it at 320, 360 and 412dp |
+| One meaning per target | one cell, two meanings (`gutterPress`) | `breakpointEditorContribution.ts:55-56` | present and wrong, measured on `dev36` at 320, 360 and 412dp: the cell is 18dp wide, the dot (14.4dp) sits inside the mark (16.2dp), both centred at 9dp, and a frame at 320 and 360dp shows the dot alone, the finding's icon fully hidden. A tap at 9dp shows the card and toggles nothing; a tap at 31dp toggles |
+| A target a finger can hit | about one text row wide | Material's 48dp minimum | present and partial: the gutter's cell and every row are 18dp, and all numbers are identical at the three widths, because `gutterWidth` reads the digits' metrics and not the field's width. A tap on a squiggled range places the caret (35 to 10) and shows no card; a hint's range is 8.25dp and a tap on it places the caret (10 to 27) |
 
 ## Deviations
 
@@ -72,8 +72,8 @@ A phone has no hover, so VS Code's hover on a marker is a tap here. It becomes a
 
 ## Open decisions
 
-- Option 1 or a column of its own, settled on T1's measurement.
-- If the squiggle: whether the tap also places the caret, and how a hint (three dots) is hit.
+- Settled after T1: the squiggle's range, not a column of its own.
+- Still open for T2: how a hint's one-character range is hit, and that a tap on a range places the caret as well as opening the card.
 
 ## Surface
 
@@ -88,9 +88,10 @@ A UI item with no domain, port or adapter.
 
 ## Tasks
 
-- [ ] T1 — reproduce on a line holding both at 320, 360 and 412dp on `dev36`: the mark's and the dot's pixel rects, what
+- [x] T1 — reproduce on a line holding both at 320, 360 and 412dp on `dev36`: the mark's and the dot's pixel rects, what
   each tap does, and what a tap on a squiggled range does to the caret; settle the choice in this file.
-- [ ] T2 — red tests for the chosen meaning, then the minimal change so no two glyphs share a cell.
+- [ ] T2 — red tests for the chosen meaning (the squiggle's range shows the card and places the caret, the gutter toggles
+  and never shows a card, a hint's range is hittable), then the minimal change so no two glyphs share a cell.
 - [ ] T3 — run the flow on both devices at both widths, look at the frames, record the ADR.
 
 ## Out of scope
