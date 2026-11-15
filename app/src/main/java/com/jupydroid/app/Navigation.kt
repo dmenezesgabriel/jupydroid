@@ -23,7 +23,6 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.domain.model.MatchedLine
-import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.console.ConsoleScreen
@@ -42,7 +41,6 @@ import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import com.jupydroid.app.ui.shell.saveAllOpenDocuments
 import com.jupydroid.app.ui.shell.trailingBorder
 import com.jupydroid.app.ui.spaces.SpacesHomeScreen
-import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -454,19 +452,7 @@ fun MainNavigation(
             )
           }
         }
-        entry<Terminal>(metadata = ListDetailSceneStrategy.detailPane()) { terminal ->
-          tabbedPane {
-            TerminalPaneScreen(
-              session = TerminalSession(terminal.name),
-              terminalGateway = spacePorts.terminalGateway,
-              // `term.onTitleChange` → `title.label` - the tab, so the strip's map is what hears it.
-              onTitleChanged = { title ->
-                if (title == null) liveTabTitles.remove(terminal) else liveTabTitles[terminal] = title
-              },
-              terminalSettingsRepository = appContainer.terminalSettings,
-            )
-          }
-        }
+        terminalEntry(spacePorts.terminalGateway, appContainer.terminalSettings, liveTabTitles, tabbedPane)
         entry<Launcher>(metadata = ListDetailSceneStrategy.detailPane()) {
           tabbedPane {
             LauncherScreen(
