@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# Part 1 of the last-column press: clears the screen and prints one row whose last word, `lastword`, ends
+# exactly at the column the pty was told, preceded by another word, `beforeword`, so a press that lands
+# one column short selects the wrong one. The row's spaces are computed from `os.get_terminal_size`, which
+# is what only a real shell can answer.
+#
+# It does not launch the app: it continues the terminal `terminal-margin.yaml` left open, because the
+# driver has already read that frame's pitch and column count. TABLET ONLY (SM_X216B), and NOT A SUITE
+# FLOW, as `terminal-margin.yaml` is not: it only means something after that flow, under its driver.
+- inputText: "clear; python3 -c 'import os;print(chr(32)*(os.get_terminal_size(0)[0]-19)+chr(98)+\"eforeword lastword\")'"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-the-last-word-row

@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from PIL import Image
-from read_terminal_margin import read_terminal_margin
+from read_terminal_margin import first_row_centre_y, last_cell_centre_x, read_terminal_margin
 
 _BACKGROUND = (25, 26, 27)  # measured off a real VS_CODE_DARK capture
 _INK = (204, 204, 204)
@@ -49,6 +49,30 @@ class _Frame:
     def save(self) -> str:
         self.image.save(self.path)
         return self.path
+
+
+class PressPointTest(unittest.TestCase):
+    def test_the_last_columns_centre_is_half_a_pitch_before_the_end_of_the_counted_columns(self) -> None:
+        frame = _Frame(self)
+        frame.ruler(first_x=112, glyphs=77)
+        reading = read_terminal_margin(frame.save(), _hierarchy(_PANE), density=160, reported_columns=77)
+
+        # pane left 100 + margin 12 + 76.5 columns of 10 px
+        self.assertEqual(877, last_cell_centre_x(reading, pane_left_px=_PANE[0], density=160))
+
+    def test_the_first_rows_centre_y_is_the_middle_of_the_topmost_band_of_ink(self) -> None:
+        frame = _Frame(self)
+        for y in (90, 91, 92, 93, 94):  # the row a cleared screen starts with
+            frame.ruler(first_x=112, glyphs=77, y=y)
+        frame.ruler(first_x=112, glyphs=3, y=130)  # the prompt below it
+
+        self.assertEqual(92, first_row_centre_y(frame.save(), _hierarchy(_PANE)))
+
+    def test_names_the_pane_when_there_is_no_ink_to_press(self) -> None:
+        frame = _Frame(self)
+
+        with self.assertRaisesRegex(ValueError, "no ink"):
+            first_row_centre_y(frame.save(), _hierarchy(_PANE))
 
 
 class ReadTerminalMarginTest(unittest.TestCase):

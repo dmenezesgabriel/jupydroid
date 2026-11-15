@@ -10,8 +10,8 @@ drawn at, which is not the width of the cell the columns were counted with when 
 `columns_at_pitch` is `floor((pane width - 2 x margin) / pitch)`. Beside it sits `reported_columns`, what
 `os.get_terminal_size` answered on the pty (`TIOCGWINSZ`, the one live answer this rootfs gives,
 `docs/research/closed-questions.md` CLOSED-006), which `terminalGridSize` computes from the same width
-and the cell's whole-pixel width (`ui/terminal/TerminalGridSize.kt`). They agree only if the glyphs are
-drawn a whole cell apart.
+and the cell's width (`ui/terminal/TerminalGridSize.kt`). They agree only if the cell is
+counted at the pitch the glyphs are drawn at.
 
 The gaps include the `#` glyph's own side bearing, a pixel or two, so a margin of 12dp reads a little over it.
 
@@ -19,6 +19,7 @@ The gaps include the `#` glyph's own side bearing, a pixel or two, so a margin o
 
     adb shell uiautomator dump /sdcard/ui.xml && adb exec-out cat /sdcard/ui.xml > window.xml
     python3 scripts/read_terminal_margin.py ruler.png window.xml 240 104
+    python3 scripts/read_terminal_margin.py --first-row-y frame.png window.xml
 
 Tests in read_terminal_margin_test.py.
 """
@@ -96,6 +97,46 @@ def read_terminal_margin(
     )
 
 
+def last_cell_centre_x(reading: MarginReading, pane_left_px: int, density: int) -> int:
+    """The x, in px, of the middle of the last column the pty was told, for a press that must land in it.
+
+    It is counted from the pane's left edge: the margin, then the reported columns less half of one, at the
+    pitch the glyphs were measured drawn at, so a press there is on the column's own cell and not the gap.
+
+    ```
+    last_cell_centre_x(reading, pane_left_px=0, density=240)  # -> 1171
+    ```
+    """
+    margin_px = round(MARGIN_DP * density / BASELINE_DPI)
+    return round(pane_left_px + margin_px + (reading.reported_columns - 0.5) * reading.pitch_px)
+
+
+def first_row_centre_y(image_path: str, hierarchy_xml: str) -> int:
+    """The y, in px, of the middle of the topmost band of ink inside the pane.
+
+    A cleared terminal puts its first printed row at the top, so this is where a press lands on it. The
+    dump cannot say: the pane publishes no per-row node, and `TerminalCanvas` draws on a `Canvas`.
+
+    Raises:
+        ValueError: If the pane holds no ink.
+
+    ```
+    first_row_centre_y("frame.png", open("window.xml").read())  # -> 207
+    ```
+    """
+    pane = _pane_bounds(hierarchy_xml)
+    image = Image.open(image_path).convert("RGB")
+    left, top, right, bottom = pane
+    background = _pane_background(image, pane)
+    inked = [y for y in range(top, bottom) if _ink_extent(image, y, left, right, background)]
+    if not inked:
+        raise ValueError(f"no ink inside the pane {pane}; expected the row the flow printed")
+    band_end = inked[0]
+    while band_end + 1 in inked:
+        band_end += 1
+    return (inked[0] + band_end) // 2
+
+
 def _pane_bounds(hierarchy_xml: str) -> tuple[int, int, int, int]:
     """`(left, top, right, bottom)` of the node [PANE_TAG], in px."""
     for node in ElementTree.fromstring(hierarchy_xml).iter("node"):
@@ -106,6 +147,12 @@ def _pane_bounds(hierarchy_xml: str) -> tuple[int, int, int, int]:
     raise LookupError(f"no node with resource-id {PANE_TAG!r} and bounds in the dump; expected a terminal screen")
 
 
+def _pane_background(image: Image.Image, pane: tuple[int, int, int, int]) -> int:
+    """The R+G+B sum of an empty pixel of [pane]: its bottom edge, where the grid never reaches."""
+    left, _, right, bottom = pane
+    return sum(pixel_at(image, ((left + right) // 2, bottom - 2)))
+
+
 def _ruler_glyphs(image: Image.Image, pane: tuple[int, int, int, int]) -> tuple[list[int], int]:
     """The first ink x of each glyph of the ruler and its last ink x, inclusive, inside [pane].
 
@@ -114,7 +161,7 @@ def _ruler_glyphs(image: Image.Image, pane: tuple[int, int, int, int]) -> tuple[
     one without.
     """
     left, top, right, bottom = pane
-    background = sum(pixel_at(image, ((left + right) // 2, bottom - 2)))
+    background = _pane_background(image, pane)
     extents = {y: _ink_extent(image, y, left, right, background) for y in range(top, bottom)}
     inked = {y: extent for y, extent in extents.items() if extent}
     if not inked:
@@ -149,14 +196,19 @@ def _is_ink(image: Image.Image, xy: tuple[int, int], background: int) -> bool:
 
 
 def main() -> int:
+    if len(sys.argv) == 4 and sys.argv[1] == "--first-row-y":
+        print(first_row_centre_y(sys.argv[2], open(sys.argv[3]).read()))
+        return 0
     if len(sys.argv) != 5:
         print(__doc__)
         return 2
     image_path, hierarchy, density, columns = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4])
-    reading = read_terminal_margin(image_path, open(hierarchy).read(), density, columns)
+    xml = open(hierarchy).read()
+    reading = read_terminal_margin(image_path, xml, density, columns)
     print(f"pane {reading.pane_width_px}px, glyphs drawn {reading.pitch_px:.2f}px apart")
     print(f"  left gap  {reading.left_gap_dp:6.1f}dp   right gap {reading.right_gap_dp:6.1f}dp")
     print(f"  columns   at that pitch {reading.columns_at_pitch}   reported {reading.reported_columns}")
+    print(f"  last column centre x {last_cell_centre_x(reading, _pane_bounds(xml)[0], density)}px")
     return 0
 
 

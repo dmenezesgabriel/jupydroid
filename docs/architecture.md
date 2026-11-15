@@ -1137,11 +1137,14 @@ Termux's `drawTextRun` measures each run's ink and, when it disagrees with `mFon
 columns` by more than 1%, `canvas.scale`s the run into the cells it was measured for - the
 run-boundary condition itself widens on `fontWidthMismatch`
 (`termux-app/terminal-view/.../TerminalRenderer.java`). Ours draws every run at the grid's cell
-pitch unscaled (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalCanvas.kt`): a font
-whose glyphs do not match the "X" `terminalCellMetrics` measured - ligature-prone or
-mis-declared monospace - drifts ink and cells apart. `CodeText` measures honestly today, so
-this is a dormant rendering risk rather than a visible wrongness; the repair is the same
-per-run measure-and-scale if a font ever lies.
+pitch unscaled (`app/src/main/java/com/jupydroid/app/ui/terminal/TerminalCanvas.kt`).
+
+The shipped font does disagree with a whole-pixel "X": a run steps 14.81 px where the cell was counted at 15,
+so the last glyph of a 77-column line was drawn 14 px left of its cell. That is repaired at its cause, not by
+the per-run scale: `terminalCellMetrics` returns the pitch the glyphs are drawn at, as Termux's `mFontWidth`
+stays a float, and the grid, a press and a selection's bounds are counted from it
+(`TerminalCellMetricsTest`, `TerminalGridSizeTest`). The per-run measure-and-scale for a font that lies about
+being monospace stays absent: the shipped font is monospace and agrees with its own pitch.
 
 ### GAP-094 — A markdown file has no rendered preview
 

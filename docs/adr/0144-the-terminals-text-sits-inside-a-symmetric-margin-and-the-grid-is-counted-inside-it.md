@@ -24,7 +24,7 @@ The references disagree on whether to inset at all:
 Three of seven inset. The desktop references do it because a selection or a cursor at the very edge is hard
 to hit, which holds on a touch screen as well.
 
-Measured on the arm64 tablet (`SM-X216B`, 240 dpi) from a screenshot of a ruler row, a line of `#` as wide as
+At the decision, measured on the arm64 tablet (`SM-X216B`, 240 dpi) from a screenshot of a ruler row, a line of `#` as wide as
 the pty's own `TIOCGWINSZ` column count, and the layout dump taken with it:
 
 | | pane | left gap | right gap | glyphs drawn | columns at that pitch | columns the pty reports |
@@ -73,11 +73,26 @@ cannot see the padding, because it adds the margin the pane subtracts.
 
 The margin itself is measured and correct on the tablet. Nothing on screen changed.
 
-The right gap is wider than the left by the drift between the font's advance and the cell's pixel width, up to
-28.7dp at 800dp. That is a rendering defect and not part of this decision: `GAP-092` records it. A fix that
-draws glyphs at the pitch the cells are counted at moves the right gap toward 12dp and may change the column
-count the shell is told, so it is its own change with its own measurement, and it does not supersede this
+The right gap was wider than the left by the drift between the font's advance and the cell's whole-pixel
+width, up to 28.7dp at 800dp. `GAP-092` recorded it as a rendering defect and not part of this decision, and
+the cell's width was made the advance the glyphs are drawn at, so the shell is told the columns that fit at
+the drawn pitch. The same ruler on the same tablet now reads:
+
+| | pane | left gap | right gap | glyphs drawn | columns at that pitch | columns the pty reports |
+|---|---|---|---|---|---|---|
+| landscape | 1146 px | 12.0 dp | 22.7 dp | 14.81 px apart | 74 | 74 |
+| portrait | 1200 px | 12.0 dp | 19.3 dp | 14.81 px apart | 78 | 78 |
+
+The pty and the drawn pitch agree at both widths, where portrait told 77 against 78 that fit. The right gap
+is still wider than the left, and what is left of it is not drift: the grid holds whole columns, so the
+remainder of `(pane - 2 x 12dp) / 14.81 px` sits at the right (13.9 px, 9.3dp, in landscape; 8.8 px, 5.9dp,
+in portrait), under one column, and both widths read the same 1.4dp beyond that. Landscape did not move
+because 74 columns fit at either pitch; what changed there is the cause. The reading did not supersede this
 decision.
+
+The cell's width is not the width of a measured lone "X". Compose rounds a lone glyph's layout to a whole pixel
+(14.0 at 14sp on this tablet, where a run of them steps 14.81), so `terminalCellMetrics` reads the pitch off the
+difference of two runs, which `TerminalCellMetricsTest` pins against the same two-run difference.
 
 The thing a future reader will be tempted to do is to widen the right inset until the gap looks even. That
 would hide the drift behind a number that is correct on the left, and it would move with the font size.
