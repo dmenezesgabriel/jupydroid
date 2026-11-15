@@ -15,7 +15,8 @@ import com.jupydroid.app.ui.SaveBeforeCloseDialog
 /**
  * `application:close`'s dirty gate, mounted once and shared by every control that empties a
  * main-area slot - the tab strip's ✕, the one-pane Up arrow, and the Running panel's own close
- * (`running:close`, `running-extension/src/index.ts`).
+ * (`running:close`, `running-extension/src/index.ts`) - and by every control that leaves the
+ * workspace: the one-pane strip's Spaces control and the rail's Spaces row.
  *
  * Hoisted to the caller for the reason `SaveBeforeCloseGate` exists for screens: the dialog must
  * outlive the tab that opened the ask, and when the ask comes from the Running panel the tab's

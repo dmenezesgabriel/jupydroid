@@ -401,7 +401,7 @@ private fun MainAreaTabStrip(
       // pane, so the strip is no taller for it.
       if (!twoPane) {
         FocusRingIconButton(onClick = onLeaveWorkspace) {
-          Icon(imageVector = Icons.Filled.Home, contentDescription = "Spaces")
+          Icon(imageVector = Icons.Filled.Home, contentDescription = LEAVE_WORKSPACE)
         }
       }
     }

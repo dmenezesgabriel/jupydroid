@@ -263,6 +263,7 @@ fun MainNavigation(
         contributions = appContainer.sidePanelContributions,
         onOpenLauncher = openLauncher,
         onOpenSettings = { backStack.openSettings() },
+        onLeaveWorkspace = closeGate.leaveWorkspace,
         modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
       )
     }
@@ -359,6 +360,7 @@ fun MainNavigation(
             // cwd the launcher's Terminal card gets, hoisted so both reads answer the same path.
             onNewTerminal = { newTerminal(browsedDirectory) },
             onOpenSettings = { backStack.openSettings() },
+            onLeaveWorkspace = closeGate.leaveWorkspace,
             onOpenLauncher = openLauncher,
             onBrowsedDirectory = { browsedDirectory = it },
             browsedDirectory = browsedDirectory,

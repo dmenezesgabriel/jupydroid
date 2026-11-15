@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
@@ -42,6 +43,8 @@ import com.jupydroid.extension.api.focusRing
  *   it has no selected state to hold.
  * @param onOpenSettings opens the app-wide Settings screen, from the rail's foot - see the item's
  *   own comment for why there.
+ * @param onLeaveWorkspace leaves the Space for the Spaces list, from the rail's foot above Settings -
+ *   the dirty-gated leave, so an unsaved document is asked about first.
  * @param contributions the panels extensions add (ADR-0104), each drawn with its own label and icon.
  */
 @Composable
@@ -50,6 +53,7 @@ fun SidePanelRail(
   onChoose: (ShownPanel) -> Unit,
   onOpenLauncher: () -> Unit,
   onOpenSettings: () -> Unit,
+  onLeaveWorkspace: () -> Unit,
   contributions: List<SidePanelContribution>,
   modifier: Modifier = Modifier,
 ) {
@@ -95,6 +99,15 @@ fun SidePanelRail(
     // panel is - which the Files bar's gear, its home before this, was not. Always unselected for
     // the `+`'s reason: Settings opens in the main area, and selection there is the strip's.
     Spacer(Modifier.weight(1f))
+    // The named way back to the list, beside the gear: always unselected for the same reason - it
+    // leaves the workspace rather than showing a panel.
+    NavigationRailItem(
+      selected = false,
+      onClick = onLeaveWorkspace,
+      icon = { Icon(Icons.Filled.Home, contentDescription = null) },
+      label = null,
+      modifier = Modifier.semantics { contentDescription = LEAVE_WORKSPACE }.focusRing(),
+    )
     NavigationRailItem(
       selected = false,
       onClick = onOpenSettings,
@@ -110,3 +123,9 @@ fun SidePanelRail(
  * reader and a Maestro flow address Settings the same way at either width.
  */
 const val OPEN_SETTINGS = "Settings"
+
+/**
+ * The way back to the Spaces list's name, on the strip's control, the rail's item and the modal rail's row
+ * alike - one string, so every surface of a Space is addressed the same way.
+ */
+const val LEAVE_WORKSPACE = "Spaces"

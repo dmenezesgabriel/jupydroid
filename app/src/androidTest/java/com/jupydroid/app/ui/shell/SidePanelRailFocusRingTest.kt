@@ -94,6 +94,7 @@ class SidePanelRailFocusRingTest {
           onChoose = {},
           onOpenLauncher = {},
           onOpenSettings = {},
+          onLeaveWorkspace = {},
           contributions = emptyList(),
         )
       }

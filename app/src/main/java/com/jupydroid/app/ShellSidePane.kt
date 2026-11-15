@@ -58,6 +58,8 @@ import com.jupydroid.extension.api.SidePanelHost
  * @param onOpenSettings opens the app-wide Settings screen - see `NotebookBackStack.kt`'s
  *   `openSettings`. Read only at one pane, from the foot of the modal rail behind More; beside two,
  *   `SidePanelRail` draws it (ADR-0109).
+ * @param onLeaveWorkspace leaves the Space for the Spaces list - the dirty-gated leave. Read only at one
+ *   pane, from the modal rail's foot; beside two, `SidePanelRail` draws it.
  * @param onOpenLauncher opens the Launcher - the bottom bar's third destination, which is a
  *   document rather than a [SidePanel], so it is a callback here and not a `chosen`.
  * @param onBrowsedDirectory where the explorer reports the directory it is showing - the
@@ -112,6 +114,7 @@ fun ShellSidePane(
   onRevealMatch: (MatchedLine) -> Unit,
   onNewTerminal: () -> Unit,
   onOpenSettings: () -> Unit,
+  onLeaveWorkspace: () -> Unit,
   onOpenLauncher: () -> Unit,
   onBrowsedDirectory: (String) -> Unit,
   browsedDirectory: String,
@@ -219,6 +222,7 @@ fun ShellSidePane(
         onOpenLauncher = onOpenLauncher,
         onNewTerminal = onNewTerminal,
         onOpenSettings = onOpenSettings,
+        onLeaveWorkspace = onLeaveWorkspace,
         contributions = appContainer.sidePanelContributions,
       )
     }

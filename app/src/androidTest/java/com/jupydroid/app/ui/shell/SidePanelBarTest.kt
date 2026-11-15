@@ -46,6 +46,7 @@ class SidePanelBarTest {
   private val chosen = mutableListOf<ShownPanel>()
   private val terminals = mutableListOf<String>()
   private var settingsOpened = 0
+  private var workspaceLeft = 0
 
   /** `onePaneDestinations` plus the Launcher and More - and the outline is **not** one. */
   @Test
@@ -69,12 +70,15 @@ class SidePanelBarTest {
     show(SidePanel.FILES)
     compose.onNodeWithText(NEW_TERMINAL).assertDoesNotExist()
     compose.onNodeWithText(OPEN_SETTINGS).assertDoesNotExist()
+    compose.onNodeWithText(LEAVE_WORKSPACE).assertDoesNotExist()
 
     compose.onNodeWithContentDescription(MORE).performClick()
 
     val terminal = compose.onNodeWithText(NEW_TERMINAL).assertIsDisplayed().getUnclippedBoundsInRoot()
     val settings = compose.onNodeWithText(OPEN_SETTINGS).assertIsDisplayed().getUnclippedBoundsInRoot()
+    val spaces = compose.onNodeWithText(LEAVE_WORKSPACE).assertIsDisplayed().getUnclippedBoundsInRoot()
     assertTrue("Settings ($settings) sits below New terminal ($terminal)", settings.top >= terminal.bottom)
+    assertTrue("Spaces ($spaces) sits above Settings ($settings)", spaces.bottom <= settings.top)
     compose.onNodeWithContentDescription(MORE).assertIsNotSelected()
   }
 
@@ -107,18 +111,34 @@ class SidePanelBarTest {
     compose.onNodeWithText(OPEN_SETTINGS).assertDoesNotExist()
   }
 
+  /** Leaving is the Spaces row's act: the rail closes behind it and no panel is picked. */
+  @Test
+  fun theRailsSpacesLeavesTheWorkspaceAndClosesTheRail() {
+    show(SidePanel.SEARCH)
+
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(LEAVE_WORKSPACE).performClick()
+
+    compose.runOnIdle {
+      assertEquals(1, workspaceLeft)
+      assertEquals(emptyList<ShownPanel>(), chosen)
+    }
+    compose.onNodeWithText(LEAVE_WORKSPACE).assertDoesNotExist()
+  }
+
   /**
    * Every contributed panel is a row of the rail, after New terminal and before Settings, in the
-   * order the extensions gave them: the bar holds five and no more (ADR-0109).
+   * order the extensions gave them, then the foot - Spaces over Settings: the bar holds five and no more
+   * (ADR-0109).
    */
   @Test
-  fun moreListsEveryContributedPanelBetweenNewTerminalAndSettings() {
+  fun moreListsEveryContributedPanelBetweenNewTerminalAndTheFoot() {
     show(SidePanel.FILES)
     compose.onNodeWithText(SOURCE_CONTROL).assertDoesNotExist()
 
     compose.onNodeWithContentDescription(MORE).performClick()
 
-    val rows = listOf(NEW_TERMINAL, SOURCE_CONTROL, CHAT, OPEN_SETTINGS)
+    val rows = listOf(NEW_TERMINAL, SOURCE_CONTROL, CHAT, LEAVE_WORKSPACE, OPEN_SETTINGS)
       .map { compose.onNodeWithText(it).assertIsDisplayed().getUnclippedBoundsInRoot() }
     rows.zipWithNext().forEach { (above, below) -> assertTrue("$below sits below $above", below.top >= above.bottom) }
   }
@@ -283,6 +303,7 @@ class SidePanelBarTest {
           onOpenLauncher = {},
           onNewTerminal = { terminals += "terminal" },
           onOpenSettings = { settingsOpened++ },
+          onLeaveWorkspace = { workspaceLeft++ },
           contributions = CONTRIBUTIONS,
         )
       }
@@ -320,6 +341,7 @@ class SidePanelBarTest {
             onOpenLauncher = {},
             onNewTerminal = { terminals += "terminal" },
             onOpenSettings = { settingsOpened++ },
+            onLeaveWorkspace = { workspaceLeft++ },
             contributions = CONTRIBUTIONS,
           )
         }
