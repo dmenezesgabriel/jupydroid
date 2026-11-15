@@ -2268,6 +2268,20 @@ no setting scales text alone (`window.zoomLevel` moves both). The row an icon si
 its label, so the one place a larger glyph clips is the fixed 32dp tab row. The repair starts with a test of
 a tab at 2.0 whose icon has not outgrown its row.
 
+### GAP-204 — The bottom bar's items are not centred on a medium window
+
+`SidePanelBarTest.theItemsGroupInTheMiddleOnAMediumScreen` fails on `dev36` with `and the group is centred
+expected:<400.0> but was:<396.6667>`: at the 800dp portrait window the group of five items, read from Files'
+left edge to More's right edge, has its centre 3.33dp left of the window's, and the test allows 2dp. The same
+two-test run failed the same way with the author's changes stashed, at `7df2c58e`, so a change under test did
+not cause it. What is not known: the commit that first made it fail (the test was not run at an earlier one),
+and which item's width moved the group. `GAP-182` does not list it: that list was run on 2026-10-27 and this
+test is not in it. In the same run `backClosesTheRailWithoutActing` failed with `RootViewWithoutFocusException`
+(`has-window-focus=false`), the emulator's window never taking focus, which is `GAP-182`'s kind of failure and a
+separate cause. The repair starts by reading the five items' bounds on the failing build, so the 3.33dp is
+attributed to an item before anything is changed; the test is the red test already, and what it then needs is
+either the bar's layout or the test's expectation, decided by what the bounds show.
+
 ---
 
 ## 12. Glossary
