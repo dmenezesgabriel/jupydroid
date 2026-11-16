@@ -2291,10 +2291,12 @@ the tablet from the build of `a2d37992`, with a freshly created notebook open, t
 lands on nothing. The flow then types into no field, `hideKeyboard` sends BACK with no keyboard up, the
 notebook's tab closes and the Launcher is what is left; the flow reports "Run cell" not found, which reads as
 a regression in the app and is not one: tapped by hand at the field's real position, the same cell ran on the
-kernel and printed `42`. What is not known: which commit moved the field, and how many of the 20 flows still
-reach their cell some other way. The repair starts by running one such flow red on the tablet to the same
-failure, then replaces the fixed point with the field's own selector, in one flow first and then the rest, so
-the next flow that taps a field cannot be broken by a layout change above it.
+kernel and printed `42`. What is not known: which commit moved the field. `JD-089` replaced 20 of the 23 taps
+with a tap on the field's name (`.maestro/focus-first-cell.yaml`, ADR-0155), each run on the tablet. **Three
+taps are left and this gap stays open for them:** `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42`
+(a `longPressOn`) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows need opencode, which base
+on the tablet does not have, installed and signed in by the user; the delete flow's tap is behind `GAP-208`'s
+`Recent actions` step. `JD-093` converts and runs them.
 
 ### GAP-206 — The rootfs ships a Critical zlib CVE and seven vulnerable Python wheels on an end-of-life Alpine
 
@@ -2365,7 +2367,10 @@ one: `display-update-demo-driver.sh` at `1300,539` (all three sources land in ce
 `output-caps-demo-driver.sh` at `1300,524` (the same) and `ansi-colour-demo-driver.sh` at `1300,625` (the empty
 second cell runs, `[2]:`, and `blue` never appears). `text-output-link-demo-driver.sh`
 passes part 1 and fails in part 2 after the link tap, where `back_to_app` reads `com.android.chrome` still resumed
-ten seconds after BACK. Not known: whether the tap by the field's name can reach a later cell as it reaches the
+ten seconds after BACK. Three first-cell taps at `1300,354` were left unconverted by `JD-089` and belong to this
+repair too: `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42` (a `longPressOn`, which the sub-flow cannot
+express) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows can only be run on a tablet the user has
+signed in to opencode on, which is the user's to do; the delete flow's tap waits on `GAP-208`. Not known: whether the tap by the field's name can reach a later cell as it reaches the
 first (the sub-flow takes `index: 0`), and what Chrome's back stack held on that device. The repair reads the
 later cells' bounds from a dump, then each Chrome frame.
 
