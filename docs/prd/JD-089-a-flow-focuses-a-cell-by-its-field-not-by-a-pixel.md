@@ -100,8 +100,19 @@ A test-harness item with no domain, port or adapter.
 
 ## Tasks
 
-- [ ] T1 — run `console-clear-demo-run.yaml` unchanged on the tablet and read the dump: the failing frame, the
-  field's bounds, and whether `Code cell` is in the tree. Record the numbers here.
+- [x] T1 — run `console-clear-demo-run.yaml` unchanged on the tablet and read the dump: the failing frame, the
+  field's bounds, and whether `Code cell` is in the tree. Read on `SM-X216B` at 1920x1200 with two panes, on the
+  debug APK installed there (the commit it was built from was not checked):
+  - Red: the flow passes `Tap on point (1300,354)`, `Input text` and `Hide Keyboard`, then fails at `Tap on "Run
+    cell"` with `Element not found`. The failing frame is the app's own Launcher tab with the notebook's tab gone,
+    which is `GAP-205`'s account: nothing was typed, and `hideKeyboard`'s BACK closed the tab.
+  - A freshly created notebook's tree holds an unnamed, clickable `android.widget.EditText` at
+    `[883,274][1884,346]`, with a child `android.view.View` of accessibility text `Code cell` at `[883,294][1884,325]`
+    that is not clickable. So the name exists on a device, as a child of the node that takes the text, and a tap
+    by that name lands at its centre `(1383,309)`, inside the `EditText`. The drawn box in the frame is about
+    `[798,283][1895,336]`.
+  - `(1300,354)` is 8px below the `EditText` and 18px below the drawn box, which is why it hits nothing.
+  - Not yet shown: that a tap by the name focuses the field and takes text. T2 proves it on the same flow.
 - [ ] T2 — `focus-first-cell.yaml`, and `console-clear-demo-run.yaml` converted; green on the tablet, frames looked at.
 - [ ] T3 — the other 19 flows converted, each run on the tablet.
 - [ ] T4 — the ADR, `GAP-205` and the backlog row closed, this file deleted.
