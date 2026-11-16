@@ -113,7 +113,12 @@ A test-harness item with no domain, port or adapter.
     `[798,283][1895,336]`.
   - `(1300,354)` is 8px below the `EditText` and 18px below the drawn box, which is why it hits nothing.
   - Not yet shown: that a tap by the name focuses the field and takes text. T2 proves it on the same flow.
-- [ ] T2 — `focus-first-cell.yaml`, and `console-clear-demo-run.yaml` converted; green on the tablet, frames looked at.
+- [x] T2 — `focus-first-cell.yaml`, and `console-clear-demo-run.yaml` converted; green on the tablet, frames looked at.
+  Read on `SM-X216B` with `scripts/console-clear-demo-driver.sh`, exit 0: `Tap on "Code cell", Index: 0` took
+  `Input text print(6 * 7)`, `Tap on "Run cell"` found its button, and `42` appeared in `Cell output`. The frame shows
+  the field focused with the text and a cursor, `[1]:` and "ran in 0.3 s" above `42`, so the kernel ran it and
+  `FakeKernelGateway` did not echo it. 22 taps at `1300,354` remain in 19 flows. No UI dump was taken at the focused
+  step (the driver takes screenshots only), so the tap's landing point rests on T1's bounds and the frame.
 - [ ] T3 — the other 19 flows converted, each run on the tablet.
 - [ ] T4 — the ADR, `GAP-205` and the backlog row closed, this file deleted.
 
