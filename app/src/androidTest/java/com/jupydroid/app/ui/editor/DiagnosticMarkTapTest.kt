@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import android.view.KeyEvent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.Modifier
@@ -123,6 +124,33 @@ class DiagnosticMarkTapTest {
   }
 
   /**
+   * The card anchors on the whole of the diagnosed line, so its top edge belongs at or below the
+   * line's bottom and its left edge at the content's left. Read in one space - the screen,
+   * through [boundsOnScreen] on the popup's node, on the text's node (the inner region, per
+   * [gutterWidthPx]) and on the wrapper (the padded box the `Popup` anchors on).
+   */
+  @Test
+  fun theDetailCardsTopClearsTheBottomOfTheLineItDescribes() {
+    setContent(boxed = true)
+    focusField()
+
+    compose.onNodeWithTag(FIELD_TAG).performTouchInput { click(Offset(insideRangePx(), rowMiddlePx(line = 2))) }
+    compose.onNodeWithContentDescription(DETAIL_DESCRIPTION).assertIsDisplayed()
+    compose.waitForIdle()
+
+    val popup = compose.onNodeWithContentDescription(DETAIL_DESCRIPTION).fetchSemanticsNode().boundsOnScreen()
+    val inner = compose.onNodeWithText(FIRST_LINE, substring = true).fetchSemanticsNode().boundsOnScreen()
+    val box = compose.onNodeWithTag(FIELD_TAG).fetchSemanticsNode().boundsOnScreen()
+    assertPopupAlignedToAnchor(
+      popup = popup,
+      inner = inner,
+      box = box,
+      // The line rect starts at x=0 of a space whose origin is the content's left edge.
+      expectedLeft = box.left + (box.right - inner.right),
+    )
+  }
+
+  /**
    * Dismissal runs through `Popup.onDismissRequest`, and a BACK press drives it the same way an
    * outside tap does. An outside *tap* cannot be faked here: `performTouchInput` injects
    * Compose-level pointer events, but the popup lives in its own window whose outside-press
@@ -176,6 +204,7 @@ class DiagnosticMarkTapTest {
     diagnostics: List<CellDiagnostic> = DIAGNOSTICS,
     onGutterTap: (Int) -> Unit = {},
     onGutterLongPress: (Int) -> Unit = {},
+    boxed: Boolean = false,
   ): TextFieldState {
     val state = TextFieldState(text)
     compose.setContent {
@@ -190,6 +219,7 @@ class DiagnosticMarkTapTest {
           CodeCellField(
             state = state,
             onSourceEdited = {},
+            modifier = if (boxed) Modifier.fillMaxWidth().cellEditorBox(editing = true) else Modifier,
             breakpoints = breakpoints,
             diagnostics = diagnostics,
             onGutterTap = onGutterTap,
