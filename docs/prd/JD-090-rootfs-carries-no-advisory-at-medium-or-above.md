@@ -93,7 +93,7 @@ None.
 
 ## Tasks
 
-- [ ] T1 — The wheels. Red: `osv-scanner` 2.7.0 over the two rootfs locks exits 1 with seven advisories.
+- [x] T1 — The wheels. Red: `osv-scanner` 2.7.0 over the two rootfs locks exits 1 with seven advisories.
   Green: the lock recompiled with `--upgrade-package` for the four, its diff read, the same command exits 0.
 - [ ] T2 — The signal. Red: a test that `dependabot.yml` names a `docker` entry for `/tools/rootfs` with the
   weekly schedule and cooldown the other ecosystems carry. Green: the entry.
