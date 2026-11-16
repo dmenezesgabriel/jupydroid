@@ -1,6 +1,9 @@
 import type { StopReason } from "../decide.ts";
-import type { PromptBlock } from "../claude-agent.ts";
-import type { AgentSession, GitProbe } from "../iteration.ts";
+import type { PromptBlock } from "../acp-agent.ts";
+import type {
+  AgentSession,
+  GitProbe,
+} from "../iteration.ts";
 
 type ScriptedTurn = () => Promise<StopReason> | StopReason;
 
@@ -9,10 +12,13 @@ export class FakeAgentSession implements AgentSession {
   readonly prompts: PromptBlock[][] = [];
   readonly modes: string[] = [];
   cancelCount = 0;
+  /** Makes switching to `mode` fail, as an agent that refuses the mode would. */
+  failOn: { mode: string; error: Error } | null = null;
 
   constructor(private readonly turns: ScriptedTurn[]) {}
 
   async setMode(mode: string): Promise<void> {
+    if (this.failOn?.mode === mode) throw this.failOn.error;
     this.modes.push(mode);
   }
 

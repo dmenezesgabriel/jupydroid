@@ -2,16 +2,18 @@ import type { ActivityLedger } from "./activity-ledger.ts";
 import type { Clock } from "./clock.ts";
 import {
   decide,
+  PLAN_MODE,
   type Decision,
   type ReplyReason,
   type StopReason,
   type TurnEnd,
 } from "./decide.ts";
-import type { PromptBlock } from "./claude-agent.ts";
+import type { PromptBlock } from "./acp-agent.ts";
 import { ChannelClosedError, RpcError } from "./json-rpc.ts";
 import type { LoopEvent } from "./mailbox.ts";
+import type { AgentError, RateLimitVerdict } from "./rate-limit.ts";
 
-/** The live agent session an iteration drives; `ClaudeAgent` satisfies it after `newSession`. */
+/** The live agent session an iteration drives; `AcpAgent` satisfies it after `newSession`. */
 export interface AgentSession {
   setMode(mode: string): Promise<void>;
   prompt(blocks: PromptBlock[]): Promise<StopReason>;
@@ -31,7 +33,13 @@ export interface IterationDeps {
   askReply(why: ReplyReason, lastMessage: string): Promise<string>;
   emit(event: LoopEvent): Promise<void>;
   openingPrompt: PromptBlock[];
+  /** Command (for example a slash-command skill) the approved plan is sent under; null leaves plan approval to the agent's own exit. */
+  planFollowUp: string | null;
   timing: IterationTiming;
+  /** The mode an approved plan is carried out in, by the agent's own name for it. */
+  bypassMode: string;
+  /** A prompt error that is a usage limit, or null when it is some other failure. */
+  classifyError(error: AgentError, now: Date): RateLimitVerdict | null;
 }
 
 export type IterationTiming = {
@@ -53,6 +61,10 @@ export type IterationOutcome =
   | { kind: "crashed" };
 
 const CONTINUE: PromptBlock[] = [{ type: "text", text: "continue" }];
+// Worded as an instruction to act: "Plan:" as a label made the agent read the
+// follow-up as another request to plan (measured on claude-agent-acp 0.91.0).
+const PLAN_APPROVED_NOTICE =
+  "The plan below is approved. Carry it out now, in this turn, and verify the result.";
 
 /**
  * Drives one fresh session from the opening prompt to a verified commit. Every
@@ -64,8 +76,8 @@ export async function runIteration(
   deps: IterationDeps,
 ): Promise<IterationOutcome> {
   const { agent, ledger, git } = deps;
-  await agent.setMode("plan");
-  ledger.mode = "plan";
+  await agent.setMode(PLAN_MODE);
+  ledger.mode = PLAN_MODE;
   const headBefore = await git.head();
   let prompt = deps.openingPrompt;
   let replyRounds = 0;
@@ -76,11 +88,13 @@ export async function runIteration(
     const decision = decide(end, {
       mode: ledger.mode,
       working: ledger.isWorking(),
+      unreportedExit: ledger.hasUnreportedExit(),
       commitsMade: head !== headBefore,
       clean: await git.isClean(),
       replyRounds,
       errorRetries,
-      limit: ledger.rateLimitVerdict(),
+      limit: limitOf(deps, end),
+      planDeclined: ledger.planDeclined,
     });
     await deps.emit({
       type: "turn_ended",
@@ -96,6 +110,13 @@ export async function runIteration(
 }
 
 type Next = { prompt: PromptBlock[] } | { outcome: IterationOutcome };
+
+/** The usage limit a turn hit: the ledger's rejected reading, or the limit its failure error names. */
+function limitOf(deps: IterationDeps, end: TurnEnd): RateLimitVerdict | null {
+  const reading = deps.ledger.rateLimitVerdict();
+  if (reading || end.kind !== "failed") return reading;
+  return deps.classifyError(end.error, new Date(deps.clock.now()));
+}
 
 async function act(
   deps: IterationDeps,
@@ -114,6 +135,8 @@ async function act(
       };
     case "halt":
       return { outcome: { kind: "halted", reason: decision.reason } };
+    case "approve_plan":
+      return approvePlan(deps);
     case "crash":
       return { outcome: { kind: "crashed" } };
     case "await_work":
@@ -137,6 +160,35 @@ async function act(
   }
 }
 
+/**
+ * The loop declined the plan exit and the turn ended before any work: leave
+ * plan mode ourselves and hand the agent its plan under the follow-up command.
+ * A refused mode switch halts with the agent's own reason; the plan is not
+ * sent into a session that is still read-only.
+ */
+async function approvePlan(deps: IterationDeps): Promise<Next> {
+  const { ledger } = deps;
+  const command = deps.planFollowUp ?? "";
+  const plan = ledger.proposedPlan ?? "";
+  try {
+    await deps.agent.setMode(deps.bypassMode);
+  } catch (error) {
+    if (error instanceof RpcError) {
+      const reason = `plan approval failed: ${error.message}`;
+      return { outcome: { kind: "halted", reason } };
+    }
+    if (error instanceof ChannelClosedError) {
+      return { outcome: { kind: "crashed" } };
+    }
+    throw error;
+  }
+  ledger.mode = deps.bypassMode;
+  ledger.proposedPlan = null;
+  ledger.planDeclined = false;
+  await deps.emit({ type: "plan_approved", via: command });
+  return textPrompt(`${command}\n\n${PLAN_APPROVED_NOTICE}\n\n${plan}`);
+}
+
 async function waitForLimit(
   deps: IterationDeps,
   wakeAtMs: number,
@@ -152,7 +204,12 @@ async function waitForLimit(
 /** The turn ended while work it started still runs: wait for that work, then tell the agent how it ended. */
 async function awaitWork(deps: IterationDeps): Promise<Next> {
   const { ledger, clock, timing } = deps;
-  await deps.emit({ type: "awaiting_work", running: ledger.runningCommands() });
+  await deps.emit({
+    type: "awaiting_work",
+    running: ledger.runningCommands(),
+    // True when nothing runs and the wait is only to report an exit the agent has not heard.
+    exitUnreported: ledger.hasUnreportedExit(),
+  });
   const settled = await Promise.race([
     ledger.whenIdle().then(() => true),
     clock.sleep(timing.backgroundCeilingMs).then(() => false),

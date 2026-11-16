@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ActivityLedger } from "./activity-ledger.ts";
 import { buildHandlers } from "./handlers.ts";
-import type { Question } from "./claude-agent.ts";
+import type { Question } from "./agent-dialect.ts";
+import type { ExitPlanOptions } from "./agent-profile.ts";
+import { CLAUDE_PROFILE } from "./agents/claude/profile.ts";
+import { DEVIN_PROFILE } from "./agents/devin/profile.ts";
 import type { LoopEvent } from "./mailbox.ts";
 import { CallRecorder } from "./testing/call-recorder.ts";
 import { FakeClock } from "./testing/fake-mailbox.ts";
@@ -12,7 +15,10 @@ import {
   waitUntil,
 } from "./testing/assertions.ts";
 
-function build() {
+function build(
+  declinePlanExit = false,
+  exitPlan: ExitPlanOptions = CLAUDE_PROFILE.exitPlan,
+) {
   const ledger = new ActivityLedger();
   const clock = new FakeClock();
   const events: LoopEvent[] = [];
@@ -26,6 +32,8 @@ function build() {
     },
     askQuestions: askQuestions.fn,
     watchBackground: watchBackground.fn,
+    declinePlanExit,
+    exitPlan,
   });
   return { ledger, clock, events, askQuestions, watchBackground, handlers };
 }
@@ -232,5 +240,100 @@ describe("buildHandlers journal", () => {
       { type: "mode_changed", mode: "plan" },
       { type: "mode_changed", mode: "bypassPermissions" },
     ]);
+  });
+});
+
+describe("buildHandlers plan exit follow-up", () => {
+  it("declines the plan exit with the reject option and remembers it, once a plan is proposed", async () => {
+    const { handlers, ledger } = build(true);
+    handlers.onSignal({ type: "plan_proposed", plan: "create hi.txt" });
+
+    const chosen = await handlers.onPermission({
+      ...EXIT_PLAN,
+      options: EXIT_PLAN_OPTIONS,
+    });
+
+    assert.equal(chosen, "reject");
+    assert.equal(ledger.planDeclined, true);
+  });
+
+  it("declines the plan exit by cancelling when the agent has no reject option, and remembers it", async () => {
+    const { handlers, ledger, events } = build(true, DEVIN_PROFILE.exitPlan);
+    handlers.onSignal({ type: "plan_proposed", plan: "create hi.txt" });
+
+    const chosen = await handlers.onPermission({
+      ...EXIT_PLAN,
+      options: [
+        { optionId: "plan_bypass", name: "Yes", kind: "allow_once" },
+        { optionId: "reject_once", name: "No", kind: "reject_once" },
+      ],
+    });
+
+    assert.equal(chosen, null);
+    assert.equal(ledger.planDeclined, true);
+    assert.ok(
+      !events
+        .map((event) => event.type)
+        .includes("exit_plan_reject_missing"),
+    );
+  });
+
+  it("leaves plan mode through the bypass option the agent names", async () => {
+    const { handlers } = build(false, DEVIN_PROFILE.exitPlan);
+
+    const chosen = await handlers.onPermission({
+      ...EXIT_PLAN,
+      options: [
+        { optionId: "plan_accept_edits", name: "Edits", kind: "allow_once" },
+        { optionId: "plan_bypass", name: "Bypass", kind: "allow_once" },
+      ],
+    });
+
+    assert.equal(chosen, "plan_bypass");
+  });
+
+  it("leaves plan mode into bypass when there is no plan text to hand to a follow-up", async () => {
+    const { handlers, ledger } = build(true);
+
+    const chosen = await handlers.onPermission({
+      ...EXIT_PLAN,
+      options: EXIT_PLAN_OPTIONS,
+    });
+
+    assert.equal(chosen, "exit-plan-bypass");
+    assert.equal(ledger.planDeclined, false);
+  });
+
+  it("halts instead of improvising when the reject option is not offered, and says which were", async () => {
+    const { handlers, events, ledger } = build(true);
+    handlers.onSignal({ type: "plan_proposed", plan: "create hi.txt" });
+    const withoutReject = EXIT_PLAN_OPTIONS.filter(
+      (option) => option.optionId !== "reject",
+    );
+
+    const chosen = await handlers.onPermission({
+      ...EXIT_PLAN,
+      options: withoutReject,
+    });
+
+    assert.equal(chosen, null);
+    assert.equal(ledger.planDeclined, false);
+    assertContainsEqual(events, {
+      type: "exit_plan_reject_missing",
+      offered: ["exit-plan-default", "exit-plan-auto", "exit-plan-bypass"],
+    });
+  });
+
+  it("still allows a forced prompt for another tool while declining plan exits", async () => {
+    const { handlers } = build(true);
+
+    const chosen = await handlers.onPermission({
+      toolTitle: "ls",
+      toolName: "Bash",
+      isExitPlan: false,
+      options: [{ optionId: "allow", name: "Allow", kind: "allow_once" }],
+    });
+
+    assert.equal(chosen, "allow");
   });
 });

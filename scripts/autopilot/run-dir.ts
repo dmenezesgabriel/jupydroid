@@ -1,6 +1,7 @@
+import { parseChoiceFile, type AgentChoice } from "./agent-choice.ts";
 import type { JournalEvent } from "./journal-summary.ts";
 import type { Answer } from "./mailbox.ts";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
@@ -27,6 +28,27 @@ export class RunDir {
       () => "",
     );
     return text.split("\n").flatMap(parseEventLine);
+  }
+
+  /**
+   * Records which agent, model and effort the next session uses. Written whole to a temporary file and
+   * renamed, so the loop, which reads it between iterations, never sees half of it.
+   */
+  async writeChoice(choice: AgentChoice): Promise<void> {
+    await mkdir(this.path, { recursive: true });
+    const temporary = join(this.path, "choice.json.tmp");
+    await writeFile(temporary, JSON.stringify(choice));
+    await rename(temporary, this.choicePath());
+  }
+
+  /** The recorded choice, null before any was written; a file that is not a choice is refused with its path. */
+  async readChoice(): Promise<AgentChoice | null> {
+    const text = await readFile(this.choicePath(), "utf8").catch(() => null);
+    return text === null ? null : parseChoiceFile(text, this.choicePath());
+  }
+
+  private choicePath(): string {
+    return join(this.path, "choice.json");
   }
 
   async requestStop(): Promise<void> {

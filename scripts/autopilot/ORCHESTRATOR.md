@@ -1,6 +1,6 @@
 # autopilot: orchestrator runbook
 
-The loop in `run.ts` repeats the manual workflow: open a fresh `claude-agent-acp` session in plan mode, give it `prompt-execution.md`, answer its questions, let it leave plan mode into bypass, wait for the commit, start the next session. It contains no model. A headed Claude Code session is the orchestrator: it reads the loop's events and answers what only judgement can answer.
+The loop in `run.ts` repeats the manual workflow: open a fresh session of the chosen agent (`claude-agent-acp` or `devin acp`, [ADR-0157](../../docs/adr/0157-the-loop-drives-claude-or-devin-chosen-when-it-starts-and-switchable-between-iterations.md)) in plan mode, give it `prompt-execution.md`, answer its questions, let it leave plan mode into bypass, wait for the commit, start the next session. It contains no model. A headed Claude Code session is the orchestrator: it reads the loop's events and answers what only judgement can answer.
 
 ## Start
 
@@ -20,6 +20,22 @@ nohup node --experimental-transform-types --no-warnings scripts/autopilot/run.ts
 Run both from the repository root: `ctl` and `run.ts` resolve `.autopilot-run/` against the directory they start in, and `run.ts` against `--repo` when it is given.
 
 The Monitor command wakes Claude only for events that need judgement: `tail -n 0 -F .autopilot-run/events.jsonl | grep --line-buffered -E '"type":"(needs_answer|needs_reply|needs_answer_overdue|possibly_hung|hung_cancelled|permission_requested|exit_plan_bypass_missing|background_watch_error|loop_halted|iteration_done|iteration_stalled|iteration_halted|iteration_crashed|backlog_exhausted)"'`. Routine events (`preflight_wait`, `rate_limited`, `rate_limit_rejected`, `awaiting_work`, `turn_ended`, `agent_signal`, `plan_ready`) stay in `events.jsonl` for the morning and never reach the chat.
+
+## Choosing the agent and the model
+
+`run.ts` takes `--agent claude|devin`, `--model <id>` and `--effort <value>`; none of them means the agent's own default. Whatever the agent offers is checked at the start of each session: a model or effort it does not offer, or does not take, halts the iteration with the offered values listed. A flag that chooses outranks `.autopilot-run/choice.json` and rewrites it; with no flag the file is read; with neither, Claude.
+
+To switch while the loop runs, change the file between iterations, never inside one:
+
+```sh
+ctl use devin --model swe-2-high --effort high   # next session on Devin; omit a flag to reset it to the agent's default
+ctl use claude                                   # back to Claude's own defaults
+ctl status                                       # "next session: ..." is the choice, "session <id> on ..." is what ran
+```
+
+`ctl use` checks the agent name at once; the model and effort are checked by the next session, which is the only place the agent lists them. A file the loop cannot read, or an agent it does not know, keeps the current choice and is journaled as `agent_choice_invalid`. `--agent-command` names the executable of the agent given with `--agent` only.
+
+The agent changes what to read in a transcript: Claude's shell calls are `tool_call_update` frames with `_meta.claudeCode.toolName`, Devin's are `tool_call` frames with `kind: "execute"` and `rawInput.command`. `iteration-evidence.py` reads both; it counts skills for Claude only, because a Devin skill call has not been seen as a tool call.
 
 ## Nothing is lost: the journal is the only state
 
@@ -62,6 +78,11 @@ Only one loop runs per run directory: `run.ts` refuses to start when `.run/loop.
 | `background_watch_error {shellId, error}` | The loop could not read a background command's output file (anything but "missing"); it reported this once and keeps polling                   | Look at the file the error names. If it stays unreadable the loop only gives up at the 3 hour ceiling: `ctl stop`, or fix the permission. Never edit the output file by hand: its last line is what the loop trusts                                                                             |
 | `exit_plan_bypass_missing {offered}`      | Leaving plan mode did not offer bypass (the adapter offers it only to a non-root process); the loop declined and the iteration halts           | ESCALATE with the offered option ids. Do not restart until bypass is available                                                                                                                                                                                                                  |
 | `agent_signal`                            | A `_claude/` notification or a session update nobody has read yet                                                                              | Note its payload in your report; no action                                                                                                                                                                                                                                                      |
+| `agent_choice_changed {from, to}` | The loop read a new `choice.json` (from `ctl use`) between iterations and the next session uses it | Nothing. Say it in the report |
+| `agent_choice_invalid {error}` | `choice.json` could not be read, or names an agent the loop does not know; the loop kept the current choice | Fix it with `ctl use`, or tell the user |
+| `agent_stopped {cause}` | Devin reported its agent ended its turn for a reason other than completing | Read `cause`; a limit or an error is followed by the loop's own `rate_limited` or retry |
+| `exit_plan_reject_missing {offered}` | `--plan-follow-up` is set and the agent offered no way to decline the plan exit; the loop declined nothing and the iteration halts | ESCALATE with the offered option ids |
+| `plan_approved {via}` | The loop declined the plan exit itself, left plan mode and handed the agent its plan under the follow-up command | Nothing |
 | `loop_halted {reason}`                    | Weekly limit, refusal, repeated stalls or crashes, session setup failure                                                                       | ESCALATE with the reason. Do not restart without looking                                                                                                                                                                                                                                        |
 | `backlog_exhausted`, `stop`               | No `open ← next` row is left, or `ctl stop` was run                                                                                            | Done: end the goal                                                                                                                                                                                                                                                                              |
 
@@ -103,3 +124,10 @@ Measured against `claude-agent-acp 0.91.0` driving `claude 2.1.325`, on 2026-11-
 | Project skills in `.claude/skills/` are announced to the session as commands in `available_commands_update`, and a session whose prompt does not name one did not use one (1 run: 14 tool calls, no `Skill` call) | `opening-prompt.test.ts`; ADR-0149 |
 | With `STANDING_RULES` in the opening prompt the session made a `Skill` call for `engineering-mode` first, then read the principle skills that fit (1 run: 19 tool calls, twice the wall time), and the commit body named the principles | `run.ts` `STANDING_RULES`; ADR-0149 |
 | **Not measured:** the prompt error text of a limit hit (a limit cannot be forced), whether `rate_limit_info` always precedes it, and how long a working Claude turn can stay silent. Any error naming a limit polls every 30 minutes; the silence thresholds are Devin-era guesses                                                                                                                                                                           | `rate-limit.ts` `classifyAgentError`, `run.ts` `TIMING`                                             |
+
+Measured against `devin 3000.12.57` on 2026-11-16 (the frames are `scripts/testdata/autopilot-frames/devin-3000.12.57-plan-exit.ndjson`, [ADR-0157](../../docs/adr/0157-the-loop-drives-claude-or-devin-chosen-when-it-starts-and-switchable-between-iterations.md)):
+
+- `session/new` lists `configOptions` with `mode` (`accept-edits`, `smart`, `ask`, `plan`, `bypass`), `model` (about a thousand ids, effort in the id's suffix) and `thought_level` (`medium`, `high`, `max`, depending on the model). `initialize` must declare `_meta["cognition.ai/clientProvidedModels"]`, or a model variant silently runs its family's default.
+- Leaving plan mode is a `session/request_permission` that names its tool call only by id; the call is the earlier `tool_call` frame with `kind: "switch_mode"`, whose `rawInput.plan` is the plan. Its options are `plan_accept_edits`, `plan_bypass` and `reject_once`, all `allow_once`.
+- A background command reports its own exit (`terminal_exit`), so no output file is watched. A limit is an error text: the free-model limit prints "reset in N minutes (at HH:MM UTC)" and the loop waits for it, the daily quota prints no time and polls, and "monthly usage limit" halts the loop as `monthly_limit`.
+- This repository's `.claude/skills/` are announced to Devin as commands too (116 against Claude's 97).

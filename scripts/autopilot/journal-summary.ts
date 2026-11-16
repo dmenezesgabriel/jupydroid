@@ -1,3 +1,5 @@
+import { describeChoice, type AgentChoice } from "./agent-choice.ts";
+
 export type JournalEvent = {
   at: string;
   type: string;
@@ -30,6 +32,8 @@ export type OpenIteration = {
   row: string;
   startedAt: string;
   sessionId: string | null;
+  /** What the session really runs on, as the agent read it back; null for a journal that predates it. */
+  ranOn: AgentChoice | null;
   mode: string | null;
   running: string[];
   pending: PendingAsk[];
@@ -44,6 +48,8 @@ export type LoopStatus =
 export type JournalSummary = {
   loop: LoopStatus;
   haltReason: string | null;
+  /** The agent, model and effort the next session uses; null before the loop ever started. */
+  choice: AgentChoice | null;
   open: OpenIteration | null;
   finished: FinishedIteration[];
   decisions: Decision[];
@@ -69,6 +75,7 @@ export function summarizeJournal(events: JournalEvent[]): JournalSummary {
   const summary: JournalSummary = {
     loop: "never_started",
     haltReason: null,
+    choice: null,
     open: null,
     finished: [],
     decisions: [],
@@ -84,13 +91,31 @@ export function summarizeJournal(events: JournalEvent[]): JournalSummary {
 }
 
 function applyLoopEvent(summary: JournalSummary, event: JournalEvent): void {
-  if (event.type === "loop_started") summary.loop = "running";
+  if (event.type === "loop_started") {
+    summary.loop = "running";
+    summary.haltReason = null;
+    summary.choice = choiceOf(event);
+  }
+  if (event.type === "agent_choice_changed") {
+    summary.choice = choiceOf(event["to"] as JournalEvent);
+  }
   if (event.type === "loop_halted") {
     summary.loop = "halted";
     summary.haltReason = String(event["reason"]);
   }
   if (event.type === "backlog_exhausted") summary.loop = "exhausted";
   if (event.type === "stop") summary.loop = "stopped";
+}
+
+/** The agent, model and effort an event carries; a journal from before they were recorded reads as claude's defaults. */
+function choiceOf(event: JournalEvent): AgentChoice {
+  const text = (value: unknown): string | null =>
+    typeof value === "string" ? value : null;
+  return {
+    agent: text(event["agent"]) ?? "claude",
+    model: text(event["model"]),
+    effort: text(event["effort"]),
+  };
 }
 
 function applyIterationEvent(
@@ -104,6 +129,7 @@ function applyIterationEvent(
       row: String(event["row"] ?? ""),
       startedAt: event.at,
       sessionId: null,
+      ranOn: null,
       mode: null,
       running: [],
       pending: [],
@@ -134,8 +160,10 @@ function finishIteration(
 }
 
 function trackSession(open: OpenIteration, event: JournalEvent): void {
-  if (event.type === "session_started")
+  if (event.type === "session_started") {
     open.sessionId = String(event["sessionId"]);
+    open.ranOn = typeof event["agent"] === "string" ? choiceOf(event) : null;
+  }
   if (event.type === "mode_changed") open.mode = String(event["mode"]);
   if (event.type === "rate_limited")
     open.rateLimitedUntil = String(event["wakeAt"]);
@@ -190,6 +218,9 @@ export function describeSummary(
   const lines = [
     `loop: ${summary.loop}${pidNote(pid, pidAlive)}${haltNote(summary)}`,
   ];
+  if (summary.choice) {
+    lines.push(`next session: ${describeChoice(summary.choice)}`);
+  }
   if (summary.open) lines.push(...describeOpen(summary.open));
   const recent = summary.finished.slice(-5);
   lines.push(`finished iterations: ${summary.finished.length}`);
@@ -217,10 +248,14 @@ function haltNote(summary: JournalSummary): string {
   return summary.haltReason ? ` — ${summary.haltReason}` : "";
 }
 
+function ranOnNote(open: OpenIteration): string {
+  return open.ranOn ? ` on ${describeChoice(open.ranOn)}` : "";
+}
+
 function describeOpen(open: OpenIteration): string[] {
   const lines = [
     `iteration #${open.n} since ${open.startedAt}: ${open.row}`,
-    `  session ${open.sessionId ?? "-"}, mode ${open.mode ?? "-"}`,
+    `  session ${open.sessionId ?? "-"}${ranOnNote(open)}, mode ${open.mode ?? "-"}`,
   ];
   if (open.rateLimitedUntil)
     lines.push(`  rate limited until ${open.rateLimitedUntil}`);

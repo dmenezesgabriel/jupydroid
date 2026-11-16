@@ -1,4 +1,4 @@
-import type { AgentSignal } from "./signals.ts";
+import type { AgentSignal } from "../../agent-signal.ts";
 
 type ToolFacts = {
   command: string;
@@ -19,7 +19,7 @@ const OUTPUT_PATH = /Output is being written to: (\S+?\.output)(?=[.\s]|$)/;
  * an order the adapter does not promise, so the join waits for all three.
  *
  * @example
- * tracker.fold({ type: "tool_command", toolCallId: "t", command: "./gradlew testDebugUnitTest" });
+ * tracker.fold({ type: "tool_command", toolCallId: "t", command: "pnpm test" });
  * tracker.fold({ type: "background_task_id", toolCallId: "t", taskId: "b1" });
  * tracker.fold({ type: "tool_output", toolCallId: "t", text: "...written to: /x/b1.output." });
  * // the last call returns the tool_output signal and a background_started one

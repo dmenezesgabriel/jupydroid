@@ -1,11 +1,13 @@
 /** What a rate-limit signal or error tells the loop to do. */
 export type RateLimitVerdict =
-  /** Claude reported when the limit resets: wait until then. */
+  /** The agent reported when the limit resets: wait until then. */
   | { kind: "until"; wakeAt: Date }
   /** No reset time is known: send `continue` on an interval. */
   | { kind: "poll" }
   /** A seven-day cap: waiting for it is not an overnight job, so the loop halts. */
-  | { kind: "weekly" };
+  | { kind: "weekly" }
+  /** A monthly cap: nor is this one, so the loop halts. */
+  | { kind: "monthly" };
 
 export type AgentError = { message: string; data?: unknown };
 
@@ -17,9 +19,6 @@ export type RateLimitReading = {
 };
 
 const WEEKLY_TYPE = /^seven_day/;
-const WEEKLY_TEXT = /weekly (usage )?limit|7[- ]day|seven[- ]day/i;
-const LIMIT_TEXT =
-  /(usage|rate|session|weekly)[ -]limit|hit your (\w+ )?limit|limit reached|quota/i;
 
 /**
  * Classifies a `rate_limit` reading. Only `rejected` stops the work; `allowed`
@@ -38,19 +37,4 @@ export function classifyRateLimit(
   }
   if (reading.resetsAtMs === null) return { kind: "poll" };
   return { kind: "until", wakeAt: new Date(reading.resetsAtMs) };
-}
-
-/**
- * Classifies a prompt error as a limit, or null when it is some other failure.
- * The adapter's own limit text is not documented, so any message that names a
- * limit polls (a `continue` every interval) and only an explicit weekly limit
- * halts; the structured `rate_limit` reading is what carries a reset time.
- *
- * @example
- * classifyAgentError({ message: "You've hit your limit" });
- * // => { kind: "poll" }
- */
-export function classifyAgentError(error: AgentError): RateLimitVerdict | null {
-  if (WEEKLY_TEXT.test(error.message)) return { kind: "weekly" };
-  return LIMIT_TEXT.test(error.message) ? { kind: "poll" } : null;
 }

@@ -1,30 +1,4 @@
-/** What the loop needs to know about a `claude-agent-acp` session, normalised from its wire frames. */
-export type AgentSignal =
-  | { type: "tool_started"; toolCallId: string; title: string }
-  | { type: "tool_finished"; toolCallId: string }
-  /** The shell command a tool call carries; it arrives in a frame of its own, before the call finishes. */
-  | { type: "tool_command"; toolCallId: string; command: string }
-  /** The id Claude Code gave a command it moved to the background. */
-  | { type: "background_task_id"; toolCallId: string; taskId: string }
-  /** The text a tool call returned; for a backgrounded command it names the file the output goes to. */
-  | { type: "tool_output"; toolCallId: string; text: string }
-  | {
-      type: "background_started";
-      shellId: string;
-      command: string;
-      outputPath: string;
-    }
-  | { type: "background_exited"; shellId: string; exitCode: number | null }
-  | { type: "agent_message"; text: string }
-  | { type: "mode_changed"; mode: string }
-  | { type: "plan_proposed"; plan: string }
-  | {
-      type: "rate_limit";
-      status: string;
-      resetsAtMs: number | null;
-      limitType: string | null;
-    }
-  | { type: "vendor"; method: string; params: unknown };
+import type { AgentSignal } from "../../agent-signal.ts";
 
 type RateLimitInfo = {
   status?: string;

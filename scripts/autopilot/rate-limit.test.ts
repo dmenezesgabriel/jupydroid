@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { classifyAgentError, classifyRateLimit } from "./rate-limit.ts";
+import { classifyRateLimit } from "./rate-limit.ts";
 
 const RESETS_AT_MS = Date.parse("2026-11-13T22:12:00Z");
 
@@ -12,10 +12,7 @@ describe("classifyRateLimit (the structured rate_limit_event)", () => {
       limitType: "five_hour",
     });
 
-    assert.deepEqual(verdict, {
-      kind: "until",
-      wakeAt: new Date(RESETS_AT_MS),
-    });
+    assert.deepEqual(verdict, { kind: "until", wakeAt: new Date(RESETS_AT_MS) });
   });
 
   it("halts on a rejected weekly limit instead of waiting days", () => {
@@ -46,38 +43,11 @@ describe("classifyRateLimit (the structured rate_limit_event)", () => {
 
   it("is not a limit while the status is allowed or only a warning", () => {
     for (const status of ["allowed", "allowed_warning"]) {
-      assert.equal(
-        classifyRateLimit({
+      assert.equal(classifyRateLimit({
           status,
           resetsAtMs: RESETS_AT_MS,
           limitType: null,
-        }),
-        null,
-      );
+        }), null);
     }
-  });
-});
-
-describe("classifyAgentError (a prompt error that mentions a limit)", () => {
-  it("polls on an error that names a usage or rate limit", () => {
-    for (const message of [
-      "You've hit your limit",
-      "Claude usage limit reached",
-      "API Error: rate limit exceeded",
-    ]) {
-      assert.deepEqual(classifyAgentError({ message }), { kind: "poll" });
-    }
-  });
-
-  it("halts on an error that names the weekly limit", () => {
-    const verdict = classifyAgentError({
-      message: "You've hit your weekly limit",
-    });
-
-    assert.deepEqual(verdict, { kind: "weekly" });
-  });
-
-  it("does not take any other failure for a limit", () => {
-    assert.equal(classifyAgentError({ message: "Internal error" }), null);
   });
 });

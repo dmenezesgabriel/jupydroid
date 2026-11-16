@@ -7,26 +7,25 @@ export type SpawnedAgent = { channel: LineChannel; stop(): Promise<void> };
 
 const KILL_AFTER_MS = 10_000;
 
-export const DEFAULT_AGENT_COMMAND = "claude-agent-acp";
-
 /**
- * Starts the ACP agent (`claude-agent-acp`, which drives the user's Claude
- * Code) in the repo and exposes its stdio as a {@link LineChannel}. Every line
- * in either direction is appended to the transcript, the record to read in
- * the morning when an iteration went somewhere unexpected.
+ * Starts an ACP agent in the repo and exposes its stdio as a
+ * {@link LineChannel}. Every line in either direction is appended to the
+ * transcript, the record to read in the morning when an iteration went
+ * somewhere unexpected.
  *
  * @example
- * const spawned = spawnClaudeAcp("/repo", "/repo/.run/acp.jsonl", DEFAULT_AGENT_COMMAND);
+ * const spawned = spawnAcpAgent("/repo", "/repo/.run/acp.jsonl", "claude-agent-acp", []);
  */
-export function spawnClaudeAcp(
+export function spawnAcpAgent(
   cwd: string,
   transcriptPath: string,
   command: string,
+  args: readonly string[],
 ): SpawnedAgent {
-  // The installed adapter is resolved from PATH on purpose (or named by the
+  // The installed agent is resolved from PATH on purpose (or named by the
   // caller when the shell has no nvm): the loop must run whichever version is
   // installed, as the manual workflow does.
-  const child = spawn(command, [], {
+  const child = spawn(command, [...args], {
     cwd,
     stdio: ["pipe", "pipe", "ignore"],
   });

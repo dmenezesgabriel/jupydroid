@@ -1,18 +1,25 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { isDeepStrictEqual } from "node:util";
 import type { ReplyReason, StopReason } from "./decide.ts";
 import { ActivityLedger } from "./activity-ledger.ts";
+import { CLAUDE_PROFILE } from "./agents/claude/profile.ts";
 import {
   runIteration,
   type IterationDeps,
   type IterationTiming,
 } from "./iteration.ts";
-import { ChannelClosedError, RpcError } from "./json-rpc.ts";
+import {
+  ChannelClosedError,
+  RpcError,
+} from "./json-rpc.ts";
 import type { LoopEvent } from "./mailbox.ts";
-import { FakeAgentSession, FakeGit } from "./testing/fake-agent-session.ts";
+import {
+  FakeAgentSession,
+  FakeGit,
+} from "./testing/fake-agent-session.ts";
 import { CallRecorder } from "./testing/call-recorder.ts";
 import { FakeClock } from "./testing/fake-mailbox.ts";
-import { assertContains, assertContainsEqual } from "./testing/assertions.ts";
 
 const TIMING: IterationTiming = {
   possiblyHungAfterMs: 45 * 60_000,
@@ -43,7 +50,10 @@ function build(turnsFor: (parts: Parts) => Array<() => StopReason>) {
       events.push(event);
     },
     openingPrompt: [{ type: "text", text: "run the task" }],
+    planFollowUp: null,
     timing: TIMING,
+    bypassMode: CLAUDE_PROFILE.bypassMode,
+    classifyError: CLAUDE_PROFILE.classifyError,
   };
   return { deps, agent, ...parts, askReply };
 }
@@ -63,6 +73,89 @@ const commitsInBypass =
     git.headSha = sha;
     return "end_turn";
   };
+
+describe("runIteration plan follow-up", () => {
+  const FOLLOW_UP = "/engineering-mode";
+  const APPROVED =
+    "The plan below is approved. Carry it out now, in this turn, and verify the result.";
+
+  /** The turn the loop's own declined plan exit produces: cancelled, before any work. */
+  const declinesPlanExit =
+    ({ ledger }: Parts, plan = "create hi.txt"): (() => StopReason) =>
+    () => {
+      ledger.apply({ type: "plan_proposed", plan });
+      ledger.planDeclined = true;
+      return "cancelled";
+    };
+
+  it("leaves plan mode itself and sends the approved plan under the follow-up command", async () => {
+    const { deps, agent, ledger, events } = build((parts) => [
+      declinesPlanExit(parts),
+      commitsInBypass(parts),
+    ]);
+    deps.planFollowUp = FOLLOW_UP;
+
+    const outcome = await runIteration(deps);
+
+    assert.deepEqual(agent.modes, ["plan", "bypassPermissions"]);
+    assert.equal(agent.promptTexts()[1], `${FOLLOW_UP}\n\n${APPROVED}\n\ncreate hi.txt`);
+    assert.ok(events.some((entry) => isDeepStrictEqual(entry, { type: "plan_approved", via: FOLLOW_UP })));
+    assert.equal(ledger.proposedPlan, null);
+    assert.equal(ledger.planDeclined, false);
+    assert.equal(outcome.kind, "done");
+  });
+
+  it("leaves plan mode into the bypass mode its agent names", async () => {
+    const { deps, agent } = build((parts) => [
+      declinesPlanExit(parts),
+      commitsInBypass(parts),
+    ]);
+    deps.planFollowUp = FOLLOW_UP;
+    deps.bypassMode = "bypass";
+
+    await runIteration(deps);
+
+    assert.deepEqual(agent.modes, ["plan", "bypass"]);
+  });
+
+  it("halts, saying why, when the agent refuses the switch to bypass", async () => {
+    const { deps, agent, events } = build((parts) => [declinesPlanExit(parts)]);
+    deps.planFollowUp = FOLLOW_UP;
+    agent.failOn = {
+      mode: "bypassPermissions",
+      error: new RpcError(-32603, "mode not available"),
+    };
+
+    const outcome = await runIteration(deps);
+
+    assert.deepEqual(outcome, {
+      kind: "halted",
+      reason: "plan approval failed: mode not available",
+    });
+    assert.ok(!events.map((e) => e.type).includes("plan_approved"));
+  });
+
+  it("reports a crash when the channel closes while approving", async () => {
+    const { deps, agent } = build((parts) => [declinesPlanExit(parts)]);
+    deps.planFollowUp = FOLLOW_UP;
+    agent.failOn = {
+      mode: "bypassPermissions",
+      error: new ChannelClosedError("session/set_config_option"),
+    };
+
+    assert.deepEqual(await runIteration(deps), { kind: "crashed" });
+  });
+
+  it("still halts on a cancellation the loop did not cause", async () => {
+    const { deps, agent } = build(() => [() => "cancelled"]);
+    deps.planFollowUp = FOLLOW_UP;
+
+    const outcome = await runIteration(deps);
+
+    assert.deepEqual(outcome, { kind: "halted", reason: "cancelled" });
+    assert.deepEqual(agent.modes, ["plan"]);
+  });
+});
 
 describe("runIteration", () => {
   it("is done when the agent stopped in bypass with a new commit and a clean tree", async () => {
@@ -95,8 +188,8 @@ describe("runIteration", () => {
         parts.ledger.apply({
           type: "background_started",
           shellId: "19d403",
-          command: "./gradlew testDebugUnitTest",
-          outputPath: "/o/19d403.output",
+          command: "pnpm test",
+          outputPath: null,
         });
         return "end_turn";
       },
@@ -117,14 +210,41 @@ describe("runIteration", () => {
 
     const outcome = await runIteration(deps);
 
-    assertContains(
-      events.map((e) => e.type),
-      "awaiting_work",
-    );
-    assertContains(
-      agent.promptTexts()[1],
-      "`./gradlew testDebugUnitTest` exited with code 0",
-    );
+    assert.ok(events.map((e) => e.type).includes("awaiting_work"));
+    assert.ok(agent.promptTexts()[1]?.includes("`pnpm test` exited with code 0"));
+    assert.equal(outcome.kind, "done");
+  });
+
+  it("tells the agent about a command that exited just before it stopped, without spending a reply round", async () => {
+    // The loop decided 170 ms after the exit: nothing ran, nothing was committed.
+    const { deps, agent, askReply, events } = build((parts) => [
+      () => {
+        parts.ledger.apply({ type: "mode_changed", mode: "bypass" });
+        parts.ledger.apply({
+          type: "background_started",
+          shellId: "b1",
+          command: "pnpm lint",
+          outputPath: null,
+        });
+        parts.ledger.apply({
+          type: "background_exited",
+          shellId: "b1",
+          exitCode: 0,
+        });
+        return "end_turn";
+      },
+      commitsInBypass(parts),
+    ]);
+
+    const outcome = await runIteration(deps);
+
+    assert.equal(askReply.calls.length, 0);
+    assert.ok(events.some((entry) => isDeepStrictEqual(entry, {
+      type: "awaiting_work",
+      running: [],
+      exitUnreported: true,
+    })));
+    assert.ok(agent.promptTexts()[1]?.includes("`pnpm lint` exited with code 0"));
     assert.equal(outcome.kind, "done");
   });
 
@@ -134,7 +254,7 @@ describe("runIteration", () => {
         parts.ledger.apply({
           type: "background_started",
           shellId: "k1",
-          command: "./gradlew testDebugUnitTest",
+          command: "pnpm test",
           outputPath: "/o/k1.output",
         });
         return "end_turn";
@@ -156,11 +276,8 @@ describe("runIteration", () => {
 
     await runIteration(deps);
 
-    assertContains(
-      agent.promptTexts()[1],
-      "`./gradlew testDebugUnitTest` was killed",
-    );
-    assert.equal(agent.promptTexts()[1]?.includes("null"), false);
+    assert.ok(agent.promptTexts()[1]?.includes("`pnpm test` was killed"));
+    assert.ok(!agent.promptTexts()[1]?.includes("null"));
   });
 
   it("halts, reporting the work, when a background command outlives its ceiling", async () => {
@@ -170,8 +287,8 @@ describe("runIteration", () => {
         parts.ledger.apply({
           type: "background_started",
           shellId: "x",
-          command: "./gradlew testDebugUnitTest",
-          outputPath: "/o/x.output",
+          command: "pnpm test",
+          outputPath: null,
         });
         return "end_turn";
       },
@@ -184,10 +301,10 @@ describe("runIteration", () => {
       kind: "halted",
       reason: "background work outlived its ceiling",
     });
-    assertContainsEqual(events, {
+    assert.ok(events.some((entry) => isDeepStrictEqual(entry, {
       type: "possibly_hung",
-      running: ["./gradlew testDebugUnitTest"],
-    });
+      running: ["pnpm test"],
+    })));
   });
 
   it("waits out a rejected limit the adapter reported and sends continue, not a nudge", async () => {
@@ -207,11 +324,8 @@ describe("runIteration", () => {
 
     const outcome = await runIteration(deps);
 
-    assertContains(clock.sleeps, 5 * 60_000 + TIMING.limitMarginMs);
-    assertContains(
-      events.map((e) => e.type),
-      "rate_limited",
-    );
+    assert.ok(clock.sleeps.includes(5 * 60_000 + TIMING.limitMarginMs));
+    assert.ok(events.map((e) => e.type).includes("rate_limited"));
     assert.equal(agent.promptTexts()[1], "continue");
     assert.equal(outcome.kind, "done");
   });
@@ -226,7 +340,26 @@ describe("runIteration", () => {
 
     await runIteration(deps);
 
-    assertContains(clock.sleeps, TIMING.limitPollMs);
+    assert.ok(clock.sleeps.includes(TIMING.limitPollMs));
+  });
+
+  it("waits for the reset time its agent's classifier reads from a failure", async () => {
+    const { deps, clock } = build((parts) => [
+      () => {
+        throw new RpcError(
+          -32000,
+          "Your limit will reset at the top of the hour",
+        );
+      },
+      commitsInBypass(parts),
+    ]);
+    const wakeAt = new Date(clock.now() + 12 * 60_000);
+    deps.classifyError = (error) =>
+      error.message.includes("reset") ? { kind: "until", wakeAt } : null;
+
+    await runIteration(deps);
+
+    assert.ok(clock.sleeps.includes(12 * 60_000 + TIMING.limitMarginMs));
   });
 
   it("retries an unknown error after a backoff, then continues", async () => {
@@ -239,7 +372,7 @@ describe("runIteration", () => {
 
     const outcome = await runIteration(deps);
 
-    assertContains(clock.sleeps, 30_000);
+    assert.ok(clock.sleeps.includes(30_000));
     assert.equal(agent.promptTexts()[1], "continue");
     assert.equal(outcome.kind, "done");
   });
@@ -310,10 +443,7 @@ describe("runIteration silence watch", () => {
     const outcome = await runIteration(deps);
 
     assert.equal(agent.cancelCount, 1);
-    assertContains(
-      events.map((e) => e.type),
-      "hung_cancelled",
-    );
+    assert.ok(events.map((e) => e.type).includes("hung_cancelled"));
     assert.deepEqual(outcome, { kind: "halted", reason: "cancelled" });
   });
 

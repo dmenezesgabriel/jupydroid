@@ -16,5 +16,5 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["*.ts", "testing/*.ts"]
+  "include": ["*.ts", "testing/*.ts", "agents/**/*.ts"]
 }

@@ -1,5 +1,5 @@
 import { classifyRateLimit, type RateLimitVerdict } from "./rate-limit.ts";
-import type { AgentSignal } from "./signals.ts";
+import type { AgentSignal } from "./agent-signal.ts";
 
 export type FinishedShell = { command: string; exitCode: number | null };
 type RateLimitSignal = Extract<AgentSignal, { type: "rate_limit" }>;
@@ -19,6 +19,8 @@ type RateLimitSignal = Extract<AgentSignal, { type: "rate_limit" }>;
 export class ActivityLedger {
   mode = "";
   proposedPlan: string | null = null;
+  /** Set by the loop when it declines the plan exit itself, so the cancelled stop that follows reads as an approval. */
+  planDeclined = false;
   /** When the agent last sent any frame at all, in clock milliseconds. */
   lastFrameAtMs = 0;
   private rateLimit: RateLimitSignal | null = null;
@@ -87,6 +89,16 @@ export class ActivityLedger {
 
   runningCommands(): string[] {
     return [...this.runningShells.values()];
+  }
+
+  /**
+   * Whether a command exited that the agent has not been told about. The loop
+   * reads a stop with nothing running and nothing committed as an idle agent;
+   * with this true the agent is more likely waiting for that exit, which can
+   * land milliseconds before the stop.
+   */
+  hasUnreportedExit(): boolean {
+    return this.finishedShells.length > 0;
   }
 
   /** Background commands that exited since the last call, each reported once. */

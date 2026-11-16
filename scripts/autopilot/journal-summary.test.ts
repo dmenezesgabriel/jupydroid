@@ -183,3 +183,79 @@ describe("describeSummary", () => {
     assertContains(text, 'q0 answered ["hi"] because closest to the original');
   });
 });
+
+describe("the agent choice in the journal", () => {
+  const devin = { agent: "devin", model: "swe-2-high", effort: "high" };
+
+  it("is unknown for a loop that never started", () => {
+    assert.equal(summarizeJournal([]).choice, null);
+  });
+
+  it("is the choice the loop started with, then the one ctl switched to", () => {
+    const events = [at("loop_started", { agent: "claude", model: null, effort: null })];
+    assert.deepEqual(summarizeJournal(events).choice, {
+      agent: "claude",
+      model: null,
+      effort: null,
+    });
+
+    events.push(
+      at("agent_choice_changed", {
+        from: { agent: "claude", model: null, effort: null },
+        to: devin,
+      }),
+    );
+
+    assert.deepEqual(summarizeJournal(events).choice, devin);
+  });
+
+  it("keeps the choice when the file was refused, because the loop kept it too", () => {
+    const events = [
+      at("loop_started", devin),
+      at("agent_choice_invalid", { error: "unknown agent" }),
+    ];
+
+    assert.deepEqual(summarizeJournal(events).choice, devin);
+  });
+
+  it("records what an iteration's session really ran on, from the agent's own read-back", () => {
+    const events = [
+      at("loop_started", devin),
+      at("iteration_started", { row: "Items", head: "aaa" }),
+      at("session_started", { sessionId: "s1", agent: "devin", model: "swe-2-high", effort: "medium" }),
+    ];
+
+    assert.deepEqual(summarizeJournal(events).open?.ranOn, {
+      agent: "devin",
+      model: "swe-2-high",
+      effort: "medium",
+    });
+  });
+
+  it("leaves what a session ran on unknown for a journal written before the choice was recorded", () => {
+    assert.equal(summarizeJournal(STARTED).open?.ranOn, null);
+  });
+
+  it("shows the next session's choice and what the open one runs on in the report", () => {
+    const events = [
+      at("loop_started", devin),
+      at("iteration_started", { row: "Items", head: "aaa" }),
+      at("session_started", { sessionId: "s1", agent: "devin", model: "swe-2-high", effort: "medium" }),
+    ];
+
+    const text = describeSummary(summarizeJournal(events), 1, true);
+
+    assertContains(text, "next session: devin, model swe-2-high, effort high");
+    assertContains(text, "session s1 on devin, model swe-2-high, effort medium");
+  });
+
+  it("forgets an earlier halt when the loop starts again, so a restart is not reported as halted", () => {
+    const events = [
+      at("loop_started"),
+      at("loop_halted", { reason: "weekly_limit" }),
+      at("loop_started"),
+    ];
+
+    assertPartial(summarizeJournal(events), { loop: "running", haltReason: null });
+  });
+});

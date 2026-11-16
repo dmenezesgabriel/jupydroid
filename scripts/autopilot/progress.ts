@@ -34,7 +34,7 @@ export class ProgressTracker {
     if (this.crashes < MAX_CRASHES_IN_A_ROW) return { keepGoing: true };
     return {
       keepGoing: false,
-      reason: `claude-agent-acp crashed ${this.crashes} times in a row`,
+      reason: `the agent crashed ${this.crashes} times in a row`,
     };
   }
 

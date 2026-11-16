@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
@@ -121,5 +121,44 @@ describe("RunDir stop and lock", () => {
     await runDir.acquireLock(222, () => false);
 
     assert.equal(await runDir.lockHolder(), 222);
+  });
+});
+
+describe("RunDir choice file", () => {
+  const devin = { agent: "devin", model: "swe-2-high", effort: null };
+
+  it("is empty until a choice was written", async () => {
+    assert.equal(await new RunDir(dir).readChoice(), null);
+  });
+
+  it("reads back what was written and leaves no temporary file for a reader to trip on", async () => {
+    const runDir = new RunDir(dir);
+
+    await runDir.writeChoice(devin);
+
+    assert.deepEqual(await runDir.readChoice(), devin);
+    assert.deepEqual(await readdir(dir), ["choice.json"]);
+  });
+
+  it("replaces an earlier choice whole", async () => {
+    const runDir = new RunDir(dir);
+    await runDir.writeChoice(devin);
+
+    await runDir.writeChoice({ agent: "claude", model: null, effort: "high" });
+
+    assert.deepEqual(await runDir.readChoice(), {
+      agent: "claude",
+      model: null,
+      effort: "high",
+    });
+  });
+
+  it("refuses a file that is not a choice, naming its path", async () => {
+    await writeFile(join(dir, "choice.json"), "not json");
+
+    await assert.rejects(
+      new RunDir(dir).readChoice(),
+      (error: Error) => error.message.includes(join(dir, "choice.json")),
+    );
   });
 });

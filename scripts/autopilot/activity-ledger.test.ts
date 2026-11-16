@@ -39,7 +39,7 @@ describe("ActivityLedger", () => {
     ledger.apply({
       type: "background_started",
       shellId: "a",
-      command: "./gradlew testDebugUnitTest",
+      command: "pnpm test",
       outputPath: "/o/task.output",
     });
 
@@ -47,9 +47,26 @@ describe("ActivityLedger", () => {
 
     assert.equal(ledger.isWorking(), false);
     assert.deepEqual(ledger.drainFinishedShells(), [
-      { command: "./gradlew testDebugUnitTest", exitCode: 1 },
+      { command: "pnpm test", exitCode: 1 },
     ]);
     assert.deepEqual(ledger.drainFinishedShells(), []);
+  });
+
+  it("knows a command exited that the agent has not been told about, until it is reported", () => {
+    const ledger = new ActivityLedger();
+    ledger.apply({
+      type: "background_started",
+      shellId: "a",
+      command: "pnpm test",
+      outputPath: "/o/task.output",
+    });
+    assert.equal(ledger.hasUnreportedExit(), false);
+
+    ledger.apply({ type: "background_exited", shellId: "a", exitCode: 0 });
+    assert.equal(ledger.hasUnreportedExit(), true);
+
+    ledger.drainFinishedShells();
+    assert.equal(ledger.hasUnreportedExit(), false);
   });
 
   it("ignores the exit of a shell that never went to the background", () => {
@@ -69,7 +86,7 @@ describe("ActivityLedger", () => {
     ledger.apply({
       type: "background_started",
       shellId: "a",
-      command: "./gradlew testDebugUnitTest",
+      command: "pnpm test",
       outputPath: "/o/task.output",
     });
     let released = false;
@@ -159,21 +176,12 @@ describe("ActivityLedger.apply news", () => {
 
     assert.equal(ledger.apply(start), true);
     assert.equal(ledger.apply(start), false);
-    assert.equal(
-      ledger.apply({ type: "background_exited", shellId: "a", exitCode: 0 }),
-      true,
-    );
-    assert.equal(
-      ledger.apply({ type: "background_exited", shellId: "a", exitCode: 0 }),
-      false,
-    );
-    assert.equal(
-      ledger.apply({
+    assert.equal(ledger.apply({ type: "background_exited", shellId: "a", exitCode: 0 }), true);
+    assert.equal(ledger.apply({ type: "background_exited", shellId: "a", exitCode: 0 }), false);
+    assert.equal(ledger.apply({
         type: "background_exited",
         shellId: "foreground",
         exitCode: 0,
-      }),
-      false,
-    );
+      }), false);
   });
 });

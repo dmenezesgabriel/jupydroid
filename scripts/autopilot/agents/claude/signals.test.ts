@@ -1,14 +1,14 @@
 import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { signalsFrom, type AgentSignal } from "./signals.ts";
-import { assertContains, assertPartial } from "./testing/assertions.ts";
+import type { AgentSignal } from "../../agent-signal.ts";
+import { signalsFrom } from "../../agents/claude/signals.ts";
 
 type Frame = { dir: string; msg: { method?: string; params?: unknown } };
 
 function signalsOfFixture(name: string): AgentSignal[] {
   const path = new URL(
-    `../testdata/autopilot-frames/${name}`,
+    `../../../testdata/autopilot-frames/${name}`,
     import.meta.url,
   );
   const frames = readFileSync(path, "utf8")
@@ -45,10 +45,7 @@ describe("signalsFrom a recorded plan-mode turn", () => {
       (signal) => signal.type === "tool_finished",
     );
 
-    assert.ok(
-      started.length > 0,
-      "expected the recording to start a tool call",
-    );
+    assert.ok(started.length > 0);
     assert.equal(finished.length, started.length);
   });
 });
@@ -63,13 +60,13 @@ describe("signalsFrom a recorded background command", () => {
     );
     const output = signals.find((signal) => signal.type === "tool_output");
 
-    assertPartial(command, {
+    assert.partialDeepStrictEqual(command, {
       command: "sleep 40 && echo finished > bg.txt",
     });
-    assertPartial(taskId, { taskId: "bf6i5c6ud" });
-    assertContains(
-      (output as Extract<AgentSignal, { type: "tool_output" }>).text,
-      "Output is being written to:",
+    assert.partialDeepStrictEqual(taskId, { taskId: "bf6i5c6ud" });
+    assert.ok(
+      output?.type === "tool_output" &&
+        output.text.includes("Output is being written to:"),
     );
   });
 });
@@ -122,7 +119,7 @@ describe("signalsFrom one frame", () => {
 
     const [signal] = signalsFrom("session/update", frame);
 
-    assertPartial(signal, {
+    assert.partialDeepStrictEqual(signal, {
       type: "vendor",
       method: "session/update:notice",
     });

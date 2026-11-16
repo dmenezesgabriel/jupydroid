@@ -1,7 +1,7 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Clock } from "./clock.ts";
-import type { Question } from "./claude-agent.ts";
+import type { Question } from "./agent-dialect.ts";
 import type { ReplyReason } from "./decide.ts";
 
 export type LoopEvent = { type: string; [detail: string]: unknown };

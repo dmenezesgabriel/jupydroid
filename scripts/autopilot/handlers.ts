@@ -1,10 +1,11 @@
 import type { ActivityLedger } from "./activity-ledger.ts";
 import type { Clock } from "./clock.ts";
-import type { AgentHandlers, PermissionAsk, Question } from "./claude-agent.ts";
+import type { AgentHandlers } from "./acp-agent.ts";
+import type { PermissionAsk, Question } from "./agent-dialect.ts";
+import type { ExitPlanOptions } from "./agent-profile.ts";
+import type { AgentSignal } from "./agent-signal.ts";
 import type { LoopEvent } from "./mailbox.ts";
-import type { AgentSignal } from "./signals.ts";
 
-const BYPASS_OPTION_ID = "exit-plan-bypass";
 const PLAN_PREVIEW_CHARS = 400;
 
 export type HandlerDeps = {
@@ -14,6 +15,10 @@ export type HandlerDeps = {
   askQuestions(questions: Question[]): Promise<string[]>;
   /** Starts watching a background command's output file for its exit. */
   watchBackground(shellId: string, outputPath: string): void;
+  /** Decline the agent's plan exit, so the turn ends and the loop approves the plan itself with a follow-up command. */
+  declinePlanExit: boolean;
+  /** The options the agent offers when it asks to leave plan mode. */
+  exitPlan: ExitPlanOptions;
 };
 
 /**
@@ -26,7 +31,11 @@ export function buildHandlers(deps: HandlerDeps): AgentHandlers {
   return {
     onSignal: (signal) => {
       const news = deps.ledger.apply(signal);
-      if (news && signal.type === "background_started") {
+      if (
+        news &&
+        signal.type === "background_started" &&
+        signal.outputPath !== null
+      ) {
         deps.watchBackground(signal.shellId, signal.outputPath);
       }
       void reportSignal(deps, signal, news);
@@ -40,15 +49,37 @@ export function buildHandlers(deps: HandlerDeps): AgentHandlers {
   };
 }
 
-/** Bypass or nothing: a weaker mode would change what the session may do, so the loop halts instead of picking one. */
+/**
+ * Bypass or nothing: a weaker mode would change what the session may do, so
+ * the loop halts instead of picking one. With a follow-up command configured
+ * and a plan to hand over, the exit is declined instead.
+ */
 async function exitPlan(
   deps: HandlerDeps,
   ask: PermissionAsk,
 ): Promise<string | null> {
   const offered = ask.options.map((option) => option.optionId);
-  if (offered.includes(BYPASS_OPTION_ID)) return BYPASS_OPTION_ID;
+  if (deps.declinePlanExit && deps.ledger.proposedPlan !== null) {
+    return declinePlan(deps, offered);
+  }
+  const { bypassOptionId } = deps.exitPlan;
+  if (offered.includes(bypassOptionId)) return bypassOptionId;
   await deps.emit({ type: "exit_plan_bypass_missing", offered });
   return null;
+}
+
+/** Declining ends the turn as `cancelled` before any work; marking it ours lets the loop tell it from a real cancellation. */
+async function declinePlan(
+  deps: HandlerDeps,
+  offered: string[],
+): Promise<string | null> {
+  const { declineOptionId } = deps.exitPlan;
+  if (declineOptionId !== null && !offered.includes(declineOptionId)) {
+    await deps.emit({ type: "exit_plan_reject_missing", offered });
+    return null;
+  }
+  deps.ledger.planDeclined = true;
+  return declineOptionId;
 }
 
 /** Never an `allow_always` option: it writes a durable permission rule into the user's settings. */
@@ -105,6 +136,13 @@ function otherEvent(signal: AgentSignal): LoopEvent | null {
       type: "agent_signal",
       method: signal.method,
       params: signal.params,
+    };
+  }
+  if (signal.type === "agent_stopped" && signal.cause !== "complete") {
+    return {
+      type: "agent_signal",
+      method: "agent_stopped",
+      cause: signal.cause,
     };
   }
   if (signal.type === "rate_limit" && signal.status === "rejected") {

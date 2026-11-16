@@ -2,14 +2,23 @@ import { readFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { ActivityLedger } from "./activity-ledger.ts";
 import { systemClock } from "./clock.ts";
-import { ClaudeAgent, type PromptBlock } from "./claude-agent.ts";
+import {
+  AcpAgent,
+  ModelSelectionError,
+  type PromptBlock,
+} from "./acp-agent.ts";
+import type { AgentProfile } from "./agent-profile.ts";
+import { AGENT_NAMES, DEFAULT_AGENT, profileFor } from "./agents/index.ts";
+import {
+  initialChoice,
+  refreshChoice,
+  type AgentChoice,
+  type RefreshDeps,
+} from "./agent-choice.ts";
+import { requiredValue } from "./flags.ts";
 import { GitCli } from "./git-probe.ts";
 import { buildHandlers } from "./handlers.ts";
-import {
-  runIteration,
-  type IterationOutcome,
-  type IterationTiming,
-} from "./iteration.ts";
+import { runIteration, type IterationOutcome } from "./iteration.ts";
 import { RpcError } from "./json-rpc.ts";
 import { DirectoryMailboxFiles, Mailbox, type LoopEvent } from "./mailbox.ts";
 import {
@@ -22,11 +31,7 @@ import {
 import { ProgressTracker } from "./progress.ts";
 import { DEFAULT_RUN_DIR, RunDir, isProcessAlive } from "./run-dir.ts";
 import { summarizeJournal } from "./journal-summary.ts";
-import {
-  DEFAULT_AGENT_COMMAND,
-  spawnClaudeAcp,
-  type SpawnedAgent,
-} from "./spawn-agent.ts";
+import { spawnAcpAgent, type SpawnedAgent } from "./spawn-agent.ts";
 import { isEntryPoint } from "./entry-point.ts";
 import {
   BackgroundExitWatcher,
@@ -34,35 +39,47 @@ import {
 } from "./background-exit-watcher.ts";
 
 const MINUTE = 60_000;
-const HOUR = 60 * MINUTE;
-
-// Claude Code bounds a foreground command with its Bash timeout and moves
-// longer work to a background task, so an hour of total silence is not a test
-// suite, and three hours is not a working agent.
-const TIMING: IterationTiming = {
-  possiblyHungAfterMs: 45 * MINUTE,
-  cancelAfterSilenceMs: 3 * HOUR,
-  backgroundCeilingMs: 3 * HOUR,
-  limitPollMs: 30 * MINUTE,
-  limitMarginMs: MINUTE,
-  watchEveryMs: MINUTE,
-};
 const BACKGROUND_POLL_MS = 10_000;
 
 type LoopContext = {
   repoRoot: string;
   promptFile: string;
-  agentCommand: string;
+  /** `--agent-command` names the executable of one agent; any other agent the loop is switched to starts its own. */
+  commandOverride: { agent: string; command: string };
+  planFollowUp: string | null;
   runDir: RunDir;
   git: GitCli;
   mailbox: Mailbox;
   emit(event: LoopEvent): Promise<void>;
 };
 
+/** What one session runs on: the agent's profile and executable, and the model and effort asked of it. */
+type SessionChoice = {
+  profile: AgentProfile;
+  command: string;
+  model: string | null;
+  effort: string | null;
+};
+
+function sessionChoice(context: LoopContext, choice: AgentChoice): SessionChoice {
+  const profile = profileFor(choice.agent);
+  const { agent, command } = context.commandOverride;
+  return {
+    profile,
+    command: profile.name === agent ? command : profile.defaultCommand,
+    model: choice.model,
+    effort: choice.effort,
+  };
+}
+
 /**
  * Flags: `--repo <dir>` (default: cwd), `--run-dir <dir>`, `--prompt <file>`
- * (default: prompt-execution.md in the repo), `--agent-command <path>`
- * (default: `claude-agent-acp` from PATH).
+ * (default: prompt-execution.md in the repo), `--agent <name>` (default:
+ * claude), `--agent-command <path>` (default: the agent's own executable from
+ * PATH), `--model <id>` (default: the agent's own default model),
+ * `--effort <value>` (default: the agent's own default effort, applied after the model; a flag
+ * that chooses outranks `choice.json`, which `ctl use` writes and the loop reads between iterations),
+ * `--plan-follow-up <command>` (default: none; for example `/engineering-mode`).
  */
 export function parseArguments(argv: string[], cwd: string) {
   const flag = (name: string): string | undefined => {
@@ -70,12 +87,30 @@ export function parseArguments(argv: string[], cwd: string) {
     return at === -1 ? undefined : argv[at + 1];
   };
   const repoRoot = resolve(flag("--repo") ?? cwd);
+  const agent = agentProfile(argv);
   return {
     repoRoot,
     runDir: resolve(flag("--run-dir") ?? join(repoRoot, DEFAULT_RUN_DIR)),
     promptFile: resolve(repoRoot, flag("--prompt") ?? "prompt-execution.md"),
-    agentCommand: flag("--agent-command") ?? DEFAULT_AGENT_COMMAND,
+    agent,
+    agentCommand: flag("--agent-command") ?? agent.defaultCommand,
+    choiceFlagged: ["--agent", "--model", "--effort"].some((name) =>
+      argv.includes(name),
+    ),
+    model: requiredValue(argv, "--model", "a model id the agent offers"),
+    effort: requiredValue(argv, "--effort", "an effort the agent offers"),
+    planFollowUp: requiredValue(
+      argv,
+      "--plan-follow-up",
+      'a command such as "/engineering-mode"',
+    ),
   };
+}
+
+/** No flag runs the default agent; a flag without its value is refused, since guessing would run the wrong agent. */
+function agentProfile(argv: string[]): AgentProfile {
+  const at = argv.indexOf("--agent");
+  return profileFor(at === -1 ? DEFAULT_AGENT : argv[at + 1]);
 }
 
 /**
@@ -134,20 +169,22 @@ type Session = {
   spawned: SpawnedAgent;
   ledger: ActivityLedger;
   watcher: BackgroundExitWatcher;
-  agent: ClaudeAgent;
+  agent: AcpAgent;
 };
 
 /**
- * Starts the adapter and wires its callbacks. Claude reports no exit for a
- * background command, so the watcher reads the command's output file and
- * feeds the exit back through the same handler a frame would have used.
+ * Starts the agent and wires its callbacks. An agent that reports no exit for
+ * a background command (Claude) names the file the output goes to, so the
+ * watcher reads it and feeds the exit back through the same handler a frame
+ * would have used.
  */
-function openSession(context: LoopContext): Session {
+function openSession(context: LoopContext, choice: SessionChoice): Session {
   const stamp = new Date().toISOString().replaceAll(":", "-");
-  const spawned = spawnClaudeAcp(
+  const spawned = spawnAcpAgent(
     context.repoRoot,
     join(context.runDir.path, `acp-${stamp}.jsonl`),
-    context.agentCommand,
+    choice.command,
+    choice.profile.launchArgs,
   );
   const ledger = new ActivityLedger();
   const handlers = buildHandlers({
@@ -157,6 +194,8 @@ function openSession(context: LoopContext): Session {
     askQuestions: (questions) => context.mailbox.askQuestions(questions),
     watchBackground: (shellId, outputPath) =>
       watcher.watch(shellId, outputPath),
+    declinePlanExit: context.planFollowUp !== null,
+    exitPlan: choice.profile.exitPlan,
   });
   const watcher = new BackgroundExitWatcher(
     systemClock,
@@ -171,17 +210,36 @@ function openSession(context: LoopContext): Session {
       }),
     BACKGROUND_POLL_MS,
   );
-  const agent = new ClaudeAgent(spawned.channel, handlers);
+  const agent = new AcpAgent(
+    spawned.channel,
+    handlers,
+    choice.profile.createDialect(),
+  );
   return { spawned, ledger, watcher, agent };
 }
 
 async function driveSession(
   context: LoopContext,
+  choice: SessionChoice,
   { agent, ledger }: Session,
 ): Promise<IterationOutcome> {
   await agent.initialize();
   const sessionId = await agent.newSession(context.repoRoot);
-  await context.emit({ type: "session_started", sessionId });
+  const model =
+    choice.model === null
+      ? agent.currentModel()
+      : await agent.selectModel(choice.model);
+  const effort =
+    choice.effort === null
+      ? agent.currentEffort()
+      : await agent.selectEffort(choice.effort);
+  await context.emit({
+    type: "session_started",
+    sessionId,
+    agent: choice.profile.name,
+    model,
+    effort,
+  });
   return runIteration({
     agent,
     ledger,
@@ -190,14 +248,20 @@ async function driveSession(
     askReply: (why, last) => context.mailbox.askReply(why, last),
     emit: context.emit,
     openingPrompt: await openingPrompt(context.promptFile),
-    timing: TIMING,
+    planFollowUp: context.planFollowUp,
+    timing: choice.profile.timing,
+    bypassMode: choice.profile.bypassMode,
+    classifyError: choice.profile.classifyError,
   });
 }
 
-async function runSession(context: LoopContext): Promise<IterationOutcome> {
-  const session = openSession(context);
+async function runSession(
+  context: LoopContext,
+  choice: SessionChoice,
+): Promise<IterationOutcome> {
+  const session = openSession(context, choice);
   try {
-    return await driveSession(context, session);
+    return await driveSession(context, choice, session);
   } catch (error) {
     if (error instanceof RpcError) {
       return {
@@ -205,11 +269,22 @@ async function runSession(context: LoopContext): Promise<IterationOutcome> {
         reason: `session setup failed: ${error.message}`,
       };
     }
+    if (error instanceof ModelSelectionError) {
+      return { kind: "halted", reason: error.message };
+    }
     throw error;
   } finally {
     session.watcher.stopAll();
     await session.spawned.stop();
   }
+}
+
+function choiceDeps(context: LoopContext): RefreshDeps {
+  return {
+    read: () => context.runDir.readChoice(),
+    emit: context.emit,
+    knowsAgent: (name) => AGENT_NAMES.includes(name),
+  };
 }
 
 function preflightDeps(context: LoopContext): PreflightDeps {
@@ -227,14 +302,19 @@ function preflightDeps(context: LoopContext): PreflightDeps {
   };
 }
 
-async function runLoop(context: LoopContext): Promise<number> {
+async function runLoop(
+  context: LoopContext,
+  startingChoice: AgentChoice,
+): Promise<number> {
   const tracker = new ProgressTracker();
+  let current = startingChoice;
   for (;;) {
     const ready = await waitUntilReady(preflightDeps(context));
     if (ready !== "ready") {
       await context.emit({ type: ready });
       return 0;
     }
+    current = await refreshChoice(choiceDeps(context), current);
     const row = nextBacklogRow(
       await readFile(join(context.repoRoot, "docs/backlog.md"), "utf8"),
     );
@@ -243,7 +323,7 @@ async function runLoop(context: LoopContext): Promise<number> {
       row,
       head: await context.git.head(),
     });
-    const outcome = await runSession(context);
+    const outcome = await runSession(context, sessionChoice(context, current));
     await context.emit({ type: `iteration_${outcome.kind}`, ...outcome });
     const verdict = tracker.record(outcome);
     if (!verdict.keepGoing) {
@@ -268,30 +348,38 @@ async function recordInterrupted(context: LoopContext): Promise<void> {
 }
 
 async function main(): Promise<number> {
-  const {
-    repoRoot,
-    runDir: runDirPath,
-    promptFile,
-    agentCommand,
-  } = parseArguments(process.argv.slice(2), process.cwd());
-  const runDir = new RunDir(runDirPath);
+  const args = parseArguments(process.argv.slice(2), process.cwd());
+  const runDir = new RunDir(args.runDir);
   await runDir.acquireLock(process.pid, isProcessAlive);
-  const files = new DirectoryMailboxFiles(runDirPath, () =>
+  const files = new DirectoryMailboxFiles(args.runDir, () =>
     new Date().toISOString(),
   );
   const context: LoopContext = {
-    repoRoot,
-    promptFile,
-    agentCommand,
+    repoRoot: args.repoRoot,
+    promptFile: args.promptFile,
+    commandOverride: { agent: args.agent.name, command: args.agentCommand },
+    planFollowUp: args.planFollowUp,
     runDir,
-    git: new GitCli(repoRoot),
+    git: new GitCli(args.repoRoot),
     mailbox: new Mailbox(files, systemClock),
     emit: (event) => files.appendEvent(event),
   };
   try {
-    await context.emit({ type: "loop_started", repoRoot, pid: process.pid });
+    const { choice, writeFile } = initialChoice({
+      flagged: args.choiceFlagged,
+      fromFlags: { agent: args.agent.name, model: args.model, effort: args.effort },
+      stored: await runDir.readChoice(),
+    });
+    if (writeFile) await runDir.writeChoice(choice);
+    await context.emit({
+      type: "loop_started",
+      repoRoot: args.repoRoot,
+      pid: process.pid,
+      ...choice,
+      planFollowUp: args.planFollowUp,
+    });
     await recordInterrupted(context);
-    return await runLoop(context);
+    return await runLoop(context, choice);
   } finally {
     await runDir.releaseLock();
   }
