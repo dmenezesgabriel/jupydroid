@@ -151,8 +151,18 @@ A test-harness item with no domain, port or adapter.
     `stream` `100% done\na\nb\n`; frames show the heading, bold, code, bullet and `42`). `display-update`,
     `output-caps` and `ansi-colour` took and ran the first cell (the last in Dark: red, bold green, orange) and then
     stopped at their second cell's pixel tap, 6 taps in 4 flows left. No UI dump was taken at the focused step.
-  - [ ] T3d — `chat-markdown-insert` and `chat-markdown-copy`; the copy flow long-presses, which the sub-flow
-    cannot express, so it takes `longPressOn` by the same name inline.
+  - [x] T3d — the three first-cell taps in `delete-stops-session-demo-overwrite`. Read on `SM-X216B` (same debug
+    APK; no `app/src` commit since), the flow entered base first, since it continues from part 1. Red, unchanged: the
+    tap at `(1300,354)` completed, `x = 41` was typed, and `Tap on "Run cell"` failed with `Element not found`.
+    Converted: all three taps took `x = 41` and ran their cell. The frame of `e.ipynb` shows the field holding `1 x = 41`,
+    `[1]: ran in 3.6 s` and "Python 3", with a kernel row for `keep.ipynb` and for `e.ipynb`. The flow then stops at
+    `Tap on "Recent actions"`, which is `GAP-208`'s step. No UI dump was taken at the focused step. 3 taps remain in
+    3 flows.
+  - [ ] T3e — `chat-markdown-insert` and `chat-markdown-copy` (the copy flow long-presses, which the sub-flow cannot
+    express, so it takes `longPressOn` by the same name inline), and the second tap of
+    `delete-stops-session-demo-delete`, which `GAP-208` stops before. The two chat flows are blocked: base on the
+    tablet has no opencode binary and no `auth.json`, and installing it and signing in is the user's to do. They
+    stay as they were until a run on a tablet the user has signed in to opencode on. JD-089 stays open for them.
 - [ ] T4 — the ADR, `GAP-205` and the backlog row closed, this file deleted.
 
 ## Out of scope

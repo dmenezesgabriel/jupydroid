@@ -2351,8 +2351,8 @@ they expect the rename dialog; `delete-stops-session-demo-delete.yaml` fails at 
 `Tap on "Files"`. `delete-stops-session-demo-overwrite.yaml` continues from the first, so it cannot be run alone.
 Not known: which commits changed each of these, and how many of the flows not yet converted stop at one of them
 too. The repair reads each failing frame, decides per step whether the app or the flow moved, and runs each flow
-green on the tablet, which is also what proves the taps in `delete-stops-session-demo-delete.yaml` and
-`delete-stops-session-demo-overwrite.yaml` that no run reached.
+green on the tablet, which is also what proves the tap in `delete-stops-session-demo-delete.yaml` that no run reached.
+`delete-stops-session-demo-overwrite.yaml`'s three taps have run and stop at the same `Recent actions` step.
 
 ### GAP-209 — Two tablet drivers stop at a step after the first cell, one on a pixel and one on Chrome
 
