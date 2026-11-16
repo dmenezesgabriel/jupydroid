@@ -107,11 +107,9 @@ The one that outlives the item becomes an ADR.
 - **Settled by T1:** the 3.33dp is whole-pixel rounding of the item width at `ForcedSize`'s 0.45 px per dp, not an
   inset, not an item's width and not the semantics node. The bar is centred to within a pixel, and the repair is in
   the test's measure.
-- Open, for T2: how the measure absorbs the rounding without hiding a real offset. Either the tolerance is stated in
-  pixels of the forced density (the group may be off by `(items - 1) / 2` pixels), which needs the forced density
-  read inside the composition; or the test runs at a size whose item width is a whole pixel count, which pins the
-  test to one density. A red test that names the cause comes first: five items at a width that leaves a remainder
-  must be accepted, and a group moved by a whole item must still fail.
+- **Settled by T2:** the tolerance is stated in pixels of the forced density, `(items - 1) / 2` of them
+  (`centreSlackDp`), with the density read off the Files node (its dp width over its px width). `PixelRoundingSlackTest`
+  pins that five items accept 3.33dp at `dev36`'s 2.22 dp per pixel and that a group moved by a whole item still fails.
 
 ## Surface
 
@@ -127,7 +125,7 @@ A UI item with no domain, port or adapter.
 
 - [x] T1 — run the test red on `dev36` and read the five items' bounds and the bar's own; attribute the 3.33dp to an
   item or an inset, and record the attribution in this file.
-- [ ] T2 — a red test that names the cause, then the minimal change in the test's measure (T1: the bar is centred;
+- [x] T2 — a red test that names the cause, then the minimal change in the test's measure (T1: the bar is centred;
   the tolerance is under one pixel of the forced density).
 - [ ] T3 — read the frame on the tablet and on `dev36`, look at it, record the ADR, and delete this file.
 
