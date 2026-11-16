@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# The first launch after an upgrade that bumped `BaseSpaceInstaller.BUNDLED_ROOTFS_VERSION`, so base
+# re-extracts the Alpine 3.23 rootfs. Driven by scripts/rootfs-alpine-3-23-demo-driver.sh.
+#
+# TABLET ONLY (SM-X216B): both notebooks run a cell.
+#
+# `Versions.ipynb` prints zlib off `/lib/apk/db/installed`, then dnspython, opentelemetry-api,
+# soupsieve and tornado off their dist-info, as one line. Maestro full-matches a node, and no version
+# number is in the cell's source, so FakeKernelGateway's echo cannot satisfy the wait. Its second cell
+# runs numpy, so the interposers and the SIGSYS handler are exercised, not only the interpreter.
+# `Pip.ipynb` runs `%pip install tabulate`, which fetches over HTTPS through the image's OpenSSL.
+- launchApp
+# Generous: the re-extract runs before the home lists base.
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 180000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Versions.ipynb"
+    timeout: 10000
+- tapOn: "Versions.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "zlib=1\\.4-r0 dnspython=2\\.9\\.2 opentelemetry-api=1\\.45\\.2 soupsieve=4\\.1\\.1 tornado=6\\.6\\.1"
+      childOf: {text: "Cell output"}
+    timeout: 180000
+- takeScreenshot: 01-base-reads-the-fixed-versions
+# index 1 is the second cell's Run button; index 0 would re-run the first.
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: ".*10.000000000000002.*"
+    timeout: 60000
+- takeScreenshot: 02-numpy-answers
+- tapOn: "Pip.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: Pip.ipynb"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Unscoped: `childOf` scopes to the first `Cell output` it finds, which can be Versions.ipynb's
+# (docs/architecture/cross-cutting.md, "What a test here cannot do"). The source reads
+# `%pip install tabulate`, which this pattern cannot match.
+- extendedWaitUntil:
+    visible: ".*Successfully installed tabulate.*"
+    timeout: 300000
+- takeScreenshot: 03-pip-installs-over-https
