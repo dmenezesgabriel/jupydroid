@@ -2338,6 +2338,22 @@ completion popup covers its own line the same way, and where VS Code puts a mark
 (`vscode@3f3380c6`, the hover contribution under `src/vs/editor/contrib/hover`). The repair starts by reading
 those, then a test of the card's bounds against its line's, red first.
 
+### GAP-208 — Four tablet flows fail at a step after the cell they type into
+
+Read on the tablet with the cell focused by its name, so each flow now types, runs its cell and gets as far as
+the output: `tab-reload-demo.yaml` fails at `Assert that "before\s*" is visible`, because the `notes.txt` tab
+already reads `after` when it is selected after the cell rewrote the file, where the flow expects the stale text
+until the reload icon is tapped (`ActiveTabReload.kt` says nothing re-reads a clean document, so either a tab
+composed afresh reads the file or the flow is stale); `session-follows-rename-demo-tab.yaml` and
+`recreated-path-demo-notebook.yaml` fail at `Rename file`, because a long press on a tab now opens a menu
+(Close All Other Tabs, Close Tabs to Right, Rename…, Save As…, Revert to Checkpoint…, Duplicate, Delete…) where
+they expect the rename dialog; `delete-stops-session-demo-delete.yaml` fails at `Tap on "Recent actions"` after
+`Tap on "Files"`. `delete-stops-session-demo-overwrite.yaml` continues from the first, so it cannot be run alone.
+Not known: which commits changed each of these, and how many of the flows not yet converted stop at one of them
+too. The repair reads each failing frame, decides per step whether the app or the flow moved, and runs each flow
+green on the tablet, which is also what proves the taps in `delete-stops-session-demo-delete.yaml` and
+`delete-stops-session-demo-overwrite.yaml` that no run reached.
+
 ---
 
 ## 12. Glossary

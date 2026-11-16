@@ -119,7 +119,23 @@ A test-harness item with no domain, port or adapter.
   the field focused with the text and a cursor, `[1]:` and "ran in 0.3 s" above `42`, so the kernel ran it and
   `FakeKernelGateway` did not echo it. 22 taps at `1300,354` remain in 19 flows. No UI dump was taken at the focused
   step (the driver takes screenshots only), so the tap's landing point rests on T1's bounds and the frame.
-- [ ] T3 — the other 19 flows converted, each run on the tablet.
+- [ ] T3 — the other 19 flows converted, each run on the tablet. Too many for one commit, so four, each ending
+  in its own tablet run:
+  - [x] T3a — `release-install-demo` (green end to end), and the first tap of `tab-reload-demo`,
+    `session-follows-rename-demo-tab`, `recreated-path-demo-notebook` and `delete-stops-session-demo-delete`.
+    Read on `SM-X216B`: `tab-reload-demo` run unchanged failed at `Tap on "Run cell"` as the console-clear flow
+    did, with `a.ipynb`'s tab closed; converted, each of the first three typed into the cell and (all but
+    `recreated-path-demo-notebook`, which only types) ran it, then stopped at a later step that is `GAP-208`'s, not
+    the tap's. `delete-stops-session-demo-delete`'s second tap and the three in `delete-stops-session-demo-overwrite`
+    were not reached, so they stay as they were and wait for `JD-093`. 17 taps remain in 15 flows. The release flow
+    ran directly, not through its driver, which uninstalls the app and wipes its data.
+  - [ ] T3b — the three `python-environments-in-a-space-*` flows that type into a new notebook, plus
+    `…-base-fails-tabulate`, `text-output-link-demo-stream-link`, `input-prompt-demo-answers`.
+  - [ ] T3c — `progress-bar-demo-runs`, `display-update-demo-run`, `output-caps-demo-run`,
+    `markdown-output-demo-notebook`, `ansi-colour-demo-dark`; in the two multi-cell flows only the first cell's tap
+    carries the pixel.
+  - [ ] T3d — `chat-markdown-insert` and `chat-markdown-copy`; the copy flow long-presses, which the sub-flow
+    cannot express, so it takes `longPressOn` by the same name inline.
 - [ ] T4 — the ADR, `GAP-205` and the backlog row closed, this file deleted.
 
 ## Out of scope

@@ -63,12 +63,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-notes-txt-reads-before-and-a-is-open
 
 # ---- a cell rewrites notes.txt; its tab is stale until the tap ----
-# The empty cell's field has no text to tap by: SM-X216B's 1920x1200 puts it at
-# [805,319][1884,391] (`maestro hierarchy`).
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow: focus-first-cell.yaml
 - inputText: "open('notes.txt', 'w').write('after')"
 - hideKeyboard
 - tapOn: "Run cell"
