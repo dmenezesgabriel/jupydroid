@@ -27,14 +27,10 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-# All three cells are typed before any runs, so each empty field is where `maestro hierarchy` put
-# it on SM-X216B's 1920x1200: the first at [805,319][1884,391], the second, inserted below an unrun
-# first cell, at [805,503][1884,575], and the third, below the two-line second, at
-# [805,688][1884,760].
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+# All three cells are typed before any runs. The first is focused by its field's name; the second and
+# third are inserted below an unrun cell and still tapped at a point, which misses their fields on
+# SM-X216B's 1920x1200 (ADR-0143 names the field; the later cells wait on the repair that converts them).
+- runFlow: focus-first-cell.yaml
 - inputText: "h = display(\"frame 0\", display_id=True)"
 - hideKeyboard
 - tapOn:

@@ -28,12 +28,7 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-# The empty first field, where `maestro hierarchy` put it on SM-X216B's 1920x1200:
-# [805,319][1884,391], as display-update-demo-run.yaml measured it.
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow: focus-first-cell.yaml
 - inputText: "from IPython.display import Markdown, display; display(Markdown(\"# Heading\\n**bold** and `code`\\n- item\")); print(6*7)"
 - hideKeyboard
 # The source as the field holds it, before anything runs: the string carries quotes, backticks and

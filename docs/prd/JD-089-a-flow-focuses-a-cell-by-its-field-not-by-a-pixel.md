@@ -142,9 +142,15 @@ A test-harness item with no domain, port or adapter.
     (`1300,620`), and `text-output-link-demo-driver.sh` in part 2 at `back_to_app`. The deleted-environment driver
     was cut by the host's background limit in its last part, after part 7's assertions. No UI dump was taken at the
     focused step, which the drivers do not take. 11 taps remain in 9 flows.
-  - [ ] T3c — `progress-bar-demo-runs`, `display-update-demo-run`, `output-caps-demo-run`,
-    `markdown-output-demo-notebook`, `ansi-colour-demo-dark`; in the two multi-cell flows only the first cell's tap
-    carries the pixel.
+  - [x] T3c — `progress-bar-demo-runs`, `display-update-demo-run`, `output-caps-demo-run`,
+    `markdown-output-demo-notebook`, `ansi-colour-demo-dark`. The first cell's tap only; the three multi-cell flows
+    carry later-cell pixel taps too, which are `GAP-209`'s. Read on `SM-X216B` (same debug APK; no `app/src` commit
+    since). Red: `progress-bar-demo-driver.sh` unchanged typed nothing and did not close the tab this time: the
+    frame shows the cell empty (`1` in the gutter), `[1]: ran in 0.3 s`, and the assertion on `100% done` failed.
+    Converted: `progress-bar-demo-driver.sh` and `markdown-output-demo-driver.sh` exit 0 (the saved notebook holds one
+    `stream` `100% done\na\nb\n`; frames show the heading, bold, code, bullet and `42`). `display-update`,
+    `output-caps` and `ansi-colour` took and ran the first cell (the last in Dark: red, bold green, orange) and then
+    stopped at their second cell's pixel tap, 6 taps in 4 flows left. No UI dump was taken at the focused step.
   - [ ] T3d — `chat-markdown-insert` and `chat-markdown-copy`; the copy flow long-presses, which the sub-flow
     cannot express, so it takes `longPressOn` by the same name inline.
 - [ ] T4 — the ADR, `GAP-205` and the backlog row closed, this file deleted.

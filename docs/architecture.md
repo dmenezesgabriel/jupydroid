@@ -2360,7 +2360,10 @@ Read on the tablet with the first cell focused by its name. `input-prompt-demo-a
 answers the first cell (`Name? Ada`, `hi Ada`), then inserts a second cell and taps `point: "1300,620"` for its
 field, which is at about `[800,520][1895,573]`: the point is 47px below it, nothing is typed, the empty cell runs
 (`[2]: ran in 0.1 s`) and the flow fails at `Assert that "Input prompt" is visible`. 18 `point: "1300,N"` taps with
-`N` other than 354 stand in 13 flows, each after a cell that is not the first. `text-output-link-demo-driver.sh`
+`N` other than 354 stand in 13 flows, each after a cell that is not the first. Three more drivers stop at
+one: `display-update-demo-driver.sh` at `1300,539` (all three sources land in cell 1, which raises `SyntaxError`),
+`output-caps-demo-driver.sh` at `1300,524` (the same) and `ansi-colour-demo-driver.sh` at `1300,625` (the empty
+second cell runs, `[2]:`, and `blue` never appears). `text-output-link-demo-driver.sh`
 passes part 1 and fails in part 2 after the link tap, where `back_to_app` reads `com.android.chrome` still resumed
 ten seconds after BACK. Not known: whether the tap by the field's name can reach a later cell as it reaches the
 first (the sub-flow takes `index: 0`), and what Chrome's back stack held on that device. The repair reads the
