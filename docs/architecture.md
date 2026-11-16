@@ -2311,6 +2311,12 @@ of its jobs failed on the rootfs, which the app bundles and every Space runs.
    2.10.0, 3.0.2 and 4.0.0) and `tornado 6.6` (3.1, 6.6.1). `main` and the branch that was merged pin the same
    versions, so the merge did not introduce them.
 
+This is the class `GAP-183` and `GAP-184` recorded and `JD-064` closed on 2026-10-29 (the base moved to
+the `alpine:3.21` that carried the fixed OpenSSL and zlib, and the wheels were pinned at their fixed
+versions). Those fixes held for what was known then; these advisories were published after, which is why
+the scan is a gate and not a one-off, and why this repair should also say how the next advisory reaches us
+before the release it would block.
+
 What is not known: which supported Alpine release carries `zlib 1.4-r0`, whether the rootfs's other musl-built
 pieces (the busybox build, the SIGSYS shim, the wheels compiled against the base) still build and run on it, and
 which of the seven are reachable from a Space. The repair starts by reading both scanners' output from a build
