@@ -129,8 +129,19 @@ A test-harness item with no domain, port or adapter.
     the tap's. `delete-stops-session-demo-delete`'s second tap and the three in `delete-stops-session-demo-overwrite`
     were not reached, so they stay as they were and wait for `JD-093`. 17 taps remain in 15 flows. The release flow
     ran directly, not through its driver, which uninstalls the app and wipes its data.
-  - [ ] T3b — the three `python-environments-in-a-space-*` flows that type into a new notebook, plus
+  - [x] T3b — the three `python-environments-in-a-space-*` flows that type into a new notebook, plus
     `…-base-fails-tabulate`, `text-output-link-demo-stream-link`, `input-prompt-demo-answers`.
+    Read on `SM-X216B` (same debug APK; no `app/src` commit since). Red: `input-prompt-demo-driver.sh` unchanged
+    failed at `Tap on "Run cell"` with the Launcher on screen and the notebook's tab gone. Converted, each flow's
+    cell took its text and ran on the kernel: `input-prompt-demo-answers` (`Name? Ada` / `hi Ada`, "Python 3"),
+    `text-output-link-demo-stream-link` (the link in `Cell output`, resumed activity this app), `…-runs-in-stats`
+    (`'/home/jupydroid/envs/stats'`, "Python (stats)", saved `kernelspec: stats`), `…-runs-python3` (`'/usr'`, saved
+    `python3`), and `…-new-notebook-in-stats` and `…-base-fails-tabulate` through the whole demo driver, exit 0
+    (`5` under "Python (stats)"; `ModuleNotFoundError: No module named 'tabulate'` under "Python 3"). Two drivers
+    stop later than the tap, queued as `GAP-209`: `input-prompt-demo-driver.sh` at a second pixel tap
+    (`1300,620`), and `text-output-link-demo-driver.sh` in part 2 at `back_to_app`. The deleted-environment driver
+    was cut by the host's background limit in its last part, after part 7's assertions. No UI dump was taken at the
+    focused step, which the drivers do not take. 11 taps remain in 9 flows.
   - [ ] T3c — `progress-bar-demo-runs`, `display-update-demo-run`, `output-caps-demo-run`,
     `markdown-output-demo-notebook`, `ansi-colour-demo-dark`; in the two multi-cell flows only the first cell's tap
     carries the pixel.

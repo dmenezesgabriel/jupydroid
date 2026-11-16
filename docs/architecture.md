@@ -2354,6 +2354,18 @@ too. The repair reads each failing frame, decides per step whether the app or th
 green on the tablet, which is also what proves the taps in `delete-stops-session-demo-delete.yaml` and
 `delete-stops-session-demo-overwrite.yaml` that no run reached.
 
+### GAP-209 — Two tablet drivers stop at a step after the first cell, one on a pixel and one on Chrome
+
+Read on the tablet with the first cell focused by its name. `input-prompt-demo-answers.yaml` types, runs and
+answers the first cell (`Name? Ada`, `hi Ada`), then inserts a second cell and taps `point: "1300,620"` for its
+field, which is at about `[800,520][1895,573]`: the point is 47px below it, nothing is typed, the empty cell runs
+(`[2]: ran in 0.1 s`) and the flow fails at `Assert that "Input prompt" is visible`. 18 `point: "1300,N"` taps with
+`N` other than 354 stand in 13 flows, each after a cell that is not the first. `text-output-link-demo-driver.sh`
+passes part 1 and fails in part 2 after the link tap, where `back_to_app` reads `com.android.chrome` still resumed
+ten seconds after BACK. Not known: whether the tap by the field's name can reach a later cell as it reaches the
+first (the sub-flow takes `index: 0`), and what Chrome's back stack held on that device. The repair reads the
+later cells' bounds from a dump, then each Chrome frame.
+
 ---
 
 ## 12. Glossary
