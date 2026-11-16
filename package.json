@@ -8,8 +8,8 @@
   },
   "scripts": {
     "commit": "cz",
-    "test": "node --experimental-transform-types --no-warnings --test \"*.test.mjs\" \"scripts/claude-autopilot/*.test.ts\"",
-    "typecheck": "tsc -p scripts/claude-autopilot/tsconfig.json"
+    "test": "node --experimental-transform-types --no-warnings --test \"*.test.mjs\" \"scripts/autopilot/*.test.ts\"",
+    "typecheck": "tsc -p scripts/autopilot/tsconfig.json"
   },
   "config": {
     "commitizen": {

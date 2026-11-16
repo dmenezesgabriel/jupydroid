@@ -8,7 +8,7 @@ const USAGE = `usage:
   ctl.ts answer <id> [--why <reason>] <label>...   one label per question of a needs_answer event
   ctl.ts reply  <id> [--why <reason>] <text>       the free-text reply to a needs_reply event
   ctl.ts stop                         finish after the current iteration, then exit
-env: CLAUDE_AUTOPILOT_RUN_DIR overrides ${DEFAULT_RUN_DIR}`;
+env: AUTOPILOT_RUN_DIR overrides ${DEFAULT_RUN_DIR}`;
 
 async function status(runDir: RunDir): Promise<string> {
   const pid = await runDir.lockHolder();
@@ -24,7 +24,7 @@ export function splitWhy(args: string[]): { values: string[]; why?: string } {
 
 async function run(argv: string[]): Promise<string> {
   const runDir = new RunDir(
-    resolve(process.env["CLAUDE_AUTOPILOT_RUN_DIR"] ?? DEFAULT_RUN_DIR),
+    resolve(process.env["AUTOPILOT_RUN_DIR"] ?? DEFAULT_RUN_DIR),
   );
   const [command, id, ...rest] = argv;
   if (command === "status") return status(runDir);

@@ -1,20 +1,20 @@
-# claude-autopilot: orchestrator runbook
+# autopilot: orchestrator runbook
 
 The loop in `run.ts` repeats the manual workflow: open a fresh `claude-agent-acp` session in plan mode, give it `prompt-execution.md`, answer its questions, let it leave plan mode into bypass, wait for the commit, start the next session. It contains no model. A headed Claude Code session is the orchestrator: it reads the loop's events and answers what only judgement can answer.
 
 ## Start
 
-Node runs these files directly, but its default type stripping rejects the constructor parameter properties the loop uses, so every command carries `--experimental-transform-types --no-warnings`. Below, `ctl` stands for `node --experimental-transform-types --no-warnings scripts/claude-autopilot/ctl.ts`.
+Node runs these files directly, but its default type stripping rejects the constructor parameter properties the loop uses, so every command carries `--experimental-transform-types --no-warnings`. Below, `ctl` stands for `node --experimental-transform-types --no-warnings scripts/autopilot/ctl.ts`.
 
 ```sh
 # 1. the loop, detached so it outlives any one Monitor. It is a daemon, so it runs
 #    directly, not through devjob (devjob-guard lets a bare `node` through). Start it from a
 #    shell whose PATH has node and claude-agent-acp (nvm's default version); from any
 #    other shell add --agent-command <absolute path of claude-agent-acp>
-nohup node --experimental-transform-types --no-warnings scripts/claude-autopilot/run.ts > /dev/null 2>&1 &
+nohup node --experimental-transform-types --no-warnings scripts/autopilot/run.ts > /dev/null 2>&1 &
 
 # 2. in the Claude session (auto mode, because /goal does not change the permission mode)
-/goal The loop in scripts/claude-autopilot reported backlog_exhausted or stop, or it reported loop_halted and I looked at why. Until then: keep a Monitor armed on .autopilot-run/events.jsonl (re-arm at each 30-minute expiry), answer every needs_answer and needs_reply per this runbook, push-notify me on the events marked ESCALATE, and report each iteration_done with its commit. Stop after 40 iterations.
+/goal The loop in scripts/autopilot reported backlog_exhausted or stop, or it reported loop_halted and I looked at why. Until then: keep a Monitor armed on .autopilot-run/events.jsonl (re-arm at each 30-minute expiry), answer every needs_answer and needs_reply per this runbook, push-notify me on the events marked ESCALATE, and report each iteration_done with its commit. Stop after 40 iterations.
 ```
 
 Run both from the repository root: `ctl` and `run.ts` resolve `.autopilot-run/` against the directory they start in, and `run.ts` against `--repo` when it is given.
@@ -90,7 +90,7 @@ What the orchestrator does:
 
 ## Facts the loop relies on
 
-Measured against `claude-agent-acp 0.91.0` driving `claude 2.1.325`, on 2026-11-13, in the repository this loop was written for; here they are carried over, with the two recorded sessions as fixtures in `scripts/testdata/claude-autopilot-frames/`. A new adapter version may change them; `agent_signal` events are how that would show.
+Measured against `claude-agent-acp 0.91.0` driving `claude 2.1.325`, on 2026-11-13, in the repository this loop was written for; here they are carried over, with the two recorded sessions as fixtures in `scripts/testdata/autopilot-frames/`. A new adapter version may change them; `agent_signal` events are how that would show.
 
 | Fact                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Where it shows                                                                                      |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |

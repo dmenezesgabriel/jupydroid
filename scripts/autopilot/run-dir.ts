@@ -59,7 +59,7 @@ export class RunDir {
     const holder = await this.lockHolder();
     if (holder !== null && holder !== pid && isAlive(holder)) {
       throw new Error(
-        `claude-autopilot already runs here as pid ${holder} (${this.path}/loop.pid)`,
+        `autopilot already runs here as pid ${holder} (${this.path}/loop.pid)`,
       );
     }
     await writeFile(join(this.path, "loop.pid"), String(pid));

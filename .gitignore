@@ -44,7 +44,7 @@ __pycache__/
 # The commit-message tooling's dependencies (package-lock.json is the record).
 node_modules/
 
-# claude-autopilot's journal, answer files and raw ACP transcripts. Outside scripts/ because the
+# autopilot's journal, answer files and raw ACP transcripts. Outside scripts/ because the
 # doc-citations gate reads every file under it.
 /.autopilot-run/
 

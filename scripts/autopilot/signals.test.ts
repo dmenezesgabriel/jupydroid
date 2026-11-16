@@ -8,7 +8,7 @@ type Frame = { dir: string; msg: { method?: string; params?: unknown } };
 
 function signalsOfFixture(name: string): AgentSignal[] {
   const path = new URL(
-    `../testdata/claude-autopilot-frames/${name}`,
+    `../testdata/autopilot-frames/${name}`,
     import.meta.url,
   );
   const frames = readFileSync(path, "utf8")

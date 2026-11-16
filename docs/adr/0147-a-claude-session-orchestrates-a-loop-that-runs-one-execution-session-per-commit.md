@@ -13,7 +13,7 @@ The same procedure is automated in a sibling repository by a Node script that dr
 over the Agent Client Protocol (`scripts/claude-autopilot/` there, commit `83baa48e`). It holds no
 model: a headed Claude Code session reads its event journal and answers what needs judgement. It was
 measured against `claude-agent-acp 0.91.0` driving `claude 2.1.325`, and the two recorded sessions it was
-checked against are `scripts/testdata/claude-autopilot-frames/`.
+checked against are `scripts/testdata/autopilot-frames/`.
 
 What differs here, measured on 2026-11-14:
 
@@ -46,14 +46,14 @@ What differs here, measured on 2026-11-14:
 
 ## Decision
 
-**The loop lives in `scripts/claude-autopilot/`, runs under Node's type transform, is typechecked by
+**The loop lives in `scripts/autopilot/`, runs under Node's type transform, is typechecked by
 `tsc` and tested by `node --test`.**
 
 - Its default run directory is `.autopilot-run/`, gitignored and outside `scripts/`.
 - `scripts/check_doc_citations.py` reads `.ts` with the `//` scanner and treats `.ndjson` and `.jsonl` as data.
 - `.claude/scheduled_tasks.lock` is untracked and ignored.
 - `nextBacklogRow` reads the id from a table row that carries `← next`, whatever its state.
-- Its tests use named fakes under `scripts/claude-autopilot/testing/`, as `AGENTS.md` asks, not inline stubs.
+- Its tests use named fakes under `scripts/autopilot/testing/`, as `AGENTS.md` asks, not inline stubs.
 - `npm test` runs them with the commit tooling's tests, and `npm run typecheck` is its own CI step.
 
 ## Consequences

@@ -91,7 +91,7 @@ export class ClaudeAgent {
     await this.rpc.request("initialize", {
       protocolVersion: 1,
       clientCapabilities: { elicitation: { form: {} } },
-      clientInfo: { name: "claude-autopilot", version: "1.0.0" },
+      clientInfo: { name: "autopilot", version: "1.0.0" },
     });
   }
 
@@ -133,7 +133,7 @@ export class ClaudeAgent {
     }
     throw new RpcError(
       METHOD_NOT_FOUND,
-      `claude-autopilot does not serve "${method}"`,
+      `autopilot does not serve "${method}"`,
     );
   }
 

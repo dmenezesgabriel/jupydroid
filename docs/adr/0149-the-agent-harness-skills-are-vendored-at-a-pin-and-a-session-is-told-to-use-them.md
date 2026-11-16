@@ -59,7 +59,7 @@ session the loop opens is told to use them.**
   vendored skill, and ignores a skill that is not in the manifest (`playwright-cli`). It runs as a commit hook.
 - An update is: clone upstream at the new commit, copy `skills/` over, regenerate the manifest from
   `git ls-files skills`, and read the diff. Never edit a vendored file; the gate refuses it.
-- `STANDING_RULES` in `scripts/claude-autopilot/run.ts` is a third block of every opening prompt: invoke
+- `STANDING_RULES` in `scripts/autopilot/run.ts` is a third block of every opening prompt: invoke
   `engineering-mode` before changing code, **where a skill disagrees with `AGENTS.md`, `AGENTS.md` wins**,
   and name in the commit body each principle that changed a decision.
 - The `find-*` scripts fetch `tree-sitter-language-pack` when run, at the script's own exact pin and date

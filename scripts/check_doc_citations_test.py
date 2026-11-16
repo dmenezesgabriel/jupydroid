@@ -137,7 +137,7 @@ class ScannerForTest(unittest.TestCase):
                 self.assertIs(comments_only, scanner_for(suffix))
 
     def test_a_typescript_source_gets_the_slash_scanner(self):
-        """The claude-autopilot loop is TypeScript under `scripts/`, and a type with no scanner fails the run."""
+        """The autopilot loop is TypeScript under `scripts/`, and a type with no scanner fails the run."""
         self.assertIs(comments_only, scanner_for(".ts"))
 
     def test_a_comment_in_a_typescript_source_is_a_citation(self):
