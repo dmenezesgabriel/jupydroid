@@ -107,9 +107,10 @@ None.
 
 ## Open decisions
 
-- Whether `anchorBounds` is the box's outer bounds (T1 reads it with `getUnclippedBoundsInRoot` and a test of
-  the card's top against the line's bottom). If it is the inner bounds, this PRD's cause is wrong and the item
-  starts again from the measurement.
+- ~~Whether `anchorBounds` is the box's outer bounds~~ — **read on dev36 in T1**: the card's implied anchor top
+  is `box.top`, not the text's `inner.top` (`anchorTop=0.0` beside `box.top=0.0`, `inner.top=8.0`), so
+  `anchorBounds` is the padded box's outer bounds and the two spaces disagree by the padding on both axes.
+  T2 takes option (a).
 - Whether the three other popups share the offset. If they do, the repair covers them and their tests assert it;
   if not, the item stays on the card.
 
@@ -126,7 +127,7 @@ No new port or adapter: this is a layout fault in the UI layer.
 
 ## Tasks
 
-- [ ] T1 — Prove the cause, red first: an instrumented test that opens the card on a line in a cell wearing
+- [x] T1 — Prove the cause, red first: an instrumented test that opens the card on a line in a cell wearing
       `cellEditorBox` and asserts the card's top is at or below the line's bottom, and the same for the
       completion popup against its caret. It fails by the padding. It also reads which node `anchorBounds` is.
 - [ ] T2 — Correct the coordinate space where T1 found it, green, so the four popups agree with their rects; no
