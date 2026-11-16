@@ -35,6 +35,16 @@ updates:
     cooldown:
       default-days: 7
 
+  # `docker` reads the FROM lines of tools/rootfs/Dockerfile and proposes a newer tag and digest. Such a
+  # pull request is a signal only: CI cannot build the image, so it is not merged until the image is
+  # rebuilt from it and the kernel answers a cell on the tablet.
+  - package-ecosystem: docker
+    directory: /tools/rootfs
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+
   # Gradle gets security updates only (ADR-0137). Dependabot edits the catalog and some lockfiles but
   # does not run Gradle, so it never updates gradle/verification-metadata.xml or
   # buildscript-gradle.lockfile, and every version-update pull request failed gradle-gate. A limit of 0

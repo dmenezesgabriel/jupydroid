@@ -95,7 +95,7 @@ None.
 
 - [x] T1 — The wheels. Red: `osv-scanner` 2.7.0 over the two rootfs locks exits 1 with seven advisories.
   Green: the lock recompiled with `--upgrade-package` for the four, its diff read, the same command exits 0.
-- [ ] T2 — The signal. Red: a test that `dependabot.yml` names a `docker` entry for `/tools/rootfs` with the
+- [x] T2 — The signal. Red: a test that `dependabot.yml` names a `docker` entry for `/tools/rootfs` with the
   weekly schedule and cooldown the other ecosystems carry. Green: the entry.
 - [ ] T3 — The base. Red: `grype registry:<current digest> --platform linux/arm64 --only-fixed --fail-on medium`
   exits 2. Green: all three `FROM`s on `alpine:3.23` at one digest, the same command exits 0, the arm64 image
