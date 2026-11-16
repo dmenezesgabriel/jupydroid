@@ -2330,9 +2330,11 @@ image rebuilt from the new base whose kernel answers a cell on the tablet, and b
 
 Read off the frames of the tablet demo for a line holding a breakpoint and a finding, at 1280dp and at 800dp
 (both widths agree): tapping the squiggle under `never_defined_lsp_name` opens the card, and the card's top
-edge lies about 45px inside the 53px line it is anchored to. It hides the lower half of
-`print(never_defined_lsp_name)`, the lower half of the breakpoint's circle on that line, and the next cell's
-header; a reader cannot see the code the card is about while it is open. The card is `DiagnosticDetailPopup`
+edge lies 12px inside the 31px line it is anchored to (pixel rows of the saved frames at density 240: the cell's
+box is 55px, of which the line is 31px and the padding the rest, and the card's top is 31px below the box's top
+where the line's bottom is 43px below it). It hides the lower part of `print(never_defined_lsp_name)`, its
+squiggle and the lower half of the breakpoint's circle on that line; a reader cannot see the code the card is
+about while it is open. The next cell's header is covered too, and any card below its line covers it. The card is `DiagnosticDetailPopup`
 (`DiagnosticMarks.kt`), positioned by `CompletionPopupPosition` from the line's rect, the same provider the
 completion popup uses, which is meant to float beside what it completes. Not known: whether the provider puts
 the card at the line's top plus a fixed offset or at a rect the caller computes too small, whether the
