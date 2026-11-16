@@ -59,7 +59,7 @@ signal that a newer input exists; ours must, and GAP-206 asks that this repair s
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Which Alpine release | 3.22 (EOL 2027-05-01) · 3.23 (2027-11-01) · 3.24 (2028-06-01) | All three carry `zlib 1.4-r0`. 3.22 and 3.23 carry Python 3.12.16; 3.24 carries 3.14.10, which would move the lock's Python, `BUNDLED_PYTHON_VERSION` and three Dockerfile paths | **3.23**: supported longest of the two that keep Python 3.12. Read from Alpine's own package and release pages before the ADR cites it, and probe it on the tablet before shipping. A probe failing on 3.23 stops the item for a decision; it does not fall back to 3.22 unasked |
+| Which Alpine release | 3.22 (EOL 2027-05-01) · 3.23 (2027-11-01) · 3.24 (2028-06-01) | All three repositories carry `zlib 1.4-r0`, **none of their base images does** (ADR-0156). 3.22 and 3.23 carry Python 3.12.16; 3.24 carries 3.14.10, which would move the lock's Python, `BUNDLED_PYTHON_VERSION` and three Dockerfile paths | **3.23**: supported longest of the two that keep Python 3.12. Read from Alpine's own package and release pages before the ADR cites it, and probe it on the tablet before shipping. A probe failing on 3.23 stops the item for a decision; it does not fall back to 3.22 unasked |
 | How the four wheels move | re-lock everything · `--upgrade-package` for the four | A bare re-lock moves every pin; the four-package form changes only what the advisories name (plus what the resolver must move with them) | **`--upgrade-package` x4**, then read the lock's diff. `soupsieve` has no 2.x fix (the 2.x line ends at 2.9.2), so it moves to 4.x; `beautifulsoup4 4.15.0` needs `soupsieve>=1.6.1` |
 | How the next advisory reaches us | a `docker` entry in `dependabot.yml` · the weekly `grype` cron alone | The cron finds a vulnerable base but proposes nothing; Dependabot proposes a digest. CI cannot build the image, so a PR is never proof | **Both.** A `docker` entry for `/tools/rootfs`, weekly with the 7-day cooldown the others carry. The ADR says such a PR is a signal only: it is not merged until the image is rebuilt from it and the kernel answers a cell on the tablet. The cron stays the check |
 
@@ -73,12 +73,17 @@ signal that a newer input exists; ours must, and GAP-206 asks that this repair s
 
 ## Deviations
 
-None.
+- T3 found that no published Alpine base carries `zlib 1.4-r0`, so moving the base cannot make `grype` over the
+  base green. Decided by the user: `zlib=1.4-r0` pinned exactly in the final stage's `apk add`, the `grype` job
+  builds the Dockerfile for amd64 and scans that image, and nothing is waived (ADR-0156).
+- `BUNDLED_ROOTFS_VERSION` was bumped without a red test of its own: re-extraction on a newer version is already
+  held by `BaseSpaceInstallerTest.install_reinstallsWhenTheBundledVersionIsNewer`, and a test of `== 21` would
+  assert an arbitrary number. The commit before it that bumped the stamp (`9b11cec4`) did the same.
 
 ## Open decisions
 
-- Whether the busybox build, the SIGSYS and getaddrinfo interposers and the `acp`/`mcp` patches still build and
-  run on 3.23 is not known; T3 measures it.
+None. The busybox build, the interposers and the `acp`/`mcp` patches build and run on 3.23: the arm64 image built
+with every probe passing under qemu.
 
 ## Surface
 
@@ -97,7 +102,7 @@ None.
   Green: the lock recompiled with `--upgrade-package` for the four, its diff read, the same command exits 0.
 - [x] T2 — The signal. Red: a test that `dependabot.yml` names a `docker` entry for `/tools/rootfs` with the
   weekly schedule and cooldown the other ecosystems carry. Green: the entry.
-- [ ] T3 — The base. Red: `grype registry:<current digest> --platform linux/arm64 --only-fixed --fail-on medium`
+- [x] T3 — The base. Red: `grype registry:<current digest> --platform linux/arm64 --only-fixed --fail-on medium`
   exits 2. Green: all three `FROM`s on `alpine:3.23` at one digest, the same command exits 0, the arm64 image
   builds with every probe in the Dockerfile passing, and the SIGSYS and `at_shim` probes are run apart. Bump
   `BUNDLED_ROOTFS_VERSION`, red test first, and regenerate `THIRD_PARTY.md`.

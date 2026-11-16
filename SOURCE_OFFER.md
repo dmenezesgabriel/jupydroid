@@ -33,7 +33,7 @@ Upstream `busybox-1.37.0.tar.bz2` from <https://busybox.net/downloads/>, sha256 
 
 `git`, `apk-tools`, `alpine-baselayout`, `gdbm`, and the others `THIRD_PARTY.md` marks GPL or LGPL. Licence: as listed.
 
-The recipe of each is in [aports at tag `v3.21.9`](https://github.com/alpinelinux/aports/tree/v3.21.9), under `main/` or `community/`; its `source=` lines name the tarballs, which Alpine keeps at <https://distfiles.alpinelinux.org/distfiles/>. At that tag every copyleft package has the version the rootfs holds. Two packages the rootfs holds are newer on the `3.21-stable` branch than at the tag, `brotli` (MIT) and `python3` (PSF-2.0); neither asks for source, and their recipes are in that branch's history.
+The recipe of each is in [aports at tag `v3.23.8`](https://github.com/alpinelinux/aports/tree/v3.23.8), under `main/` or `community/`; its `source=` lines name the tarballs, which Alpine keeps at <https://distfiles.alpinelinux.org/distfiles/>. At that tag every copyleft package but one has the version the rootfs holds. Two packages the rootfs holds are newer than the tag: `git` (GPL-2.0-only) and `zlib` (Zlib). Their recipes, like every other package's, match the rootfs at [aports commit f63fa3de on the `3.23-stable` branch](https://github.com/alpinelinux/aports/tree/f63fa3de07b15bd0584c6034aded32516df5b40e), where all 35 packages the rootfs holds have the version it carries.
 
 To check a download against this file, compare it with the sha256 above; to check the rootfs against
 the listing, `tools/rootfs/sbom.sh` regenerates `THIRD_PARTY.md` from the rootfs tarball.
