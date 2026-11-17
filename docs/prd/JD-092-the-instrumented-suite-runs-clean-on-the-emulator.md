@@ -265,8 +265,11 @@ smaller process does not.
   has no seam between classes, and logcat's `TestRunner: started:` lines place each class on the same clock.
 - [x] T6b — shard S1 (the numbers), one cold boot; each failure re-run alone and classified: 121 tests, 4
   failures, 2 window, 1 not-window and unsplit, 1 run (see "Shard S1").
-- [ ] T6b2 — `RichTextImageTest`'s two window failures: the column the test names outgrows the 320dp window,
-  repaired the way `CellOutputImageTest` was (`requiredWidth`), red first.
+- [x] T6b2 — `RichTextImageTest`'s two window failures: the column the test names outgrows the 320dp window,
+  repaired the way `CellOutputImageTest` was (`requiredWidth`), red first. The class re-run at HEAD on a cold
+  `dev36` read `Tests run: 12,  Failures: 2`, both `expected:<600.0> but was:<320.0>`; with the one `Box`
+  changed from `width` to `requiredWidth` it read `OK (12 tests)` on three consecutive driver runs, no ANR dialog
+  in any run's focus samples. `show()`'s `width(column)` has the same shape and passes (its images fit 320dp).
 - [ ] T6b3 — `SettingsScreenTest.everyThemeChoice…AtTwiceTheFontScale`: read the node bounds and a screenshot of
   `Dark` at 320dp and 2.0, then bisect from `0de2361c9` to say whether a later change broke the Theme row or the
   test drifted; a defect becomes a repair with this test as its red.
