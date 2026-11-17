@@ -108,9 +108,23 @@ every `androidTest` class, including the arm64 Space probes that `assumeTrue`-sk
 | docs | this PRD (until ship), `docs/backlog.md` row, `GAP-182` resolved |
 | domain / ports / adapters | none expected — a real defect found by T1 becomes its own task or JD |
 
+## Classification at HEAD (T1, `dev36` at its physical 320×640)
+
+`scripts/instrumented-suite-driver.sh` over the fourteen classes: **95 tests, 22 failures.** The
+AVD carried a stale `wm size 360x640` override that masked three of them and invented one; the
+driver now resets it before instrumenting, and this table reads the 320×640 run.
+
+| Verdict | Tests |
+|---|---|
+| **window assumption — the explorer's pane is not drawn** at `twoPane = true` on a 320dp window (`measured` = 1 partition, `ListDetailSceneStrategy` draws one entry, the file row never enters the tree) | `DeletedTabTest` ×2 (`waitForRow` 20 s), `RecreatedPathTabTest`, `RenamedTabBeneathTest`, `TabStripRecreationTest` ×3 (`waitForRow`), `MultiDocumentNavigationTest` ×2 and `OpenDocumentMarkingTest` ×2 (node missing on inject), `LauncherAutoCreateTest.closingTheLastDocumentRefillsTheMainAreaAtTwoPanes` (`waitUntil` 5 s), `SpacesHomeNavigationTest.anImportOpensInsideTheWorkspace` (`waitForText` 5 s) |
+| **window assumption — a width the device does not have** | `CellOutputImageTest` (expects a 600dp column, the window is 320), `ConsoleInputRowTest` (the input field is 160dp at 320; green at 360), `TabCloseSiblingsTest` ×2 (the menu's items do not fit at 320 — `GAP-182`'s item 2, green at 360, so width-dependent, not a HEAD defect) |
+| **window focus** — `RootViewWithoutFocusException` at `pressBack`/`closeSoftKeyboard`, `has-window-focus=false` | `ChatSidePanelTest.aQuestionSent…` and `SidePanelBarTest.backClosesTheRailWithoutActing` (GAP-182's two), **plus two new**: `LauncherAutoCreateTest.aLoneLauncherCannotBeClosed…` and `SpacesHomeNavigationTest.backFromTheBrowserReturnsToTheHomeAtOnePane` |
+| **measurement** — not obviously window-shaped | `TerminalPaneScreenTest`: the terminal shrank 24 rows for a 600px keyboard where ~33 was claimed |
+| green at HEAD | `ConsoleInputRowTest`'s 14 others, `ChatSidePanelTest.aReaderScrolledUpIsLeftWhereTheyAre` (red only under the stale 360px override), `SpacesHomeNavigationTest`'s 5 others |
+
 ## Tasks
 
-- [ ] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
+- [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
   over the suite or a `-e class` list, verdict read off the log), then `GAP-182`'s classes re-run at
   HEAD on `dev36` with `-gpu swiftshader_indirect` and each failure classified
   defect / window / flake, recorded in this PRD.
@@ -118,9 +132,12 @@ every `androidTest` class, including the arm64 Space probes that `assumeTrue`-sk
   MultiDocumentNavigation, OpenDocumentMarking, RecreatedPathTab, RenamedTabBeneath,
   SpacesHomeNavigation, TabStripRecreation), each red→green on the driver; the `measured` comments
   corrected where T1's read proved them wrong.
-- [ ] T3 — `TabCloseSiblingsTest`: the missing menu nodes diagnosed at HEAD and repaired.
-- [ ] T4 — the focus flakes: cause named (`-no-window`'s focus or an app bug), then the smallest
-  honest answer — a retry that names the cause, or a mechanism that needs none.
+- [ ] T3 — `TabCloseSiblingsTest`: the missing menu nodes diagnosed at HEAD and repaired. T1 read
+  them as width-dependent — red at the physical 320px, green under a 360px override — so the read is
+  whether the menu's items genuinely overflow on a phone or the test reaches for what the device
+  never drew.
+- [ ] T4 — the focus flakes, now four: cause named (`-no-window`'s focus or an app bug), then the
+  smallest honest answer — a retry that names the cause, or a mechanism that needs none.
 - [ ] T5 — `TerminalPaneScreenTest`, `ConsoleInputRowTest`, `CellOutputImageTest`: each read and
   repaired for the window it needs.
 - [ ] T6 — the whole suite on `dev36`, `OK` in the instrument log; stragglers beyond `GAP-182`'s
