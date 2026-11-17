@@ -130,8 +130,20 @@ No new port or adapter: this is a layout fault in the UI layer.
 - [x] T1 — Prove the cause, red first: an instrumented test that opens the card on a line in a cell wearing
       `cellEditorBox` and asserts the card's top is at or below the line's bottom, and the same for the
       completion popup against its caret. It fails by the padding. It also reads which node `anchorBounds` is.
-- [ ] T2 — Correct the coordinate space where T1 found it, green, so the four popups agree with their rects; no
-      call site learns the padding.
+- [x] T2 — Correct the coordinate space where T1 found it, green, so the four popups agree with their rects; no
+      call site learns the padding. **Option (a), via `BasicTextField`'s `decorator`**: `Popup` anchors on the
+      layout node it is emitted under (a 0×0 `Layout` whose `onGloballyPositioned` feeds `anchorBounds` in
+      compose-ui 1.10.6), so emitting the four popups in a `Box` beside `innerTextField()` puts the anchor
+      inside `cellEditorBox`, the gutter strip and `horizontalScroll` — the text's own space. `caretRect`
+      returns `getCursorRect` unshifted, `diagnosticLineRect` spans `-gutterPx..0`, and `shiftedBy` went with
+      its test. Green on dev36: `SignatureHelpPopupTest` 9/9, `SymbolInfoPopupTest` 7/7,
+      `CompletionPopupAnchorTest` 1/1, `DiagnosticMarkTapTest` 11/11 — all four cards land exactly on their
+      line's or caret's edge (`popupEdgeOnAnchorLine`, ≤1px). Two fixture repairs the read needed, both
+      orthogonal: the bare test activity wore no `windowSoftInputMode`, so the framework shoved the window
+      frame for the IME and `Popup`'s window-space anchor held its pre-shove coordinates —
+      `SignatureHelpPopupTest` now sets `adjustResize`, the mode `MainActivity` declares; and raw
+      `sendKeyDownUpSync(KEYCODE_BACK)` raced the popup window's focus grant, so the two hover dismissals use
+      `Espresso.pressBack()` like the rest of the suite.
 - [ ] T3 — The driver prints the card-to-line gap from a UI dump (tested), runs on the tablet at both widths,
       the frames are looked at, and the item ships: PRD deleted, an ADR if the anchor rule is durable, `GAP-207`
       and the backlog row edited.
