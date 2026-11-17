@@ -213,6 +213,29 @@ That is its own tested change, not part of a shard. After
 S4 the green classes run in shards by package, and the item ships only when a whole-suite run, or every shard
 together, reports `OK`.
 
+## Shard S1 (T6b, `dev36` at 320×640, 2026-11-17)
+
+Cold boot, 180 s idle (load 6.2 at its end, one neighbour's job on a `devjob` slot), then the driver over S1's
+eight classes: the runner printed `Tests run: 121,  Failures: 4` in 2 min 41 s. The 121 is every test: the
+`TestRunner: started:` lines in the kept logcat count 12, 5, 19, 26, 1, 4, 36 and 18 per class. The focus sampler
+took 75 samples with no ANR dialog; its 6 samples without a focused window are single samples at a
+launcher-to-test-activity handoff, never two in a row, and each failure is one assertion, not a
+`RootViewWithoutFocusException`. A second cold boot (same idle) then re-ran each failure alone through the driver:
+
+| Test | Alone | Verdict |
+|---|---|---|
+| `RichTextImageTest.anImgWiderThanTheColumnShrinksToIt` | fails, `expected:<600.0> but was:<320.0>` | **window** — the test's column is `Modifier.width(600.dp)`, which the 320dp window clamps; `CellOutputImageTest` was the same box and `requiredWidth` fixed it |
+| `RichTextImageTest.anImageTooLargeToDrawWholeDrawsShrunkToTheColumn` | fails, same message | **window**, same box |
+| `SettingsScreenTest.everyThemeChoiceKeepsItsWholeWordOnAPhoneAtTwiceTheFontScale` | fails, `Dark breaks inside a word` | **not window**: the test forces `requiredWidth(PHONE_WIDTH)`, 320dp, itself, so the device's window is not an input. Defect or test drift is open: the commit that added the test (`0de2361c9`) saw it fail on `System` and then pass on `dev36`, and now `Dark` breaks. Its twin at 1.0 passes in the shard |
+| `ListGlyphFontScaleTest.theSearchChevronKeepsItsRatioToItsFileNameAtEveryLargerFontScale` | **passes** (`OK (1 test)`) | **run** — in the shard it read glyph 43dp / label line 38dp / container 51dp at 2.0 against 1.2 at 1.0; alone the ratio held. The cause of the difference is not read: a leak from an earlier test in the process is a lead, not a finding |
+
+Counts: 2 window, 1 not-window and unsplit, 1 run. **What S1 says about the 55-failure run:** its S1 classes
+failed 17 tests there (9 "a number the window decides", `CellOutputsViewTest` 3 + 2, `SettingsScreenTest` 3
+`waitUntil`) and 4 here, so 13 of them passed once S1 ran by itself: 5 the earlier table read as a number the
+window decides, 3 as a node not displayed, 3 as a `waitUntil` timeout and 2 as a wrong result. Those 13 are
+*run*, not window: the same tests, the same window, the same build. What in a 55-minute process turns them red is not known; the answer the table can give is only that a
+smaller process does not.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -240,7 +263,13 @@ together, reports `OK`.
   "isn't responding" packages every 2 s into `focus-samples.jsonl`, the driver keeps `logcat -d` beside it
   and prints one summary line on every exit. Time-based, not "between classes": one `am instrument` process
   has no seam between classes, and logcat's `TestRunner: started:` lines place each class on the same clock.
-- [ ] T6b — shard S1 (the numbers), one cold boot; each failure re-run alone and classified.
+- [x] T6b — shard S1 (the numbers), one cold boot; each failure re-run alone and classified: 121 tests, 4
+  failures, 2 window, 1 not-window and unsplit, 1 run (see "Shard S1").
+- [ ] T6b2 — `RichTextImageTest`'s two window failures: the column the test names outgrows the 320dp window,
+  repaired the way `CellOutputImageTest` was (`requiredWidth`), red first.
+- [ ] T6b3 — `SettingsScreenTest.everyThemeChoice…AtTwiceTheFontScale`: read the node bounds and a screenshot of
+  `Dark` at 320dp and 2.0, then bisect from `0de2361c9` to say whether a later change broke the Theme row or the
+  test drifted; a defect becomes a repair with this test as its red.
 - [ ] T6c — shard S2 (sheets and dialogs).
 - [ ] T6d — shard S3 (panels and settings).
 - [ ] T6e — shard S4 (the rest).
