@@ -75,10 +75,9 @@ fun SidePanelBar(
   val moreRail = rememberWideNavigationRailState()
   val scope = rememberCoroutineScope()
   // **The bar measures itself**, rather than being told a width or asking the window. At one pane
-  // the pane *is* the window, so its own constraints are the width the rule is about - and unlike
-  // `currentWindowAdaptiveInfo()`, which reads the activity's window, a constraint is something a
-  // test can actually set, so both branches get driven rather than one of them twice
-  // (`ActionRowPlacement` records what that cost).
+  // the pane *is* the window, so its own constraints are the width the rule is about - and a
+  // constraint is what a test sets for this bar alone, where a `ForcedSize` would compact the
+  // whole scene (`ActionRowPlacement` records what that cost).
   BoxWithConstraints(modifier = modifier) {
     // The same `activityBar.background` the rail states, because it is the same bar moved -
     // the reference gives its three `ActivityBarPosition`s one colour id, not three.

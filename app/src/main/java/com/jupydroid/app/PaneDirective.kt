@@ -33,10 +33,12 @@ internal fun isWindowWideEnoughForTwoPanes(): Boolean = paneScaffoldDirective().
 /**
  * The directive with both panes forbidden, for a caller that has been told to draw one.
  *
- * The seam exists because `currentWindowAdaptiveInfoV2()` measures the **activity's** window, which a
- * `DeviceConfigurationOverride` around a composable does not change - so a test cannot choose the
- * branch by forcing a width, and would drive one branch twice while appearing to cover both. The
- * same reason `MainNavigation` takes `twoPane` as a parameter at all (`CellActionsTest`).
+ * The seam exists because the measure and the order are different things: a collapsed side area
+ * is a one-pane layout on a window that still measures two - `Navigation.kt`'s `collapseLeft`
+ * reasoning - and `twoPane = false` on a wide window is the same order from a test. No
+ * `ForcedSize` draws it: the override sizes layout and measure together, adaptive 1.3.0 reading
+ * the container through `LocalDensity.current`
+ * (https://issuetracker.google.com/issues/358626778).
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 internal fun PaneScaffoldDirective.forcedToOnePane(): PaneScaffoldDirective = copy(maxHorizontalPartitions = 1)

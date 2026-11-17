@@ -46,8 +46,8 @@ import org.junit.runner.RunWith
  * earlier Maestro flow skipped, each having run with the tablet's side panel open.
  *
  * [EditorScreen.twoPane] and [EditorScreen.onShowDebugger] are passed directly rather than read
- * from the window, [PaneDirective.forcedToOnePane]'s own reason: `currentWindowAdaptiveInfo()`
- * measures the activity's window, which a test cannot force.
+ * from the window, [PaneDirective.forcedToOnePane]'s own reason: each case states the
+ * width/side-panel combination it asks about, and a side panel's availability is no window fact.
  */
 @RunWith(AndroidJUnit4::class)
 class EditorScreenDebuggerAtOnePaneWidthTest {

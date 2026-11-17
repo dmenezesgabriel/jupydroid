@@ -44,11 +44,10 @@ import com.jupydroid.extension.api.SidePanelHost
  *   only where [twoPane] is false, since beside two panes the rail is the activity bar and this
  *   pane is only half the shell.
  * @param twoPane whether a document area sits beside this pane. **A parameter, never measured
- *   here**: `currentWindowAdaptiveInfo()` reads the *activity's* window, which a
- *   `DeviceConfigurationOverride` around a composable does not change, so a branch chosen inside
- *   would drive one half twice while looking like it covered both (`PaneDirective.kt:31-38`). It
- *   decides two things - whether a bar is drawn under the panel, and whether there is a document
- *   for the side bar's own border to separate this pane from.
+ *   here**: whether a document sits beside the pane is the caller's fact, not the window's - a
+ *   collapsed area draws one pane on a window that measures two (`PaneDirective.kt`'s
+ *   `forcedToOnePane`). It decides two things - whether a bar is drawn under the panel, and
+ *   whether there is a document for the side bar's own border to separate this pane from.
  * @param onRevealMatch where a tapped search result puts the match, on its way to the editor that
  *   has to land on it. Separate from [openDocument] because the two are one act in the caller and
  *   two different pieces of its state.

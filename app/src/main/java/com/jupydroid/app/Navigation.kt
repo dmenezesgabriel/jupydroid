@@ -52,9 +52,10 @@ fun MainNavigation(
   onImportConsumed: () -> Unit,
   importReports: SnackbarHostState = remember { SnackbarHostState() },
   // Passed in rather than read at the point of use, for the reason `CellActionsTest` records:
-  // `currentWindowAdaptiveInfo()` measures the *activity's* window, which a
-  // `DeviceConfigurationOverride` around a composable does not change - so a test that tried to
-  // force a width would drive one branch twice while appearing to cover both.
+  // a test states the branch it means, and a `ForcedSize` cannot isolate it anyway - the override
+  // sizes layout and measure together (adaptive 1.3.0 reads the container through
+  // `LocalDensity.current`, https://issuetracker.google.com/issues/358626778), so "wide window,
+  // told one pane" is `forcedToOnePane`'s to draw.
   twoPane: Boolean = isWindowWideEnoughForTwoPanes(),
   /**
    * Where the open document publishes its structure for the shell's side panel to draw.

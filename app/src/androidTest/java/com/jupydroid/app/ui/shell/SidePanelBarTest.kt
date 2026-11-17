@@ -336,9 +336,9 @@ class SidePanelBarTest {
   }
 
   /**
-   * The bar at a stated width. `ForcedSize` changes the **layout constraints**, which is what the
-   * bar reads for itself - unlike `currentWindowAdaptiveInfo()`, which measures the activity's
-   * window and would leave a test driving one branch twice (`ActionRowPlacement`).
+   * The bar at a stated width. `ForcedSize` changes the **layout constraints**, which is the only
+   * width the bar reads - `SidePanelBar` asks its own constraints, never the window
+   * (`ActionRowPlacement`).
    */
   private fun showAt(size: DpSize) {
     compose.setContent {
