@@ -2376,6 +2376,19 @@ signed in to opencode on, which is the user's to do; the delete flow's tap waits
 first (the sub-flow takes `index: 0`), and what Chrome's back stack held on that device. The repair reads the
 later cells' bounds from a dump, then each Chrome frame.
 
+### GAP-210 — A press on the right half of a minimum-width tab closes it
+
+On a 320dp window a strip of four tabs gives each the 80dp floor, and the close button's 24dp box sits at
+x=52..76, so Compose's 48dp minimum touch target for it spans x=40..88: the press that lands on a tab's centre
+(x=40) is the close button's. Read on `dev36` at 320x640: `TabCloseSiblingsTest`'s long press at the centre of
+`a.py` removed `a.py` from the back stack and opened no menu (the tree after it had three tabs at 107dp and no
+second window), at x=39 the menu opened and the stack kept all four, at x=41 `a.py` was gone. The same fact
+reaches a tap, since a tap at x>=40 is the close button's too: the tab's right half activates nothing. At 360dp
+the floor is 90dp and the centre (x=45) is clear of x=50, which is why a 360px `wm size` override had hidden it.
+Not known: whether a tap at the same point closes the tab on a device as it does under injected input, and which
+of the references leaves room beside its close button on a phone. The repair reads both, then either narrows the
+close target or raises the tab's floor, with a test that presses the centre of a minimum-width tab.
+
 ---
 
 ## 12. Glossary

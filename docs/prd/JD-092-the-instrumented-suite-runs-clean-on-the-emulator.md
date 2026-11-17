@@ -116,7 +116,7 @@ driver now resets it before instrumenting, and this table reads the 320×640 run
 | Verdict | Tests |
 |---|---|
 | **window assumption — the explorer's pane is not drawn** at `twoPane = true` on a 320dp window (`measured` = 1 partition, `ListDetailSceneStrategy` draws one entry, the file row never enters the tree) | `DeletedTabTest` ×2 (`waitForRow` 20 s), `RecreatedPathTabTest`, `RenamedTabBeneathTest`, `TabStripRecreationTest` ×3 (`waitForRow`), `MultiDocumentNavigationTest` ×2 and `OpenDocumentMarkingTest` ×2 (node missing on inject), `LauncherAutoCreateTest.closingTheLastDocumentRefillsTheMainAreaAtTwoPanes` (`waitUntil` 5 s), `SpacesHomeNavigationTest.anImportOpensInsideTheWorkspace` (`waitForText` 5 s) |
-| **window assumption — a width the device does not have** | `CellOutputImageTest` (expects a 600dp column, the window is 320), `ConsoleInputRowTest` (the input field is 160dp at 320; green at 360), `TabCloseSiblingsTest` ×2 (the menu's items do not fit at 320 — `GAP-182`'s item 2, green at 360, so width-dependent, not a HEAD defect) |
+| **window assumption — a width the device does not have** | `CellOutputImageTest` (expects a 600dp column, the window is 320), `ConsoleInputRowTest` (the input field is 160dp at 320; green at 360), `TabCloseSiblingsTest` ×2 (`GAP-182`'s item 2: the menu never opened, because the press at a minimum-width tab's centre is the close button's — T3, `GAP-210`) |
 | **window focus** — `RootViewWithoutFocusException` at `pressBack`/`closeSoftKeyboard`, `has-window-focus=false` | `ChatSidePanelTest.aQuestionSent…` and `SidePanelBarTest.backClosesTheRailWithoutActing` (GAP-182's two), **plus two new**: `LauncherAutoCreateTest.aLoneLauncherCannotBeClosed…` and `SpacesHomeNavigationTest.backFromTheBrowserReturnsToTheHomeAtOnePane` |
 | **measurement** — not obviously window-shaped | `TerminalPaneScreenTest`: the terminal shrank 24 rows for a 600px keyboard where ~33 was claimed |
 | green at HEAD | `ConsoleInputRowTest`'s 14 others, `ChatSidePanelTest.aReaderScrolledUpIsLeftWhereTheyAre` (red only under the stale 360px override), `SpacesHomeNavigationTest`'s 5 others |
@@ -131,10 +131,12 @@ driver now resets it before instrumenting, and this table reads the 320×640 run
   MultiDocumentNavigation, OpenDocumentMarking, RecreatedPathTab, RenamedTabBeneath,
   SpacesHomeNavigation, TabStripRecreation), each red→green on the driver; the `measured` comments
   corrected where T1's read proved them wrong.
-- [ ] T3 — `TabCloseSiblingsTest`: the missing menu nodes diagnosed at HEAD and repaired. T1 read
+- [x] T3 — `TabCloseSiblingsTest`: the missing menu nodes diagnosed at HEAD and repaired. T1 read
   them as width-dependent — red at the physical 320px, green under a 360px override — so the read is
   whether the menu's items genuinely overflow on a phone or the test reaches for what the device
-  never drew.
+  never drew. Neither: the long press at the centre of an 80dp tab landed on the close button's 48dp
+  target and closed the tab, so the test now presses a quarter of the way in and the product's
+  defect is `GAP-210`.
 - [ ] T4 — the focus flakes, now four: cause named (`-no-window`'s focus or an app bug), then the
   smallest honest answer — a retry that names the cause, or a mechanism that needs none.
 - [ ] T5 — `TerminalPaneScreenTest`, `ConsoleInputRowTest`, `CellOutputImageTest`: each read and

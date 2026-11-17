@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -68,7 +69,8 @@ class TabCloseSiblingsTest {
     }
   }
 
-  private fun menuOf(title: String) = compose.tabInReach(title).performTouchInput { longClick() }
+  private fun menuOf(title: String) =
+    compose.tabInReach(title).performTouchInput { longClick(Offset(width * TAB_BODY_FRACTION, centerY)) }
 
   @Test
   fun closeTabsToRightClosesOnlyTheTabsAfterThePressedOne() {
@@ -137,6 +139,10 @@ class TabCloseSiblingsTest {
   }
 
   private companion object {
+    // Left of the tab's close button: Compose widens that button's hit area to 48dp, which at the
+    // 80dp `TAB_MIN_WIDTH` of `app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`
+    // covers everything from the centre rightwards - a press there closes the tab, opens no menu.
+    const val TAB_BODY_FRACTION = 0.25f
     const val CLOSE_OTHERS = "Close All Other Tabs"
     const val CLOSE_RIGHT = "Close Tabs to Right"
   }
