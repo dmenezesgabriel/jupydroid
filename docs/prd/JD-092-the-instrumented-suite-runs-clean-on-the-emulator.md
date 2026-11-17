@@ -137,6 +137,24 @@ one; one press on "Wait" removed it. `adb shell uiautomator dump /dev/tty` retur
 `adb exec-out` returns the XML. After the repair: the four classes `OK (56 tests)` on three consecutive
 driver runs, the first starting with the dialog up.
 
+## The three singles (T5, `dev36` at 320×640)
+
+`ForcedSize` was the plan and was tried first on two of them; both got worse (five failures, not three),
+because each test's number was tied to something other than the window.
+
+- `CellOutputImageTest`: the column is a `Box` the test names (600dp, 300dp). `width(600.dp)` is clamped
+  to the window's 320; `requiredWidth` is not. `ForcedSize(900dp)` fixed that one but moved `96.0` to
+  `97.14` (a different density) and the 300dp column to 900, so the window was not the property.
+- `ConsoleInputRowTest`: the field is 160dp of a 320dp row and 216dp of 360dp, since three 48dp buttons
+  take 144dp. The test now asserts the field's share of the row (0.4; 0.5 at 320, 0.6 at 360) against a
+  field that lost its weight at a few dp, instead of an absolute 200dp.
+- `TerminalPaneScreenTest`: a 600px keyboard exceeds the 528px a 640px window gives the terminal, so the
+  grid hit its two-row floor. Resizing the keyboard was not enough: the focused field raises the
+  emulator's real keyboard (259px) about half a second after the first layout and re-dispatches its
+  insets over any sent to the window, so the baseline read 13 rows on one run and 26 on the next. The
+  insets are now the composition's own, through `DeviceConfigurationOverride.WindowInsets`: none, then 40%
+  of the window (256px, 14 rows expected, 9 to 17 accepted).
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -157,8 +175,9 @@ driver runs, the first starting with the dialog up.
   smallest honest answer — a retry that names the cause, or a mechanism that needs none. Neither:
   SystemUI's "isn't responding" dialog held window focus for the whole run (see "The focus failures"),
   so the driver clears it before instrumenting and the four tests are unchanged.
-- [ ] T5 — `TerminalPaneScreenTest`, `ConsoleInputRowTest`, `CellOutputImageTest`: each read and
-  repaired for the window it needs.
+- [x] T5 — `TerminalPaneScreenTest`, `ConsoleInputRowTest`, `CellOutputImageTest`: each read and
+  repaired for the window it needs. None needed `ForcedSize` (see "The three singles"): the three
+  classes `OK (22 tests)` on three consecutive driver runs.
 - [ ] T6 — the whole suite on `dev36`, `OK` in the instrument log; stragglers beyond `GAP-182`'s
   list become tasks or their own JD; delete this PRD and mark `GAP-182` closed.
 
