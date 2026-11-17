@@ -155,6 +155,63 @@ because each test's number was tied to something other than the window.
   insets are now the composition's own, through `DeviceConfigurationOverride.WindowInsets`: none, then 40%
   of the window (256px, 14 rows expected, 9 to 17 accepted).
 
+## The first whole-suite run (T6, `dev36` at 320×640, 2026-11-17)
+
+`scripts/instrumented-suite-driver.sh` with no arguments, after a 180 s idle: the runner printed
+`Time: 3,470.9` and `There were 55 failures:`. **The suite finished.** The driver's `head -30` showed 30 and
+the stream ends inside the end-of-run summary at failure 53 (`com.jupy`), without the `Tests run` line; failures
+53 to 55 are all in the inline records above it (`SpaceSettingsDialogVariablesTest` ×3). Why the stream stops
+there is not known: the emulator's own log says nothing about adb or the instrument process, and no logcat was
+taken. Read next to it: 0 `RootViewWithoutFocusException`, 0 `Process crashed`, 0 "isn't responding" text.
+
+| Cause the message names | Tests (55) |
+|---|---|
+| **a number the window decides** — the assertion carries it (600 vs 320, 136 vs 204, 12 vs 18, a 640 that is the window's height) | 9: `RichTextImageTest` ×2, `MarkdownCellFieldTest`, `MarkdownCellTest`, `ChatSidePanelTest.sendIsPadded…`, `CodeCellFieldFontSizeTest`, `ListGlyphFontScaleTest`, `SettingsScreenTest.everyThemeChoice…`, `CellOutputsViewTest.aScrolledCell…` |
+| **a node "is not displayed"** — the sheet, dialog or row the test opened or scrolled to | 13: `CellOutputsViewTest` ×3, `DiagnosticMarkTapTest` ×3 (it forces 320, 360 and 412dp and fails at all three), `NotebookBarShutdownTest` ×3, `DebuggerVariablesSheetTest`, `KernelPickerDialogTest`, `RunningSidePanelTest`, `SearchSidePanelTest.theGlobBoxes…` |
+| **input could not be injected or typed** | 8: `NotebookBarShutdownTest` ×2, `EditorCloseGateTest`, `SpaceSettingsDialogDefaultKernelTest`, `…ThreadCapTest`, `…VariablesTest` ×2, `SearchReplaceAllTest` |
+| **a `waitUntil` of 5000 ms ran out** | 10: `SearchSidePanelTest` ×7, `SettingsScreenTest` ×3 |
+| **a second window stood beside the sheet** (`PopupLayout 0,0-153,40`, "expected exactly the sheet") | 4: `SheetStatusBarAppearanceTest` |
+| **a result is wrong and the message names no window** | 11: `TerminalExtraKeysRowTest`, `BundledLicenceAssetsTest`, `ConsoleTranscriptViewTest`, `CellOutputsViewTest` ×2, `DiagnosticSquiggleDrawTest` ×2, `FileEditorBreadcrumbTest`, `NotebookBarShutdownTest.shuttingTheKernelDown…`, `TabCloseTouchAreaTest` (`GAP-210`'s press), `SpaceSettingsDialogVariablesTest.aStoredVariable…` |
+
+This reads each failure's message; none has been re-run alone, so no row says *window*, *focus* or *defect* yet.
+What the run does and does not support:
+
+- **Not one dead run.** Failures sit beside passes inside a class, by each class's `@Test` count
+  (`ChatSidePanelTest` 1 of 26, `SettingsScreenTest` 4 of 36, `SearchSidePanelTest` 8 of 27; the runner's dot
+  lines do not count tests, so they are not the source): a dialog holding the root's focus for the whole run
+  failed all four `pressBack` tests in T4's run, not a share of them. `NotebookBarShutdownTest` (6 of 7) and
+  `SheetStatusBarAppearanceTest` (4 of 4) fail nearly or wholly, which a dead stretch would also do.
+- **A dialog or a dead process is not ruled out.** Nothing sampled `mCurrentFocus` during the run (the one read,
+  at the end, is the launcher, which is where a finished run leaves it). The driver pressed `Wait` on SystemUI's
+  dialog before it started, so a cold boot after a 180 s idle raised it once more: a data point for `GAP-211` and
+  `JD-095`. A mid-run return would show only in samples that were not taken.
+- **The earlier clean whole-suite runs predate the `wm size reset`.** `ff309bf6e` (2026-11-17) is the driver's
+  first reset; T1 found the AVD carrying a 360×640 override that hid failures. A run at 360 passing and one at
+  320 failing is what the window rows predict, and is a lead, not a finding.
+- **Defects are not named.** `DiagnosticMarkTapTest` failing at 412dp as well as 320dp, and
+  `CellOutputsViewTest.tappingBesideAnAddress…` following a link, are the two the window does not obviously
+  explain; each earns its own row only once it fails alone at a window that fits it.
+- The emulator logged 14,632 `Failed to allocate ColorBuffer with Vulkan backing` from line 100 on, with no
+  timestamps to set beside a failure: noted, not attributed.
+
+### Next shards (one `devjob` each, one cold boot each, `devjob --status` and load under `nproc` between them)
+
+The suite is not run as one process again. Each shard is a class list through the driver, so a death costs
+minutes and a failure stays attributable; a class that fails the same way alone is the window or a defect, one
+that passes alone was the run.
+
+| Shard | Classes |
+|---|---|
+| S1 — the numbers | `RichTextImageTest`, `MarkdownCellFieldTest`, `MarkdownCellTest`, `ChatSidePanelTest`, `CodeCellFieldFontSizeTest`, `ListGlyphFontScaleTest`, `SettingsScreenTest`, `CellOutputsViewTest` |
+| S2 — sheets and dialogs | `NotebookBarShutdownTest`, `EditorCloseGateTest`, `KernelPickerDialogTest`, `DebuggerVariablesSheetTest`, `RunningSidePanelTest`, `DiagnosticMarkTapTest`, `DiagnosticSquiggleDrawTest`, `SheetStatusBarAppearanceTest` |
+| S3 — panels and settings | `SearchSidePanelTest`, `SearchReplaceAllTest`, `SpaceSettingsDialogDefaultKernelTest`, `…ThreadCapTest`, `…VariablesTest`, `FileEditorBreadcrumbTest`, `TabCloseTouchAreaTest` |
+| S4 — the rest | `TerminalExtraKeysRowTest`, `BundledLicenceAssetsTest`, `ConsoleTranscriptViewTest` |
+
+Before S1 the driver is made to say when focus was lost: a `mCurrentFocus` and "isn't responding" sample taken
+between classes, and `logcat -d` kept with the log. That is its own tested change, not part of a shard. After
+S4 the green classes run in shards by package, and the item ships only when a whole-suite run, or every shard
+together, reports `OK`.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -179,7 +236,9 @@ because each test's number was tied to something other than the window.
   repaired for the window it needs. None needed `ForcedSize` (see "The three singles"): the three
   classes `OK (22 tests)` on three consecutive driver runs.
 - [ ] T6 — the whole suite on `dev36`, `OK` in the instrument log; stragglers beyond `GAP-182`'s
-  list become tasks or their own JD; delete this PRD and mark `GAP-182` closed.
+  list become tasks or their own JD; delete this PRD and mark `GAP-182` closed. **Not done:** the first
+  whole-suite run finished with 55 failures (see "The first whole-suite run"); the shards S1 to S4 and the
+  driver's focus sampling are what is left.
 
 ## Out of scope
 

@@ -2392,7 +2392,8 @@ close target or raises the tab's floor, with a test that presses the centre of a
 ### GAP-211 — A cold `dev36` boot raises SystemUI's "isn't responding" dialog, and the repairs so far clear it rather than prevent it
 
 Seen on a cold boot of `dev36` (`-no-window -gpu swiftshader_indirect`) from 2026-11-03 to 2026-11-17: Maestro flows stopped
-at it over the Spaces home on four days, and the instrumented suite ran its whole length under it
+at it over the Spaces home on four days, a cold boot after a 180 s idle on 2026-11-17 had it up when the suite's driver
+started (it pressed `Wait`; whether it returned mid-run was not sampled), and the instrumented suite ran its whole length under it
 (`mCurrentFocus` was `Application Not Responding: com.android.systemui` in 789 of 789 samples taken every 2 s),
 which is why four focus tests that need the root's focus failed alone while Compose-only assertions passed.
 What was tried and what it showed: clearing the dialog returns it; an idle wait of 45, 120, 180 and 300 s after
