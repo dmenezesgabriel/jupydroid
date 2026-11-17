@@ -40,6 +40,12 @@ if [ "$#" -gt 0 ]; then
   instrument_args+=(-e class "${class_list%,}")
 fi
 
+# A `wm size` override survives the session that set it, and the suite reads the window it is
+# handed: under a stale 360x640 the tab-strip's sibling menu and the console row's width each
+# "passed" a run they fail at the physical 320x640. The override is reset so the window the log
+# claims is the window the device has.
+"${DEVICE_ADB[@]}" shell wm size reset > /dev/null
+
 echo "--- instrument ---"
 "${DEVICE_ADB[@]}" shell am instrument "${instrument_args[@]}" "$RUNNER" 2>&1 |
   tee "$OUT/instrumentation.txt"
