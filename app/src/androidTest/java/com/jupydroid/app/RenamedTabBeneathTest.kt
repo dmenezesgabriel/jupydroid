@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -57,23 +59,25 @@ class RenamedTabBeneathTest {
 
   private fun startApp() {
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = AppContainer(
-            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = { _, _ ->
-              EnteredSpacePorts(
-                notebookRepository = DiskNotebookRepository(tempFolder.root),
-                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
-                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
-              )
-            },
-          ),
-          sharedNotebook = null,
-          onImportConsumed = {},
-          // Two panes, so the launcher's Terminal card is the reach and the strip is beside the list.
-          twoPane = true,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(
+              launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+              enteredSpacePorts = { _, _ ->
+                EnteredSpacePorts(
+                  notebookRepository = DiskNotebookRepository(tempFolder.root),
+                  workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
+                )
+              },
+            ),
+            sharedNotebook = null,
+            onImportConsumed = {},
+            // Two panes, so the launcher's Terminal card is the reach and the strip is beside the list.
+            twoPane = true,
+          )
+        }
       }
     }
     compose.enterBaseSpace()

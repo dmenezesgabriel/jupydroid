@@ -12,8 +12,6 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceFiles
@@ -248,9 +246,6 @@ class TwoPaneLayoutTest {
     }
     compose.enterBaseSpace()
   }
-
-  /** Expanded enough for 360dp of list and a readable notebook, or a phone that fits neither. */
-  private fun windowFor(twoPane: Boolean) = if (twoPane) DpSize(900.dp, 800.dp) else DpSize(360.dp, 720.dp)
 
   private fun notebook(name: String, source: String) =
     Notebook(name, name, "python3", listOf(Cell("$name-c1", CellKind.CODE, source)))
