@@ -52,6 +52,24 @@ fi
 # The tests are not at fault, so the run does not start with the dialog up.
 clear_system_anr || { echo "a system dialog holds window focus and could not be cleared" >&2; exit 1; }
 
+# A run that fails at `has-window-focus=false` says nothing about when focus went. The sampler stamps
+# the focused window every two seconds, and logcat's `TestRunner: started:` lines say which class ran
+# at each stamp; `logcat -c` first, so the log is this run's and not the device's last hour.
+# Kept on every exit, a pass included: a dialog that never cost a test is still a finding.
+sampler_pid=""
+# shellcheck disable=SC2329 # invoked by the EXIT trap below
+keep_the_run_evidence() {
+  [ -z "$sampler_pid" ] || kill "$sampler_pid" 2> /dev/null || true
+  [ -z "$sampler_pid" ] || wait "$sampler_pid" 2> /dev/null || true
+  "${DEVICE_ADB[@]}" logcat -d > "$OUT/logcat.txt" 2>&1 || true
+  echo "focus: $(python3 "$ROOT/scripts/focus_samples.py" summary "$OUT/focus-samples.jsonl" 2>&1)"
+}
+trap keep_the_run_evidence EXIT
+"${DEVICE_ADB[@]}" logcat -c
+python3 "$ROOT/scripts/focus_samples.py" record --serial "$MAESTRO_DEVICE" --adb "$ADB" \
+  --out "$OUT/focus-samples.jsonl" &
+sampler_pid=$!
+
 echo "--- instrument ---"
 "${DEVICE_ADB[@]}" shell am instrument "${instrument_args[@]}" "$RUNNER" 2>&1 |
   tee "$OUT/instrumentation.txt"

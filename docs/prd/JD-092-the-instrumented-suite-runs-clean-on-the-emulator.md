@@ -208,7 +208,8 @@ that passes alone was the run.
 | S4 — the rest | `TerminalExtraKeysRowTest`, `BundledLicenceAssetsTest`, `ConsoleTranscriptViewTest` |
 
 Before S1 the driver is made to say when focus was lost: a `mCurrentFocus` and "isn't responding" sample taken
-between classes, and `logcat -d` kept with the log. That is its own tested change, not part of a shard. After
+every two seconds (T6a: a single `am instrument` has no between-classes), and `logcat -d` kept with the log.
+That is its own tested change, not part of a shard. After
 S4 the green classes run in shards by package, and the item ships only when a whole-suite run, or every shard
 together, reports `OK`.
 
@@ -235,10 +236,18 @@ together, reports `OK`.
 - [x] T5 — `TerminalPaneScreenTest`, `ConsoleInputRowTest`, `CellOutputImageTest`: each read and
   repaired for the window it needs. None needed `ForcedSize` (see "The three singles"): the three
   classes `OK (22 tests)` on three consecutive driver runs.
-- [ ] T6 — the whole suite on `dev36`, `OK` in the instrument log; stragglers beyond `GAP-182`'s
-  list become tasks or their own JD; delete this PRD and mark `GAP-182` closed. **Not done:** the first
-  whole-suite run finished with 55 failures (see "The first whole-suite run"); the shards S1 to S4 and the
-  driver's focus sampling are what is left.
+- [x] T6a — the driver says when focus was lost: `scripts/focus_samples.py` stamps `mCurrentFocus` and the
+  "isn't responding" packages every 2 s into `focus-samples.jsonl`, the driver keeps `logcat -d` beside it
+  and prints one summary line on every exit. Time-based, not "between classes": one `am instrument` process
+  has no seam between classes, and logcat's `TestRunner: started:` lines place each class on the same clock.
+- [ ] T6b — shard S1 (the numbers), one cold boot; each failure re-run alone and classified.
+- [ ] T6c — shard S2 (sheets and dialogs).
+- [ ] T6d — shard S3 (panels and settings).
+- [ ] T6e — shard S4 (the rest).
+- [ ] T6f — the green classes in shards by package, then the whole suite `OK` in the instrument log;
+  stragglers beyond `GAP-182`'s list become tasks or their own JD; delete this PRD and mark `GAP-182`
+  closed. **Not done:** the first whole-suite run finished with 55 failures (see "The first whole-suite
+  run").
 
 ## Out of scope
 
