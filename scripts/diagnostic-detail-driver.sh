@@ -76,6 +76,45 @@ export_points_for() { # export_points_for <window width in dp>
   esac
 }
 
+# The card's edge against the line's, read in px off two `uiautomator dump`s. A dump holds only
+# the focused window's nodes, so the card's own bounds and the app's tree never share one dump:
+# the card read needs the popup up (a focused popup also hides the IME, so it is the no-IME
+# geometry), and the line read needs it gone - where the "Code cell" node is the 31px line run
+# inside the padded field. Dismissal returns focus to the cell's field and at 1280dp the IME
+# rises and scrolls the list to reveal the caret; hiding it again returns the scroll to the
+# card's own geometry, so both reads sit in the one space. BACK lands on the soft keyboard when
+# one is up (ADR-0153), which is exactly what restores it here.
+capture_detail_gap() { # capture_detail_gap <evidence dir>
+  local dir="$1" pct_x pct_y rotation w h tries=0
+  "${adb[@]}" shell uiautomator dump /sdcard/card-open.xml >/dev/null
+  "${adb[@]}" exec-out cat /sdcard/card-open.xml >"$dir/card-open.xml"
+  # MAESTRO_OUTSIDE is a share of the window; `wm size` is the natural orientation's px, so the
+  # landscape tap space swaps them - the open dump's own rotation attribute says which.
+  pct_x="${MAESTRO_OUTSIDE%%,*}"
+  pct_y="${MAESTRO_OUTSIDE#*,}"
+  read -r w h <<<"$("${adb[@]}" shell wm size | sed -n 's/.*: \([0-9]*\)x\([0-9]*\)/\1 \2/p')"
+  rotation="$(sed -n 's/.*rotation="\([0-9]\)".*/\1/p' "$dir/card-open.xml" | sed -n '1p')"
+  if [ "$rotation" = "1" ] || [ "$rotation" = "3" ]; then local swap=$w; w=$h; h=$swap; fi
+  "${adb[@]}" shell input tap "$((${pct_x%\%} * w / 100))" "$((${pct_y%\%} * h / 100))"
+  while ! "${adb[@]}" shell dumpsys input_method | grep -q "mInputShown=true" && [ "$tries" -lt 6 ]; do
+    sleep 1
+    tries=$((tries + 1))
+  done
+  if "${adb[@]}" shell dumpsys input_method | grep -q "mInputShown=true"; then
+    "${adb[@]}" shell input keyevent KEYCODE_BACK
+    tries=0
+    while "${adb[@]}" shell dumpsys input_method | grep -q "mInputShown=true" && [ "$tries" -lt 6 ]; do
+      sleep 1
+      tries=$((tries + 1))
+    done
+  fi
+  sleep 2
+  "${adb[@]}" shell uiautomator dump /sdcard/card-closed.xml >/dev/null
+  "${adb[@]}" exec-out cat /sdcard/card-closed.xml >"$dir/card-closed.xml"
+  python3 "$ROOT/scripts/read_detail_gap.py" "$dir/card-open.xml" "$dir/card-closed.xml" |
+    tee "$dir/card-to-line-gap.txt"
+}
+
 read_flow_outcome() { # read_flow_outcome <evidence dir>
   local dir="$1" fail=0
   "${adb[@]}" logcat -d -s 'JupydroidSpace:*' 2>/dev/null |
@@ -91,6 +130,12 @@ read_flow_outcome() { # read_flow_outcome <evidence dir>
   else
     echo "FAIL: a card assertion failed; see $dir/maestro.log"; fail=1
   fi
+  if grep -q "^PASS: the card clears the line" "$dir/card-to-line-gap.txt"; then
+    grep "card \|its line \|gap = " "$dir/card-to-line-gap.txt"
+    echo "PASS: the card's edge is on the line it describes, not inside it"
+  else
+    echo "FAIL: the card still covers its line; see $dir/card-to-line-gap.txt"; fail=1
+  fi
   return "$fail"
 }
 
@@ -105,6 +150,9 @@ detail_at() { # detail_at <0=portrait|1=landscape>
   reset_notebooks
   seed_notebook "$FIXTURE" "Diagnostics"
   run_flow "$FLOW" "$dir" || true
+  # The flow's last card is still up here; capture_detail_gap dismisses it and reopens it on the
+  # settled scroll, so both of its dumps sit in the one geometry.
+  capture_detail_gap "$dir" || true
   read_flow_outcome "$dir"
 }
 
