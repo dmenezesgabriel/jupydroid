@@ -1,7 +1,7 @@
 package com.jupydroid.app.ui.editor
 
-import android.view.KeyEvent
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
@@ -16,8 +16,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageMarkup
 import com.jupydroid.app.domain.port.LanguageMarkupKind
@@ -80,12 +80,32 @@ class SymbolInfoPopupTest {
 
     compose.runOnIdle { asks.intValue = 1 }
     compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsDisplayed()
-    InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+    Espresso.pressBack()
     compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsNotDisplayed()
 
     compose.runOnIdle { asks.intValue = 2 }
     compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsDisplayed()
     assertEquals(2, answered)
+  }
+
+  /**
+   * The card anchors on the caret through the same `CompletionPopupPosition` space
+   * `DiagnosticMarkTapTest.theDetailCardsTopClearsTheBottomOfTheLineItDescribes` reads the finding's
+   * card in: inside `cellEditorBox` its edge rests on the caret's line, not a padding above it.
+   * On one line the caret's top and bottom are the text node's, so either placement lands an edge.
+   */
+  @Test
+  fun theCardsEdgeRestsOnItsCaret() {
+    val asks = mutableIntStateOf(0)
+    setContent(symbolAsk = asks, boxed = true)
+
+    compose.runOnIdle { asks.intValue = 1 }
+    compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsDisplayed()
+    compose.waitForIdle()
+
+    val popup = compose.onNodeWithContentDescription(HOVER_DESCRIPTION).fetchSemanticsNode().boundsOnScreen()
+    val inner = compose.onNodeWithText(CODE, substring = true).fetchSemanticsNode().boundsOnScreen()
+    assertPopupEdgeOnAnchorLine(popup = popup, inner = inner)
   }
 
   @Test
@@ -105,7 +125,7 @@ class SymbolInfoPopupTest {
 
     compose.runOnIdle { asks.intValue = 1 }
     compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsDisplayed()
-    InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
+    Espresso.pressBack()
 
     compose.onNodeWithContentDescription(HOVER_DESCRIPTION).assertIsNotDisplayed()
   }
@@ -129,6 +149,7 @@ class SymbolInfoPopupTest {
 
   private fun setContent(
     symbolAsk: MutableIntState,
+    boxed: Boolean = false,
     hoverAt: suspend (code: String, cursorOffset: Int) -> LanguageHover? = { _, _ -> HOVER },
   ): TextFieldState {
     lateinit var field: TextFieldState
@@ -139,6 +160,7 @@ class SymbolInfoPopupTest {
           CodeCellField(
             state = field,
             onSourceEdited = {},
+            modifier = if (boxed) Modifier.fillMaxWidth().cellEditorBox(editing = true) else Modifier,
             hoverAt = hoverAt,
             symbolAsk = symbolAsk.intValue,
           )

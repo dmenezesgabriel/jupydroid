@@ -79,7 +79,8 @@ internal fun attributionOf(diagnostic: CellDiagnostic): String? =
 /**
  * The rect the card anchors to - the whole of [line]'s row across the gutter, so the card
  * opens just beside where the code starts rather than on the squiggle the finger is on.
- * Null when [line] names no logical line of [layout]'s text.
+ * In the text's own coordinates the gutter column lies *left* of x=0, hence the negative
+ * left edge. Null when [line] names no logical line of [layout]'s text.
  */
 internal fun diagnosticLineRect(layout: TextLayoutResult, starts: List<Int>, line: Int, gutterPx: Int): IntRect? {
   val index = line - 1
@@ -87,7 +88,7 @@ internal fun diagnosticLineRect(layout: TextLayoutResult, starts: List<Int>, lin
   val top = layout.getLineTop(layout.getLineForOffset(starts[index]))
   val lastOffset = if (index + 1 < starts.size) starts[index + 1] - 1 else layout.layoutInput.text.length
   val bottom = layout.getLineBottom(layout.getLineForOffset(lastOffset.coerceAtLeast(starts[index])))
-  return IntRect(0, top.toInt(), gutterPx, bottom.toInt())
+  return IntRect(-gutterPx, top.toInt(), 0, bottom.toInt())
 }
 
 /**

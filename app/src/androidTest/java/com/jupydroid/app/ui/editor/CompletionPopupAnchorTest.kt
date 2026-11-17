@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
@@ -36,6 +38,8 @@ import org.junit.runner.RunWith
 class CompletionPopupAnchorTest {
   @get:Rule val compose = createComposeRule()
 
+  private var keyboard: SoftwareKeyboardController? = null
+
   @Test
   fun theCompletionListsTopClearsTheBottomOfItsCaret() {
     setContent()
@@ -48,6 +52,18 @@ class CompletionPopupAnchorTest {
     }
     compose.onNodeWithContentDescription(COMPLETIONS_DESCRIPTION).assertIsDisplayed()
 
+    // The keyboard that focus brought up takes the window's bottom half, so the list finds room
+    // neither below the caret nor above it and the provider's pin-to-top fallback covers the
+    // line - a placement failure the anchor has nothing to do with. Hiding it gives the
+    // placement its room back; the window manager repositions the popup off the test's clock,
+    // so the bounds are polled until the popup lands.
+    compose.runOnIdle { keyboard?.hide() }
+    compose.waitForIdle()
+    compose.waitUntil(POPUP_TIMEOUT_MS) {
+      compose.onNodeWithContentDescription(COMPLETIONS_DESCRIPTION).fetchSemanticsNode().boundsOnScreen().top >=
+        compose.onNodeWithText(QUERY).fetchSemanticsNode().boundsOnScreen().bottom - 1
+    }
+
     val popup = compose.onNodeWithContentDescription(COMPLETIONS_DESCRIPTION).fetchSemanticsNode().boundsOnScreen()
     val inner = compose.onNodeWithText(QUERY).fetchSemanticsNode().boundsOnScreen()
     val box = compose.onNodeWithTag(FIELD_TAG).fetchSemanticsNode().boundsOnScreen()
@@ -58,6 +74,7 @@ class CompletionPopupAnchorTest {
   private fun setContent(): TextFieldState {
     val field = TextFieldState(QUERY, TextRange(QUERY.length))
     compose.setContent {
+      keyboard = LocalSoftwareKeyboardController.current
       JupyterDroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH).testTag(FIELD_TAG)) {
           CodeCellField(

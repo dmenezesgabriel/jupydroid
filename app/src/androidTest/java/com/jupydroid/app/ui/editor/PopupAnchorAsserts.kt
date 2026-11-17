@@ -48,3 +48,26 @@ internal fun assertPopupAlignedToAnchor(
     abs(popup.left - expectedLeft) <= 1f,
   )
 }
+
+/**
+ * A caret-anchored card rests an edge on the caret's line: placed below (the default) its top
+ * lands on the line's bottom; placed above (signature help's preference) its bottom lands on the
+ * line's top. Read exactly, in the screen's space - the padding defect [assertPopupAlignedToAnchor]
+ * names shows as the same one-padding gap no matter which side the card flipped to, where a
+ * one-sided `top >= bottom` could not see a card that flipped up.
+ *
+ * Callers poll on [popupEdgeOnAnchorLine] first: while the IME is still sliding, the anchor's
+ * last `onGloballyPositioned` can lag the text node's settled bounds by a frame or two, and a
+ * single snapshot reads the popup mid-move.
+ */
+internal fun assertPopupEdgeOnAnchorLine(popup: Rect, inner: Rect) {
+  assertTrue(
+    "neither popup.top=${popup.top} on the caret's bottom ${inner.bottom} nor " +
+      "popup.bottom=${popup.bottom} on its top ${inner.top}: the gap is the space the " +
+      "popup's anchor sits in",
+    popupEdgeOnAnchorLine(popup, inner),
+  )
+}
+
+internal fun popupEdgeOnAnchorLine(popup: Rect, inner: Rect): Boolean =
+  abs(popup.top - inner.bottom) <= 1f || abs(popup.bottom - inner.top) <= 1f

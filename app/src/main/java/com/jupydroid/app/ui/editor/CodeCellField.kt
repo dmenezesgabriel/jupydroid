@@ -238,6 +238,25 @@ fun CodeCellField(
         outputTransformation = remember(highlighter, styles, matched, searchStyles) {
           HighlightTransformation(highlighter, styles, focused, matched, searching, searchStyles)
         },
+        decorator = { innerTextField ->
+          Box {
+            innerTextField()
+            CellPopups(
+              state = state,
+              layout = layout,
+              gutter = gutter,
+              diagnostics = diagnostics,
+              completions = completions,
+              settled = settled,
+              onSettled = { settled = it },
+              detailLine = detailLine,
+              onDetailDismissed = { detailLine = null },
+              hover = hover,
+              onHoverDismissed = { hover = null },
+              signatureHelp = signatureHelp,
+            )
+          }
+        },
       )
     }
     if (!wrapEnabled) {
@@ -253,70 +272,93 @@ fun CodeCellField(
         stoppedLine = stoppedLine,
       )
     }
-    val offered = completions?.takeIf { it.query.code != settled }
-    if (offered != null && layout != null) {
-      CompletionPopup(
-        completions = offered,
-        caret = caretRect(layout, offered.query.cursorOffset, gutter, scroll.value),
-        onPick = { match ->
-          applyCompletion(state, offered, match)
-          settled = state.text.toString()
-        },
-        onDismiss = { settled = offered.query.code },
-      )
-    }
-    val gutterPx = with(LocalDensity.current) { gutter.roundToPx() }
-    val detail = detailLine?.let { line ->
-      diagnostics.filter { it.line == line }.takeIf { it.isNotEmpty() }?.let { line to it }
-    }
-    val anchor = detail?.let { (line, _) ->
-      layout?.let { diagnosticLineRect(it, logicalLineStarts(state.text), line, gutterPx) }
-    }
-    if (detail != null && anchor != null) {
-      DiagnosticDetailPopup(detail.second, anchor) { detailLine = null }
-    }
-    hover?.let {
-      HoverPopup(
-        hover = it,
-        caret = caretRect(layout, state.selection.end, gutter, scroll.value),
-        onDismiss = { hover = null },
-      )
-    }
-    signatureHelp?.let {
-      SignatureHelpPopup(
-        cellHelp = it,
-        caret = caretRect(layout, it.query.cursorOffset, gutter, scroll.value),
-      )
-    }
   }
 }
 
 /**
- * Where the text cursor is within this field, gutter included.
+ * The four popups a cell emits over its own text: the completion list, a finding's detail card,
+ * the hover card and the signature-help card.
+ *
+ * They are emitted inside the field's `decorator` because a `Popup` anchors on the layout node
+ * it is emitted under, and here that node's origin IS the text's own - inside every padding the
+ * caller's modifier adds (`cellEditorBox`), inside the gutter's start padding and inside
+ * `horizontalScroll`. A caret or line rect in `TextLayoutResult` coordinates then needs nothing
+ * added and nothing subtracted. Emitted beside the field they anchored on the padded Box
+ * instead, and the card's top sat one padding inside the line it described - `PopupAnchorAsserts`
+ * reads the same bounds on screen.
+ */
+@Composable
+private fun CellPopups(
+  state: TextFieldState,
+  layout: TextLayoutResult?,
+  gutter: Dp,
+  diagnostics: List<CellDiagnostic>,
+  completions: CellCompletions?,
+  settled: String?,
+  onSettled: (String) -> Unit,
+  detailLine: Int?,
+  onDetailDismissed: () -> Unit,
+  hover: LanguageHover?,
+  onHoverDismissed: () -> Unit,
+  signatureHelp: CellSignatureHelp?,
+) {
+  val offered = completions?.takeIf { it.query.code != settled }
+  if (offered != null && layout != null) {
+    CompletionPopup(
+      completions = offered,
+      caret = caretRect(layout, offered.query.cursorOffset),
+      onPick = { match ->
+        applyCompletion(state, offered, match)
+        onSettled(state.text.toString())
+      },
+      onDismiss = { onSettled(offered.query.code) },
+    )
+  }
+  val gutterPx = with(LocalDensity.current) { gutter.roundToPx() }
+  val detail = detailLine?.let { line ->
+    diagnostics.filter { it.line == line }.takeIf { it.isNotEmpty() }?.let { line to it }
+  }
+  val anchor = detail?.let { (line, _) ->
+    layout?.let { diagnosticLineRect(it, logicalLineStarts(state.text), line, gutterPx) }
+  }
+  if (detail != null && anchor != null) {
+    DiagnosticDetailPopup(detail.second, anchor, onDetailDismissed)
+  }
+  if (hover != null && layout != null) {
+    HoverPopup(
+      hover = hover,
+      caret = caretRect(layout, state.selection.end),
+      onDismiss = onHoverDismissed,
+    )
+  }
+  if (signatureHelp != null && layout != null) {
+    SignatureHelpPopup(
+      cellHelp = signatureHelp,
+      caret = caretRect(layout, signatureHelp.query.cursorOffset),
+    )
+  }
+}
+
+/**
+ * Where the text cursor is within this field, in the text's own coordinates.
  *
  * The whole rect rather than just its bottom edge: the popup needs the *top* too, so it can sit
  * above the caret when there is no room below without covering the character being completed.
  *
- * [TextLayoutResult.getCursorRect] answers in the text's own coordinates, which start at the
- * gutter's right edge rather than at the cell's left - and, once [scrollOffsetPx] is nonzero
- * (`wrapEnabled = false`), further right than where the code is actually
- * drawn on screen.
+ * No gutter or scroll term is added: the popup is emitted inside the field's `decorator`, whose
+ * anchor's origin is the text layout's own - so [TextLayoutResult.getCursorRect]'s answer is
+ * already in the space the `Popup` positions against.
  */
-@Composable
-private fun caretRect(layout: TextLayoutResult?, cursorOffset: Int, gutter: Dp, scrollOffsetPx: Int = 0): IntRect {
-  val gutterPx = with(LocalDensity.current) { gutter.roundToPx() }
+private fun caretRect(layout: TextLayoutResult?, cursorOffset: Int): IntRect {
   val rect = layout?.getCursorRect(cursorOffset.coerceIn(0, layout.layoutInput.text.length))
-    ?: return IntRect(gutterPx, 0, gutterPx, 0).shiftedBy(scrollOffsetPx)
+    ?: return IntRect(0, 0, 0, 0)
   return IntRect(
-    left = gutterPx + rect.left.toInt(),
+    left = rect.left.toInt(),
     top = rect.top.toInt(),
-    right = gutterPx + rect.right.toInt(),
+    right = rect.right.toInt(),
     bottom = rect.bottom.toInt(),
-  ).shiftedBy(scrollOffsetPx)
+  )
 }
-
-/** This rect translated [dxPx] left - the caret's own drift once its field has scrolled that far. */
-internal fun IntRect.shiftedBy(dxPx: Int): IntRect = IntRect(left - dxPx, top, right - dxPx, bottom)
 
 /**
  * `_openReference`'s three moves (`goToCommands.ts`) as the field-side effect they are:
