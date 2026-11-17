@@ -91,11 +91,10 @@ every `androidTest` class, including the arm64 Space probes that `assumeTrue`-sk
 
 ## Open decisions
 
-- Whether the repo comments claiming `currentWindowAdaptiveInfo()` ignores
-  `DeviceConfigurationOverride` are wrong for adaptive 1.3.0: upstream converts `containerSize` with
-  `LocalDensity.current`, which `ForcedSize` overrides, so the forced size should reach
-  `paneScaffoldDirective()`. T2 proves it red→green on the device; comments found wrong are
-  corrected in the task that proves it.
+- ~~Whether the repo comments claiming `currentWindowAdaptiveInfo()` ignores
+  `DeviceConfigurationOverride` are wrong for adaptive 1.3.0~~ **answered by T2: they were.**
+  `ForcedSize(900dp)` at dev36's 320dp made `paneScaffoldDirective()` report two partitions — 33
+  tests green across the touched classes — and the eleven sites carrying the claim were corrected.
 - Whether more than `GAP-182`'s list fails at HEAD — the later whole-suite run says ~21. T6 owns the
   whole-suite sweep; a straggler becomes its own task here or its own JD.
 
@@ -128,7 +127,7 @@ driver now resets it before instrumenting, and this table reads the 320×640 run
   over the suite or a `-e class` list, verdict read off the log), then `GAP-182`'s classes re-run at
   HEAD on `dev36` with `-gpu swiftshader_indirect` and each failure classified
   defect / window / flake, recorded in this PRD.
-- [ ] T2 — the window group: `ForcedSize` wrap per file (DeletedTab, LauncherAutoCreate,
+- [x] T2 — the window group: `ForcedSize` wrap per file (DeletedTab, LauncherAutoCreate,
   MultiDocumentNavigation, OpenDocumentMarking, RecreatedPathTab, RenamedTabBeneath,
   SpacesHomeNavigation, TabStripRecreation), each red→green on the driver; the `measured` comments
   corrected where T1's read proved them wrong.
