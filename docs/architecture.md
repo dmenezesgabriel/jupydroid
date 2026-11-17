@@ -2389,6 +2389,22 @@ Not known: whether a tap at the same point closes the tab on a device as it does
 of the references leaves room beside its close button on a phone. The repair reads both, then either narrows the
 close target or raises the tab's floor, with a test that presses the centre of a minimum-width tab.
 
+### GAP-211 — A cold `dev36` boot raises SystemUI's "isn't responding" dialog, and the repairs so far clear it rather than prevent it
+
+Seen on a cold boot of `dev36` (`-no-window -gpu swiftshader_indirect`) from 2026-11-03 to 2026-11-17: Maestro flows stopped
+at it over the Spaces home on four days, and the instrumented suite ran its whole length under it
+(`mCurrentFocus` was `Application Not Responding: com.android.systemui` in 789 of 789 samples taken every 2 s),
+which is why four focus tests that need the root's focus failed alone while Compose-only assertions passed.
+What was tried and what it showed: clearing the dialog returns it; an idle wait of 45, 120, 180 and 300 s after
+`sys.boot_completed` gave three clean runs and three with the dialog; a host at load 1.2 with every job slot free
+still raised it, so a loaded host does not explain it; one failure frame showed Play services' DroidGuard and Pay
+tasks running 60 s after boot on the `google_apis` image. `am instrument` alone ran clean five times on one day.
+`scripts/clear_system_anr.py` now presses the dialog's `Wait` before the suite and the driver refuses to start if
+one stays up; that bounds the damage and does not say why it appears. Not known: why `~/.android/avd/dev36.avd/config.ini`
+says `hw.ramSize = 96M` while the last boot's `hardware-qemu.ini` reads 2560, or which of the candidate causes
+accounts for it. The repair changes one candidate at a time against the same number of cold boots and keeps the setting
+that gives none in a sample large enough to be believed.
+
 ---
 
 ## 12. Glossary
