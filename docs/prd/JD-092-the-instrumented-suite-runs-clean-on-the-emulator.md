@@ -121,6 +121,22 @@ driver now resets it before instrumenting, and this table reads the 320×640 run
 | **measurement** — not obviously window-shaped | `TerminalPaneScreenTest`: the terminal shrank 24 rows for a 600px keyboard where ~33 was claimed |
 | green at HEAD | `ConsoleInputRowTest`'s 14 others, `ChatSidePanelTest.aReaderScrolledUpIsLeftWhereTheyAre` (red only under the stale 360px override), `SpacesHomeNavigationTest`'s 5 others |
 
+## The focus failures (T4, `dev36`, `-no-window -gpu swiftshader_indirect`)
+
+Cause: `mCurrentFocus` was `Application Not Responding: com.android.systemui` in **789 of 789** samples,
+one every 2 s from before the first test to the last. Espresso's `pressBack` and `closeSoftKeyboard` need
+the root to have window focus and failed with `has-window-focus=false`; Compose-only assertions do not,
+which is why only those calls failed. Each of the four failed alone too, so the PRD's "re-run alone
+passes" was a run on which the dialog was not up. The same run's two "Process crashed" class runs
+(`LauncherAutoCreateTest`, `SpacesHomeNavigationTest`) and `ChatSidePanelTest.aDroppedChat…` (a
+`waitUntil` timeout) passed once the dialog was gone.
+
+What removes it: a force-stop of SystemUI and of `settings.intelligence` removed it in none of three
+runs, and the run with two dialogs stacked (SystemUI's and the launcher's) lost the package service after
+one; one press on "Wait" removed it. `adb shell uiautomator dump /dev/tty` returns only a one-line notice,
+`adb exec-out` returns the XML. After the repair: the four classes `OK (56 tests)` on three consecutive
+driver runs, the first starting with the dialog up.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -137,8 +153,10 @@ driver now resets it before instrumenting, and this table reads the 320×640 run
   never drew. Neither: the long press at the centre of an 80dp tab landed on the close button's 48dp
   target and closed the tab, so the test now presses a quarter of the way in and the product's
   defect is `GAP-210`.
-- [ ] T4 — the focus flakes, now four: cause named (`-no-window`'s focus or an app bug), then the
-  smallest honest answer — a retry that names the cause, or a mechanism that needs none.
+- [x] T4 — the focus flakes, now four: cause named (`-no-window`'s focus or an app bug), then the
+  smallest honest answer — a retry that names the cause, or a mechanism that needs none. Neither:
+  SystemUI's "isn't responding" dialog held window focus for the whole run (see "The focus failures"),
+  so the driver clears it before instrumenting and the four tests are unchanged.
 - [ ] T5 — `TerminalPaneScreenTest`, `ConsoleInputRowTest`, `CellOutputImageTest`: each read and
   repaired for the window it needs.
 - [ ] T6 — the whole suite on `dev36`, `OK` in the instrument log; stragglers beyond `GAP-182`'s

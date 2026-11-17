@@ -21,6 +21,9 @@ import re
 # for these windows.
 _ANR_WINDOW = re.compile(r"Application Not Responding:\s*([A-Za-z0-9_.]+)")
 
+# The framework's "Wait" button. Found by id: its label is localized, its id is not.
+_WAIT_BUTTON = re.compile(r'resource-id="android:id/aerr_wait"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
+
 
 def anr_packages(dumpsys_window: str) -> list[str]:
     """The packages showing an "isn't responding" dialog, in the order they first appear.
@@ -42,3 +45,25 @@ def anr_packages(dumpsys_window: str) -> list[str]:
         if package not in seen:
             seen.append(package)
     return seen
+
+
+def wait_button_center(ui_dump: str) -> tuple[int, int] | None:
+    """Where to press "Wait" on an "isn't responding" dialog, in screen pixels.
+
+    A force-stop does not remove the dialog on dev36: it held window focus for a whole
+    instrumented run after one (`clear_system_anr.py`), and one press on "Wait" removed it.
+
+    >>> wait_button_center('<node resource-id="android:id/aerr_wait" bounds="[0,100][100,200]" />')
+    (50, 150)
+
+    Args:
+        ui_dump: the output of `adb shell uiautomator dump`.
+
+    Returns:
+        The centre of the button, or None when no such dialog is on screen.
+    """
+    found = _WAIT_BUTTON.search(ui_dump)
+    if found is None:
+        return None
+    left, top, right, bottom = (int(edge) for edge in found.groups())
+    return (left + right) // 2, (top + bottom) // 2

@@ -46,6 +46,12 @@ fi
 # claims is the window the device has.
 "${DEVICE_ADB[@]}" shell wm size reset > /dev/null
 
+# SystemUI's "isn't responding" dialog took window focus for a whole run on dev36 (it was up from
+# before the first test to the last), and every Espresso call that needs the root's focus - pressBack,
+# closeSoftKeyboard - failed with `has-window-focus=false` while Compose-only assertions kept passing.
+# The tests are not at fault, so the run does not start with the dialog up.
+clear_system_anr || { echo "a system dialog holds window focus and could not be cleared" >&2; exit 1; }
+
 echo "--- instrument ---"
 "${DEVICE_ADB[@]}" shell am instrument "${instrument_args[@]}" "$RUNNER" 2>&1 |
   tee "$OUT/instrumentation.txt"
@@ -56,5 +62,7 @@ if grep -q "^OK (" "$OUT/instrumentation.txt"; then
   exit 0
 fi
 grep -E "^[0-9]+\) " "$OUT/instrumentation.txt" | head -30
+# Named so a `has-window-focus=false` failure says whose window had it.
+echo "focus at the end: $("${DEVICE_ADB[@]}" shell dumpsys window | grep -m1 mCurrentFocus)" >&2
 echo "FAIL: the suite did not pass; the log is at $OUT/instrumentation.txt" >&2
 exit 1
