@@ -258,6 +258,47 @@ same tests, the same window, the same build. This includes the two the table nam
 `DiagnosticMarkTapTest` at 320, 360 and 412dp: it was 11 of 11 here. Why a 55-minute process turned them red is
 still not known.
 
+## Shard S3 (T6d, `dev36` at 320×640, 2026-11-18)
+
+Cold boot, 180 s idle (load 7.9 at boot, 6.8 after the idle, two other repositories' jobs on `devjob` slots), then
+the driver over S3's seven classes: the runner printed `Tests run: 58,  Failures: 1` in 2 min 44 s. The 58 is every
+test: the `TestRunner: started:` lines in the kept logcat count 27, 9, 3, 4, 3, 7 and 5 for `SearchSidePanelTest`,
+`SearchReplaceAllTest`, `SpaceSettingsDialogDefaultKernelTest`, `…ThreadCapTest`, `…VariablesTest`,
+`FileEditorBreadcrumbTest` and `TabCloseTouchAreaTest`. The focus sampler took 76 samples with no ANR dialog; its 9
+samples without a focused window include two pairs of two in a row (00:41:47 and 00:41:50, 00:41:56 and 00:41:58), at
+the launcher-to-test-activity handoffs between classes, and no failure is a `RootViewWithoutFocusException`. The one
+failure was re-run alone on a second cold boot (same idle, load 12 at boot, 1.3 after the idle):
+
+| Test | Alone | Verdict |
+|---|---|---|
+| `TabCloseTouchAreaTest.aPressBelowTheOnePaneRowStillClosesTheTab` | fails 3 of 3 (once in its class, twice alone), `document presses, tabs closed expected:<(0, 1)> but was:<(0, 0)>` | **defect**, not window, focus or run, and its cause is **not yet read** (see below) |
+
+Counts: 0 window, 1 defect, 0 stale test, and 15 *run*.
+
+**What the failing frame shows.** The test's own claim is that the active tab has been scrolled whole into view, and
+at one pane on a 320dp window it has not. Read from the semantics tree printed at the settled state (px at 160dpi,
+so 1px is 1dp; a temporary `printToLog` in the test, reverted): the strip's row holds the Up arrow (4 to 44), the
+tab scroller (48 to 192, 144 wide), `Reload` (192 to 232), `Save` (232 to 272) and `Spaces` (276 to 316). Two tabs
+at 160dp are 320dp of content, so showing the second whole needs a scroll of 176, and the scroller reads
+`value=160, maxValue=176`. The active tab `a.ipynb` therefore runs 48 to 208 with the last 16dp beyond the scroller's
+edge, its close at 180 to 204. The press the test aims at the close's top-left plus 12dp lands on x=192, the
+scroller's edge, which `Reload` takes (disabled, so it does nothing): no close and no document press, `(0, 0)`.
+The class's doc comment and ADR-0142's one-pane sweep both assume the whole tab is in view; the `Spaces` button at
+one pane (added after both) and `Reload` and `Save` leave the scroller 144dp where two 80dp tabs need 160.
+
+**What is not known.** Why the reveal stops 16dp short. `MainAreaTabStripRevealTest` holds the strip to 320dp but
+at two panes (no Up arrow, no `Spaces`), and passes, so the one-pane row is not covered. `TRAILING_SLOT_WIDTH` is a
+fixed 40dp, so a width that changes between the reveal and the settled layout is not the obvious answer; a reveal
+that ran against a different viewport than the settled one is a lead, not a finding. Whether a person on a phone
+meets it (a tab's right 16dp is under `Reload`, so a tap on the close's right part does nothing) is the same
+question the tree answers: yes, the node is there to be pressed, and the press is taken.
+
+**What S3 says about the 55-failure run.** Its S3 classes failed 16 tests there (`SearchSidePanelTest` 7 `waitUntil`
+timeouts and 1 "not displayed", `SearchReplaceAllTest` 1, `SpaceSettingsDialog*` 5, `FileEditorBreadcrumbTest` 1,
+`TabCloseTouchAreaTest` 1) and 1 here, so 15 of them passed once S3 ran by itself, the same tests, the same window,
+the same build. Across S1 to S3 that is 13, 18 and 15 tests red in the 55-minute process and green in a shard; what
+in the long process turns them red is still not known.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -301,7 +342,11 @@ still not known.
   failure, a stale test (see "Shard S2"). `aWarningMarkIsATriangle_anErrorMarkACircle` is deleted with the helpers
   only it used, since the mark it measured no longer exists; the class reads `OK (2 tests)` on two consecutive
   driver runs in one cold boot, no ANR dialog in either run's focus samples.
-- [ ] T6d — shard S3 (panels and settings).
+- [x] T6d — shard S3 (panels and settings), one cold boot, the one failure re-run alone and classified: 58 tests, 1
+  failure, a defect whose cause is not yet read (see "Shard S3"). No code changed.
+- [ ] T6d2 — `TabCloseTouchAreaTest.aPressBelowTheOnePaneRowStillClosesTheTab`: why the one-pane strip leaves the
+  active tab's last 16dp beyond the scroller (`value=160` of `maxValue=176`), read first; then the strip repaired,
+  this test as its red, and a one-pane case added beside `MainAreaTabStripRevealTest`'s two-pane ones.
 - [ ] T6e — shard S4 (the rest).
 - [ ] T6f — the green classes in shards by package, then the whole suite `OK` in the instrument log;
   stragglers beyond `GAP-182`'s list become tasks or their own JD; delete this PRD and mark `GAP-182`
