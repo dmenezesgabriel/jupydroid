@@ -44,18 +44,19 @@ class MainAreaTabStripRevealTest {
   @get:Rule val compose = createComposeRule()
 
   private val tabs: List<NavKey> = listOf(Launcher, Settings, Terminal("1"), Terminal("2"), Terminal("3"))
-  private val backStack = mutableStateListOf<NavKey>(Explorer(BASE_SPACE.id), *tabs.toTypedArray())
+  private val backStack = mutableStateListOf<NavKey>()
   private val open = OpenDocuments()
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
 
-  private fun stripAtPhoneWidth() {
+  private fun stripAtPhoneWidth(twoPane: Boolean = true, shown: List<NavKey> = tabs) {
+    backStack += listOf(Explorer(BASE_SPACE.id)) + shown
     compose.setContent {
       JupyterDroidTheme {
         Box(Modifier.width(PHONE_WIDTH)) {
           TabbedDocumentPane(
-            backStack, open, paths, tabs, liveTitles, FakeWorkspaceRepository(), FakeWorkspaceFiles(),
-            onCloseTab = {}, onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),
+            backStack, open, paths, shown, liveTitles, FakeWorkspaceRepository(), FakeWorkspaceFiles(),
+            twoPane = twoPane, onCloseTab = {}, onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),
           ) {
             Text("the document")
           }
@@ -89,6 +90,18 @@ class MainAreaTabStripRevealTest {
     stripAtPhoneWidth()
 
     assertTabWhollyVisible("Terminal 3")
+  }
+
+  /**
+   * At one pane the Up arrow, Reload, Save and Spaces leave the scroller 144dp of the 320, so the
+   * two tabs' fair share of the strip's whole width (160dp each) is wider than the row that holds
+   * the active one, and no scroll can show it whole.
+   */
+  @Test
+  fun aTabFitsTheRowTheOnePaneStripLeavesIt() {
+    stripAtPhoneWidth(twoPane = false, shown = listOf(Terminal("1"), Terminal("2")))
+
+    assertTabWhollyVisible("Terminal 2")
   }
 
   @Test

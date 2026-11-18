@@ -271,7 +271,7 @@ failure was re-run alone on a second cold boot (same idle, load 12 at boot, 1.3 
 
 | Test | Alone | Verdict |
 |---|---|---|
-| `TabCloseTouchAreaTest.aPressBelowTheOnePaneRowStillClosesTheTab` | fails 3 of 3 (once in its class, twice alone), `document presses, tabs closed expected:<(0, 1)> but was:<(0, 0)>` | **defect**, not window, focus or run, and its cause is **not yet read** (see below) |
+| `TabCloseTouchAreaTest.aPressBelowTheOnePaneRowStillClosesTheTab` | fails 3 of 3 (once in its class, twice alone), `document presses, tabs closed expected:<(0, 1)> but was:<(0, 0)>` | **defect**, not window, focus or run: `MainAreaTabStrip` sized a tab wider than the row it scrolls in (repaired in T6d2) |
 
 Counts: 0 window, 1 defect, 0 stale test, and 15 *run*.
 
@@ -286,12 +286,16 @@ scroller's edge, which `Reload` takes (disabled, so it does nothing): no close a
 The class's doc comment and ADR-0142's one-pane sweep both assume the whole tab is in view; the `Spaces` button at
 one pane (added after both) and `Reload` and `Save` leave the scroller 144dp where two 80dp tabs need 160.
 
-**What is not known.** Why the reveal stops 16dp short. `MainAreaTabStripRevealTest` holds the strip to 320dp but
-at two panes (no Up arrow, no `Spaces`), and passes, so the one-pane row is not covered. `TRAILING_SLOT_WIDTH` is a
-fixed 40dp, so a width that changes between the reveal and the settled layout is not the obvious answer; a reveal
-that ran against a different viewport than the settled one is a lead, not a finding. Whether a person on a phone
-meets it (a tab's right 16dp is under `Reload`, so a tap on the close's right part does nothing) is the same
-question the tree answers: yes, the node is there to be pressed, and the press is taken.
+**The cause (T6d2).** The reveal was not late or short. A frame-by-frame log of the scroller (a temporary probe,
+deleted) read `scroll=0/176` and a 144dp viewport from the first frame, and the scroll animated to 160 and stopped:
+the tab is 160dp, wider than the 144dp row, so no scroll can show it whole and Compose aligns its leading edge. The
+width is the fault: `MainAreaTabStrip` took each tab's fair share of the *strip's* 320dp, and at one pane the Up arrow,
+`Reload`, `Save` and `Spaces` leave the scroller 144. Two tabs got 160 each; one tab got 216. Sizing the share from the
+scroller instead was tried first and is wrong: it shrinks three tabs from 107dp to the 80dp floor, where a press on the
+centre closes the tab (`GAP-210`), and `MainAreaTabStripTest.clickingATabActivatesItWithoutMovingIt` went red on it
+(88 tests, 1 failure). The repair keeps the strip's share and caps the tab at the scroller's width, so nothing
+changes where a tab already fit. `MainAreaTabStripRevealTest` held the strip to 320dp at two panes only, which is why
+nothing covered it.
 
 **What S3 says about the 55-failure run.** Its S3 classes failed 16 tests there (`SearchSidePanelTest` 7 `waitUntil`
 timeouts and 1 "not displayed", `SearchReplaceAllTest` 1, `SpaceSettingsDialog*` 5, `FileEditorBreadcrumbTest` 1,
@@ -344,9 +348,10 @@ in the long process turns them red is still not known.
   driver runs in one cold boot, no ANR dialog in either run's focus samples.
 - [x] T6d — shard S3 (panels and settings), one cold boot, the one failure re-run alone and classified: 58 tests, 1
   failure, a defect whose cause is not yet read (see "Shard S3"). No code changed.
-- [ ] T6d2 — `TabCloseTouchAreaTest.aPressBelowTheOnePaneRowStillClosesTheTab`: why the one-pane strip leaves the
-  active tab's last 16dp beyond the scroller (`value=160` of `maxValue=176`), read first; then the strip repaired,
-  this test as its red, and a one-pane case added beside `MainAreaTabStripRevealTest`'s two-pane ones.
+- [x] T6d2 — `TabCloseTouchAreaTest.aPressBelowTheOnePaneRowStillClosesTheTab`: the cause read (a tab wider than the
+  row it scrolls in, see "Shard S3"), then repaired with `aTabFitsTheRowTheOnePaneStripLeavesIt` as its red
+  (`Tests run: 9,  Failures: 2` before, both tests the failing ones). The 15 classes that drive the tab strip read
+  `OK (88 tests)` on a cold `dev36` after it. Not run twice in one boot, unlike T6b2: one 88-test run.
 - [ ] T6e — shard S4 (the rest).
 - [ ] T6f — the green classes in shards by package, then the whole suite `OK` in the instrument log;
   stragglers beyond `GAP-182`'s list become tasks or their own JD; delete this PRD and mark `GAP-182`
