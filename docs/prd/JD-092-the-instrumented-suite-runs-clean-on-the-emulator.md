@@ -330,6 +330,24 @@ names no window") and 1 here, so the other 2 passed once S4 ran by itself, the s
 to S4 that is 13, 18, 15 and 2 tests red in the 55-minute process and green in a shard; what in the long
 process turns them red is still not known.
 
+## Shard S5 (T6f1, `dev36` at 320×640, 2026-11-18)
+
+Cold boot, 180 s idle (load 16.1 at boot, 12.4 after the idle, two other repositories' jobs on `devjob` slots, the job
+itself queued 55 minutes behind them), then the driver over S5's 25 classes: the runner printed `OK (143 tests)` in
+332.7 s. The 143 is every test: the `TestRunner: started:` lines in the kept logcat count 143, class by class the
+`@Test`s each file holds (the five `theme` classes hold 14, not the 16 this task first wrote). The APKs were the ones the
+HEAD sources build (`assembleDebug` and `assembleDebugAndroidTest` 125 of 125 tasks up to date at the start of the job:
+`MainAreaTabStrip.kt` last changed 02:52:47 and the app APK built 02:53:38; the licence test last changed 05:15:54 and
+the test APK built 05:24:59). The focus sampler took 155 samples with no ANR dialog; its 22 samples without a focused
+window never run past two in a row, so no stretch longer than about 4 s, and logcat holds no `RootViewWithoutFocusException`,
+"isn't responding" or `Process crashed`.
+
+Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
+
+**What S5 says about the 55-failure run.** None of S5's classes was in that run's 55 failures, so what it adds is
+that a package of 25 classes and 143 tests, among them the 28 of `ExplorerScreenTest` and the 26 of `SpacesHomeScreenTest`,
+runs clean in one 5.5-minute process on the same window. The remaining classes are S6 to S8.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -386,9 +404,9 @@ process turns them red is still not known.
   run's 3,470 s and its stream ended inside its own summary, so each shard is one cold boot and one driver run
   over the classes of its packages that S1 to S4, T5 and the tab-strip run have not already run alone, and
   each is its own task. Stragglers beyond `GAP-182`'s list become tasks or their own JD.
-  - [ ] T6f1 — shard S5: `theme`, `domain/model`, `ui/explorer`, `ui/fileeditor`, `ui/terminal`, `ui/console`,
-    `ui/spaces`, `ui/settings`, `data/intent` and `data/asset` under `com.jupydroid.app` (25 classes, 145
-    `@Test`s; the classes S1 to S4 ran stay out).
+  - [x] T6f1 — shard S5: `theme`, `domain/model`, `ui/explorer`, `ui/fileeditor`, `ui/terminal`, `ui/console`,
+    `ui/spaces`, `ui/settings`, `data/intent` and `data/asset` under `com.jupydroid.app` (25 classes, 143
+    `@Test`s; the classes S1 to S4 ran stay out): `OK (143 tests)` on a cold `dev36`, no failure (see "Shard S5").
   - [ ] T6f2 — shard S6: `data/space` (24 classes).
   - [ ] T6f3 — shard S7: `ui/shell` (45 classes, less the 15 tab-strip classes already `OK`).
   - [ ] T6f4 — shard S8: `ui/editor` (61 classes, less those S1 to S4 ran).
