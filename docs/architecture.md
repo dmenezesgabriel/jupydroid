@@ -2384,7 +2384,8 @@ x=52..76, so Compose's 48dp minimum touch target for it spans x=40..88: the pres
 `a.py` removed `a.py` from the back stack and opened no menu (the tree after it had three tabs at 107dp and no
 second window), at x=39 the menu opened and the stack kept all four, at x=41 `a.py` was gone. The same fact
 reaches a tap, since a tap at x>=40 is the close button's too: the tab's right half activates nothing. At 360dp
-the floor is 90dp and the centre (x=45) is clear of x=50, which is why a 360px `wm size` override had hidden it.
+four tabs share 90dp each and the centre (x=45) is clear of x=50, which is why a 360px `wm size` override with four
+tabs had hidden it; five tabs there are at the 80dp floor and read the same as four at 320dp.
 Not known: whether a tap at the same point closes the tab on a device as it does under injected input, and which
 of the references leaves room beside its close button on a phone. The repair reads both, then either narrows the
 close target or raises the tab's floor, with a test that presses the centre of a minimum-width tab.
