@@ -303,6 +303,33 @@ timeouts and 1 "not displayed", `SearchReplaceAllTest` 1, `SpaceSettingsDialog*`
 the same build. Across S1 to S3 that is 13, 18 and 15 tests red in the 55-minute process and green in a shard; what
 in the long process turns them red is still not known.
 
+## Shard S4 (T6e, `dev36` at 320×640, 2026-11-18)
+
+Cold boot, 180 s idle (load 12.6 at boot, 9.9 after the idle, three other repositories' jobs on `devjob` slots), then
+the driver over S4's three classes: the runner printed `Tests run: 18,  Failures: 1` in 57 s. The 18 is every test:
+the `TestRunner: started:` lines in the kept logcat count 10, 7 and 1 for `TerminalExtraKeysRowTest`,
+`ConsoleTranscriptViewTest` and `BundledLicenceAssetsTest`. The focus sampler took 27 samples with no ANR dialog; its 3
+samples without a focused window (05:14:29, :35 and :38) are single samples between classes, never two in a row, and
+the failure is one assertion, not a `RootViewWithoutFocusException`. The APKs were the ones the HEAD sources build
+(`assembleDebug` and `assembleDebugAndroidTest` up to date at the start of the job).
+
+| Test | Result | Verdict |
+|---|---|---|
+| `BundledLicenceAssetsTest.everyDocumentIsTheRepositoryFileItsTitleNames` | fails at `BundledLicenceAssetsTest.kt:41`, `Source offer` does not contain `written offer` | **stale test**, not window and not run: the assertion reads the bundled `SOURCE_OFFER.md`, which `e79bdaa31` (2026-11-03, "point the source offer at the public source and promise no copy") rewrote to say `This project keeps no copy of that source and sends none`; the test's last change (`b066874c4`) predates it. It reads no window and no focus, so no alone-run could change the verdict; the repaired class is the alone-run |
+
+Counts: 0 window, 0 defect, 1 stale test, and 2 *run*.
+
+**The repair.** The test's claim is that each bundled document is the repository file its title names, so it asserts
+the file's own heading, `Source for the GPL and LGPL parts of the APK`, instead of wording the file dropped. After it
+the class read `OK (1 test)` on a second cold `dev36` (same 180 s idle, load 11.2 after it, no ANR dialog in its 2
+focus samples), the build having executed 4 tasks, among them the test APK's compile.
+
+**What S4 says about the 55-failure run.** Its S4 classes failed 3 tests there (`TerminalExtraKeysRowTest`,
+`ConsoleTranscriptViewTest` and `BundledLicenceAssetsTest`, one each, all under "a result is wrong and the message
+names no window") and 1 here, so the other 2 passed once S4 ran by itself, the same tests, the same window. Across S1
+to S4 that is 13, 18, 15 and 2 tests red in the 55-minute process and green in a shard; what in the long
+process turns them red is still not known.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -352,7 +379,9 @@ in the long process turns them red is still not known.
   row it scrolls in, see "Shard S3"), then repaired with `aTabFitsTheRowTheOnePaneStripLeavesIt` as its red
   (`Tests run: 9,  Failures: 2` before, both tests the failing ones). The 15 classes that drive the tab strip read
   `OK (88 tests)` on a cold `dev36` after it. Not run twice in one boot, unlike T6b2: one 88-test run.
-- [ ] T6e — shard S4 (the rest).
+- [x] T6e — shard S4 (the rest), one cold boot: 18 tests, 1 failure, a stale test (see "Shard S4"). The assertion
+  on `SOURCE_OFFER.md`'s dropped wording now names the file's heading; the class reads `OK (1 test)` on a second cold
+  `dev36`.
 - [ ] T6f — the green classes in shards by package, then the whole suite `OK` in the instrument log;
   stragglers beyond `GAP-182`'s list become tasks or their own JD; delete this PRD and mark `GAP-182`
   closed. **Not done:** the first whole-suite run finished with 55 failures (see "The first whole-suite
