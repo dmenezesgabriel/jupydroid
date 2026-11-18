@@ -17,6 +17,7 @@ Booting the emulator is the driver's job (`dev36-anr-boot-driver.sh`); this read
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -32,6 +33,10 @@ _INTERVAL_SECONDS = 2.0
 # Long enough to hold the 60 s after boot in which Play services' tasks were seen running, and the
 # 180 s idle that a clean run still needed.
 _WINDOW_SECONDS = 240.0
+
+# The floor below which an arm stops: `/` was 99% full (3.4 GB free) when the snapshot arm was planned, and a
+# snapshot's ram.bin alone is about 2.3 GB.
+_MINIMUM_FREE_BYTES = 1_000_000_000
 
 _LOADAVG_SHAPE = "<1 min> <5 min> <15 min> <running>/<total> <last pid>"
 
@@ -82,6 +87,26 @@ def read_load(proc_loadavg: str) -> float:
         return float(proc_loadavg.split()[0])
     except (IndexError, ValueError) as failure:
         raise ValueError(f"not /proc/loadavg: {proc_loadavg!r}; expected {_LOADAVG_SHAPE}") from failure
+
+
+def require_room(read_free_bytes: Callable[[], int], minimum_bytes: int) -> None:
+    """Fails when the disk a boot writes to has less free than `minimum_bytes`.
+
+    A snapshot save and each boot grow files under the AVD on a root disk that was 99% full, so a count
+    stops before the disk does rather than leaving a half-written snapshot.
+
+    Example: `require_room(lambda: shutil.disk_usage("/").free, 1_000_000_000)`.
+
+    Args:
+        read_free_bytes: returns the bytes free now; injected so a test needs no full disk.
+        minimum_bytes: the floor.
+
+    Raises:
+        ValueError: less is free than the floor; the message quotes both figures.
+    """
+    free = read_free_bytes()
+    if free < minimum_bytes:
+        raise ValueError(f"{free} bytes free, expected at least {minimum_bytes}")
 
 
 def watch_boot(
@@ -140,6 +165,19 @@ def _parse_boot(line: str) -> BootSample:
         raise ValueError(f"not a boot line: {line!r}; expected {_LINE_SHAPE}") from failure
 
 
+def is_clean_boot(line: str) -> bool:
+    """Whether a boot's line shows the dialog at none of its reads.
+
+    A snapshot taken from a boot that is not clean carries the dialog into every boot that restores it.
+
+    Example: `is_clean_boot(boot_line(sample))` is True for a sample with `dialog_samples == 0`.
+
+    Raises:
+        ValueError: the line is not a boot; the message quotes it and the shape expected.
+    """
+    return _parse_boot(line).dialog_samples == 0
+
+
 def summarise_boots(lines: list[str]) -> str:
     """Says per candidate how many boots had a dialog, and how busy the host got while they ran.
 
@@ -184,6 +222,20 @@ def _watch(parsed: argparse.Namespace) -> int:
     return 0
 
 
+def _room(parsed: argparse.Namespace) -> int:
+    try:
+        require_room(lambda: shutil.disk_usage(parsed.path).free, parsed.minimum_bytes)
+    except ValueError as failure:
+        print(f"{parsed.path}: {failure}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _clean(parsed: argparse.Namespace) -> int:
+    last = Path(parsed.file).read_text().splitlines()[-1]
+    return 0 if is_clean_boot(last) else 1
+
+
 def _count(parsed: argparse.Namespace) -> int:
     print(summarise_boots(Path(parsed.file).read_text().splitlines()))
     return 0
@@ -203,6 +255,13 @@ def _parser() -> argparse.ArgumentParser:
     count = commands.add_parser("count", help="sum a jsonl file per candidate")
     count.add_argument("file", help="the file `watch` appended to")
     count.set_defaults(run=_count)
+    clean = commands.add_parser("clean", help="exit 1 when the last boot in a jsonl file showed the dialog")
+    clean.add_argument("file", help="the file `watch` appended to")
+    clean.set_defaults(run=_clean)
+    room = commands.add_parser("room", help="exit 1 when the disk holding a path has too little free")
+    room.add_argument("--path", default="/", help="any path on the disk to read")
+    room.add_argument("--minimum-bytes", type=int, default=_MINIMUM_FREE_BYTES, help="the floor, in bytes")
+    room.set_defaults(run=_room)
     return parser
 
 

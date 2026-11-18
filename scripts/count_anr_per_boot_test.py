@@ -7,7 +7,15 @@ some boots and not on others, and nothing had counted which.
 import json
 import unittest
 
-from count_anr_per_boot import BootSample, boot_line, read_load, summarise_boots, watch_boot
+from count_anr_per_boot import (
+    BootSample,
+    boot_line,
+    is_clean_boot,
+    read_load,
+    require_room,
+    summarise_boots,
+    watch_boot,
+)
 
 NO_DIALOG = "mCurrentFocus=Window{1 u0 com.jupydroid.app/.MainActivity}\n"
 SYSTEMUI_DIALOG = "mCurrentFocus=Window{1 u0 Application Not Responding: com.android.systemui}\n"
@@ -99,6 +107,38 @@ class ReadLoadTest(unittest.TestCase):
 
         self.assertIn("'cannot open /proc/loadavg'", str(raised.exception))
         self.assertIn("<1 min> <5 min> <15 min>", str(raised.exception))
+
+
+class RequireRoomTest(unittest.TestCase):
+    def test_room_above_the_floor_passes(self):
+        require_room(lambda: 3_400_000_000, minimum_bytes=1_000_000_000)
+
+    def test_room_at_the_floor_passes(self):
+        require_room(lambda: 1_000_000_000, minimum_bytes=1_000_000_000)
+
+    def test_room_under_the_floor_names_both_figures(self):
+        with self.assertRaises(ValueError) as raised:
+            require_room(lambda: 999_999_999, minimum_bytes=1_000_000_000)
+
+        self.assertIn("999999999", str(raised.exception))
+        self.assertIn("1000000000", str(raised.exception))
+
+
+class IsCleanBootTest(unittest.TestCase):
+    def _line(self, dialog_samples: int) -> str:
+        return boot_line(BootSample("settle", 1, 5, dialog_samples, None, [], 0.5, 1.0))
+
+    def test_a_boot_that_never_showed_the_dialog_is_clean(self):
+        self.assertTrue(is_clean_boot(self._line(0)))
+
+    def test_a_boot_that_showed_the_dialog_once_is_not_clean(self):
+        self.assertFalse(is_clean_boot(self._line(1)))
+
+    def test_a_line_that_is_not_a_boot_names_itself_and_the_shape(self):
+        with self.assertRaises(ValueError) as raised:
+            is_clean_boot("not json")
+
+        self.assertIn("'not json'", str(raised.exception))
 
 
 class SummariseBootsTest(unittest.TestCase):
