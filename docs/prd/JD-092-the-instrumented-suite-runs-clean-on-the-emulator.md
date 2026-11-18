@@ -370,6 +370,28 @@ Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
 **What S6 says about the 55-failure run.** None of S6's classes was in that run's 55 failures, so it adds no
 attribution either way. The remaining classes are S7 and S8.
 
+## Shard S7 (T6f3, `dev36` at 320×640, 2026-11-18)
+
+Cold boot, 180 s idle (load 7.3 at boot, 3.4 after the idle, one other repository's job on a `devjob` slot), then the
+driver over S7's 28 classes of `ui/shell`: the runner printed `OK (177 tests)` in 261.0 s. The 177 is every test: the
+`TestRunner: started:` lines in the kept logcat count 177, and the `@Test`s each of the 28 files holds sum to 177. The
+PRD's "45 classes, less the 15 tab-strip classes" was arithmetic that did not hold: the package has 45 files with a
+`@Test`, 13 of the 15 tab-strip classes are in it (the other two, `EditorCloseGateTest` and `FileEditorCloseGateTest`,
+are in `ui/editor` and `ui/fileeditor`), and S1 to S3 had also run `ChatSidePanelTest`, `RunningSidePanelTest`,
+`SearchSidePanelTest` and `SearchReplaceAllTest`, so the shard is 45 - 13 - 4 = 28. The APKs were the ones the HEAD
+sources build (no file under `app/src`, `extension-api` or `extensions` is newer than the test APK, built 05:24:59, and
+`assembleDebug` and `assembleDebugAndroidTest` finished in 22 s). The focus sampler took 126 samples with no ANR dialog;
+its 10 samples without a focused window are never two in a row, so no stretch longer than one sample, and logcat holds no
+`RootViewWithoutFocusException`, "isn't responding", `Process crashed` or `FATAL EXCEPTION`. The window read 320x640
+before the run and `font_scale` read 1.0 at teardown.
+
+Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
+
+**What S7 says about the 55-failure run.** The classes of `ui/shell` that run found failing were `ChatSidePanelTest`
+(S1), `RunningSidePanelTest` (S2), the two search classes and `TabCloseTouchAreaTest` (S3), all run in those shards and
+not here, so none of S7's 28 was among its failures. What S7 adds is that 28 classes and 177 tests, among them the 25 of `ChatListSidePanelTest` and
+the 15 of `SidePanelBarTest`, run clean in one 4.4-minute process on the same window.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -431,7 +453,8 @@ attribution either way. The remaining classes are S7 and S8.
     `@Test`s; the classes S1 to S4 ran stay out): `OK (143 tests)` on a cold `dev36`, no failure (see "Shard S5").
   - [x] T6f2 — shard S6: `data/space` (22 classes, 78 `@Test`s; the other two files are helpers): `OK (78 tests)`
     on a cold `dev36`, no failure (see "Shard S6").
-  - [ ] T6f3 — shard S7: `ui/shell` (45 classes, less the 15 tab-strip classes already `OK`).
+  - [x] T6f3 — shard S7: `ui/shell` (28 classes, 177 `@Test`s; the 13 tab-strip classes and the 4 classes S1 to S3
+    ran stay out): `OK (177 tests)` on a cold `dev36`, no failure (see "Shard S7").
   - [ ] T6f4 — shard S8: `ui/editor` (61 classes, less those S1 to S4 ran).
   - [ ] T6f5 — the close: every shard `OK` together (this item's own ship rule), delete this PRD, mark `GAP-182`
     closed, edit the backlog row. **Not done:** the first whole-suite run finished with 55 failures (see "The
