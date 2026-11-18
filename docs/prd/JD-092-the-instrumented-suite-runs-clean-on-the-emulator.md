@@ -348,6 +348,28 @@ Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
 that a package of 25 classes and 143 tests, among them the 28 of `ExplorerScreenTest` and the 26 of `SpacesHomeScreenTest`,
 runs clean in one 5.5-minute process on the same window. The remaining classes are S6 to S8.
 
+## Shard S6 (T6f2, `dev36` at 320×640, 2026-11-18)
+
+Cold boot, 180 s idle (load 19.1 at boot, 22.9 after the idle: the emulator's own four cores plus two other
+repositories' jobs on `devjob` slots, the job itself queued behind them), then the driver over the 22 classes of
+`data/space` that hold a `@Test`: the runner printed `OK (78 tests)` in 2.568 s. The 78 is every test: the
+`TestRunner: started:` lines in the kept logcat count 78, class by class the `@Test`s each file holds. The PRD's "24
+classes" counted `BaseSpaceUnderTest` and `PrivateRootUnderTest`, two helpers with no `@Test`, so the shard is 22. The APKs
+were the ones the HEAD sources build (no file under `app/src`, `extension-api` or `extensions` is newer than the test
+APK, built 05:24:59). The focus sampler took 4 samples with no ANR dialog; logcat holds no
+`RootViewWithoutFocusException`, "isn't responding", `Process crashed` or `FATAL EXCEPTION`. `font_scale` read 1.0 before
+the emulator was killed.
+
+**What this run does not show.** 2.568 s for 78 tests says most of them returned at an `assumeTrue` that the x86_64
+emulator fails by design (19 of the package's files hold one; the arm64 Space probes are out of scope below), and the
+log does not count them, so how many ran their body is not measured here. What `OK` states is that the package loads,
+starts and does not crash or lose focus on `dev36`, not that the Space runtime works: that is the tablet's question.
+
+Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
+
+**What S6 says about the 55-failure run.** None of S6's classes was in that run's 55 failures, so it adds no
+attribution either way. The remaining classes are S7 and S8.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -407,7 +429,8 @@ runs clean in one 5.5-minute process on the same window. The remaining classes a
   - [x] T6f1 — shard S5: `theme`, `domain/model`, `ui/explorer`, `ui/fileeditor`, `ui/terminal`, `ui/console`,
     `ui/spaces`, `ui/settings`, `data/intent` and `data/asset` under `com.jupydroid.app` (25 classes, 143
     `@Test`s; the classes S1 to S4 ran stay out): `OK (143 tests)` on a cold `dev36`, no failure (see "Shard S5").
-  - [ ] T6f2 — shard S6: `data/space` (24 classes).
+  - [x] T6f2 — shard S6: `data/space` (22 classes, 78 `@Test`s; the other two files are helpers): `OK (78 tests)`
+    on a cold `dev36`, no failure (see "Shard S6").
   - [ ] T6f3 — shard S7: `ui/shell` (45 classes, less the 15 tab-strip classes already `OK`).
   - [ ] T6f4 — shard S8: `ui/editor` (61 classes, less those S1 to S4 ran).
   - [ ] T6f5 — the close: every shard `OK` together (this item's own ship rule), delete this PRD, mark `GAP-182`
