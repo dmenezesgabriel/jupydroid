@@ -51,7 +51,7 @@ boots an emulator cold, so no row is opened; the decision rests on what the boot
 | how a boot is counted | once at `boot_completed` · polled for a window | the dialog came back mid-run on 2026-11-17, a single read misses it | polled every 2 s for the whole window, a dialog at any sample counts the boot |
 | what clears a dialog during a count | `Wait` pressed · never | a press hides the thing counted | never pressed while counting; `clear_system_anr.py` runs only in the suites |
 | sample size | 5 boots per arm · more | a boot is 3-4 minutes; 5 shows a clear shift (0/5 against 3/5), not a rate | 5 per arm, and a candidate with 0/5 gets a second 5 before it is kept |
-| host's load | ignore · record per sample | a neighbour's job starting mid-boot is the confound the notes record | the host's 1-minute load at every sample, `devjob --status` at the start of a boot |
+| host's load | ignore · record per sample | a neighbour's job starting mid-boot is the confound the notes record; the emulator's own four cores are in the figure too (7.08 at the first read of the first boot, one slot held and it ours), so the load alone does not name a neighbour | the host's 1-minute load at every sample, and `devjob --status` at the start of a boot to say who held a slot |
 | who boots the emulator | a Python port with a fake · the shell driver | the boot is one `emulator` command and a `wait-for-device`; a port for it is a fake of a process | the driver boots; Python only reads a booted device, so what is tested is what is decided |
 
 ## Gap analysis
@@ -82,7 +82,7 @@ None: the item adds a measurement driver and keeps one emulator setting.
 
 ## Tasks
 
-- [ ] T1 — the counter and the driver: `watch` samples a booted device and writes one JSON line, `count` sums a file per candidate; the driver boots cold, watches, takes a frame and a dump, kills the emulator
+- [x] T1 — the counter and the driver: `watch` samples a booted device and writes one JSON line, `count` sums a file per candidate; the driver boots cold, watches, takes a frame and a dump, kills the emulator
 - [ ] T2 — baseline: 5 cold boots with today's flags, and the reason `hw.ramSize` reads 2560
 - [ ] T3 — RAM given (`-memory`), 5 boots, one change
 - [ ] T4 — cores given (`-cores`), 5 boots, one change
