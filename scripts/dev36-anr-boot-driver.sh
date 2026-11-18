@@ -8,7 +8,8 @@
 #
 # The first argument names the candidate in the count, the second is the number of boots, and anything
 # after them goes to `emulator` as the one setting under test. Today's launch is the baseline:
-# `-no-window -no-audio -no-snapshot -gpu swiftshader_indirect`.
+# `-no-window -no-audio -no-snapshot -gpu swiftshader_indirect`. Its guest has 2560 MB, not the 96M
+# of the AVD's config.ini: the emulator logs "Increasing RAM size to 2560MB" at every boot, before any flag.
 #
 # NOT A SUITE FLOW: a measurement driver. It runs no app and no cell, so the emulator is the right
 # device. It counts and never presses `Wait` (scripts/count_anr_per_boot.py says why); run it through
