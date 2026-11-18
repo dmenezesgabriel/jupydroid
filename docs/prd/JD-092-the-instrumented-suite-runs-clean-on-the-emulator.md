@@ -382,10 +382,19 @@ process turns them red is still not known.
 - [x] T6e — shard S4 (the rest), one cold boot: 18 tests, 1 failure, a stale test (see "Shard S4"). The assertion
   on `SOURCE_OFFER.md`'s dropped wording now names the file's heading; the class reads `OK (1 test)` on a second cold
   `dev36`.
-- [ ] T6f — the green classes in shards by package, then the whole suite `OK` in the instrument log;
-  stragglers beyond `GAP-182`'s list become tasks or their own JD; delete this PRD and mark `GAP-182`
-  closed. **Not done:** the first whole-suite run finished with 55 failures (see "The first whole-suite
-  run").
+- [ ] T6f — the classes no shard has run, by package, then the item's close. One run is the first whole-suite
+  run's 3,470 s and its stream ended inside its own summary, so each shard is one cold boot and one driver run
+  over the classes of its packages that S1 to S4, T5 and the tab-strip run have not already run alone, and
+  each is its own task. Stragglers beyond `GAP-182`'s list become tasks or their own JD.
+  - [ ] T6f1 — shard S5: `theme`, `domain/model`, `ui/explorer`, `ui/fileeditor`, `ui/terminal`, `ui/console`,
+    `ui/spaces`, `ui/settings`, `data/intent` and `data/asset` under `com.jupydroid.app` (25 classes, 145
+    `@Test`s; the classes S1 to S4 ran stay out).
+  - [ ] T6f2 — shard S6: `data/space` (24 classes).
+  - [ ] T6f3 — shard S7: `ui/shell` (45 classes, less the 15 tab-strip classes already `OK`).
+  - [ ] T6f4 — shard S8: `ui/editor` (61 classes, less those S1 to S4 ran).
+  - [ ] T6f5 — the close: every shard `OK` together (this item's own ship rule), delete this PRD, mark `GAP-182`
+    closed, edit the backlog row. **Not done:** the first whole-suite run finished with 55 failures (see "The
+    first whole-suite run").
 
 ## Out of scope
 
