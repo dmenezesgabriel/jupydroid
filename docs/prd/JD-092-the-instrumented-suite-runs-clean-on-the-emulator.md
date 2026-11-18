@@ -445,6 +445,35 @@ among them; what S9 adds is that 45 classes and 184 tests, among them the 17 of 
 `RenameFileDialogTest`, run clean in one 5.2-minute process on the same window. With S5 to S9 every package of the suite has been
 run in a shard; whether the shards, run together, are the suite is T6f6's to say.
 
+## Shard S10 (T6f6, `dev36` at 320×640, 2026-11-18)
+
+The close wanted every `@Test` run `OK` on one build, and S5 to S9 are the only shards on the HEAD APK. The classes
+they did not run are the 41 the source holds beyond the 168 their logcats started (`comm` of the sorted source classes
+against the sorted started classes, empty the other way): S1 to S4, T5 and the tab-strip run, 349 `@Test`s, which with
+S5 to S9's 868 are the suite's 1,217. Cold boot (`-no-window -gpu swiftshader_indirect`, load 8.1 at boot), 180 s idle
+(2.7 after it, `font_scale` 1.0, `wm size` 320x640), then the driver over the 41: the runner printed
+`Tests run: 349,  Failures: 1` in 554.6 s. The 349 is every test: the `TestRunner: started:` lines in the kept logcat
+count 349. The APKs were the ones the HEAD sources build (`assembleDebug` and `assembleDebugAndroidTest` up to date, no
+file under `app/src`, `extension-api` or `extensions` newer than either). The focus sampler took 263 samples with no ANR
+dialog; its 30 samples without a focused window never run past three in a row, and logcat holds no
+`RootViewWithoutFocusException`, "isn't responding", `Process crashed` or `FATAL EXCEPTION`. `font_scale` read 1.0 and
+`wm size` 320x640 at teardown, and no emulator was left running.
+
+The one failure is `ListGlyphFontScaleTest.theSearchChevronKeepsItsRatioToItsFileNameAtEveryLargerFontScale`, the
+test S1 classified *run*: `search file header={2.0=SurfaceAt(glyph=43.0.dp, labelLine=38.0.dp, container=51.0.dp)
+against 1.2 at 1.0}`, the same three numbers S1 read. It ran first in its class, 2 s after the process had run three
+classes (`TerminalExtraKeysRowTest`, `TerminalPaneScreenTest`, `BundledLicenceAssetsTest`), and the class's other three
+tests passed after it. It failed in two different shards at the same numbers and passed once alone, so it is not a
+flake and not a window: something an earlier test in the process leaves changes what the search header measures at 2.0.
+What that is has not been read.
+
+Counts: 0 window, 0 defect named, 0 stale, 1 failure (run, repeating), no repair, no code changed.
+
+**What S10 says about the item.** 348 of the 349 held, among them every class the tab-strip repair and the settings
+repair touched, on the HEAD build. The item cannot ship on one failing class, and "passes alone" is no longer enough
+for it: the same test has now failed in two shards, so the close waits for its cause (T6g) and then runs the class again
+among the classes that preceded it.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -512,9 +541,15 @@ run in a shard; whether the shards, run together, are the suite is T6f6's to say
     `OK (286 tests)` on a cold `dev36`, no failure (see "Shard S8").
   - [x] T6f5 — shard S9: the classes directly under `com.jupydroid.app` (37) and `ui` (8), 184 `@Test`s; the 3 classes
     S1, S4 and T5 ran stay out: `OK (184 tests)` on a cold `dev36`, no failure (see "Shard S9").
-  - [ ] T6f6 — the close: every shard `OK` together (this item's own ship rule), delete this PRD, mark `GAP-182`
-    closed, edit the backlog row. **Not done:** the first whole-suite run finished with 55 failures (see "The
-    first whole-suite run").
+  - [x] T6f6 — shard S10: the 41 classes S5 to S9 did not run, on the HEAD APK (349 `@Test`s): `Tests run: 349,
+    Failures: 1` on a cold `dev36`, the one `ListGlyphFontScaleTest.theSearchChevron…`, a failure that repeats from S1
+    (see "Shard S10").
+  - [ ] T6g — read why `ListGlyphFontScaleTest.theSearchChevronKeepsItsRatioToItsFileNameAtEveryLargerFontScale` fails
+    after earlier classes and passes alone (glyph 43dp / label line 38dp at 2.0 against 1.2 at 1.0, both shards), by
+    bisecting the classes that ran before it in S1 and S10, then repair it, red first in the order that reproduces it.
+  - [ ] T6f7 — the close: S10's 41 classes re-run `OK` on the HEAD build after T6g, then delete this PRD, mark
+    `GAP-182` closed, edit the backlog row, and record the durable rule (the suite is closed by shards on one build)
+    as an ADR.
 
 ## Out of scope
 
