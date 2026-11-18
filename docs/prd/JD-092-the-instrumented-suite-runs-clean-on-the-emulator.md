@@ -421,6 +421,30 @@ classes and `ui` itself 9 (`DialogMarginTest`, the four `*GlyphFontScaleTest`s, 
 together, and S1 to S4 and the tab-strip runs took only some of them. The item cannot close on "every shard `OK`"
 until those run, so they are T6f5 and the close moves to T6f6.
 
+## Shard S9 (T6f5, `dev36` at 320×640, 2026-11-18)
+
+Cold boot (`-no-window -gpu swiftshader_indirect`, load 8.2 at boot), 180 s idle (3.5 after it, `font_scale` 1.0, `wm size`
+320x640), then the driver over S9's 45 classes: the runner printed `OK (184 tests)` in 311.8 s. The 184 is every test: the
+`TestRunner: started:` lines in the kept logcat count 184, and the `@Test`s each of the 45 files holds sum to 184. The 45
+are the 37 files directly under `com.jupydroid.app` and the 8 under `ui` that hold a `@Test` (the 39 and 9 the S8 note
+counted include the helper files, `Windows.kt`, `WorkspaceTabs.kt`, `FontScale.kt` and the like, which hold none). Three
+classes are out because an earlier run ran them alone: `ListGlyphFontScaleTest` (S1, 4), `TerminalExtraKeysRowTest` (S1
+and S4, 10) and `TerminalPaneScreenTest` (T5, 2), so 200 - 16 = 184. `LauncherScreenTest` and `ButtonGlyphFontScaleTest`
+stay in: T6b3 re-ran them only to check a repair. None of the 15 tab-strip classes lives at these two levels. The APKs
+were the ones the HEAD sources build (no file under `app/src`, `extension-api` or `extensions` is newer than the test
+APK, built 05:24:59). The focus sampler took 151 samples with no ANR dialog; its 10 samples without a focused window
+(10:37:53, 10:38:07, 10:38:22, 10:39:05, 10:40:51, 10:41:04, :06, :08, :16 and 10:42:06) never run past three in a row,
+the three at 10:41:04 to :08 falling between one-second tests of `TerminalActionsMenuTest` and `TerminalCanvasTest`, and
+logcat holds no `RootViewWithoutFocusException`, "isn't responding", `Process crashed` or `FATAL EXCEPTION`.
+`font_scale` read 1.0 at teardown and no emulator was left running.
+
+Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
+
+**What S9 says about the 55-failure run.** None of the 55 failures was in a class S9 holds, so none of S9's 184 was
+among them; what S9 adds is that 45 classes and 184 tests, among them the 17 of `SidePaneNavigationTest` and the 11 of
+`RenameFileDialogTest`, run clean in one 5.2-minute process on the same window. With S5 to S9 every package of the suite has been
+run in a shard; whether the shards, run together, are the suite is T6f6's to say.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -486,8 +510,8 @@ until those run, so they are T6f5 and the close moves to T6f6.
     ran stay out): `OK (177 tests)` on a cold `dev36`, no failure (see "Shard S7").
   - [x] T6f4 — shard S8: `ui/editor` (48 classes, 286 `@Test`s; the 13 classes S1, S2 and T5 ran stay out):
     `OK (286 tests)` on a cold `dev36`, no failure (see "Shard S8").
-  - [ ] T6f5 — shard S9: the classes directly under `com.jupydroid.app` (39) and `ui` (9), 200 `@Test`s in all, less
-    those an earlier shard or the tab-strip runs already ran alone; the count is read when the task runs.
+  - [x] T6f5 — shard S9: the classes directly under `com.jupydroid.app` (37) and `ui` (8), 184 `@Test`s; the 3 classes
+    S1, S4 and T5 ran stay out: `OK (184 tests)` on a cold `dev36`, no failure (see "Shard S9").
   - [ ] T6f6 — the close: every shard `OK` together (this item's own ship rule), delete this PRD, mark `GAP-182`
     closed, edit the backlog row. **Not done:** the first whole-suite run finished with 55 failures (see "The
     first whole-suite run").
