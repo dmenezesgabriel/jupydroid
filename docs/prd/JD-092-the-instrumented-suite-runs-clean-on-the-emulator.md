@@ -236,6 +236,28 @@ window decides, 3 as a node not displayed, 3 as a `waitUntil` timeout and 2 as a
 *run*, not window: the same tests, the same window, the same build. What in a 55-minute process turns them red is not known; the answer the table can give is only that a
 smaller process does not.
 
+## Shard S2 (T6c, `dev36` at 320×640, 2026-11-17)
+
+Cold boot, 180 s idle (load 8.9 at boot, 6.7 after the idle, two other repositories' jobs on `devjob` slots), then
+the driver over S2's eight classes: the runner printed `Tests run: 61,  Failures: 1`. The 61 is every test: the
+`TestRunner: started:` lines in the kept logcat count 7, 6, 8, 5, 17, 11, 3 and 4 for `NotebookBarShutdownTest`,
+`EditorCloseGateTest`, `KernelPickerDialogTest`, `DebuggerVariablesSheetTest`, `RunningSidePanelTest`,
+`DiagnosticMarkTapTest`, `DiagnosticSquiggleDrawTest` and `SheetStatusBarAppearanceTest`. The focus sampler took 96
+samples with no ANR dialog; its 13 samples without a focused window were never two in a row. The one failure was
+re-run alone on a second cold boot (same idle, load 16 at boot):
+
+| Test | Alone | Verdict |
+|---|---|---|
+| `DiagnosticSquiggleDrawTest.aWarningMarkIsATriangle_anErrorMarkACircle` | fails 3 of 3 (twice as one test, once inside its class: `Tests run: 3,  Failures: 1`), `a triangle is wider at its base` | **stale test**, not window, focus or run: it scans the gutter's first 45px for the severity mark's ink, and the gutter has drawn no diagnostic mark since the squiggle took over its tap (`DiagnosticMarkTapTest`; `drawDiagnosticMark` is gone from `app/src/`). With no ink `markThird` has no extent, both counts read 0 and `0 > 0` fails |
+
+Counts: 0 window, 0 defect, 1 stale test, and 18 *run*. **What S2 says about the 55-failure run:** its S2 classes
+failed 19 tests there (`NotebookBarShutdownTest` 6, `SheetStatusBarAppearanceTest` 4, `DiagnosticMarkTapTest` 3,
+`DiagnosticSquiggleDrawTest` 2, and one each in `EditorCloseGateTest`, `KernelPickerDialogTest`,
+`DebuggerVariablesSheetTest`, `RunningSidePanelTest`) and 1 here, so 18 of them passed once S2 ran by itself, the
+same tests, the same window, the same build. This includes the two the table named as not obviously window,
+`DiagnosticMarkTapTest` at 320, 360 and 412dp: it was 11 of 11 here. Why a 55-minute process turned them red is
+still not known.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -275,7 +297,10 @@ smaller process does not.
   table). Repaired by `SEGMENT_PADDING` 8dp to 6dp, this test as its red: `Dark` 56 x 38 on one line, the check 33dp,
   6dp to spare; `SettingsScreenTest`, `ButtonGlyphFontScaleTest`, `LauncherScreenTest` and `TerminalExtraKeysRowTest`
   read `OK (62 tests)` on two consecutive driver runs in one boot, no ANR dialog in either run's focus samples.
-- [ ] T6c — shard S2 (sheets and dialogs).
+- [x] T6c — shard S2 (sheets and dialogs), one cold boot, the one failure re-run alone and classified: 61 tests, 1
+  failure, a stale test (see "Shard S2"). `aWarningMarkIsATriangle_anErrorMarkACircle` is deleted with the helpers
+  only it used, since the mark it measured no longer exists; the class reads `OK (2 tests)` on two consecutive
+  driver runs in one cold boot, no ANR dialog in either run's focus samples.
 - [ ] T6d — shard S3 (panels and settings).
 - [ ] T6e — shard S4 (the rest).
 - [ ] T6f — the green classes in shards by package, then the whole suite `OK` in the instrument log;
