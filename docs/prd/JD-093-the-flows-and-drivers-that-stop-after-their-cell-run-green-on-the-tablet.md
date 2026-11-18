@@ -63,8 +63,17 @@ None. `longPressOn` stays inline by the field's name, as ADR-0155 says the sub-f
 
 ## Open decisions
 
-- Whether `tab-reload-demo`'s `before` is the app's or the flow's: `ActiveTabReload.kt` says nothing
-  re-reads a clean document, so either a tab composed afresh reads the file or the flow is stale.
+- Whether `tab-reload-demo`'s `before` is the app's or the flow's. Read from the code, not yet from a frame
+  (the tablet was not attached): **the flow is stale.** [ADR-0097](../adr/0097-an-open-document-with-no-unsaved-work-follows-its-file.md)
+  (2026-10-14, after the flow was written under ADR-0096) makes a clean open document re-read its file when
+  inotify reports it written (`FileSaveConflict.followDisk`, `NotebookSaveConflict.followDisk`, wired in
+  `FileEditorViewModel`'s `init`), and measured on `SM-X216B` that a cell's rewrite shows in both open tabs with
+  no tap and no dot. `ActiveTabReload.kt`'s remark that nothing re-reads a clean document predates it. So T1
+  edits the flow only: `notes.txt` and `b.ipynb` read the cell's text on selecting their tab with no reload tap
+  and `Save tab` disabled; the dirty section (asked first, Cancel keeps, Reload drops) stays, since the reload
+  icon is how a dirty document takes the disk's version; the later-cell tap becomes `Code cell` with
+  `index: 1` inline, the shared sub-flow staying T4's. To confirm on the tablet: run the driver unchanged for
+  the red frame, then green after the edit.
 - Whether the two chat flows can run: they need opencode signed in on the tablet, by the device code over
   `adb` with Chrome in a pop-up window.
 
