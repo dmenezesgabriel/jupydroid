@@ -58,8 +58,8 @@ boots an emulator cold, so no row is opened; the decision rests on what the boot
 
 Present and partial. The stopgap exists (`clear_system_anr.py` presses `Wait`, the suite driver refuses to
 start with a dialog up). Nothing counts dialogs per boot, no script boots `dev36`, and the boot is an ad-hoc
-`devjob` shell each time. The emulator raises the AVD's 96M to 2560 MB itself (T2), and giving it 4096 changed nothing (T3). Not known: which candidate,
-if any, accounts for the dialog.
+`devjob` shell each time. The emulator raises the AVD's 96M to 2560 MB itself (T2), and giving it 4096 changed nothing (T3). Giving the guest 2 cores in place of 4 gave no dialog in 5 boots (T4). Not known: whether that holds in a second sample, and which
+other candidate, if any, accounts for the dialog.
 
 ## Deviations
 
@@ -85,7 +85,7 @@ None: the item adds a measurement driver and keeps one emulator setting.
 - [x] T1 — the counter and the driver: `watch` samples a booted device and writes one JSON line, `count` sums a file per candidate; the driver boots cold, watches, takes a frame and a dump, kills the emulator
 - [x] T2 — baseline: 5 cold boots with today's flags, and the reason `hw.ramSize` reads 2560: the emulator logs "Increasing RAM size to 2560MB" at every boot, so the guest is never 96 MB. The dialog came up in 3 of 5 boots, each from the first read after `boot_completed` to the last (114, 118, 116 reads of as many), and in none of the other two (0 of 113, 0 of 116). Host load at the first read was 11.7, 8.5 and 3.8 for the boots with it and 12.9 and 12.9 for the boots without, so load did not sort them
 - [x] T3 — RAM given (`-memory 4096`, against the baseline's 2560 MB), 5 boots, one change: the emulator no longer logs "Increasing RAM size", and `hw.ramSize` reads 4096. The dialog came up in 3 of 5 boots, again each from the first read to the last (117, 116, 115 reads of as many), and in none of the other two (0 of 118, 0 of 118). Host load at the first read was 9.7, 5.3 and 13.9 for the boots with it and 8.8 and 3.1 for the boots without, so load did not sort them. Same count as the baseline, so the guest's RAM does not account for the dialog
-- [ ] T4 — cores given (`-cores`), 5 boots, one change
+- [x] T4 — cores given (`-cores 2`, against the baseline's 4), 5 boots, one change: the booted guest's `hardware-qemu.ini` reads `hw.cpu.ncore = 2` and `hw.ramSize = 2560` (the baseline's), so only the core count moved. The dialog came up in none of the 5 boots (0 of 118, 117, 114, 113, 113 reads), the only arm so far to give none. Host load at the first read was 1.2, 1.5, 6.6, 9.5 and 9.3, so it ranged from quiet to as busy as the baseline's clean boots (12.9) and dialog boots (3.8), and did not sort them either way. Per the sample-size row, 0 of 5 is a shift and not a rate: the setting is kept only after T8's second 5 gives none again, and T5-T7 are still read
 - [ ] T5 — a settled snapshot booted instead of `-no-snapshot`, 5 boots, one change
 - [ ] T6 — Play services' background work held off, 5 boots, one change
 - [ ] T7 — an image without Google APIs, if it can be fetched
