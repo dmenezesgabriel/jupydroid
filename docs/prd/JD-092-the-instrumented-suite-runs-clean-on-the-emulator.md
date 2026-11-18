@@ -465,7 +465,7 @@ against 1.2 at 1.0}`, the same three numbers S1 read. It ran first in its class,
 classes (`TerminalExtraKeysRowTest`, `TerminalPaneScreenTest`, `BundledLicenceAssetsTest`), and the class's other three
 tests passed after it. It failed in two different shards at the same numbers and passed once alone, so it is not a
 flake and not a window: something an earlier test in the process leaves changes what the search header measures at 2.0.
-What that is has not been read.
+The cause is read in "Why the search chevron failed": a measurement of the clipped bounds, not an earlier test.
 
 Counts: 0 window, 0 defect named, 0 stale, 1 failure (run, repeating), no repair, no code changed.
 
@@ -473,6 +473,34 @@ Counts: 0 window, 0 defect named, 0 stale, 1 failure (run, repeating), no repair
 repair touched, on the HEAD build. The item cannot ship on one failing class, and "passes alone" is no longer enough
 for it: the same test has now failed in two shards, so the close waits for its cause (T6g) and then runs the class again
 among the classes that preceded it.
+
+## Why the search chevron failed (T6g, `dev36` at 320×640, 2026-11-18)
+
+The premise "an earlier class leaves something behind" was tested first and did not hold. One cold boot, the driver
+once per row: the class alone read `OK (4 tests)`; after `BundledLicenceAssetsTest`, which touches no Compose, no font
+and no density, it failed with S10's numbers; after `TerminalExtraKeysRowTest`, after `TerminalPaneScreenTest` and
+after all three, the same. Then with a probe added the class alone failed four of four, so "passes alone" was a
+timing accident of the first row, not a property of running alone.
+
+The probe at 2.0 read the glyph `size` 45 x 45 and the header container 320 x 61, against `boundsInRoot` bottoms at
+357 where the list's viewport ends: the `boundsInRoot` height is 43 and 51, the numbers the failure printed. The
+soft keyboard (`imePadding` on the panel's list, by design) is `ime=false` at 1.0 and 1.3 and `ime=true`,
+259 high, from 1.5, so it arrives between the test's readings and cuts the list under the header. The label
+(`bodyMedium`, 20sp, 38 px at 2.0) was fully inside the viewport and the chevron was not: ratio 43/38 against
+45/38. The product was right (45dp chevron beside a 38dp line is 1.18, the ratio the docs measure); the test read
+the visible part of a row.
+
+The repair measures each node's laid-out `size`, which no viewport changes. Its red does not wait for the
+keyboard: a panel laid out at the window's 640dp inside a 325dp clipped box cuts the header at every scale.
+(A 340dp cut passed, because the clipped glyph and label shrink together and keep a ratio inside the tolerance.)
+
+The S10 row of that driver (the three predecessors then the class) passed `ListGlyphFontScaleTest` and failed two
+tests in `TerminalExtraKeysRowTest`, the first class of the process (`tappingTabSendsTheHorizontalTabByte` a
+`waitUntil` timeout, `aHostedRowSpansTheWindowAndItsCtrlStillArmsAndLocks` no `Ctrl, active` node). That class read
+OK (10 of 10) in S10 and in two rows of the first bisect boot, so T6f7's re-run reads it again before it closes.
+
+Other tests read `boundsInRoot.height` too (six lines under `app/src/androidTest`). None has failed, and the same fault needs
+a screen that raises the keyboard before it measures; they stay as they are until one fails.
 
 ## Tasks
 
@@ -544,9 +572,11 @@ among the classes that preceded it.
   - [x] T6f6 — shard S10: the 41 classes S5 to S9 did not run, on the HEAD APK (349 `@Test`s): `Tests run: 349,
     Failures: 1` on a cold `dev36`, the one `ListGlyphFontScaleTest.theSearchChevron…`, a failure that repeats from S1
     (see "Shard S10").
-  - [ ] T6g — read why `ListGlyphFontScaleTest.theSearchChevronKeepsItsRatioToItsFileNameAtEveryLargerFontScale` fails
-    after earlier classes and passes alone (glyph 43dp / label line 38dp at 2.0 against 1.2 at 1.0, both shards), by
-    bisecting the classes that ran before it in S1 and S10, then repair it, red first in the order that reproduces it.
+  - [x] T6g — the cause read, then repaired: not an earlier class. `theSearchChevronKeepsItsRatioToItsFileNameAtEveryLargerFontScale`
+    read `boundsInRoot`, which the list clips to its viewport, and the soft keyboard the search box raises moves that
+    viewport mid-test (see "Why the search chevron failed"). Red first: `theSearchChevronKeepsItsRatioWhenTheListIsCutThroughItsHeader`
+    read glyph 11 / label 7 / container 19dp at 2.0 on a cold `dev36`; with the measurement on `size` the class read
+    `OK (5 tests)` on two consecutive driver runs and after `BundledLicenceAssetsTest`.
   - [ ] T6f7 — the close: S10's 41 classes re-run `OK` on the HEAD build after T6g, then delete this PRD, mark
     `GAP-182` closed, edit the backlog row, and record the durable rule (the suite is closed by shards on one build)
     as an ADR.
