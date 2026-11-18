@@ -392,6 +392,35 @@ Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
 not here, so none of S7's 28 was among its failures. What S7 adds is that 28 classes and 177 tests, among them the 25 of `ChatListSidePanelTest` and
 the 15 of `SidePanelBarTest`, run clean in one 4.4-minute process on the same window.
 
+## Shard S8 (T6f4, `dev36` at 320×640, 2026-11-18)
+
+Cold boot, 180 s idle (load 7.7 at boot, 1.4 after the idle, one other repository's job on a `devjob` slot), then the
+driver over S8's 48 classes of `ui/editor`: the runner printed `OK (286 tests)` in 530.1 s. The 286 is every test: the
+`TestRunner: started:` lines in the kept logcat count 286, and the `@Test`s each of the 48 files holds sum to 286. The
+PRD's "61 classes, less those S1 to S4 ran" was the arithmetic S7 found wrong again: the package has 61 files with a
+`@Test`, S1 ran five of them (`RichTextImageTest`, `MarkdownCellFieldTest`, `MarkdownCellTest`,
+`CodeCellFieldFontSizeTest`, `CellOutputsViewTest`), S2 seven (`NotebookBarShutdownTest`, `EditorCloseGateTest`,
+`KernelPickerDialogTest`, `DebuggerVariablesSheetTest`, `DiagnosticMarkTapTest`, `DiagnosticSquiggleDrawTest`,
+`SheetStatusBarAppearanceTest`) and T5 one (`CellOutputImageTest`), so the shard is 61 - 13 = 48. The APKs were the ones
+the HEAD sources build (no file under `app/src`, `extension-api` or `extensions` is newer than the test APK, built
+05:24:59). The focus sampler took 244 samples with no ANR dialog; its 27 samples without a focused window never run past
+two in a row, so no stretch longer than about 4 s, and logcat holds no `RootViewWithoutFocusException`,
+"isn't responding", `Process crashed` or `FATAL EXCEPTION`. The window is the AVD's own 320×640 at 160dpi
+(`hw.lcd.*` in its `config.ini`) after the driver's `wm size reset`, and `font_scale` read 1.0 at teardown.
+
+Counts: 0 window, 0 defect, 0 stale, 0 failures, no repair, no code changed.
+
+**What S8 says about the 55-failure run.** The classes of `ui/editor` that run found failing were twelve, all run in
+S1 (`RichTextImageTest`, `MarkdownCellFieldTest`, `MarkdownCellTest`, `CodeCellFieldFontSizeTest`,
+`CellOutputsViewTest`) and S2 (the seven above), none here, so none of S8's 48 was among its failures. What S8 adds is
+that 48 classes and 286 tests, among them the 16 of `NotebookActionsMenuTest` and the 12 of `NotebookBarTest`, run clean
+in one 8.8-minute process on the same window.
+
+**What no shard names yet.** The packages S5 to S8 take are not the whole suite: `com.jupydroid.app` itself holds 39
+classes and `ui` itself 9 (`DialogMarginTest`, the four `*GlyphFontScaleTest`s, four dialog classes), 200 `@Test`s
+together, and S1 to S4 and the tab-strip runs took only some of them. The item cannot close on "every shard `OK`"
+until those run, so they are T6f5 and the close moves to T6f6.
+
 ## Tasks
 
 - [x] T1 — `scripts/instrumented-suite-driver.sh` (build + install both APKs, `am instrument -w`
@@ -455,8 +484,11 @@ the 15 of `SidePanelBarTest`, run clean in one 4.4-minute process on the same wi
     on a cold `dev36`, no failure (see "Shard S6").
   - [x] T6f3 — shard S7: `ui/shell` (28 classes, 177 `@Test`s; the 13 tab-strip classes and the 4 classes S1 to S3
     ran stay out): `OK (177 tests)` on a cold `dev36`, no failure (see "Shard S7").
-  - [ ] T6f4 — shard S8: `ui/editor` (61 classes, less those S1 to S4 ran).
-  - [ ] T6f5 — the close: every shard `OK` together (this item's own ship rule), delete this PRD, mark `GAP-182`
+  - [x] T6f4 — shard S8: `ui/editor` (48 classes, 286 `@Test`s; the 13 classes S1, S2 and T5 ran stay out):
+    `OK (286 tests)` on a cold `dev36`, no failure (see "Shard S8").
+  - [ ] T6f5 — shard S9: the classes directly under `com.jupydroid.app` (39) and `ui` (9), 200 `@Test`s in all, less
+    those an earlier shard or the tab-strip runs already ran alone; the count is read when the task runs.
+  - [ ] T6f6 — the close: every shard `OK` together (this item's own ship rule), delete this PRD, mark `GAP-182`
     closed, edit the backlog row. **Not done:** the first whole-suite run finished with 55 failures (see "The
     first whole-suite run").
 
