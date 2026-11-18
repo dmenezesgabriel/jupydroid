@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# The fourth of the five flows scripts/tab-middle-press-driver.sh runs. The menu the third left open is
+# dismissed and the stack kept every tab: tab-d is still the active one (its document is on screen) and the
+# strip, dragged to tab-e and back so tab-d ends whole, still holds tab-e.
+- pressKey: Back
+- extendedWaitUntil:
+    notVisible: "Close All Other Tabs"
+    timeout: 5000
+- assertVisible: ".*tab_marker_d.*"
+- assertVisible: "Close tab: tab-d.txt"
+- takeScreenshot: 04a-the-menu-is-dismissed
+- swipe:
+    start: 170, 42
+    end: 100, 42
+    duration: 1500
+- assertVisible: "Tab: tab-e.txt"
+- takeScreenshot: 04b-no-tab-was-closed
+- swipe:
+    start: 100, 42
+    end: 170, 42
+    duration: 1500
+- assertVisible: "Close tab: tab-d.txt"

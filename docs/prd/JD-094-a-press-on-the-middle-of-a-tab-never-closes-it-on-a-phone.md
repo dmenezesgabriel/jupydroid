@@ -67,8 +67,8 @@ is floored at the 80dp, so this is reached whenever `tabs.size > maxWidth / 80`:
   press), at 320dp with four tabs and 360dp with five; then raise the floor so it is green; the strip's other
   tests (`TabCloseTouchAreaTest`, `TabCloseSiblingsTest`, `MainAreaTabStripRevealTest`,
   `MainAreaTabFontScaleTest`) stay green
-- [ ] T2 — the demo above on `dev36` at 320 and 360, frames looked at, tab width and label room read before and
-  after
+- [x] T2 — the demo above on `dev36` at 320 and 360, frames looked at, tab width and label room read before and
+  after: `scripts/tab-middle-press-driver.sh`, five tabs at both widths (every tab is at the floor either way)
 - [ ] T3 — an ADR amending ADR-0142's statement of the reach for a minimum-width tab, `GAP-210` corrected in
   `docs/architecture.md`, and this PRD deleted when T2 has run
 
