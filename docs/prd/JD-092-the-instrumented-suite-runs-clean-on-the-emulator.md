@@ -226,10 +226,10 @@ launcher-to-test-activity handoff, never two in a row, and each failure is one a
 |---|---|---|
 | `RichTextImageTest.anImgWiderThanTheColumnShrinksToIt` | fails, `expected:<600.0> but was:<320.0>` | **window** — the test's column is `Modifier.width(600.dp)`, which the 320dp window clamps; `CellOutputImageTest` was the same box and `requiredWidth` fixed it |
 | `RichTextImageTest.anImageTooLargeToDrawWholeDrawsShrunkToTheColumn` | fails, same message | **window**, same box |
-| `SettingsScreenTest.everyThemeChoiceKeepsItsWholeWordOnAPhoneAtTwiceTheFontScale` | fails, `Dark breaks inside a word` | **not window**: the test forces `requiredWidth(PHONE_WIDTH)`, 320dp, itself, so the device's window is not an input. Defect or test drift is open: the commit that added the test (`0de2361c9`) saw it fail on `System` and then pass on `dev36`, and now `Dark` breaks. Its twin at 1.0 passes in the shard |
+| `SettingsScreenTest.everyThemeChoiceKeepsItsWholeWordOnAPhoneAtTwiceTheFontScale` | fails, `Dark breaks inside a word` | **defect**, not window and not drift: the test forces `requiredWidth(PHONE_WIDTH)` itself. At 320dp and 2.0 the row read `Dark` 50 x 76dp on two lines (natural 56 x 38), the check 33dp, the row full to 304dp. `0de2361c9` budgeted an 18dp check with 8dp spare; `c9061e8e0` sized the check from its label (33dp at 2.0), which spent the 8dp and ran 6dp over (labels 90 + 61 + 56, check and gap 41, six paddings of 8, minus 2dp of border overlap = 294 of 288). Repaired by `SEGMENT_PADDING` 8dp to 6dp: 282 of 288, `Dark` 56 x 38 on one line, the class `OK`. Capping the check instead would save under 1dp (its ratio floor is 0.85 of the label line, it reads 0.868) |
 | `ListGlyphFontScaleTest.theSearchChevronKeepsItsRatioToItsFileNameAtEveryLargerFontScale` | **passes** (`OK (1 test)`) | **run** — in the shard it read glyph 43dp / label line 38dp / container 51dp at 2.0 against 1.2 at 1.0; alone the ratio held. The cause of the difference is not read: a leak from an earlier test in the process is a lead, not a finding |
 
-Counts: 2 window, 1 not-window and unsplit, 1 run. **What S1 says about the 55-failure run:** its S1 classes
+Counts: 2 window, 1 defect, 1 run. **What S1 says about the 55-failure run:** its S1 classes
 failed 17 tests there (9 "a number the window decides", `CellOutputsViewTest` 3 + 2, `SettingsScreenTest` 3
 `waitUntil`) and 4 here, so 13 of them passed once S1 ran by itself: 5 the earlier table read as a number the
 window decides, 3 as a node not displayed, 3 as a `waitUntil` timeout and 2 as a wrong result. Those 13 are
@@ -270,9 +270,11 @@ smaller process does not.
   `dev36` read `Tests run: 12,  Failures: 2`, both `expected:<600.0> but was:<320.0>`; with the one `Box`
   changed from `width` to `requiredWidth` it read `OK (12 tests)` on three consecutive driver runs, no ANR dialog
   in any run's focus samples. `show()`'s `width(column)` has the same shape and passes (its images fit 320dp).
-- [ ] T6b3 — `SettingsScreenTest.everyThemeChoice…AtTwiceTheFontScale`: read the node bounds and a screenshot of
-  `Dark` at 320dp and 2.0, then bisect from `0de2361c9` to say whether a later change broke the Theme row or the
-  test drifted; a defect becomes a repair with this test as its red.
+- [x] T6b3 — `SettingsScreenTest.everyThemeChoice…AtTwiceTheFontScale`: a defect from `c9061e8e0`, not drift. Read at
+  320dp and 2.0 on a cold `dev36`: `Dark` 50 x 76dp on two lines, the check 33dp, the row full to 304dp (see the S1
+  table). Repaired by `SEGMENT_PADDING` 8dp to 6dp, this test as its red: `Dark` 56 x 38 on one line, the check 33dp,
+  6dp to spare; `SettingsScreenTest`, `ButtonGlyphFontScaleTest`, `LauncherScreenTest` and `TerminalExtraKeysRowTest`
+  read `OK (62 tests)` on two consecutive driver runs in one boot, no ANR dialog in either run's focus samples.
 - [ ] T6c — shard S2 (sheets and dialogs).
 - [ ] T6d — shard S3 (panels and settings).
 - [ ] T6e — shard S4 (the rest).
