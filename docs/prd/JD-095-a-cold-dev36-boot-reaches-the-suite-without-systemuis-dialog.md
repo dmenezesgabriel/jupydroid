@@ -58,7 +58,7 @@ boots an emulator cold, so no row is opened; the decision rests on what the boot
 
 Present and partial. The stopgap exists (`clear_system_anr.py` presses `Wait`, the suite driver refuses to
 start with a dialog up). Nothing counts dialogs per boot, no script boots `dev36`, and the boot is an ad-hoc
-`devjob` shell each time. The emulator raises the AVD's 96M to 2560 MB itself (T2). Not known: which candidate,
+`devjob` shell each time. The emulator raises the AVD's 96M to 2560 MB itself (T2), and giving it 4096 changed nothing (T3). Not known: which candidate,
 if any, accounts for the dialog.
 
 ## Deviations
@@ -84,7 +84,7 @@ None: the item adds a measurement driver and keeps one emulator setting.
 
 - [x] T1 — the counter and the driver: `watch` samples a booted device and writes one JSON line, `count` sums a file per candidate; the driver boots cold, watches, takes a frame and a dump, kills the emulator
 - [x] T2 — baseline: 5 cold boots with today's flags, and the reason `hw.ramSize` reads 2560: the emulator logs "Increasing RAM size to 2560MB" at every boot, so the guest is never 96 MB. The dialog came up in 3 of 5 boots, each from the first read after `boot_completed` to the last (114, 118, 116 reads of as many), and in none of the other two (0 of 113, 0 of 116). Host load at the first read was 11.7, 8.5 and 3.8 for the boots with it and 12.9 and 12.9 for the boots without, so load did not sort them
-- [ ] T3 — RAM given (`-memory`), 5 boots, one change
+- [x] T3 — RAM given (`-memory 4096`, against the baseline's 2560 MB), 5 boots, one change: the emulator no longer logs "Increasing RAM size", and `hw.ramSize` reads 4096. The dialog came up in 3 of 5 boots, again each from the first read to the last (117, 116, 115 reads of as many), and in none of the other two (0 of 118, 0 of 118). Host load at the first read was 9.7, 5.3 and 13.9 for the boots with it and 8.8 and 3.1 for the boots without, so load did not sort them. Same count as the baseline, so the guest's RAM does not account for the dialog
 - [ ] T4 — cores given (`-cores`), 5 boots, one change
 - [ ] T5 — a settled snapshot booted instead of `-no-snapshot`, 5 boots, one change
 - [ ] T6 — Play services' background work held off, 5 boots, one change
