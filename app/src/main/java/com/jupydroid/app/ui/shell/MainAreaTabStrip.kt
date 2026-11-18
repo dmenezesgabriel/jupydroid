@@ -444,9 +444,14 @@ private val TAB_MAX_WIDTH = 216.dp
 
 /**
  * The fair-share floor: `flex 0 1` shrinks a tab to this and the row scrolls beneath it, which is
- * what the Lumino strip does once its content outgrows the bar.
+ * what the Lumino strip does once its content outgrows the bar. JupyterLab sets none on a horizontal
+ * tab (`min-width: 0`), so the number is ours: the close's press reaches 40dp in from a tab's right
+ * edge (its 24dp slot, the 4dp the row pads, and the 12dp Compose widens the area by, ADR-0142), and
+ * a tab's middle must sit a touch slop (8dp) clear of that, so `w / 2 <= w - 40 - 8` and `w >= 96`.
+ * At 80dp the middle was the close's boundary: a tap there closed the tab and a long press opened no
+ * menu (`TabMiddlePressTest`).
  */
-private val TAB_MIN_WIDTH = 80.dp
+private val TAB_MIN_WIDTH = 96.dp
 
 /**
  * The strip's own height - between JupyterLab's 26px and VS Code's 35px. A control in the strip reserves this,

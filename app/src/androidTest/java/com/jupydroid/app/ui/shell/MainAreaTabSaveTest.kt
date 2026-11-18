@@ -115,7 +115,7 @@ class MainAreaTabSaveTest {
   }
 
   private companion object {
-    /** Thirty tabs at the 80dp floor are 2400dp of strip - wider than a tablet in landscape. */
+    /** Thirty tabs at the 96dp floor are 2880dp of strip - wider than a tablet in landscape. */
     const val TABS_PAST_ANY_WIDTH = 30
   }
 }

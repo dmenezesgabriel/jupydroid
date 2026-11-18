@@ -36,8 +36,8 @@ import org.junit.runner.RunWith
  * `scrollToSelectedTab` do: a tab that opens past the row's edge would otherwise be active and
  * unseen, listed `[0,0][0,0]` in a screen reader's tree at 320dp.
  *
- * The strip is held to a phone's 320dp whatever the device is, and five tabs at the 80dp floor are
- * 400dp of row, so the last two start beyond the edge.
+ * The strip is held to a phone's 320dp whatever the device is, and five tabs at the 96dp floor are
+ * 480dp of row, so the last two start beyond the edge.
  */
 @RunWith(AndroidJUnit4::class)
 class MainAreaTabStripRevealTest {

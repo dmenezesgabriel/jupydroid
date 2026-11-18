@@ -63,7 +63,7 @@ is floored at the 80dp, so this is reached whenever `tabs.size > maxWidth / 80`:
 
 ## Tasks
 
-- [ ] T1 — red: a test that presses the middle of a minimum-width tab and finds `closed` empty (tap and long
+- [x] T1 — red: a test that presses the middle of a minimum-width tab and finds `closed` empty (tap and long
   press), at 320dp with four tabs and 360dp with five; then raise the floor so it is green; the strip's other
   tests (`TabCloseTouchAreaTest`, `TabCloseSiblingsTest`, `MainAreaTabStripRevealTest`,
   `MainAreaTabFontScaleTest`) stay green
