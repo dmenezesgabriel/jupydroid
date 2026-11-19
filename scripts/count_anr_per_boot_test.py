@@ -12,6 +12,7 @@ from count_anr_per_boot import (
     boot_line,
     is_clean_boot,
     read_load,
+    require_disabled,
     require_room,
     summarise_boots,
     watch_boot,
@@ -122,6 +123,32 @@ class RequireRoomTest(unittest.TestCase):
 
         self.assertIn("999999999", str(raised.exception))
         self.assertIn("1000000000", str(raised.exception))
+
+
+PM_LIST_DISABLED = "package:com.google.android.gms\r\npackage:com.android.vending\r\n"
+
+
+class RequireDisabledTest(unittest.TestCase):
+    def test_packages_all_listed_as_disabled_pass(self):
+        require_disabled(PM_LIST_DISABLED, ["com.google.android.gms", "com.android.vending"])
+
+    def test_a_package_that_is_not_listed_is_named_with_what_was_listed(self):
+        with self.assertRaises(ValueError) as raised:
+            require_disabled("package:com.android.vending\n", ["com.google.android.gms", "com.android.vending"])
+
+        self.assertIn("'com.google.android.gms'", str(raised.exception))
+        self.assertNotIn("'com.android.vending' is", str(raised.exception))
+        self.assertIn("package:com.android.vending", str(raised.exception))
+
+    def test_a_package_that_only_shares_a_prefix_is_not_the_one_disabled(self):
+        with self.assertRaises(ValueError):
+            require_disabled("package:com.google.android.gms.supervision\n", ["com.google.android.gms"])
+
+    def test_an_empty_listing_fails_every_package_expected(self):
+        with self.assertRaises(ValueError) as raised:
+            require_disabled("", ["com.google.android.gms"])
+
+        self.assertIn("com.google.android.gms", str(raised.exception))
 
 
 class IsCleanBootTest(unittest.TestCase):

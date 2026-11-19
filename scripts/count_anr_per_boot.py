@@ -109,6 +109,27 @@ def require_room(read_free_bytes: Callable[[], int], minimum_bytes: int) -> None
         raise ValueError(f"{free} bytes free, expected at least {minimum_bytes}")
 
 
+def require_disabled(pm_list_disabled: str, expected: list[str]) -> None:
+    """Fails when a package a candidate holds off is not in the guest's disabled list.
+
+    A candidate that did not take would count as a clean arm of a setting never applied, so the driver
+    reads the guest back before it counts a boot.
+
+    Example: `require_disabled("package:com.google.android.gms\\n", ["com.google.android.gms"])`.
+
+    Args:
+        pm_list_disabled: the output of `pm list packages -d`, one `package:<name>` per line.
+        expected: the package names that must be disabled.
+
+    Raises:
+        ValueError: a package is missing; the message names each one and quotes what was listed.
+    """
+    listed = {line.strip().removeprefix("package:") for line in pm_list_disabled.splitlines()}
+    missing = [package for package in expected if package not in listed]
+    if missing:
+        raise ValueError(f"not disabled: {missing!r}; `pm list packages -d` listed {pm_list_disabled.strip()!r}")
+
+
 def watch_boot(
     read_window: Callable[[], str],
     read_host_load: Callable[[], float],
@@ -204,11 +225,14 @@ def _candidate_line(name: str, boots: list[BootSample]) -> str:
     return f"{name}: {with_dialog} of {len(boots)} boots had a dialog; host load peaked at {peak}"
 
 
-def _watch(parsed: argparse.Namespace) -> int:
-    command = [parsed.adb] + (["-s", parsed.serial] if parsed.serial else []) + ["shell", "dumpsys", "window"]
+def _adb_shell(parsed: argparse.Namespace, *words: str) -> str:
+    serial = ["-s", parsed.serial] if parsed.serial else []
+    return subprocess.run([parsed.adb, *serial, "shell", *words], capture_output=True, text=True, timeout=60).stdout
 
+
+def _watch(parsed: argparse.Namespace) -> int:
     def read_window() -> str:
-        return subprocess.run(command, capture_output=True, text=True, timeout=60).stdout
+        return _adb_shell(parsed, "dumpsys", "window")
 
     def host_load() -> float:
         return read_load(Path("/proc/loadavg").read_text())
@@ -236,6 +260,15 @@ def _clean(parsed: argparse.Namespace) -> int:
     return 0 if is_clean_boot(last) else 1
 
 
+def _disabled(parsed: argparse.Namespace) -> int:
+    try:
+        require_disabled(_adb_shell(parsed, "pm", "list", "packages", "-d"), parsed.expect)
+    except ValueError as failure:
+        print(failure, file=sys.stderr)
+        return 1
+    return 0
+
+
 def _count(parsed: argparse.Namespace) -> int:
     print(summarise_boots(Path(parsed.file).read_text().splitlines()))
     return 0
@@ -258,6 +291,11 @@ def _parser() -> argparse.ArgumentParser:
     clean = commands.add_parser("clean", help="exit 1 when the last boot in a jsonl file showed the dialog")
     clean.add_argument("file", help="the file `watch` appended to")
     clean.set_defaults(run=_clean)
+    disabled = commands.add_parser("disabled", help="exit 1 when a package a candidate holds off is not disabled")
+    disabled.add_argument("--serial", default="", help="the device to read; empty uses ANDROID_SERIAL")
+    disabled.add_argument("--adb", default="adb", help="the adb binary, as the caller resolved it")
+    disabled.add_argument("--expect", nargs="+", required=True, help="the package names that must be disabled")
+    disabled.set_defaults(run=_disabled)
     room = commands.add_parser("room", help="exit 1 when the disk holding a path has too little free")
     room.add_argument("--path", default="/", help="any path on the disk to read")
     room.add_argument("--minimum-bytes", type=int, default=_MINIMUM_FREE_BYTES, help="the floor, in bytes")

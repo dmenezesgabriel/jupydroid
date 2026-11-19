@@ -14,6 +14,12 @@
 # BOOT_SNAPSHOT picks how the emulator meets the AVD's `default_boot` snapshot, unset being `-no-snapshot`:
 #   BOOT_SNAPSHOT=save  boots cold, and after the count saves that boot's state over `default_boot`;
 #   BOOT_SNAPSHOT=load  restores `default_boot` and never writes it back, so five boots start from one state.
+# GUEST_DISABLED_PACKAGES, space-separated package names, holds those packages off for the whole run: one
+# prep boot disables them for user 0 (`pm disable-user`, kept in the AVD's userdata, so every counted boot
+# starts with them off, which a disable after `boot_completed` could not do: the dialog is up at the first read),
+# each counted boot reads them back and fails if they are not disabled, and the last boot enables them again so
+# `dev36` is the baseline's afterwards:
+#   GUEST_DISABLED_PACKAGES="com.google.android.gms com.android.vending" devjob scripts/dev36-anr-boot-driver.sh gms-off 5
 # Every boot is also watched for free space on `/`: under 1 GB the emulator is stopped and the run ends,
 # since a snapshot is about 2.3 GB and `/` was 99% full when this was written.
 #
@@ -29,6 +35,7 @@ EMULATOR="${EMULATOR:-$HOME/Android/Sdk/emulator/emulator}"
 SERIAL="emulator-5554"
 BOOT_TIMEOUT_SECONDS=300
 ROOM_POLL_SECONDS=10
+GUEST_FLUSH_SECONDS=20
 SNAPSHOT_NAME="default_boot"
 
 [ "$#" -ge 2 ] || { echo "usage: $0 <candidate> <boots> [emulator args...]" >&2; exit 1; }
@@ -52,7 +59,7 @@ stop_emulator() {
   [ -z "${EMULATOR_PID:-}" ] || wait "$EMULATOR_PID" 2> /dev/null || true
   EMULATOR_PID=""
 }
-trap stop_emulator EXIT
+trap 'restore_guest; stop_emulator' EXIT
 
 wait_for_boot() {
   local waited=0
@@ -92,11 +99,9 @@ save_snapshot() {
   "$ADB" -s "$SERIAL" emu avd snapshot save "$SNAPSHOT_NAME" > "$1/snapshot-save.txt"
 }
 
-boot_once() {
-  local boot="$1" dir="$OUT/boot-$1"
+start_emulator() {
+  local dir="$1"
   shift
-  mkdir -p "$dir"
-  devjob --status > "$dir/devjob-status.txt" 2>&1 || true
   python3 "$ROOT/scripts/count_anr_per_boot.py" room
   # shellcheck disable=SC2046 # snapshot_flags prints words
   "$EMULATOR" -avd dev36 -no-window -no-audio $(snapshot_flags) -gpu swiftshader_indirect "$@" \
@@ -104,15 +109,69 @@ boot_once() {
   EMULATOR_PID=$!
   guard_room &
   wait_for_boot
+}
+
+# Each package is changed alone, so one that is refused names itself in the failure.
+set_guest_packages() {
+  local state="$1" package
+  for package in ${GUEST_DISABLED_PACKAGES:-}; do
+    "$ADB" -s "$SERIAL" shell pm "$state" --user 0 "$package"
+  done
+}
+
+# Reads the guest back: a candidate that did not take would count as a clean arm of a setting never applied.
+require_guest_packages_disabled() {
+  [ -z "${GUEST_DISABLED_PACKAGES:-}" ] && return 0
+  # shellcheck disable=SC2086 # package names are words
+  python3 "$ROOT/scripts/count_anr_per_boot.py" disabled --serial "$SERIAL" --adb "$ADB" \
+    --expect $GUEST_DISABLED_PACKAGES
+}
+
+# `pm` prints its new state before it is on disk: a kill 5 s later and a `reboot -p` (this image has no `stop`)
+# each left the next cold boot with neither package disabled, while 20 s and a `sync` before the kill kept
+# them. The sleep is that measured figure, not a derived one; the counted boots read the guest back anyway.
+flush_guest() {
+  sleep "$GUEST_FLUSH_SECONDS"
+  "$ADB" -s "$SERIAL" shell sync
+}
+
+prepare_guest() {
+  [ -z "${GUEST_DISABLED_PACKAGES:-}" ] && return 0
+  mkdir -p "$OUT/prep"
+  start_emulator "$OUT/prep" "$@"
+  set_guest_packages disable-user
+  require_guest_packages_disabled
+  flush_guest
+  stop_emulator
+}
+
+# Idempotent, and run from the EXIT trap too, so a run that fails midway still gives the AVD back.
+restore_guest() {
+  [ -z "${GUEST_DISABLED_PACKAGES:-}" ] && return 0
+  [ -n "${EMULATOR_PID:-}" ] || return 0
+  set_guest_packages enable && flush_guest \
+    || echo "could not enable: $GUEST_DISABLED_PACKAGES may stay disabled in dev36" >&2
+}
+
+boot_once() {
+  local boot="$1" dir="$OUT/boot-$1"
+  shift
+  mkdir -p "$dir"
+  devjob --status > "$dir/devjob-status.txt" 2>&1 || true
+  start_emulator "$dir" "$@"
+  "$ADB" -s "$SERIAL" shell pm list packages -d > "$dir/disabled-packages.txt"
+  require_guest_packages_disabled
   python3 "$ROOT/scripts/count_anr_per_boot.py" watch --serial "$SERIAL" --adb "$ADB" \
     --candidate "$CANDIDATE" --boot "$boot" --out "$OUT/boots.jsonl"
   [ ! -e "$OUT/out-of-room" ] || { echo "stopped: / fell under 1 GB free" >&2; exit 1; }
   [ "${BOOT_SNAPSHOT:-}" != "save" ] || save_snapshot "$dir"
   "$ADB" -s "$SERIAL" exec-out screencap -p > "$dir/end.png"
   "$ADB" -s "$SERIAL" exec-out uiautomator dump /dev/tty > "$dir/end.xml"
+  [ "$boot" != "$BOOTS" ] || restore_guest
   stop_emulator
 }
 
+prepare_guest "$@"
 for boot in $(seq 1 "$BOOTS"); do
   echo "--- $CANDIDATE boot $boot of $BOOTS ---"
   boot_once "$boot" "$@"
