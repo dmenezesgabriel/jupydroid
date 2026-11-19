@@ -1,0 +1,83 @@
+appId: com.jupydroid.app
+---
+# The notebook's footer - "Code" and "Markdown" after the last cell - and what one tap of each leaves.
+#
+# Runs no cell, so the emulator is enough (AGENTS.md rule 2). Run at each font scale on a phone and
+# a tablet by scripts/add-cell-footer-driver.sh, which also reads the saved file: a frame cannot say
+# that the appended cells reached disk, and a count of cells on screen cannot say that the new one
+# is last.
+#
+# The new cells are not told apart by text - an empty code cell has none - so what this asserts is
+# the footer's own presence and the undo's reach; the frames and the saved file show the cells.
+#
+# Seeded by the driver; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Add Footer.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Add Footer.ipynb"
+- extendedWaitUntil:
+    visible: "last = 3"
+    timeout: 30000
+# Both buttons are on the screen with no cell menu open.
+- scrollUntilVisible:
+    element:
+      text: "Markdown"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Code"
+- assertVisible: "Markdown"
+- assertVisible:
+    text: "Undo cell operation"
+    enabled: false
+- takeScreenshot: 01-footer-after-the-last-cell
+# A code cell is appended, and the footer is still on the screen under it.
+- tapOn: "Code"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible:
+    text: "Undo cell operation"
+    enabled: true
+- assertVisible: "Markdown"
+- takeScreenshot: 02-code-cell-appended
+# A markdown cell, which is the only cell with this placeholder.
+- tapOn: "Markdown"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Write markdown…"
+- takeScreenshot: 03-markdown-cell-appended
+# One undo takes the markdown cell and leaves the code cell.
+- tapOn: "Undo cell operation"
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertNotVisible: "Write markdown…"
+- assertVisible:
+    text: "Undo cell operation"
+    enabled: true
+- takeScreenshot: 04-undone-once
+# A real kill. The driver reads the saved file; the footer must be on the screen again.
+- stopApp
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Add Footer.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Add Footer.ipynb"
+- extendedWaitUntil:
+    visible: "last = 3"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "Markdown"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 05-footer-after-the-relaunch
