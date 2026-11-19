@@ -97,7 +97,7 @@ No port and no adapter, so no `Fake…`.
 ## Tasks
 
 - [x] T1 — appending a cell of a kind at the end: last, empty, active, one undo
-- [ ] T2 — `AddCellFooter` ("Code", "Markdown") as the list's last item, each tap reporting its kind
+- [x] T2 — `AddCellFooter` ("Code", "Markdown") as the list's last item, each tap reporting its kind
 - [ ] T3 — the new cell is brought fully into view
 - [ ] T4 — phone and tablet at 1.0 and 2.0, labels whole; the flow and driver; the ADR; delete this file
 

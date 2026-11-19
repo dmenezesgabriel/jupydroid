@@ -442,6 +442,7 @@ fun EditorScreen(
               tocHeadings = tocHeadings,
               listState = listState,
               onCaretLanded = viewModel.edits::caretLanded,
+              onAddCell = { kind -> viewModel.edits.appendCell(kind) },
               modifier = Modifier.weight(1f),
             )
           }
