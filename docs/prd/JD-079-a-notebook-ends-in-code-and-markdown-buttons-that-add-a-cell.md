@@ -77,10 +77,14 @@ same and are what VS Code names them.
 
 ## Open decisions
 
-- **Is a footer-added cell in view?** `CellRevealScroll` scrolls only in `EDIT` mode and `insertCellAt`
-  leaves the notebook in `COMMAND` mode, so the existing effect does not run for it. The new cell usually
-  lands where the footer stood, but not on a tall screen or after a collapsed section. T3 measures this
-  with a red test, then takes the smallest fix.
+- **Is a footer-added cell in view?** Answered: no, and measured. On a 320x640dp window the list spans
+  y 136-536; after "Code" the new cell's editor was cut at 536 and the footer was off screen.
+  `CellRevealScroll` scrolls only in `EDIT` mode and `insertCellAt` leaves `COMMAND`, so it never ran.
+  The fix is `AppendedCellReveal.kt` `appendCellInView`, which scrolls to the new cell by its list key
+  when it is not whole (cell 422-470, footer 494-514 afterwards). Waiting for an item *count* does not
+  work: the footer is an item, so the count is already past the new row's index, and
+  `AppendedCellRevealTest` pins that. A cell inside a collapsed trailing section has no row and scrolls
+  nothing.
 - **A control between cells or at the top**, after the footer is measured on a phone (GAP-197 slice 2).
 
 ## Surface
@@ -98,7 +102,7 @@ No port and no adapter, so no `Fake…`.
 
 - [x] T1 — appending a cell of a kind at the end: last, empty, active, one undo
 - [x] T2 — `AddCellFooter` ("Code", "Markdown") as the list's last item, each tap reporting its kind
-- [ ] T3 — the new cell is brought fully into view
+- [x] T3 — the new cell is brought fully into view
 - [ ] T4 — phone and tablet at 1.0 and 2.0, labels whole; the flow and driver; the ADR; delete this file
 
 ## Out of scope
