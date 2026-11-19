@@ -1,6 +1,6 @@
 # ADR-0142 — The tab strip's controls keep the strip's height, and a press reaches what the strip leaves them
 
-Status: accepted
+Status: accepted; the floor of a minimum-width tab is amended by [ADR-0160](0160-a-tabs-floor-keeps-its-middle-clear-of-its-closes-reach.md)
 Date: 2026-11-09
 
 ## Context
@@ -62,7 +62,7 @@ docstring already says so.
 | Option | Pro | Con |
 |---|---|---|
 | Keep the 24dp slot and state its reach | Nothing to build; the reach is already 40dp wide and 32dp tall at two panes | Under Material's 48dp at two panes, and the 8dp below the row is the document's |
-| Make the slot as tall as the row, 32 x 32dp | Reserves the height the close reaches | Buys nothing: the reach inside the row is already 32dp tall and the width is cut by the tab's edge. Costs the label 8dp where a tab is squeezed to the 80dp floor |
+| Make the slot as tall as the row, 32 x 32dp | Reserves the height the close reaches | Buys nothing: the reach inside the row is already 32dp tall and the width is cut by the tab's edge. Costs the label 8dp where a tab is squeezed to the 96dp floor |
 | Make the strip 48dp tall at two panes | Reserves Material's size for every control in it | 14dp less document on every two-pane screen, and it reverses ADR-0093 and ADR-0096 |
 
 ## Decision

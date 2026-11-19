@@ -14,8 +14,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
@@ -81,13 +79,11 @@ fun Modifier.lineNumbers(
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
-  /** A press on a diagnosed line's mark column, reporting that line - see [gutterPress]. */
-  onDiagnosticTap: (line: Int) -> Unit = {},
 ): Modifier {
   if (width <= 0.dp) return this
-  val metrics = rememberGutterMetrics(text, style, width, breakpoints, diagnostics)
+  val metrics = rememberGutterMetrics(text, style, width, breakpoints)
   return this
-    .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress, onDiagnosticTap)
+    .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress)
     .gutterDrawing(metrics, layout, stoppedLine)
     .diagnosticSemantics(diagnostics)
     .padding(start = width)
@@ -103,13 +99,7 @@ internal class GutterMetrics(
   val widthPx: Float,
   val armed: Map<Int, Breakpoint>,
   val currentArmed: State<Map<Int, Breakpoint>>,
-  /** Each line's worst diagnostic severity, the smallest LSP number on it, for the mark. */
-  val severity: Map<Int, Int>,
-  /** [severity] read inside a gesture - [currentArmed]'s own trap, and its own fix. */
-  val currentSeverity: State<Map<Int, Int>>,
   val palette: EditorPalette,
-  /** Each severity's glyph ready to draw - `rememberVectorPainter` must run at composition. */
-  val markPainters: Map<Int, Painter>,
 )
 
 @Composable
@@ -118,7 +108,6 @@ internal fun rememberGutterMetrics(
   style: TextStyle,
   width: Dp,
   breakpoints: List<Breakpoint>,
-  diagnostics: List<CellDiagnostic> = emptyList(),
 ): GutterMetrics {
   val starts = logicalLineStarts(text)
   val measurer = rememberTextMeasurer()
@@ -136,10 +125,6 @@ internal fun rememberGutterMetrics(
   val digitsPx = with(LocalDensity.current) { (width - NUMBER_GAP).roundToPx() }
   val widthPx = with(LocalDensity.current) { width.toPx() }
   val armed = remember(breakpoints) { breakpoints.associateBy { it.line } }
-  // The lowest severity number wins the mark: an error line also carrying warnings is an error.
-  val severity = remember(diagnostics) {
-    diagnostics.groupingBy { it.line }.fold(Int.MAX_VALUE) { worst, d -> minOf(worst, d.severity) }
-  }
   // Read inside the gesture through this rather than closing over `armed` directly, and kept out
   // of the `pointerInput` key below on purpose: `onTap` toggles the very breakpoint a long-press
   // is asking about, and keying on `armed` restarted this coroutine the instant that toggle's own
@@ -147,21 +132,8 @@ internal fun rememberGutterMetrics(
   // that starts it disarmed the line. Found live on the tablet, not guessed: the dot vanished on
   // press and the condition dialog never opened, for every hold, long or short.
   val currentArmed = rememberUpdatedState(armed)
-  // `severity` is the same trap as `armed` above: a republished diagnostic rebuilds `metrics`,
-  // the gesture coroutine reads its captured copy, and a mark pressed mid-update would answer
-  // for a line that no longer carries it. The State keeps the read current without rekeying.
-  val currentSeverity = rememberUpdatedState(severity)
-  // One painter per glyph, made here rather than inside `drawBehind`: `rememberVectorPainter`
-  // is composable, and the mark's draw pass is not.
-  val markPainters = mapOf(
-    SEVERITY_ERROR to rememberVectorPainter(severityIcon(SEVERITY_ERROR)),
-    SEVERITY_WARNING to rememberVectorPainter(severityIcon(SEVERITY_WARNING)),
-    SEVERITY_INFORMATION to rememberVectorPainter(severityIcon(SEVERITY_INFORMATION)),
-    SEVERITY_HINT to rememberVectorPainter(severityIcon(SEVERITY_HINT)),
-  )
   return GutterMetrics(
-    starts, numbers, badge, breakpointColumnPx, digitsPx, widthPx, armed, currentArmed, severity,
-    currentSeverity, editorPalette, markPainters,
+    starts, numbers, badge, breakpointColumnPx, digitsPx, widthPx, armed, currentArmed, editorPalette,
   )
 }
 
@@ -171,22 +143,16 @@ internal fun Modifier.gutterGestures(
   layout: TextLayoutResult?,
   onGutterTap: (line: Int) -> Unit,
   onGutterLongPress: (line: Int) -> Unit,
-  onDiagnosticTap: (line: Int) -> Unit = {},
 ): Modifier = pointerInput(metrics.widthPx, layout, metrics.starts) {
   detectGutterTap(
     metrics.widthPx,
-    metrics.breakpointColumnPx.toFloat(),
     onTap = { y -> layout?.let { onGutterTap(it.lineNumberAt(y, metrics.starts)) } },
     // Asked before `onTap` runs, so a long-press on a line that *was* armed still counts as
     // one even though `onTap`'s own toggle disarms it in the same gesture.
     wasArmed = { y ->
       layout?.let { metrics.currentArmed.value.containsKey(it.lineNumberAt(y, metrics.starts)) } == true
     },
-    wasDiagnosed = { y ->
-      layout?.let { metrics.currentSeverity.value.containsKey(it.lineNumberAt(y, metrics.starts)) } == true
-    },
     onLongPress = { y -> layout?.let { onGutterLongPress(it.lineNumberAt(y, metrics.starts)) } },
-    onDiagnosticTap = { y -> layout?.let { onDiagnosticTap(it.lineNumberAt(y, metrics.starts)) } },
   )
 }
 
@@ -201,7 +167,6 @@ internal fun Modifier.gutterDrawing(metrics: GutterMetrics, layout: TextLayoutRe
       // than with the code - always drawn now, whether or not the line carries a breakpoint.
       val x = (metrics.digitsPx - number.size.width).toFloat()
       drawText(number, topLeft = Offset(x, top))
-      metrics.severity[index + 1]?.let { drawDiagnosticMark(it, metrics, top, number.size.height.toFloat()) }
       metrics.armed[index + 1]?.let { drawBreakpointMark(it, metrics, top, number.size.height.toFloat()) }
     }
   }
@@ -276,27 +241,22 @@ private fun DrawScope.drawBreakpointMark(breakpoint: Breakpoint, metrics: Gutter
  */
 private suspend fun PointerInputScope.detectGutterTap(
   widthPx: Float,
-  markColumnPx: Float,
   onTap: (y: Float) -> Unit,
   wasArmed: (y: Float) -> Boolean,
-  wasDiagnosed: (y: Float) -> Boolean,
   onLongPress: (y: Float) -> Unit,
-  onDiagnosticTap: (y: Float) -> Unit,
 ) {
   awaitEachGesture {
     val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
     if (down.position.x > widthPx) return@awaitEachGesture
     down.consume()
     val armed = wasArmed(down.position.y)
-    val diagnosed = wasDiagnosed(down.position.y)
     var change = down
     while (change.pressed) {
       change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
     }
     val held = change.uptimeMillis - down.uptimeMillis >= viewConfiguration.longPressTimeoutMillis
-    when (gutterPress(armed, held, down.position.x <= markColumnPx, diagnosed)) {
+    when (gutterPress(armed, held)) {
       GutterPress.EDIT_CONDITION -> onLongPress(down.position.y)
-      GutterPress.SHOW_DIAGNOSTICS -> onDiagnosticTap(down.position.y)
       GutterPress.TOGGLE_BREAKPOINT -> onTap(down.position.y)
     }
   }

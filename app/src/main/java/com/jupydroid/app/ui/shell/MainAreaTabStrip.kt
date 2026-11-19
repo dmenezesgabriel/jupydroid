@@ -305,7 +305,6 @@ private fun MainAreaTabStrip(
     // `flex: 0 1 var(--jp-private-horizontal-tab-width)` - a 216px basis that shrinks to a fair
     // share and never grows. Below the floor the row overflows and the scroll takes over.
     val share = if (tabs.isEmpty()) TAB_MAX_WIDTH else maxWidth / tabs.size
-    val tabWidth = share.coerceIn(TAB_MIN_WIDTH, TAB_MAX_WIDTH)
     // The tab the strip reveals is the one on top of the stack, scrolled the minimum that shows it
     // whole, as VS Code does (vscode@3f3380c668d0
     // `src/vs/workbench/browser/parts/editor/multiEditorTabsControl.ts`, "Reveal the active one")
@@ -316,10 +315,6 @@ private fun MainAreaTabStrip(
     // lays the row out: before it the scroller's range is 0 and a request has nowhere to scroll.
     val active = backStack.lastOrNull()?.takeIf { it in tabs }
     val revealActive = remember { BringIntoViewRequester() }
-    LaunchedEffect(active, tabs.size, tabWidth, twoPane) {
-      withFrameNanos {}
-      revealActive.bringIntoView()
-    }
     Row(modifier = Modifier.fillMaxWidth()) {
       // The one-pane Up affordance - fixed ahead of the scrollable tabs so it never scrolls
       // away, and present only while something sits beneath to return to. Its label names the
@@ -337,47 +332,58 @@ private fun MainAreaTabStrip(
           )
         }
       }
-      Row(modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
-        tabs.forEach { tab ->
-          val document = tab.documentIn(openDocuments)
-          // `widgetsRightOf` (jupyterlab@7f0e690 `packages/application-extension/src/index.tsx`): the
-          // tabs after this one, in the strip's opening order.
-          val toTheRight = tabs.dropWhile { it != tab }.drop(1)
-          MainAreaTab(
-            icon = tabIcon(tab, documentContributions),
-            // Live wins over static, in both its forms: a document's current path (`title.label`
-            // follows `context.path`) and a terminal's reported OSC title (`title.label` again -
-            // `widget.ts:487`). A rename landed while the document sat in the background still
-            // renames its tab the same way. Shared with the Running panel's Open Tabs row - it is
-            // the same `title.label`.
-            title = tab.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles),
-            document = document,
-            active = active == tab,
-            // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
-            closable = tab !is Launcher || backStack.launcherIsClosable(),
-            // `docmanager:rename` only exists for what has a path (`document-title` tabs).
-            renameable = tab.documentOpening() != null,
-            width = tabWidth,
-            modifier = if (active == tab) Modifier.bringIntoViewRequester(revealActive) else Modifier,
-            canCloseOthers = tabs.size > 1,
-            canCloseRight = toTheRight.isNotEmpty(),
-            onActivate = { backStack.activateMainAreaTab(tab) },
-            onClose = { onCloseTab(tab) },
-            // A `widget.close()` per sibling, as the reference's two commands do: each goes through
-            // the close gate, so a dirty one still asks and the rest close around it (ADR-0103).
-            onCloseOthers = { (tabs - tab).forEach(onCloseTab) },
-            onCloseRight = { toTheRight.forEach(onCloseTab) },
-            onRename = { onRenameTab(tab) },
-            onSaveAs = { onSaveTabAs(tab) },
-            onRevert = { onRevertTab(tab) },
-            onDuplicate = { onDuplicateTab(tab) },
-            onDelete = { onDeleteTab(tab) },
-            onMoveToSidePanel = (tab as? ContributedDocument)?.let { document ->
-              documentContributions.sidePanelMoveOf(document)?.let { move ->
-                { backStack.moveToSidePanel(document, move, twoPane, onShowSidePanel, onCloseTab) }
-              }
-            },
-          )
+      BoxWithConstraints(modifier = Modifier.weight(1f)) {
+        // A tab is never wider than the row the scroller is given: at one pane the Up arrow, Reload, Save
+        // and Spaces take 176dp of 320, and a 160dp share outgrew the 144dp left, so no scroll could show
+        // the active tab whole (`MainAreaTabStripRevealTest`). The share stays the strip's, not this row's:
+        // the 107dp tabs ADR-0142 swept are the strip's third of 320.
+        val tabWidth = share.coerceIn(TAB_MIN_WIDTH, TAB_MAX_WIDTH).coerceAtMost(maxWidth)
+        LaunchedEffect(active, tabs.size, tabWidth, twoPane) {
+          withFrameNanos {}
+          revealActive.bringIntoView()
+        }
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+          tabs.forEach { tab ->
+            val document = tab.documentIn(openDocuments)
+            // `widgetsRightOf` (jupyterlab@7f0e690 `packages/application-extension/src/index.tsx`): the
+            // tabs after this one, in the strip's opening order.
+            val toTheRight = tabs.dropWhile { it != tab }.drop(1)
+            MainAreaTab(
+              icon = tabIcon(tab, documentContributions),
+              // Live wins over static, in both its forms: a document's current path (`title.label`
+              // follows `context.path`) and a terminal's reported OSC title (`title.label` again -
+              // `widget.ts:487`). A rename landed while the document sat in the background still
+              // renames its tab the same way. Shared with the Running panel's Open Tabs row - it is
+              // the same `title.label`.
+              title = tab.runningTabTitle(openDocuments, liveDocumentPaths, liveTabTitles),
+              document = document,
+              active = active == tab,
+              // `main.title.closable = widgets('main').length > 1` - the lone launcher earns no close.
+              closable = tab !is Launcher || backStack.launcherIsClosable(),
+              // `docmanager:rename` only exists for what has a path (`document-title` tabs).
+              renameable = tab.documentOpening() != null,
+              width = tabWidth,
+              modifier = if (active == tab) Modifier.bringIntoViewRequester(revealActive) else Modifier,
+              canCloseOthers = tabs.size > 1,
+              canCloseRight = toTheRight.isNotEmpty(),
+              onActivate = { backStack.activateMainAreaTab(tab) },
+              onClose = { onCloseTab(tab) },
+              // A `widget.close()` per sibling, as the reference's two commands do: each goes through
+              // the close gate, so a dirty one still asks and the rest close around it (ADR-0103).
+              onCloseOthers = { (tabs - tab).forEach(onCloseTab) },
+              onCloseRight = { toTheRight.forEach(onCloseTab) },
+              onRename = { onRenameTab(tab) },
+              onSaveAs = { onSaveTabAs(tab) },
+              onRevert = { onRevertTab(tab) },
+              onDuplicate = { onDuplicateTab(tab) },
+              onDelete = { onDeleteTab(tab) },
+              onMoveToSidePanel = (tab as? ContributedDocument)?.let { document ->
+                documentContributions.sidePanelMoveOf(document)?.let { move ->
+                  { backStack.moveToSidePanel(document, move, twoPane, onShowSidePanel, onCloseTab) }
+                }
+              },
+            )
+          }
         }
       }
       // Fixed behind the scrolling tabs as the Up arrow is fixed ahead of them, so neither ever
@@ -438,9 +444,14 @@ private val TAB_MAX_WIDTH = 216.dp
 
 /**
  * The fair-share floor: `flex 0 1` shrinks a tab to this and the row scrolls beneath it, which is
- * what the Lumino strip does once its content outgrows the bar.
+ * what the Lumino strip does once its content outgrows the bar. JupyterLab sets none on a horizontal
+ * tab (`min-width: 0`), so the number is ours: the close's press reaches 40dp in from a tab's right
+ * edge (its 24dp slot, the 4dp the row pads, and the 12dp Compose widens the area by, ADR-0142), and
+ * a tab's middle must sit a touch slop (8dp) clear of that, so `w / 2 <= w - 40 - 8` and `w >= 96`.
+ * At 80dp the middle was the close's boundary: a tap there closed the tab and a long press opened no
+ * menu (`TabMiddlePressTest`).
  */
-private val TAB_MIN_WIDTH = 80.dp
+private val TAB_MIN_WIDTH = 96.dp
 
 /**
  * The strip's own height - between JupyterLab's 26px and VS Code's 35px. A control in the strip reserves this,

@@ -285,11 +285,20 @@ class SidePanelBarTest {
       centreGapFraction(TABLET_PORTRAIT),
       TOLERANCE_FRACTION,
     )
-    val files = compose.onNodeWithContentDescription(FILES).getUnclippedBoundsInRoot()
+    val filesNode = compose.onNodeWithContentDescription(FILES)
+    val files = filesNode.getUnclippedBoundsInRoot()
     val more = compose.onNodeWithContentDescription(MORE).getUnclippedBoundsInRoot()
     val groupCentre = (files.left.value + more.right.value) / 2
+    // `ForcedSize` fixes the dp the bar lays out in but not the pixels behind them, so one pixel is read
+    // off the node itself: its width in dp over its width in px.
+    val dpPerPixel = (files.right - files.left).value / filesNode.fetchSemanticsNode().size.width
 
-    assertEquals("and the group is centred", TABLET_PORTRAIT.width.value / 2, groupCentre, 2f)
+    assertEquals(
+      "and the group is centred",
+      TABLET_PORTRAIT.width.value / 2,
+      groupCentre,
+      centreSlackDp(ONE_PANE_ITEMS, dpPerPixel),
+    )
   }
 
   private fun show(selected: SidePanel) = show(ShownPanel.Shell(selected))
@@ -327,9 +336,9 @@ class SidePanelBarTest {
   }
 
   /**
-   * The bar at a stated width. `ForcedSize` changes the **layout constraints**, which is what the
-   * bar reads for itself - unlike `currentWindowAdaptiveInfo()`, which measures the activity's
-   * window and would leave a test driving one branch twice (`ActionRowPlacement`).
+   * The bar at a stated width. `ForcedSize` changes the **layout constraints**, which is the only
+   * width the bar reads - `SidePanelBar` asks its own constraints, never the window
+   * (`ActionRowPlacement`).
    */
   private fun showAt(size: DpSize) {
     compose.setContent {
@@ -361,6 +370,9 @@ class SidePanelBarTest {
      * arrangements are 0.5 and 0.25 apart, so a 0.02 window cannot confuse one for the other.
      */
     const val TOLERANCE_FRACTION = 0.02f
+
+    /** Files, Sessions and Tabs, Search, New Launcher and More: the five the bar draws. */
+    const val ONE_PANE_ITEMS = 5
 
     const val FILES = "Files"
     const val SESSIONS_AND_TABS = "Sessions and Tabs"

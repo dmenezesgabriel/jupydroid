@@ -88,6 +88,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 # S310: the URL is the driver's own --base-url (a loopback MobSF container), never a string from outside.
 "scripts/mobsf_scan.py" = ["S310"]
 "scripts/clear_system_anr.py" = ["S603"]
+"scripts/focus_samples.py" = ["S603"]
+"scripts/count_anr_per_boot.py" = ["S603"]
 "scripts/read_apk_native_libs.py" = ["S603", "S607"]
 "scripts/read_reference_commands.py" = ["S603", "S607"]
 "scripts/read_personal_data.py" = ["S603", "S607"]
@@ -122,6 +124,7 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/read_font_scale_fit.py" = ["S314"]
 "scripts/read_node_fill.py" = ["S314"]
 "scripts/read_pane_widths.py" = ["S314"]
+"scripts/read_tab_close_reach.py" = ["S314"]
 "scripts/read_search_box_width.py" = ["S314"]
 "scripts/read_terminal_margin.py" = ["S314"]
 "scripts/read_touch_targets.py" = ["S314"]
@@ -129,6 +132,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/read_touch_target_bounds.py" = ["S314"]
 # S310: PROOT_URL is a literal https URL, and the download is refused unless it matches PROOT_SHA256.
 "scripts/stage_proot.py" = ["S310"]
+# S310: PYPI_URL is a literal https URL; only the package name, taken from the command line, is substituted.
+"scripts/read_wheel_platforms.py" = ["S310"]
 
 # Same reason as the B018 entry above: the formatter would move `1 / 0` off line 1. file-editor.py ends without a
 # newline on purpose: the drivers seed it byte for byte and the flows assert the file as written.

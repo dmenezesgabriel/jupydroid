@@ -155,7 +155,7 @@ class RealConfigTest(unittest.TestCase):
             "AGENTS.md",
             "README.md",
             "scripts/check_doc_citations.py",
-            "scripts/claude-autopilot/run.ts",
+            "scripts/autopilot/run.ts",
             "scripts/testdata/dialog-margin/delete-320dp.png",
             ".maestro/flows/x.yaml",
             ".github/workflows/ci.yml",

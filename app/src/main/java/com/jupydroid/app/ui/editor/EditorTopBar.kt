@@ -79,9 +79,9 @@ fun EditorTopBar(
   /**
    * Whether this bar has the room to carry [activeCellKind] itself - [labelsFitOnActionRow].
    *
-   * Passed in rather than read here, because `currentWindowAdaptiveInfo()` measures the
-   * *activity's* window and so does not follow a test's `ForcedSize` (`Navigation.kt`,
-   * `PaneDirective.kt`) - the same seam [EditorScreen] already crosses for the side area.
+   * Passed in rather than read here, so a test states the branch it means for this row alone -
+   * a `ForcedSize` would put the whole scene on a compact window, while the question is whether
+   * *this* bar has the room. The same seam [EditorScreen] already crosses for the side area.
    */
   cellTypeOnBar: Boolean = false,
   /** `notebook:collapse-all-headings` / `expand-all-headings` - see [NotebookActionsMenu]. */

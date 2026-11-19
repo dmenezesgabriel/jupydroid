@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -59,23 +61,25 @@ class RecreatedPathTabTest {
 
   private fun startApp() {
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = AppContainer(
-            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = { _, _ ->
-              EnteredSpacePorts(
-                notebookRepository = DiskNotebookRepository(tempFolder.root),
-                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
-                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
-              )
-            },
-          ),
-          sharedNotebook = null,
-          onImportConsumed = {},
-          // Two panes, so the explorer's row stays hittable beside the open document.
-          twoPane = true,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(
+              launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+              enteredSpacePorts = { _, _ ->
+                EnteredSpacePorts(
+                  notebookRepository = DiskNotebookRepository(tempFolder.root),
+                  workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
+                )
+              },
+            ),
+            sharedNotebook = null,
+            onImportConsumed = {},
+            // Two panes, so the explorer's row stays hittable beside the open document.
+            twoPane = true,
+          )
+        }
       }
     }
     compose.enterBaseSpace()

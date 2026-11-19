@@ -43,19 +43,17 @@ fun GutterOverlay(
   onGutterTap: (line: Int) -> Unit = {},
   onGutterLongPress: (line: Int) -> Unit = {},
   stoppedLine: Int? = null,
-  /** A press on a diagnosed line's mark column, reporting that line - see [gutterPress]. */
-  onDiagnosticTap: (line: Int) -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   if (width <= 0.dp) return
-  val metrics = rememberGutterMetrics(text, style, width, breakpoints, diagnostics)
+  val metrics = rememberGutterMetrics(text, style, width, breakpoints)
   val heightDp = with(LocalDensity.current) { (layout?.size?.height ?: 0).toDp() }
   Box(
     modifier
       .width(width)
       .height(heightDp)
       .background(editorPalette.cellBackground)
-      .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress, onDiagnosticTap)
+      .gutterGestures(metrics, layout, onGutterTap, onGutterLongPress)
       .gutterDrawing(metrics, layout, stoppedLine)
       .diagnosticSemantics(diagnostics),
   )

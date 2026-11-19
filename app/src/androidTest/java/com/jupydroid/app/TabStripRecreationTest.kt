@@ -3,6 +3,8 @@ package com.jupydroid.app
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -150,13 +152,15 @@ class TabStripRecreationTest {
   private fun showTheShell() {
     compose.activityRule.scenario.onActivity { activity ->
       activity.setContent {
-        JupyterDroidTheme {
-          MainNavigation(
-            appContainer = appContainer,
-            sharedNotebook = null,
-            onImportConsumed = {},
-            twoPane = true,
-          )
+        DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
+          JupyterDroidTheme {
+            MainNavigation(
+              appContainer = appContainer,
+              sharedNotebook = null,
+              onImportConsumed = {},
+              twoPane = true,
+            )
+          }
         }
       }
     }

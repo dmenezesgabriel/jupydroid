@@ -269,7 +269,7 @@ internal fun tabIcon(key: NavKey, documentContributions: List<DocumentContributi
 
 /**
  * The `filetype` glyph's slot - a step under the reference's `jp-icon3` 16px so the ellipsized
- * label keeps the extra room where a tab is squeezed to the 80dp floor.
+ * label keeps the extra room where a tab is squeezed to the 96dp floor.
  */
 private val TAB_ICON = 14.dp
 

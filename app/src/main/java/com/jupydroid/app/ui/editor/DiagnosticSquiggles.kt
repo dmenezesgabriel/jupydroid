@@ -79,16 +79,12 @@ internal fun normalizeDiagnosticRange(text: CharSequence, start: Int, end: Int, 
  * not a sparkline. Hints draw VS Code's three dots (`dotdotdot`) instead.
  */
 private fun DrawScope.drawSquiggleSpan(layout: TextLayoutResult, span: IntRange, color: Color, severity: Int) {
-  val firstLine = layout.getLineForOffset(span.first)
-  val lastLine = layout.getLineForOffset(span.last)
-  for (line in firstLine..lastLine) {
-    val segStart = if (line == firstLine) span.first else layout.getLineStart(line)
-    val segEnd = if (line == lastLine) span.last + 1 else layout.getLineEnd(line)
-    if (segEnd <= segStart) continue
-    val x0 = layout.getBoundingBox(segStart).left
-    val x1 = layout.getBoundingBox(segEnd - 1).right
-    val bottom = layout.getLineBottom(line)
-    if (severity == SEVERITY_HINT) drawHintDots(x0, bottom, color) else drawWave(x0, x1, bottom, color)
+  layout.rowsOf(span).forEach { row ->
+    if (severity == SEVERITY_HINT) {
+      drawHintDots(row.left, row.bottom, color)
+    } else {
+      drawWave(row.left, row.right, row.bottom, color)
+    }
   }
 }
 

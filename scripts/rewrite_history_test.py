@@ -10,6 +10,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from check_device_secrets import TOKEN_CARRIERS
 from check_device_secrets_test import CARRIER_CASES
@@ -22,6 +23,7 @@ from rewrite_history import (
     old_emails,
     rewrite,
     rules_text,
+    run_in,
 )
 
 HOME = Path("/home/ana")
@@ -225,6 +227,27 @@ class RewriteTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             rewrite(self.repo.root, HOME, IDENTITY_FOR_TEST, force=True, runner=runner)
         self.assertFalse(Path(runner.argv[runner.argv.index("--mailmap") + 1]).exists())
+
+
+class CallersGitEnvironmentTest(unittest.TestCase):
+    """A pre-commit hook run from a linked worktree exports GIT_DIR, which outranks `git -C` and `cwd=`.
+
+    A real `git filter-repo` once ran against the shared repository for that reason: the fixture's
+    rules rewrote every local branch, and the repository's config and reflogs went with them.
+    """
+
+    def test_run_in_hides_the_callers_git_environment_from_what_it_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.dict(os.environ, {"GIT_DIR": "/elsewhere"}):
+            run_in(["sh", "-c", 'test -z "${GIT_DIR+set}"'], Path(tmp))
+
+    def test_old_emails_reads_the_repository_it_is_given_not_the_callers(self) -> None:
+        with tempfile.TemporaryDirectory() as given, tempfile.TemporaryDirectory() as callers:
+            mine = FixtureRepo(Path(given), email="mine@x.org")
+            mine.commit({"a.txt": "x"})
+            theirs = FixtureRepo(Path(callers), email="theirs@x.org")
+            theirs.commit({"a.txt": "x"})
+            with mock.patch.dict(os.environ, {"GIT_DIR": str(theirs.root / ".git")}):
+                self.assertEqual(old_emails(mine.root), ["mine@x.org"])
 
 
 class OldEmailsTest(unittest.TestCase):

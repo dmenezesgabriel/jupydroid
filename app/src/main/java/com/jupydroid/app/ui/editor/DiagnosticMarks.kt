@@ -21,12 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -44,32 +39,9 @@ import com.jupydroid.app.theme.editorPalette
 import com.jupydroid.extension.api.glyphBesideText
 
 /**
- * How a cell's language-server diagnostics appear in the gutter, kept
- * beside rather than inside [LineNumbers.kt], which sits at the file's own function budget.
+ * How a cell's language-server diagnostics are named, coloured and read: the severity vocabulary,
+ * the accessibility summary and the card a tap on a squiggle ([diagnosticTaps]) opens.
  */
-
-/**
- * The mark's glyph **is** the severity - a real icon rather than a geometric shape, since
- * the hand-drawn circle/triangle/square set read as coloured blobs at gutter size while an
- * outlined glyph reads as the sign it is. The vocabulary is VS Code's codicons (`error`,
- * `warning`, `info`, `lightbulb`) drawn in Material's Outlined set - the subtle treatment
- * neither VS Code nor IntelliJ can show, since they draw no per-line mark at all: CodeMirror's
- * `lintGutter` does, so a mark stays, and its being the detail popup's tap target is the one
- * reason it must.
- *
- * Drawn under the breakpoint's dot, so a line carrying both still reads as the breakpoint
- * badged by its worst diagnostic - the layering this draw order buys.
- */
-internal fun DrawScope.drawDiagnosticMark(severity: Int, metrics: GutterMetrics, top: Float, rowHeight: Float) {
-  val side = minOf(metrics.breakpointColumnPx.toFloat(), rowHeight) * MARK_ICON
-  val center = Offset(metrics.breakpointColumnPx / 2f, top + rowHeight / 2f)
-  val painter = metrics.markPainters[severity] ?: metrics.markPainters.getValue(SEVERITY_ERROR)
-  translate(center.x - side / 2f, center.y - side / 2f) {
-    with(painter) {
-      draw(Size(side, side), colorFilter = ColorFilter.tint(severityColour(severity, metrics.palette)))
-    }
-  }
-}
 
 /**
  * The glyph an LSP severity number draws with - VS Code's codicon vocabulary rendered in
@@ -93,7 +65,7 @@ internal fun severityColour(severity: Int, palette: EditorPalette): Color = when
 }
 
 /**
- * The painted marks said aloud - a square carries no semantics, so the field states its own
+ * The painted squiggles said aloud - canvas carries no semantics, so the field states its own
  * diagnostics for TalkBack and for the flow that proves them. CodeMirror announces lint-gutter
  * entries the same way.
  */
@@ -105,30 +77,31 @@ internal fun attributionOf(diagnostic: CellDiagnostic): String? =
   listOfNotNull(diagnostic.source, diagnostic.code).joinToString(" · ").ifEmpty { null }
 
 /**
- * The rect a pressed mark anchors its popup to - the whole of [line]'s row across the gutter,
- * so the popup opens just beside where the code starts rather than on the pixels of the square.
- * Null when [line] names no logical line of [layout]'s text.
+ * The rect the card anchors to - the whole of [line]'s row across the gutter, so the card
+ * opens just beside where the code starts rather than on the squiggle the finger is on.
+ * In the text's own coordinates the gutter column lies *left* of x=0, hence the negative
+ * left edge. Null when [line] names no logical line of [layout]'s text.
  */
-internal fun diagnosticMarkRect(layout: TextLayoutResult, starts: List<Int>, line: Int, gutterPx: Int): IntRect? {
+internal fun diagnosticLineRect(layout: TextLayoutResult, starts: List<Int>, line: Int, gutterPx: Int): IntRect? {
   val index = line - 1
   if (index !in starts.indices) return null
   val top = layout.getLineTop(layout.getLineForOffset(starts[index]))
   val lastOffset = if (index + 1 < starts.size) starts[index + 1] - 1 else layout.layoutInput.text.length
   val bottom = layout.getLineBottom(layout.getLineForOffset(lastOffset.coerceAtLeast(starts[index])))
-  return IntRect(0, top.toInt(), gutterPx, bottom.toInt())
+  return IntRect(-gutterPx, top.toInt(), 0, bottom.toInt())
 }
 
 /**
- * What the mark has to say once it is tapped.
+ * What a squiggle has to say once it is tapped.
  *
  * VS Code answers this content on the marker's hover (`editor.contrib.hover`'s
- * `markerHoverParticipant`): severity, the message, and who raised it. A tap on the square is
+ * `markerHoverParticipant`): severity, the message, and who raised it. A tap on the squiggle is
  * that hover performed with a finger, so the popup lists the line's findings the same way -
- * the mark's own colour leading, the message, then `source · code` where the server sent them.
+ * the severity's own icon leading, the message, then `source · code` where the server sent them.
  * Anchored on the line's row and dismisses like every popup.
  *
  * ```
- * DiagnosticDetailPopup(diagnostics, anchor = markRect, onDismiss = { detailLine = null })
+ * DiagnosticDetailPopup(diagnostics, anchor = lineRect, onDismiss = { detailLine = null })
  * ```
  */
 @Composable
@@ -188,13 +161,6 @@ private fun DiagnosticDetailRow(diagnostic: CellDiagnostic) {
     }
   }
 }
-
-/**
- * How much of the mark cell the glyph fills - Material's vectors draw their own padding
- * into the 24-unit viewport, so a mark sized near the cell reads at the dot's own weight
- * rather than larger than it.
- */
-private const val MARK_ICON = 0.9f
 
 /**
  * The glyph leading a detail row - the mark's own icon, tinted by severity - at the default font scale. It grows

@@ -57,7 +57,7 @@ const val SETTINGS_SCREEN_TAG = "settings_screen"
  * open rather than replacing it - see that function's own doc comment.
  *
  * ```
- * SettingsScreen(editorSettingsRepository, themeSettingsRepository, applicationScope, onOpenLicences)
+ * SettingsScreen(editorSettingsRepository, themeSettingsRepository, applicationScope, onOpenLicences, diagnostics)
  * ```
  */
 @Composable
@@ -68,6 +68,8 @@ fun SettingsScreen(
   applicationScope: CoroutineScope,
   /** Opens the Licences screen over this one; the back stack stays with the caller. */
   onOpenLicences: () -> Unit,
+  /** The error log's summary and its confirmed clear. */
+  diagnostics: DiagnosticsViewModel,
   modifier: Modifier = Modifier,
 ) {
   val settings by editorSettingsRepository.observeSettings().collectAsStateWithLifecycle(EditorSettings())
@@ -167,6 +169,7 @@ fun SettingsScreen(
       SettingsToggleRow(OUTPUT_HEADINGS, settings.tocIncludeOutput) {
         update(settings.copy(tocIncludeOutput = it))
       }
+      DiagnosticsSection(diagnostics)
       LicencesLinkRow(onOpenLicences)
     }
   }

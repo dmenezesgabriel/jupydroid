@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,26 +42,39 @@ import com.jupydroid.extensions.git.domain.stages
 @Composable
 fun SourceControlPanel(reader: GitStatusReader, path: String, modifier: Modifier = Modifier) {
   var reading by remember(reader, path) { mutableStateOf<StatusReading>(StatusReading.Pending) }
-  LaunchedEffect(reader, path) {
-    reading = try {
-      StatusReading.Read(reader.status(path))
-    } catch (failure: GitStatusException) {
-      StatusReading.Failed(failure.message.orEmpty())
-    }
+  var attempt by remember(reader, path) { mutableIntStateOf(0) }
+  LaunchedEffect(reader, path, attempt) {
+    reading = StatusReading.Pending
+    reading = readStatus(reader, path)
   }
+  val retry: () -> Unit = { attempt++ }
   Column(modifier = modifier.fillMaxWidth()) {
     when (val shown = reading) {
-      StatusReading.Pending -> Unit
-      is StatusReading.Failed -> Text(shown.message, color = MaterialTheme.colorScheme.error)
-      is StatusReading.Read -> StatusLines(shown.status, path)
+      StatusReading.Pending -> Text(READING_MESSAGE)
+      is StatusReading.Failed -> WithRetry(retry) { Text(shown.message, color = MaterialTheme.colorScheme.error) }
+      is StatusReading.Read -> StatusLines(shown.status, path, retry)
     }
   }
 }
 
+/** The port promises [GitStatusException] for every failure, so it is the one thing a read turns into a state. */
+private suspend fun readStatus(reader: GitStatusReader, path: String): StatusReading = try {
+  StatusReading.Read(reader.status(path))
+} catch (failure: GitStatusException) {
+  StatusReading.Failed(failure.message.orEmpty())
+}
+
+/** [message] with the button that reads again beneath it. */
 @Composable
-private fun StatusLines(status: RepositoryStatus, path: String) {
+private fun WithRetry(onRetry: () -> Unit, message: @Composable () -> Unit) {
+  message()
+  TextButton(onClick = onRetry) { Text(RETRY_LABEL) }
+}
+
+@Composable
+private fun StatusLines(status: RepositoryStatus, path: String, onRetry: () -> Unit) {
   when (status) {
-    is RepositoryStatus.NotARepository -> Text(notARepositoryMessage(path))
+    is RepositoryStatus.NotARepository -> WithRetry(onRetry) { Text(notARepositoryMessage(path)) }
     is RepositoryStatus.Repository -> {
       // jupyterlab-git's toolbar captions the name "Current branch" (`src/components/Toolbar.tsx`).
       Text("Current branch", style = MaterialTheme.typography.labelMedium)

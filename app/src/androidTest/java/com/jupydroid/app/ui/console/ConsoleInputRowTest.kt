@@ -19,7 +19,6 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -155,8 +154,12 @@ class ConsoleInputRowTest {
       JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
     }
 
-    val width = compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).getUnclippedBoundsInRoot().width
-    assertTrue("input field is only $width wide - the row's weight is not reaching it", width >= MIN_FIELD_WIDTH)
+    val field = compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).getUnclippedBoundsInRoot().width
+    val row = compose.onRoot().getUnclippedBoundsInRoot().width
+    assertTrue(
+      "input field is only $field of a $row row - the row's weight is not reaching it",
+      field >= row * MIN_FIELD_SHARE,
+    )
   }
 
   @Test
@@ -277,7 +280,11 @@ class ConsoleInputRowTest {
     private const val HISTORY_EVIDENCE_FILE_NAME = "console-input-row-history.png"
     private const val DEBOUNCE_TIMEOUT_MILLIS = 5_000L
 
-    /** Well below any real screen's available width, and well above the empty field's own few dp. */
-    private val MIN_FIELD_WIDTH = 200.dp
+    /**
+     * Of the row, not of a width in dp: the three 48dp buttons take a fixed 144dp, so the field's share is
+     * 0.5 of a 320dp row and 0.6 of a 360dp one, while an empty field measured at its own intrinsic width
+     * is a few dp. 0.4 holds on every window the app runs in and fails when the weight is lost.
+     */
+    private const val MIN_FIELD_SHARE = 0.4f
   }
 }

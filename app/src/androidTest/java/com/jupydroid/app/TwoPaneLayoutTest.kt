@@ -12,8 +12,6 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.disk.DiskNotebookRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceFiles
@@ -48,17 +46,19 @@ import java.time.Instant
  * editor that stops being its own navigation entry is handed the previous notebook's ViewModel,
  * id and all).
  *
- * `twoPane` is passed in, not measured. `currentWindowAdaptiveInfo()` reads the *activity's*
- * window, which a `DeviceConfigurationOverride` around a composable does not change, so *choosing*
- * the branch by forcing a width would drive one branch twice while looking like it covered both -
- * the same reasoning `CellActionsTest` carries.
+ * `twoPane` is passed in, not measured - it states the branch the test means rather than a width
+ * that computes to it, the same reasoning `CellActionsTest` carries. `twoPane = false` on a
+ * window that measures wide is the case `PaneDirective.forcedToOnePane` exists for; no
+ * `ForcedSize` draws it, the override sizing layout and measure together.
  *
- * The **size** is still forced, which is a different thing: `ForcedSize` does change the layout
- * constraints, and the list pane prefers 360dp, or 412dp where the activity's window is Large
- * (`PaneScaffoldDirective.defaultPanePreferredWidth`, ADR-0141).
- * On the 320dp emulator that leaves the detail pane no width at all, so both wide cases failed
- * there while passing on the tablet - a suite that quietly meant "whatever device you happened to
- * run it on". The window a test needs is part of the test.
+ * The **size** is still forced, which is a different thing: `ForcedSize` changes the layout
+ * constraints, and since adaptive 1.3.0 the window `paneScaffoldDirective()` measures too - the
+ * container is read through `LocalDensity.current`, which the override sets
+ * (https://issuetracker.google.com/issues/358626778, `Windows.kt`). The list pane prefers 360dp,
+ * or 412dp where the window is Large (`PaneScaffoldDirective.defaultPanePreferredWidth`,
+ * ADR-0141). On the 320dp emulator that leaves the detail pane no width at all, so both wide
+ * cases failed there while passing on the tablet - a suite that quietly meant "whatever device
+ * you happened to run it on". The window a test needs is part of the test.
  */
 @RunWith(AndroidJUnit4::class)
 class TwoPaneLayoutTest {
@@ -248,9 +248,6 @@ class TwoPaneLayoutTest {
     }
     compose.enterBaseSpace()
   }
-
-  /** Expanded enough for 360dp of list and a readable notebook, or a phone that fits neither. */
-  private fun windowFor(twoPane: Boolean) = if (twoPane) DpSize(900.dp, 800.dp) else DpSize(360.dp, 720.dp)
 
   private fun notebook(name: String, source: String) =
     Notebook(name, name, "python3", listOf(Cell("$name-c1", CellKind.CODE, source)))

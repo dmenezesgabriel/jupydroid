@@ -16,9 +16,9 @@ import org.junit.runner.RunWith
  * `toc:show-panel`, on both presentations [CellActionSurface]'s own rule offers.
  *
  * The presentation is passed in rather than read from the window, for [CellActionsTest]'s own
- * reason: `currentWindowAdaptiveInfo()` reads the *activity's* window, which nothing in a test
- * can force one branch or the other with. The rule itself is [CellActionPresentation]'s, tested
- * once on the JVM; what needs a device is that each branch renders and responds here too.
+ * reason: a test states the branch it means, and a `ForcedSize` would compact the whole scene
+ * where the question is only which surface draws. The rule itself is [CellActionPresentation]'s,
+ * tested once on the JVM; what needs a device is that each branch renders and responds here too.
  */
 @RunWith(AndroidJUnit4::class)
 class TableOfContentsPanelTest {

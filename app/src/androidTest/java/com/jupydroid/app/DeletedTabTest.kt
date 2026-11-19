@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -72,22 +74,24 @@ class DeletedTabTest {
     File(tempFolder.root, "first.py").writeText("first = 1\n")
     File(tempFolder.root, "second.py").writeText("second = 2\n")
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = AppContainer(
-            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = { _, _ ->
-              EnteredSpacePorts(
-                notebookRepository = DiskNotebookRepository(tempFolder.root),
-                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
-                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
-              )
-            },
-          ),
-          sharedNotebook = null,
-          onImportConsumed = {},
-          twoPane = true,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(
+              launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+              enteredSpacePorts = { _, _ ->
+                EnteredSpacePorts(
+                  notebookRepository = DiskNotebookRepository(tempFolder.root),
+                  workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
+                )
+              },
+            ),
+            sharedNotebook = null,
+            onImportConsumed = {},
+            twoPane = true,
+          )
+        }
       }
     }
     compose.enterBaseSpace()

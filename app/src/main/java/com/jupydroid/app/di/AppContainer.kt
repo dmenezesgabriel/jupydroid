@@ -1,6 +1,8 @@
 package com.jupydroid.app.di
 
+import com.jupydroid.app.data.crash.ExitReasonRecorder
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeExternalLinkOpener
 import com.jupydroid.app.data.fake.FakeKernelSpecs
@@ -9,6 +11,7 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeLicenceDocuments
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakePlatformNightMode
+import com.jupydroid.app.data.fake.FakeProcessExits
 import com.jupydroid.app.data.fake.FakeRemoteImageReader
 import com.jupydroid.app.data.fake.FakeSharedDocumentReader
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
@@ -20,9 +23,11 @@ import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.DeletedDocumentSessions
+import com.jupydroid.app.domain.model.ErrorLogOrigin
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.ErrorLog
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.ExternalLinkOpener
 import com.jupydroid.app.domain.port.KernelSpecs
@@ -30,6 +35,7 @@ import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.LicenceDocuments
 import com.jupydroid.app.domain.port.PlatformNightMode
+import com.jupydroid.app.domain.port.ProcessExits
 import com.jupydroid.app.domain.port.RemoteImageReader
 import com.jupydroid.app.domain.port.SharedDocumentReader
 import com.jupydroid.app.domain.port.SpaceEnvironments
@@ -123,6 +129,12 @@ class AppContainer(
   val sharedDocumentReader: SharedDocumentReader = FakeSharedDocumentReader(),
   /** Where a rendered image's web address is fetched from - see [RemoteImageReader]. */
   val remoteImageReader: RemoteImageReader = FakeRemoteImageReader(),
+  /** Where the app's crashes and errors are recorded - see [ErrorLog]. */
+  val errorLog: ErrorLog = FakeErrorLog(),
+  /** How earlier processes ended, read into [errorLog] as the process starts - see [ProcessExits]. */
+  processExits: ProcessExits = FakeProcessExits(),
+  /** Which build the exit entries are written for; blank where nothing built it, as in a test. */
+  errorLogOrigin: ErrorLogOrigin = ErrorLogOrigin(appVersion = "", deviceModel = "", androidVersion = ""),
   /**
    * Every extension built into the APK (ADR-0104) - the one place one is constructed. The real
    * extension rather than a fake by default, because an extension already falls back on its own
@@ -152,6 +164,8 @@ class AppContainer(
   init {
     applicationScope.launch { preReadServerImports() }
     applicationScope.launch { pushThemeToPlatform() }
+    applicationScope.launch { errorLog.prune() }
+    applicationScope.launch { ExitReasonRecorder(processExits, errorLog, errorLogOrigin).recordUnreported() }
   }
 
   /**

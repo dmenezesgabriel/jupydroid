@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasContentDescription
@@ -202,13 +204,15 @@ class SpacesHomeNavigationTest {
     File(workspaceOf(BASE_SPACE.id), LISTED_FILE).writeText("a file for the listing")
     File(workspaceOf(THESIS_ID), THESIS_FILE).writeText("a file in Thesis")
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = container,
-          sharedNotebook = sharedNotebook,
-          onImportConsumed = {},
-          twoPane = twoPane,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = container,
+            sharedNotebook = sharedNotebook,
+            onImportConsumed = {},
+            twoPane = twoPane,
+          )
+        }
       }
     }
   }

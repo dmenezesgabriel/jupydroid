@@ -2282,6 +2282,134 @@ separate cause. The repair starts by reading the five items' bounds on the faili
 attributed to an item before anything is changed; the test is the red test already, and what it then needs is
 either the bar's layout or the test's expectation, decided by what the bounds show.
 
+### GAP-205 — Tablet flows tap an empty cell at a fixed point that no longer lands on its field
+
+`.maestro/` holds 23 `point: "1300,354"` taps across 20 flows, each meant to focus an empty code cell on the
+tablet; `release-install-demo.yaml` says in its comment that the field is at `[805,334][1884,406]`. Read on
+the tablet from the build of `a2d37992`, with a freshly created notebook open, the field is about
+`[800,284][1895,336]` (the `uiautomator` dump and the screenshot agree), so the point is 18px below it and
+lands on nothing. The flow then types into no field, `hideKeyboard` sends BACK with no keyboard up, the
+notebook's tab closes and the Launcher is what is left; the flow reports "Run cell" not found, which reads as
+a regression in the app and is not one: tapped by hand at the field's real position, the same cell ran on the
+kernel and printed `42`. What is not known: which commit moved the field. `JD-089` replaced 20 of the 23 taps
+with a tap on the field's name (`.maestro/focus-first-cell.yaml`, ADR-0155), each run on the tablet. **Three
+taps are left and this gap stays open for them:** `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42`
+(a `longPressOn`) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows need opencode, which base
+on the tablet does not have, installed and signed in by the user; the delete flow's tap is behind `GAP-208`'s
+`Recent actions` step. `JD-093` converts and runs them.
+
+### GAP-206 — The rootfs ships a Critical zlib CVE and seven vulnerable Python wheels on an end-of-life Alpine
+
+Once the repository was public, the `Security` workflow ran its scans on `main` for the first time, and two
+of its jobs failed on the rootfs, which the app bundles and every Space runs.
+
+1. **`grype` over the Alpine base: one Critical.** `zlib 1.3.2-r1` is vulnerable to `CVE-2026-4738`, fixed in
+   `1.4-r0` (`--only-fixed --fail-on medium`, exit 2). Grype also warns that 15 packages come from an EOL
+   distribution, `alpine 3.21.9`. `tools/rootfs/Dockerfile` names `alpine:3.21` at one digest in all three
+   stages (`sigsys-builder`, `busybox-builder` and the final image).
+2. **`osv-scanner` over the lockfiles: seven vulnerabilities in four packages**, all in
+   `tools/rootfs/requirements.lock`: `dnspython 2.9.0` (7.5, fixed in 2.9.2), `opentelemetry-api 1.45.1`
+   (5.3, 1.45.2), `soupsieve 2.9.1` (four advisories, 3.1 to 7.5, whose fixed versions the scanner lists as
+   2.10.0, 3.0.2 and 4.0.0) and `tornado 6.6` (3.1, 6.6.1). `main` and the branch that was merged pin the same
+   versions, so the merge did not introduce them.
+
+This is the class `GAP-183` and `GAP-184` recorded and `JD-064` closed on 2026-10-29 (the base moved to
+the `alpine:3.21` that carried the fixed OpenSSL and zlib, and the wheels were pinned at their fixed
+versions). Those fixes held for what was known then; these advisories were published after, which is why
+the scan is a gate and not a one-off, and why this repair should also say how the next advisory reaches us
+before the release it would block.
+
+What is not known: which supported Alpine release carries `zlib 1.4-r0`, whether the rootfs's other musl-built
+pieces (the busybox build, the SIGSYS shim, the wheels compiled against the base) still build and run on it, and
+which of the seven are reachable from a Space. The repair starts by reading both scanners' output from a build
+of the current image, then choosing the Alpine release from where the fixed `zlib` is published, in an ADR.
+Python's lock is recompiled from `requirements.in` as its header says, with the hashes. The proof is an
+image rebuilt from the new base whose kernel answers a cell on the tablet, and both scans green on it.
+
+### GAP-207 — A finding's card covers the line it describes
+
+Read off the frames of the tablet demo for a line holding a breakpoint and a finding, at 1280dp and at 800dp
+(both widths agree): tapping the squiggle under `never_defined_lsp_name` opens the card, and the card's top
+edge lies 12px inside the 31px line it is anchored to (pixel rows of the saved frames at density 240: the cell's
+box is 55px, of which the line is 31px and the padding the rest, and the card's top is 31px below the box's top
+where the line's bottom is 43px below it). It hides the lower part of `print(never_defined_lsp_name)`, its
+squiggle and the lower half of the breakpoint's circle on that line; a reader cannot see the code the card is
+about while it is open. The next cell's header is covered too, and any card below its line covers it. The card is `DiagnosticDetailPopup`
+(`DiagnosticMarks.kt`), positioned by `CompletionPopupPosition` from the line's rect, the same provider the
+completion popup uses, which is meant to float beside what it completes. Not known: whether the provider puts
+the card at the line's top plus a fixed offset or at a rect the caller computes too small, whether the
+completion popup covers its own line the same way, and where VS Code puts a marker's hover relative to its line
+(`vscode@3f3380c6`, the hover contribution under `src/vs/editor/contrib/hover`). The repair starts by reading
+those, then a test of the card's bounds against its line's, red first.
+
+### GAP-208 — Four tablet flows fail at a step after the cell they type into
+
+Read on the tablet with the cell focused by its name, so each flow now types, runs its cell and gets as far as
+the output: `tab-reload-demo.yaml` fails at `Assert that "before\s*" is visible`, because the `notes.txt` tab
+already reads `after` when it is selected after the cell rewrote the file, where the flow expects the stale text
+until the reload icon is tapped (`ActiveTabReload.kt` says nothing re-reads a clean document, so either a tab
+composed afresh reads the file or the flow is stale); `session-follows-rename-demo-tab.yaml` and
+`recreated-path-demo-notebook.yaml` fail at `Rename file`, because a long press on a tab now opens a menu
+(Close All Other Tabs, Close Tabs to Right, Rename…, Save As…, Revert to Checkpoint…, Duplicate, Delete…) where
+they expect the rename dialog; `delete-stops-session-demo-delete.yaml` fails at `Tap on "Recent actions"` after
+`Tap on "Files"`. `delete-stops-session-demo-overwrite.yaml` continues from the first, so it cannot be run alone.
+Not known: which commits changed each of these, and how many of the flows not yet converted stop at one of them
+too. The repair reads each failing frame, decides per step whether the app or the flow moved, and runs each flow
+green on the tablet, which is also what proves the tap in `delete-stops-session-demo-delete.yaml` that no run reached.
+`delete-stops-session-demo-overwrite.yaml`'s three taps have run and stop at the same `Recent actions` step.
+
+### GAP-209 — Two tablet drivers stop at a step after the first cell, one on a pixel and one on Chrome
+
+Read on the tablet with the first cell focused by its name. `input-prompt-demo-answers.yaml` types, runs and
+answers the first cell (`Name? Ada`, `hi Ada`), then inserts a second cell and taps `point: "1300,620"` for its
+field, which is at about `[800,520][1895,573]`: the point is 47px below it, nothing is typed, the empty cell runs
+(`[2]: ran in 0.1 s`) and the flow fails at `Assert that "Input prompt" is visible`. 18 `point: "1300,N"` taps with
+`N` other than 354 stand in 13 flows, each after a cell that is not the first. Three more drivers stop at
+one: `display-update-demo-driver.sh` at `1300,539` (all three sources land in cell 1, which raises `SyntaxError`),
+`output-caps-demo-driver.sh` at `1300,524` (the same) and `ansi-colour-demo-driver.sh` at `1300,625` (the empty
+second cell runs, `[2]:`, and `blue` never appears). `text-output-link-demo-driver.sh`
+passes part 1 and fails in part 2 after the link tap, where `back_to_app` reads `com.android.chrome` still resumed
+ten seconds after BACK. Three first-cell taps at `1300,354` were left unconverted by `JD-089` and belong to this
+repair too: `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42` (a `longPressOn`, which the sub-flow cannot
+express) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows can only be run on a tablet the user has
+signed in to opencode on, which is the user's to do; the delete flow's tap waits on `GAP-208`. Not known: whether the tap by the field's name can reach a later cell as it reaches the
+first (the sub-flow takes `index: 0`), and what Chrome's back stack held on that device. The repair reads the
+later cells' bounds from a dump, then each Chrome frame.
+
+### GAP-210 — A press on the right half of a minimum-width tab closes it
+
+On a 320dp window a strip of four tabs gives each the 80dp floor, and the close button's 24dp box sits at
+x=52..76, so Compose's 48dp minimum touch target for it spans x=40..88: the press that lands on a tab's centre
+(x=40) is the close button's. Read on `dev36` at 320x640: `TabCloseSiblingsTest`'s long press at the centre of
+`a.py` removed `a.py` from the back stack and opened no menu (the tree after it had three tabs at 107dp and no
+second window), at x=39 the menu opened and the stack kept all four, at x=41 `a.py` was gone. The same fact
+reaches a tap, since a tap at x>=40 is the close button's too: the tab's right half activates nothing. At 360dp
+four tabs share 90dp each and the centre (x=45) is clear of x=50, which is why a 360px `wm size` override with four
+tabs had hidden it; five tabs there are at the 80dp floor and read the same as four at 320dp.
+Not known: whether a tap at the same point closes the tab on a device as it does under injected input, and which
+of the references leaves room beside its close button on a phone. The repair reads both, then either narrows the
+close target or raises the tab's floor, with a test that presses the centre of a minimum-width tab.
+
+### GAP-211 — A cold `dev36` boot raises SystemUI's "isn't responding" dialog, and the repairs so far clear it rather than prevent it
+
+Seen on a cold boot of `dev36` (`-no-window -gpu swiftshader_indirect`) from 2026-11-03 to 2026-11-17: Maestro flows stopped
+at it over the Spaces home on four days, a cold boot after a 180 s idle on 2026-11-17 had it up when the suite's driver
+started (it pressed `Wait`; whether it returned mid-run was not sampled), and the instrumented suite ran its whole length under it
+(`mCurrentFocus` was `Application Not Responding: com.android.systemui` in 789 of 789 samples taken every 2 s),
+which is why four focus tests that need the root's focus failed alone while Compose-only assertions passed.
+What was tried and what it showed: clearing the dialog returns it; an idle wait of 45, 120, 180 and 300 s after
+`sys.boot_completed` gave three clean runs and three with the dialog; a host at load 1.2 with every job slot free
+still raised it, so a loaded host does not explain it; one failure frame showed Play services' DroidGuard and Pay
+tasks running 60 s after boot on the `google_apis` image. `am instrument` alone ran clean five times on one day.
+`scripts/clear_system_anr.py` presses the dialog's `Wait` before the suite and the driver refuses to start if
+one stays up; that bounds the damage and does not say why it appears.
+Measured by changing one setting at a time against five cold boots each, the dialog counted per boot
+([ADR-0161](adr/0161-a-cold-dev36-boots-dialog-is-cleared-not-prevented-because-no-setting-gave-none-twice.md)):
+the baseline 3 of 5, 4096 MB of RAM 3 of 5, an image without Google APIs 3 of 5, Play services held off 5 of 5,
+a restored snapshot 0 of 5 (not a cold boot), and `-cores 2` 0 of 5 and then 5 of 5. The `config.ini` 96M against
+the guest's 2560 MB is the emulator raising the RAM itself, and is not the cause. No setting is kept and the
+stopgap stays. Not known: why it appears; the core count is the one setting not ruled out, since its two samples differ in the host's load as well.
+
 ---
 
 ## 12. Glossary

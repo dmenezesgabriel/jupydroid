@@ -11,13 +11,19 @@
 # so the premise of the rootfs approach is intact: no hand-cross-compiling.
 #
 # Pinned by digest so a rebuild reproduces the image that produced the committed
-# evidence. alpine:3.21 as of 2026-10-29. `apk add` never upgrades what the base already holds, so
-# the digest is what moves the base's own packages: this one carries libcrypto3/libssl3 3.3.7-r2,
-# zlib 1.3.2-r1 and musl 1.2.5-r12, past the advisories grype matched in the one before it.
+# evidence. alpine:3.23 (3.23.8) as of 2026-11-16, 3.21 having reached end of life. `apk add` never
+# upgrades what the base already holds, so the digest is what moves the base's own packages: this one
+# carries libcrypto3/libssl3 3.5.9-r0 and musl 1.2.5-r24.
+#
+# It does not carry the fixed zlib. Alpine publishes its base images less often than its package
+# repository: on 2026-11-16 every tag (3.22.8, 3.23.8, 3.24.4, edge) held zlib 1.3.2-r1 or older while
+# v3.23/main had 1.4-r0, built 2026-11-06, the release that fixes CVE-2026-4738. The shipped stage
+# therefore installs zlib at that exact version (see below), and the advisory scan reads the image
+# this file builds, because a scan of the bare base cannot pass while the base lags.
 
 # A separate stage purely so the shipped rootfs does not grow a C toolchain: only the
 # 8 KB .so crosses over. See sigsys_report.c for why it exists.
-FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd AS sigsys-builder
+FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2 AS sigsys-builder
 RUN apk add --no-cache gcc musl-dev
 COPY sigsys_report.c /tmp/sigsys_report.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libsigsys_report.so /tmp/sigsys_report.c \
@@ -53,7 +59,7 @@ RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /
 #
 # Built with Alpine's config, so every applet symlink the rootfs already carries still names an
 # applet this binary has.
-FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd AS busybox-builder
+FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2 AS busybox-builder
 RUN apk add --no-cache gcc musl-dev make perl bzip2 linux-headers utmps-dev utmps-static pkgconf
 COPY busybox.config /tmp/busybox.config
 RUN wget -qO /tmp/busybox.tar.bz2 https://busybox.net/downloads/busybox-1.37.0.tar.bz2 \
@@ -81,10 +87,15 @@ RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
  && /tmp/busybox/busybox ls / >/dev/null \
  && /tmp/busybox/busybox | head -1
 
-FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd
+FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2
 
 # git is what jupyterlab-git's server half runs for every answer it gives (ADR-0104).
-RUN apk add --no-cache python3 py3-pip git
+#
+# zlib is pinned to one exact version, not upgraded with a bare `apk upgrade`: the build must fail on
+# the day the repository drops 1.4-r0 (Alpine keeps only a package's newest version) instead of
+# shipping whatever it holds then. When that happens, move the pin to the new version after reading
+# the advisories it answers; once a base image carries a fixed zlib, delete the pin.
+RUN apk add --no-cache python3 py3-pip git zlib=1.4-r0
 
 # --break-system-packages: Alpine marks the system interpreter PEP 668
 # externally-managed. This image *is* the environment, so there is nothing to
@@ -98,8 +109,8 @@ RUN apk add --no-cache python3 py3-pip git
 # The hashes cover the musllinux wheels of both ABIs, so one lock serves the arm64 and x86_64 builds.
 #
 # pip and setuptools are pinned in the lock too, so this install replaces the copies apk put there:
-# Alpine 3.21's py3-pip 24.3.1-r0 and the py3-setuptools 70.3.0-r0 it depends on are its newest,
-# and both carry advisories fixed only on PyPI. apk's database still names the old versions.
+# Alpine 3.23's py3-pip 25.1.1-r1 and the py3-setuptools 80.9.0-r2 it depends on are the repository's
+# newest, and the lock holds later ones from PyPI. apk's database still names the old versions.
 COPY requirements.lock /tmp/requirements.lock
 RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: --require-hashes \
       -r /tmp/requirements.lock \

@@ -30,9 +30,11 @@ import kotlinx.coroutines.launch
  * same containers - `ActivityBarPosition.BOTTOM`
  * (`vscode/…/services/layout/browser/layoutService.ts:75-80`), driven by
  * `LayoutSettings.ACTIVITY_BAR_LOCATION` (`…/parts/activitybar/activitybarPart.ts:604-616`).
- * JupyterLab answers nothing here: `packages/application/` has no media query and no width branch,
- * and its `'desktop' | 'mobile'` form factor (`packages/application/src/frontend.ts:28,44,120`) is
- * never assigned - which is the split
+ * JupyterLab has the position (`'side' | 'top' | 'bottom'`,
+ * `jupyterlab/packages/application/src/shell.ts:172`, a horizontal `lm-TabBar` that stretches its tabs,
+ * `…/application/style/sidepanel.css:285-298`) but answers nothing about *when* to use it:
+ * `packages/application/` has no media query and no width branch, and its `'desktop' | 'mobile'` form
+ * factor (`packages/application/src/frontend.ts:28,44,120`) is never assigned.
  *
  * **Five items, and five is the ceiling**: the panels of [onePaneDestinations], the Launcher, and
  * More - Material's own band is *"three to five destinations of equal importance"*. More opens
@@ -73,10 +75,9 @@ fun SidePanelBar(
   val moreRail = rememberWideNavigationRailState()
   val scope = rememberCoroutineScope()
   // **The bar measures itself**, rather than being told a width or asking the window. At one pane
-  // the pane *is* the window, so its own constraints are the width the rule is about - and unlike
-  // `currentWindowAdaptiveInfo()`, which reads the activity's window, a constraint is something a
-  // test can actually set, so both branches get driven rather than one of them twice
-  // (`ActionRowPlacement` records what that cost).
+  // the pane *is* the window, so its own constraints are the width the rule is about - and a
+  // constraint is what a test sets for this bar alone, where a `ForcedSize` would compact the
+  // whole scene (`ActionRowPlacement` records what that cost).
   BoxWithConstraints(modifier = modifier) {
     // The same `activityBar.background` the rail states, because it is the same bar moved -
     // the reference gives its three `ActivityBarPosition`s one colour id, not three.

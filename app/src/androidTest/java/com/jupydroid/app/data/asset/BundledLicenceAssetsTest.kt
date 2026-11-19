@@ -38,6 +38,6 @@ class BundledLicenceAssetsTest {
     assertTrue(read.getValue("Gradle libraries").contains("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:"))
     assertFalse(read.getValue("Gradle libraries").contains("licence not declared"))
     assertTrue(read.getValue("Third-party software").contains("| Package | Version |"))
-    assertTrue(read.getValue("Source offer").contains("written offer"))
+    assertTrue(read.getValue("Source offer").contains("Source for the GPL and LGPL parts of the APK"))
   }
 }
