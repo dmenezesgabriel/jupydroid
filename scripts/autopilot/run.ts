@@ -132,7 +132,7 @@ export const DEMO_RULE = [
  * to the queue and not to the session.
  */
 export const WAIT_RULE =
-  "Never end your turn to wait for the host's load to fall or for a queued job: devjob holds a job until the host has room, so start it as a background command and carry on from its result, because a turn that ends with unfinished work is read as a task that stopped without its commit. This does not relax a gate: never bypass the host queue and never skip a hook.";
+  "Never end your turn to wait for the host's load to fall or for a queued job: devjob holds a job until the host has room, so start it as a background command and carry on from its result, because a turn that ends with unfinished work is read as a task that stopped without its commit. Wait on what the job writes (until [ -s result-file ] or a final line it prints) or on its process id (kill -0 <pid>), never with pgrep -f on text your own command contains: pgrep -f reads the waiting shell's own command line, so that wait matches itself and ends only when the harness times it out. This does not relax a gate: never bypass the host queue and never skip a hook.";
 
 /**
  * The skills under .claude/skills/ are announced to every session but a session that is not told
