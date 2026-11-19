@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.port
 
 import com.jupydroid.app.domain.model.ErrorLogEntry
+import com.jupydroid.app.domain.model.ErrorLogSummary
 
 /**
  * Where the app keeps a record of its crashes and errors, so one survives the process that had it.
@@ -21,4 +22,10 @@ interface ErrorLog {
    * An implementation also does this on its own whenever it starts a new day's file.
    */
   suspend fun prune()
+
+  /** How many entries the log holds and the storage they take, so a person can see what "Clear logs" frees. */
+  suspend fun summary(): ErrorLogSummary
+
+  /** Deletes every entry. Throws `IOException` if storage refuses, so a log that is not cleared is not reported so. */
+  suspend fun clear()
 }

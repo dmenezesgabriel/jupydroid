@@ -22,6 +22,10 @@ internal fun errorLogDayOf(fileName: String): LocalDate? {
   }
 }
 
+/** The files in [directory] that hold a day's entries; anything else there is not the log's. */
+internal fun errorLogDayFiles(directory: File): List<File> =
+  directory.listFiles().orEmpty().filter { file -> errorLogDayOf(file.name) != null }
+
 /**
  * The day files in [directory] that [caps] no longer allow at [nowMillis]: every one older than the age cap,
  * then the oldest of the rest until the total fits the size cap. The newest day is never taken for its size,

@@ -3,6 +3,7 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.domain.model.ErrorLogCaps
 import com.jupydroid.app.domain.model.ErrorLogEntry
 import com.jupydroid.app.domain.model.ErrorLogKind
+import com.jupydroid.app.domain.model.ErrorLogSummary
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
@@ -165,5 +166,60 @@ class DiskErrorLogTest {
     assertEquals("m1", messages.first())
     assertFalse(messages.contains("m20"))
     assertTrue("${file.length()} bytes", file.length() < 600 + lines(file).first().length + 10)
+  }
+
+  @Test
+  fun anEmptyLogSummarisesAsNothing() = runTest {
+    assertEquals(ErrorLogSummary(entryCount = 0, sizeBytes = 0), diskLog().summary())
+  }
+
+  @Test
+  fun theSummaryCountsEveryLineAndEveryByteOfTheDayFiles() = runTest {
+    val log = diskLog()
+    log.append(entry(at = firstDay, message = "first"))
+    log.append(entry(at = firstDay, message = "second"))
+    log.append(entry(at = nextDay, message = "third"))
+
+    val onDisk = logDir.listFiles().orEmpty()
+    assertEquals(
+      ErrorLogSummary(entryCount = 3, sizeBytes = onDisk.sumOf { it.length() }),
+      log.summary(),
+    )
+  }
+
+  @Test
+  fun aFileThatIsNotADaysLogIsNotInTheSummary() = runTest {
+    File(logDir.also { it.mkdirs() }, "notes.txt").writeText("one\ntwo\n")
+
+    assertEquals(ErrorLogSummary(entryCount = 0, sizeBytes = 0), diskLog().summary())
+  }
+
+  @Test
+  fun clearingRemovesEveryDayAndLeavesAStrayFile() = runTest {
+    val log = diskLog()
+    log.append(entry(at = firstDay))
+    log.append(entry(at = nextDay))
+    File(logDir, "notes.txt").writeText("keep me")
+
+    log.clear()
+
+    assertEquals(listOf("notes.txt"), logDir.list().orEmpty().toList())
+    assertEquals(ErrorLogSummary(entryCount = 0, sizeBytes = 0), log.summary())
+  }
+
+  @Test
+  fun clearingALogThatNeverWroteAnythingIsNotAnError() = runTest {
+    diskLog().clear()
+  }
+
+  @Test
+  fun anEntryAppendedAfterClearingStartsTheDayAgain() = runTest {
+    val log = diskLog()
+    log.append(entry(message = "before"))
+    log.clear()
+
+    log.append(entry(message = "after"))
+
+    assertEquals(1, log.summary().entryCount)
   }
 }

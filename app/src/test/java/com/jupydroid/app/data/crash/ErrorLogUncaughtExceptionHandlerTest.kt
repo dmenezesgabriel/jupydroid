@@ -4,6 +4,7 @@ import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.domain.model.ErrorLogEntry
 import com.jupydroid.app.domain.model.ErrorLogKind
 import com.jupydroid.app.domain.model.ErrorLogOrigin
+import com.jupydroid.app.domain.model.ErrorLogSummary
 import com.jupydroid.app.domain.port.ErrorLog
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -33,6 +34,10 @@ class ErrorLogUncaughtExceptionHandlerTest {
     override suspend fun append(entry: ErrorLogEntry): Unit = throw java.io.IOException("disk full")
 
     override suspend fun prune() = Unit
+
+    override suspend fun summary() = ErrorLogSummary(entryCount = 0, sizeBytes = 0)
+
+    override suspend fun clear() = Unit
   }
 
   private fun handlerOver(errorLog: ErrorLog, next: Thread.UncaughtExceptionHandler?) =

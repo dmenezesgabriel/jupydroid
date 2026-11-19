@@ -2,6 +2,7 @@ package com.jupydroid.app.data.disk
 
 import com.jupydroid.app.domain.model.ErrorLogCaps
 import com.jupydroid.app.domain.model.ErrorLogEntry
+import com.jupydroid.app.domain.model.ErrorLogSummary
 import com.jupydroid.app.domain.port.ErrorLog
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -11,6 +12,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -71,6 +73,24 @@ class DiskErrorLog(
   }
 
   override suspend fun prune() = withContext(ioDispatcher) { writeMutex.withLock { pruneLocked() } }
+
+  override suspend fun summary() = withContext(ioDispatcher) {
+    writeMutex.withLock {
+      val files = errorLogDayFiles(directory)
+      ErrorLogSummary(
+        entryCount = files.sumOf { file -> file.useLines { lines -> lines.count(String::isNotBlank) } },
+        sizeBytes = files.sumOf(File::length),
+      )
+    }
+  }
+
+  override suspend fun clear() = withContext(ioDispatcher) {
+    writeMutex.withLock {
+      errorLogDayFiles(directory).forEach { file ->
+        if (!file.delete()) throw IOException("could not delete the error log file ${file.path}")
+      }
+    }
+  }
 
   private fun pruneLocked() = filesToPrune(directory, caps, clock()).forEach(File::delete)
 

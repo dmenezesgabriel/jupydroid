@@ -31,6 +31,7 @@ import com.jupydroid.app.ui.editor.EditorScreen
 import com.jupydroid.app.ui.fileeditor.FileEditorScreen
 import com.jupydroid.app.ui.launcher.LauncherScreen
 import com.jupydroid.app.ui.launcher.LauncherViewModel
+import com.jupydroid.app.ui.settings.DiagnosticsViewModel
 import com.jupydroid.app.ui.settings.LicencesScreen
 import com.jupydroid.app.ui.settings.LicencesViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
@@ -377,6 +378,7 @@ fun MainNavigation(
               themeSettingsRepository = appContainer.themeSettings,
               applicationScope = appContainer.applicationScope,
               onOpenLicences = { backStack.openLicences() },
+              diagnostics = viewModel { DiagnosticsViewModel(appContainer.errorLog) },
             )
           }
         }

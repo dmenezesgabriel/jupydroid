@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# Settings' Diagnostics section on a log nobody has written to: no entries, 0 B, and "Clear logs" has
+# nothing to clear, so it is not offered as pressable.
+#
+# Runs no cell, so the emulator is enough (AGENTS.md rule 2). Run by scripts/diagnostics-clear-driver.sh,
+# which empties the log first and then crashes the app for diagnostics-clear.yaml.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+# To the end of the list, the Licences row after Diagnostics: at 2.0 the section is taller than what
+# a scroll to its own title leaves on screen.
+- scrollUntilVisible:
+    element:
+      text: "Licences"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Diagnostics"
+- assertVisible: "0 entries · 0 B"
+# Pressed, because Maestro's `enabled: false` reads the text's own node, which is always enabled, and
+# not the row around it that is not (open-base-space.yaml has the same limit): a disabled row opens nothing.
+- tapOn: "Clear logs"
+- assertNotVisible: "Clear logs\\?"
+- takeScreenshot: 01-an-empty-log-and-a-dimmed-row
