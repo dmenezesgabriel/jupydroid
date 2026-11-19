@@ -18,4 +18,15 @@ class FakeErrorLogTest {
 
     assertEquals(listOf(first, second), log.entries)
   }
+
+  @Test
+  fun pruningLeavesWhatWasAppended() = runTest {
+    val log = FakeErrorLog()
+    val held = ErrorLogEntry(timestampMillis = 1, kind = ErrorLogKind.CRASH)
+    log.append(held)
+
+    log.prune()
+
+    assertEquals(listOf(held), log.entries)
+  }
 }

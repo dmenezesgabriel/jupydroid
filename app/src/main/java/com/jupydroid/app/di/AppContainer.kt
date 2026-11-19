@@ -156,6 +156,7 @@ class AppContainer(
   init {
     applicationScope.launch { preReadServerImports() }
     applicationScope.launch { pushThemeToPlatform() }
+    applicationScope.launch { errorLog.prune() }
   }
 
   /**

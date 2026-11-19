@@ -20,4 +20,7 @@ class FakeErrorLog : ErrorLog {
   override suspend fun append(entry: ErrorLogEntry) {
     held += entry
   }
+
+  /** Memory holds one process's entries, so there is nothing to bound. */
+  override suspend fun prune() = Unit
 }

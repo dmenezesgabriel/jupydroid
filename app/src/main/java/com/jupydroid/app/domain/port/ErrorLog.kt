@@ -15,4 +15,10 @@ import com.jupydroid.app.domain.model.ErrorLogEntry
 interface ErrorLog {
   /** Records [entry] after the ones already there; it is on stable storage when this returns. */
   suspend fun append(entry: ErrorLogEntry)
+
+  /**
+   * Drops what the log's caps no longer allow, oldest first, so it never grows without being asked.
+   * An implementation also does this on its own whenever it starts a new day's file.
+   */
+  suspend fun prune()
 }

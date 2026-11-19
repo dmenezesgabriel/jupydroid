@@ -55,12 +55,15 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 |---|---|---|
 | Library | a crash-reporting SDK; or a handler and a file | The handler. Nothing is sent, and the handler needs no dependency (only official, well-maintained dependencies are used) |
 | Where it is stored | `files/` (needs `run-as`); or the app-specific external directory | External: `adb pull` reads it on a release build, with no permission. Android 10 and below let other apps read it, so **an entry is redacted when written**, not when shared |
-| Caps | none; or a size cap and an age cap | Both, oldest first, at every start and every rotation. The values are set from the measured size of a day's entries (T2), not guessed |
+| Caps | none; or a size cap and an age cap | Both, oldest first, at every start and every rotation. The values are set from the measured size of an entry (T2) and re-read against a day of entries (T9), not guessed |
 | Reaching the writer | a global; or a port | A port with a `Fake…` in `data/fake/`, injected through `AppContainer` (AGENTS.md) |
 
 ## Open decisions
 
-1. The caps' values: measured in T2 from entries the app wrote over a day of use on `dev36`.
+1. The caps' values: 1 MiB and 7 days, from what T2 could measure. Nothing appended yet, so there was no day of
+   use to measure; one entry is 2.9 KB with a real stack and 18.7 KB with the same thrown 150 frames deep
+   (`DiskErrorLogOnDeviceTest`, `dev36`), so 1 MiB holds about 360 or 56 entries. T9 re-reads them against a
+   day of real entries once T3 and T4 write some.
 2. The phone's Android version, and Android 10 and below, where other apps can read the external directory:
    not measured. `adb pull` itself is answered: on `dev36` (API 36, Android 16)
    `adb pull /sdcard/Android/data/com.jupydroid.app/files/...` reads a file the app wrote, with no permission and no
@@ -84,7 +87,7 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 
 - [x] T1 — One JSON line per event written under the external files directory, behind a port with a Fake; redaction
   before a byte lands (red: a stack carrying a bearer token). Measures `adb pull` on `dev36`.
-- [ ] T2 — Size and age caps pruned oldest first at start and rotation; the values from a measured day.
+- [x] T2 — Size and age caps pruned oldest first at start and rotation; the values from a measured day.
 - [ ] T3 — The uncaught-exception handler, installed once in `JupydroidApplication`, chains to the default one
   (red: a handler built with a fake default).
 - [ ] T4 — The platform's exit reasons since the last start are appended at every start.

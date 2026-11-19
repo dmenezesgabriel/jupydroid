@@ -1,5 +1,6 @@
 package com.jupydroid.app.data.disk
 
+import com.jupydroid.app.domain.model.ErrorLogCaps
 import com.jupydroid.app.domain.model.ErrorLogEntry
 import com.jupydroid.app.domain.port.ErrorLog
 import kotlinx.coroutines.CoroutineDispatcher
@@ -13,6 +14,13 @@ import java.io.FileOutputStream
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+
+/**
+ * An entry measured 2.9 KB with a real stack and 18.7 KB with the same thrown 150 frames deep
+ * (`DiskErrorLogOnDeviceTest.anEntryWithARealStackHasAMeasuredSize`, dev36), so 1 MiB holds about 360 of the
+ * first or 56 of the second, and a week is time enough to be read or pulled.
+ */
+private val DEFAULT_ERROR_LOG_CAPS = ErrorLogCaps(maxBytes = 1_048_576, maxAgeDays = 7)
 
 private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC)
 
@@ -41,6 +49,8 @@ internal fun errorLogFileNameFor(timestampMillis: Long): String =
  */
 class DiskErrorLog(
   private val directory: File,
+  private val caps: ErrorLogCaps = DEFAULT_ERROR_LOG_CAPS,
+  private val clock: () -> Long = System::currentTimeMillis,
   private val json: Json = Json { encodeDefaults = true },
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ErrorLog {
@@ -51,9 +61,18 @@ class DiskErrorLog(
     val line = json.encodeToString(ErrorLogEntry.serializer(), entry.redacted()) + "\n"
     writeMutex.withLock {
       directory.mkdirs()
-      appendSynced(File(directory, errorLogFileNameFor(entry.timestampMillis)), line)
+      val file = File(directory, errorLogFileNameFor(entry.timestampMillis))
+      // A crash loop appends the same failure until it fills the disk; the day keeps its first entries.
+      if (file.length() >= caps.maxBytes) return@withLock
+      val opensTheDay = !file.exists()
+      appendSynced(file, line)
+      if (opensTheDay) pruneLocked()
     }
   }
+
+  override suspend fun prune() = withContext(ioDispatcher) { writeMutex.withLock { pruneLocked() } }
+
+  private fun pruneLocked() = filesToPrune(directory, caps, clock()).forEach(File::delete)
 
   private fun ErrorLogEntry.redacted() = copy(message = redactSecrets(message), stack = redactSecrets(stack))
 
