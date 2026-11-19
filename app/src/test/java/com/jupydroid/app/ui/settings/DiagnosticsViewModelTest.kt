@@ -2,10 +2,12 @@ package com.jupydroid.app.ui.settings
 
 import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.FakeErrorLog
+import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.domain.model.ErrorLogEntry
 import com.jupydroid.app.domain.model.ErrorLogKind
 import com.jupydroid.app.domain.model.ErrorLogSummary
 import com.jupydroid.app.domain.port.ErrorLog
+import com.jupydroid.app.domain.port.ErrorLogSharer
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -41,7 +43,7 @@ class DiagnosticsViewModelTest {
   fun showsWhatTheLogHolds() = runTest {
     val log = logHoldingTwoEntries()
 
-    val state = loaded(DiagnosticsViewModel(log))
+    val state = loaded(DiagnosticsViewModel(log, FakeErrorLogSharer()))
 
     assertEquals(log.summary(), state.summary)
     assertEquals(false, state.confirmingClear)
@@ -50,7 +52,7 @@ class DiagnosticsViewModelTest {
   @Test
   fun askingToClearWaitsForConfirmationAndClearsNothing() = runTest {
     val log = logHoldingTwoEntries()
-    val viewModel = DiagnosticsViewModel(log)
+    val viewModel = DiagnosticsViewModel(log, FakeErrorLogSharer())
 
     viewModel.askToClear()
 
@@ -61,7 +63,7 @@ class DiagnosticsViewModelTest {
   @Test
   fun dismissingTheConfirmationKeepsTheEntries() = runTest {
     val log = logHoldingTwoEntries()
-    val viewModel = DiagnosticsViewModel(log)
+    val viewModel = DiagnosticsViewModel(log, FakeErrorLogSharer())
     viewModel.askToClear()
 
     viewModel.dismissClear()
@@ -73,7 +75,7 @@ class DiagnosticsViewModelTest {
   @Test
   fun confirmingClearsTheLogAndShowsNothingLeft() = runTest {
     val log = logHoldingTwoEntries()
-    val viewModel = DiagnosticsViewModel(log)
+    val viewModel = DiagnosticsViewModel(log, FakeErrorLogSharer())
     viewModel.askToClear()
 
     viewModel.confirmClear()
@@ -86,7 +88,7 @@ class DiagnosticsViewModelTest {
   @Test
   fun confirmingWithoutHavingAskedClearsNothing() = runTest {
     val log = logHoldingTwoEntries()
-    val viewModel = DiagnosticsViewModel(log)
+    val viewModel = DiagnosticsViewModel(log, FakeErrorLogSharer())
 
     viewModel.confirmClear()
 
@@ -95,7 +97,7 @@ class DiagnosticsViewModelTest {
 
   @Test
   fun aLogThatCannotBeReadIsStatedWithItsCause() = runTest {
-    val state = DiagnosticsViewModel(UnreadableErrorLog()).uiState.value
+    val state = DiagnosticsViewModel(UnreadableErrorLog(), FakeErrorLogSharer()).uiState.value
 
     assertTrue("$state", state is DiagnosticsUiState.Failed)
     assertTrue(state.toString(), (state as DiagnosticsUiState.Failed).message.contains("Permission denied"))
@@ -103,7 +105,7 @@ class DiagnosticsViewModelTest {
 
   @Test
   fun aClearThatFailsIsStatedWithItsCause() = runTest {
-    val viewModel = DiagnosticsViewModel(FailsToClearErrorLog())
+    val viewModel = DiagnosticsViewModel(FailsToClearErrorLog(), FakeErrorLogSharer())
     viewModel.askToClear()
 
     viewModel.confirmClear()
@@ -112,6 +114,42 @@ class DiagnosticsViewModelTest {
     assertTrue(state.toString(), state is DiagnosticsUiState.Failed)
     assertTrue(state.toString(), (state as DiagnosticsUiState.Failed).message.contains("Read-only file system"))
   }
+
+  @Test
+  fun sharingHandsTheLogToTheSharerOnce() = runTest {
+    val sharer = FakeErrorLogSharer()
+    val viewModel = DiagnosticsViewModel(logHoldingTwoEntries(), sharer)
+
+    viewModel.share()
+
+    assertEquals(1, sharer.shareCount)
+    assertEquals(2, loaded(viewModel).summary.entryCount)
+  }
+
+  @Test
+  fun sharingAnEmptyLogSharesNothing() = runTest {
+    val sharer = FakeErrorLogSharer()
+
+    DiagnosticsViewModel(FakeErrorLog(), sharer).share()
+
+    assertEquals(0, sharer.shareCount)
+  }
+
+  @Test
+  fun aShareThatFailsIsStatedWithItsCause() = runTest {
+    val viewModel = DiagnosticsViewModel(logHoldingTwoEntries(), FailsToShareErrorLogSharer())
+
+    viewModel.share()
+
+    val state = viewModel.uiState.value
+    assertTrue(state.toString(), state is DiagnosticsUiState.Failed)
+    assertTrue(state.toString(), (state as DiagnosticsUiState.Failed).message.contains("No space left on device"))
+  }
+}
+
+/** A cache that cannot hold the bundle - the disk the share copies into is full. */
+private class FailsToShareErrorLogSharer : ErrorLogSharer {
+  override suspend fun share() = throw IOException("No space left on device")
 }
 
 /** Reads fine, refuses to delete - a volume remounted read-only under a running app. */

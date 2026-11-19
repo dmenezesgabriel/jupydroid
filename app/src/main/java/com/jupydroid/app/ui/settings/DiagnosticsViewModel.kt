@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jupydroid.app.domain.model.ErrorLogSummary
 import com.jupydroid.app.domain.port.ErrorLog
+import com.jupydroid.app.domain.port.ErrorLogSharer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,15 +24,16 @@ sealed interface DiagnosticsUiState {
 }
 
 /**
- * The Diagnostics section's state: what the error log holds, and a clear that waits for confirmation.
+ * The Diagnostics section's state: what the error log holds, a share, and a clear that waits for confirmation.
  *
  * ```
- * val viewModel = DiagnosticsViewModel(appContainer.errorLog)
+ * val viewModel = DiagnosticsViewModel(appContainer.errorLog, appContainer.errorLogSharer)
+ * viewModel.share()
  * viewModel.askToClear()
  * viewModel.confirmClear()
  * ```
  */
-class DiagnosticsViewModel(private val errorLog: ErrorLog) : ViewModel() {
+class DiagnosticsViewModel(private val errorLog: ErrorLog, private val errorLogSharer: ErrorLogSharer) : ViewModel() {
   private val _uiState = MutableStateFlow<DiagnosticsUiState>(DiagnosticsUiState.Loading)
   val uiState: StateFlow<DiagnosticsUiState> = _uiState.asStateFlow()
 
@@ -55,6 +57,19 @@ class DiagnosticsViewModel(private val errorLog: ErrorLog) : ViewModel() {
         read()
       } catch (failure: IOException) {
         DiagnosticsUiState.Failed("Could not clear the error log: ${failure.message}")
+      }
+    }
+  }
+
+  /** Offers the log to another app; an empty log has nothing to offer, so a stray call shares nothing. */
+  fun share() {
+    val state = _uiState.value
+    if (state !is DiagnosticsUiState.Loaded || state.summary.entryCount == 0) return
+    viewModelScope.launch {
+      try {
+        errorLogSharer.share()
+      } catch (failure: IOException) {
+        _uiState.value = DiagnosticsUiState.Failed("Could not share the error log: ${failure.message}")
       }
     }
   }

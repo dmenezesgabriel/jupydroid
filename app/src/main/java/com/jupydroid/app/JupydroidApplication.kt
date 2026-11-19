@@ -28,6 +28,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.InotifyWorkspaceWatcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
 import com.jupydroid.app.data.fake.FakeErrorLog
+import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
@@ -40,6 +41,7 @@ import com.jupydroid.app.data.http.OkHttpRemoteImageReader
 import com.jupydroid.app.data.http.remoteImageClient
 import com.jupydroid.app.data.intent.ContentResolverSharedDocumentReader
 import com.jupydroid.app.data.intent.IntentDocumentSharer
+import com.jupydroid.app.data.intent.IntentErrorLogSharer
 import com.jupydroid.app.data.intent.IntentExternalLinkOpener
 import com.jupydroid.app.data.space.JupyterSpaceServers
 import com.jupydroid.app.data.space.RunningSpaceServerEndpoint
@@ -258,6 +260,7 @@ class JupydroidApplication : Application() {
     // The app-specific external directory, so a person can `adb pull` it on a release build with no
     // `run-as`; null where the device has no external storage, which the fake covers.
     errorLog = getExternalFilesDir(null)?.let(::DiskErrorLog) ?: FakeErrorLog(),
+    errorLogSharer = getExternalFilesDir(null)?.let { IntentErrorLogSharer(this, it) } ?: FakeErrorLogSharer(),
     // A file of its own in `filesDir`, not in the log's directory: clearing the log must not make the
     // platform's memory of old deaths read as new ones.
     processExits = ActivityManagerProcessExits(

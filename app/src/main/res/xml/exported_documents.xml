@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  What IntentDocumentSharer may hand out: a Space's workspace, and nothing else under files/.
+  What the app may hand out through its FileProvider: a Space's workspace, and the one copy of the error log
+  that "Share log" makes. Nothing else under files/ or cache/.
 
   Scoped to `spaces/` rather than to `files/` because everything else in this app's private storage
   is app state - `recent-documents.json`, `editor-settings.json`. Not narrower, because a Space's id
@@ -9,7 +10,12 @@
   path that leaves the Space's own `home/jupydroid` before the provider sees it.
 
   `files-path` is `Context.getFilesDir()`, which is what `spacesDir` is built from.
+
+  `cache-path` is `Context.getCacheDir()`; `shared-logs/` holds only `IntentErrorLogSharer`'s bundle, a copy
+  of entries already redacted when written. The log's own files sit in the external directory, which no root
+  here covers.
 -->
 <paths>
     <files-path name="spaces" path="spaces/" />
+    <cache-path name="shared-logs" path="shared-logs/" />
 </paths>

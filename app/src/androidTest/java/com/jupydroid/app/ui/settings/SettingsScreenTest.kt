@@ -24,6 +24,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeErrorLog
+import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
@@ -404,7 +405,7 @@ class SettingsScreenTest {
             themeSettingsRepository = themeSettingsRepository,
             applicationScope = scope,
             onOpenLicences = onOpenLicences,
-            diagnostics = DiagnosticsViewModel(FakeErrorLog()),
+            diagnostics = DiagnosticsViewModel(FakeErrorLog(), FakeErrorLogSharer()),
           )
         }
       }

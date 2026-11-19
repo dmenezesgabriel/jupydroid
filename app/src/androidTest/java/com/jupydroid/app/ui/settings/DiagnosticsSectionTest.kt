@@ -1,16 +1,19 @@
 package com.jupydroid.app.ui.settings
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeErrorLog
+import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.domain.model.ErrorLogEntry
 import com.jupydroid.app.domain.model.ErrorLogKind
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -30,6 +33,7 @@ class DiagnosticsSectionTest {
   @get:Rule val compose = createComposeRule()
 
   private val log = FakeErrorLog()
+  private val sharer = FakeErrorLogSharer()
 
   private fun logHoldingTwoEntries() = runBlocking {
     log.append(ErrorLogEntry(timestampMillis = 1, kind = ErrorLogKind.CRASH, message = "boom"))
@@ -37,10 +41,11 @@ class DiagnosticsSectionTest {
   }
 
   private fun show(fontScale: Float = 1f) {
-    val viewModel = DiagnosticsViewModel(log)
+    val viewModel = DiagnosticsViewModel(log, sharer)
     compose.setContent {
       JupyterDroidTheme {
-        Box(Modifier.requiredWidth(PHONE_WIDTH)) { AtFontScale(fontScale) { DiagnosticsSection(viewModel) } }
+        // A `Column`, as Settings lays the section out: in a `Box` the rows stack and the last one takes every click.
+        Column(Modifier.requiredWidth(PHONE_WIDTH)) { AtFontScale(fontScale) { DiagnosticsSection(viewModel) } }
       }
     }
   }
@@ -55,6 +60,28 @@ class DiagnosticsSectionTest {
 
     compose.onNodeWithText("0 entries · 0 B").assertIsDisplayed()
     compose.onNodeWithText(CLEAR_LOGS).assertIsNotEnabled()
+  }
+
+  @Test
+  fun anEmptyLogOffersNothingToShare() {
+    show()
+
+    compose.onNodeWithText(SHARE_LOG).assertIsNotEnabled()
+  }
+
+  @Test
+  fun shareLogOffersTheLogOnce() {
+    logHoldingTwoEntries()
+    show()
+    // The view model loads off the test thread, and a row clicked while it still reads is disabled and drops
+    // the click: wait for the summary rather than racing it.
+    compose.waitUntil { compose.onAllNodesWithText(summaryText()).fetchSemanticsNodes().isNotEmpty() }
+
+    compose.onNodeWithText(SHARE_LOG).assertIsEnabled()
+    compose.onNodeWithText(SHARE_LOG).performClick()
+
+    compose.waitForIdle()
+    assertEquals(1, sharer.shareCount)
   }
 
   @Test
@@ -108,5 +135,6 @@ class DiagnosticsSectionTest {
 
     assertFalse("the summary is cut", compose.onNodeWithText(summaryText()).isCut())
     assertFalse("the row is cut", compose.onNodeWithText(CLEAR_LOGS).isCut())
+    assertFalse("the share row is cut", compose.onNodeWithText(SHARE_LOG).isCut())
   }
 }

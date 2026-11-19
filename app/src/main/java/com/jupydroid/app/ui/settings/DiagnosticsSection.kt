@@ -17,11 +17,11 @@ import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extension.api.MarginedAlertDialog
 
 /**
- * What the app has recorded about its own crashes and errors, and the one thing a person can do to it
- * here: clear it, after being told how much that frees.
+ * What the app has recorded about its own crashes and errors, and what a person can do with it here:
+ * share it, or clear it after being told how much that frees.
  *
  * ```
- * DiagnosticsSection(viewModel { DiagnosticsViewModel(appContainer.errorLog) })
+ * DiagnosticsSection(viewModel { DiagnosticsViewModel(appContainer.errorLog, appContainer.errorLogSharer) })
  * ```
  */
 @Composable
@@ -32,19 +32,20 @@ internal fun DiagnosticsSection(viewModel: DiagnosticsViewModel) {
     supportingContent = { Text(diagnosticsSupportingText(state)) },
   )
   val loaded = state as? DiagnosticsUiState.Loaded
-  val clearable = loaded != null && loaded.summary.entryCount > 0
-  // `clickable(enabled = false)` states the row is disabled to a screen reader but draws it like any other,
-  // so a person is left pressing a row that does nothing; the dimming is what they see.
-  ListItem(
-    headlineContent = { Text(CLEAR_LOGS) },
-    modifier = Modifier
-      .alpha(if (clearable) 1f else DISABLED_ROW_ALPHA)
-      .clickable(enabled = clearable, role = Role.Button, onClick = viewModel::askToClear),
-  )
+  val hasEntries = loaded != null && loaded.summary.entryCount > 0
+  ListItem(headlineContent = { Text(SHARE_LOG) }, modifier = Modifier.buttonRow(hasEntries, viewModel::share))
+  ListItem(headlineContent = { Text(CLEAR_LOGS) }, modifier = Modifier.buttonRow(hasEntries, viewModel::askToClear))
   if (loaded?.confirmingClear == true) {
     ClearLogsDialog(loaded.summary, onConfirm = viewModel::confirmClear, onDismiss = viewModel::dismissClear)
   }
 }
+
+/**
+ * `clickable(enabled = false)` states the row is disabled to a screen reader but draws it like any other,
+ * so a person is left pressing a row that does nothing; the dimming is what they see.
+ */
+private fun Modifier.buttonRow(enabled: Boolean, onClick: () -> Unit): Modifier =
+  alpha(if (enabled) 1f else DISABLED_ROW_ALPHA).clickable(enabled = enabled, role = Role.Button, onClick = onClick)
 
 @Composable
 private fun ClearLogsDialog(summary: ErrorLogSummary, onConfirm: () -> Unit, onDismiss: () -> Unit) {
@@ -78,6 +79,9 @@ private fun entriesText(count: Int): String = if (count == 1) "1 entry" else "$c
 
 /** The section's title; the log is the app's own record of what went wrong on this device. */
 internal const val DIAGNOSTICS = "Diagnostics"
+
+/** The row that offers the log to another app. */
+internal const val SHARE_LOG = "Share log"
 
 /** The row that deletes the log, and the confirmation's button, which share this label. */
 internal const val CLEAR_LOGS = "Clear logs"

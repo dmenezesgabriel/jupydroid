@@ -378,7 +378,7 @@ fun MainNavigation(
               themeSettingsRepository = appContainer.themeSettings,
               applicationScope = appContainer.applicationScope,
               onOpenLicences = { backStack.openLicences() },
-              diagnostics = viewModel { DiagnosticsViewModel(appContainer.errorLog) },
+              diagnostics = viewModel { DiagnosticsViewModel(appContainer.errorLog, appContainer.errorLogSharer) },
             )
           }
         }

@@ -3,6 +3,7 @@ package com.jupydroid.app.di
 import com.jupydroid.app.data.crash.ExitReasonRecorder
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeErrorLog
+import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeExternalLinkOpener
 import com.jupydroid.app.data.fake.FakeKernelSpecs
@@ -28,6 +29,7 @@ import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ErrorLog
+import com.jupydroid.app.domain.port.ErrorLogSharer
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.ExternalLinkOpener
 import com.jupydroid.app.domain.port.KernelSpecs
@@ -131,6 +133,8 @@ class AppContainer(
   val remoteImageReader: RemoteImageReader = FakeRemoteImageReader(),
   /** Where the app's crashes and errors are recorded - see [ErrorLog]. */
   val errorLog: ErrorLog = FakeErrorLog(),
+  /** How the error log is offered to another app - see [ErrorLogSharer]. */
+  val errorLogSharer: ErrorLogSharer = FakeErrorLogSharer(),
   /** How earlier processes ended, read into [errorLog] as the process starts - see [ProcessExits]. */
   processExits: ProcessExits = FakeProcessExits(),
   /** Which build the exit entries are written for; blank where nothing built it, as in a test. */
