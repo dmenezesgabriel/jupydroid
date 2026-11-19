@@ -61,8 +61,10 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 ## Open decisions
 
 1. The caps' values: measured in T2 from entries the app wrote over a day of use on `dev36`.
-2. Whether `adb pull` of the external directory works on `dev36` and on the phone's Android version: not measured;
-   T1 measures it on `dev36` before the path is chosen.
+2. The phone's Android version, and Android 10 and below, where other apps can read the external directory:
+   not measured. `adb pull` itself is answered: on `dev36` (API 36, Android 16)
+   `adb pull /sdcard/Android/data/com.jupydroid.app/files/...` reads a file the app wrote, with no permission and no
+   `run-as`.
 3. Whether the cause `adb shell am crash` leaves reaches the handler or only the exit reasons: measured in T3, and
    the demo's step 2 uses what it showed.
 
@@ -80,7 +82,7 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 
 ## Tasks
 
-- [ ] T1 — One JSON line per event written under the external files directory, behind a port with a Fake; redaction
+- [x] T1 — One JSON line per event written under the external files directory, behind a port with a Fake; redaction
   before a byte lands (red: a stack carrying a bearer token). Measures `adb pull` on `dev36`.
 - [ ] T2 — Size and age caps pruned oldest first at start and rotation; the values from a measured day.
 - [ ] T3 — The uncaught-exception handler, installed once in `JupydroidApplication`, chains to the default one

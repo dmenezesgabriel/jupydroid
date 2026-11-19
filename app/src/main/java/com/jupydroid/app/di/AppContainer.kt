@@ -1,6 +1,7 @@
 package com.jupydroid.app.di
 
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeExternalLinkOpener
 import com.jupydroid.app.data.fake.FakeKernelSpecs
@@ -23,6 +24,7 @@ import com.jupydroid.app.domain.model.DeletedDocumentSessions
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.ErrorLog
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.ExternalLinkOpener
 import com.jupydroid.app.domain.port.KernelSpecs
@@ -123,6 +125,8 @@ class AppContainer(
   val sharedDocumentReader: SharedDocumentReader = FakeSharedDocumentReader(),
   /** Where a rendered image's web address is fetched from - see [RemoteImageReader]. */
   val remoteImageReader: RemoteImageReader = FakeRemoteImageReader(),
+  /** Where the app's crashes and errors are recorded - see [ErrorLog]. */
+  val errorLog: ErrorLog = FakeErrorLog(),
   /**
    * Every extension built into the APK (ADR-0104) - the one place one is constructed. The real
    * extension rather than a fake by default, because an extension already falls back on its own

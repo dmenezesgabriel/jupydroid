@@ -8,6 +8,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.asset.AssetLicenceDocuments
 import com.jupydroid.app.data.disk.DiskDocumentCheckpoints
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
+import com.jupydroid.app.data.disk.DiskErrorLog
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
 import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
@@ -22,6 +23,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.InotifyWorkspaceWatcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
+import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
@@ -226,6 +228,9 @@ class JupydroidApplication : Application() {
       remoteImageClient(File(cacheDir, "remote-images")),
       appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
     ),
+    // The app-specific external directory, so a person can `adb pull` it on a release build with no
+    // `run-as`; null where the device has no external storage, which the fake covers.
+    errorLog = getExternalFilesDir(null)?.let(::DiskErrorLog) ?: FakeErrorLog(),
     applicationScope = applicationScope,
     // Where no Space can run there is no server import to read, so the default reads nothing.
     preReadServerImports = servers?.let { { serverImportPreReader(this, spaceRepository, it).preReadAll() } } ?: {},
