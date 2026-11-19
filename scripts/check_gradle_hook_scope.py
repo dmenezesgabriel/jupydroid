@@ -47,6 +47,7 @@ NOT_GRADLE_INPUTS: tuple[tuple[str, str], ...] = (
     ("scripts/", "host tooling and device drivers; the two wrappers the hooks call match the pattern first"),
     ("tools/", "rootfs and grammar tooling; the vendored grammar the build reads matches the pattern first"),
     (".gitignore", "git"),
+    (".gitleaks.toml", "gitleaks' rules for the Security workflow's scan of the history"),
     (".npmrc", "npm's settings for the commit tooling"),
     (".python-version", "the host's Python"),
     (".shellcheckrc", "ShellCheck"),

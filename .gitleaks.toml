@@ -1,0 +1,12 @@
+# The one value gitleaks flags in this repository is a test fixture, not a secret: the error log's
+# redaction tests hand it to the code and assert it never reaches a file. It is sequential hex, the
+# shape of a token and nothing else, and it exists in three test files from commit 55dcca64f on.
+# Scanning stays on for every other value, and every commit is still read.
+title = "jupydroid gitleaks"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "the fake token the error log's redaction tests use"
+regexes = ['''^0123456789abcdef0123456789abcdef$''']
