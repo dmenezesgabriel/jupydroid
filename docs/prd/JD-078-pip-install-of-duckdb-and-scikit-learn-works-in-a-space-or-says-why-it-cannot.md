@@ -54,9 +54,24 @@ decides this item is measured on PyPI and on Alpine's repository, not read from 
 | can a manylinux wheel load here | no: glibc's startup is killed by Android's seccomp filter (`ADR-0003`) |
 | Alpine v3.23 aarch64, scikit-learn | `py3-scikit-learn` 1.5.2-r0 in `community`: 8.5 MB, 27 MB installed, depends on `py3-numpy`, `py3-scipy`, `py3-joblib`, `py3-threadpoolctl`, libgomp, libstdc++ |
 | Alpine v3.23 aarch64, duckdb | absent; `duckdb` 1.5.6 is in `edge` `community` (18 MB) and `py3-duckdb` 1.5.6 in `edge` `testing` (21 MB) |
-| a source build | not an exit: the image carries no C toolchain on purpose (`tools/rootfs/Dockerfile`) |
+| a source build | not an exit: the image carries no C toolchain on purpose (`tools/rootfs/Dockerfile`), and a Space's pip runs with `PIP_ONLY_BINARY=:all:` (`SpaceRuntime.kt`), so a package with only an sdist is refused too |
+| the 100 most downloaded packages (30 days, `top-pypi-packages` as of 2026-11-01), latest release has no installable wheel | 0 of 100 |
+| the 1000 most downloaded, same test | 71 of 1000: ranks 101-300 → 8, 301-600 → 19, 601-1000 → 44; 39 once the 32 CUDA, `torch`, `triton` and `pywin32` entries (no use on an Android arm64 Space) are set aside |
+| the 1000 most downloaded, no release at all installable | 48 of 1000 |
+| in the 39, by rank | `scikit-learn` 155, `matplotlib` 172, `duckdb` 366, `pymongo` 362, `numba` 387, `psycopg2` 390, `statsmodels` 570, then `opencv-python`, `xgboost`, `lightgbm`, `onnx`, `pymupdf`, `playwright`, `watchdog`, `lz4`, `pyspark`, `ray`, `mysqlclient`, `docopt`, `h3` and others |
 
 An older release does not help: the count is over every release.
+
+The popular-package counts reproduce with the unchanged T1 script over the list's first N names:
+
+```sh
+curl -sSL https://hugovk.dev/top-pypi-packages/top-pypi-packages.min.json -o top.json   # a new, empty directory
+python3 -I -c "import json,sys; print(' '.join(r['project'] for r in json.load(open(sys.argv[1]))['rows'][:1000]))" top.json > top1000.txt
+python3 scripts/read_wheel_platforms.py $(cat top1000.txt) > out.txt   # about 3 minutes, one PyPI request per package
+grep -c 'ships instead' out.txt                          # 71: the latest release has no wheel pip would pick
+```
+
+The dataset moves monthly and PyPI daily, so the numbers carry their date.
 
 ## Trade-offs and what we adopt
 
@@ -70,7 +85,7 @@ An older release does not help: the count is over every release.
 |---|---|---|
 | a package with a musllinux aarch64 wheel installs | works (`ADR-0011` user site; pandas measured) | none |
 | a package with none | pip's own "No matching distribution found", shown as the cell's output | the message names no platform and no reason; **present and partial** |
-| which packages are in this case | `GAP-196` names two | no count over popular packages |
+| which packages are in this case | `GAP-196` names two; 71 of the 1000 most downloaded are in it, none of the first 100 | `matplotlib` is in it too, so bundling one package (B) would leave the case standing |
 
 ## Deviations
 
@@ -90,7 +105,8 @@ Decided at T3.
 ## Tasks
 
 - [x] T1 — `scripts/read_wheel_platforms.py` reproduces the PyPI count per package from a command, with a test
-- [ ] T2 — pip's own message on the tablet, and the other popular packages in the same case (needs the tablet)
+- [x] T2a — the other popular packages in the same case, counted over the 1000 most downloaded with the T1 script
+- [ ] T2b — pip's own message on the tablet (needs the tablet; it was not attached when T2a ran)
 - [ ] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green
 - [ ] T4 — the demo on the tablet; backlog row shipped; `GAP-196` closed; this file deleted
 
