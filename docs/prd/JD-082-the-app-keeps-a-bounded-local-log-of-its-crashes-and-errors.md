@@ -1,0 +1,102 @@
+# JD-082 — The app keeps a bounded local log of its crashes and errors
+
+Milestone: `M11` · State: open · Depends on: — · Closes: `GAP-200`
+
+> Delete this file when the item ships ([ADR-0001](../adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).
+
+## Outcome
+
+After the app crashes, a person on a release build can open Settings, see what was recorded, share it or clear it,
+and a developer can pull the same file over `adb` without `run-as`. Nothing is sent anywhere, the log never grows
+past its caps, and a bearer token never reaches the disk.
+
+## Demo
+
+Everything here runs without a cell, so the device is `dev36` (AGENTS.md rule 2); the one task that needs a Space's
+server, T8, is blocked on the tablet and is not part of this demo until it runs there.
+
+1. Cold start, install the debug build on `dev36`, open Settings, "Diagnostics": no entries, 0 B.
+2. Cause a crash, relaunch: one `crash` entry with the exception class and the top frame, and an `exit` entry from
+   the platform's own record of the death.
+3. `scripts/pull-app-logs.sh` pulls the directory without `run-as`; `scripts/read_app_log.py` groups the entries by
+   exception class and top frame.
+4. "Share log" opens the share sheet with the file; "Clear logs" states the size it frees, and after confirming,
+   Diagnostics reads 0 B.
+5. A screenshot and a UI dump at every step that changes the screen, looked at.
+
+Not `shipped` until this has run on `dev36`, and T8 on the tablet.
+
+## Who else implements this
+
+| Reference | Has it | Entry points | Approach in one line |
+|---|---|---|---|
+| `termux-app` | FULL | `termux-shared/.../crash/CrashHandler.java`, `TermuxCrashUtils.java` | A `Thread.UncaughtExceptionHandler` writes the crash to a file, chains to the default handler, and the next start tells the user from that file |
+| `vscode` | PARTIAL | `src/vs/workbench/contrib/issue/browser/baseIssueReporterService.ts` | An issue reporter the person submits; no automatic file |
+| `jupyterlab`, `vscode-jupyter`, `intellij-community`, `winlator` | not read | — | Not opened for this item: `GAP-200` read two references and the platform API, and found the shape in those two |
+
+The pinned SHAs and paths are in `GAP-200` (`architecture.md`). The one disagreement that matters: Termux writes
+on crash only, and the platform's exit reasons (`ActivityManager.getHistoricalProcessExitReasons`, Android 11) are
+the only record of a native crash or an ANR, where no handler runs. This item takes both.
+
+## Gap analysis
+
+| Concern | Ours today | Gap |
+|---|---|---|
+| Handler | none in `app/src/main` (`JupydroidApplication.kt` installs nothing) | absent |
+| Exit reasons | none read | absent |
+| Where a log sits | the server's `run/jupyter_server.log` under `files/`, readable only by `run-as` on a debuggable build | a release build's file cannot be pulled |
+| Settings | `ui/settings/SettingsScreen.kt` has no diagnostics row | absent |
+| Share | a `FileProvider` with authority `${applicationId}.exports` (`AndroidManifest.xml`) | present, reusable |
+| Confirmation stating a count | `ui/shell/RunningSidePanel.kt`, "Shut Down All" | present, the pattern to copy |
+
+## Trade-offs and what we adopt
+
+| Axis | Options seen | Our choice, and why |
+|---|---|---|
+| Library | a crash-reporting SDK; or a handler and a file | The handler. Nothing is sent, and the handler needs no dependency (only official, well-maintained dependencies are used) |
+| Where it is stored | `files/` (needs `run-as`); or the app-specific external directory | External: `adb pull` reads it on a release build, with no permission. Android 10 and below let other apps read it, so **an entry is redacted when written**, not when shared |
+| Caps | none; or a size cap and an age cap | Both, oldest first, at every start and every rotation. The values are set from the measured size of a day's entries (T2), not guessed |
+| Reaching the writer | a global; or a port | A port with a `Fake…` in `data/fake/`, injected through `AppContainer` (AGENTS.md) |
+
+## Open decisions
+
+1. The caps' values: measured in T2 from entries the app wrote over a day of use on `dev36`.
+2. Whether `adb pull` of the external directory works on `dev36` and on the phone's Android version: not measured;
+   T1 measures it on `dev36` before the path is chosen.
+3. Whether the cause `adb shell am crash` leaves reaches the handler or only the exit reasons: measured in T3, and
+   the demo's step 2 uses what it showed.
+
+## Surface
+
+| Layer | Files |
+|---|---|
+| `domain/port` | an error-log port with a `Fake` in `data/fake/` |
+| `data/<mechanism>` | a disk adapter under the external files directory; the exit-reason reader behind its own port |
+| `ui/settings` | a "Diagnostics" section in `SettingsScreen.kt` |
+| `di/AppContainer`, `JupydroidApplication` | the handler installed once per process, the writer built once |
+| unit tests | redaction (a token in a stack), caps, the chained default handler, the grouping reader |
+| instrumented tests | Diagnostics shows the size, "Clear logs" confirms with it |
+| `.maestro/` flow + `scripts/` | `scripts/pull-app-logs.sh`, `scripts/read_app_log.py` (+ `_test.py`), a flow and a driver for the demo |
+
+## Tasks
+
+- [ ] T1 — One JSON line per event written under the external files directory, behind a port with a Fake; redaction
+  before a byte lands (red: a stack carrying a bearer token). Measures `adb pull` on `dev36`.
+- [ ] T2 — Size and age caps pruned oldest first at start and rotation; the values from a measured day.
+- [ ] T3 — The uncaught-exception handler, installed once in `JupydroidApplication`, chains to the default one
+  (red: a handler built with a fake default).
+- [ ] T4 — The platform's exit reasons since the last start are appended at every start.
+- [ ] T5 — Settings "Diagnostics": entries, size, "Clear logs" behind a confirmation that states the size, "Share
+  log" through the existing `FileProvider`.
+- [ ] T6 — `scripts/pull-app-logs.sh` and `scripts/read_app_log.py` with a test and a fixture.
+- [ ] T7 — The ADR for the policy: local, person-initiated sharing, no network call of its own, the caps.
+- [ ] T8 — The server's log rotates under the caps instead of being truncated at every server start
+  (`data/space/JupyterServerLauncher.kt`). **Blocked until the tablet is attached to the host:** the rotation is
+  proved by a Space's server restarting, and only arm64 ships a rootfs, so `dev36` has no server log to rotate.
+- [ ] T9 — The demo on `dev36`, as a flow and a driver; the backlog row `partial` until T8 has run on the tablet,
+  then `shipped`, this file deleted.
+
+## Out of scope
+
+Sending a log anywhere, "Report an issue" (`GAP-200` offers it; it opens the tracker and sends nothing, so it is a
+later row), and naming the cause of the crash `GAP-199` reports, which `JD-081` reads from a device log.

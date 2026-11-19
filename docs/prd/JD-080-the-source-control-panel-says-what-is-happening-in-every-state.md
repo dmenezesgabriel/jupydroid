@@ -1,6 +1,6 @@
 # JD-080 — The Source Control panel says what is happening in every state
 
-Milestone: `M11` · State: open · Depends on: — · Closes: `GAP-198`
+Milestone: `M11` · State: partial · Depends on: — · Closes: `GAP-198`
 
 > Delete this file when the item ships ([ADR-0001](../adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).
 
@@ -78,6 +78,40 @@ No new port: `GitStatusReader` and `FakeGitStatusReader` already exist.
 - [x] T2 — Every state says something: the reading line, and "Retry" on a failed read and on "not a repository"
   (red: `ContributedSidePanelTest` with a reader that never answers and one that fails once).
 - [ ] T3 — The demo on the tablet, as a flow and a driver; delete this PRD, mark the backlog row `shipped`.
+  **Blocked until the tablet is attached to the host:** `adb devices`, `lsusb` and `adb mdns services` listed no
+  device on 2026-11-19 after an adb server restart, and the failed read needs a Space's `jupyter_server`, which
+  only arm64 ships. No flow or driver is written until it can run: one that has never run proves nothing. The
+  plan below is what to build when it is back.
+
+## T3's plan, for when the tablet is attached
+
+Two flows and one driver, modelled on `scripts/git-panel-changed-files-driver.sh` (repository set up, rotation,
+rows read back) and `scripts/ai-chat-socket-failure-driver.sh` (the server stopped while a flow runs).
+
+- **`.maestro/git-panel-states-part1-root-and-demo.yaml`**: landscape, `launchApp`, `runFlow: open-base-space.yaml`.
+  Demo step 1: open Source Control on the root, assert "You are not currently in a Git repository." and
+  "Retry", screenshot. Demo step 2: New Launcher, terminal, `git init -q demo`; tap "Retry" and assert the root
+  still says so; tap `demo` in Files, open Source Control, assert `master` and no "Retry", screenshot. A pty
+  echoes a typed line whether or not a shell ran it, so the branch the panel names is the evidence, and the
+  driver reads `demo/.git/HEAD` back through `run-as`.
+- **`.maestro/git-panel-states-part2-server-stopped.yaml`**: **no `launchApp`**, which would start the server
+  again. Reopen Source Control after the driver stopped the server and wait for a message naming the path and
+  the refusal, with "Retry". "Never blank" is asserted as the red message and the button together, since a
+  missing node cannot be asserted. The message text is read from `OkHttpGitStatusReader` when the flow is
+  written, not guessed.
+- **`scripts/git-panel-states-driver.sh`**: `reset_notebooks`, `rotate_to 1`, `trap restore_rotation`; run part
+  1 through `run_flow`; `open_forward`, then `POST /api/shutdown`; run part 2; `pull_server_log`; a
+  `uiautomator dump` and a screenshot at every step that changes the screen, kept in the local evidence directory (ADR-0132);
+  exit non-zero on any failure. Tablet only, run under `nice -n 10 timeout 1800` with no devjob slot, as the
+  driver of the external tablet it is.
+- **Decision: the server is stopped with `POST /api/shutdown`, not `kill <pid>`** (demo step 3 says `kill`).
+  `/api/shutdown` is the `ServerApp.stop()` the idle shutdown also ends in, and `space-server.sh` already opens
+  the forward and holds the token, so the driver needs no pid. The end state is the same: nothing listens on
+  the port, and the panel's next read is refused. The demo step is reworded to match when the driver lands.
+- **At close**, after a green run whose frames were looked at: delete this file, mark the row `shipped`, move the
+  marker back to the next open row, and check whether the `GAP-198` row in `research/parity-ledger.md` (its
+  `System` frames, "repaired by `JD-080`") needs its verdict set. The commit body says `Demo run by the agent, not
+  by a human`, names the driver command, and quotes what each frame showed.
 
 ## Out of scope
 
