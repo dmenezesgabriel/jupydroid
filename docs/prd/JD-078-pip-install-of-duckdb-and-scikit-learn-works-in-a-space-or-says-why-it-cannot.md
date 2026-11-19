@@ -89,7 +89,7 @@ Decided at T3.
 
 ## Tasks
 
-- [ ] T1 — `scripts/read_wheel_platforms.py` reproduces the PyPI count per package from a command, with a test
+- [x] T1 — `scripts/read_wheel_platforms.py` reproduces the PyPI count per package from a command, with a test
 - [ ] T2 — pip's own message on the tablet, and the other popular packages in the same case (needs the tablet)
 - [ ] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green
 - [ ] T4 — the demo on the tablet; backlog row shipped; `GAP-196` closed; this file deleted
