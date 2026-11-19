@@ -20,6 +20,11 @@
 # each counted boot reads them back and fails if they are not disabled, and the last boot enables them again so
 # `dev36` is the baseline's afterwards:
 #   GUEST_DISABLED_PACKAGES="com.google.android.gms com.android.vending" devjob scripts/dev36-anr-boot-driver.sh gms-off 5
+# AVD_NAME picks the AVD to boot, `dev36` when unset: a candidate image gets an AVD of its own, so `dev36` stays
+# the baseline. IMAGE_ABSENT_PACKAGES, space-separated package names, makes every counted boot read the guest back
+# and fail if any of them is installed, which a boot from the wrong AVD would be:
+#   AVD_NAME=dev36-default IMAGE_ABSENT_PACKAGES="com.google.android.gms com.android.vending" \
+#     devjob scripts/dev36-anr-boot-driver.sh default-image 5
 # Every boot is also watched for free space on `/`: under 1 GB the emulator is stopped and the run ends,
 # since a snapshot is about 2.3 GB and `/` was 99% full when this was written.
 #
@@ -33,6 +38,7 @@ ADB="${ADB:-$(command -v adb 2> /dev/null || true)}"
 [ -n "$ADB" ] || ADB="$HOME/Android/Sdk/platform-tools/adb"
 EMULATOR="${EMULATOR:-$HOME/Android/Sdk/emulator/emulator}"
 SERIAL="emulator-5554"
+AVD_NAME="${AVD_NAME:-dev36}"
 BOOT_TIMEOUT_SECONDS=300
 ROOM_POLL_SECONDS=10
 GUEST_FLUSH_SECONDS=20
@@ -104,7 +110,7 @@ start_emulator() {
   shift
   python3 "$ROOT/scripts/count_anr_per_boot.py" room
   # shellcheck disable=SC2046 # snapshot_flags prints words
-  "$EMULATOR" -avd dev36 -no-window -no-audio $(snapshot_flags) -gpu swiftshader_indirect "$@" \
+  "$EMULATOR" -avd "$AVD_NAME" -no-window -no-audio $(snapshot_flags) -gpu swiftshader_indirect "$@" \
     > "$dir/emulator.log" 2>&1 &
   EMULATOR_PID=$!
   guard_room &
@@ -125,6 +131,13 @@ require_guest_packages_disabled() {
   # shellcheck disable=SC2086 # package names are words
   python3 "$ROOT/scripts/count_anr_per_boot.py" disabled --serial "$SERIAL" --adb "$ADB" \
     --expect $GUEST_DISABLED_PACKAGES
+}
+
+require_image_packages_absent() {
+  [ -z "${IMAGE_ABSENT_PACKAGES:-}" ] && return 0
+  # shellcheck disable=SC2086 # package names are words
+  python3 "$ROOT/scripts/count_anr_per_boot.py" absent --serial "$SERIAL" --adb "$ADB" \
+    --expect $IMAGE_ABSENT_PACKAGES
 }
 
 # `pm` prints its new state before it is on disk: a kill 5 s later and a `reboot -p` (this image has no `stop`)
@@ -161,6 +174,8 @@ boot_once() {
   start_emulator "$dir" "$@"
   "$ADB" -s "$SERIAL" shell pm list packages -d > "$dir/disabled-packages.txt"
   require_guest_packages_disabled
+  "$ADB" -s "$SERIAL" shell pm list packages > "$dir/packages.txt"
+  require_image_packages_absent
   python3 "$ROOT/scripts/count_anr_per_boot.py" watch --serial "$SERIAL" --adb "$ADB" \
     --candidate "$CANDIDATE" --boot "$boot" --out "$OUT/boots.jsonl"
   [ ! -e "$OUT/out-of-room" ] || { echo "stopped: / fell under 1 GB free" >&2; exit 1; }

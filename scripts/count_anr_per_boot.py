@@ -124,10 +124,36 @@ def require_disabled(pm_list_disabled: str, expected: list[str]) -> None:
     Raises:
         ValueError: a package is missing; the message names each one and quotes what was listed.
     """
-    listed = {line.strip().removeprefix("package:") for line in pm_list_disabled.splitlines()}
+    listed = _listed_packages(pm_list_disabled)
     missing = [package for package in expected if package not in listed]
     if missing:
         raise ValueError(f"not disabled: {missing!r}; `pm list packages -d` listed {pm_list_disabled.strip()!r}")
+
+
+def require_absent(pm_list_packages: str, unexpected: list[str]) -> None:
+    """Fails when a package the candidate image must not ship is in the guest's package list.
+
+    An image without Google APIs is a candidate only if the booted guest has none of them: a boot from the
+    wrong AVD would count as a clean arm of an image never used. Disabled packages are still listed, so
+    this reads them as present.
+
+    Example: `require_absent("package:com.android.systemui\\n", ["com.google.android.gms"])`.
+
+    Args:
+        pm_list_packages: the output of `pm list packages`, one `package:<name>` per line.
+        unexpected: the package names that must not be installed.
+
+    Raises:
+        ValueError: a package is present; the message names each one and quotes what was listed.
+    """
+    listed = _listed_packages(pm_list_packages)
+    present = [package for package in unexpected if package in listed]
+    if present:
+        raise ValueError(f"installed: {present!r}; `pm list packages` listed {pm_list_packages.strip()!r}")
+
+
+def _listed_packages(pm_list_output: str) -> set[str]:
+    return {line.strip().removeprefix("package:") for line in pm_list_output.splitlines()}
 
 
 def watch_boot(
@@ -269,6 +295,15 @@ def _disabled(parsed: argparse.Namespace) -> int:
     return 0
 
 
+def _absent(parsed: argparse.Namespace) -> int:
+    try:
+        require_absent(_adb_shell(parsed, "pm", "list", "packages"), parsed.expect)
+    except ValueError as failure:
+        print(failure, file=sys.stderr)
+        return 1
+    return 0
+
+
 def _count(parsed: argparse.Namespace) -> int:
     print(summarise_boots(Path(parsed.file).read_text().splitlines()))
     return 0
@@ -296,6 +331,11 @@ def _parser() -> argparse.ArgumentParser:
     disabled.add_argument("--adb", default="adb", help="the adb binary, as the caller resolved it")
     disabled.add_argument("--expect", nargs="+", required=True, help="the package names that must be disabled")
     disabled.set_defaults(run=_disabled)
+    absent = commands.add_parser("absent", help="exit 1 when a package the candidate image must not ship is installed")
+    absent.add_argument("--serial", default="", help="the device to read; empty uses ANDROID_SERIAL")
+    absent.add_argument("--adb", default="adb", help="the adb binary, as the caller resolved it")
+    absent.add_argument("--expect", nargs="+", required=True, help="the package names that must not be installed")
+    absent.set_defaults(run=_absent)
     room = commands.add_parser("room", help="exit 1 when the disk holding a path has too little free")
     room.add_argument("--path", default="/", help="any path on the disk to read")
     room.add_argument("--minimum-bytes", type=int, default=_MINIMUM_FREE_BYTES, help="the floor, in bytes")

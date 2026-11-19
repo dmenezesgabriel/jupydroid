@@ -12,6 +12,7 @@ from count_anr_per_boot import (
     boot_line,
     is_clean_boot,
     read_load,
+    require_absent,
     require_disabled,
     require_room,
     summarise_boots,
@@ -149,6 +150,29 @@ class RequireDisabledTest(unittest.TestCase):
             require_disabled("", ["com.google.android.gms"])
 
         self.assertIn("com.google.android.gms", str(raised.exception))
+
+
+PM_LIST_PACKAGES = "package:com.android.systemui\r\npackage:com.google.android.gms\r\npackage:com.android.vending\r\n"
+
+
+class RequireAbsentTest(unittest.TestCase):
+    def test_packages_the_image_does_not_ship_pass(self):
+        require_absent("package:com.android.systemui\r\n", ["com.google.android.gms", "com.android.vending"])
+
+    def test_a_package_the_image_ships_is_named_with_what_was_listed(self):
+        with self.assertRaises(ValueError) as raised:
+            require_absent(PM_LIST_PACKAGES, ["com.google.android.gms", "com.android.chrome"])
+
+        self.assertIn("'com.google.android.gms'", str(raised.exception))
+        self.assertNotIn("'com.android.chrome'", str(raised.exception))
+        self.assertIn("package:com.android.systemui", str(raised.exception))
+
+    def test_a_package_that_only_shares_a_prefix_is_not_the_one_present(self):
+        require_absent("package:com.google.android.gms.supervision\n", ["com.google.android.gms"])
+
+    def test_a_disabled_package_is_still_present(self):
+        with self.assertRaises(ValueError):
+            require_absent(PM_LIST_DISABLED, ["com.google.android.gms"])
 
 
 class IsCleanBootTest(unittest.TestCase):
