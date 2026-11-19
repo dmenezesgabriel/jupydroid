@@ -36,7 +36,7 @@ internal fun errorLogFileNameFor(timestampMillis: Long): String =
  *
  * An entry is **redacted when it is written** ([redactSecrets] on its message and stack), not when it is
  * shared: on Android 10 and below another app holding the storage permission can read the app-specific
- * external directory this is meant to sit in.
+ * external directory this is meant to sit in (ADR-0163).
  *
  * `encodeDefaults` is on so every line carries its `schemaVersion`: a default the encoder leaves out is a
  * version a reader cannot see.

@@ -99,7 +99,7 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 - [x] T5b — "Share log" through the `FileProvider`: every day file bundled, oldest first, into one file under
   `cacheDir/shared-logs/`, which `res/xml/exported_documents.xml` now covers with a `cache-path`.
 - [x] T6 — `scripts/pull-app-logs.sh` and `scripts/read_app_log.py` with a test and a fixture.
-- [ ] T7 — The ADR for the policy: local, person-initiated sharing, no network call of its own, the caps.
+- [x] T7 — The ADR for the policy: local, person-initiated sharing, no network call of its own, the caps.
 - [ ] T8 — The server's log rotates under the caps instead of being truncated at every server start
   (`data/space/JupyterServerLauncher.kt`). **Blocked until the tablet is attached to the host:** the rotation is
   proved by a Space's server restarting, and only arm64 ships a rootfs, so `dev36` has no server log to rotate.

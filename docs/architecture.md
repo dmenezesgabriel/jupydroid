@@ -2182,7 +2182,7 @@ The plan, a proposal: local, automatic, bounded, and nothing sent anywhere; no c
    and top frame and counts them per app version, in the pattern of the repo's other `read_*.py` measures.
    That is how crashes are mapped, and what a later session reads.
 6. An ADR for the policy: a local record, person-initiated sharing, no network call of the app's own, and the
-   caps.
+   caps ([ADR-0163](adr/0163-the-error-log-is-local-redacted-when-written-bounded-and-shared-only-by-the-person.md)).
 
 Until it ships, the reading path on a debug build is the two adb commands in `GAP-199` plus the server-log
 command above. On the published package only `logcat` and `exit-info` answer.
