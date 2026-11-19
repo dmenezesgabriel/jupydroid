@@ -72,7 +72,7 @@ No new port: `GitStatusReader` and `FakeGitStatusReader` already exist.
 
 ## Tasks
 
-- [ ] T1 — A refused connection or a timeout is a `GitStatusException` naming the path and the cause, thrown by
+- [x] T1 — A refused connection or a timeout is a `GitStatusException` naming the path and the cause, thrown by
   `OkHttpGitStatusReader` (red: a shut-down `MockWebServer`, and `SocketPolicy.NO_RESPONSE` with a 100 ms
   `readTimeout` client).
 - [ ] T2 — Every state says something: the reading line, and "Retry" on a failed read and on "not a repository"
