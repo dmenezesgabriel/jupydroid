@@ -1,0 +1,2 @@
+{"timestampMillis":1794992400000,"kind":"CRASH","exceptionClass":"java.lang.NullPointerException","stack":"java.lang.NullPointerException\n\n\tat com.example.Cells.render(Cells.kt:9)","appVersion":"0.9.1","futureField":"a key an older reader has never seen","schemaVersion":2}
+{"timestampMillis":1794994200000,"kind":"CRASH","exceptionClass":"java.lang.IllegalStateException","message":"torn here","sta
