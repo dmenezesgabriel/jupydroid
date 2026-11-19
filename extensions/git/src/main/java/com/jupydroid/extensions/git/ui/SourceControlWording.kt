@@ -19,6 +19,12 @@ internal fun notARepositoryMessage(path: String): String {
   return "$name is not a Git repository."
 }
 
+/** What the panel says while git is being read: the panel is not blank, it is waiting. */
+internal const val READING_MESSAGE: String = "Reading Git status…"
+
+/** The button that reads again, on a failed read and where there is no repository (the folder may become one). */
+internal const val RETRY_LABEL: String = "Retry"
+
 /**
  * What [file] is called under [stage]: jupyterlab-git's `FileItem` reads the index's letter under
  * Staged and the work tree's everywhere else, and names it through `get_status`
