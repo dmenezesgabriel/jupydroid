@@ -106,9 +106,13 @@ Decided at T3.
 
 - [x] T1 — `scripts/read_wheel_platforms.py` reproduces the PyPI count per package from a command, with a test
 - [x] T2a — the other popular packages in the same case, counted over the 1000 most downloaded with the T1 script
-- [ ] T2b — pip's own message on the tablet (needs the tablet; it was not attached when T2a ran)
-- [ ] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green
-- [ ] T4 — the demo on the tablet; backlog row shipped; `GAP-196` closed; this file deleted
+- [ ] T2b — pip's own message on the tablet. **Blocked until the tablet is attached to the host:** `adb devices`
+  and `adb mdns services` listed no device on 2026-11-19, and `dev36` has no rootfs, so `%pip` cannot run there
+- [ ] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green. **Waits behind T2b:** the
+  explanation hangs off the text pip prints on the device, and open decision 2 (where it is produced) depends
+  on that text. The evidence above already supports A, so T2b narrows the wording and the place, not the option
+- [ ] T4 — the demo on the tablet; backlog row shipped; `GAP-196` closed; this file deleted. **Blocked** on the
+  tablet like T2b
 
 ## Out of scope
 
