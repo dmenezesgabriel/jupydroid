@@ -2,10 +2,12 @@ package com.jupydroid.app
 
 import android.app.Application
 import android.app.UiModeManager
+import android.os.Build
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.asset.AssetLicenceDocuments
+import com.jupydroid.app.data.crash.ErrorLogUncaughtExceptionHandler
 import com.jupydroid.app.data.disk.DiskDocumentCheckpoints
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
 import com.jupydroid.app.data.disk.DiskErrorLog
@@ -61,6 +63,7 @@ import com.jupydroid.app.data.uimode.UiModeManagerPlatformNightMode
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.ActiveTerminals
+import com.jupydroid.app.domain.model.ErrorLogOrigin
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.spaceWithId
@@ -100,6 +103,7 @@ class JupydroidApplication : Application() {
 
   override fun onCreate() {
     super.onCreate()
+    installCrashRecorder()
     // When the app is left - the screen lock, a swipe away, a covering app - the server
     // follows, unless something is still running. `ProcessLifecycleOwner` is the one lifecycle
     // that tracks the *process*, so a covered activity counts as stopped and a rotation does not.
@@ -109,6 +113,21 @@ class JupydroidApplication : Application() {
 
         override fun onStart(owner: LifecycleOwner) = container.idleServerStopper.onAppStarted()
       },
+    )
+  }
+
+  /**
+   * Once per process, here: `onCreate` runs once, so the previous default - the platform's - is chained to
+   * exactly once. The container is asked for lazily, inside the handler, so this adds nothing to start-up.
+   */
+  private fun installCrashRecorder() {
+    val origin = ErrorLogOrigin(
+      appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+      deviceModel = Build.MODEL,
+      androidVersion = Build.VERSION.RELEASE,
+    )
+    Thread.setDefaultUncaughtExceptionHandler(
+      ErrorLogUncaughtExceptionHandler({ container.errorLog }, origin, Thread.getDefaultUncaughtExceptionHandler()),
     )
   }
 

@@ -68,8 +68,10 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
    not measured. `adb pull` itself is answered: on `dev36` (API 36, Android 16)
    `adb pull /sdcard/Android/data/com.jupydroid.app/files/...` reads a file the app wrote, with no permission and no
    `run-as`.
-3. Whether the cause `adb shell am crash` leaves reaches the handler or only the exit reasons: measured in T3, and
-   the demo's step 2 uses what it showed.
+3. Whether the cause `adb shell am crash` leaves reaches the handler or only the exit reasons: both. On `dev36`
+   (API 36) it throws `RemoteServiceException$CrashedByAdbException` on `main`, the handler appends a `CRASH` entry
+   with that class, "shell-induced crash" and the stack, and `dumpsys activity exit-info` also lists the death as
+   `reason=4 (APP CRASH(EXCEPTION))`. The demo's step 2 uses `am crash` for both entries.
 
 ## Surface
 
@@ -88,7 +90,7 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 - [x] T1 — One JSON line per event written under the external files directory, behind a port with a Fake; redaction
   before a byte lands (red: a stack carrying a bearer token). Measures `adb pull` on `dev36`.
 - [x] T2 — Size and age caps pruned oldest first at start and rotation; the values from a measured day.
-- [ ] T3 — The uncaught-exception handler, installed once in `JupydroidApplication`, chains to the default one
+- [x] T3 — The uncaught-exception handler, installed once in `JupydroidApplication`, chains to the default one
   (red: a handler built with a fake default).
 - [ ] T4 — The platform's exit reasons since the last start are appended at every start.
 - [ ] T5 — Settings "Diagnostics": entries, size, "Clear logs" behind a confirmation that states the size, "Share
