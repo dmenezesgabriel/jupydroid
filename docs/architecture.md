@@ -2401,11 +2401,14 @@ What was tried and what it showed: clearing the dialog returns it; an idle wait 
 `sys.boot_completed` gave three clean runs and three with the dialog; a host at load 1.2 with every job slot free
 still raised it, so a loaded host does not explain it; one failure frame showed Play services' DroidGuard and Pay
 tasks running 60 s after boot on the `google_apis` image. `am instrument` alone ran clean five times on one day.
-`scripts/clear_system_anr.py` now presses the dialog's `Wait` before the suite and the driver refuses to start if
-one stays up; that bounds the damage and does not say why it appears. Not known: why `~/.android/avd/dev36.avd/config.ini`
-says `hw.ramSize = 96M` while the last boot's `hardware-qemu.ini` reads 2560, or which of the candidate causes
-accounts for it. The repair changes one candidate at a time against the same number of cold boots and keeps the setting
-that gives none in a sample large enough to be believed.
+`scripts/clear_system_anr.py` presses the dialog's `Wait` before the suite and the driver refuses to start if
+one stays up; that bounds the damage and does not say why it appears.
+Measured by changing one setting at a time against five cold boots each, the dialog counted per boot
+([ADR-0161](adr/0161-a-cold-dev36-boots-dialog-is-cleared-not-prevented-because-no-setting-gave-none-twice.md)):
+the baseline 3 of 5, 4096 MB of RAM 3 of 5, an image without Google APIs 3 of 5, Play services held off 5 of 5,
+a restored snapshot 0 of 5 (not a cold boot), and `-cores 2` 0 of 5 and then 5 of 5. The `config.ini` 96M against
+the guest's 2560 MB is the emulator raising the RAM itself, and is not the cause. No setting is kept and the
+stopgap stays. Not known: why it appears; the core count is the one setting not ruled out, since its two samples differ in the host's load as well.
 
 ---
 
