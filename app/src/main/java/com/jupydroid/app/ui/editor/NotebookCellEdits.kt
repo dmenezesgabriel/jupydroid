@@ -276,6 +276,18 @@ fun NotebookCellEdits.insertCellAt(index: Int, kind: CellKind, source: String): 
 }
 
 /**
+ * An empty cell of [kind] after the last one, active, as one undoable operation - what the notebook's
+ * "Code" and "Markdown" buttons do (`packages/notebook/src/notebookfooter.ts:47-53` inserts below the
+ * last cell and focuses it). The end is the document's, so a cell hidden in a collapsed section
+ * does not move it. Returns the new cell's id.
+ *
+ * ```
+ * edits.appendCell(CellKind.MARKDOWN)   // "c7", now the last and the active cell
+ * ```
+ */
+fun NotebookCellEdits.appendCell(kind: CellKind): String = insertCellAt(uiState.value.cells.size, kind, "")
+
+/**
  * The rename ask came back refused - the server's own message or the slice guard's, counted
  * so the snackbar sees each one: [NotebookCellEdits.definitionMissed]'s own counter shape,
  * carrying the words a bare count cannot.

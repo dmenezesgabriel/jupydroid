@@ -1,6 +1,6 @@
 # JD-079 — A notebook ends in "Code" and "Markdown" buttons that add a cell
 
-Milestone: `M11` · State: open · Depends on: — · Closes: `GAP-197`
+Milestone: `M11` · State: in-progress · Depends on: — · Closes: `GAP-197`
 
 > Delete this file when the item ships ([ADR-0001](../adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).
 
@@ -96,7 +96,7 @@ No port and no adapter, so no `Fake…`.
 
 ## Tasks
 
-- [ ] T1 — appending a cell of a kind at the end: last, empty, active, one undo
+- [x] T1 — appending a cell of a kind at the end: last, empty, active, one undo
 - [ ] T2 — `AddCellFooter` ("Code", "Markdown") as the list's last item, each tap reporting its kind
 - [ ] T3 — the new cell is brought fully into view
 - [ ] T4 — phone and tablet at 1.0 and 2.0, labels whole; the flow and driver; the ADR; delete this file
