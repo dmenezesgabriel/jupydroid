@@ -92,7 +92,8 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 - [x] T2 — Size and age caps pruned oldest first at start and rotation; the values from a measured day.
 - [x] T3 — The uncaught-exception handler, installed once in `JupydroidApplication`, chains to the default one
   (red: a handler built with a fake default).
-- [ ] T4 — The platform's exit reasons since the last start are appended at every start.
+- [x] T4 — The platform's exit reasons since the last start are appended at every start (a death someone chose is
+  skipped; the mark lives in `filesDir`, outside the log, so "Clear logs" does not make old deaths read as new).
 - [ ] T5 — Settings "Diagnostics": entries, size, "Clear logs" behind a confirmation that states the size, "Share
   log" through the existing `FileProvider`.
 - [ ] T6 — `scripts/pull-app-logs.sh` and `scripts/read_app_log.py` with a test and a fixture.

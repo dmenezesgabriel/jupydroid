@@ -1,5 +1,6 @@
 package com.jupydroid.app
 
+import android.app.ActivityManager
 import android.app.Application
 import android.app.UiModeManager
 import android.os.Build
@@ -7,6 +8,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.jupydroid.app.data.asset.AssetLicenceDocuments
+import com.jupydroid.app.data.crash.ActivityManagerProcessExits
 import com.jupydroid.app.data.crash.ErrorLogUncaughtExceptionHandler
 import com.jupydroid.app.data.disk.DiskDocumentCheckpoints
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
@@ -121,15 +123,21 @@ class JupydroidApplication : Application() {
    * exactly once. The container is asked for lazily, inside the handler, so this adds nothing to start-up.
    */
   private fun installCrashRecorder() {
-    val origin = ErrorLogOrigin(
-      appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
-      deviceModel = Build.MODEL,
-      androidVersion = Build.VERSION.RELEASE,
-    )
     Thread.setDefaultUncaughtExceptionHandler(
-      ErrorLogUncaughtExceptionHandler({ container.errorLog }, origin, Thread.getDefaultUncaughtExceptionHandler()),
+      ErrorLogUncaughtExceptionHandler(
+        { container.errorLog },
+        errorLogOrigin(),
+        Thread.getDefaultUncaughtExceptionHandler(),
+      ),
     )
   }
+
+  /** The build every error-log entry is written for, the crash handler's and the exit reasons' alike. */
+  private fun errorLogOrigin() = ErrorLogOrigin(
+    appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+    deviceModel = Build.MODEL,
+    androidVersion = Build.VERSION.RELEASE,
+  )
 
   private fun buildContainer(): AppContainer {
     // Built here rather than defaulted inside the container, because the servers watch their
@@ -250,6 +258,13 @@ class JupydroidApplication : Application() {
     // The app-specific external directory, so a person can `adb pull` it on a release build with no
     // `run-as`; null where the device has no external storage, which the fake covers.
     errorLog = getExternalFilesDir(null)?.let(::DiskErrorLog) ?: FakeErrorLog(),
+    // A file of its own in `filesDir`, not in the log's directory: clearing the log must not make the
+    // platform's memory of old deaths read as new ones.
+    processExits = ActivityManagerProcessExits(
+      getSystemService(ActivityManager::class.java),
+      File(filesDir, "exit-reasons-mark"),
+    ),
+    errorLogOrigin = errorLogOrigin(),
     applicationScope = applicationScope,
     // Where no Space can run there is no server import to read, so the default reads nothing.
     preReadServerImports = servers?.let { { serverImportPreReader(this, spaceRepository, it).preReadAll() } } ?: {},
