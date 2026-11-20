@@ -50,6 +50,7 @@ from pathlib import Path
 
 from kotlin_source import comments_only
 from notebook_source import notebook_code_comments
+from patch_source import patch_prose
 from script_source import hash_comments, python_prose
 from xml_source import xml_comments
 
@@ -133,6 +134,7 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".h": comments_only,
     ".g4": comments_only,
     ".ts": comments_only,
+    ".patch": patch_prose,
     ".sh": hash_comments,
     ".py": python_prose,
     ".toml": hash_comments,

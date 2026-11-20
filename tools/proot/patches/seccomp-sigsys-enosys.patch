@@ -1,0 +1,92 @@
+--- a/src/tracee/event.c	2026-11-20 14:11:36.367927268 -0300
++++ b/src/tracee/event.c	2026-11-20 14:12:19.224921367 -0300
+@@ -388,6 +388,38 @@
+ }
+ 
+ /**
++ * Whether a seccomp-trapped syscall is one a glibc loader issues before any
++ * preload can arm a SIGSYS handler, where ENOSYS - what the kernel already
++ * set - is the answer a kernel without the syscall would give and glibc
++ * already tolerates: set_robust_list and rseq are both optional to it.
++ */
++static bool seccomp_trap_is_enosys_safe(Sysnum sysnum)
++{
++	return sysnum == PR_set_robust_list || sysnum == PR_rseq;
++}
++
++/**
++ * The syscall a SIGSYS stop was raised for: PR_void when the stop is not a
++ * seccomp trap or its number cannot be read, and @arch_nr the raw number
++ * the kernel reports (-1 likewise).  si_syscall is the architecture's own
++ * number - on arm64 the one in x8 - which is also what get_sysnum translates.
++ */
++static Sysnum seccomp_trap_sysnum(Tracee *tracee, int *arch_nr)
++{
++	siginfo_t siginfo;
++
++	*arch_nr = -1;
++	if (ptrace(PTRACE_GETSIGINFO, tracee->pid, NULL, &siginfo) < 0)
++		return PR_void;
++	if (siginfo.si_code != SYS_SECCOMP)
++		return PR_void;
++	if (fetch_regs(tracee) < 0)
++		return PR_void;
++	*arch_nr = siginfo.si_syscall;
++	return get_sysnum(tracee, CURRENT);
++}
++
++/**
+  * For kernels >= 4.8.0
+  * Handle the current event (@tracee_status) of the given @tracee.
+  * This function returns the "computed" signal that should be used to
+@@ -602,6 +634,31 @@
+ 			}
+ 			break;
+ 
++		case SIGSYS: {
++			int arch_nr;
++			Sysnum sysnum = seccomp_trap_sysnum(tracee, &arch_nr);
++
++			/* Dropping the signal leaves the ENOSYS the
++			 * kernel already set standing, which is what a
++			 * guest SIGSYS handler returning normally does.
++			 * Every other SIGSYS is delivered as-is.  */
++			if (seccomp_trap_is_enosys_safe(sysnum)) {
++				signal = 0;
++				VERBOSE(tracee, 1,
++					"vpid %" PRIu64 ": suppressed SIGSYS for "
++					"%s; ENOSYS stands",
++					tracee->vpid, stringify_sysnum(sysnum));
++			}
++			else {
++				VERBOSE(tracee, 1,
++					"vpid %" PRIu64 ": delivering SIGSYS for "
++					"syscall %d (%s)",
++					tracee->vpid, arch_nr,
++					stringify_sysnum(sysnum));
++			}
++			break;
++		}
++
+ 		default:
+ 			/* Deliver this signal as-is.  */
+ 			break;
+--- a/src/syscall/sysnums.list	2026-11-20 14:11:36.366007011 -0300
++++ b/src/syscall/sysnums.list	2026-11-20 14:12:13.362954592 -0300
+@@ -258,6 +258,7 @@
+ SYSNUM(request_key)
+ SYSNUM(restart_syscall)
+ SYSNUM(rmdir)
++SYSNUM(rseq)
+ SYSNUM(rt_sigaction)
+ SYSNUM(rt_sigpending)
+ SYSNUM(rt_sigprocmask)
+--- a/src/syscall/sysnums-arm64.h	2026-11-20 14:11:36.365880118 -0300
++++ b/src/syscall/sysnums-arm64.h	2026-11-20 14:12:13.403954360 -0300
+@@ -264,5 +264,6 @@
+ 	[ 275 ] = PR_sched_getattr,
+ 	[ 276 ] = PR_renameat2,
+ 	[ 291 ] = PR_statx,
++	[ 293 ] = PR_rseq,
+         [ 435 ] = PR_clone3,
+ };
