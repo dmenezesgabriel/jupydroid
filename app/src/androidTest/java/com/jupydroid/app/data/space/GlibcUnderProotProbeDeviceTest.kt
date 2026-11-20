@@ -42,8 +42,18 @@ import java.util.concurrent.TimeUnit
  * all - and the shipped musl handler cannot resolve its libc in a glibc root. If a later Android
  * build stops refusing the syscall, the trace loses `signal 31` and this fails, which is the point.
  *
+ * `stockGlibcUnderThePatchedTracer` re-runs the same root under a proot rebuilt by
+ * `tools/proot/build.sh` - the six Alpine patches plus `seccomp-sigsys-enosys.patch`, which
+ * drops the SIGSYS for the optional syscalls a glibc loader issues before any handler can
+ * arm (`set_robust_list`, then `rseq`) and leaves the kernel's ENOSYS standing. It is staged
+ * into this test APK's own jniLibs by `scripts/stage_proot_patched.py`, so the app's shipped
+ * pair is untouched, and its arms are the two that can pass: no handler, and the glibc handler.
+ * The musl arm is dropped - its `DT_NEEDED` cannot resolve in a glibc root whatever the tracer
+ * does, which arm 2 already measured.
+ *
  * ```
  * scripts/glibc-under-proot-driver.sh
+ * scripts/glibc-under-patched-proot-driver.sh
  * ```
  *
  * TABLET ONLY (SM-X216B): only arm64 ships a rootfs, and on x86_64 nothing runs a cell.
@@ -79,6 +89,69 @@ class GlibcUnderProotProbeDeviceTest {
     assertInstrumentWorked(noHandler, glibcArm, muslArm)
   }
 
+  /**
+   * The same root under the patched tracer: if dropping the `set_robust_list` SIGSYS is enough,
+   * stock glibc's `/usr/bin/true` and `/usr/bin/sh` exit 0 in both arms - with no handler at all,
+   * which is the point, since no preload could ever have armed before `ld.so` got there.
+   */
+  @Test(timeout = 900_000)
+  fun stockGlibcUnderThePatchedTracer() {
+    val tarball = verifiedUbuntuTarball()
+    extractUbuntu(tarball)
+    val patchedLibs = patchedNativeLibraryDir()
+    SpaceDirs(root).ensure()
+    val runtime = SpaceRuntime(root, patchedLibs)
+    val report = StringBuilder("== the probe\n")
+      .append("device=${Build.MODEL} sdk=${Build.VERSION.SDK_INT} abis=${Build.SUPPORTED_ABIS.joinToString()}\n")
+      .append("rootfs=${tarball.name} bytes=${tarball.length()} sha256=${sha256(tarball)}\n")
+      .append("patched proot=${File(patchedLibs, ProotCommand.PROOT)}\n")
+
+    val noHandler = patchedArm(runtime, null, "no handler", report)
+    val glibcArm = patchedArm(runtime, staged(GLIBC_HANDLER), "the glibc handler", report)
+    val (loader, syscalls) = loaderTrace(runtime, patchedLibs)
+    report.append("== the loader's own words\n").append(loader.joinToString("\n")).append("\n")
+    report.append("== the last syscalls proot saw\n").append(syscalls.joinToString("\n")).append("\n")
+
+    File(probeDir, PATCHED_REPORT).writeText(report.toString())
+    Log.i(PROBE_TAG, report.toString())
+    assertPatchedTracerWorked(noHandler, glibcArm)
+  }
+
+  /** One arm of the patched run: `/usr/bin/true`, then a shell that must answer `glibc-ok`. */
+  private fun patchedArm(runtime: SpaceRuntime, handler: File?, label: String, report: StringBuilder): PatchedArm {
+    if (handler == null) handlerInRoot().delete() else handler.copyTo(handlerInRoot(), overwrite = true)
+    sigsysLog().delete()
+    report.append("\n== arm - $label\n")
+    val trueRun = runIn(runtime, listOf("/usr/bin/true"), report)
+    val shellRun = runIn(runtime, listOf("/usr/bin/sh", "-c", "echo glibc-ok"), report)
+    return PatchedArm(trueRun, shellRun)
+  }
+
+  private fun assertPatchedTracerWorked(noHandler: PatchedArm, glibcArm: PatchedArm) {
+    for ((label, arm) in listOf("no handler" to noHandler, "the glibc handler" to glibcArm)) {
+      assertEquals("$label: /usr/bin/true did not exit 0", 0, arm.trueRun.exitCode)
+      assertEquals("$label: /usr/bin/sh did not exit 0", 0, arm.shellRun.exitCode)
+      assertTrue(
+        "$label: the shell's output lacks glibc-ok: ${arm.shellRun.output}",
+        "glibc-ok" in arm.shellRun.output,
+      )
+    }
+  }
+
+  /**
+   * The test APK's own `nativeLibraryDir`, where `stage_proot_patched.py` put the rebuilt pair.
+   * It is a different directory from the app's: the shipped proot stays what Spaces run.
+   */
+  private fun patchedNativeLibraryDir(): File {
+    val dir = File(InstrumentationRegistry.getInstrumentation().context.applicationInfo.nativeLibraryDir)
+    val missing = listOf(ProotCommand.PROOT, ProotCommand.PROOT_LOADER).filter { !File(dir, it).isFile }
+    require(missing.isEmpty()) {
+      "patched proot not staged in the test APK's jniLibs (missing $missing); " +
+        "run tools/proot/build.sh then scripts/stage_proot_patched.py first"
+    }
+    return dir
+  }
+
   /** The baseline ADR-0003 measured without a handler: a bare glibc root under the shipped proot. */
   private fun armNoHandler(runtime: SpaceRuntime, report: StringBuilder): ArmResult {
     handlerInRoot().delete()
@@ -110,8 +183,11 @@ class GlibcUnderProotProbeDeviceTest {
    * The loader's own words and the last syscalls proot saw, in one run: whether a preload
    * constructor ever ran, and which syscall the filter refused before it could.
    */
-  private fun loaderTrace(runtime: SpaceRuntime): Pair<List<String>, List<String>> {
-    val proot = ProotCommand(File(context.applicationInfo.nativeLibraryDir), root, "/home/jupydroid")
+  private fun loaderTrace(
+    runtime: SpaceRuntime,
+    nativeLibraryDir: File = File(context.applicationInfo.nativeLibraryDir),
+  ): Pair<List<String>, List<String>> {
+    val proot = ProotCommand(nativeLibraryDir, root, "/home/jupydroid")
     val argv = proot.argv(listOf("/usr/bin/true")).toMutableList().apply {
       add(1, "-v")
       add(2, "9")
@@ -175,14 +251,17 @@ class GlibcUnderProotProbeDeviceTest {
     assertTrue("the trace does not show the SIGSYS that followed", glibcArm.syscalls.any { "signal 31" in it })
   }
 
-  private fun stagedInputs(): StagedInputs {
+  private fun stagedInputs(): StagedInputs =
+    StagedInputs(verifiedUbuntuTarball(), staged(GLIBC_HANDLER), staged(MUSL_HANDLER))
+
+  private fun verifiedUbuntuTarball(): File {
     val tarball = staged(UBUNTU_TARBALL)
     assertEquals(
       "the staged rootfs is not the pinned one; rerun scripts/glibc-under-proot-driver.sh",
       UBUNTU_SHA256,
       sha256(tarball),
     )
-    return StagedInputs(tarball, staged(GLIBC_HANDLER), staged(MUSL_HANDLER))
+    return tarball
   }
 
   private fun probeHeader(inputs: StagedInputs): StringBuilder = StringBuilder("== the probe\n")
@@ -268,6 +347,8 @@ class GlibcUnderProotProbeDeviceTest {
     val syscalls: List<String>,
   )
 
+  private data class PatchedArm(val trueRun: SpaceProcessRun, val shellRun: SpaceProcessRun)
+
   private companion object {
     const val PROBE_TAG = "JupydroidGlibc"
 
@@ -276,6 +357,9 @@ class GlibcUnderProotProbeDeviceTest {
     const val GLIBC_HANDLER = "libsigsys_report_glibc.so"
     const val MUSL_HANDLER = "libsigsys_report_musl.so"
     const val REPORT = "report.txt"
+
+    /** The patched tracer's own report, so a whole-class run cannot overwrite the shipped one's. */
+    const val PATCHED_REPORT = "report-patched.txt"
 
     /** Ubuntu's own `SHA256SUMS` for the arm64 base image, read 2026-11-20. */
     const val UBUNTU_SHA256 = "04207713ece899c3740823d33690441ad3a7f0ded1101aca744e2b0f37ac7ff2"
