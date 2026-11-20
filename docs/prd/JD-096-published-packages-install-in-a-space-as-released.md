@@ -219,18 +219,27 @@ The decision is T5's; each row names the evidence that settles it.
     `LD_PRELOAD` and the user base split per interpreter, the patched proot ships for all Space
     processes, and its corresponding source (`tools/proot/` whole) rides the APK's licence assets
     so GPLv2's offer does not wait on this repository being public.
-- [ ] T6a — the tracer rework and the glibc SIGSYS handler, proven in the probes: the patch's
-  set shrinks to `ld.so`'s pre-constructor prologue (`set_robust_list`, `rseq`), derived once,
-  whole, from one complete startup trace; `mbind`/`set_mempolicy` return to signal delivery; a
-  glibc-built `sigsys_report.so` joins the build (one build per libc); the wheel probe reruns the
-  shipped shape - handler preloaded - and its report shows `mbind` in `sigsys.log`, the proof
-  post-startup refusals are the handler's; the patched-proot probe reruns for regression
+    **Amended by T6a's measurement:** delivering `SIGSYS` into glibc is fatal under threads —
+    OpenBLAS's `mbind` storm died with signal 31 and no ptrace stop, while suppressing every
+    seccomp `SIGSYS` at the tracer let the same `import sklearn` exit 0. The mechanism split by
+    libc: glibc gets `ENOSYS`-only via `PROOT_SIGSYS_ENOSYS` (no handler, no preload, no
+    `sigsys.log`); musl keeps the handler path unchanged. ADR-0166 records it.
+- [x] T6a — the tracer rework and the refusal mechanism, proven in the probes on SM-X216B:
+  `PROOT_SIGSYS_ENOSYS=1` makes the patched proot suppress every seccomp-generated `SIGSYS`
+  (gated on `si_code == SYS_SECCOMP`, genuine signals still deliver) leaving `ENOSYS` standing;
+  without it the prologue safe-set (`set_robust_list`, `rseq`) is skipped and everything else
+  delivers as stock. `GlibcPythonWheelProbeDeviceTest` runs duckdb + scikit-learn installs and
+  imports under `-v 1` and asserts `suppressed SIGSYS for mbind`; `MuslBlasThreadsProbeDeviceTest`
+  proves the shipped musl path still logs `syscall=235` to `sigsys.log` through a threaded
+  OpenBLAS matmul. **Result:** both `OK (1 test)` on the tablet — glibc `sklearn 1.9.1` exit 0
+  with the suppression trace, musl numpy 2.5.1 matmul exit 0 with the handler log intact.
 - [ ] T6b — the image carries the second interpreter: the rootfs build gains the pinned CPython
-  tree at `/opt/gnu/python`, the glibc runtime files and loader, the glibc handler, and
+  tree at `/opt/gnu/python`, the glibc runtime files and loader, and
   ipykernel + `jupydroid_kernel` for the glibc prefix; the gnu tree ships as its own asset so an
   existing Space gains it additively rather than by re-extracting its rootfs
 - [ ] T6c — the runtime routes the kernel to glibc: `SpaceRuntime` gains the per-interpreter
-  environment (cleared musl `LD_PRELOAD`, the glibc handler, its own `PYTHONUSERBASE`), the
+  environment (cleared musl `LD_PRELOAD`, no `sigsys_report.so`, `PROOT_SIGSYS_ENOSYS=1`, its own
+  `PYTHONUSERBASE`), the
   kernel spec names the glibc interpreter with the env overrides a kernel inherits from the musl
   server, `etc/resolv.conf` is written with the app's nameservers, and a real Space runs
   `%pip install duckdb` then `import duckdb` on the tablet
