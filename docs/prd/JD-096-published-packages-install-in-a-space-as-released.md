@@ -233,10 +233,20 @@ The decision is T5's; each row names the evidence that settles it.
   proves the shipped musl path still logs `syscall=235` to `sigsys.log` through a threaded
   OpenBLAS matmul. **Result:** both `OK (1 test)` on the tablet — glibc `sklearn 1.9.1` exit 0
   with the suppression trace, musl numpy 2.5.1 matmul exit 0 with the handler log intact.
-- [ ] T6b — the image carries the second interpreter: the rootfs build gains the pinned CPython
+- [x] T6b — the image carries the second interpreter: the rootfs build gains the pinned CPython
   tree at `/opt/gnu/python`, the glibc runtime files and loader, and
   ipykernel + `jupydroid_kernel` for the glibc prefix; the gnu tree ships as its own asset so an
-  existing Space gains it additively rather than by re-extracting its rootfs
+  existing Space gains it additively rather than by re-extracting its rootfs.
+  **Result:** `tools/rootfs/gnu/Dockerfile` + `build-gnu.sh` produce `gnu-arm64-v8a.tzst` (55 MB:
+  PBS CPython 3.12.16, the ubuntu-base glibc files at the multiarch path, the kernel stack
+  `--require-hashes`-locked), staged as `spaces/gnu/gnu-arm64-v8a.tzst`; `SpaceGnuImageInstaller`
+  extracts it over a Space's existing image behind a `.jupydroid/gnu-version` stamp, clearing only
+  the payload's own paths on a bump, and `installOnStartOf` runs it for every Space after the image
+  install. `GnuOverlayProbeDeviceTest` `OK (1 test)` on SM-X216B: the overlay wrote 16604 entries
+  over a musl rootfs holding `pkgs/` and `home/` state (both sentinels intact, second install a
+  no-op), `/opt/gnu/python/bin/python3.12` answered `('glibc', '2.39')` under
+  `PROOT_SIGSYS_ENOSYS=1` with `LD_PRELOAD` cleared, `ipykernel 7.3.0` + `jupydroid_kernel` imported,
+  the user site was on `sys.path`, and musl `/usr/bin/python3` still ran beside it.
 - [ ] T6c — the runtime routes the kernel to glibc: `SpaceRuntime` gains the per-interpreter
   environment (cleared musl `LD_PRELOAD`, no `sigsys_report.so`, `PROOT_SIGSYS_ENOSYS=1`, its own
   `PYTHONUSERBASE`), the
