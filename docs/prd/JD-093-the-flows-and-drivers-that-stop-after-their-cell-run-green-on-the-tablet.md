@@ -112,10 +112,19 @@ One commit each, each closed by the driver green on the tablet with its frames l
   `a.ipynb` listed once. The flow was the stale half, so the three clear-Recents steps are gone, the first-cell
   tap calls `focus-first-cell.yaml` and the later one is `Code cell` with `index: 1` inline, as in T1. Driver green
   on the tablet, last frame `42` on `keep.ipynb`'s own kernel.
-- [ ] T9 — the other flows that still tap `Recent actions` with the section shut, found by T3's grep and not run:
-  `delete-stops-session.yaml` (three), `checkpoint-follows-delete`, `explorer-delete-open-document`,
-  `explorer-rename-open-document`, `tab-delete-file`, `tab-duplicate-file`, `tab-duplicate-notebook` and
-  `tab-menu-demo-relaunch`. Each is read before it is edited: a flow that opens the section first is not stale.
+- [x] T9 — the other flows that tapped `Recent actions` with the section shut: `delete-stops-session.yaml`
+  (three), `checkpoint-follows-delete`, `explorer-delete-open-document`, `explorer-rename-open-document`,
+  `tab-delete-file`, `tab-duplicate-file`, `tab-duplicate-notebook` and `tab-menu-demo-relaunch`. None opened the
+  section first, so all were stale for T3's reason (`RecentsSection.kt`, `if (!collapsed)`, [ADR-0121](../adr/0121-the-recents-section-arrives-shut.md)):
+  each driver, unchanged, stopped at `Recent actions`, the frame showing `Recent` shut over one listing row. The
+  blocks and the comments that justified them are gone and the six drivers are green on the tablet. Two things
+  the runs found: `checkpoint-follows-file-driver.sh` failed *before* the edit at its part-2 disk check, because
+  `reset_notebooks` removes `./*` and so leaves `.ipynb_checkpoints` from the driver that ran before it (T10);
+  and `delete-stops-session-running-row-driver.sh` failed once on a kernel whose greet timed out (`c.ipynb`,
+  15 s, then restarted) and was green on the same command alone.
+- [ ] T10 — `reset_notebooks` (`scripts/maestro-run.sh`) clears the workspace with `rm -rf ./*`, which skips
+  dotfiles, so a driver that reads `.ipynb_checkpoints` sees the previous driver's; clear them there, with the
+  regression test `scripts/check_driver_isolation_test.py` or a sibling can carry.
 - [ ] T4 — one cell-focus sub-flow that takes an index, from the later cells' bounds read off a dump;
   convert `input-prompt-demo-answers`, `image-formats-demo-cells`, `gfm-markdown-demo-notebook`,
   `rendered-link-demo-output-link` and `text-output-link-demo-error-url` / `-error-path`

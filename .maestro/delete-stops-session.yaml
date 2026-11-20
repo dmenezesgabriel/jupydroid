@@ -46,13 +46,6 @@ appId: com.jupydroid.app
 - assertVisible: "Open kernel session: keep.ipynb"
 - takeScreenshot: 01-a-and-keep-each-hold-a-kernel
 - tapOn: "Files"
-# Recents is cleared before each long press, for the reason explorer-rename-open-document.yaml
-# gives: an opened file is listed twice, and only the listing's row carries the menu.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 - longPressOn: "a.ipynb"
 - extendedWaitUntil:
     visible: "Delete"
@@ -99,11 +92,6 @@ appId: com.jupydroid.app
     timeout: 15000
 - takeScreenshot: 03-b-closed-its-kernel-still-listed
 - tapOn: "Files"
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 - longPressOn: "b.ipynb"
 - extendedWaitUntil:
     visible: "Delete"
@@ -149,11 +137,6 @@ appId: com.jupydroid.app
     visible: "Open kernel session: c.ipynb"
     timeout: 15000
 - tapOn: "Files"
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 - longPressOn: "d.ipynb"
 - extendedWaitUntil:
     visible: "Rename"

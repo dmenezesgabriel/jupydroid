@@ -32,21 +32,6 @@ appId: com.jupydroid.app
 - inputText: "edited_before_the_delete = 1"
 - takeScreenshot: 02-an-edit-in-flight
 
-# **Clear Recents first, to remove an ambiguity rather than to test one.** An open
-# document is on screen twice in the browser pane - the section carries what was opened, the
-# listing carries what is on disk - and only the listing row has a menu, because renaming and
-# deleting belong to the file rather than to the memory of having opened it. Selecting by index
-# was tried and is not stable: maestro's ordering is its own, and the editor's app-bar title is a
-# third node with the same text. Emptying the section leaves one row in the browser, which is the
-# state these flows were written against.
-# Clearing is behind the section's own overflow - the reference's view-pane header keeps
-# its secondary actions in a `…` menu (`viewPane.ts:693`) and gives the heading itself to the
-# collapse, so the two taps here are one act.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 
 # Delete it from the browser, with the notebook still open beside it.
 - longPressOn: "Switch Alpha.ipynb"
