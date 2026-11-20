@@ -2025,14 +2025,18 @@ one meaning.
 ### GAP-195 — A package installed with `%pip` is sometimes not importable in the next cell
 
 Reported on the published build: after `%pip install <package>` in one cell, an `import` in the cell
-below sometimes says the package was not found, and selecting the kernel again makes it work. Not
-measured, and the two readings below predict different fixes. The first is Python's import caches: a
-directory that appeared after the interpreter first listed its parent is not seen until
-`importlib.invalidate_caches()`. Whether IPython's `%pip` calls it after an install is not read here:
-`IPython/core/magics/packaging.py` in the shipped rootfs says. The second is that the install landed
-outside the kernel's `sys.path`, which a restart's fresh path would hide. The repair starts by
-reproducing on the tablet with a package that installs, `%pip install` then `import` in the next cell,
-and printing `sys.path` and the package's `__file__` when it fails.
+below sometimes says the package was not found, and selecting the kernel again makes it work.
+**Measured on the tablet** (SM-X216B, 2026-11-20, `PipImportProbeDeviceTest`): it is the path, not
+the import system's cache. `site.addusersitepackages` adds the user site only when the directory
+already exists (`usr/lib/python3.12/site.py`: `if ENABLE_USER_SITE and os.path.isdir(user_site)`),
+the image ships no `pkgs/` at all, and `SpaceDirs.ensure` creates `pkgs` but not the
+`lib/python3.12/site-packages` under it. A kernel started before the Space's first install therefore
+has `user_site_on_path: False`, and the install that creates the directory runs in a subprocess that
+never re-runs `site`. The same interpreter still fails after `importlib.invalidate_caches()` and
+imports once the path is appended; a second interpreter imports it without the append, which is the
+restart the reporter used. "Sometimes" is the Space that had an earlier install. IPython's `%pip`
+(`IPython/core/magics/packaging.py`) names the workaround and repairs nothing. `JD-077` owns the
+repair; a package with no musllinux wheel is `GAP-196`, not this.
 
 ### GAP-196 — `%pip` finds no wheel for duckdb or scikit-learn on the Space's platform
 
