@@ -198,7 +198,7 @@ The decision is T5's; each row names the evidence that settles it.
   reaches the glibc loader: the raw banner survived (exit 0) but the musl shims and
   `libc.musl-aarch64.so.1` load into the glibc process, so the environment must be split
   per interpreter - every measured glibc command ran with `LD_PRELOAD` cleared.
-- [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled.
+- [x] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled.
   **The user's constraint on the choice (2026-11-20):** the mechanism is the most native the
   evidence supports, and patch accumulation is out. The tracer's `ENOSYS` set must not grow per
   discovered failure (`set_robust_list`, `rseq`, then `mbind`/`set_mempolicy` is already that
@@ -208,6 +208,17 @@ The decision is T5's; each row names the evidence that settles it.
   version — every syscall the platform refuses, returned `ENOSYS` in one place), so nothing is
   left to discover per package; a mechanism that needs no such table outranks one that does.
   What T3a/T3b committed is reworked to that shape, not extended.
+  **Result:** [ADR-0166](../adr/0166-a-spaces-kernel-runs-on-a-second-glibc-interpreter-beside-musl.md)
+  - Alpine/musl stays the system, a second glibc CPython at `/opt/gnu/python` is the kernel; the
+    whole image loses every Alpine seam for 57 MB less staged. Under the constraint above the
+    tracer's set is reworked, not extended: it covers only `ld.so`'s pre-constructor prologue
+    (`set_robust_list`, `rseq` — derived once, whole, from one complete startup trace), and
+    `mbind`/`set_mempolicy` leave it because post-startup refusals are the SIGSYS handler's to
+    answer — `ENOSYS` for every trapped syscall, no table, which is what every musl Space process
+    already runs on. Glibc processes get the glibc-built `sigsys_report.so` (one build per libc),
+    `LD_PRELOAD` and the user base split per interpreter, the patched proot ships for all Space
+    processes, and its corresponding source (`tools/proot/` whole) rides the APK's licence assets
+    so GPLv2's offer does not wait on this repository being public.
 - [ ] T6 — the chosen mechanism implemented red → green, including the tracer change (if that is
   the choice) and the rootfs build
 - [ ] T7 — the must-list demo: each of the thirty-six packages installs from PyPI's wheels and runs
