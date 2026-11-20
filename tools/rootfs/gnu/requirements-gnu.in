@@ -1,0 +1,10 @@
+# The gnu interpreter's direct dependencies - the kernel stack only; the musl image's
+# requirements.in carries the server's, and a Space's own `%pip install` brings
+# everything else from PyPI as released. requirements-gnu.lock is compiled from this file
+# and holds every transitive package with the sha256 of every manylinux wheel; the
+# Dockerfile installs it with --require-hashes.
+#
+# Recompile from this directory (the header of requirements-gnu.lock records the command).
+
+# The kernel and its entry point (jupydroid_kernel.py).
+ipykernel==7.3.0
