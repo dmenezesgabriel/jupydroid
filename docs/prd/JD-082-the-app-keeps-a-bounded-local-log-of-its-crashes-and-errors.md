@@ -24,7 +24,7 @@ server, T8, is blocked on the tablet and is not part of this demo until it runs 
    Diagnostics reads 0 B.
 5. A screenshot and a UI dump at every step that changes the screen, looked at.
 
-Not `shipped` until this has run on `dev36`, and T8 on the tablet.
+Not `shipped` until T8 has run on the tablet; the demo above has run on `dev36`.
 
 ## Who else implements this
 
@@ -103,8 +103,8 @@ the only record of a native crash or an ANR, where no handler runs. This item ta
 - [ ] T8 — The server's log rotates under the caps instead of being truncated at every server start
   (`data/space/JupyterServerLauncher.kt`). **Blocked until the tablet is attached to the host:** the rotation is
   proved by a Space's server restarting, and only arm64 ships a rootfs, so `dev36` has no server log to rotate.
-- [ ] T9 — The demo on `dev36`, as a flow and a driver; the backlog row `partial` until T8 has run on the tablet,
-  then `shipped`, this file deleted.
+- [x] T9 — The demo on `dev36`, as a driver (`scripts/error-log-demo-driver.sh`) over the three Settings flows; the
+  backlog row `partial` until T8 has run on the tablet, then `shipped`, this file deleted.
 
 ## Out of scope
 
