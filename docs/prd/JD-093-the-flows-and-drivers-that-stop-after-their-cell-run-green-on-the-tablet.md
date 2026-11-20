@@ -140,7 +140,12 @@ One commit each, each closed by the driver green on the tablet with its frames l
   index, `0` included. The six drivers (`gfm-markdown`, `input-prompt`, `image-formats`, `rendered-link`,
   `text-output-link`, `tab-reload`) are green on the tablet; `text-output-link-demo-driver.sh` passed its back-from-Chrome
   step this time, which T6 reads before it changes anything.
-- [ ] T5 — `display-update-demo-run`, `output-caps-demo-run`, `ansi-colour-demo-dark` and their drivers
+- [x] T5 — `display-update-demo-run`, `output-caps-demo-run`, `ansi-colour-demo-dark` and their drivers: the
+  five pixel taps below an unrun cell are `focus-cell.yaml` calls (1, then 2). The unchanged
+  `display-update-demo-driver.sh` was red at `'frame 0'` with every cell's source in cell 1 and two empty cells
+  under it. `output-caps-demo-run` had a second stale step: its scroll back up past 300 drawn outputs timed out
+  at 60 s after 16 swipes of about 3.7 s each (Maestro reads the whole tree after every swipe), the row in view
+  by the time the failure frame was taken, so the timeout is 180 s. The three drivers are green on the tablet.
 - [ ] T6 — `text-output-link-demo-driver.sh` part 2: read Chrome's back stack after BACK, then fix
   `back_to_app`
 - [ ] T7 — `chat-markdown-insert` and `chat-markdown-copy`: a `longPressOn` by the field's name; needs opencode

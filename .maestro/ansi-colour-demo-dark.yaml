@@ -46,18 +46,16 @@ appId: com.jupydroid.app
       childOf: {text: "Cell output"}
     timeout: 180000
 
-# Cell 2, the repr. Its field is [805,571][1884,643] and the linter's mark covers
-# [805,576][1884,607], so it is tapped below the mark, which opens its own popup. The line after
-# the `def` keeps the class body's indent (PythonTypingRules.continueIndent), so `eraseText: 4`
-# takes it back off before `Blue()`.
+# Cell 2, the repr. The line after the `def` keeps the class body's indent
+# (PythonTypingRules.continueIndent), so `eraseText: 4` takes it back off before `Blue()`.
 - tapOn:
     text: "Cell actions"
     index: 0
 - tapOn: "Cell menu Insert code below"
-- tapOn:
-    point: "1300,625"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
 - inputText: "class Blue:"
 - pressKey: Enter
 - inputText: "def __repr__(self): return \"\\x1b[34mblue\\x1b[0m\""
@@ -75,15 +73,15 @@ appId: com.jupydroid.app
       childOf: {text: "Cell output", index: 1}
     timeout: 60000
 
-# Cell 3, the traceback: field [805,824][1884,896], mark [805,844][1884,875].
+# Cell 3, the traceback.
 - tapOn:
     text: "Cell actions"
     index: 1
 - tapOn: "Cell menu Insert code below"
-- tapOn:
-    point: "1300,888"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 2
 - inputText: "1/0"
 - hideKeyboard
 - tapOn:

@@ -27,9 +27,8 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-# All three cells are typed before any runs. The first is focused by its field's name; the second and
-# third are inserted below an unrun cell and still tapped at a point, which misses their fields on
-# SM-X216B's 1920x1200 (ADR-0143 names the field; the later cells wait on the repair that converts them).
+# All three cells are typed before any runs, each focused by its field's name: a pixel tapped
+# below an unrun cell missed the field on SM-X216B's 1920x1200 and every source landed in cell 1.
 - runFlow:
     file: focus-cell.yaml
     env:
@@ -40,20 +39,20 @@ appId: com.jupydroid.app
     text: "Cell actions"
     index: 0
 - tapOn: "Cell menu Insert code below"
-- tapOn:
-    point: "1300,539"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
 - runFlow: display-update-demo-type-update.yaml
 - hideKeyboard
 - tapOn:
     text: "Cell actions"
     index: 1
 - tapOn: "Cell menu Insert code below"
-- tapOn:
-    point: "1300,724"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 2
 # The 1x1 PNG of the display-update-metadata.ipynb fixture.
 - inputText: "import base64; from IPython.display import Image, display; display(Image(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='), width=100))"
 - hideKeyboard
