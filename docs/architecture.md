@@ -2292,11 +2292,11 @@ lands on nothing. The flow then types into no field, `hideKeyboard` sends BACK w
 notebook's tab closes and the Launcher is what is left; the flow reports "Run cell" not found, which reads as
 a regression in the app and is not one: tapped by hand at the field's real position, the same cell ran on the
 kernel and printed `42`. What is not known: which commit moved the field. `JD-089` replaced 20 of the 23 taps
-with a tap on the field's name (`.maestro/focus-cell.yaml`, ADR-0155), each run on the tablet. **Three
-taps are left and this gap stays open for them:** `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42`
-(a `longPressOn`) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows need opencode, which base
-on the tablet does not have, installed and signed in by the user; the delete flow's tap is behind `GAP-208`'s
-`Recent actions` step. `JD-093` converts and runs them.
+with a tap on the field's name (`.maestro/focus-cell.yaml`, ADR-0155), each run on the tablet. The three
+left, `chat-markdown-insert.yaml`, `chat-markdown-copy.yaml` (a `longPressOn` by the same name, inline) and
+`delete-stops-session-demo-delete.yaml`, were converted by `JD-093`, and each driver ran green on the tablet.
+The two chat flows needed opencode reinstalled in base after a rootfs bump; its sign-in had survived, and the
+unchanged insert driver was red at `Insert below active cell \(no active cell\)` with the Launcher on screen.
 
 ### GAP-206 — The rootfs ships a Critical zlib CVE and seven vulnerable Python wheels on an end-of-life Alpine
 
@@ -2371,11 +2371,9 @@ second cell runs, `[2]:`, and `blue` never appears). `text-output-link-demo-driv
 after the link tap, where `back_to_app` read `com.android.chrome` still resumed ten seconds after BACK; it did not
 again in five consecutive runs on the tablet (parts 2, 3 and 5 each read Chrome after the tap and this app after BACK,
 the driver exiting 0 with its last assertion on the saved notebook), so that one is closed as not reproduced rather than
-repaired. Three first-cell taps at `1300,354` were left unconverted by `JD-089` and belong to this
-repair too: `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42` (a `longPressOn`, which the sub-flow cannot
-express) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows can only be run on a tablet the user has
-signed in to opencode on, which is the user's to do; the delete flow's tap waits on `GAP-208`. Not known: whether the tap by the field's name can reach a later cell as it reaches the
-first (the sub-flow takes `index: 0`). The repair reads the later cells' bounds from a dump.
+repaired; if it returns, the first move is `dumpsys activity activities` at the failure, before anything else runs. The three first-cell taps `JD-089` left
+are converted too (see `GAP-205`). The tap by the field's name reaches a later cell as it reaches the first:
+`.maestro/focus-cell.yaml` takes `CELL_INDEX`, and every driver above ran green on the tablet.
 
 ### GAP-210 — A press on the right half of a minimum-width tab closes it
 
