@@ -163,9 +163,13 @@ The decision is T5's; each row names the evidence that settles it.
   ABI shim, which avoids glibc's `ld.so` altogether. **Result:** it cannot carry them — the `cp312`
   extensions are named `-gnu.so` and the musl interpreter never looks for them, and the tag-less
   `abi3` one fails on `__res_init`
-- [ ] T3a — the tracer: proot rebuilt so `set_robust_list` returns `ENOSYS`, proved on the tablet by
+- [x] T3a — the tracer: proot rebuilt so `set_robust_list` returns `ENOSYS`, proved on the tablet by
   a stock glibc `/usr/bin/true` and `/usr/bin/sh` exiting 0 under it (T1's arms, re-run with the
   new proot). This is where the GPLv2 source-publication question is answered
+  **Result:** it starts - `rseq` was the second refused syscall, so the patch covers both
+  `set_robust_list` and `rseq`; `/usr/bin/true` and `/usr/bin/sh -c "echo glibc-ok"` exit 0 with
+  no handler and with the glibc one, and the loader's preload constructor runs under the patched
+  tracer where the shipped one never let it reach
 - [ ] T3b — a glibc CPython in a Space: it runs under that tracer, `etc/resolv.conf` carries the
   app's nameservers, `%pip install duckdb` picks PyPI's manylinux wheel, and `import duckdb` works;
   then scikit-learn. **The only surviving mechanism after T1 and T2**
