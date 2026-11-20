@@ -4,8 +4,6 @@ import android.os.Build
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -14,7 +12,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 /**
@@ -98,12 +95,12 @@ class GlibcUnderProotProbeDeviceTest {
   fun stockGlibcUnderThePatchedTracer() {
     val tarball = verifiedUbuntuTarball()
     extractUbuntu(tarball)
-    val patchedLibs = patchedNativeLibraryDir()
+    val patchedLibs = patchedProotLibraryDir()
     SpaceDirs(root).ensure()
     val runtime = SpaceRuntime(root, patchedLibs)
     val report = StringBuilder("== the probe\n")
       .append("device=${Build.MODEL} sdk=${Build.VERSION.SDK_INT} abis=${Build.SUPPORTED_ABIS.joinToString()}\n")
-      .append("rootfs=${tarball.name} bytes=${tarball.length()} sha256=${sha256(tarball)}\n")
+      .append("rootfs=${tarball.name} bytes=${tarball.length()} sha256=${sha256Hex(tarball)}\n")
       .append("patched proot=${File(patchedLibs, ProotCommand.PROOT)}\n")
 
     val noHandler = patchedArm(runtime, null, "no handler", report)
@@ -136,20 +133,6 @@ class GlibcUnderProotProbeDeviceTest {
         "glibc-ok" in arm.shellRun.output,
       )
     }
-  }
-
-  /**
-   * The test APK's own `nativeLibraryDir`, where `stage_proot_patched.py` put the rebuilt pair.
-   * It is a different directory from the app's: the shipped proot stays what Spaces run.
-   */
-  private fun patchedNativeLibraryDir(): File {
-    val dir = File(InstrumentationRegistry.getInstrumentation().context.applicationInfo.nativeLibraryDir)
-    val missing = listOf(ProotCommand.PROOT, ProotCommand.PROOT_LOADER).filter { !File(dir, it).isFile }
-    require(missing.isEmpty()) {
-      "patched proot not staged in the test APK's jniLibs (missing $missing); " +
-        "run tools/proot/build.sh then scripts/stage_proot_patched.py first"
-    }
-    return dir
   }
 
   /** The baseline ADR-0003 measured without a handler: a bare glibc root under the shipped proot. */
@@ -259,14 +242,14 @@ class GlibcUnderProotProbeDeviceTest {
     assertEquals(
       "the staged rootfs is not the pinned one; rerun scripts/glibc-under-proot-driver.sh",
       UBUNTU_SHA256,
-      sha256(tarball),
+      sha256Hex(tarball),
     )
     return tarball
   }
 
   private fun probeHeader(inputs: StagedInputs): StringBuilder = StringBuilder("== the probe\n")
     .append("device=${Build.MODEL} sdk=${Build.VERSION.SDK_INT} abis=${Build.SUPPORTED_ABIS.joinToString()}\n")
-    .append("rootfs=${inputs.tarball.name} bytes=${inputs.tarball.length()} sha256=${sha256(inputs.tarball)}\n")
+    .append("rootfs=${inputs.tarball.name} bytes=${inputs.tarball.length()} sha256=${sha256Hex(inputs.tarball)}\n")
     .append("glibc handler bytes=${inputs.glibcHandler.length()}\n")
     .append("musl handler bytes=${inputs.muslHandler.length()}\n")
 
@@ -285,52 +268,7 @@ class GlibcUnderProotProbeDeviceTest {
   private fun extractUbuntu(tarball: File) {
     root.deleteRecursively()
     root.mkdirs()
-    GzipCompressorInputStream(tarball.inputStream().buffered()).use { gzip ->
-      TarArchiveInputStream(gzip).use { tar ->
-        while (true) {
-          val entry = tar.nextEntry ?: break
-          val destination = resolveInside(entry.name)
-          when {
-            entry.isDirectory -> destination.mkdirs()
-            entry.isSymbolicLink -> destination.replaceWithSymbolicLink(entry.linkName)
-            entry.isLink -> destination.copyFrom(resolveInside(entry.linkName))
-            entry.isFile -> destination.writeEntry(tar, entry.mode)
-          }
-        }
-      }
-    }
-  }
-
-  private fun resolveInside(name: String): File {
-    val resolved = root.toPath().resolve(name).normalize()
-    require(resolved.startsWith(root.toPath())) { "archive entry '$name' escapes '$root'" }
-    return resolved.toFile()
-  }
-
-  private fun File.writeEntry(tar: TarArchiveInputStream, mode: Int) {
-    parentFile?.mkdirs()
-    delete()
-    outputStream().use { tar.copyTo(it) }
-    if (mode and OWNER_EXECUTE != 0) setExecutable(true, true)
-  }
-
-  private fun File.copyFrom(source: File) {
-    parentFile?.mkdirs()
-    delete()
-    source.copyTo(this, overwrite = true)
-  }
-
-  private fun sha256(file: File): String {
-    val digest = MessageDigest.getInstance("SHA-256")
-    file.inputStream().buffered().use { input ->
-      val buffer = ByteArray(READ_CHUNK)
-      while (true) {
-        val read = input.read(buffer)
-        if (read < 0) break
-        digest.update(buffer, 0, read)
-      }
-    }
-    return digest.digest().joinToString("") { "%02x".format(it) }
+    extractTarGz(tarball, root)
   }
 
   private data class StagedInputs(val tarball: File, val glibcHandler: File, val muslHandler: File)
@@ -366,8 +304,6 @@ class GlibcUnderProotProbeDeviceTest {
 
     /** [SpaceRuntime]'s own log name, under the root's `tmp/`. */
     const val SIGSYS_LOG = "sigsys.log"
-    const val OWNER_EXECUTE = 0b001_000_000
-    const val READ_CHUNK = 1 shl 20
     const val ARM_TIMEOUT_SECONDS = 120L
     const val SYSCALL_LINES = 30
   }
