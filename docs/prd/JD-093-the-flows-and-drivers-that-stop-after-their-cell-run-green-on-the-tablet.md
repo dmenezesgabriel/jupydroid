@@ -122,9 +122,13 @@ One commit each, each closed by the driver green on the tablet with its frames l
   `reset_notebooks` removes `./*` and so leaves `.ipynb_checkpoints` from the driver that ran before it (T10);
   and `delete-stops-session-running-row-driver.sh` failed once on a kernel whose greet timed out (`c.ipynb`,
   15 s, then restarted) and was green on the same command alone.
-- [ ] T10 — `reset_notebooks` (`scripts/maestro-run.sh`) clears the workspace with `rm -rf ./*`, which skips
-  dotfiles, so a driver that reads `.ipynb_checkpoints` sees the previous driver's; clear them there, with the
-  regression test `scripts/check_driver_isolation_test.py` or a sibling can carry.
+- [x] T10 — `reset_notebooks` (`scripts/maestro-run.sh`) cleared the workspace with `rm -rf ./*`, which skips
+  dotfiles, so a driver that reads `.ipynb_checkpoints` saw the previous driver's. It now names
+  `./.ipynb_checkpoints` too, and not every dotfile: the workspace is the kernel's HOME, and `.config/opencode`
+  and `.local/share/opencode` hold the tablet's opencode sign-in, which `chat-markdown-insert` and
+  `-copy` (T7) need. The regression test is `scripts/reset_notebooks_script_test.py`, which runs the real
+  function against a fake `adb`. `checkpoint-follows-file-driver.sh`, run alone on the tablet after
+  `checkpoint-demo-driver.sh` had left its folder, exits 1 at part 2 with the old reset and 0 with the new one.
 - [ ] T4 — one cell-focus sub-flow that takes an index, from the later cells' bounds read off a dump;
   convert `input-prompt-demo-answers`, `image-formats-demo-cells`, `gfm-markdown-demo-notebook`,
   `rendered-link-demo-output-link` and `text-output-link-demo-error-url` / `-error-path`

@@ -113,6 +113,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/font_scale_script_test.py" = ["S603", "S607"]
 # The test runs pull-app-logs.sh with `bash` beside a fake `adb`; the argv is literal.
 "scripts/pull_app_logs_script_test.py" = ["S603", "S607"]
+# The test sources maestro-run.sh with `bash` beside a fake `adb`; the argv is literal.
+"scripts/reset_notebooks_script_test.py" = ["S603", "S607"]
 # The test builds a scratch git repository and runs the locked semantic-release in it; both argvs are literal.
 "scripts/release_cut_config_test.py" = ["S603", "S607"]
 "scripts/check_retired_doc_citations_test.py" = ["S607"]
