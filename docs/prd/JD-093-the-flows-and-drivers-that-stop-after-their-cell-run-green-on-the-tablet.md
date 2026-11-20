@@ -40,7 +40,7 @@ adopted; no reference is opened again here.
 | `Recent actions` step | `.maestro/delete-stops-session-demo-delete.yaml`, `.maestro/delete-stops-session-demo-overwrite.yaml`, `scripts/delete-stops-session-demo-driver.sh` |
 | tab reload expects stale text | `.maestro/tab-reload-demo.yaml`, `scripts/tab-reload-demo-driver.sh`, `app/src/main/java/com/jupydroid/app/ui/shell/ActiveTabReload.kt` |
 | long press on a tab now opens a menu | `.maestro/session-follows-rename-demo-tab.yaml`, `.maestro/session-follows-rename-demo-folder.yaml`, `.maestro/recreated-path-demo-notebook.yaml` and their drivers |
-| later-cell pixel taps | `input-prompt-demo-answers` (67, 101), `display-update-demo-run` (41, 51), `output-caps-demo-run` (43), `ansi-colour-demo-dark` (55, 81), `image-formats-demo-cells` (43, 49, 57), `gfm-markdown-demo-notebook` (75), `tab-reload-demo` (163), `session-follows-rename-demo-tab` (77), `-folder` (67), `delete-stops-session-demo-overwrite` (173), `rendered-link-demo-output-link` (15), `text-output-link-demo-error-url` (19), `-error-path` (18), all `.maestro/*.yaml` |
+| later-cell pixel taps | `input-prompt-demo-answers` (67, 101), `display-update-demo-run` (41, 51), `output-caps-demo-run` (43), `ansi-colour-demo-dark` (55, 81), `image-formats-demo-cells` (43, 49, 57), `gfm-markdown-demo-notebook` (75), `session-follows-rename-demo-tab` (77), `-folder` (67), `delete-stops-session-demo-overwrite` (173), `rendered-link-demo-output-link` (15), `text-output-link-demo-error-url` (19), `-error-path` (18), all `.maestro/*.yaml` |
 | Chrome stays resumed after BACK | `scripts/text-output-link-demo-driver.sh` (`back_to_app`) |
 
 ## Trade-offs and what we adopt
@@ -63,8 +63,8 @@ None. `longPressOn` stays inline by the field's name, as ADR-0155 says the sub-f
 
 ## Open decisions
 
-- Whether `tab-reload-demo`'s `before` is the app's or the flow's. Read from the code, not yet from a frame
-  (the tablet was not attached): **the flow is stale.** [ADR-0097](../adr/0097-an-open-document-with-no-unsaved-work-follows-its-file.md)
+- Whether `tab-reload-demo`'s `before` is the app's or the flow's. Read from a frame on `SM-X216B`, the
+  tab selected with no reload tap already reading `after` and `Save tab` disabled: **the flow was stale, and T1 corrected it.** [ADR-0097](../adr/0097-an-open-document-with-no-unsaved-work-follows-its-file.md)
   (2026-10-14, after the flow was written under ADR-0096) makes a clean open document re-read its file when
   inotify reports it written (`FileSaveConflict.followDisk`, `NotebookSaveConflict.followDisk`, wired in
   `FileEditorViewModel`'s `init`), and measured on `SM-X216B` that a cell's rewrite shows in both open tabs with
@@ -89,7 +89,7 @@ None. `longPressOn` stays inline by the field's name, as ADR-0155 says the sub-f
 
 One commit each, each closed by the driver green on the tablet with its frames looked at.
 
-- [ ] T1 — `tab-reload-demo`: read the frame at `Assert that "before\s*"`, decide app or flow from
+- [x] T1 — `tab-reload-demo`: read the frame at `Assert that "before\s*"`, decide app or flow from
   `ActiveTabReload.kt`, repair the one that moved, then its later-cell tap (163)
 - [ ] T2 — `session-follows-rename-demo-tab`, `-folder` and `recreated-path-demo-notebook`: the long press
   opens a menu where they expect the rename dialog; read it and tap `Rename…` in the menu
