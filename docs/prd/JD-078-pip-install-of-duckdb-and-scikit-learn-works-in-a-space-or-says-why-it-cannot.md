@@ -94,7 +94,7 @@ UI dump and the saved notebook's own outputs, which stay local ([ADR-0132](../ad
 
 | Axis | Options seen | Trade-off | Our choice, and why |
 |---|---|---|---|
-| Where a missing wheel is handled | **A** explain: a message in the cell's output when pip finds no distribution and the package has wheels for no musllinux platform. **B** bundle the apk package in the base rootfs (sklearn only). **C** a wheelhouse built in CI from source | A costs no bytes and is true for every package in the same case; B adds about 27 MB installed plus numpy and scipy, at a version (1.5.2) years behind PyPI's; C needs a C toolchain stage, hours of build for duckdb, and somewhere to host the wheels | open; decided at T3 on T1 and T2's numbers, and recorded as an ADR |
+| Where a missing wheel is handled | **A** explain: a message in the cell's output when pip finds no distribution and the package has wheels for no musllinux platform. **B** bundle the apk package in the base rootfs (sklearn only). **C** a wheelhouse built in CI from source | A costs no bytes and is true for every package in the same case; B adds about 27 MB installed plus numpy and scipy, at a version (1.5.2) years behind PyPI's; C needs a C toolchain stage, hours of build for duckdb, and somewhere to host the wheels | **A**, chosen on those numbers — ADR-0165 |
 
 ## Gap analysis — what we already have
 
@@ -110,19 +110,27 @@ None yet.
 
 ## Open decisions
 
-1. **A, explain — decided, recorded as an ADR at T3.** The counts settle it without a device: 71 of the 1000
-   most downloaded are in the same case, and bundling scikit-learn (B) leaves the other 70 standing; C needs a
-   C toolchain the image deliberately lacks and hours of build for duckdb. A costs no bytes and is true for
-   every package in the case.
-2. **App-side, checked against PyPI — decided, recorded as an ADR at T3.** Measured on the tablet: the text
-   arrives on the cell's `stdout` stream, so the app already holds it, and the rootfs has no seam between pip
-   and the cell (`IPython/core/magics/packaging.py`, `PackagingMagics.pip` → `shell.system`). The claim cannot
-   be read off pip, whose message for a typo is identical, so it is checked against PyPI's own release files
-   and said only when they confirm it.
+1. **A, explain — decided, recorded as [ADR-0165](../adr/0165-a-package-a-spaces-platform-cannot-have-is-explained-from-pypis-release-files.md).**
+   The counts settle it without a device: 71 of the 1000 most downloaded are in the same case, and bundling
+   scikit-learn (B) leaves the other 70 standing; C needs a C toolchain the image deliberately lacks and hours
+   of build for duckdb. A costs no bytes and is true for every package in the case.
+2. **App-side, checked against PyPI — decided, recorded as [ADR-0165](../adr/0165-a-package-a-spaces-platform-cannot-have-is-explained-from-pypis-release-files.md).**
+   Measured on the tablet: the text arrives on the cell's `stdout` stream, so the app already holds it, and the
+   rootfs has no seam between pip and the cell (`IPython/core/magics/packaging.py`, `PackagingMagics.pip` →
+   `shell.system`). The claim cannot be read off pip, whose message for a typo is identical, so it is checked
+   against PyPI's own release files and said only when they confirm it.
 
 ## Surface
 
-Decided at T3.
+The cell's own output, as a block of its own: a `CellOutput.DisplayData` carrying `text/plain`, appended when
+the run has ended, drawn under pip's text in the normal colour with a blank line between (`ADR-0165`). Not a
+`stream`, which folds into pip's stdout and would read as pip's words. Saved with the notebook as
+`display_data`, so a reopen keeps it. The wording names the platform, the reason, and what the package ships
+instead:
+
+> duckdb ships no musllinux aarch64 wheel for Python 3.12 in any release, and this Space's pip installs wheels
+> only, so pip cannot install it here. Latest release 2.0.1 ships manylinux_2_26_aarch64,
+> manylinux_2_28_aarch64 instead, built for glibc, which Android's seccomp filter refuses to start.
 
 ## Tasks
 
@@ -130,7 +138,7 @@ Decided at T3.
 - [x] T2a — the other popular packages in the same case, counted over the 1000 most downloaded with the T1 script
 - [x] T2b — pip's own message on the tablet: the same two lines for a package the platform cannot have and for
   a name that exists nowhere, on the cell's `stdout`, measured 2026-11-20
-- [ ] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green. The wording and the place
+- [x] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green. The wording and the place
   are pinned by the 2026-11-20 measurement; open decision 2 names where the explanation is produced
 - [ ] T4 — the demo on the tablet; backlog row shipped; `GAP-196` closed; this file deleted
 

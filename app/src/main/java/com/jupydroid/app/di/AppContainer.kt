@@ -20,6 +20,7 @@ import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
+import com.jupydroid.app.data.fake.FakeWheelIndex
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
@@ -45,6 +46,7 @@ import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
+import com.jupydroid.app.domain.port.WheelIndex
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
@@ -131,6 +133,8 @@ class AppContainer(
   val sharedDocumentReader: SharedDocumentReader = FakeSharedDocumentReader(),
   /** Where a rendered image's web address is fetched from - see [RemoteImageReader]. */
   val remoteImageReader: RemoteImageReader = FakeRemoteImageReader(),
+  /** What a PyPI package publishes, so a `%pip` miss is explained from PyPI's own files - see [WheelIndex]. */
+  val wheelIndex: WheelIndex = FakeWheelIndex(),
   /** Where the app's crashes and errors are recorded - see [ErrorLog]. */
   val errorLog: ErrorLog = FakeErrorLog(),
   /** How the error log is offered to another app - see [ErrorLogSharer]. */

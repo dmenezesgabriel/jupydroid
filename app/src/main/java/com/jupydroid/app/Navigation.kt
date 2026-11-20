@@ -427,6 +427,7 @@ fun MainNavigation(
               activeCellRuns = appContainer.activeCellRuns,
               notebookBreakpoints = appContainer.notebookBreakpoints,
               editorSettingsRepository = appContainer.editorSettings,
+              wheelIndex = appContainer.wheelIndex,
               outline = outline,
               // `toc:show-panel` where there is a side area to activate, and null where there is not -
               // which is what puts the overlay up on a compact window instead.

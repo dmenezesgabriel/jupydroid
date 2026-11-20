@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
-import java.time.Instant
 
 /**
  * Running cells against the notebook's kernel: one of them, or all of them in order.
@@ -52,6 +51,8 @@ internal class NotebookCellRuns(
   private val clock: Clock,
   /** Arms a cell's breakpoints before it runs, and reports where the kernel stops. */
   private val debugger: NotebookDebugger,
+  /** The note a run earns when PyPI confirms this Space's platform is why; see [PipInstallExplanation]. */
+  private val explanation: PipInstallExplanation,
 ) {
   /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
   private var interrupting: String? = null
@@ -177,7 +178,7 @@ internal class NotebookCellRuns(
   private suspend fun execute(cell: Cell): Boolean = activeCellRuns.whileRunning { run(cell) }
 
   private suspend fun run(cell: Cell): Boolean {
-    uiState.update { it.startingRun(cell.id, at = now()) }
+    uiState.update { it.startingRun(cell.id, at = clock.instant()) }
     try {
       eventsFor(cell).collect { event -> uiState.update { state -> state.after(event) } }
     } catch (_: KernelPickRequiredException) {
@@ -188,13 +189,31 @@ internal class NotebookCellRuns(
     val raised = uiState.value.outputs[cell.id].orEmpty().any { it is CellOutput.Error }
     val cancelled = interrupting == cell.id
     interrupting = null
-    uiState.update {
-      if (cancelled) it.cancellingRun(cell.id, at = now()) else it.finishedRun(cell.id, at = now(), failed = raised)
+    uiState.update { state ->
+      val at = clock.instant()
+      if (cancelled) state.cancellingRun(cell.id, at) else state.finishedRun(cell.id, at, failed = raised)
     }
     checkpoint()
+    explainMiss(cell)
     // A cancelled cell stops the queue too: the user asked for the run to stop, not for the
     // next cell to start.
     return !raised && !cancelled
+  }
+
+  /**
+   * Appends the note a confirmed platform miss earns, once PyPI has answered.
+   *
+   * Launched rather than awaited: the answer is a network round trip, and a `Run All` must not wait
+   * on it to start the next cell. The run is already finished, so the note lands on a cell whose
+   * own outputs are complete - and a checkpoint of its own is what puts it in the file, since the
+   * run's was written before PyPI was asked.
+   */
+  private fun explainMiss(cell: Cell) {
+    scope.launch {
+      val note = explanation.noteFor(uiState.value.outputs[cell.id].orEmpty()) ?: return@launch
+      uiState.update { it.withOutput(cell.id, note) }
+      checkpoint()
+    }
   }
 
   /**
@@ -227,6 +246,4 @@ internal class NotebookCellRuns(
   }.catch { failure ->
     if (failure is KernelPickRequiredException) throw failure else emit(kernelFailure(cell.id, failure))
   }
-
-  private fun now(): Instant = clock.instant()
 }

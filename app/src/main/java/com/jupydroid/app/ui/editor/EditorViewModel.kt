@@ -12,6 +12,7 @@ import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
+import com.jupydroid.app.data.fake.FakeWheelIndex
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.ActiveCellRuns
@@ -30,6 +31,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WheelIndex
 import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceWatcher
@@ -140,6 +142,12 @@ class EditorViewModel(
   workspaceWatcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
   /** Announces a rename or delete made beside this notebook, so it follows; defaulted as [kernelSpecs] is. */
   private val workspaceFiles: WorkspaceFiles = FakeWorkspaceFiles(),
+  /**
+   * What a PyPI package publishes, so a `%pip` miss pip cannot explain is explained from the
+   * source of truth - see [PipInstallExplanation]. Defaulted to the empty fake, which says nothing,
+   * the way a device with no network does.
+   */
+  wheelIndex: WheelIndex = FakeWheelIndex(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -188,6 +196,7 @@ class EditorViewModel(
         if (settings.value.autosaveEnabled) persist() else _uiState.update { it.copy(dirty = true) }
       },
       debugger = debugger,
+      explanation = PipInstallExplanation(wheelIndex),
       // `kernelShutdown`, read the way `SessionContext` reads `kernelPreference` - at dispose.
       shutdownOnClose = { settings.value.shutdownKernelOnClose },
       // `indentUnit` as the FormattingOptions a range-format must carry - the same live read.

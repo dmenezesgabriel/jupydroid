@@ -1,0 +1,48 @@
+appId: com.jupydroid.app
+---
+# A notebook in base with one cell running `%pip install ${PACKAGE}`, and the wait for pip to return.
+#
+# **Not a flow.** The two `pip-platform-explanation-part*` flows call it with their own `PACKAGE`,
+# so the launch, the notebook and the wait are written once. One cell per run on purpose: the
+# notebook is fresh, so the screen holds exactly one "Cell output" and the assertion a part makes
+# needs no scope beyond that - a selector scoped with `childOf` reaches the first such node and
+# never a later one (`docs/architecture/cross-cutting.md` §8.6).
+#
+# **The wait is on IPython's own note.** `%pip` prints "Note: you may need to restart the kernel to
+# use updated packages." after the subprocess returns, whether it succeeded or failed
+# (`IPython/core/magics/packaging.py`, `PackagingMagics.pip`), so it is the one thing a run can
+# wait for without assuming either pip's wording or the app's.
+#
+# TABLET ONLY (SM-X216B): the cell runs on a real kernel, and the note is produced only from pip's
+# own text - on x86_64 the app falls back to `FakeKernelGateway`, which echoes the cell's source
+# back as its output.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
+- inputText: "%pip install ${PACKAGE}"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+# A wheel that is not on the image is resolved against PyPI, so the floor is a network round trip
+# and the ceiling is a resolver working through every release.
+- extendedWaitUntil:
+    visible: ".*may need to restart the kernel.*"
+    timeout: 300000

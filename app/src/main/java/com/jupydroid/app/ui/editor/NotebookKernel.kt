@@ -3,6 +3,7 @@ package com.jupydroid.app.ui.editor
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
+import com.jupydroid.app.data.fake.FakeWheelIndex
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.IndentUnit
@@ -70,6 +71,11 @@ class NotebookKernel(
   private val clock: Clock = Clock.systemUTC(),
   /** Arms a cell's breakpoints before it runs, and reports where the kernel stops; see [NotebookCellRuns]. */
   private val debugger: NotebookDebugger,
+  /**
+   * The note a run earns when pip found no distribution and PyPI confirms this Space's platform is
+   * why - null where nothing is to be said; see [NotebookCellRuns].
+   */
+  private val explanation: PipInstallExplanation = PipInstallExplanation(FakeWheelIndex()),
   /**
    * `kernelShutdown`'s live read, consulted by [close] at the moment the document goes - the way
    * `SessionContext` reads `kernelPreference.shutdownOnDispose` inside `dispose()` rather than
@@ -150,7 +156,7 @@ class NotebookKernel(
   }
 
   private val runs =
-    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, checkpoint, clock, debugger)
+    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, checkpoint, clock, debugger, explanation)
 
   /**
    * `notebook:access-previous-history-entry` / `access-next-history-entry` - what the kernel has

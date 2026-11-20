@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# `%pip install duckdb` in a fresh notebook in base: PyPI's own release files say no release ships
+# a `musllinux_*_aarch64` wheel for `cp312`, so the cell must end by saying that in the platform's
+# own words (ADR-0165).
+#
+# **The wait names the platform, not the app's opening words.** `duckdb ships no …` is the app's
+# sentence, and a flow that waited on the package's name alone would pass on the cell's own source.
+# `musllinux aarch64 wheel for Python 3.12` appears in no source, and only in the note.
+#
+# The note is its own output node, so this is a single-line node the selector can match; it starts
+# with a blank line, which is why the pattern is wrapped in `.*`.
+#
+# TABLET ONLY (SM-X216B): see `pip-platform-explanation-body.yaml`.
+- runFlow:
+    file: pip-platform-explanation-body.yaml
+    env:
+      PACKAGE: duckdb
+- extendedWaitUntil:
+    visible:
+      text: ".*musllinux aarch64 wheel for Python 3.12.*"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+- takeScreenshot: 01-duckdb-explained

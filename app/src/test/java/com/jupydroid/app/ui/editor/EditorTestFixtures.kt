@@ -11,6 +11,7 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeWheelIndex
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
@@ -43,6 +44,7 @@ import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.StaleKernelSessionException
+import com.jupydroid.app.domain.port.WheelIndex
 import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceWatcher
@@ -509,6 +511,8 @@ internal fun TestScope.loadedEditor(
   watcher: WorkspaceWatcher = FakeWorkspaceWatcher(),
   // Only the cases about a rename or delete made beside the notebook announce on one.
   files: WorkspaceFiles = FakeWorkspaceFiles(),
+  // Only the cases about a %pip miss PyPI can explain pass one; the rest never ask the network.
+  wheelIndex: WheelIndex = FakeWheelIndex(),
 ): EditorViewModel {
   launch { repository.saveNotebook(notebook ?: Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
@@ -518,7 +522,7 @@ internal fun TestScope.loadedEditor(
     EditorViewModel(
       notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns,
       openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer, kernelSessions, kernelSpecs,
-      space, workspaceWatcher = watcher, workspaceFiles = files,
+      space, workspaceWatcher = watcher, workspaceFiles = files, wheelIndex = wheelIndex,
     )
   advanceUntilIdle()
   return viewModel

@@ -38,6 +38,7 @@ import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.http.OkHttpRemoteImageReader
+import com.jupydroid.app.data.http.PyPiWheelIndex
 import com.jupydroid.app.data.http.remoteImageClient
 import com.jupydroid.app.data.intent.ContentResolverSharedDocumentReader
 import com.jupydroid.app.data.intent.IntentDocumentSharer
@@ -257,6 +258,9 @@ class JupydroidApplication : Application() {
       remoteImageClient(File(cacheDir, "remote-images")),
       appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
     ),
+    // PyPI's own release files, asked once per failed install - what a `%pip` miss pip cannot
+    // explain is explained from (ADR-0165).
+    wheelIndex = PyPiWheelIndex(),
     // The app-specific external directory, so a person can `adb pull` it on a release build with no
     // `run-as`; null where the device has no external storage, which the fake covers.
     errorLog = getExternalFilesDir(null)?.let(::DiskErrorLog) ?: FakeErrorLog(),

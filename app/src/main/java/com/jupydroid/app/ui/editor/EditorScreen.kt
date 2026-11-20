@@ -33,6 +33,7 @@ import com.jupydroid.app.OpenNotebookCells
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
+import com.jupydroid.app.data.fake.FakeWheelIndex
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceWatcher
 import com.jupydroid.app.domain.model.ActiveCellRuns
@@ -50,6 +51,7 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.NotebookRepository
+import com.jupydroid.app.domain.port.WheelIndex
 import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.domain.port.WorkspaceWatcher
@@ -179,6 +181,8 @@ fun EditorScreen(
   notebookBreakpoints: NotebookBreakpoints = remember { NotebookBreakpoints() },
   /** Which of [notebookId]'s opens this screen's tab is - see `DocumentOpening`. */
   opening: Int = 0,
+  /** What PyPI publishes, so a `%pip` miss is explained from its files; see [PipInstallExplanation]. */
+  wheelIndex: WheelIndex = FakeWheelIndex(),
   modifier: Modifier = Modifier,
   viewModel: EditorViewModel = viewModel {
     EditorViewModel(
@@ -200,6 +204,7 @@ fun EditorScreen(
       opening,
       workspaceWatcher,
       workspaceFiles,
+      wheelIndex,
     )
   },
 ) {
