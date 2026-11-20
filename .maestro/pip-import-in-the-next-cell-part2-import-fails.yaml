@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# `import tabulate` in a Space that has never installed anything raises `ModuleNotFoundError`.
+# `tabulate` is deliberately absent from the image (`tools/rootfs/requirements.lock`), and the
+# error's last line is text the cell's own source does not hold.
+#
+# The source prints the module's path as well as importing it, so the cell the demo re-runs after a
+# relaunch says where the import resolved from rather than only that it did not raise.
+#
+# Generous: this is the Space's first kernel, which the first run installs and starts.
+- launchApp:
+    stopApp: false
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
+- inputText: "import tabulate; print(tabulate.__file__)"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*ModuleNotFoundError.*"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 02-the-import-fails-before-any-install

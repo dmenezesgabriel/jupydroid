@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# `%pip` runs the Space's own pip, and `usr/pip.conf` makes every install `--user`, so the package
+# lands under `pkgs/` - the user base `SpaceRuntime.environment` gives the kernel. pip's success
+# line is scoped to the second cell's output, whose source cannot satisfy it.
+#
+# The cell is added with the notebook's footer ("Code" after the last cell), which scrolls the new
+# cell into view (ADR-0162). A cell menu's "Insert code below" did not: with a traceback in the cell
+# above, the new cell stayed under the soft keyboard and was never composed, so the next step could
+# not find it.
+- launchApp:
+    stopApp: false
+- scrollUntilVisible:
+    element:
+      text: "Markdown"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Code"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
+- inputText: "%pip install tabulate"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible:
+      text: ".*Successfully installed tabulate.*"
+      childOf: {text: "Cell output", index: 1}
+    timeout: 300000
+- takeScreenshot: 03-pip-installs-it
