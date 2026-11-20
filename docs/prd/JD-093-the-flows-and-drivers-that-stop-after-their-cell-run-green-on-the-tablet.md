@@ -106,8 +106,16 @@ One commit each, each closed by the driver green on the tablet with its frames l
   Each driver is green on the tablet. Two flows had a second stale step, the shut Recents section
   ([ADR-0121](../adr/0121-the-recents-section-arrives-shut.md)): `session-follows-rename` and
   `renamed-tab-demo-notebook`, whose `Recent actions` step T3 shares the cause of.
-- [ ] T3 — `delete-stops-session-demo-delete` and `-overwrite`: read why `Recent actions` is not found after
-  `Files`, then convert the first-cell tap (93) and the later one (173)
+- [x] T3 — `delete-stops-session-demo-delete` and `-overwrite`: `Recent actions` is drawn only while the
+  Recents section is open (`RecentsSection.kt`, `if (!collapsed)`) and the section arrives shut
+  ([ADR-0121](../adr/0121-the-recents-section-arrives-shut.md)); the frame at the failure shows `Recent` shut and
+  `a.ipynb` listed once. The flow was the stale half, so the three clear-Recents steps are gone, the first-cell
+  tap calls `focus-first-cell.yaml` and the later one is `Code cell` with `index: 1` inline, as in T1. Driver green
+  on the tablet, last frame `42` on `keep.ipynb`'s own kernel.
+- [ ] T9 — the other flows that still tap `Recent actions` with the section shut, found by T3's grep and not run:
+  `delete-stops-session.yaml` (three), `checkpoint-follows-delete`, `explorer-delete-open-document`,
+  `explorer-rename-open-document`, `tab-delete-file`, `tab-duplicate-file`, `tab-duplicate-notebook` and
+  `tab-menu-demo-relaunch`. Each is read before it is edited: a flow that opens the section first is not stale.
 - [ ] T4 — one cell-focus sub-flow that takes an index, from the later cells' bounds read off a dump;
   convert `input-prompt-demo-answers`, `image-formats-demo-cells`, `gfm-markdown-demo-notebook`,
   `rendered-link-demo-output-link` and `text-output-link-demo-error-url` / `-error-path`
