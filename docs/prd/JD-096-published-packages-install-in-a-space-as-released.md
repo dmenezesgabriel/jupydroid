@@ -170,9 +170,14 @@ The decision is T5's; each row names the evidence that settles it.
   `set_robust_list` and `rseq`; `/usr/bin/true` and `/usr/bin/sh -c "echo glibc-ok"` exit 0 with
   no handler and with the glibc one, and the loader's preload constructor runs under the patched
   tracer where the shipped one never let it reach
-- [ ] T3b — a glibc CPython in a Space: it runs under that tracer, `etc/resolv.conf` carries the
+- [x] T3b — a glibc CPython in a Space: it runs under that tracer, `etc/resolv.conf` carries the
   app's nameservers, `%pip install duckdb` picks PyPI's manylinux wheel, and `import duckdb` works;
   then scikit-learn. **The only surviving mechanism after T1 and T2**
+  **Result:** it works - python-build-standalone's CPython 3.12.16 on the Ubuntu base runs under
+  the patched tracer with no preload; resolv.conf carried the app's nameservers and pip reached
+  PyPI; duckdb 2.0.1 and scikit-learn 1.9.1 installed from PyPI's manylinux wheels and imported.
+  The tracer's safe set grew to `mbind` and `set_mempolicy` - OpenBLAS's advisory NUMA calls at
+  init, the first of which the sklearn import measured killing the process
 - [ ] T4 — the whole glibc image measured against the second-interpreter shape: size, extraction
   time, install time, and what it does to Alpine's `apk`, `pip.conf` and `.pth`
 - [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled
