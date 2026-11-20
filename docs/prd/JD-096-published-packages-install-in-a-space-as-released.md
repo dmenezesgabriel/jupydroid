@@ -75,7 +75,7 @@ The decision is T5's; each row names the evidence that settles it.
 | Axis | Options seen | Trade-off | What decides it |
 |---|---|---|---|
 | Where glibc lives | a whole glibc image as the Space's rootfs (Winlator's shape, libc patched); a glibc CPython beside Alpine's musl, used as the kernel; `gcompat`'s glibc ABI over musl | a whole image changes every seam the app has (`apk`, `pip.conf`, the `.pth`, `busybox`, the SIGSYS handler); a second interpreter keeps the system and moves the kernel; `gcompat` keeps both but supplies symbols rather than a libc | T2, T3 and T4's measurements: does each install `duckdb` and import it, at what size, extraction time and install time |
-| How the refusal is tolerated | patch glibc's `set_robust_list` out (Winlator, Termux Pacman); have the **tracer** return `ENOSYS` for it; `gcompat`, where the binary's libc calls go to musl | T1 measured that an `LD_PRELOAD` handler cannot do it: `ld.so` calls the syscall before any preload constructor. Patching the libc is ruled out by the item; the tracer route keeps the libc as released but means shipping a modified proot (GPLv2, source publication); `gcompat` is a different ABI layer entirely | T2 and T4: does either route make a stock glibc CPython install and import `duckdb` |
+| How the refusal is tolerated | patch glibc's `set_robust_list` out (Winlator, Termux Pacman); have the **tracer** return `ENOSYS` for it; `gcompat`, where the binary's libc calls go to musl | T1 measured that an `LD_PRELOAD` handler cannot do it: `ld.so` calls the syscall before any preload constructor. Patching the libc is ruled out by the item; the tracer route keeps the libc as released but means shipping a modified proot (GPLv2, source publication); `gcompat` is a different ABI layer entirely | T2 and T3: does either route make a stock glibc CPython install and import `duckdb` |
 | DNS inside a glibc root | glibc reads `etc/resolv.conf` normally (unlike musl, whose raw `openat` is why ADR-0005's shim exists); the app already knows Android's nameservers through `DnsServerSource` | writing the file is a mechanism glibc supports; a shim would be a second implementation of the same thing | T2, if a glibc root cannot reach PyPI |
 | The SIGSYS handler | one build per libc; one libc-agnostic build with raw syscalls | per-libc is two artifacts and a choice at launch; libc-agnostic is a rewrite of a file that already works. T1 measured that neither can arm a glibc `ld.so` | T6, if a glibc path survives at all |
 | JD-078's explanation | keep it for packages with no wheel on either platform; remove it when a glibc environment makes the case disappear | the note is true today and would be false in a glibc Space for manylinux-only packages | T5; a package with no wheel anywhere still needs it |
@@ -87,7 +87,7 @@ The decision is T5's; each row names the evidence that settles it.
 | a package with a musllinux aarch64 wheel installs and imports | works (`ADR-0011`, `ADR-0164`; pandas measured) | none |
 | a package with only a manylinux wheel | pip says "No matching distribution found"; JD-078's note explains it from PyPI's release files (`ADR-0165`) | the package is not installed; the note is the outcome |
 | how many packages are in that case | 39 of the 1000 most downloaded, none of the first 100 | the item exists because 39 is not a corner |
-| a glibc process under the shipped runtime | T1 measured it on 2026-11-20: it cannot start, because `ld.so`'s own `set_robust_list` is refused before any preload constructor runs | the `LD_PRELOAD` route is closed; T2 and T4 measure the tracer and `gcompat` routes |
+| a glibc process under the shipped runtime | T1 measured it on 2026-11-20: it cannot start, because `ld.so`'s own `set_robust_list` is refused before any preload constructor runs | the `LD_PRELOAD` route is closed; T2 and T3 measure the `gcompat` and tracer routes |
 
 ## Deviations
 
@@ -98,7 +98,7 @@ The decision is T5's; each row names the evidence that settles it.
 
 ## Open decisions
 
-1. **Whole glibc image or a second libc** — T2 and T3 measure both; T5 records the choice as an ADR.
+1. **Whole glibc image or a second libc** — T3 and T4 measure both; T5 records the choice as an ADR.
    T1 has narrowed *how* either can work: the refusal is in `ld.so`, before any preload, so the
    handler cannot tolerate it. The two surviving shapes are a tracer that returns `ENOSYS` for
    `set_robust_list` (proot rebuilt from source) and `gcompat`'s musl-backed ABI; a libc patch is
@@ -136,13 +136,14 @@ The decision is T5's; each row names the evidence that settles it.
   `/usr/bin/true` and `sh -c` in the app process, in three arms (no handler, glibc handler, shipped
   musl handler), and the refusals are recorded. **Result:** it cannot start — `ld.so` issues
   `set_robust_list` before any preload constructor, so the handler is never armed
-- [ ] T2 — a glibc Python installs a manylinux wheel: `duckdb` and `scikit-learn` installed and
+- [ ] T2 — `gcompat` measured: a musl Python loading a manylinux extension through Alpine's glibc
+  ABI shim, which avoids glibc's `ld.so` altogether. T1 made this the cheapest survivor to measure:
+  it needs no rebuilt tracer
+- [ ] T3 — a glibc Python installs a manylinux wheel: `duckdb` and `scikit-learn` installed and
   imported under a glibc interpreter whose `set_robust_list` the tracer returns `ENOSYS` for,
   including what DNS a glibc process needs
-- [ ] T3 — the second candidate measured: a glibc CPython beside Alpine's musl, against the whole
-  glibc image T2 measured
-- [ ] T4 — `gcompat` measured: a musl Python loading a manylinux extension through Alpine's glibc
-  ABI shim, which avoids glibc's `ld.so` altogether
+- [ ] T4 — the whole glibc image measured against the second-interpreter shape: size, extraction
+  time, install time, and what it does to Alpine's `apk`, `pip.conf` and `.pth`
 - [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled
 - [ ] T6 — the chosen mechanism implemented red → green, including the tracer change (if that is
   the choice) and the rootfs build
