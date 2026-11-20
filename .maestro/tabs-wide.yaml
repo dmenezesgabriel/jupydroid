@@ -101,7 +101,12 @@ appId: com.jupydroid.app
 # ---- rename is the tab's own act (`docmanager:rename` on the title node) ----
 # A long press is a touch screen's right-click, and the tab node is what the reference binds the
 # command to - the dialog is the shared RenameFileDialog, the move is `context.rename`'s.
+# The long press opens the tab's menu (`MainAreaTab.kt`), and Rename… in it opens the dialog.
 - longPressOn: "Tab: tabs-first.ipynb"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000

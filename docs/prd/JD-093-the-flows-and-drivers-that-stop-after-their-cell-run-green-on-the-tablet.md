@@ -99,9 +99,13 @@ One commit each, each closed by the driver green on the tablet with its frames l
   though the section arrives shut ([ADR-0121](../adr/0121-the-recents-section-arrives-shut.md)), and the
   rename driver's `tree` skipped only top-level dotfiles, so a moved `g/.ipynb_checkpoints` failed its disk
   check. T3's `Recent actions` step has the same cause as the first two.
-- [ ] T8 — the flows that long-press a tab and wait for `Rename file` with no menu step, found by T2 and not
-  edited: `renamed-tab`, `renamed-tab-demo-file`, `recreated-path-rename`, `rotation-tab-strip-before`,
-  `session-follows-rename`, `tab-rename-refusal`; each read in a grep, none run on the tablet yet
+- [x] T8 — the flows that long-press a tab and wait for `Rename file` with no menu step, found by T2:
+  `renamed-tab`, `renamed-tab-demo-file`, `recreated-path-rename`, `rotation-tab-strip-before`,
+  `session-follows-rename`, `tab-rename-refusal`, and the four a wider grep found, `tab-rename-refusal-demo`
+  (two presses), `rotation-demo-rename`, `tabs-wide` and `tabs-narrow` (run on the tablet in portrait, 800dp).
+  Each driver is green on the tablet. Two flows had a second stale step, the shut Recents section
+  ([ADR-0121](../adr/0121-the-recents-section-arrives-shut.md)): `session-follows-rename` and
+  `renamed-tab-demo-notebook`, whose `Recent actions` step T3 shares the cause of.
 - [ ] T3 — `delete-stops-session-demo-delete` and `-overwrite`: read why `Recent actions` is not found after
   `Files`, then convert the first-cell tap (93) and the later one (173)
 - [ ] T4 — one cell-focus sub-flow that takes an index, from the later cells' bounds read off a dump;

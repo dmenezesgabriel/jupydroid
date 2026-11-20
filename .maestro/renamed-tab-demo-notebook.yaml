@@ -13,13 +13,8 @@ appId: com.jupydroid.app
 - tapOn: "Tab: Terminal .*"
 - waitForAnimationToEnd:
     timeout: 5000
-# Recents lists what was opened beside the listing's row, and only the listing's row has a menu
-# (.maestro/explorer-rename-open-document.yaml), so the section is emptied to leave one match.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
+# The Recents section arrives shut (ADR-0121), so the opened notebook is listed once and the row's
+# menu is the only one on screen.
 - longPressOn: "${MAESTRO_NOTEBOOK}"
 # Delete is on the row's menu and not in the tab's dialog: the press reached the explorer's row.
 - extendedWaitUntil:
