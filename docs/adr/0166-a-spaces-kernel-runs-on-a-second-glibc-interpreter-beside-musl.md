@@ -24,13 +24,22 @@ tracer and false of a patched one:
 - Both candidate shapes were then built and measured in private roots: the whole glibc image
   (Ubuntu base + CPython) and a second interpreter beside the shipped Alpine rootfs.
 
-Two mechanisms already exist for the refusal itself, and their boundary is the whole design.
+Two mechanisms exist for the refusal itself, and their boundary is the whole design.
 `tools/rootfs/sigsys_report.c` is `LD_PRELOAD`ed onto every Space process: on a `SIGSYS` stop it
 logs the refused syscall and returns, and the kernel then gives the call `-ENOSYS` — for **every**
 trapped syscall, with no table, forever. What it cannot cover is the window before its constructor
 arms: `ld.so`'s own startup. That window is fixed — it is the loader's prologue, identical for
-every process of a given libc, and no package's code ever runs inside it. Everything after it is
-the handler's, package-agnostic by construction.
+every process of a given libc, and no package's code ever runs inside it.
+
+Whether the handler path itself survives delivery is libc-dependent, and that was measured, not
+assumed. On musl it does: the shipped image's threaded numpy matmul passes under the patched
+tracer with `mbind` logged to `tmp/sigsys.log`. On glibc it does not: delivering the `SIGSYS`
+through the handler and back out of `rt_sigreturn` kills glibc's threaded paths — OpenBLAS's
+`mbind` storm took the whole thread group down with signal 31 on the tablet, while the same
+workload with every seccomp `SIGSYS` suppressed at the tracer (the kernel's `ENOSYS` left
+standing, nothing delivered) exits 0. The death is the delivery round trip, not the refusal:
+`ENOSYS` is what the guest needed all along, and the tracer can leave it standing without a
+signal ever reaching the guest.
 
 The measured probes grew the tracer's skip-set per discovered failure — `set_robust_list`, `rseq`,
 then OpenBLAS's `mbind`/`set_mempolicy` — which is patch accumulation: each addition is a shim
@@ -49,9 +58,10 @@ GPLv2's corresponding-source obligation attaches to the modification.
   `jupydroid_usersite.pth`, the musl `python3`, the jupyterlab stack — which only the
   second-interpreter shape measured intact.
 - The kernel must import PyPI's wheels as released; nothing per-package, nothing rebuilt.
-- No patch accumulation: the refusal is answered by the mechanism that needs no table — the
-  in-process handler for everything after startup, the tracer only for the loader's fixed
-  prologue, derived once and whole rather than grown per failure.
+- No patch accumulation: the refusal is answered by the mechanism that needs no table —
+  `ENOSYS`-only at the tracer for the libc whose signal path cannot survive delivery, the
+  in-process handler for the one that can, each derived once and whole rather than grown
+  per failure.
 - The licence obligation is met by the mechanism the APK already has, independent of whether this
   repository is ever published.
 
@@ -64,6 +74,7 @@ GPLv2's corresponding-source obligation attaches to the modification.
 | `gcompat`, a patched glibc, or rebuilding packages against bionic | — | Measured closed (the first two) or forbidden by the item (the third) |
 | Tracer skip-set grown per measured syscall | smallest patch today | Accumulates one case per discovered failure — the pattern this decision forbids |
 | Tracer skip-set = AOSP's whole refused-syscall list | derived once, whole | A hardcoded table that still bypasses the handler's reporting everywhere; the filter already is the enumeration — every `SIGSYS` stop *is* a refused syscall |
+| Deliver `SIGSYS` to a glibc guest handler | keeps `sigsys.log` reporting for glibc | Measured fatal: the delivery + `rt_sigreturn` round trip kills glibc's threaded paths — OpenBLAS's `mbind` storm terminated the thread group with signal 31 and no ptrace stop, while suppressing every seccomp `SIGSYS` at the tracer let the same `import sklearn` exit 0 |
 
 ## Decision
 
@@ -74,26 +85,31 @@ kernel↔server protocol is libc-agnostic. [ADR-0003](0003-musl-not-glibc-and-ar
 is not superseded: musl remains the userland and arm64 remains the only shipped ABI — glibc
 appears only as a second interpreter for the workload musl cannot carry.
 
-The refusal is answered once, whole, in two places that cannot overlap:
+The refusal is answered once, whole, split by libc because delivery was measured libc-dependent:
 
-- **The tracer covers only the loader's prologue.** The patched proot skips signal delivery —
-  leaving the kernel's `ENOSYS` — for the syscalls `ld.so` issues before any constructor can arm,
-  a set derived once, whole, from a single complete trace of glibc startup under the app's filter
-  (`set_robust_list` and `rseq` on the pinned image), never grown per package: package code cannot
-  run in that window. `mbind` and `set_mempolicy` leave the set — they were discovered
-  post-startup, where the handler already answers, and keeping them was the accumulation this
-  decision forbids.
-- **The handler covers everything after it.** Every glibc Space process preloads a glibc-built
-  `sigsys_report.so`, so each refused syscall — whatever package raised it, whenever — is logged
-  to `tmp/sigsys.log` and returns `ENOSYS`. One build per libc, because the musl build cannot load
-  under glibc and vice versa; musl keeps its own unchanged.
+- **Glibc processes get `ENOSYS`-only, at the tracer, for every seccomp `SIGSYS`.** The launcher
+  sets `PROOT_SIGSYS_ENOSYS` on the glibc interpreter's environment, and the patched proot then
+  suppresses every seccomp-generated `SIGSYS` stop — leaving the kernel's `ENOSYS` standing and
+  delivering nothing to the guest. This covers the loader's prologue and every post-startup
+  refusal with one rule that needs no table and cannot grow per package. It is gated on
+  `si_code == SYS_SECCOMP`, so a genuine `SIGSYS` signal still delivers. No handler, no preload,
+  no `sigsys.log` for glibc — the signal path was measured fatal under threads, so the reporting
+  it bought is the price not paid.
+- **Musl processes keep the handler path unchanged.** Without the env var the patched proot
+  delivers `SIGSYS` as stock proot does — except the loader's prologue set (`set_robust_list`,
+  `rseq`, derived once, whole, from a single complete trace of glibc startup under the app's
+  filter; musl's loader does not issue them, so the set is inert there), which it suppresses so
+  no pre-constructor refusal can kill a process before `sigsys_report.so` arms. Everything after
+  that reaches musl's `LD_PRELOAD`ed handler, which logs to `tmp/sigsys.log` and returns
+  `ENOSYS` — the mechanism every Space process runs today, regression-tested on the tablet.
 
 The rest of the shape's consequences are forced by the measurement:
 
-- **The patched proot ships for every Space process.** Its prologue set only widens SIGSYS
-  tolerance for syscalls that were fatal before; musl never depended on them being delivered. The
-  build lives in `tools/proot/` — upstream `proot` v5.4.0, Alpine's six aports patches, and this
-  project's `seccomp-sigsys-enosys.patch`, musl-static so it still runs from `nativeLibraryDir`.
+- **The patched proot ships for every Space process.** Its two additions only change what a
+  seccomp `SIGSYS` stop does — suppress it wholesale under `PROOT_SIGSYS_ENOSYS`, or skip the
+  loader's prologue set — and neither alters musl's delivered path. The build lives in
+  `tools/proot/` — upstream `proot` v5.4.0, Alpine's six aports patches, and this project's
+  `seccomp-sigsys-enosys.patch`, musl-static so it still runs from `nativeLibraryDir`.
 - **Its corresponding source ships inside the APK.** The `tools/proot/` tree — the pinned upstream
   tarball, the patch set, the Dockerfile and `build.sh` — is copied into the APK's licence assets
   beside `SOURCE_OFFER.md`, whose `proot` section names the modification and the reconstruction
@@ -106,8 +122,9 @@ The rest of the shape's consequences are forced by the measurement:
   the musl side keeps `/pkgs` unchanged.
 - **Glibc processes get a split environment.** The Space's musl `LD_PRELOAD` must not reach them —
   the shims and `libc.musl` load into the glibc process (measured: the raw banner survives, exit
-  0, but the wrong libc is inside). They run with it cleared and with only the glibc handler
-  preloaded.
+  0, but the wrong libc is inside). They run with it cleared, with no `sigsys_report.so` —
+  delivery is fatal there — and with `PROOT_SIGSYS_ENOSYS=1` so the tracer answers every refused
+  syscall with the kernel's standing `ENOSYS`.
 - **DNS needs no shim for glibc.** glibc's resolver reads `etc/resolv.conf`; the Space writes the
   app's nameservers there at install, which is what the probe measured reaching PyPI.
 - **The platform explanation stays, widened.** A package with no wheel compatible with either
@@ -123,9 +140,11 @@ glibc tree (measured 33–55 s) unless the image bakes it; that choice is implem
 architecture.
 
 What this forbids: patching glibc or any wheel, a second package registry, sharing one install
-directory between the interpreters, letting the musl preload reach a glibc process, and growing
-the tracer's set per discovered failure — the next refused syscall a package surfaces is the
-handler's to answer, which it already does for every package musl runs today. The thing a future
+directory between the interpreters, letting the musl preload reach a glibc process, growing
+the tracer's set per discovered failure, and delivering `SIGSYS` into a glibc process — the
+next refused syscall a package surfaces is answered whole by the mechanism its libc got:
+`ENOSYS` standing at the tracer for glibc, the handler musl already runs for every package
+today. The thing a future
 reader will be tempted to "fix" is the doubled interpreter — collapsing to the whole image would
 look smaller until every Alpine seam had to be rebuilt on Ubuntu, which is the cost this decision
 declined to pay.
