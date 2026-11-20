@@ -73,6 +73,23 @@ grep -c 'ships instead' out.txt                          # 71: the latest releas
 
 The dataset moves monthly and PyPI daily, so the numbers carry their date.
 
+### On the tablet (2026-11-20)
+
+SM-X216B, base extracted from image stamp `22`, each run a fresh notebook in base with one cell.
+
+| Question | Answer |
+|---|---|
+| `%pip install duckdb`, pip's text verbatim | `ERROR: Could not find a version that satisfies the requirement duckdb (from versions: none)`, then `ERROR: No matching distribution found for duckdb`; 6.0 s |
+| the same, scikit-learn | the identical two lines naming `scikit-learn`; 6.3 s |
+| the same, a name that exists nowhere (`duckdbzz`) | the identical two lines naming `duckdbzz`; 5.6 s — **pip's text cannot tell a typo from a package this platform cannot have**, which is why an explanation must be checked against PyPI rather than read off pip |
+| which stream it arrives on | the kernel's **`stdout`**, one folded `CellOutput.Stream(STDOUT, …)` — `%pip` runs `shell.system("python -m pip …")` (`IPython/core/magics/packaging.py`, `PackagingMagics.pip`), so pip writes to the kernel's own fds and the app receives it as the cell's output |
+| what else the text carries | pip's own ANSI colour, `\x1b[31m` … `\x1b[0m` around each ERROR line; the editor already draws it red and strips the escapes from the drawn text |
+| what a failed install writes into the Space | nothing: `pkgs/lib/python3.12/site-packages` held only `tabulate` from the JD-077 demo after all three runs |
+| the message as the app folds it | one output node holding both ERROR lines and IPython's "Note: you may need to restart the kernel…" |
+
+Reproduce with `scripts/pip-platform-message-driver.sh` on the tablet: it records each part's screenshot,
+UI dump and the saved notebook's own outputs, which stay local ([ADR-0132](../adr/0132-evidence-is-local-and-reproduction-is-a-tested-script.md)).
+
 ## Trade-offs and what we adopt
 
 | Axis | Options seen | Trade-off | Our choice, and why |
@@ -93,10 +110,15 @@ None yet.
 
 ## Open decisions
 
-1. Which of A, B and C, or A for duckdb and B for scikit-learn. The evidence above lets A be chosen without a
-   device; B and C need an APK-size and build-time number first.
-2. Where an explanation is produced: in the rootfs (a wrapper around pip's error) or in the app (reading the
-   cell's stderr). `docs/architecture/building-blocks.md` says which side owns a kernel's text; read it at T3.
+1. **A, explain — decided, recorded as an ADR at T3.** The counts settle it without a device: 71 of the 1000
+   most downloaded are in the same case, and bundling scikit-learn (B) leaves the other 70 standing; C needs a
+   C toolchain the image deliberately lacks and hours of build for duckdb. A costs no bytes and is true for
+   every package in the case.
+2. **App-side, checked against PyPI — decided, recorded as an ADR at T3.** Measured on the tablet: the text
+   arrives on the cell's `stdout` stream, so the app already holds it, and the rootfs has no seam between pip
+   and the cell (`IPython/core/magics/packaging.py`, `PackagingMagics.pip` → `shell.system`). The claim cannot
+   be read off pip, whose message for a typo is identical, so it is checked against PyPI's own release files
+   and said only when they confirm it.
 
 ## Surface
 
@@ -106,13 +128,11 @@ Decided at T3.
 
 - [x] T1 — `scripts/read_wheel_platforms.py` reproduces the PyPI count per package from a command, with a test
 - [x] T2a — the other popular packages in the same case, counted over the 1000 most downloaded with the T1 script
-- [ ] T2b — pip's own message on the tablet. **Blocked until the tablet is attached to the host:** `adb devices`
-  and `adb mdns services` listed no device on 2026-11-19, and `dev36` has no rootfs, so `%pip` cannot run there
-- [ ] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green. **Waits behind T2b:** the
-  explanation hangs off the text pip prints on the device, and open decision 2 (where it is produced) depends
-  on that text. The evidence above already supports A, so T2b narrows the wording and the place, not the option
-- [ ] T4 — the demo on the tablet; backlog row shipped; `GAP-196` closed; this file deleted. **Blocked** on the
-  tablet like T2b
+- [x] T2b — pip's own message on the tablet: the same two lines for a package the platform cannot have and for
+  a name that exists nowhere, on the cell's `stdout`, measured 2026-11-20
+- [ ] T3 — the option chosen on T1 and T2, as an ADR, then implemented red → green. The wording and the place
+  are pinned by the 2026-11-20 measurement; open decision 2 names where the explanation is produced
+- [ ] T4 — the demo on the tablet; backlog row shipped; `GAP-196` closed; this file deleted
 
 ## Out of scope
 

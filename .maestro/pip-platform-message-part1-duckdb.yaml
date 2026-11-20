@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# `%pip install duckdb` in a fresh notebook in base: one of the two packages `GAP-196` names, and a
+# release that ships manylinux wheels only. What pip prints is the measurement; this flow asserts
+# only that pip returned (see `pip-platform-message-body.yaml`).
+#
+# TABLET ONLY (SM-X216B): on x86_64 the app falls back to `FakeKernelGateway`.
+- runFlow:
+    file: pip-platform-message-body.yaml
+    env:
+      PACKAGE: duckdb
+- takeScreenshot: 01-duckdb-pip-returns

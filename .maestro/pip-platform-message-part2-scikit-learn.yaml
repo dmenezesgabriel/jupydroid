@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# `%pip install scikit-learn`: the other package `GAP-196` names, and the one Alpine's own repository
+# carries (`py3-scikit-learn` in `community`), so the two cases it could be told apart by are both
+# measured here.
+#
+# TABLET ONLY (SM-X216B): on x86_64 the app falls back to `FakeKernelGateway`.
+- runFlow:
+    file: pip-platform-message-body.yaml
+    env:
+      PACKAGE: scikit-learn
+- takeScreenshot: 01-scikit-learn-pip-returns
