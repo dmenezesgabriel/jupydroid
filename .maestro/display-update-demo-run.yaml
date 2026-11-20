@@ -30,7 +30,10 @@ appId: com.jupydroid.app
 # All three cells are typed before any runs. The first is focused by its field's name; the second and
 # third are inserted below an unrun cell and still tapped at a point, which misses their fields on
 # SM-X216B's 1920x1200 (ADR-0143 names the field; the later cells wait on the repair that converts them).
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "h = display(\"frame 0\", display_id=True)"
 - hideKeyboard
 - tapOn:

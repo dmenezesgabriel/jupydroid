@@ -32,7 +32,10 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 # Bracket-free source, so the editor's auto-closing cannot change what is typed.
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "import sys; sys.prefix"
 - hideKeyboard
 - tapOn:

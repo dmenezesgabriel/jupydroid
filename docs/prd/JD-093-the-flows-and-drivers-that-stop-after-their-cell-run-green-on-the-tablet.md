@@ -35,7 +35,7 @@ adopted; no reference is opened again here.
 
 | Concern | Files |
 |---|---|
-| the first-cell sub-flow | `.maestro/focus-first-cell.yaml` (`index: 0`, the node named `Code cell`, `EditorCell.kt` `CODE_CELL_NAME`) |
+| the cell-focus sub-flow | `.maestro/focus-cell.yaml` (`CELL_INDEX`, the node named `Code cell`, `EditorCell.kt` `CODE_CELL_NAME`) |
 | three first-cell taps left | `.maestro/chat-markdown-insert.yaml:37`, `.maestro/chat-markdown-copy.yaml:42` (a `longPressOn`), `.maestro/delete-stops-session-demo-delete.yaml:93` |
 | `Recent actions` step | `.maestro/delete-stops-session-demo-delete.yaml`, `.maestro/delete-stops-session-demo-overwrite.yaml`, `scripts/delete-stops-session-demo-driver.sh` |
 | tab reload expects stale text | `.maestro/tab-reload-demo.yaml`, `scripts/tab-reload-demo-driver.sh`, `app/src/main/java/com/jupydroid/app/ui/shell/ActiveTabReload.kt` |
@@ -47,7 +47,7 @@ adopted; no reference is opened again here.
 
 | Axis | Options | Trade-off | Choice |
 |---|---|---|---|
-| a later cell's field | a second sub-flow per cell · one sub-flow that takes the cell's index | a copy per case drifts as the pixels did; one sub-flow holds the name and the wait once | one sub-flow taking `index`, replacing `focus-first-cell.yaml` rather than sitting beside it, decided in the task that reads the later cells' bounds |
+| a later cell's field | a second sub-flow per cell · one sub-flow that takes the cell's index | a copy per case drifts as the pixels did; one sub-flow holds the name and the wait once | one sub-flow taking `index`, replacing `focus-first-cell.yaml` (now `focus-cell.yaml`) rather than sitting beside it, decided in the task that reads the later cells' bounds |
 | a flow whose step the app changed | revert the app · correct the flow | a changed tab menu is a decision already shipped; the flow is the stale half | read each frame, then decide per step; the app is repaired only for a `defect`, red test first |
 
 ## Gap analysis
@@ -129,9 +129,17 @@ One commit each, each closed by the driver green on the tablet with its frames l
   `-copy` (T7) need. The regression test is `scripts/reset_notebooks_script_test.py`, which runs the real
   function against a fake `adb`. `checkpoint-follows-file-driver.sh`, run alone on the tablet after
   `checkpoint-demo-driver.sh` had left its folder, exits 1 at part 2 with the old reset and 0 with the new one.
-- [ ] T4 — one cell-focus sub-flow that takes an index, from the later cells' bounds read off a dump;
-  convert `input-prompt-demo-answers`, `image-formats-demo-cells`, `gfm-markdown-demo-notebook`,
-  `rendered-link-demo-output-link` and `text-output-link-demo-error-url` / `-error-path`
+- [x] T4 — one cell-focus sub-flow that takes an index: `focus-first-cell.yaml` is now `focus-cell.yaml`, which
+  takes `CELL_INDEX` among the code cells (a markdown cell has no `Code cell` node, so `gfm-markdown` and
+  `rendered-link` take `0` for the cell below it). Converted: `input-prompt-demo-answers` (1, 2),
+  `image-formats-demo-cells` (2, 1, 0), `gfm-markdown-demo-notebook`, `rendered-link-demo-output-link`,
+  `text-output-link-demo-error-url` (1) and `-error-path` (2), plus `tab-reload-demo`'s inline `index: 1`.
+  The first run was red in a way that read as the flow's fault and was the sub-flow's: a header default
+  `CELL_INDEX: 0` is defined after the caller's `env` and wins, so every call focused the first cell and the later
+  cells' text landed in it (`image-formats` showed all three cells' source in cell 1). Every caller now passes the
+  index, `0` included. The six drivers (`gfm-markdown`, `input-prompt`, `image-formats`, `rendered-link`,
+  `text-output-link`, `tab-reload`) are green on the tablet; `text-output-link-demo-driver.sh` passed its back-from-Chrome
+  step this time, which T6 reads before it changes anything.
 - [ ] T5 — `display-update-demo-run`, `output-caps-demo-run`, `ansi-colour-demo-dark` and their drivers
 - [ ] T6 — `text-output-link-demo-driver.sh` part 2: read Chrome's back stack after BACK, then fix
   `back_to_app`

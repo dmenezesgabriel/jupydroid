@@ -31,7 +31,13 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-- runFlow: focus-first-cell.yaml
+- runFlow:
+
+    file: focus-cell.yaml
+
+    env:
+
+      CELL_INDEX: 0
 - runFlow: progress-bar-demo-type-source.yaml
 - hideKeyboard
 - tapOn: "Run cell"

@@ -63,7 +63,10 @@ appId: com.jupydroid.app
     timeout: 30000
 # A notebook in a folder draws its crumbs above the cell, so the field sits lower than at the root;
 # the cell is focused by its name, which no layout above it moves (ADR-0155).
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "print(6 * 9)"
 - hideKeyboard
 - tapOn: "Run cell"

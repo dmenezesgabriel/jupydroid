@@ -28,7 +28,13 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-- runFlow: focus-first-cell.yaml
+- runFlow:
+
+    file: focus-cell.yaml
+
+    env:
+
+      CELL_INDEX: 0
 - inputText: "from IPython.display import Markdown, display; display(Markdown(\"# Heading\\n**bold** and `code`\\n- item\")); print(6*7)"
 - hideKeyboard
 # The source as the field holds it, before anything runs: the string carries quotes, backticks and

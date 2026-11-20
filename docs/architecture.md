@@ -2292,7 +2292,7 @@ lands on nothing. The flow then types into no field, `hideKeyboard` sends BACK w
 notebook's tab closes and the Launcher is what is left; the flow reports "Run cell" not found, which reads as
 a regression in the app and is not one: tapped by hand at the field's real position, the same cell ran on the
 kernel and printed `42`. What is not known: which commit moved the field. `JD-089` replaced 20 of the 23 taps
-with a tap on the field's name (`.maestro/focus-first-cell.yaml`, ADR-0155), each run on the tablet. **Three
+with a tap on the field's name (`.maestro/focus-cell.yaml`, ADR-0155), each run on the tablet. **Three
 taps are left and this gap stays open for them:** `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42`
 (a `longPressOn`) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows need opencode, which base
 on the tablet does not have, installed and signed in by the user; the delete flow's tap is behind `GAP-208`'s

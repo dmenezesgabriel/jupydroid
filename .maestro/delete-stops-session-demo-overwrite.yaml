@@ -25,7 +25,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -89,7 +92,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -111,7 +117,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"

@@ -64,7 +64,10 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-notes-txt-reads-before-and-a-is-open
 
 # ---- a cell rewrites notes.txt; its tab is stale until the tap ----
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "open('notes.txt', 'w').write('after')"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -154,17 +157,10 @@ appId: com.jupydroid.app
 - tapOn: "Insert code below"
 - waitForAnimationToEnd:
     timeout: 3000
-# The inserted cell is the second `Code cell` node; a pixel moved with every layout change above it.
-- extendedWaitUntil:
-    visible:
-      text: "Code cell"
-      index: 1
-    timeout: 5000
-- tapOn:
-    text: "Code cell"
-    index: 1
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
 - inputText: "import json; nb = json.load(open('b.ipynb')); nb['cells'].append(dict(id='added', cell_type='code', metadata={}, outputs=[], execution_count=None, source='reloaded_' + str(6 * 7))); json.dump(nb, open('b.ipynb', 'w')); print('wrote_' + str(6 * 7))"
 - hideKeyboard
 - tapOn:

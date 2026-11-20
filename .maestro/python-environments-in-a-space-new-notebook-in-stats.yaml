@@ -33,7 +33,10 @@ appId: com.jupydroid.app
     timeout: 30000
 # The typed source survives auto-closing brackets verbatim: `stepOverPartner` walks past each
 # auto-inserted `)` and `'` (`ui/editor/PythonTypingRules.kt`).
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "import sys, tabulate; print(len(sys.prefix.split('/')))"
 - hideKeyboard
 - tapOn:

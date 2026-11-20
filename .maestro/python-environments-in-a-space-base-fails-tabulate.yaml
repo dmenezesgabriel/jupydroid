@@ -39,7 +39,10 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 # Same verbatim cell as part 9 (`PythonTypingRules.stepOverPartner`).
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "import sys, tabulate; print(len(sys.prefix.split('/')))"
 - hideKeyboard
 - tapOn:

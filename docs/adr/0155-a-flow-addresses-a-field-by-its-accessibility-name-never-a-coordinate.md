@@ -40,11 +40,13 @@ equivalent to a locator.
 
 ## Decision
 
-A flow taps the first cell by the name its field carries, never by a coordinate. `.maestro/focus-first-cell.yaml` holds
-the name and the wait for it, once, and every flow that types into a fresh notebook's first cell calls it with
-`runFlow`.
+A flow taps a code cell by the name its field carries, never by a coordinate. `.maestro/focus-cell.yaml` holds
+the name and the wait for it, once, and every flow that types into a notebook's cell calls it with `runFlow` and
+`env: CELL_INDEX`, counted from 0 among the code cells (a markdown cell has no such field).
 
-It takes `index: 0`, because a notebook with several cells holds several nodes of that name. It needs no anchoring:
+It takes the index, because a notebook with several cells holds several nodes of that name. Every caller passes
+it, `0` included: a default in the sub-flow's header is defined after the caller's `env` and wins, so every call
+focused the first cell. It needs no anchoring:
 Maestro's text selectors are full-string regexes (`docs/architecture/cross-cutting.md` §8.6), so `Code cell` cannot
 match a longer name. A flow that long-presses the cell, as the paste flow does, takes `longPressOn` by the same name
 inline, because the sub-flow only taps.

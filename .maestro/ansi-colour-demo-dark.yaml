@@ -30,7 +30,10 @@ appId: com.jupydroid.app
     timeout: 30000
 
 # Cell 1, the print.
-- runFlow: focus-first-cell.yaml
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - runFlow: ansi-colour-demo-type-print.yaml
 - hideKeyboard
 - tapOn:
