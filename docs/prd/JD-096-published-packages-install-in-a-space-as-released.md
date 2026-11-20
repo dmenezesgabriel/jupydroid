@@ -67,6 +67,8 @@ with the command in JD-078's history and carry their date.
 | the same C file built against glibc | with `-DSYS_SECCOMP=1` (glibc lacks the macro, musl defines it), `gcc-aarch64-linux-gnu` in `debian:bookworm-slim@sha256:734a72b3…` produces a 70,016 B aarch64 `.so` with `NEEDED libc.so.6` |
 | the probe rootfs | `ubuntu-base-24.04.4-base-arm64.tar.gz`, 29,870,567 B, sha256 `04207713…` (Ubuntu's `SHA256SUMS`), glibc 2.39, has `usr/bin/true`, `usr/bin/sh`, `usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1`, no `python3` |
 | **T1 — stock glibc under the shipped runtime** (2026-11-20, SM-X216B) | **it does not start, and a preload cannot save it.** With no handler `/usr/bin/true` dies of SIGSYS; with a glibc-built handler preloaded it still dies, because `ld.so` issues `set_robust_list` **before any preload constructor runs**. proot's own trace names the sequence: `set_robust_list` → `signal 31` → `terminated with signal 31`, while `LD_DEBUG=libs` never reaches `calling init`; the glibc handler's log is never opened. The shipped musl handler cannot even load (`libc.musl-aarch64.so.1`), exiting 127 |
+| **T2 — `gcompat` with the Space's musl CPython** (2026-11-20, SM-X216B) | **it cannot carry the wheels.** `apk add gcompat` lands `libgcompat.so.0` and its symlinks (apk's own database write fails with `EACCES` in a private root; the files are what the import needs). The Space's `python3` has `EXT_SUFFIX=.cpython-312-aarch64-linux-musl.so`, so: `duckdb`'s tag-less `_duckdb.abi3.so` is loaded and fails relocating `__res_init` (`gcompat` has no such symbol); `scikit-learn`'s `cp312` extensions are named `.cpython-312-aarch64-linux-gnu.so` and Python never looks for them. `joblib` and `threadpoolctl` install normally as `py3` wheels |
+| gcompat 1.1.0-r4's surface | `libc.so.6`, `libm.so.6`, `libpthread.so.0`, `librt.so.1`, `libcrypt.so.1` and `libresolv.so.2` are symlinks to `libgcompat.so.0`; there is no `libdl.so.2` and no `__res_init` |
 
 ## Trade-offs and what we adopt
 
@@ -74,9 +76,9 @@ The decision is T5's; each row names the evidence that settles it.
 
 | Axis | Options seen | Trade-off | What decides it |
 |---|---|---|---|
-| Where glibc lives | a whole glibc image as the Space's rootfs (Winlator's shape, libc patched); a glibc CPython beside Alpine's musl, used as the kernel; `gcompat`'s glibc ABI over musl | a whole image changes every seam the app has (`apk`, `pip.conf`, the `.pth`, `busybox`, the SIGSYS handler); a second interpreter keeps the system and moves the kernel; `gcompat` keeps both but supplies symbols rather than a libc | T2, T3 and T4's measurements: does each install `duckdb` and import it, at what size, extraction time and install time |
-| How the refusal is tolerated | patch glibc's `set_robust_list` out (Winlator, Termux Pacman); have the **tracer** return `ENOSYS` for it; `gcompat`, where the binary's libc calls go to musl | T1 measured that an `LD_PRELOAD` handler cannot do it: `ld.so` calls the syscall before any preload constructor. Patching the libc is ruled out by the item; the tracer route keeps the libc as released but means shipping a modified proot (GPLv2, source publication); `gcompat` is a different ABI layer entirely | T2 and T3: does either route make a stock glibc CPython install and import `duckdb` |
-| DNS inside a glibc root | glibc reads `etc/resolv.conf` normally (unlike musl, whose raw `openat` is why ADR-0005's shim exists); the app already knows Android's nameservers through `DnsServerSource` | writing the file is a mechanism glibc supports; a shim would be a second implementation of the same thing | T2, if a glibc root cannot reach PyPI |
+| Where glibc lives | a whole glibc image as the Space's rootfs (Winlator's shape, libc patched); a glibc CPython beside Alpine's musl, used as the kernel | a whole image changes every seam the app has (`apk`, `pip.conf`, the `.pth`, `busybox`, the SIGSYS handler); a second interpreter keeps the system and moves the kernel | T3 and T4's measurements: does either install `duckdb` and import it, at what size, extraction time and install time |
+| How the refusal is tolerated | patch glibc's `set_robust_list` out (Winlator, Termux Pacman); have the **tracer** return `ENOSYS` for it; `gcompat`'s glibc ABI over musl | T1 measured that an `LD_PRELOAD` handler cannot arm `ld.so`; T2 measured that `gcompat` cannot carry the wheels (no `__res_init`, and the `-gnu.so` names never match musl's `EXT_SUFFIX`). Patching the libc is ruled out by the item; the tracer keeps the libc as released but means shipping a modified proot (GPLv2, source publication) | T3: does a tracer that returns `ENOSYS` make a stock glibc CPython install and import `duckdb` |
+| DNS inside a glibc root | glibc reads `etc/resolv.conf` normally (unlike musl, whose raw `openat` is why ADR-0005's shim exists); the app already knows Android's nameservers through `DnsServerSource` | writing the file is a mechanism glibc supports; a shim would be a second implementation of the same thing | T3, if a glibc root cannot reach PyPI |
 | The SIGSYS handler | one build per libc; one libc-agnostic build with raw syscalls | per-libc is two artifacts and a choice at launch; libc-agnostic is a rewrite of a file that already works. T1 measured that neither can arm a glibc `ld.so` | T6, if a glibc path survives at all |
 | JD-078's explanation | keep it for packages with no wheel on either platform; remove it when a glibc environment makes the case disappear | the note is true today and would be false in a glibc Space for manylinux-only packages | T5; a package with no wheel anywhere still needs it |
 
@@ -87,7 +89,8 @@ The decision is T5's; each row names the evidence that settles it.
 | a package with a musllinux aarch64 wheel installs and imports | works (`ADR-0011`, `ADR-0164`; pandas measured) | none |
 | a package with only a manylinux wheel | pip says "No matching distribution found"; JD-078's note explains it from PyPI's release files (`ADR-0165`) | the package is not installed; the note is the outcome |
 | how many packages are in that case | 39 of the 1000 most downloaded, none of the first 100 | the item exists because 39 is not a corner |
-| a glibc process under the shipped runtime | T1 measured it on 2026-11-20: it cannot start, because `ld.so`'s own `set_robust_list` is refused before any preload constructor runs | the `LD_PRELOAD` route is closed; T2 and T3 measure the `gcompat` and tracer routes |
+| a glibc process under the shipped runtime | T1 measured it on 2026-11-20: it cannot start, because `ld.so`'s own `set_robust_list` is refused before any preload constructor runs | the `LD_PRELOAD` route is closed; only a tracer that returns `ENOSYS` (T3) keeps a stock libc |
+| a manylinux wheel imported by the musl CPython through `gcompat` | T2 measured it on 2026-11-20: no — the `cp312` extension names do not match the musl `EXT_SUFFIX`, and the tag-less `abi3` one fails on `__res_init` | `gcompat` is closed; the interpreter itself has to be glibc's (T3) |
 
 ## Deviations
 
@@ -95,14 +98,16 @@ The decision is T5's; each row names the evidence that settles it.
   gives up PyPI's wheels; the item says the environment changes, not the libraries.
 - **Winlator's answer is out:** its glibc is patched, and the patch is precisely the call T1 tests a
   handler against. It is a technique to read, not one to copy.
+- **`gcompat` is out:** T2 measured that a musl CPython cannot import a `cp312` manylinux wheel's
+  extensions at all, and the one tag-less extension it does load needs `__res_init`, which `gcompat`
+  does not provide.
 
 ## Open decisions
 
 1. **Whole glibc image or a second libc** — T3 and T4 measure both; T5 records the choice as an ADR.
-   T1 has narrowed *how* either can work: the refusal is in `ld.so`, before any preload, so the
-   handler cannot tolerate it. The two surviving shapes are a tracer that returns `ENOSYS` for
-   `set_robust_list` (proot rebuilt from source) and `gcompat`'s musl-backed ABI; a libc patch is
-   ruled out by the item's text.
+   T1 narrowed *how* either can work (the refusal is in `ld.so`, before any preload, so a handler
+   cannot tolerate it) and T2 closed `gcompat`. The one surviving mechanism is a tracer that returns
+   `ENOSYS` for `set_robust_list`; a libc patch is ruled out by the item's text.
 2. **What a glibc Space does with Alpine's seams** — `apk`, `usr/pip.conf`, `jupydroid_usersite.pth`,
    `busybox` and the image's `PATH` were built for the musl image. A whole-image change replaces
    them; a second interpreter keeps them and must say which processes see which.
@@ -136,12 +141,13 @@ The decision is T5's; each row names the evidence that settles it.
   `/usr/bin/true` and `sh -c` in the app process, in three arms (no handler, glibc handler, shipped
   musl handler), and the refusals are recorded. **Result:** it cannot start — `ld.so` issues
   `set_robust_list` before any preload constructor, so the handler is never armed
-- [ ] T2 — `gcompat` measured: a musl Python loading a manylinux extension through Alpine's glibc
-  ABI shim, which avoids glibc's `ld.so` altogether. T1 made this the cheapest survivor to measure:
-  it needs no rebuilt tracer
+- [x] T2 — `gcompat` measured: a musl Python loading a manylinux extension through Alpine's glibc
+  ABI shim, which avoids glibc's `ld.so` altogether. **Result:** it cannot carry them — the `cp312`
+  extensions are named `-gnu.so` and the musl interpreter never looks for them, and the tag-less
+  `abi3` one fails on `__res_init`
 - [ ] T3 — a glibc Python installs a manylinux wheel: `duckdb` and `scikit-learn` installed and
   imported under a glibc interpreter whose `set_robust_list` the tracer returns `ENOSYS` for,
-  including what DNS a glibc process needs
+  including what DNS a glibc process needs. **The only surviving mechanism after T1 and T2**
 - [ ] T4 — the whole glibc image measured against the second-interpreter shape: size, extraction
   time, install time, and what it does to Alpine's `apk`, `pip.conf` and `.pth`
 - [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled

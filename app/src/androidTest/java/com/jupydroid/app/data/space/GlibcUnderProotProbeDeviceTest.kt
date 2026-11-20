@@ -14,7 +14,6 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
@@ -143,18 +142,14 @@ class GlibcUnderProotProbeDeviceTest {
   }
 
   private fun runIn(runtime: SpaceRuntime, command: List<String>, report: StringBuilder): SpaceProcessRun {
-    val process = runtime.execProcessBuilder(command).redirectErrorStream(true).start()
-    val exited = process.waitFor(ARM_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-    if (!exited) process.destroyForcibly()
-    val output = process.inputStream.bufferedReader().use { it.readText() }
-    val run = SpaceProcessRun(command.joinToString(" "), if (exited) process.exitValue() else TIMED_OUT, output)
+    val run = runBounded(runtime, command, ARM_TIMEOUT_SECONDS)
     report.append("${run.command} -> exit=${run.exitCode} output=${run.output.trim()}\n")
     return run
   }
 
   private fun assertInstrumentWorked(noHandler: ArmResult, glibcArm: GlibcArm, muslArm: ArmResult) {
     assertFalse("arm 0 did not terminate; the probe is broken, not glibc", noHandler.timedOut)
-    assertFalse("arm 1 did not terminate; the probe is broken, not glibc", glibcArm.trueRun.exitCode == TIMED_OUT)
+    assertFalse("arm 1 did not terminate; the probe is broken, not glibc", glibcArm.trueRun.exitCode == PROBE_TIMED_OUT)
     assertLoaderDiedBeforeThePreload(glibcArm)
     assertTrue(
       "the shipped musl handler did not fail on musl's libc name",
@@ -218,7 +213,7 @@ class GlibcUnderProotProbeDeviceTest {
           val destination = resolveInside(entry.name)
           when {
             entry.isDirectory -> destination.mkdirs()
-            entry.isSymbolicLink -> destination.linkTo(entry.linkName)
+            entry.isSymbolicLink -> destination.replaceWithSymbolicLink(entry.linkName)
             entry.isLink -> destination.copyFrom(resolveInside(entry.linkName))
             entry.isFile -> destination.writeEntry(tar, entry.mode)
           }
@@ -238,12 +233,6 @@ class GlibcUnderProotProbeDeviceTest {
     delete()
     outputStream().use { tar.copyTo(it) }
     if (mode and OWNER_EXECUTE != 0) setExecutable(true, true)
-  }
-
-  private fun File.linkTo(target: String) {
-    parentFile?.mkdirs()
-    delete()
-    Files.createSymbolicLink(toPath(), File(target).toPath())
   }
 
   private fun File.copyFrom(source: File) {
@@ -268,7 +257,7 @@ class GlibcUnderProotProbeDeviceTest {
   private data class StagedInputs(val tarball: File, val glibcHandler: File, val muslHandler: File)
 
   private data class ArmResult(val run: SpaceProcessRun, val log: File) {
-    val timedOut: Boolean get() = run.exitCode == TIMED_OUT
+    val timedOut: Boolean get() = run.exitCode == PROBE_TIMED_OUT
   }
 
   private data class GlibcArm(
@@ -296,7 +285,6 @@ class GlibcUnderProotProbeDeviceTest {
     const val OWNER_EXECUTE = 0b001_000_000
     const val READ_CHUNK = 1 shl 20
     const val ARM_TIMEOUT_SECONDS = 120L
-    const val TIMED_OUT = -1
     const val SYSCALL_LINES = 30
   }
 }
