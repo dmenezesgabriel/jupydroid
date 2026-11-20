@@ -91,8 +91,17 @@ One commit each, each closed by the driver green on the tablet with its frames l
 
 - [x] T1 — `tab-reload-demo`: read the frame at `Assert that "before\s*"`, decide app or flow from
   `ActiveTabReload.kt`, repair the one that moved, then its later-cell tap (163)
-- [ ] T2 — `session-follows-rename-demo-tab`, `-folder` and `recreated-path-demo-notebook`: the long press
-  opens a menu where they expect the rename dialog; read it and tap `Rename…` in the menu
+- [x] T2 — `session-follows-rename-demo-tab`, `-folder` and `recreated-path-demo-notebook`: the long press
+  opens a menu where they expect the rename dialog; read it and tap `Rename…` in the menu. Both drivers
+  (`session-follows-rename-demo-driver.sh`, `recreated-path-demo-driver.sh`) needed more than the menu step:
+  `recreated-path-demo-file` has the same long press, `-folder`'s pixel tap `(1300,427)` landed below the
+  field (it now calls `focus-first-cell.yaml`), `-folder` and `recreated-path-demo-reveal` cleared Recents
+  though the section arrives shut ([ADR-0121](../adr/0121-the-recents-section-arrives-shut.md)), and the
+  rename driver's `tree` skipped only top-level dotfiles, so a moved `g/.ipynb_checkpoints` failed its disk
+  check. T3's `Recent actions` step has the same cause as the first two.
+- [ ] T8 — the flows that long-press a tab and wait for `Rename file` with no menu step, found by T2 and not
+  edited: `renamed-tab`, `renamed-tab-demo-file`, `recreated-path-rename`, `rotation-tab-strip-before`,
+  `session-follows-rename`, `tab-rename-refusal`; each read in a grep, none run on the tablet yet
 - [ ] T3 — `delete-stops-session-demo-delete` and `-overwrite`: read why `Recent actions` is not found after
   `Files`, then convert the first-cell tap (93) and the later one (173)
 - [ ] T4 — one cell-focus sub-flow that takes an index, from the later cells' bounds read off a dump;

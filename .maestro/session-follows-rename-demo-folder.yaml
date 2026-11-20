@@ -61,12 +61,9 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-# A notebook in a folder draws its crumbs above the cell, so the empty field sits lower than at the
-# root: [805,391][1884,463] (`uiautomator dump`).
-- tapOn:
-    point: "1300,427"
-- waitForAnimationToEnd:
-    timeout: 3000
+# A notebook in a folder draws its crumbs above the cell, so the field sits lower than at the root;
+# the cell is focused by its name, which no layout above it moves (ADR-0155).
+- runFlow: focus-first-cell.yaml
 - inputText: "print(6 * 9)"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -86,13 +83,8 @@ appId: com.jupydroid.app
 # bring the notebook back, not find it already showing.
 - tapOn: "Tab: Launcher"
 - tapOn: "Workspace"
-# Recents is cleared for the reason explorer-rename-open-document.yaml gives: an opened folder is
-# listed twice, and only the listing's row carries the menu.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
+# The Recents section arrives shut (ADR-0121), so an opened folder is listed once and the only row
+# named "f" is the listing's, which carries the menu.
 - longPressOn: "f"
 - extendedWaitUntil:
     visible: "Rename"

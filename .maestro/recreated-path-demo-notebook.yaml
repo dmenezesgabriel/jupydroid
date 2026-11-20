@@ -27,7 +27,12 @@ appId: com.jupydroid.app
     timeout: 3000
 - assertVisible: "Unsaved changes"
 - takeScreenshot: 01-a-ipynb-typed-into-owes-a-write
+# A long press on a tab opens its menu (`MainAreaTab.kt`), and Rename… in it opens the dialog.
 - longPressOn: "Tab: a.ipynb"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000
