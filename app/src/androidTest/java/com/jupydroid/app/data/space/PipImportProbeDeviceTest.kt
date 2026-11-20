@@ -40,6 +40,9 @@ import java.io.File
  * Two arms, because they answer different questions: one long-lived interpreter started with
  * `pkgs/` cleared, and the user's own path - the app's gateway and a real kernel, three cells.
  *
+ * It is the repair's regression test: both arms assert the import resolves, so a Space whose
+ * interpreter stops seeing its user base fails here rather than in a notebook.
+ *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
  *   -Pandroid.testInstrumentationRunnerArguments.class=com.jupydroid.app.data.space.PipImportProbeDeviceTest
@@ -71,9 +74,18 @@ class PipImportProbeDeviceTest {
     // under `files/` is gone before anyone can pull it. `adb logcat -s JupydroidSpace` keeps it.
     Log.i(TAG, report.toString())
 
-    // The probe's job is to print the readings; fail only if one of the arms never ran.
-    assertTrue("the interpreter arm measured nothing: $report", "install_exit:" in report)
-    assertTrue("the kernel arm measured nothing: $report", KERNEL_ARM_MARKER in report)
+    // The two outcomes this class is about: the interpreter that ran the install imports what it
+    // installed, and the kernel's cell below `%pip install` resolves out of the Space's own base.
+    // The messages name the log rather than quoting it: pip colours its warning, and an ESC in a
+    // JUnit message makes Gradle unable to read the report it writes.
+    assertTrue(
+      "the running interpreter did not import what pip installed; see `adb logcat -s $TAG`",
+      IMPORT_AFTER_INSTALL_OK in report,
+    )
+    assertTrue(
+      "the kernel's cell below %pip did not import it; see `adb logcat -s $TAG`",
+      KERNEL_IMPORTED_FROM_PKGS in report,
+    )
   }
 
   /**
@@ -157,6 +169,12 @@ class PipImportProbeDeviceTest {
     const val PROBE_NOTEBOOK = "pip-import-probe.ipynb"
     const val KERNEL_ARM_MARKER = "== the real kernel, through the app's own gateway"
     const val SOURCE_EXCERPT = 80
+
+    /** The probe's own line when the interpreter that ran the install imports it, with no restart. */
+    const val IMPORT_AFTER_INSTALL_OK = "import_after_install -> ok"
+
+    /** The kernel's line: the package resolved, and out of the Space's user base rather than the image. */
+    const val KERNEL_IMPORTED_FROM_PKGS = "kernel -> /pkgs/"
 
     val PROBE_NOTEBOOK_JSON = """
       {"cells": [], "metadata": {"kernelspec": {"name": "python3", "display_name": "Python 3"}},

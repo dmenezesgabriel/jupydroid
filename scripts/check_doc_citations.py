@@ -139,6 +139,9 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".lock": hash_comments,
     ".in": hash_comments,
     ".ini": hash_comments,
+    # A `.pth` in site-packages is executed by `site.addpackage` line by line, and a line starting
+    # with `#` is a comment there too, so a hook's prose is read the way a shell script's is.
+    ".pth": hash_comments,
     ".config": hash_comments,
     ".yaml": hash_comments,
     "Dockerfile": hash_comments,

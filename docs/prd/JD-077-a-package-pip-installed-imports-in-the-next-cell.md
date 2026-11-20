@@ -93,11 +93,13 @@ install needs no restart at all.
 
 1. Which of the four repair shapes (A–D above), decided at T2 on T1's measurement and on the demo
    cost each carries. A and B are version-free and need an arm64 rootfs rebuild; C needs no rebuild
-   but must discover `python3.X`.
+   but must discover `python3.X`. **Decided:** a `.pth` in the image importing `jupydroid_usersite`,
+   which creates the user site and inserts it where `site` would have — [ADR-0164](../adr/0164-an-interpreter-in-a-space-adds-its-user-site-before-the-first-install.md).
 2. Whether a venv kernel keeps its isolation. `site.ENABLE_USER_SITE` is False in a venv, so a repair
    guarded on it does not reach one; a repair that appends unconditionally would. The evidence: a
    venv's own `%pip` installs into the venv (`python-environments-in-a-space-venv-pip-and-uv-driver.sh`),
-   so it needs no repair.
+   so it needs no repair. **Measured:** a venv without `--system-site-packages` keeps both the flag
+   false and the path off `sys.path`; a `--system-site-packages` venv gets it, as a desktop does.
 
 ## Surface
 
@@ -122,7 +124,7 @@ install needs no restart at all.
   interpreter imports it with no append — the restart the reporter used. Through the app's own
   gateway the same three cells read the same, the `%pip` cell printing IPython's "you may need to
   restart the kernel" and the `import` cell raising `ModuleNotFoundError`
-- [ ] T2 — the repair chosen on T1, red → green: the probe's import arm becomes an assertion, then the
+- [x] T2 — the repair chosen on T1, red → green: the probe's import arm becomes an assertion, then the
   chosen shape turns it green; an arm64 rootfs rebuild if the repair is in the image
 - [ ] T3 — the demo above on the tablet, `GAP-195` closed, the backlog row `shipped`, this file deleted
 

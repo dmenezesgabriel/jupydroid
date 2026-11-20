@@ -184,6 +184,32 @@ print('kernel entry point OK')"
 # even import under musl, the Space's language features would fail on device.
 RUN pylsp --version
 
+# **Every interpreter in a Space adds its user base, before the first install has written it.**
+# `site.addusersitepackages` adds the directory only when it already exists, and a Space's `pkgs/`
+# starts empty, so the kernel that runs `%pip install` never has the path its own install writes
+# into: the cell below cannot import what it installed until the kernel restarts. The `.pth` is the
+# hook (the shape `distutils-precedence.pth` beside it already uses), and it names no interpreter
+# version: ADR-0164 records the measurement and the four other shapes weighed.
+COPY jupydroid_usersite.py /usr/lib/python3.12/site-packages/jupydroid_usersite.py
+COPY jupydroid_usersite.pth /usr/lib/python3.12/site-packages/jupydroid_usersite.pth
+
+# Fail the image build, not the device: one interpreter whose user base does not exist yet, the
+# shape of a kernel started before the Space's first install. See user_site_probe.py.
+COPY user_site_probe.py /tmp/user_site_probe.py
+RUN PYTHONUSERBASE=/tmp/probe-pkgs python3 /tmp/user_site_probe.py \
+ && rm -rf /tmp/probe-pkgs /tmp/user_site_probe.py
+
+# The other half of the same decision: a venv keeps its isolation. `site` never processes the
+# image's site-packages in one, so the hook does not load, and `ENABLE_USER_SITE` is false there
+# too - which is what makes a venv's own `%pip` the only thing its kernels see (ADR-0164).
+RUN PYTHONUSERBASE=/tmp/probe-pkgs python3 -m venv --without-pip /tmp/probe-venv \
+ && PYTHONUSERBASE=/tmp/probe-pkgs /tmp/probe-venv/bin/python -c "\
+import site, sys;\
+assert not site.ENABLE_USER_SITE, f'a venv enabled the user site: {site.ENABLE_USER_SITE!r}';\
+assert site.getusersitepackages() not in sys.path, 'a venv put the user site on sys.path';\
+print('venv keeps its isolation')" \
+ && rm -rf /tmp/probe-venv
+
 # Diagnostic only, and inert unless LD_PRELOAD names it, so it costs 8 KB and nothing else.
 COPY --from=sigsys-builder /tmp/libsigsys_report.so /lib/libsigsys_report.so
 
@@ -326,7 +352,12 @@ RUN jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.
-RUN mkdir -p /home/jupydroid /tmp/spaces
+#
+# `/root/.local` is the site hook's own residue, removed here because every `python3` RUN above
+# creates root's user site: a Space's HOME is /home/jupydroid and its user site lives under
+# `pkgs/`, so the image ships no user site at all (ADR-0164).
+RUN mkdir -p /home/jupydroid /tmp/spaces \
+ && rm -rf /root/.local
 ENV HOME=/home/jupydroid
 
 # Last, so no RUN above is served by a shell this line replaced: the image's own busybox becomes

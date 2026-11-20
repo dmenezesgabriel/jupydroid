@@ -158,6 +158,10 @@ class ScannerForTest(unittest.TestCase):
     def test_a_notebook_gets_the_scanner_that_reads_its_code_cells(self):
         self.assertIs(notebook_code_comments, scanner_for(".ipynb"))
 
+    def test_a_pth_hook_gets_the_hash_scanner(self):
+        """`site.addpackage` skips a `.pth` line starting with `#` and executes the rest as code."""
+        self.assertIs(hash_comments, scanner_for(".pth"))
+
     def test_a_comment_in_a_notebook_code_cell_is_a_citation(self):
         source = json.dumps({"cells": [{"cell_type": "code", "source": ["# see docs/PLAN.md\n"]}]})
         found = citations_in(source, scanner_for(".ipynb"))
