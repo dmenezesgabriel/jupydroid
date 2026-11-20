@@ -1,23 +1,23 @@
---- a/src/tracee/event.c	2026-11-20 14:11:36.367927268 -0300
-+++ b/src/tracee/event.c	2026-11-20 15:00:09.809065368 -0300
-@@ -388,6 +388,48 @@
+--- a/src/tracee/event.c
++++ b/src/tracee/event.c
+@@ -388,6 +388,52 @@
  }
  
  /**
-+ * Whether a seccomp-trapped syscall is one whose ENOSYS - what the kernel
-+ * already set - is the answer a kernel without it would give, and which
-+ * the caller already tolerates: the optional syscalls a glibc loader
-+ * issues before any preload can arm a SIGSYS handler (set_robust_list,
-+ * rseq), and the advisory NUMA policy calls OpenBLAS makes at init
-+ * (mbind, set_mempolicy) - placement hints, not requirements.
++ * Whether a seccomp-trapped syscall is one only a loader's startup can
++ * issue: the optional calls glibc's ld.so makes before any preload
++ * constructor can arm a SIGSYS handler (set_robust_list, rseq).  The
++ * set is the whole refused set of one complete startup trace, derived
++ * once - package code cannot run inside that window, so nothing a
++ * package does can ever need a case here.  Every later refusal is the
++ * guest's own SIGSYS handler's to answer with ENOSYS, or ENOSYS-only
++ * under PROOT_SIGSYS_ENOSYS.
 + */
 +static bool seccomp_trap_is_enosys_safe(Sysnum sysnum)
 +{
 +	switch (sysnum) {
 +	case PR_set_robust_list:
 +	case PR_rseq:
-+	case PR_mbind:
-+	case PR_set_mempolicy:
 +		return true;
 +	default:
 +		return false;
@@ -26,19 +26,23 @@
 +
 +/**
 + * The syscall a SIGSYS stop was raised for: PR_void when the stop is not a
-+ * seccomp trap or its number cannot be read, and @arch_nr the raw number
-+ * the kernel reports (-1 likewise).  si_syscall is the architecture's own
-+ * number - on arm64 the one in x8 - which is also what get_sysnum translates.
++ * seccomp trap or its number cannot be read.  @is_seccomp tells the two
++ * apart - a genuine SIGSYS (si_code != SYS_SECCOMP) must still be delivered
++ * even under PROOT_SIGSYS_ENOSYS.  @arch_nr is the raw number the kernel
++ * reports (-1 likewise); si_syscall is the architecture's own number - on
++ * arm64 the one in x8 - which is also what get_sysnum translates.
 + */
-+static Sysnum seccomp_trap_sysnum(Tracee *tracee, int *arch_nr)
++static Sysnum seccomp_trap_sysnum(Tracee *tracee, int *arch_nr, bool *is_seccomp)
 +{
 +	siginfo_t siginfo;
 +
 +	*arch_nr = -1;
++	*is_seccomp = false;
 +	if (ptrace(PTRACE_GETSIGINFO, tracee->pid, NULL, &siginfo) < 0)
 +		return PR_void;
 +	if (siginfo.si_code != SYS_SECCOMP)
 +		return PR_void;
++	*is_seccomp = true;
 +	if (fetch_regs(tracee) < 0)
 +		return PR_void;
 +	*arch_nr = siginfo.si_syscall;
@@ -49,19 +53,28 @@
   * For kernels >= 4.8.0
   * Handle the current event (@tracee_status) of the given @tracee.
   * This function returns the "computed" signal that should be used to
-@@ -602,6 +644,31 @@
+@@ -602,6 +648,40 @@
  			}
  			break;
  
 +		case SIGSYS: {
 +			int arch_nr;
-+			Sysnum sysnum = seccomp_trap_sysnum(tracee, &arch_nr);
++			bool is_seccomp;
++			Sysnum sysnum = seccomp_trap_sysnum(tracee, &arch_nr, &is_seccomp);
 +
-+			/* Dropping the signal leaves the ENOSYS the
-+			 * kernel already set standing, which is what a
-+			 * guest SIGSYS handler returning normally does.
-+			 * Every other SIGSYS is delivered as-is.  */
-+			if (seccomp_trap_is_enosys_safe(sysnum)) {
++			/* Dropping the signal leaves the ENOSYS the kernel
++			 * already set standing - what a guest SIGSYS handler
++			 * returning normally does, without the round trip
++			 * through it.  PROOT_SIGSYS_ENOSYS asks for that on
++			 * every seccomp trap, for a libc whose signal path
++			 * cannot survive delivery (measured on glibc under
++			 * threads by GlibcPythonWheelProbeDeviceTest); the
++			 * rest keep the handler.  The loader's startup pair
++			 * is ENOSYS-safe for everyone - no handler is armed
++			 * yet.  */
++			if (is_seccomp &&
++			    (getenv("PROOT_SIGSYS_ENOSYS") != NULL ||
++			     seccomp_trap_is_enosys_safe(sysnum))) {
 +				signal = 0;
 +				VERBOSE(tracee, 1,
 +					"vpid %" PRIu64 ": suppressed SIGSYS for "
@@ -81,8 +94,8 @@
  		default:
  			/* Deliver this signal as-is.  */
  			break;
---- a/src/syscall/sysnums.list	2026-11-20 14:11:36.366007011 -0300
-+++ b/src/syscall/sysnums.list	2026-11-20 14:12:13.362954592 -0300
+--- a/src/syscall/sysnums.list
++++ b/src/syscall/sysnums.list
 @@ -258,6 +258,7 @@
  SYSNUM(request_key)
  SYSNUM(restart_syscall)
@@ -91,8 +104,8 @@
  SYSNUM(rt_sigaction)
  SYSNUM(rt_sigpending)
  SYSNUM(rt_sigprocmask)
---- a/src/syscall/sysnums-arm64.h	2026-11-20 14:11:36.365880118 -0300
-+++ b/src/syscall/sysnums-arm64.h	2026-11-20 14:12:13.403954360 -0300
+--- a/src/syscall/sysnums-arm64.h
++++ b/src/syscall/sysnums-arm64.h
 @@ -264,5 +264,6 @@
  	[ 275 ] = PR_sched_getattr,
  	[ 276 ] = PR_renameat2,
