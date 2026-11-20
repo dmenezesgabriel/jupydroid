@@ -178,8 +178,26 @@ The decision is T5's; each row names the evidence that settles it.
   PyPI; duckdb 2.0.1 and scikit-learn 1.9.1 installed from PyPI's manylinux wheels and imported.
   The tracer's safe set grew to `mbind` and `set_mempolicy` - OpenBLAS's advisory NUMA calls at
   init, the first of which the sklearn import measured killing the process
-- [ ] T4 — the whole glibc image measured against the second-interpreter shape: size, extraction
+- [x] T4 — the whole glibc image measured against the second-interpreter shape: size, extraction
   time, install time, and what it does to Alpine's `apk`, `pip.conf` and `.pth`
+  **Result:** both shapes run the interpreter and install `duckdb` and `ipykernel` from PyPI's
+  manylinux wheels on SM-X216B. The whole image (Ubuntu base + CPython) is the smaller one:
+  83.1 MB staged, 265.9 MB extracted, 8.7 s untar; `pip install duckdb` 8.2 s, `ipykernel`
+  54.7 s. It costs every Alpine seam: no `apk`, no `busybox`, and no `/bin/sh` at all -
+  ubuntu-base has no `/bin`, so `SPACE_SHELL` has nothing to name until the image grows a
+  shell; `usr/pip.conf` is dead config (the glibc pip's prefix is `/python`, its `config list`
+  shows only the env vars); no `.pth` ships; installs land in `/python/lib/python3.12/
+  site-packages`, not `pkgs/`. The second interpreter (shipped Alpine + CPython at
+  `/opt/gnu/python` + 12 glibc runtime files + the loader at `/lib/ld-linux-aarch64.so.1`)
+  is the bigger one - 157.5 MB staged, 657.0 MB extracted, 23.9 s untar - but every Alpine
+  seam measured intact: `apk-tools 3.0.9`, musl `python3.12`, `usr/pip.conf`, the `.pth`
+  (`user-site-on-path True`), `import ipykernel` under musl. Its own seams: the glibc pip
+  likewise never reads `usr/pip.conf` (prefix `/opt/gnu/python`), installs land in
+  `/opt/gnu/python/lib/python3.12/site-packages`, yet `user-site-on-path` is `True` there
+  too - both interpreters share `pkgs/` when it exists. The Space's musl `LD_PRELOAD`
+  reaches the glibc loader: the raw banner survived (exit 0) but the musl shims and
+  `libc.musl-aarch64.so.1` load into the glibc process, so the environment must be split
+  per interpreter - every measured glibc command ran with `LD_PRELOAD` cleared.
 - [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled
 - [ ] T6 — the chosen mechanism implemented red → green, including the tracer change (if that is
   the choice) and the rootfs build
