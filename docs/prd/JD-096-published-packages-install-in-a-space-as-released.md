@@ -219,8 +219,25 @@ The decision is T5's; each row names the evidence that settles it.
     `LD_PRELOAD` and the user base split per interpreter, the patched proot ships for all Space
     processes, and its corresponding source (`tools/proot/` whole) rides the APK's licence assets
     so GPLv2's offer does not wait on this repository being public.
-- [ ] T6 — the chosen mechanism implemented red → green, including the tracer change (if that is
-  the choice) and the rootfs build
+- [ ] T6a — the tracer rework and the glibc SIGSYS handler, proven in the probes: the patch's
+  set shrinks to `ld.so`'s pre-constructor prologue (`set_robust_list`, `rseq`), derived once,
+  whole, from one complete startup trace; `mbind`/`set_mempolicy` return to signal delivery; a
+  glibc-built `sigsys_report.so` joins the build (one build per libc); the wheel probe reruns the
+  shipped shape - handler preloaded - and its report shows `mbind` in `sigsys.log`, the proof
+  post-startup refusals are the handler's; the patched-proot probe reruns for regression
+- [ ] T6b — the image carries the second interpreter: the rootfs build gains the pinned CPython
+  tree at `/opt/gnu/python`, the glibc runtime files and loader, the glibc handler, and
+  ipykernel + `jupydroid_kernel` for the glibc prefix; the gnu tree ships as its own asset so an
+  existing Space gains it additively rather than by re-extracting its rootfs
+- [ ] T6c — the runtime routes the kernel to glibc: `SpaceRuntime` gains the per-interpreter
+  environment (cleared musl `LD_PRELOAD`, the glibc handler, its own `PYTHONUSERBASE`), the
+  kernel spec names the glibc interpreter with the env overrides a kernel inherits from the musl
+  server, `etc/resolv.conf` is written with the app's nameservers, and a real Space runs
+  `%pip install duckdb` then `import duckdb` on the tablet
+- [ ] T6d — ship it: the patched proot replaces the shipped pair in `jniLibs`, `tools/proot/`
+  rides the APK's licence assets, `SOURCE_OFFER.md` names the modification, and the platform
+  explanation learns `manylinux` tags ([ADR-0165](../adr/0165-a-package-a-spaces-platform-cannot-have-is-explained-from-pypis-release-files.md)'s
+  widening)
 - [ ] T7 — the must-list demo: each of the thirty-six packages installs from PyPI's wheels and runs
   a snippet from its own official quickstart, in groups, on the tablet; the row shipped; `GAP-196`
   closed; this file deleted
