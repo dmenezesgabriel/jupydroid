@@ -198,7 +198,16 @@ The decision is T5's; each row names the evidence that settles it.
   reaches the glibc loader: the raw banner survived (exit 0) but the musl shims and
   `libc.musl-aarch64.so.1` load into the glibc process, so the environment must be split
   per interpreter - every measured glibc command ran with `LD_PRELOAD` cleared.
-- [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled
+- [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled.
+  **The user's constraint on the choice (2026-11-20):** the mechanism is the most native the
+  evidence supports, and patch accumulation is out. The tracer's `ENOSYS` set must not grow per
+  discovered failure (`set_robust_list`, `rseq`, then `mbind`/`set_mempolicy` is already that
+  pattern — every package could surface the next syscall and every addition is a new shim with
+  its own collateral). If the tracer is the choice, its set is derived **once, whole, from
+  Android's documented seccomp policy for app processes** (AOSP's filter list at a pinned
+  version — every syscall the platform refuses, returned `ENOSYS` in one place), so nothing is
+  left to discover per package; a mechanism that needs no such table outranks one that does.
+  What T3a/T3b committed is reworked to that shape, not extended.
 - [ ] T6 — the chosen mechanism implemented red → green, including the tracer change (if that is
   the choice) and the rootfs build
 - [ ] T7 — the must-list demo: each of the thirty-six packages installs from PyPI's wheels and runs
