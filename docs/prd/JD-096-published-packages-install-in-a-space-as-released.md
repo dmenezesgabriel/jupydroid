@@ -10,6 +10,10 @@ A user who runs `%pip install duckdb` or `%pip install scikit-learn` in a Space 
 publishes, installed and importable in the cell below, with no explanation and no per-package
 patching. The environment changes so ordinary pip works; the wheels are the ones PyPI ships.
 
+The bar is the backlog's must-list, not two packages: each of the thirty-six libraries below
+installs from PyPI's wheels and then runs a small snippet taken from **its own official quickstart
+or tutorial**, in a cell in the Space on the tablet. Install alone proves nothing.
+
 ## Demo
 
 Everything here runs a cell, so the device is the arm64 tablet `SM-X216B` (AGENTS.md rule 2); on
@@ -17,15 +21,29 @@ Everything here runs a cell, so the device is the arm64 tablet `SM-X216B` (AGENT
 kernel.
 
 1. Cold start: install, launch, create a Space, open a notebook in it.
-2. `%pip install pandas` then `import pandas` in the next cell: the control, which PyPI ships for
-   both platforms.
-3. `%pip install duckdb` in its own cell, then `import duckdb` in the next: the package PyPI
-   publishes, imported.
-4. `%pip install scikit-learn` in its own cell, then `import sklearn` in the next: the second
-   package, imported.
-5. Kill and relaunch: both imports still resolve, with no reinstall and no kernel reselection.
+2. For each package in the must-list, in its own group of cells: `%pip install <package>`, then the
+   snippet from that library's official quickstart/tutorial, with the output it is supposed to
+   produce. The groups are the demo's unit; a group that fails names its package and the line.
+3. Kill and relaunch after a group: its installed packages still import, with no reinstall and no
+   kernel reselection.
+4. The must-list's own rule holds throughout: nothing pre-bundled beyond jupyterlab and its
+   dependencies, nothing patched per package, no workaround.
 
 Not `shipped` until this has run on the tablet, with the frames looked at.
+
+## Must-list
+
+The user named these on 2026-11-20. Each installs from the wheels PyPI publishes and works properly;
+each is proved by a snippet from its own official docs, run in the Space.
+
+NumPy, pandas, SciPy, Polars, PyArrow, Matplotlib, Seaborn, Plotly, scikit-learn, XGBoost,
+LightGBM, CatBoost, imbalanced-learn, PyTorch, TensorFlow, Keras, JAX, Hugging Face Transformers,
+Hugging Face Datasets, spaCy, NLTK, OpenCV, Pillow, torchvision, statsmodels, SHAP, Optuna, MLflow,
+PySpark, Dask, Ray, Jupyter, IPython, FastAPI, SQLAlchemy and Apache Airflow.
+
+Two consequences the demo will surface rather than assume: a package that needs a JVM (PySpark runs
+Spark's jars) or a system library the image does not carry is a finding for T7, not a reason to
+pre-bundle or patch. The item's rule forbids both.
 
 ## Who else implements this
 
@@ -153,7 +171,9 @@ The decision is T5's; each row names the evidence that settles it.
 - [ ] T5 — the candidates compared and one chosen, as an ADR; the proot licence question settled
 - [ ] T6 — the chosen mechanism implemented red → green, including the tracer change (if that is
   the choice) and the rootfs build
-- [ ] T7 — the demo on the tablet; the row shipped; `GAP-196` closed; this file deleted
+- [ ] T7 — the must-list demo: each of the thirty-six packages installs from PyPI's wheels and runs
+  a snippet from its own official quickstart, in groups, on the tablet; the row shipped; `GAP-196`
+  closed; this file deleted
 
 ## Out of scope
 
