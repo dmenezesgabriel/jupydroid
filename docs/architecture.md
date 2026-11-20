@@ -2358,7 +2358,7 @@ too. The repair reads each failing frame, decides per step whether the app or th
 green on the tablet, which is also what proves the tap in `delete-stops-session-demo-delete.yaml` that no run reached.
 `delete-stops-session-demo-overwrite.yaml`'s three taps have run and stop at the same `Recent actions` step.
 
-### GAP-209 — Two tablet drivers stop at a step after the first cell, one on a pixel and one on Chrome
+### GAP-209 — Tablet drivers stop at a step after the first cell, on a pixel
 
 Read on the tablet with the first cell focused by its name. `input-prompt-demo-answers.yaml` types, runs and
 answers the first cell (`Name? Ada`, `hi Ada`), then inserts a second cell and taps `point: "1300,620"` for its
@@ -2367,14 +2367,15 @@ field, which is at about `[800,520][1895,573]`: the point is 47px below it, noth
 `N` other than 354 stand in 13 flows, each after a cell that is not the first. Three more drivers stop at
 one: `display-update-demo-driver.sh` at `1300,539` (all three sources land in cell 1, which raises `SyntaxError`),
 `output-caps-demo-driver.sh` at `1300,524` (the same) and `ansi-colour-demo-driver.sh` at `1300,625` (the empty
-second cell runs, `[2]:`, and `blue` never appears). `text-output-link-demo-driver.sh`
-passes part 1 and fails in part 2 after the link tap, where `back_to_app` reads `com.android.chrome` still resumed
-ten seconds after BACK. Three first-cell taps at `1300,354` were left unconverted by `JD-089` and belong to this
+second cell runs, `[2]:`, and `blue` never appears). `text-output-link-demo-driver.sh` once stopped in part 2
+after the link tap, where `back_to_app` read `com.android.chrome` still resumed ten seconds after BACK; it did not
+again in five consecutive runs on the tablet (parts 2, 3 and 5 each read Chrome after the tap and this app after BACK,
+the driver exiting 0 with its last assertion on the saved notebook), so that one is closed as not reproduced rather than
+repaired. Three first-cell taps at `1300,354` were left unconverted by `JD-089` and belong to this
 repair too: `chat-markdown-insert.yaml:37`, `chat-markdown-copy.yaml:42` (a `longPressOn`, which the sub-flow cannot
 express) and `delete-stops-session-demo-delete.yaml:93`. The two chat flows can only be run on a tablet the user has
 signed in to opencode on, which is the user's to do; the delete flow's tap waits on `GAP-208`. Not known: whether the tap by the field's name can reach a later cell as it reaches the
-first (the sub-flow takes `index: 0`), and what Chrome's back stack held on that device. The repair reads the
-later cells' bounds from a dump, then each Chrome frame.
+first (the sub-flow takes `index: 0`). The repair reads the later cells' bounds from a dump.
 
 ### GAP-210 — A press on the right half of a minimum-width tab closes it
 

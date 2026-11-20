@@ -146,8 +146,14 @@ One commit each, each closed by the driver green on the tablet with its frames l
   under it. `output-caps-demo-run` had a second stale step: its scroll back up past 300 drawn outputs timed out
   at 60 s after 16 swipes of about 3.7 s each (Maestro reads the whole tree after every swipe), the row in view
   by the time the failure frame was taken, so the timeout is 180 s. The three drivers are green on the tablet.
-- [ ] T6 — `text-output-link-demo-driver.sh` part 2: read Chrome's back stack after BACK, then fix
-  `back_to_app`
+- [x] T6 — `text-output-link-demo-driver.sh` part 2: the premise was that BACK leaves Chrome resumed ten
+  seconds later. Tested before any fix: five consecutive runs on the tablet, each from the driver's own cold
+  start, exit 0, and parts 2, 3 and 5 read `com.android.chrome` after the tap and `com.jupydroid.app` after BACK
+  in all five; the frames show both cells run (`[1]: ran in 0.3 s`, `[2]: ran in 1.8 s`), the printed and raised
+  URLs drawn as links, and `mod.py` opened after a relaunch. T4's run had already passed the step. The failure
+  does not reproduce, so `back_to_app` is unchanged and no retry or longer poll was added for a fault nothing
+  measured; if it returns, the first move is `dumpsys activity activities` at the failure, before anything else
+  runs.
 - [ ] T7 — `chat-markdown-insert` and `chat-markdown-copy`: a `longPressOn` by the field's name; needs opencode
   signed in on the tablet
 
