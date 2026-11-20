@@ -73,7 +73,8 @@ fetch() { # fetch <name> <url> <sha256> - once, verified against the pin every r
 
 echo "=== a glibc CPython installing manylinux wheels, on $MODEL ==="
 
-# 1. The patched proot, staged into the test APK's jniLibs before the assemble below.
+# 1. The patched proot, staged into the test APK's jniLibs before the assemble below, built
+#    when missing - rerun tools/proot/build.sh by hand after changing its patches.
 if [ ! -f "$ROOT/build/proot/proot.static" ]; then
   "$ROOT/tools/proot/build.sh"
 fi
@@ -98,7 +99,7 @@ done
 fetch "$UBUNTU" "$UBUNTU_URL" "$UBUNTU_SHA256" | tee "$EVIDENCE/ubuntu-sha256.txt"
 fetch "$CPYTHON" "$CPYTHON_URL" "$CPYTHON_SHA256" | tee "$EVIDENCE/cpython-sha256.txt"
 
-# 4. Stage the two inputs where the test reads them.
+# 4. Stage the inputs where the test reads them: the two tarballs under the probe dir.
 "${DEVICE_ADB[@]}" shell mkdir -p "$DEVICE_PROBE"
 for staged in "$UBUNTU" "$CPYTHON"; do
   "${DEVICE_ADB[@]}" push "$STAGE/$staged" "$DEVICE_PROBE/$staged"

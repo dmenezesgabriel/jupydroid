@@ -25,7 +25,12 @@ import java.util.concurrent.TimeUnit
  *
  * The root is the Ubuntu base plus python-build-standalone's CPython 3.12.16 - a stock glibc
  * build whose extension modules are compiled into `libpython`, so the only libraries it needs
- * are the base's own. Each package is installed by the interpreter's own pip and then imported:
+ * are the base's own. Every command runs with `PROOT_SIGSYS_ENOSYS` set: measured on this
+ * tablet, delivering a seccomp `SIGSYS` through the guest's handler and back out of
+ * `rt_sigreturn` kills glibc's threaded paths (OpenBLAS's `mbind` storm), while leaving the
+ * kernel's `ENOSYS` standing at the tracer is clean - so a glibc process gets ENOSYS-only
+ * and needs no preload at all. Each package is installed by the interpreter's own pip and
+ * then imported:
  *
  * - `duckdb` - PyPI's `manylinux_2_28_aarch64` wheel, `cp312-abi3`;
  * - `scikit-learn` - `cp312` wheels for itself and its numpy/scipy dependencies.
@@ -69,7 +74,14 @@ class GlibcPythonWheelProbeDeviceTest {
     require(nameservers.isNotEmpty()) { "the device reported no DNS servers; pip cannot reach PyPI" }
     writeResolvConf(nameservers)
     SpaceDirs(root).ensure()
-    val runtime = SpaceRuntime(root, patchedLibs, dns)
+    // PROOT_SIGSYS_ENOSYS reaches proot's own environment through SpaceRuntime's flat map:
+    // this root is glibc end to end, so every process it runs gets the ENOSYS-only answer.
+    val runtime = SpaceRuntime(
+      root,
+      patchedLibs,
+      dns,
+      variables = mapOf("PROOT_SIGSYS_ENOSYS" to "1"),
+    )
     val report = probeHeader(ubuntu, cpython, patchedLibs, nameservers)
 
     val banner = runIn(runtime, PYTHON + listOf("-c", BANNER), BANNER_TIMEOUT_SECONDS, report)
@@ -77,7 +89,19 @@ class GlibcPythonWheelProbeDeviceTest {
     val duckdbImport = runIn(runtime, PYTHON + listOf("-c", DUCKDB_IMPORT), IMPORT_TIMEOUT_SECONDS, report)
     val sklearnInstall = runIn(runtime, pipInstall("scikit-learn"), PIP_TIMEOUT_SECONDS, report)
     val sklearnImport = runIn(runtime, PYTHON + listOf("-c", SKLEARN_IMPORT), IMPORT_TIMEOUT_SECONDS, report)
-    if (sklearnImport.exitCode != 0) report.append(tracedImport(runtime, patchedLibs))
+    // The mechanism's own evidence, asked of the tracer directly: OpenBLAS's init calls
+    // mbind - a post-startup refusal - and under PROOT_SIGSYS_ENOSYS the tracer's own log
+    // must show it suppressed with ENOSYS standing. A -v 1 run of the matmul is enough:
+    // numpy's import runs the same OpenBLAS init sklearn's did.
+    val suppression = suppressionTrace(runtime, patchedLibs)
+    report.append(suppression.report)
+    if (sklearnImport.exitCode != 0) {
+      // Whatever killed it, the tracer's own -v 6 narration is the next evidence: which
+      // vpid stopped last and on what. The bisect suite that named the delivered-SIGSYS
+      // death is gone with the mechanism that caused it - under ENOSYS-only there is no
+      // signal left to bisect.
+      report.append(tracedImport(runtime, patchedLibs))
+    }
 
     File(probeDir, REPORT).writeText(report.toString())
     Log.i(PROBE_TAG, report.toString())
@@ -86,35 +110,101 @@ class GlibcPythonWheelProbeDeviceTest {
     assertEquals("import duckdb did not exit 0: ${duckdbImport.output}", 0, duckdbImport.exitCode)
     assertWheelInstalled(sklearnInstall, "scikit_learn")
     assertEquals("import scikit-learn did not exit 0: ${sklearnImport.output}", 0, sklearnImport.exitCode)
+    assertTrue(
+      "the tracer suppressed no SIGSYS for mbind; a post-startup refusal never reached ENOSYS: " +
+        suppression.sigsysLines,
+      suppression.sigsysLines.any { "suppressed SIGSYS for mbind" in it },
+    )
   }
 
   /**
    * The failed import once more under proot's own verbosity, because the plain run's empty
-   * output and exit 255 is a signal death and only the tracer's log names it. `-v 1` is enough -
-   * the SIGSYS lines are level 1 - and `PROOT_NO_SECCOMP` stays unset because the Space runs
-   * proot's fast path; a SIGSYS stop is a signal stop either way.
+   * output and exit 255 is a signal death and only the tracer's log names it. `-v 6` is the
+   * level that logs every ptrace event and every restart's signal; `PROOT_NO_SECCOMP` stays
+   * unset because the Space runs proot's fast path; a SIGSYS stop is a signal stop either way.
    */
   private fun tracedImport(runtime: SpaceRuntime, patchedLibs: File): String {
     val dirs = SpaceDirs(root)
     val proot = ProotCommand(patchedLibs, root, dirs.inRoot(dirs.workspace))
-    val argv = proot.argv(PYTHON + listOf("-c", SKLEARN_IMPORT)).toMutableList().apply {
+    // The bare matmul dies the same way as the import but in seconds, not tens: it is the
+    // faster corpse for the tracer to narrate. Verbosity 6 logs every ptrace event and every
+    // restart's signal, so the dying vpid's last stop names what the group died on - the
+    // fatal SIGSYS never reached a level-1 "delivering" line, so the stop itself is the clue.
+    val argv = proot.argv(PYTHON + listOf("-c", NUMPY_MATMUL)).toMutableList().apply {
+      add(1, "-v")
+      add(2, "6")
+    }
+    val process = ProcessBuilder(argv).apply {
+      environment().clear()
+      // variables is private to SpaceRuntime, so the traced run repeats the one knob itself.
+      environment().putAll(
+        proot.environment() + runtime.environment() + mapOf("PROOT_SIGSYS_ENOSYS" to "1"),
+      )
+    }.redirectErrorStream(true).start()
+    // -v 6 emits a line per ptrace event, far past the pipe buffer, so the stream is
+    // drained as it arrives: signal events kept whole, and a bounded tail per vpid so a
+    // worker's last syscalls survive beside the main thread's flood.
+    val events = java.util.concurrent.CopyOnWriteArrayList<String>()
+    val tails = java.util.concurrent.ConcurrentHashMap<String, java.util.ArrayDeque<String>>()
+    val reader = Thread {
+      process.inputStream.bufferedReader().useLines { lines ->
+        lines.forEach { line ->
+          if (TRACE_EVENT_MARKERS.any { it in line } && events.size < MAX_TRACE_EVENTS) events += line
+          val vpid = VPID_PREFIX.find(line)?.groupValues?.get(1) ?: "?"
+          synchronized(tails) {
+            val deque = tails.getOrPut(vpid) { java.util.ArrayDeque() }
+            if (deque.size >= PER_VPID_TAIL_LINES) deque.removeFirst()
+            deque.addLast(line)
+          }
+        }
+      }
+    }
+    reader.start()
+    val exited = process.waitFor(IMPORT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    if (!exited) process.destroyForcibly()
+    reader.join(PER_VPID_TAIL_LINES * 10L)
+    val tailLines = synchronized(tails) { tails.values.flatMap { it.toList() } }
+    return buildString {
+      append("\n== the failing import under proot -v 6\n")
+      append(events.joinToString("\n", postfix = "\n"))
+      append("== the trace's per-vpid tails\n")
+      append(tailLines.joinToString("\n", postfix = "\n"))
+    }
+  }
+
+  /** What one `-v 1` run's SIGSYS lines were, and the report section they make. */
+  private data class SuppressionTrace(val report: String, val sigsysLines: List<String>)
+
+  /**
+   * The matmul once under `proot -v 1`, keeping only the tracer's SIGSYS lines: under
+   * PROOT_SIGSYS_ENOSYS each refused syscall must appear as "suppressed ... ENOSYS stands",
+   * which is the mechanism T6a exists to prove - a post-startup refusal answered without a
+   * signal ever reaching the guest.
+   */
+  private fun suppressionTrace(runtime: SpaceRuntime, patchedLibs: File): SuppressionTrace {
+    val dirs = SpaceDirs(root)
+    val proot = ProotCommand(patchedLibs, root, dirs.inRoot(dirs.workspace))
+    val argv = proot.argv(PYTHON + listOf("-c", NUMPY_MATMUL)).toMutableList().apply {
       add(1, "-v")
       add(2, "1")
     }
     val process = ProcessBuilder(argv).apply {
       environment().clear()
-      environment().putAll(proot.environment() + runtime.environment())
+      environment().putAll(
+        proot.environment() + runtime.environment() + mapOf("PROOT_SIGSYS_ENOSYS" to "1"),
+      )
     }.redirectErrorStream(true).start()
     val exited = process.waitFor(IMPORT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
     if (!exited) process.destroyForcibly()
-    val lines = process.inputStream.bufferedReader().use { it.readText() }.lines()
-    val sigsys = lines.filter { "SIGSYS" in it }.takeLast(TRACED_SIGSYS_LINES)
-    return buildString {
-      append("\n== the failing import under proot -v 1\n")
-      append(sigsys.joinToString("\n", postfix = "\n"))
-      append("== the trace's tail\n")
-      append(lines.takeLast(TRACED_TAIL_LINES).joinToString("\n", postfix = "\n"))
-    }
+    val output = process.inputStream.bufferedReader().readText()
+    val sigsysLines = output.lines().filter { "SIGSYS" in it }
+    return SuppressionTrace(
+      buildString {
+        append("\n== the matmul under proot -v 1 (suppression evidence)\n")
+        append(sigsysLines.joinToString("\n", postfix = "\n"))
+      },
+      sigsysLines,
+    )
   }
 
   private fun stagedVerified(name: String, sha256: String): File {
@@ -179,11 +269,18 @@ class GlibcPythonWheelProbeDeviceTest {
     const val BANNER = "import sys,platform;print(sys.version.split()[0]);print(platform.libc_ver())"
     const val DUCKDB_IMPORT = "import duckdb; print('duckdb', duckdb.__version__)"
     const val SKLEARN_IMPORT = "import sklearn; print('sklearn', sklearn.__version__)"
+    const val NUMPY_MATMUL =
+      "import numpy as np,time;" +
+        "print('numpy',np.__version__);" +
+        "a=np.random.rand(1200,1200);t=time.time();b=a@a;" +
+        "print('matmul',round(time.time()-t,2),float(b[0,0]))"
 
     const val BANNER_TIMEOUT_SECONDS = 120L
     const val PIP_TIMEOUT_SECONDS = 600L
     const val IMPORT_TIMEOUT_SECONDS = 300L
-    const val TRACED_SIGSYS_LINES = 40
-    const val TRACED_TAIL_LINES = 20
+    const val PER_VPID_TAIL_LINES = 60
+    const val MAX_TRACE_EVENTS = 500
+    val TRACE_EVENT_MARKERS = listOf("delivering", "terminated", "suppressed", "SIGSYS")
+    val VPID_PREFIX = Regex("""vpid (\d+):""")
   }
 }
