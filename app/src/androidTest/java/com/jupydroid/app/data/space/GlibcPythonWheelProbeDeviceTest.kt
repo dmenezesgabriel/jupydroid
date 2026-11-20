@@ -175,18 +175,6 @@ class GlibcPythonWheelProbeDeviceTest {
     const val ROOT_NAME = "glibc-python-probe"
     const val REPORT = "glibc-python-report.txt"
 
-    /** Ubuntu's own `SHA256SUMS` for the arm64 base image, the same pin the other glibc probes use. */
-    const val UBUNTU_TARBALL = "ubuntu-base-24.04.4-base-arm64.tar.gz"
-    const val UBUNTU_SHA256 = "04207713ece899c3740823d33690441ad3a7f0ded1101aca744e2b0f37ac7ff2"
-
-    /**
-     * python-build-standalone's CPython 3.12.16, release 20261110 - the sha256 is the release
-     * asset's own digest. A stock glibc build; its modules are inside libpython, so the Ubuntu
-     * base's libc is all it links against.
-     */
-    const val CPYTHON_TARBALL = "cpython-3.12.16+20261110-aarch64-unknown-linux-gnu-install_only.tar.gz"
-    const val CPYTHON_SHA256 = "4792f81750282597fb2a3389fe18b945ed2ba6aad5e45ad406d122c58cb33081"
-
     val PYTHON = listOf("/python/bin/python3.12")
     const val BANNER = "import sys,platform;print(sys.version.split()[0]);print(platform.libc_ver())"
     const val DUCKDB_IMPORT = "import duckdb; print('duckdb', duckdb.__version__)"

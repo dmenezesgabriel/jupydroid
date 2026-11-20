@@ -22,8 +22,13 @@ const val PROBE_TIMED_OUT = -1
  * val run = runBounded(runtime, listOf("/usr/bin/true"), 120)
  * ```
  */
-fun runBounded(runtime: SpaceRuntime, command: List<String>, timeoutSeconds: Long): SpaceProcessRun {
-  val process = runtime.execProcessBuilder(command).redirectErrorStream(true).start()
+fun runBounded(
+  runtime: SpaceRuntime,
+  command: List<String>,
+  timeoutSeconds: Long,
+  extraEnv: Map<String, String> = emptyMap(),
+): SpaceProcessRun {
+  val process = runtime.execProcessBuilder(command, extraEnv).redirectErrorStream(true).start()
   val exited = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
   if (!exited) process.destroyForcibly()
   val output = process.inputStream.bufferedReader().use { it.readText() }
@@ -75,6 +80,16 @@ fun extractTarGz(tarball: File, root: File) {
     }
   }
 }
+
+/**
+ * The pinned inputs the glibc probes share: Ubuntu's own `SHA256SUMS` for the 24.04.4 arm64
+ * base, and python-build-standalone's CPython 3.12.16 (release 20261110) whose sha256 is the
+ * release asset's own digest - a stock glibc build whose modules live inside libpython.
+ */
+const val UBUNTU_TARBALL = "ubuntu-base-24.04.4-base-arm64.tar.gz"
+const val UBUNTU_SHA256 = "04207713ece899c3740823d33690441ad3a7f0ded1101aca744e2b0f37ac7ff2"
+const val CPYTHON_TARBALL = "cpython-3.12.16+20261110-aarch64-unknown-linux-gnu-install_only.tar.gz"
+const val CPYTHON_SHA256 = "4792f81750282597fb2a3389fe18b945ed2ba6aad5e45ad406d122c58cb33081"
 
 /** The SHA-256 of [file] as lowercase hex, for the pinned-input checks the probes make. */
 fun sha256Hex(file: File): String {

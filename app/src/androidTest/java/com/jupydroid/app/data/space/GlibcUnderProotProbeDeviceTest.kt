@@ -291,16 +291,12 @@ class GlibcUnderProotProbeDeviceTest {
     const val PROBE_TAG = "JupydroidGlibc"
 
     /** Where the driver stages its three inputs and the report comes back from. */
-    const val UBUNTU_TARBALL = "ubuntu-base-24.04.4-base-arm64.tar.gz"
     const val GLIBC_HANDLER = "libsigsys_report_glibc.so"
     const val MUSL_HANDLER = "libsigsys_report_musl.so"
     const val REPORT = "report.txt"
 
     /** The patched tracer's own report, so a whole-class run cannot overwrite the shipped one's. */
     const val PATCHED_REPORT = "report-patched.txt"
-
-    /** Ubuntu's own `SHA256SUMS` for the arm64 base image, read 2026-11-20. */
-    const val UBUNTU_SHA256 = "04207713ece899c3740823d33690441ad3a7f0ded1101aca744e2b0f37ac7ff2"
 
     /** [SpaceRuntime]'s own log name, under the root's `tmp/`. */
     const val SIGSYS_LOG = "sigsys.log"
