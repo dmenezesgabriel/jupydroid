@@ -1,17 +1,27 @@
 --- a/src/tracee/event.c	2026-11-20 14:11:36.367927268 -0300
-+++ b/src/tracee/event.c	2026-11-20 14:12:19.224921367 -0300
-@@ -388,6 +388,38 @@
++++ b/src/tracee/event.c	2026-11-20 15:00:09.809065368 -0300
+@@ -388,6 +388,48 @@
  }
  
  /**
-+ * Whether a seccomp-trapped syscall is one a glibc loader issues before any
-+ * preload can arm a SIGSYS handler, where ENOSYS - what the kernel already
-+ * set - is the answer a kernel without the syscall would give and glibc
-+ * already tolerates: set_robust_list and rseq are both optional to it.
++ * Whether a seccomp-trapped syscall is one whose ENOSYS - what the kernel
++ * already set - is the answer a kernel without it would give, and which
++ * the caller already tolerates: the optional syscalls a glibc loader
++ * issues before any preload can arm a SIGSYS handler (set_robust_list,
++ * rseq), and the advisory NUMA policy calls OpenBLAS makes at init
++ * (mbind, set_mempolicy) - placement hints, not requirements.
 + */
 +static bool seccomp_trap_is_enosys_safe(Sysnum sysnum)
 +{
-+	return sysnum == PR_set_robust_list || sysnum == PR_rseq;
++	switch (sysnum) {
++	case PR_set_robust_list:
++	case PR_rseq:
++	case PR_mbind:
++	case PR_set_mempolicy:
++		return true;
++	default:
++		return false;
++	}
 +}
 +
 +/**
@@ -39,7 +49,7 @@
   * For kernels >= 4.8.0
   * Handle the current event (@tracee_status) of the given @tracee.
   * This function returns the "computed" signal that should be used to
-@@ -602,6 +634,31 @@
+@@ -602,6 +644,31 @@
  			}
  			break;
  
