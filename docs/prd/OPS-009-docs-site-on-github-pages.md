@@ -92,7 +92,7 @@ pattern [ADR-0138](../adr/0138-code-scanning-jobs-wait-for-a-public-repository-a
 |---|---|---|
 | ~~Whether `mkdocs-material` 9.8.0 resolves and builds under `requires-python >=3.14`~~ **Decided in T1:** it does. `uv lock` added 16 packages, four of them younger than 7 days and locked one release back, as `python-semantic-release`'s were: `backrefs` 8.1 (8.2 is 3 days old), `markdown` 3.11.2 (3.11.3, 1 day), `python-dateutil` 3.0.0 (4.0.0, 5 days) and `watchdog` 6.0.0 (7.0.0 and 7.1.0 are both inside the window). Locking `python-dateutil` 3.0.0 pulled in `six` 1.17.0, from 2024-12. `mkdocs build --strict` passes, and exits 1 on a link to a missing page and on a page outside `nav` | | T1 |
 | ~~The site's name and landing copy~~ **Decided in T1:** `JupyterDroid`, and a landing page that restates the README's first paragraph and its arm64-only note, with no screenshot (`OPS-010` owns those) | | T1 |
-| Which action versions the workflow pins | the sibling's pins, each re-read at its tag and pinned by full SHA ([ADR-0123](../adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md)) | T2 |
+| ~~Which action versions the workflow pins~~ **Decided in T2:** the sibling's pins, each re-read at its tag on 2026-11-21 and still the latest release — `actions/configure-pages` v6.0.0, `actions/upload-pages-artifact` v5.0.0, `actions/deploy-pages` v5.0.1 — pinned by full SHA beside checkout v7.0.1 and setup-uv v10.3.3, the versions `ci.yml` already carries ([ADR-0123](../adr/0123-dependencies-are-locked-strict-and-verified-by-sha256.md)) | | T2 |
 
 ## Surface
 
@@ -109,7 +109,7 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port.
 ## Tasks
 
 - [x] T1 — `docs-site/` with a landing page and a `docs` dependency group; the strict build passes; a test holds the config to the rules above (explicit `nav` naming every page, `validation` states, `site_dir` under `build/`)
-- [ ] T2 — `docs.yml`: the strict build on every pull request and push, the Pages upload and `deploy` guarded on a public repository; a workflow test (pinned actions, token scopes, the guard)
+- [x] T2 — `docs.yml`: the strict build on every pull request and push, the Pages upload and `deploy` guarded on a public repository; a workflow test (pinned actions, token scopes, the guard)
 - [ ] T3 — the same strict build as a commit hook; ADR-0142 records the generator, the directory and the deploy guard; delete this PRD; the backlog row to shipped
 
 ## Out of scope
