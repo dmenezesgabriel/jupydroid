@@ -28,12 +28,57 @@ ADD --checksum=sha256:4792f81750282597fb2a3389fe18b945ed2ba6aad5e45ad406d122c58c
     "https://github.com/astral-sh/python-build-standalone/releases/download/20261110/cpython-3.12.16%2B20261110-aarch64-unknown-linux-gnu-install_only.tar.gz" \
     /inputs/cpython.tar.gz
 
-# libgomp1 - the OpenMP half of the GCC-14 runtime the wheels' `.so`s link, beside
-# libstdc++ and libgcc_s. Pinned the same way the CPython tarball is: Debian's pool path
-# is stable per version and the sha256 is the archive's own, so a rebuild reproduces it.
+# Runtime libraries the published wheels link that trixie-slim does not ship, pinned the
+# same way the CPython tarball is: Debian's pool path is stable per version and the sha256
+# is the archive's own, so a rebuild reproduces it. libgomp1 is the OpenMP half of the
+# GCC-14 runtime LightGBM's `.so` links; the rest are the X11/GL set opencv-python's
+# bundled Qt5 plugins need plus glib and zlib - measured off the wheel's own DT_NEEDED
+# entries and the closure they pull, not guessed.
 ADD --checksum=sha256:43e84cb7971d8a4d8870cab6204e998ea4f23ee1339bb0ff556dd881bac82d25 \
     "https://deb.debian.org/debian/pool/main/g/gcc-14/libgomp1_14.2.0-19_arm64.deb" \
     /inputs/libgomp1.deb
+ADD --checksum=sha256:7ccff90234484bf21ae5ecb79d25b6a84b2f4038f65dd139085b2e3a937cd8dc \
+    "https://deb.debian.org/debian/pool/main/g/gcc-14/libatomic1_14.2.0-19_arm64.deb" \
+    /inputs/libatomic1.deb
+ADD --checksum=sha256:d84a783b818f2386627604e64b793eb4ac5bb9ea1ba321a194a1c9c82fe09a01 \
+    "https://deb.debian.org/debian/pool/main/libf/libffi/libffi8_3.4.8-2_arm64.deb" \
+    /inputs/libffi8.deb
+ADD --checksum=sha256:d446f0ea85fb9dc411219ce861e59e5eabe1981c796918771a7d2aa97cc72481 \
+    "https://deb.debian.org/debian/pool/main/g/glib2.0/libglib2.0-0t64_2.84.4-3~deb13u5_arm64.deb" \
+    /inputs/libglib2.0-0t64.deb
+ADD --checksum=sha256:0e41b3d7ad8ad7fcd36dd4d61ca91a70018478fc4af652e044f4be770784ddff \
+    "https://deb.debian.org/debian/pool/main/z/zlib/zlib1g_1.3.dfsg+really1.3.1-1+deb13u1_arm64.deb" \
+    /inputs/zlib1g.deb
+ADD --checksum=sha256:d0178198e80ed4cacdececabe2c112ec88c7a9258cc11a55b8e267ab14a90d82 \
+    "https://deb.debian.org/debian/pool/main/libx/libxcb/libxcb1_1.17.0-2+b1_arm64.deb" \
+    /inputs/libxcb1.deb
+ADD --checksum=sha256:646f2d3f2165c8eebceb7f4aaca31e97a818bb11a045964833a9f764b738bac2 \
+    "https://deb.debian.org/debian/pool/main/libx/libx11/libx11-6_1.8.12-1_arm64.deb" \
+    /inputs/libx11-6.deb
+ADD --checksum=sha256:4906619bbec923da6808cb7e4e817a7667d13cd43bc7d98c77702a03bb103f42 \
+    "https://deb.debian.org/debian/pool/main/libs/libsm/libsm6_1.2.6-1_arm64.deb" \
+    /inputs/libsm6.deb
+ADD --checksum=sha256:048874f2296660a5e925844635f4d050cb054e7d3459cb15b4c30afb113fbecb \
+    "https://deb.debian.org/debian/pool/main/libi/libice/libice6_1.1.1-1_arm64.deb" \
+    /inputs/libice6.deb
+ADD --checksum=sha256:29ec7b8cf1c9a47055de643eb0a1921854e762b4789a7f3bc3b0dea498fd4da9 \
+    "https://deb.debian.org/debian/pool/main/libg/libglvnd/libglvnd0_1.7.0-1+b2_arm64.deb" \
+    /inputs/libglvnd0.deb
+ADD --checksum=sha256:7943f99962aa3316515760bf44e66f0c15a3c813ad750b784b43e319fa2e6003 \
+    "https://deb.debian.org/debian/pool/main/libg/libglvnd/libgl1_1.7.0-1+b2_arm64.deb" \
+    /inputs/libgl1.deb
+ADD --checksum=sha256:0245aafaac5e68ca9511f23c5bebf010327e63c65790c03dbb80bf14d485956d \
+    "https://deb.debian.org/debian/pool/main/libg/libglvnd/libglx0_1.7.0-1+b2_arm64.deb" \
+    /inputs/libglx0.deb
+ADD --checksum=sha256:ac1061728670f4626adaa1288953a0e6fb801c9cae72ee1c3231e63e2609d23a \
+    "https://deb.debian.org/debian/pool/main/libx/libxau/libxau6_1.0.11-1_arm64.deb" \
+    /inputs/libxau6.deb
+ADD --checksum=sha256:e10bbb0802181992ecf091e9425171850eee16068729c109214ba4924f81fb52 \
+    "https://deb.debian.org/debian/pool/main/libx/libxdmcp/libxdmcp6_1.1.5-1_arm64.deb" \
+    /inputs/libxdmcp6.deb
+ADD --checksum=sha256:27cf208c6d2924b22ed3b9ceff304b992e1f07ef7b0ef00239585595581dac99 \
+    "https://deb.debian.org/debian/pool/main/libx/libxext/libxext6_1.3.4-1+b3_arm64.deb" \
+    /inputs/libxext6.deb
 COPY gnu/requirements-gnu.lock jupydroid_kernel.py jupydroid_usersite.py jupydroid_usersite.pth \
      user_site_probe.py /inputs/
 
@@ -43,7 +88,8 @@ COPY gnu/requirements-gnu.lock jupydroid_kernel.py jupydroid_usersite.py jupydro
 # `hosts: dns` loads, and the GCC-14 runtime `libstdc++`, `libgcc_s` and `libgomp` the
 # wheels' `.so`s link - and the loader copied whole to the PT_INTERP path. `cp -a` keeps
 # each entry's own mode and symlink: libstdc++.so.6 stays a link to its soname target,
-# which the glob copies beside it; libgomp comes out of its pinned deb the same way.
+# which the glob copies beside it; the pinned debs unpack the same way, each contributing
+# its `.so` files and their soname links to the multiarch directory.
 RUN mkdir -p /payload/opt/gnu /payload/usr/lib/aarch64-linux-gnu /payload/lib \
  && tar -xzf /inputs/cpython.tar.gz -C /payload/opt/gnu \
  && for lib in ld-linux-aarch64.so.1 libc.so.6 libm.so.6 libpthread.so.0 librt.so.1 \
@@ -52,8 +98,17 @@ RUN mkdir -p /payload/opt/gnu /payload/usr/lib/aarch64-linux-gnu /payload/lib \
    || { echo "debian lacks $lib at usr/lib/aarch64-linux-gnu" >&2; exit 1; }; \
     done \
  && cp -a /usr/lib/aarch64-linux-gnu/libstdc++.so.6* /payload/usr/lib/aarch64-linux-gnu/ \
- && dpkg-deb -x /inputs/libgomp1.deb /tmp/libgomp \
- && cp -a /tmp/libgomp/usr/lib/aarch64-linux-gnu/libgomp.so.1* /payload/usr/lib/aarch64-linux-gnu/ \
+ && cp -a /usr/lib/aarch64-linux-gnu/libpcre2-8.so.0* \
+      /usr/lib/aarch64-linux-gnu/libmount.so.1* \
+      /usr/lib/aarch64-linux-gnu/libblkid.so.1* \
+      /usr/lib/aarch64-linux-gnu/libselinux.so.1* \
+      /payload/usr/lib/aarch64-linux-gnu/ \
+ && for deb in libgomp1 libatomic1 libffi8 libglib2.0-0t64 zlib1g libxcb1 libx11-6 libsm6 \
+      libice6 libglvnd0 libgl1 libglx0 libxau6 libxdmcp6 libxext6; do \
+      dpkg-deb -x "/inputs/$deb.deb" "/tmp/$deb" \
+   && cp -a "/tmp/$deb/usr/lib/aarch64-linux-gnu/"*.so* /payload/usr/lib/aarch64-linux-gnu/ \
+   || { echo "the $deb deb yields no aarch64 libs" >&2; exit 1; }; \
+    done \
  && cp -L /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1 /payload/lib/ld-linux-aarch64.so.1
 
 # The kernel stack, installed by the interpreter's own pip into its own prefix - the same
