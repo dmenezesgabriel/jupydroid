@@ -24,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,10 +43,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
+import com.jupydroid.app.domain.port.HarnessScripts
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
+import com.jupydroid.app.domain.port.SpaceShell
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.relativeTime
 import com.jupydroid.extension.api.DeleteFileDialog
@@ -107,13 +110,19 @@ fun SpacesHomeScreen(
   spaceServers: SpaceServers,
   spaceEnvironments: SpaceEnvironments,
   stoppedKernelSpecs: KernelSpecs,
+  spaceShell: SpaceShell,
+  harnessScripts: HarnessScripts,
   onOpen: (spaceId: String) -> Unit,
   modifier: Modifier = Modifier,
   viewModel: SpacesViewModel = viewModel {
     SpacesViewModel(spaceRepository, spaceServers, spaceEnvironments, stoppedKernelSpecs)
   },
+  harnessesViewModel: SpaceHarnessesViewModel = viewModel {
+    SpaceHarnessesViewModel(spaceShell, harnessScripts)
+  },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
+  val harnessesState by harnessesViewModel.uiState.collectAsStateWithLifecycle()
   var creating by remember { mutableStateOf(false) }
   var renaming by remember { mutableStateOf<SpaceConfig?>(null) }
   var deleting by remember { mutableStateOf<SpaceConfig?>(null) }
@@ -174,6 +183,10 @@ fun SpacesHomeScreen(
   }
   configuring?.let { space ->
     LaunchedEffect(space.id) { viewModel.openSpaceSettings(space.id) }
+    // The harnesses' probes and installs live exactly as long as the dialog: open() re-asks
+    // every catalog harness in this Space's shell, and dismiss() ends whatever is in flight.
+    LaunchedEffect(space.id) { harnessesViewModel.open(space.id) }
+    DisposableEffect(space.id) { onDispose { harnessesViewModel.dismiss() } }
     SpaceSettingsDialog(
       space = space,
       environments = state.environments,
@@ -185,6 +198,8 @@ fun SpacesHomeScreen(
       onDismiss = { configuring = null },
       onRegister = { viewModel.registerEnvironment(space.id, it) },
       refusal = state.failure,
+      harnesses = harnessesState,
+      onHarnessInstall = harnessesViewModel::install,
     )
   }
   deleting?.let { space ->

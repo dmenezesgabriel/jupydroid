@@ -50,12 +50,19 @@ data class HarnessVersionRange(val minimum: HarnessVersion, val maximumExclusive
  * (`usr/lib/python3.12/site-packages/jupyter_ai_acp_client/acp_personas/claude.py` in the shipped
  * rootfs); opencode's also reads `--version` and refuses outside its range
  * (`.../acp_personas/opencode.py`).
+ *
+ * [whatItAdds] is the plain summary a person reads before installing - the runtime the script
+ * adds, the harness at its pinned version and the size
+ * `ChatHarnessInstallProbeDeviceTest`
+ * (`app/src/androidTest/java/com/jupydroid/app/data/space/ChatHarnessInstallProbeDeviceTest.kt`)
+ * measured on the tablet - shipped as data so the section never computes it.
  */
 data class ChatHarness(
   val id: String,
   val name: String,
   val executable: String,
   val requiredVersion: HarnessVersionRange? = null,
+  val whatItAdds: String,
 )
 
 /**
@@ -95,10 +102,13 @@ val CHAT_HARNESS_CATALOG: List<ChatHarness> = listOf(
       minimum = HarnessVersion(1, 0, 0),
       maximumExclusive = HarnessVersion(2, 0, 0),
     ),
+    whatItAdds = "OpenCode 1.19.3, about 186 MiB; adds no runtime - the Space's python3 fetches the pinned build",
   ),
   ChatHarness(
     id = "claude-agent-acp",
     name = "Claude",
     executable = "claude-agent-acp",
+    whatItAdds = "Node.js and npm through apk when absent, then " +
+      "@agentclientprotocol/claude-agent-acp 0.97.0 - about 586 MiB",
   ),
 )

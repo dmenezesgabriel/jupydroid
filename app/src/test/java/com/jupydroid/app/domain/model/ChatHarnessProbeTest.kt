@@ -194,6 +194,7 @@ class ChatHarnessProbeTest {
       name = "Future",
       executable = "future",
       requiredVersion = HarnessVersionRange(HarnessVersion(2, 0, 0), HarnessVersion(3, 0, 0)),
+      whatItAdds = "",
     )
     val accepted = future.presenceFromProbe(
       listOf("harness-probe:path=/usr/local/bin/future", "2.5.0", "harness-probe:version-rc=0"),

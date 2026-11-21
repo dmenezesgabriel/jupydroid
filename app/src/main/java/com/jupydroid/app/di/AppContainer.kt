@@ -6,6 +6,7 @@ import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeExternalLinkOpener
+import com.jupydroid.app.data.fake.FakeHarnessScripts
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
@@ -18,6 +19,7 @@ import com.jupydroid.app.data.fake.FakeSharedDocumentReader
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
+import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.data.fake.FakeWheelIndex
@@ -33,6 +35,7 @@ import com.jupydroid.app.domain.port.ErrorLog
 import com.jupydroid.app.domain.port.ErrorLogSharer
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.ExternalLinkOpener
+import com.jupydroid.app.domain.port.HarnessScripts
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
@@ -44,6 +47,7 @@ import com.jupydroid.app.domain.port.SharedDocumentReader
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
+import com.jupydroid.app.domain.port.SpaceShell
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.domain.port.WheelIndex
@@ -102,6 +106,16 @@ class AppContainer(
    * home's Settings picks that default among. Read off disk, so the app wires it real everywhere.
    */
   val stoppedSpaceKernelSpecs: KernelSpecs = FakeKernelSpecs(),
+  /**
+   * A stopped Space's proot shell, which the Settings' harness installs and probes run through.
+   * Null on a device that cannot run a Space becomes the fake, as every Space-backed port does.
+   */
+  val spaceShell: SpaceShell = FakeSpaceShell(),
+  /**
+   * The install script each catalog harness ships - APK data, so real on every device, the fake
+   * only where a test has no assets behind it.
+   */
+  val harnessScripts: HarnessScripts = FakeHarnessScripts(),
   /**
    * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown
    * rather than replaced. Read by every notebook and file editor alike, which is what "universal"

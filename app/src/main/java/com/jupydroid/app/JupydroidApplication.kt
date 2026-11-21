@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.jupydroid.app.data.asset.AssetHarnessScripts
 import com.jupydroid.app.data.asset.AssetLicenceDocuments
 import com.jupydroid.app.data.crash.ActivityManagerProcessExits
 import com.jupydroid.app.data.crash.ErrorLogUncaughtExceptionHandler
@@ -36,6 +37,7 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeSpaceServers
+import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.http.OkHttpRemoteImageReader
 import com.jupydroid.app.data.http.PyPiWheelIndex
@@ -63,6 +65,7 @@ import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.data.space.spaceImageInstaller
 import com.jupydroid.app.data.space.spaceKernelSpecsOnDisk
 import com.jupydroid.app.data.space.spaceServers
+import com.jupydroid.app.data.space.spaceShell
 import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.data.uimode.UiModeManagerPlatformNightMode
 import com.jupydroid.app.di.AppContainer
@@ -232,6 +235,10 @@ class JupydroidApplication : Application() {
     spaceRepository = spaceRepository,
     spaceEnvironments = DiskSpaceEnvironments(spacesDir(this)),
     stoppedSpaceKernelSpecs = kernelSpecsOnDisk,
+    // Null where no Space can run, as the servers are - the fake then answers the section's
+    // probes and installs the way every other Space-backed surface does on such a device.
+    spaceShell = spaceShell(this, spaceRepository) ?: FakeSpaceShell(),
+    harnessScripts = AssetHarnessScripts(assets::open),
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
     // state, not a Contents API file.
     editorSettings = DiskEditorSettingsRepository(filesDir),

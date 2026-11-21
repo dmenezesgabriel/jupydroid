@@ -61,7 +61,7 @@ class ProotSpaceShellDeviceTest {
   /** The section's question end to end: the probe execs in base and finds nothing on its PATH. */
   @Test
   fun aHarnessProbeRunsInTheSpaceAndAnswersNotInstalled() = runBlocking {
-    val harness = ChatHarness(id = "absent", name = "Absent", executable = "jupydroid-absent-harness")
+    val harness = ChatHarness(id = "absent", name = "Absent", executable = "jupydroid-absent-harness", whatItAdds = "")
     val events = shell.run(BASE_SPACE.id, harness.probeScript(), 1.minutes).toList()
 
     val lines = events.outputLines()
@@ -73,7 +73,7 @@ class ProotSpaceShellDeviceTest {
   /** The found path: `python3` ships in the image, so its probe must answer Installed with a 3.x. */
   @Test
   fun aProbeFindsWhatTheImageShips() = runBlocking {
-    val python = ChatHarness(id = "python3", name = "Python", executable = "python3")
+    val python = ChatHarness(id = "python3", name = "Python", executable = "python3", whatItAdds = "")
     val events = shell.run(BASE_SPACE.id, python.probeScript(), 1.minutes).toList()
 
     val lines = events.outputLines()

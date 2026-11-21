@@ -41,11 +41,12 @@ internal val HARNESS_INSTALL_TIMEOUT: Duration = 5.minutes
 /** What the harnesses section draws: one row per catalog harness. */
 data class SpaceHarnessesState(val harnesses: List<HarnessRowState> = CHAT_HARNESS_CATALOG.map { HarnessRowState(it) })
 
-/** One harness's row: what the probe last answered, and where its install stands. */
+/** One harness's row: what the probe last answered, where its install stands, and its script's bytes. */
 data class HarnessRowState(
   val harness: ChatHarness,
   val probe: HarnessProbeState = HarnessProbeState.Probing,
   val install: HarnessInstallState = HarnessInstallState.Idle,
+  val script: HarnessScriptState = HarnessScriptState.Loading,
 )
 
 /** What a harness probe said about the Space - or why it could not say. */
@@ -58,6 +59,18 @@ sealed interface HarnessProbeState {
 
   /** The run threw, or ended without the probe's markers - [message] says which, in the port's words. */
   data class Failed(val message: String) : HarnessProbeState
+}
+
+/** The install script's bytes for the expander: still being read, the text, or why it could not be. */
+sealed interface HarnessScriptState {
+  /** [HarnessScripts.installScript] has not answered yet. */
+  data object Loading : HarnessScriptState
+
+  /** The script's exact bytes - what the expander shows and what an install runs. */
+  data class Ready(val text: String) : HarnessScriptState
+
+  /** The port refused or threw; [message] says why, in the port's words. */
+  data class Failed(val message: String) : HarnessScriptState
 }
 
 /** Where one harness's install stands. */
@@ -76,9 +89,9 @@ sealed interface HarnessInstallState {
 }
 
 /**
- * The harnesses section's asks of [SpaceShell] and [HarnessScripts]: probe every catalog harness
- * when a stopped Space's Settings opens, and run one harness's install at a time with its output
- * streamed into the row.
+ * The harnesses section's asks of [SpaceShell] and [HarnessScripts]: load every catalog
+ * harness's install script and probe it in a stopped Space's shell when its Settings opens,
+ * and run one harness's install at a time with its output streamed into the row.
  *
  * **"Installed" is a live probe, never stored state** - the personas' own `which` + `--version`
  * question re-asked on every [open] and again after each clean install, so a rootfs upgrade that
@@ -101,15 +114,19 @@ class SpaceHarnessesViewModel(private val spaceShell: SpaceShell, private val ha
   private val installJobs = mutableMapOf<String, Job>()
 
   /**
-   * Probes every catalog harness in [spaceId]'s shell - the section's "on open". Any probe or
-   * install still in flight is cancelled first: its answer would describe another Space's disk.
+   * Loads every catalog harness's install script and probes it in [spaceId]'s shell - the
+   * section's "on open". Any probe, script read or install still in flight is cancelled first:
+   * its answer would describe another Space's disk.
    */
   fun open(spaceId: String) {
     this.spaceId = spaceId
     cancelJobs()
     _uiState.value = SpaceHarnessesState()
     CHAT_HARNESS_CATALOG.forEach { harness ->
-      probeJobs[harness.id] = viewModelScope.launch { probeHarness(spaceId, harness) }
+      probeJobs[harness.id] = viewModelScope.launch {
+        loadScript(harness)
+        probeHarness(spaceId, harness)
+      }
     }
   }
 
@@ -141,13 +158,37 @@ class SpaceHarnessesViewModel(private val spaceShell: SpaceShell, private val ha
     }
   }
 
+  /**
+   * Fetches [harness]'s install script for the expander. Its own failure stays on the row's
+   * script state - a script that cannot be read says nothing about whether the Space answers a
+   * probe, so the probe still runs.
+   */
+  // A port refusal's type is the adapter's to choose; the row reports whatever it threw.
+  @Suppress("TooGenericExceptionCaught")
+  private suspend fun loadScript(harness: ChatHarness) {
+    try {
+      val script = HarnessScriptState.Ready(harnessScripts.installScript(harness))
+      updateRow(harness.id) { it.copy(script = script) }
+    } catch (cancelled: CancellationException) {
+      throw cancelled
+    } catch (failure: Exception) {
+      val message = failure.message ?: failure.toString()
+      updateRow(harness.id) { it.copy(script = HarnessScriptState.Failed(message)) }
+    }
+  }
+
   /** Asks the persona's own question once: `command -v` plus `--version`, parsed by [presenceFromProbe]. */
   // A port refusal's type is the adapter's to choose; the row reports whatever it threw.
   @Suppress("TooGenericExceptionCaught")
   private suspend fun probeHarness(spaceId: String, harness: ChatHarness) {
     updateRow(harness.id) { it.copy(probe = HarnessProbeState.Probing) }
     try {
-      val presence = harness.presenceFromProbe(probeLines(spaceId, harness))
+      // The terminal Finished event is not a line and is dropped by the filter.
+      val lines = spaceShell.run(spaceId, harness.probeScript(), HARNESS_PROBE_TIMEOUT)
+        .filterIsInstance<SpaceShellEvent.Output>()
+        .map { it.line }
+        .toList()
+      val presence = harness.presenceFromProbe(lines)
       val answer = presence?.let(HarnessProbeState::Answered) ?: HarnessProbeState.Failed(PROBE_NO_ANSWER)
       updateRow(harness.id) { it.copy(probe = answer) }
     } catch (cancelled: CancellationException) {
@@ -156,13 +197,6 @@ class SpaceHarnessesViewModel(private val spaceShell: SpaceShell, private val ha
       updateRow(harness.id) { it.copy(probe = HarnessProbeState.Failed(failure.message ?: failure.toString())) }
     }
   }
-
-  /** The probe script's output lines; the terminal event is not a line and is dropped here. */
-  private suspend fun probeLines(spaceId: String, harness: ChatHarness): List<String> =
-    spaceShell.run(spaceId, harness.probeScript(), HARNESS_PROBE_TIMEOUT)
-      .filterIsInstance<SpaceShellEvent.Output>()
-      .map { it.line }
-      .toList()
 
   /** One install's whole life: fetch the script, stream it, settle by its exit status. */
   // A port refusal's type is the adapter's to choose; the row reports whatever it threw.
@@ -180,17 +214,26 @@ class SpaceHarnessesViewModel(private val spaceShell: SpaceShell, private val ha
 
   /** The happy path of [runInstall]: exit 0 re-probes, anything else keeps the output's tail. */
   private suspend fun installAndSettle(spaceId: String, harness: ChatHarness) {
-    val script = harnessScripts.installScript(harness)
+    val script = shownScriptOf(harness) ?: harnessScripts.installScript(harness)
     updateRow(harness.id) { it.copy(install = HarnessInstallState.Running(emptyList())) }
     val (exitCode, lines) = collectInstall(spaceId, harness.id, script)
     if (exitCode != EXIT_OK) {
-      val excerpt = excerptOf(lines)
+      // The failure's tail, the same 2000 characters a failed start's log keeps - `LOG_EXCERPT`
+      // in `app/src/main/java/com/jupydroid/app/data/space/SpaceStartupScript.kt`.
+      val excerpt = lines.joinToString("\n").takeLast(INSTALL_EXCERPT_CHARS)
       updateRow(harness.id) { it.copy(install = HarnessInstallState.Failed(exitCode, excerpt)) }
       return
     }
     updateRow(harness.id) { it.copy(install = HarnessInstallState.Idle) }
     probeHarness(spaceId, harness)
   }
+
+  /**
+   * The bytes the expander shows, when they already landed - the run is those, not a second ask
+   * of the port, so "the bytes shown are the bytes run" is the same string, not a coincidence.
+   */
+  private fun shownScriptOf(harness: ChatHarness): String? =
+    (_uiState.value.harnesses.firstOrNull { it.harness.id == harness.id }?.script as? HarnessScriptState.Ready)?.text
 
   /** Streams the run's output into the row line by line; returns its exit code and everything it said. */
   private suspend fun collectInstall(spaceId: String, harnessId: String, script: String): Pair<Int, List<String>> {
@@ -208,12 +251,6 @@ class SpaceHarnessesViewModel(private val spaceShell: SpaceShell, private val ha
     val finished = exitCode ?: error("SpaceShell.run ended without Finished; expected Output* then one Finished")
     return finished to lines
   }
-
-  /**
-   * The failure's tail, the same 2000 characters a failed start's log keeps - `LOG_EXCERPT` in
-   * `app/src/main/java/com/jupydroid/app/data/space/SpaceStartupScript.kt`.
-   */
-  private fun excerptOf(lines: List<String>): String = lines.joinToString("\n").takeLast(INSTALL_EXCERPT_CHARS)
 
   private fun updateRow(harnessId: String, change: (HarnessRowState) -> HarnessRowState) {
     _uiState.update { state ->

@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.input.KeyboardType
+import com.jupydroid.app.domain.model.ChatHarness
 import com.jupydroid.app.domain.model.IDLE_SHUTDOWN_MINUTES_RANGE
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.PythonEnvironment
@@ -63,7 +64,9 @@ internal const val SAVE_SETTINGS = "Save"
  * workspace holds, null while they are being read; Register on one hands its path to [onRegister],
  * which acts at once rather than on Save, since it writes a spec rather than a setting.
  * [kernelChoices] are the kernelspecs on the Space's disk, null while being read, and the default
- * kernel is picked among them. [refusal] is the last refusal Settings' own acts met.
+ * kernel is picked among them. [refusal] is the last refusal Settings' own acts met. [harnesses]
+ * is the harnesses section's live state, null where the surface has no `SpaceShell` to probe with;
+ * [onHarnessInstall] hands a catalog harness to `SpaceHarnessesViewModel.install`.
  *
  * ```
  * SpaceSettingsDialog(
@@ -80,6 +83,8 @@ fun SpaceSettingsDialog(
   onDismiss: () -> Unit,
   onRegister: (String) -> Unit = {},
   refusal: String? = null,
+  harnesses: SpaceHarnessesState? = null,
+  onHarnessInstall: (ChatHarness) -> Unit = {},
 ) {
   var idleText by remember(space) { mutableStateOf(space.settings.idleShutdownMinutes.toString()) }
   var capText by remember(space) { mutableStateOf(space.settings.threadCap?.toString().orEmpty()) }
@@ -100,6 +105,7 @@ fun SpaceSettingsDialog(
         StartupScriptField(script)
         SpaceDefaultKernelField(kernelChoices, selected = defaultKernel, onPick = { defaultKernel = it })
         SpaceEnvironmentsSection(environments, onRegister, refusal)
+        harnesses?.let { SpaceHarnessesSection(it, onHarnessInstall) }
       }
     },
     confirmButton = {

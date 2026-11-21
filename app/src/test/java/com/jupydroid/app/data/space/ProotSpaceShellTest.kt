@@ -3,7 +3,9 @@ package com.jupydroid.app.data.space
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.SpaceShellEvent
+import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.toList
@@ -18,6 +20,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.time.Duration.Companion.minutes
 
 /**
@@ -64,6 +67,35 @@ class ProotSpaceShellTest {
     shell.run("space-1", "true", 1.minutes).toList()
 
     assertEquals(listOf("settings", "install"), order)
+  }
+
+  /**
+   * Concurrent runs prepare the Space one at a time: the settings section probes every catalog
+   * harness the moment it opens, and each run's `installSpace` rewrites the same kernelspec -
+   * two at once is the `.~kernel.json` temp-file race a device run showed, one run's rename
+   * taking the temp out from under the other's move.
+   */
+  @Test
+  fun concurrentRunsPrepareTheSpaceOneAtATime() = runBlocking {
+    val inFlight = AtomicInteger()
+    val deepest = AtomicInteger()
+    val shell = shell(
+      installSpace = {
+        val now = inFlight.incrementAndGet()
+        deepest.updateAndGet { maxOf(it, now) }
+        delay(50)
+        inFlight.decrementAndGet()
+      },
+    )
+
+    coroutineScope {
+      val first = async { shell.run("base", "true", 1.minutes).toList() }
+      val second = async { shell.run("base", "true", 1.minutes).toList() }
+      first.await()
+      second.await()
+    }
+
+    assertEquals(1, deepest.get())
   }
 
   /** The script's own status, not proot's - a `Finished` is what the section branches on. */

@@ -8,9 +8,11 @@ import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.data.fake.SpaceShellRun
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.CHAT_HARNESS_CATALOG
+import com.jupydroid.app.domain.model.ChatHarness
 import com.jupydroid.app.domain.model.HarnessPresence
 import com.jupydroid.app.domain.model.HarnessVersion
 import com.jupydroid.app.domain.model.probeScript
+import com.jupydroid.app.domain.port.HarnessScripts
 import com.jupydroid.app.domain.port.SpaceShell
 import com.jupydroid.app.domain.port.SpaceShellEvent
 import kotlinx.coroutines.CompletableDeferred
@@ -296,6 +298,57 @@ class SpaceHarnessesViewModelTest {
 
     assertTrue(shell.runs.isEmpty())
   }
+
+  /** Opening also fetches each harness's install script - the bytes the expander shows before anything runs. */
+  @Test
+  fun openLoadsEachHarnesssScriptForTheExpander() = runTest {
+    val model = SpaceHarnessesViewModel(shell, scripts)
+    shell.eventsFor = { absentProbeEvents() }
+
+    model.open(BASE_SPACE.id)
+    advanceUntilIdle()
+
+    CHAT_HARNESS_CATALOG.forEach { catalogHarness ->
+      val expected = scripts.installScript(catalogHarness)
+      assertEquals(HarnessScriptState.Ready(expected), model.row(catalogHarness.id).script)
+    }
+  }
+
+  /**
+   * The run's script is the string the row shows, not a second ask of the port: a port whose
+   * answer changes per call would hand a re-fetch different bytes, and the row's are the ones
+   * a person read.
+   */
+  @Test
+  fun anInstallRunsTheScriptBytesTheRowShows() = runTest {
+    val changing = FirstThenDifferentScripts()
+    val model = SpaceHarnessesViewModel(shell, changing)
+    shell.eventsFor = { run -> if (run.isProbe()) absentProbeEvents() else cleanInstallEvents() }
+    model.open(BASE_SPACE.id)
+    advanceUntilIdle()
+    val shown = (model.row("opencode").script as HarnessScriptState.Ready).text
+
+    model.install(harness("opencode"))
+    advanceUntilIdle()
+
+    assertTrue(shell.runs.any { it.script == shown })
+    assertTrue(shell.runs.none { it.script == "refetched-opencode" })
+  }
+
+  /** A script the port cannot read fails its own row only - the probe still answers for the Space. */
+  @Test
+  fun aScriptThePortCannotReadFailsTheRowAndTheProbeStillAnswers() = runTest {
+    val model = SpaceHarnessesViewModel(shell, FailingHarnessScripts("opencode"))
+    shell.eventsFor = { absentProbeEvents() }
+
+    model.open(BASE_SPACE.id)
+    advanceUntilIdle()
+
+    val failed = model.row("opencode").script as HarnessScriptState.Failed
+    assertTrue(failed.message.contains("opencode"))
+    assertEquals(HarnessProbeState.Answered(HarnessPresence.NotInstalled), model.row("opencode").probe)
+    assertTrue(model.row("claude-agent-acp").script is HarnessScriptState.Ready)
+  }
 }
 
 /** A probe run is the only one whose script carries the probe's own marker prefix. */
@@ -413,5 +466,23 @@ private class GatedSpaceShell : SpaceShell {
     val run = SpaceShellRun(spaceId, script, timeout)
     runs += run
     eventsFor(run).collect { emit(it) }
+  }
+}
+
+/** Answers "shown-<id>" on a harness's first ask and "refetched-<id>" on every later one. */
+private class FirstThenDifferentScripts : HarnessScripts {
+  private val asked = mutableSetOf<String>()
+
+  override suspend fun installScript(harness: ChatHarness): String {
+    val first = asked.add(harness.id)
+    return if (first) "shown-${harness.id}" else "refetched-${harness.id}"
+  }
+}
+
+/** Reads every script but [failFor]'s, whose ask throws the way a missing asset would. */
+private class FailingHarnessScripts(private val failFor: String) : HarnessScripts {
+  override suspend fun installScript(harness: ChatHarness): String {
+    if (harness.id == failFor) throw IllegalStateException("no install script for '${harness.id}'")
+    return "script-${harness.id}"
   }
 }

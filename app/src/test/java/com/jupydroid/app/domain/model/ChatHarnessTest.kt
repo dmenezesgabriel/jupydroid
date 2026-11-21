@@ -39,6 +39,18 @@ class ChatHarnessTest {
     assertNull(claude.requiredVersion)
   }
 
+  /**
+   * What a person reads before installing: the harness at its pinned version and the size the
+   * tablet measured - "a plain summary of what it adds", shipped as catalog data.
+   */
+  @Test
+  fun catalog_statesWhatEachInstallAdds() {
+    assertTrue(opencode.whatItAdds.contains("1.19.3"))
+    assertTrue(opencode.whatItAdds.contains("MiB"))
+    assertTrue(claude.whatItAdds.contains("0.97.0"))
+    assertTrue(claude.whatItAdds.contains("MiB"))
+  }
+
   /** The persona compares version tuples, so `1.9.9` precedes `1.19.3` where a string compare would not. */
   @Test
   fun harnessVersion_ordersNumericallyNotLexically() {

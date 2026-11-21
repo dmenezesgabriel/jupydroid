@@ -15,6 +15,8 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
@@ -40,17 +42,27 @@ class ProotSpaceShell(
   private val dirsFor: (space: Space) -> SpaceDirs,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : SpaceShell {
+  /**
+   * The prepare half of [run], one collection at a time: the settings section probes every
+   * catalog harness the moment it opens, so several runs prepare the same Space together, and
+   * [installSpace]'s atomic kernelspec rewrite (`.~kernel.json`, `SpaceKernelSpec.install`) and
+   * [SpaceDirs.ensure]'s `isDirectory || mkdirs()` check both lose to a sibling's interleaving.
+   */
+  private val prepareMutex = Mutex()
+
   override fun run(spaceId: String, script: String, timeout: Duration): Flow<SpaceShellEvent> = callbackFlow {
     val space = spaceWithId(spaceId)
     val settings = settingsFor(space)
-    withContext(ioDispatcher) { installSpace(spaceId) }
-    val dirs = dirsFor(space)
-    val process = withContext(ioDispatcher) {
-      dirs.ensure()
-      runtimeFor(space, settings)
-        .execProcessBuilder(boundedShellArgs(SHELL_ARG0, script, timeout), killOnExit = true)
-        .redirectErrorStream(true)
-        .start()
+    val process = prepareMutex.withLock {
+      withContext(ioDispatcher) { installSpace(spaceId) }
+      withContext(ioDispatcher) {
+        val dirs = dirsFor(space)
+        dirs.ensure()
+        runtimeFor(space, settings)
+          .execProcessBuilder(boundedShellArgs(SHELL_ARG0, script, timeout), killOnExit = true)
+          .redirectErrorStream(true)
+          .start()
+      }
     }
     drain(process, spaceId)
     awaitClose {

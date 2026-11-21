@@ -202,7 +202,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   size (the catalog's measured-size text).
 - [x] T5 — `SpaceHarnessesViewModel`: probe-all on open, per-harness install lifecycle —
   running with streamed lines, success re-probe, failure excerpt, cancel — unit tests on the fakes.
-- [ ] T6 — `SpaceHarnessesSection` in `SpaceSettingsDialog` + wiring through `SpacesHomeScreen`,
+- [x] T6 — `SpaceHarnessesSection` in `SpaceSettingsDialog` + wiring through `SpacesHomeScreen`,
   `Navigation`, `AppContainer`, `JupydroidApplication`; instrumented tests for every state,
   including the expanded script being byte-identical to what `SpaceShell` was handed.
 - [ ] T7 — Demo: `.maestro/` flow + `scripts/` driver on `SM-X216B` — both harnesses installed
