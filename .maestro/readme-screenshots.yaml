@@ -3,7 +3,9 @@ appId: com.jupydroid.app
 # The frames the README shows: the shell with a notebook open and its cells run. The cells' results
 # are kernel-built (`mean` and `std` are computed from a seeded generator, so neither number is in the
 # source), which FakeKernelGateway - an echo of the source - could not produce.
-# Seeded by scripts/readme-screenshots-driver.sh, which crops the system bars off what is captured.
+# Seeded by scripts/readme-screenshots-driver.sh for the README's frames and by
+# scripts/site-screenshots-driver.sh for the site's light/dark pairs; each crops the system bars
+# off what is captured.
 #
 # TABLET ONLY (SM-X216B): the flow runs cells.
 - launchApp

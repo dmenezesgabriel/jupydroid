@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# Installs numpy into base's Space once, after a fresh install wipes it: the tour flow's cells
+# import it, and a Space starts with none of the packages an earlier run installed. `%pip` is the
+# Space's own pip, so the wheel lands where the notebook's kernel looks for it, and pip's
+# "Successfully installed" line is the proof - a value only a real install produces, which
+# FakeKernelGateway's echo of the source could not.
+#
+# TABLET ONLY (SM-X216B): runs a cell, and pip resolves against PyPI - the tablet must be online.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "site-setup.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "site-setup.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- tapOn: "Run all cells"
+# Generous: the first run after a fresh install creates the Space and starts its kernel, then pip
+# resolves numpy against PyPI.
+- extendedWaitUntil:
+    visible:
+      text: ".*Successfully installed numpy.*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 600000

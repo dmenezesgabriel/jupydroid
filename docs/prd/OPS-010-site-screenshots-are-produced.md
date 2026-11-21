@@ -120,7 +120,7 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port and no app cod
 ## Tasks
 
 - [x] T1 — `check_site_images.py` + `_test.py` (red → green) and the `site-images` pre-commit hook scoped to `docs-site/`; pair completeness both directions, unsuffixed names ignored
-- [ ] T2 — `scripts/site-screenshots-driver.sh`: `fresh_install`, per-theme `uimode`/`reset_notebooks`/seed/run_flow/`dumpsys window`/crop into `docs-site/pages/images/`, prior `uimode` restored by trap; run it on the tablet, look at every frame; the flow's header comment names the second consumer
+- [x] T2 — `scripts/site-screenshots-driver.sh`: `fresh_install`, per-theme `uimode`/`reset_notebooks`/seed/run_flow/`dumpsys window`/crop into `docs-site/pages/images/`, prior `uimode` restored by trap; run it on the tablet, look at every frame; the flow's header comment names the second consumer
 - [ ] T3 — embed the produced pairs in `docs-site/pages/index.md` with `#only-light`/`#only-dark`; strict build green; the built HTML shows both img tags per picture
 - [ ] T4 — the ADR recording location, naming, the producing command, the fragment mechanism and the crop; delete this PRD; backlog row to `shipped`
 
