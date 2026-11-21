@@ -155,7 +155,7 @@ path and OPS-012 owns per-feature pages.
 One TDD unit each where code changes; documentation tasks end on the gates that read them. Small
 enough that each takes well under an hour; if one does not, decompose it in this PRD before coding.
 
-- [ ] T1 — Add `docs-site/pages/getting-started.md`, add it to `docs-site/mkdocs.yml` `nav`, and link
+- [x] T1 — Add `docs-site/pages/getting-started.md`, add it to `docs-site/mkdocs.yml` `nav`, and link
   it from `docs-site/pages/index.md`; text-first install → launch → first Space → first notebook run
   using only verified labels, with the arm64/release caveat and a short next-steps pointer.
 - [ ] T2 — Extend `scripts/site-screenshots-driver.sh` so each theme pass resets, runs

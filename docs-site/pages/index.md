@@ -13,5 +13,7 @@ kernel that echoes a cell's source back as its output, so a cell does not run th
 ![The same notebook after the second cell ran: its HTML output drawn as a table](images/html-table-output-light.png#only-light)
 ![The same notebook after the second cell ran: its HTML output drawn as a table](images/html-table-output-dark.png#only-dark)
 
+New here? [Getting started](getting-started.md) walks from installing the release to a first cell.
+
 The source, the release downloads and the engineering documents are in
 [the repository](https://github.com/dmenezesgabriel/jupydroid).
