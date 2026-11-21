@@ -1,7 +1,10 @@
 appId: com.jupydroid.app
 ---
 # The demo: the released APK, downloaded from a GitHub Release and installed fresh, launches, runs
-# base's kernel and answers a cell. Driven by scripts/release-install-demo-driver.sh.
+# base's kernel and answers a cell. Driven by scripts/release-install-demo-driver.sh on the
+# release APK, and by scripts/site-screenshots-driver.sh on the debug build for the getting-started
+# page's light/dark pairs - every step is UI, so either build drives it; the site driver crops the
+# system bars off what is captured.
 #
 # The notebook is created through the UI, not seeded: a release APK is not debuggable, so the
 # `run-as` that `seed_notebook` uses is refused on it.

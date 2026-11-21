@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# The documentation site's screenshots: the tour the README shows, captured once per system theme
-# - light and dark - and cropped of the status and navigation bars into docs-site/pages/images/
-# as <id>-light.png and <id>-dark.png pairs.
+# The documentation site's screenshots: two suites, each captured once per system theme - light
+# and dark - and cropped of the status and navigation bars into docs-site/pages/images/ as
+# <id>-light.png and <id>-dark.png pairs. The first is the tour the README shows; the second is
+# the getting-started page's install-to-first-cell arc, which .maestro/release-install-demo.yaml
+# shoots with screenshots of its own.
 #
 #   ANDROID_SERIAL=<tablet serial> scripts/site-screenshots-driver.sh
 #
@@ -33,6 +35,7 @@ EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/site-screenshots}"
 IMAGES="$ROOT/docs-site/pages/images"
 FLOW="$ROOT/.maestro/readme-screenshots.yaml"
 FIXTURE="$ROOT/.maestro/fixtures/readme-tour.ipynb"
+FIRST_RUN_FLOW="$ROOT/.maestro/release-install-demo.yaml"
 
 mkdir -p "$IMAGES"
 fresh_install "$EVIDENCE"
@@ -52,9 +55,17 @@ capture_theme() {
   reset_notebooks
   seed_notebook "$FIXTURE" "Jupydroid tour"
   run_flow "$FLOW" "$out"
+  # The first-run flow builds its notebook through the UI, so it needs no seed - only the clean
+  # slate, or the Files panel in its frames lists notebooks a new user never had. Its evidence
+  # stays in a subdirectory so neither flow's maestro.log or logcat is overwritten by the other.
+  reset_notebooks
+  run_flow "$FIRST_RUN_FLOW" "$out/release-install-demo"
   # Read while the app is still in the orientation the frames were taken in.
   "$ADB" shell dumpsys window >"$out/window.txt"
-  for frame in notebook-with-outputs:01-notebook-with-outputs html-table-output:02-html-table-output; do
+  for frame in notebook-with-outputs:01-notebook-with-outputs html-table-output:02-html-table-output \
+    spaces-home:release-install-demo/01-spaces-home-after-install \
+    first-cell:release-install-demo/02-cell-typed \
+    first-output:release-install-demo/03-kernel-answered; do
     python3 "$ROOT/scripts/crop_system_bars.py" "$out/window.txt" "$out/${frame#*:}.png" \
       "$IMAGES/${frame%%:*}-$theme.png"
   done

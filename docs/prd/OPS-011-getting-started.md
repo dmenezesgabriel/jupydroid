@@ -158,7 +158,7 @@ enough that each takes well under an hour; if one does not, decompose it in this
 - [x] T1 — Add `docs-site/pages/getting-started.md`, add it to `docs-site/mkdocs.yml` `nav`, and link
   it from `docs-site/pages/index.md`; text-first install → launch → first Space → first notebook run
   using only verified labels, with the arm64/release caveat and a short next-steps pointer.
-- [ ] T2 — Extend `scripts/site-screenshots-driver.sh` so each theme pass resets, runs
+- [x] T2 — Extend `scripts/site-screenshots-driver.sh` so each theme pass resets, runs
   `.maestro/release-install-demo.yaml`, and crops its three screenshots into
   `docs-site/pages/images/{spaces-home,first-cell,first-output}-{light,dark}.png`; update the flow
   header to name the second consumer; run the driver on `SM-X216B` and inspect every frame.
