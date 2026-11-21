@@ -22,20 +22,29 @@ internal fun errorLogDayOf(fileName: String): LocalDate? {
   }
 }
 
-/** The files in [directory] that hold a day's entries; anything else there is not the log's. */
+/**
+ * The files in [directory] that hold a day's entries; anything else there is not the log's.
+ */
 internal fun errorLogDayFiles(directory: File): List<File> =
   directory.listFiles().orEmpty().filter { file -> errorLogDayOf(file.name) != null }
 
 /**
- * The day files in [directory] that [caps] no longer allow at [nowMillis]: every one older than the age cap,
- * then the oldest of the rest until the total fits the size cap. The newest day is never taken for its size,
- * since the entry just written lives in it.
+ * The files in [directory] that [caps] no longer allow at [nowMillis]: every one [dayOf] dates older
+ * than the age cap, then the oldest of the rest until the total fits the size cap. The newest file
+ * is never taken for its size, since what was just written lives in it. [dayOf] names the UTC day
+ * a file holds or null for a name that is not the log's - `errors-*.jsonl` for the error log,
+ * `jupyter_server-*.log` for a Space's server-log archive (ADR-0167).
  */
-internal fun filesToPrune(directory: File, caps: ErrorLogCaps, nowMillis: Long): List<File> {
+internal fun filesToPrune(
+  directory: File,
+  caps: ErrorLogCaps,
+  nowMillis: Long,
+  dayOf: (String) -> LocalDate? = ::errorLogDayOf,
+): List<File> {
   val today = Instant.ofEpochMilli(nowMillis).atZone(ZoneOffset.UTC).toLocalDate()
   val dayFiles = directory.listFiles().orEmpty()
-    .mapNotNull { file -> errorLogDayOf(file.name)?.let { day -> day to file } }
-    .sortedBy { (day, _) -> day }
+    .mapNotNull { file -> dayOf(file.name)?.let { day -> day to file } }
+    .sortedBy { (_, file) -> file.name }
   val (stale, kept) = dayFiles.partition { (day, _) -> day.isBefore(today.minusDays(caps.maxAgeDays.toLong())) }
   return (stale + kept.oldestOverSize(caps.maxBytes)).map { (_, file) -> file }
 }

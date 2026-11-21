@@ -207,6 +207,28 @@ class JupyterServerLauncherSpaceTest {
     assertEquals(emptyList<File>(), stale.filter(File::exists))
   }
 
+  /**
+   * The run before this one leaves its log in the Space's `server-logs/`, so the restart after a
+   * crash does not overwrite the crash's account of itself (ADR-0167); `run/` still holds only
+   * this run's files.
+   */
+  @Test
+  fun start_archivesThePreviousRunsServerLog() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    File(spaceOneDir(), "run").mkdirs()
+    File(spaceOneDir(), "run/jupyter_server.log").writeText("the run that crashed\n")
+
+    launcher.start(spaceOne)
+
+    val archives = File(spaceOneDir(), "server-logs").listFiles().orEmpty().toList()
+    assertEquals(1, archives.size)
+    assertTrue(archives[0].name, archives[0].name.startsWith("jupyter_server-"))
+    assertEquals("the run that crashed\n", archives[0].readText())
+    val live = File(spaceOneDir(), "run/jupyter_server.log")
+    assertTrue("the redirect opens this run's log", live.isFile)
+    assertFalse("the live log is this run's alone", "the run that crashed" in live.readText())
+  }
+
   @Test
   fun start_connectsToTheServerTheSpaceItWasHandedReported() = runBlocking {
     val connection = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)

@@ -1,6 +1,7 @@
 package com.jupydroid.app.data.space
 
 import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
+import com.jupydroid.app.domain.model.ErrorLogCaps
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.SpaceSettings
 import com.jupydroid.app.domain.port.ServerConnection
@@ -70,6 +71,9 @@ class JupyterServerLauncher(
   private val stopTimeout: Duration = STOP_TIMEOUT,
   private val log: SpaceLifecycleLog = SpaceLifecycleLog.Silent,
   private val client: OkHttpClient = OkHttpClient(),
+  /** The caps the Space's server-log archive is pruned under at every start (ADR-0167). */
+  private val serverLogCaps: ErrorLogCaps = ErrorLogCaps.DEFAULT,
+  private val clock: () -> Long = System::currentTimeMillis,
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ServerLauncher {
   private var process: Process? = null
@@ -92,7 +96,7 @@ class JupyterServerLauncher(
     val settings = settingsFor(space)
     val defaultKernel = defaultKernelFor(space)
     val runtime = runtimeFor(space, settings)
-    prepareWritableDirs(dirs, runtime, ioDispatcher)
+    prepareWritableDirs(dirs, runtime, ioDispatcher, serverLogCaps, clock)
     runStartupScript(runtime, dirs.runtime, settings.startupScript)
     val started = withContext(ioDispatcher) {
       val rootDir = dirs.inRoot(dirs.workspace)
@@ -207,14 +211,22 @@ class JupyterServerLauncher(
 
 /**
  * The Space's writable state as a start leaves it: directories provisioned, both pip.confs in
- * place, `etc/resolv.conf` fresh for the gnu resolver, and `run/` cleared of a dead server's
- * files. All of it under [ioDispatcher] - none of it belongs on the caller's thread.
+ * place, `etc/resolv.conf` fresh for the gnu resolver, the finished run's server log archived, and
+ * `run/` cleared of a dead server's files. All of it under [ioDispatcher] - none of it belongs on
+ * the caller's thread.
  */
-private suspend fun prepareWritableDirs(dirs: SpaceDirs, runtime: SpaceRuntime, ioDispatcher: CoroutineDispatcher) {
+private suspend fun prepareWritableDirs(
+  dirs: SpaceDirs,
+  runtime: SpaceRuntime,
+  ioDispatcher: CoroutineDispatcher,
+  serverLogCaps: ErrorLogCaps,
+  clock: () -> Long,
+) {
   withContext(ioDispatcher) {
     dirs.ensure()
     SpacePipConfig.ensure(dirs.spaceDir)
     runtime.writeGnuResolvConf() // glibc's resolver reads etc/resolv.conf; musl's cannot (ADR-0166)
+    rotateServerLog(dirs, serverLogCaps, clock()) // before the clear, or the log dies with run/ (ADR-0167)
     dirs.clearRuntime() // a stale jpserver-<pid>.json would advertise a dead port
   }
 }
@@ -248,7 +260,10 @@ internal fun jupyterServerProcess(
   .redirectErrorStream(true)
   .redirectOutput(jupyterServerLogFile(runtimeDir))
 
-/** One home for the log's path: [jupyterServerProcess] writes it and a failed start reads it. */
+/**
+ * One home for the live log's path: [jupyterServerProcess] writes it and a failed start reads it.
+ * The finished runs' copies are [SpaceDirs.serverLogs]' (ADR-0167).
+ */
 internal fun jupyterServerLogFile(runtimeDir: File): File = File(runtimeDir, "jupyter_server.log")
 
 /**
@@ -318,8 +333,9 @@ internal fun jupyterServerArgs(
   // `No such channel` or `Received message on closed websocket` the server was reporting at the
   // time - three mutually exclusive causes with three different fixes.
   //
-  // It costs nothing on screen: `redirectOutput` sends it to `run/jupyter_server.log`, truncated
-  // at every server start, so it is one run's worth of file and never touches logcat. Read it with
+  // It costs nothing on screen: `redirectOutput` sends it to `run/jupyter_server.log`, this run's
+  // file alone - each start first archives the run before it under the Space's `server-logs/`
+  // (ADR-0167) - so it never touches logcat. Read it with
   //   adb shell run-as com.jupydroid.app cat files/spaces/base/run/jupyter_server.log
   // Drop it to INFO when the app is feature-complete, not before.
   "--ServerApp.log_level=DEBUG",

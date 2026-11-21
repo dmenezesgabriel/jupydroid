@@ -17,13 +17,6 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
-/**
- * An entry measured 2.9 KB with a real stack and 18.7 KB with the same thrown 150 frames deep
- * (`DiskErrorLogOnDeviceTest.anEntryWithARealStackHasAMeasuredSize`, dev36), so 1 MiB holds about 360 of the
- * first or 56 of the second, and a week is time enough to be read or pulled.
- */
-private val DEFAULT_ERROR_LOG_CAPS = ErrorLogCaps(maxBytes = 1_048_576, maxAgeDays = 7)
-
 private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC)
 
 /** The file one UTC day's entries go to, so an age cap can drop a day by deleting a file. */
@@ -51,7 +44,7 @@ internal fun errorLogFileNameFor(timestampMillis: Long): String =
  */
 class DiskErrorLog(
   private val directory: File,
-  private val caps: ErrorLogCaps = DEFAULT_ERROR_LOG_CAPS,
+  private val caps: ErrorLogCaps = ErrorLogCaps.DEFAULT,
   private val clock: () -> Long = System::currentTimeMillis,
   private val json: Json = Json { encodeDefaults = true },
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,

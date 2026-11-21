@@ -61,6 +61,7 @@ class SpaceDirsTest {
     assertEquals(File(spaceDir, "tmp"), SpaceDirs(spaceDir).tmp)
     assertEquals(File(spaceDir, "pkgs"), SpaceDirs(spaceDir).pkgs)
     assertEquals(File(spaceDir, "pkgs-gnu"), SpaceDirs(spaceDir).gnuPkgs)
+    assertEquals(File(spaceDir, "server-logs"), SpaceDirs(spaceDir).serverLogs)
   }
 
   /** A Space is its own `/` under proot (ADR-0073), so a process names each dir by its path under the Space. */

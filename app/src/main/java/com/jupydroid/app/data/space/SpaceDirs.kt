@@ -36,6 +36,14 @@ class SpaceDirs(val spaceDir: File) {
   /** `PYTHONUSERBASE`: what `pip` installs into this Space, and its console scripts under `bin`. */
   val pkgs: File get() = File(spaceDir, SPACE_PKGS_DIR)
 
+  /**
+   * The app's archive of finished server logs - one `jupyter_server-*.log` per run, pruned under
+   * the error log's caps so a restart does not overwrite the run before it (ADR-0167). Not one of
+   * the Space's writable dirs: [ensure] does not provision it and no process needs it; the
+   * launcher's rotation creates it on the first archive.
+   */
+  val serverLogs: File get() = File(spaceDir, "server-logs")
+
   /** The gnu kernel's own `PYTHONUSERBASE` - separate from [pkgs] so the two libcs never share wheels. */
   val gnuPkgs: File get() = File(spaceDir, SPACE_GNU_PKGS_DIR)
 
@@ -60,7 +68,8 @@ class SpaceDirs(val spaceDir: File) {
    *
    * A killed server removes nothing: its `jpserver-<pid>-open.html`, `jpserver-mcp-<pid>.json` and
    * kernels' connection files stayed, one set per start (ADR-0128). Nothing in it outlives a start -
-   * the logs are truncated by the redirect that opens them - so what is cleared is only what a
+   * the server log was archived by the launcher's rotation before this clear (ADR-0167), and
+   * `startup.log` is truncated by the redirect that opens it - so what is cleared is only what a
    * dead process left. Where the directory was never provisioned there is nothing to clear.
    *
    * ```
