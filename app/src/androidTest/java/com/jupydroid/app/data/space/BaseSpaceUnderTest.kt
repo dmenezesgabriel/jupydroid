@@ -41,6 +41,7 @@ object BaseSpaceUnderTest {
       CoroutineScope(SupervisorJob() + Dispatchers.IO),
       spaceRepository,
       spaceKernelSpecsOnDisk(context, spaceRepository),
+      nativeLibraryDir = patchedProotLibraryDir(),
     )
   }
 

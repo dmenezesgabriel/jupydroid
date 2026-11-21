@@ -94,9 +94,11 @@ class PerSpaceRuntimeDeviceTest {
     val expected = mapOf(
       "home" to "/home/jupydroid",
       "tmp" to "/tmp",
-      "user_base" to "/pkgs",
+      "user_base" to "/pkgs-gnu",
       "runtime_dir" to "/run",
-      "executable" to "/usr/bin/python3",
+      "executable" to GNU_INTERPRETER,
+      "sigsys_enosys" to "1",
+      "ld_preload" to "",
     )
     expected.forEach { (key, inRoot) ->
       assertEquals("$key names outside space-1's root", inRoot, placed.getValue(key).jsonPrimitive.content)
@@ -185,6 +187,8 @@ class PerSpaceRuntimeDeviceTest {
       placed = json.dumps({
           "executable": sys.executable, "home": os.environ["HOME"], "tmp": tempfile.gettempdir(),
           "user_base": site.USER_BASE, "runtime_dir": runtime_dir,
+          "sigsys_enosys": os.environ.get("PROOT_SIGSYS_ENOSYS", "<missing>"),
+          "ld_preload": os.environ.get("LD_PRELOAD", "<missing>"),
           "connection_file_seen": str(bool(glob.glob(os.path.join(runtime_dir, "kernel-*.json")))).lower(),
       })
       open("kernel-env.out", "w").write(placed)
@@ -198,7 +202,12 @@ class PerSpaceRuntimeDeviceTest {
 
     /** One launcher for the class: `JupyterServerLauncher.start` begins with `stop()`. */
     val spaceOneLauncher by lazy {
-      spaceServerLauncher(context, settingsFor = { SpaceSettings() }, defaultKernelFor = { DEFAULT_KERNEL_ID })
+      spaceServerLauncher(
+        context,
+        settingsFor = { SpaceSettings() },
+        defaultKernelFor = { DEFAULT_KERNEL_ID },
+        nativeLibraryDir = patchedProotLibraryDir(),
+      )
     }
 
     /**
@@ -210,7 +219,10 @@ class PerSpaceRuntimeDeviceTest {
     val spaceOneImage: Boolean by lazy {
       spaceOneRoot.extract()
       seedConfigOnlySpace()
-      runBlocking { SpaceKernelSpec.install(spaceOneDir) }
+      runBlocking {
+        gnuSpaceImageInstaller(context).ensureInstalled(spaceOneDir)
+        SpaceKernelSpec.install(spaceOneDir)
+      }
       true
     }
 

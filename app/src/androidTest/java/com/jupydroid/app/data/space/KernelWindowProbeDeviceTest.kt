@@ -127,7 +127,12 @@ class KernelWindowProbeDeviceTest {
 
     /** One launcher for the class: `JupyterServerLauncher.start` begins with `stop()`. */
     val launcher by lazy {
-      spaceServerLauncher(context, settingsFor = { SpaceSettings() }, defaultKernelFor = { DEFAULT_KERNEL_ID })
+      spaceServerLauncher(
+        context,
+        settingsFor = { SpaceSettings() },
+        defaultKernelFor = { DEFAULT_KERNEL_ID },
+        nativeLibraryDir = patchedProotLibraryDir(),
+      )
     }
     var running: ServerConnection? = null
 

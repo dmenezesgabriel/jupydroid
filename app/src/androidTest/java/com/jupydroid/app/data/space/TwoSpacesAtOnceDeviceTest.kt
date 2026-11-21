@@ -242,7 +242,12 @@ class TwoSpacesAtOnceDeviceTest {
     val baseDir: File get() = baseSpaceDir(context)
     val probeRoot by lazy { PrivateRootUnderTest(context, PROBE_SPACE.id) }
     val probeLauncher by lazy {
-      spaceServerLauncher(context, settingsFor = { SpaceSettings() }, defaultKernelFor = { DEFAULT_KERNEL_ID })
+      spaceServerLauncher(
+        context,
+        settingsFor = { SpaceSettings() },
+        defaultKernelFor = { DEFAULT_KERNEL_ID },
+        nativeLibraryDir = patchedProotLibraryDir(),
+      )
     }
 
     /** What [killWhatTheProbeLeft] kills: every process of every probe tree a test logged. */
@@ -252,7 +257,10 @@ class TwoSpacesAtOnceDeviceTest {
     val probeImage: Boolean by lazy {
       runBlocking { baseSpaceInstaller(context).installIfNeeded() }
       probeRoot.extract()
-      runBlocking { SpaceKernelSpec.install(probeRoot.dir) }
+      runBlocking {
+        gnuSpaceImageInstaller(context).ensureInstalled(probeRoot.dir)
+        SpaceKernelSpec.install(probeRoot.dir)
+      }
       true
     }
 

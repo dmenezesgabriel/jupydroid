@@ -26,7 +26,11 @@ fun installBaseWhereProotShips() {
     "no rootfs ships for ${Build.SUPPORTED_ABIS.first()}",
     runCatching { SpaceAbi.of(Build.SUPPORTED_ABIS.first()) }.isSuccess,
   )
-  runBlocking { baseSpaceInstaller(InstrumentationRegistry.getInstrumentation().targetContext).installIfNeeded() }
+  val context = InstrumentationRegistry.getInstrumentation().targetContext
+  runBlocking {
+    baseSpaceInstaller(context).installIfNeeded()
+    gnuSpaceImageInstaller(context).ensureInstalled(baseSpaceDir(context))
+  }
 }
 
 /**

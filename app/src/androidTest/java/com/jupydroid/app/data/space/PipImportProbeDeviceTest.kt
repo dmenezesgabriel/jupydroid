@@ -145,11 +145,13 @@ class PipImportProbeDeviceTest {
     }.trim()
 
   /**
-   * The state every Space starts in: `pkgs/` exists (the app creates it) and the user site under it
-   * does not, which is what the shipped image carries and what `SpaceDirs.ensure` leaves.
+   * The state every Space starts in: both user bases exist (the app creates them) and the user
+   * site under each does not, which is what `SpaceDirs.ensure` leaves. The kernel installs into
+   * `pkgs-gnu`, the musl interpreter into `pkgs`.
    */
   private fun clearUserBase() {
     dirs.pkgs.deleteRecursively()
+    dirs.gnuPkgs.deleteRecursively()
     dirs.ensure()
   }
 
@@ -173,8 +175,8 @@ class PipImportProbeDeviceTest {
     /** The probe's own line when the interpreter that ran the install imports it, with no restart. */
     const val IMPORT_AFTER_INSTALL_OK = "import_after_install -> ok"
 
-    /** The kernel's line: the package resolved, and out of the Space's user base rather than the image. */
-    const val KERNEL_IMPORTED_FROM_PKGS = "kernel -> /pkgs/"
+    /** The kernel's line: the package resolved, and out of the Space's gnu user base rather than the image. */
+    const val KERNEL_IMPORTED_FROM_PKGS = "kernel -> /pkgs-gnu/"
 
     val PROBE_NOTEBOOK_JSON = """
       {"cells": [], "metadata": {"kernelspec": {"name": "python3", "display_name": "Python 3"}},
