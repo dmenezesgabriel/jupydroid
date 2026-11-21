@@ -42,6 +42,17 @@ COPY getaddrinfo_shim.c /tmp/getaddrinfo_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /tmp/getaddrinfo_shim.c \
  && strip /tmp/libgetaddrinfo_shim.so
 
+# Ships on both ABIs for the same reason: SELinux's link() denial is platform policy, not an
+# arch difference. See proc_fd_shim.c for the apk-tools publish path it reroutes.
+COPY proc_fd_shim.c /tmp/proc_fd_shim.c
+RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libproc_fd_shim.so /tmp/proc_fd_shim.c \
+ && strip /tmp/libproc_fd_shim.so
+
+# Its build-time probe is a real binary, not a script, because the claim under test is that the
+# access() interposition fires - only a caller reaching access() through the PLT can show that.
+COPY proc_fd_probe.c /tmp/proc_fd_probe.c
+RUN gcc -O2 -Wall -Wextra -Werror -o /tmp/proc_fd_probe /tmp/proc_fd_probe.c
+
 # busybox is built here rather than taken from `apk add busybox`, and the reason is one config
 # flag: Alpine ships CONFIG_FEATURE_SUID=y, which compiles in check_suid() and makes every applet
 # dispatch call setgid()/setuid() - both refused to app processes by Android's seccomp filter, so
@@ -220,6 +231,17 @@ COPY --from=sigsys-builder /tmp/libgetaddrinfo_shim.so /lib/libgetaddrinfo_shim.
 COPY getaddrinfo_shim_probe.py /tmp/getaddrinfo_shim_probe.py
 RUN JUPYDROID_NAMESERVERS=127.0.0.1 LD_PRELOAD=/lib/libgetaddrinfo_shim.so python3 /tmp/getaddrinfo_shim_probe.py \
  && rm -f /tmp/getaddrinfo_shim_probe.py
+
+# Ships on both ABIs; see the note beside its build above.
+COPY --from=sigsys-builder /tmp/libproc_fd_shim.so /lib/libproc_fd_shim.so
+
+# Prove the interposer answers ENOENT for the directory apk-tools probes and leaves every other
+# access() - /proc/self/fd/<n> included - working. Here rather than on device because a shim
+# that fails to load is a build error; whether apk then completes an install is the device
+# tests' question (ApkInstallDeviceTest).
+COPY --from=sigsys-builder /tmp/proc_fd_probe /tmp/proc_fd_probe
+RUN LD_PRELOAD=/lib/libproc_fd_shim.so /tmp/proc_fd_probe \
+ && rm -f /tmp/proc_fd_probe
 
 # **The interposer ships in the x86_64 image alone**, because on arm64 musl already issues the
 # `*at` syscalls - the legacy four do not exist in that kernel ABI - so it would be dead code.

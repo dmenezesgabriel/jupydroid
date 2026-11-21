@@ -75,7 +75,7 @@ class PythonInterpreterDeviceTest {
     runInSpace(SPACE_SHELL, "-c", "python3 -c 'import json'")
 
     assertEquals(
-      "seccomp refused a syscall other than mbind while the interpreter ran",
+      "seccomp refused a syscall outside the tolerated set while the interpreter ran",
       emptyList<String>(),
       seccompRefusalsIn(baseDir),
     )

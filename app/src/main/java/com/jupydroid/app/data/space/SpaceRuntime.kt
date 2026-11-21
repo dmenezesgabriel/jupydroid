@@ -179,14 +179,21 @@ class SpaceRuntime(
     /** Built by tools/rootfs/Dockerfile; see tools/rootfs/sigsys_report.c. */
     const val SIGSYS_HANDLER = "lib/libsigsys_report.so"
 
+    /** Built into both ABIs; see tools/rootfs/proc_fd_shim.c for the apk publish path it reroutes. */
+    const val PROC_FD_SHIM = "lib/libproc_fd_shim.so"
+
     /** Built into the x86_64 image alone; see tools/rootfs/musl_at_shim.c. */
     const val AT_SHIM = "lib/libmusl_at_shim.so"
 
     /** Built into both ABIs - the bug it answers is real on the tablet too; see getaddrinfo_shim.c. */
     const val GETADDRINFO_SHIM = "lib/libgetaddrinfo_shim.so"
 
-    /** In load order: the reporter first, so it is armed before the shims' own calls run. */
-    val PRELOADS = listOf(SIGSYS_HANDLER, AT_SHIM, GETADDRINFO_SHIM)
+    /**
+     * In load order: the reporter first, so it is armed before the shims' own calls run, and
+     * proc_fd before at_shim so its access() - the one that also answers /proc/self/fd - is the
+     * definition every caller resolves on x86_64 too.
+     */
+    val PRELOADS = listOf(SIGSYS_HANDLER, PROC_FD_SHIM, AT_SHIM, GETADDRINFO_SHIM)
 
     /** In the Space's own tmp/, which [SpaceDirs.ensure] provisions before any process runs. */
     const val SIGSYS_LOG = "sigsys.log"

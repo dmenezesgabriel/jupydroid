@@ -197,7 +197,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   `spaceShell(...)` factory (null on a bad ABI, as `spaceServers`), `data/fake/FakeSpaceShell.kt`,
   the bounded-args helper generalized out of `startupScriptArgs`, unit tests on the fake and the
   args, and a tablet device test that runs a real probe — proving the port execs in a Space.
-- [ ] T4 — The measurement: a tablet device test that runs both real installs through `SpaceShell`,
+- [x] T4 — The measurement: a tablet device test that runs both real installs through `SpaceShell`,
   recording each duration (the `HARNESS_INSTALL_TIMEOUT` value, set from it) and each installed
   size (the catalog's measured-size text).
 - [ ] T5 — `SpaceHarnessesViewModel`: probe-all on open, per-harness install lifecycle —

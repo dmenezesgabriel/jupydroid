@@ -81,7 +81,7 @@ class BusyBoxAppletsDeviceTest {
    *
    * The log is shared by every Space process and appended to, so any suite that has touched Python
    * puts lines in it - which is how this test first went red, running beside [PtySupportTest]
-   * after passing alone. [seccompRefusalsIn] is where the one tolerated refusal is named.
+   * after passing alone. [seccompRefusalsIn] is where the tolerated refusals are named.
    *
    * It covers the interpreter side only: busybox carries no SIGSYS handler of its own, so a
    * refusal *there* kills it rather than being logged. That half is what the other tests assert.
@@ -91,7 +91,7 @@ class BusyBoxAppletsDeviceTest {
     runInSpace(SPACE_SHELL, "-c", "ls -d / && echo done")
 
     assertEquals(
-      "seccomp refused a syscall other than mbind while an applet ran",
+      "seccomp refused a syscall outside the tolerated set while an applet ran",
       emptyList<String>(),
       seccompRefusalsIn(baseDir),
     )

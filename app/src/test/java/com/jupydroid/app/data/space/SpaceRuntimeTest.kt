@@ -130,6 +130,22 @@ class SpaceRuntimeTest {
   }
 
   /**
+   * The proc-fd interposer joins the preload when the rootfs carries it, ahead of the at-shim:
+   * both define access(), and preload order decides which definition callers resolve -
+   * proc_fd's is the one that also answers /proc/self/fd (`tools/rootfs/proc_fd_shim.c`).
+   */
+  @Test
+  fun environment_preloadsTheProcFdShimAheadOfTheAtShim() {
+    val installed = spaceWith("lib/libproc_fd_shim.so").apply {
+      File(this, "lib/libmusl_at_shim.so").writeText("ELF")
+    }
+
+    val preload = SpaceRuntime(installed, nativeDir).environment().getValue("LD_PRELOAD")
+
+    assertEquals("/lib/libproc_fd_shim.so /lib/libmusl_at_shim.so", preload)
+  }
+
+  /**
    * Console scripts are not Python source: `/usr/bin/pylsp` is a `#!` script proot execs as the
    * kernel would. Running one through [SpaceRuntime.command] would produce `python3 <path>` - so the
    * direct-exec builder must not prepend the interpreter, while keeping the same environment
@@ -370,7 +386,8 @@ class SpaceRuntimeTest {
   @Test
   fun derivedVariableNamesAreExactlyWhatEveryProcessIsGiven() {
     val everyPreload = spaceWith("lib/libsigsys_report.so").apply {
-      listOf("lib/libmusl_at_shim.so", "lib/libgetaddrinfo_shim.so").forEach { File(this, it).writeText("ELF") }
+      listOf("lib/libproc_fd_shim.so", "lib/libmusl_at_shim.so", "lib/libgetaddrinfo_shim.so")
+        .forEach { File(this, it).writeText("ELF") }
     }
     val runtime = SpaceRuntime(everyPreload, nativeDir, dnsServers = DnsServerSource { listOf("8.8.8.8") })
 

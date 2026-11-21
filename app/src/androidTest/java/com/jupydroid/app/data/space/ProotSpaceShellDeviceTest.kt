@@ -6,7 +6,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.data.disk.DiskSpaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.domain.model.CHAT_HARNESS_CATALOG
 import com.jupydroid.app.domain.model.ChatHarness
 import com.jupydroid.app.domain.model.HarnessPresence
 import com.jupydroid.app.domain.model.presenceFromProbe
@@ -30,9 +29,11 @@ import kotlin.time.TimeSource
  * can stand in: the bound (busybox `timeout`) and the sweep (proot's `--kill-on-exit`) live on the
  * device (`SpaceStartupScriptDeviceTest` proves the same mechanism for the startup script).
  *
- * The probe tests are the section's own question: a catalog harness's `probeScript` runs in base
- * and answers what `presenceFromProbe` reads - `NotInstalled` for one the image lacks,
- * `Installed` for `python3`, which it ships.
+ * The probe tests are the section's own question: a harness's `probeScript` runs in base and
+ * answers what `presenceFromProbe` reads - `NotInstalled` for an executable no image ships,
+ * `Installed` for `python3`, which it does. The absent case uses a synthetic harness rather
+ * than a catalog entry because what base has installed is mutable:
+ * `ChatHarnessInstallProbeDeviceTest` measures real installs into the same Space.
  *
  * ```
  * adb shell am instrument -w -e class com.jupydroid.app.data.space.ProotSpaceShellDeviceTest \
@@ -57,10 +58,10 @@ class ProotSpaceShellDeviceTest {
       ?: error("spaceShell is null on arm64")
   }
 
-  /** The section's question end to end: the catalog probe execs in base and finds nothing. */
+  /** The section's question end to end: the probe execs in base and finds nothing on its PATH. */
   @Test
   fun aHarnessProbeRunsInTheSpaceAndAnswersNotInstalled() = runBlocking {
-    val harness = CHAT_HARNESS_CATALOG.first()
+    val harness = ChatHarness(id = "absent", name = "Absent", executable = "jupydroid-absent-harness")
     val events = shell.run(BASE_SPACE.id, harness.probeScript(), 1.minutes).toList()
 
     val lines = events.outputLines()
@@ -106,9 +107,6 @@ class ProotSpaceShellDeviceTest {
     assertEquals(emptyList<LiveProcess>(), liveProcesses().filter { it.command == "sleep 3033" })
     assertTrue("the bound took ${clock.elapsedNow()}", clock.elapsedNow() < 15.seconds)
   }
-
-  private fun List<SpaceShellEvent>.outputLines(): List<String> =
-    filterIsInstance<SpaceShellEvent.Output>().map { it.line }
 
   private companion object {
     const val TAG = "JupydroidSpace"

@@ -46,7 +46,9 @@ an unhandled SIGSYS terminates the process. The kernel has *already* made the re
 that reports and **returns** — and numpy and scipy then import and compute correctly, in-process,
 under threads and BLAS.
 
-Three preloads ship, wired through `SpaceRuntime.PRELOADS`: `libsigsys_report.so`,
+Four preloads ship, wired through `SpaceRuntime.PRELOADS`: `libsigsys_report.so`,
+`libproc_fd_shim.so` (apk-tools 3.x's db publish needs `link()`, which the platform denies an
+app uid — the shim answers its `/proc/self/fd` probe absent so it takes the rename path),
 `libmusl_at_shim.so` (arm64-absent syscalls musl still issues) and `libgetaddrinfo_shim.so`
 ([ADR-0005](../adr/0005-interpose-getaddrinfo-rather-than-redirect-resolv-conf.md)).
 
