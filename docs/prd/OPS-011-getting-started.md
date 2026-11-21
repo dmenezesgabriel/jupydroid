@@ -162,7 +162,7 @@ enough that each takes well under an hour; if one does not, decompose it in this
   `.maestro/release-install-demo.yaml`, and crops its three screenshots into
   `docs-site/pages/images/{spaces-home,first-cell,first-output}-{light,dark}.png`; update the flow
   header to name the second consumer; run the driver on `SM-X216B` and inspect every frame.
-- [ ] T3 — Embed the produced pairs in `getting-started.md` at the matching steps; rerun the strict
+- [x] T3 — Embed the produced pairs in `getting-started.md` at the matching steps; rerun the strict
   build, `check_site_images.py`, `check_markdown_links.py`, and the docs-site tests.
 - [ ] T4 — Ship: rerun the gates, delete this PRD, edit the single backlog row to `shipped`, and
   commit.

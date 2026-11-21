@@ -25,14 +25,20 @@ SBOM; `--ignore-missing` skips the SBOM when you did not download it.
 1. Open **Jupydroid**. The first screen is **Spaces**, which lists the Spaces on the device —
    isolated systems, each with its own packages and Python environments. **Base** is bundled with
    the app.
+   ![The Spaces home on a tablet: the bundled Base Space listed as stopped, with Run and Open](images/spaces-home-light.png#only-light)
+   ![The Spaces home on a tablet: the bundled Base Space listed as stopped, with Run and Open](images/spaces-home-dark.png#only-dark)
 2. Tap **Run** on the Base row and wait for it to read **Running**. The first start unpacks the
    bundled runtime and launches its server, so it takes a while; a progress bar shows at the top
    while it works.
 3. Tap **Open**. The workspace opens on the **Files** panel.
 4. Tap **New**, choose **New notebook**, and tap `Untitled.ipynb` in the list to open it. The
    notebook runs on the **Python 3** kernel and opens with one empty cell.
-5. Tap the cell, type `print(6 * 7)`, then tap **Run cell** in the cell's header. `42` appears
-   under the output.
+5. Tap the cell and type `print(6 * 7)`.
+   ![A new notebook on a tablet with print(6 * 7) typed into its cell, not yet run](images/first-cell-light.png#only-light)
+   ![A new notebook on a tablet with print(6 * 7) typed into its cell, not yet run](images/first-cell-dark.png#only-dark)
+6. Tap **Run cell** in the cell's header. `42` appears under the output.
+   ![The same notebook after the cell ran: 42 under its output, on the Python 3 kernel](images/first-output-light.png#only-light)
+   ![The same notebook after the cell ran: 42 under its output, on the Python 3 kernel](images/first-output-dark.png#only-dark)
 
 ## Next steps
 
