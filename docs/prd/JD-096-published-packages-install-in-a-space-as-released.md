@@ -247,12 +247,31 @@ The decision is T5's; each row names the evidence that settles it.
   no-op), `/opt/gnu/python/bin/python3.12` answered `('glibc', '2.39')` under
   `PROOT_SIGSYS_ENOSYS=1` with `LD_PRELOAD` cleared, `ipykernel 7.3.0` + `jupydroid_kernel` imported,
   the user site was on `sys.path`, and musl `/usr/bin/python3` still ran beside it.
-- [ ] T6c — the runtime routes the kernel to glibc: `SpaceRuntime` gains the per-interpreter
+- [x] T6c — the runtime routes the kernel to glibc: `SpaceRuntime` gains the per-interpreter
   environment (cleared musl `LD_PRELOAD`, no `sigsys_report.so`, `PROOT_SIGSYS_ENOSYS=1`, its own
   `PYTHONUSERBASE`), the
   kernel spec names the glibc interpreter with the env overrides a kernel inherits from the musl
   server, `etc/resolv.conf` is written with the app's nameservers, and a real Space runs
   `%pip install duckdb` then `import duckdb` on the tablet
+
+  **Result:** `SpaceKernelSpec` writes `python3`'s spec for `/opt/gnu/python/bin/python3.12` with
+  `DEFAULT_KERNEL_ENV` (`LD_PRELOAD=""`, `PYTHONUSERBASE=/pkgs-gnu`, `PROOT_SIGSYS_ENOSYS=1`, a
+  gnu-first `PATH`), rewritten on every start through `installOnStartOf` beside the gnu payload
+  and a new `opt/gnu/python/pip.conf` (`GnuPipConfig`, `user = true`, never clobbered);
+  `SpaceDirs` provisions `pkgs-gnu` as the second user base; `SpaceRuntime.writeGnuResolvConf`
+  replaces `etc/resolv.conf` from `DnsServerSource` on every server start; `PROOT_SIGSYS_ENOSYS`
+  joins `DERIVED_VARIABLE_NAMES` so no Space variable can arm it musl-wide. The tracer reads the
+  marker per tracee from `/proc/<pid>/environ`, cached and dropped at `PTRACE_EVENT_EXEC`, so the
+  musl server's tree keeps delivered SIGSYS while only the kernel gets ENOSYS. `GlibcKernelDeviceTest`
+  `OK (3 tests)` on SM-X216B through `scripts/glibc-kernel-driver.sh`: the kernel reported
+  `executable=/opt/gnu/python/bin/python3.12`, `user_base=/pkgs-gnu`, `sigsys_enosys=1`,
+  `ld_preload=""`; `%pip install duckdb` fetched
+  `duckdb-2.0.1-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl` and
+  `import duckdb` resolved `/pkgs-gnu/lib/python3.12/site-packages/duckdb/__init__.py`; musl
+  `/usr/bin/python3` still answered `3.12.16 /pkgs` and OpenBLAS's refused `mbind` still logged
+  `syscall=235` to `tmp/sigsys.log`. `PerSpaceRuntimeDeviceTest` `OK (7 tests)`,
+  `PipImportProbeDeviceTest` `OK (1 test)`, `ProotRuntimeProbeDeviceTest` `OK (4 tests)` and
+  `TwoSpacesAtOnceDeviceTest` `OK (5 tests)` re-verified on the same build.
 - [ ] T6d — ship it: the patched proot replaces the shipped pair in `jniLibs`, `tools/proot/`
   rides the APK's licence assets, `SOURCE_OFFER.md` names the modification, and the platform
   explanation learns `manylinux` tags ([ADR-0165](../adr/0165-a-package-a-spaces-platform-cannot-have-is-explained-from-pypis-release-files.md)'s
