@@ -11,7 +11,7 @@ import org.junit.Test
  * the silence when they do not.
  */
 class PackageReleasesTest {
-  /** duckdb as PyPI lists it: every aarch64 wheel it ships is a glibc one (measured 2026-11-20). */
+  /** duckdb as PyPI lists it: every aarch64 wheel it ships is a manylinux one, which the kernel runs. */
   private val duckdb =
     PackageReleases(
       latestVersion = "2.0.1",
@@ -24,25 +24,42 @@ class PackageReleasesTest {
       ),
     )
 
-  /** The wording is the behaviour here, so the sentence is pinned whole rather than in pieces. */
-  @Test
-  fun aGlbicOnlyPackageSaysSoAndNamesWhatItShipsInstead() {
-    val expected = "duckdb ships no musllinux aarch64 wheel for Python 3.12 in any release, and this Space's pip " +
-      "installs wheels only, so pip cannot install it here. Latest release 2.0.1 ships manylinux_2_26_aarch64, " +
-      "manylinux_2_28_aarch64 instead, built for glibc, which Android's seccomp filter refuses to start."
+  /** A package that ships only musllinux wheels: the musl interpreter's, not the kernel's. */
+  private val muslOnly =
+    PackageReleases(
+      latestVersion = "1.0.0",
+      wheelNamesByVersion = mapOf(
+        "0.9.0" to listOf("muslonly-0.9.0-cp312-cp312-musllinux_1_2_aarch64.whl"),
+        "1.0.0" to listOf("muslonly-1.0.0-cp312-cp312-musllinux_1_2_aarch64.whl"),
+      ),
+    )
 
-    assertEquals(expected, duckdb.platformRefusal("duckdb", WheelTarget.SPACE))
+  /** duckdb's manylinux wheels fit the kernel, so pip installs it and there is nothing to say. */
+  @Test
+  fun aManylinuxOnlyPackageIsNotRefused() {
+    assertNull(duckdb.platformRefusal("duckdb", WheelTarget.KERNEL))
   }
 
-  /** pandas publishes a musllinux aarch64 wheel, so pip installs it and there is nothing to say. */
+  /** The wording is the behaviour here, so the sentence is pinned whole rather than in pieces. */
+  @Test
+  fun aMusllinuxOnlyPackageSaysSoAndNamesWhatItShipsInstead() {
+    val expected = "muslonly ships no manylinux aarch64 wheel for Python 3.12 in any release, and this Space's pip " +
+      "installs wheels only, so pip cannot install it here. Latest release 1.0.0 ships musllinux_1_2_aarch64 " +
+      "instead, built for musl, which the Space's kernel does not run."
+
+    assertEquals(expected, muslOnly.platformRefusal("muslonly", WheelTarget.KERNEL))
+  }
+
+  /** pandas publishes a manylinux aarch64 wheel, so pip installs it and there is nothing to say. */
   @Test
   fun aPackageWithAnInstallableWheelIsNotRefused() {
     val pandas = PackageReleases(
       latestVersion = "3.1.1",
-      wheelNamesByVersion = mapOf("3.1.1" to listOf("pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl")),
+      wheelNamesByVersion =
+      mapOf("3.1.1" to listOf("pandas-3.1.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl")),
     )
 
-    assertNull(pandas.platformRefusal("pandas", WheelTarget.SPACE))
+    assertNull(pandas.platformRefusal("pandas", WheelTarget.KERNEL))
   }
 
   /** An older release that fits is one pip would have installed, so the claim is never made about it. */
@@ -51,12 +68,12 @@ class PackageReleasesTest {
     val mixed = PackageReleases(
       latestVersion = "3.0.0",
       wheelNamesByVersion = mapOf(
-        "2.0.0" to listOf("thing-2.0.0-cp312-cp312-musllinux_1_2_aarch64.whl"),
-        "3.0.0" to listOf("thing-3.0.0-cp312-cp312-manylinux_2_27_aarch64.whl"),
+        "2.0.0" to listOf("thing-2.0.0-cp312-cp312-manylinux_2_17_aarch64.whl"),
+        "3.0.0" to listOf("thing-3.0.0-cp312-cp312-musllinux_1_2_aarch64.whl"),
       ),
     )
 
-    assertNull(mixed.platformRefusal("thing", WheelTarget.SPACE))
+    assertNull(mixed.platformRefusal("thing", WheelTarget.KERNEL))
   }
 
   /** psycopg2 is the other case in the same list: it publishes no wheel for anyone. */
@@ -64,13 +81,13 @@ class PackageReleasesTest {
   fun aPackageThatPublishesSourceOnlySaysSo() {
     val psycopg2 = PackageReleases(latestVersion = "2.9.11", wheelNamesByVersion = mapOf("2.9.11" to emptyList()))
 
-    val refusal = psycopg2.platformRefusal("psycopg2", WheelTarget.SPACE).orEmpty()
+    val refusal = psycopg2.platformRefusal("psycopg2", WheelTarget.KERNEL).orEmpty()
 
     assertTrue(refusal, refusal.startsWith("psycopg2 publishes source only"))
     assertTrue(refusal, refusal.contains("installs wheels only"))
   }
 
-  /** A release with macOS wheels alone is not a glibc problem, and the sentence must not pretend it is. */
+  /** A release with macOS wheels alone is not a musl problem, and the sentence must not pretend it is. */
   @Test
   fun aLatestReleaseWithNoWheelForTheArchitectureSaysThatInstead() {
     val macOnly = PackageReleases(
@@ -78,24 +95,24 @@ class PackageReleasesTest {
       wheelNamesByVersion = mapOf("1.0.0" to listOf("thing-1.0.0-cp312-cp312-macosx_11_0_arm64.whl")),
     )
 
-    val refusal = macOnly.platformRefusal("thing", WheelTarget.SPACE).orEmpty()
+    val refusal = macOnly.platformRefusal("thing", WheelTarget.KERNEL).orEmpty()
 
     assertTrue(refusal, refusal.contains("ships no wheel for aarch64 at all"))
-    assertFalse(refusal, refusal.contains("glibc"))
+    assertFalse(refusal, refusal.contains("built for musl"))
   }
 
-  /** A musllinux wheel for another interpreter is named, and no glibc clause rides on it. */
+  /** A wheel for another interpreter is named, and no musl clause rides on it. */
   @Test
-  fun aMusllinuxWheelForAnotherInterpreterIsNamedWithoutAReason() {
+  fun aWheelForAnotherInterpreterIsNamedWithoutAReason() {
     val otherPython = PackageReleases(
       latestVersion = "1.0.0",
-      wheelNamesByVersion = mapOf("1.0.0" to listOf("thing-1.0.0-cp311-cp311-musllinux_1_2_aarch64.whl")),
+      wheelNamesByVersion = mapOf("1.0.0" to listOf("thing-1.0.0-cp311-cp311-manylinux_2_17_aarch64.whl")),
     )
 
-    val refusal = otherPython.platformRefusal("thing", WheelTarget.SPACE).orEmpty()
+    val refusal = otherPython.platformRefusal("thing", WheelTarget.KERNEL).orEmpty()
 
-    assertTrue(refusal, refusal.contains("ships musllinux_1_2_aarch64 instead"))
-    assertFalse(refusal, refusal.contains("glibc"))
+    assertTrue(refusal, refusal.contains("ships manylinux_2_17_aarch64 instead"))
+    assertFalse(refusal, refusal.contains("built for musl"))
   }
 
   /** PEP 503's rule, which is what makes a requirement's own spelling find its package. */

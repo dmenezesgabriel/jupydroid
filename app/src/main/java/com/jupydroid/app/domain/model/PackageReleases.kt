@@ -33,7 +33,7 @@ private val PUNCTUATION_RUN = Regex("[-_.]+")
  * says the same thing for a name that exists nowhere.
  *
  * ```
- * releases.platformRefusal("duckdb", WheelTarget.SPACE)   // "duckdb ships no musllinux aarch64 wheel …"
+ * releases.platformRefusal("muslonly", WheelTarget.KERNEL)   // "muslonly ships no manylinux aarch64 wheel …"
  * ```
  */
 fun PackageReleases.platformRefusal(packageName: String, target: WheelTarget): String? = when {
@@ -59,21 +59,22 @@ private fun PackageReleases.latestReleaseSentence(target: WheelTarget): String {
   return when {
     shipped.isEmpty() -> " Latest release $latestVersion ships no wheel at all."
     forMachine.isEmpty() -> " Latest release $latestVersion ships no wheel for ${target.architecture} at all."
-    else -> " Latest release $latestVersion ships ${forMachine.joinToString(", ")} instead${glibcClause(forMachine)}."
+    else -> " Latest release $latestVersion ships ${forMachine.joinToString(", ")} instead${muslClause(forMachine)}."
   }
 }
 
 /**
- * Said only when every tag named is a glibc one: a wheel of another family named without a reason
+ * Said only when every tag named is a musl one: a `musllinux` wheel fits the Space's musl
+ * interpreter but not its glibc kernel, and a wheel of another family named without a reason
  * reads as an unfinished sentence, where a wrong reason would be worse.
  */
-private fun glibcClause(tags: List<String>): String = if (tags.all { it.startsWith("manylinux") }) {
-  ", built for glibc, which Android's seccomp filter refuses to start"
+private fun muslClause(tags: List<String>): String = if (tags.all { it.startsWith("musllinux") }) {
+  ", built for musl, which the Space's kernel does not run"
 } else {
   ""
 }
 
-/** `musllinux aarch64`, the platform a refusal names. */
+/** `manylinux aarch64`, the platform a refusal names. */
 private val WheelTarget.platform: String
   get() = "$platformFamily $architecture"
 

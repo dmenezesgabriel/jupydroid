@@ -58,7 +58,7 @@ private const val MISS_MARKER = "Could not find a version that satisfies the req
  * PipInstallExplanation(FakeWheelIndex()).noteFor(cellOutputs)   // null
  * ```
  */
-class PipInstallExplanation(private val wheelIndex: WheelIndex, private val target: WheelTarget = WheelTarget.SPACE) {
+class PipInstallExplanation(private val wheelIndex: WheelIndex, private val target: WheelTarget = WheelTarget.KERNEL) {
   /** The output to append to [outputs], or null when there is nothing true to add. */
   suspend fun noteFor(outputs: List<CellOutput>): CellOutput.DisplayData? {
     val refusals = pipMissingRequirements(outputs).mapNotNull { name ->

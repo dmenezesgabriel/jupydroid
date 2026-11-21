@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Which releases of a PyPI package ship a wheel a Space's pip can install.
+"""Which releases of a PyPI package ship a wheel a Space's kernel pip can install.
 
-**Why this exists.** A Space is Alpine on musl with Python 3.12 on aarch64, and its pip installs wheels
-only (`tools/rootfs/Dockerfile`: no C toolchain, `--only-binary=:all:`), so it looks for a `cp312`
-`musllinux_*_aarch64` wheel. A package that publishes none answers "No matching distribution found",
+**Why this exists.** A Space's cells run on the gnu/glibc interpreter beside the musl rootfs
+(ADR-0166), with Python 3.12 on aarch64, and its pip installs wheels only
+(`tools/rootfs/Dockerfile`: no C toolchain, `--only-binary=:all:`), so it looks for a `cp312`
+`manylinux_*_aarch64` wheel. A package that publishes none answers "No matching distribution found",
 which reads as a typo. How many packages are in that case, and whether an older release escapes it,
 is a count PyPI holds and this reads.
 
@@ -11,12 +12,12 @@ is a count PyPI holds and this reads.
 numbers are quoted with the date they were read.
 
 **Installable means a wheel pip would pick**: the Python tag matches (or is an `abi3` wheel of an
-older CPython, or `py3`), and the platform is `any` or a `musllinux_*` tag of the architecture.
-A `manylinux` wheel is not: glibc's startup is killed by Android's seccomp filter (ADR-0003).
+older CPython, or `py3`), and the platform is `any` or a `manylinux_*` tag of the architecture.
+A `musllinux` wheel is not: it is built for the Space's musl interpreter, which cells do not run.
 
 ```sh
 python3 scripts/read_wheel_platforms.py duckdb scikit-learn pandas
-python3 scripts/read_wheel_platforms.py numpy --python cp312 --family musllinux --arch aarch64
+python3 scripts/read_wheel_platforms.py numpy --python cp312 --family manylinux --arch aarch64
 ```
 
 Tests in read_wheel_platforms_test.py.
@@ -90,7 +91,7 @@ def installable(filename: str, target: Target) -> bool:
     """Whether pip, installing for [target], would pick the wheel [filename].
 
     ```
-    installable("pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl", Target("cp312", "musllinux", "aarch64"))
+    installable("pkg-1.0-cp312-abi3-manylinux_2_17_aarch64.whl", Target("cp312", "manylinux", "aarch64"))
     # True
     ```
     """
@@ -126,7 +127,7 @@ def measure(package: str, index: WheelIndex, target: Target) -> Measurement:
     """What [package] offers [target], read from [index].
 
     ```
-    measure("duckdb", PypiWheelIndex(), Target("cp312", "musllinux", "aarch64"))
+    measure("duckdb", PypiWheelIndex(), Target("cp312", "manylinux", "aarch64"))
     ```
     """
     releases = index.releases_of(package)
@@ -160,7 +161,7 @@ def main(argv: Sequence[str], index: WheelIndex) -> None:
     parser = argparse.ArgumentParser(description="Count the releases of PyPI packages a Space's pip can install.")
     parser.add_argument("packages", nargs="+")
     parser.add_argument("--python", default="cp312")
-    parser.add_argument("--family", default="musllinux")
+    parser.add_argument("--family", default="manylinux")
     parser.add_argument("--arch", default="aarch64")
     options = parser.parse_args(argv)
     target = Target(options.python, options.family, options.arch)

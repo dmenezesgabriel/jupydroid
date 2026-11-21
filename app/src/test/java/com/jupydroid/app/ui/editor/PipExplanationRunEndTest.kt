@@ -31,10 +31,11 @@ import org.junit.Test
 class PipExplanationRunEndTest {
   @get:Rule val mainDispatcherRule = MainDispatcherRule()
 
-  private val duckdbReleases = PackageReleases(
-    latestVersion = "2.0.1",
+  /** A package whose every aarch64 wheel is built for musl - the kernel's glibc cannot run it. */
+  private val muslOnlyReleases = PackageReleases(
+    latestVersion = "1.0.0",
     wheelNamesByVersion = mapOf(
-      "2.0.1" to listOf("duckdb-2.0.1-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl"),
+      "1.0.0" to listOf("muslonly-1.0.0-cp312-cp312-musllinux_1_2_aarch64.whl"),
     ),
   )
 
@@ -44,7 +45,7 @@ class PipExplanationRunEndTest {
     val viewModel = loadedEditor(
       gateway = PipMissKernelGateway(),
       repository = repository,
-      wheelIndex = FakeWheelIndex(mapOf("duckdb" to duckdbReleases)),
+      wheelIndex = FakeWheelIndex(mapOf("muslonly" to muslOnlyReleases)),
     )
 
     viewModel.kernel.runCell(codeCell)
@@ -53,7 +54,7 @@ class PipExplanationRunEndTest {
     val note = viewModel.uiState.value.outputs[codeCell.id].orEmpty().last() as? CellOutput.DisplayData
     assertTrue(
       note?.mimeBundle?.toString().orEmpty(),
-      note?.mimeBundle?.toString().orEmpty().contains("musllinux aarch64"),
+      note?.mimeBundle?.toString().orEmpty().contains("manylinux aarch64"),
     )
     val written = repository.written.last().cells.single().outputs.last()
     assertEquals(note, written)
@@ -77,7 +78,7 @@ class PipExplanationRunEndTest {
       gateway = FakeKernelGateway(),
       wheelIndex = FakeWheelIndex(
         mapOf(
-          "duckdb" to duckdbReleases,
+          "muslonly" to muslOnlyReleases,
         ),
       ),
     )
@@ -107,8 +108,8 @@ class PipExplanationRunEndTest {
   }
 
   private companion object {
-    const val PIP_MISS = "\u001b[31mERROR: Could not find a version that satisfies the requirement duckdb " +
-      "(from versions: none)\u001b[0m\n\u001b[31mERROR: No matching distribution found for duckdb\u001b[0m\n" +
+    const val PIP_MISS = "\u001b[31mERROR: Could not find a version that satisfies the requirement muslonly " +
+      "(from versions: none)\u001b[0m\n\u001b[31mERROR: No matching distribution found for muslonly\u001b[0m\n" +
       "Note: you may need to restart the kernel to use updated packages.\n"
   }
 }

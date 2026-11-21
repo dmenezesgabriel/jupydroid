@@ -103,7 +103,7 @@ class MainTest(unittest.TestCase):
     def test_prints_one_line_per_package_with_its_count(self) -> None:
         out = io.StringIO()
         with redirect_stdout(out):
-            main(["neverfits", "fits"], MeasureTest.INDEX)
+            main(["neverfits", "fits", "--family", "musllinux"], MeasureTest.INDEX)
         self.assertEqual(
             [
                 "neverfits: 0 of 2 releases have a wheel for cp312 musllinux aarch64",

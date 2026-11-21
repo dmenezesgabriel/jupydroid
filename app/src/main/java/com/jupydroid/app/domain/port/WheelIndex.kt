@@ -10,7 +10,7 @@ import com.jupydroid.app.domain.model.PackageReleases
  * testable without PyPI.
  *
  * ```
- * wheelIndex.releasesOf("duckdb")?.platformRefusal("duckdb", WheelTarget.SPACE)
+ * wheelIndex.releasesOf("muslonly")?.platformRefusal("muslonly", WheelTarget.KERNEL)
  * ```
  */
 interface WheelIndex {

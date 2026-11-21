@@ -5,14 +5,14 @@ package com.jupydroid.app.domain.model
  *
  * The rule `installable()` in `scripts/read_wheel_platforms.py` counts PyPI with: the Python tag
  * matches, or is `py3`, or is an `abi3` wheel of an older CPython; the platform is `any` or a
- * `<family>_…_<arch>` tag of [target]. A `manylinux` wheel is not one - glibc's startup is killed
- * by Android's seccomp filter (ADR-0003).
+ * `<family>_…_<arch>` tag of [target]. A `musllinux` wheel is not one for the kernel - it is built
+ * for the Space's musl interpreter, which cells do not run (ADR-0166).
  *
  * Total rather than throwing: the names come from PyPI's index, and one this app did not expect is
  * a wheel it cannot install rather than a failure in the path that draws a cell's output.
  *
  * ```
- * wheelFitsTarget("pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl", WheelTarget.SPACE)   // true
+ * wheelFitsTarget("pkg-1.0-cp312-abi3-manylinux_2_17_aarch64.whl", WheelTarget.KERNEL)   // true
  * ```
  */
 fun wheelFitsTarget(fileName: String, target: WheelTarget): Boolean {

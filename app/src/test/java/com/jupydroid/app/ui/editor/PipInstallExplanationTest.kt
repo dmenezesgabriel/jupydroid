@@ -17,8 +17,8 @@ import org.junit.Test
  * asked. The pip text is the tablet's own, escapes and all (measured 2026-11-20).
  */
 class PipInstallExplanationTest {
-  /** `%pip install duckdb` in a Space, as the app folds it: one stdout stream, pip's red included. */
-  private val duckdbMiss = listOf(CellOutput.Stream(StreamName.STDOUT, pipMissText("duckdb")))
+  /** `%pip install muslonly` in a Space, as the app folds it: one stdout stream, pip's red included. */
+  private val muslOnlyMiss = listOf(CellOutput.Stream(StreamName.STDOUT, pipMissText("muslonly")))
 
   /** pip's two ERROR lines and IPython's note, verbatim from the tablet, for any requirement name. */
   private fun pipMissText(requirement: String) =
@@ -26,42 +26,40 @@ class PipInstallExplanationTest {
       "\u001b[0m\u001b[31m\n\u001b[0m\u001b[31mERROR: No matching distribution found for $requirement" +
       "\u001b[0m\u001b[31m\n\u001b[0mNote: you may need to restart the kernel to use updated packages.\n"
 
-  /** duckdb's releases as PyPI lists them: every aarch64 wheel is a glibc one. */
-  private val duckdbReleases = PackageReleases(
-    latestVersion = "2.0.1",
+  /** A package whose every aarch64 wheel is built for musl - the kernel's glibc cannot run it. */
+  private val muslOnlyReleases = PackageReleases(
+    latestVersion = "1.0.0",
     wheelNamesByVersion = mapOf(
-      "2.0.1" to listOf(
-        "duckdb-2.0.1-cp312-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl",
-        "duckdb-2.0.1-cp312-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
-      ),
+      "1.0.0" to listOf("muslonly-1.0.0-cp312-cp312-musllinux_1_2_aarch64.whl"),
     ),
   )
 
   @Test
   fun aConfirmedMissIsANoteNamingThePlatformAndWhatShipsInstead() = runTest {
-    val note = PipInstallExplanation(RecordingWheelIndex(mapOf("duckdb" to duckdbReleases))).noteFor(duckdbMiss)
+    val note = PipInstallExplanation(RecordingWheelIndex(mapOf("muslonly" to muslOnlyReleases))).noteFor(muslOnlyMiss)
 
-    val expected = "\nduckdb ships no musllinux aarch64 wheel for Python 3.12 in any release, and this Space's pip " +
-      "installs wheels only, so pip cannot install it here. Latest release 2.0.1 ships manylinux_2_26_aarch64, " +
-      "manylinux_2_28_aarch64 instead, built for glibc, which Android's seccomp filter refuses to start."
+    val expected = "\nmuslonly ships no manylinux aarch64 wheel for Python 3.12 in any release, and this Space's pip " +
+      "installs wheels only, so pip cannot install it here. Latest release 1.0.0 ships musllinux_1_2_aarch64 " +
+      "instead, built for musl, which the Space's kernel does not run."
     assertEquals(mapOf("text/plain" to JsonPrimitive(expected)), note?.mimeBundle)
   }
 
-  /** The typo's text is pip's text for duckdb's miss, word for word; only PyPI can tell them apart. */
+  /** The typo's text is pip's text for the miss, word for word; only PyPI can tell them apart. */
   @Test
   fun aNamePyPiDoesNotHaveIsSilent() = runTest {
-    val typo = listOf(CellOutput.Stream(StreamName.STDOUT, pipMissText("duckdbzz")))
-    val index = RecordingWheelIndex(mapOf("duckdb" to duckdbReleases))
+    val typo = listOf(CellOutput.Stream(StreamName.STDOUT, pipMissText("muslonlyz")))
+    val index = RecordingWheelIndex(mapOf("muslonly" to muslOnlyReleases))
 
     assertNull(PipInstallExplanation(index).noteFor(typo))
-    assertEquals(listOf("duckdbzz"), index.asked)
+    assertEquals(listOf("muslonlyz"), index.asked)
   }
 
   @Test
   fun aPackageWithAnInstallableWheelIsSilent() = runTest {
     val pandas = PackageReleases(
       latestVersion = "3.1.1",
-      wheelNamesByVersion = mapOf("3.1.1" to listOf("pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl")),
+      wheelNamesByVersion =
+      mapOf("3.1.1" to listOf("pandas-3.1.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl")),
     )
     val text = listOf(CellOutput.Stream(StreamName.STDOUT, pipMissText("pandas")))
 
@@ -71,7 +69,7 @@ class PipInstallExplanationTest {
   /** An unreachable host is null, and null is the answer that says nothing. */
   @Test
   fun anIndexThatCannotBeAskedIsSilent() = runTest {
-    assertNull(PipInstallExplanation(RecordingWheelIndex(emptyMap())).noteFor(duckdbMiss))
+    assertNull(PipInstallExplanation(RecordingWheelIndex(emptyMap())).noteFor(muslOnlyMiss))
   }
 
   @Test
@@ -79,24 +77,24 @@ class PipInstallExplanationTest {
     val both = listOf(
       CellOutput.Stream(
         StreamName.STDOUT,
-        "ERROR: Could not find a version that satisfies the requirement duckdb (from versions: none)\n" +
-          "ERROR: Could not find a version that satisfies the requirement scikit-learn (from versions: none)\n",
+        "ERROR: Could not find a version that satisfies the requirement muslonly (from versions: none)\n" +
+          "ERROR: Could not find a version that satisfies the requirement muslsecond (from versions: none)\n",
       ),
     )
     val index = RecordingWheelIndex(
-      mapOf("duckdb" to duckdbReleases, "scikit-learn" to duckdbReleases),
+      mapOf("muslonly" to muslOnlyReleases, "muslsecond" to muslOnlyReleases),
     )
 
     val text = PipInstallExplanation(index).noteFor(both)?.mimeBundle?.get("text/plain")?.toString().orEmpty()
 
-    assertTrue(text, text.contains("duckdb ships no"))
-    assertTrue(text, text.contains("scikit-learn ships no"))
+    assertTrue(text, text.contains("muslonly ships no"))
+    assertTrue(text, text.contains("muslsecond ships no"))
   }
 
   /** A cell that printed something else never asks PyPI at all. */
   @Test
   fun aCellThatIsNotPipsMissAsksNothing() = runTest {
-    val index = RecordingWheelIndex(mapOf("duckdb" to duckdbReleases))
+    val index = RecordingWheelIndex(mapOf("muslonly" to muslOnlyReleases))
 
     assertNull(PipInstallExplanation(index).noteFor(listOf(CellOutput.Stream(StreamName.STDOUT, "42\n"))))
     assertEquals(emptyList<String>(), index.asked)
