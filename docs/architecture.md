@@ -2107,63 +2107,6 @@ inside the adapter, which the panel catches into its failed state, so an `IOExce
 `LaunchedEffect` (`OkHttpGitStatusReaderTest`'s refused-connection and never-answers cases). Until a log
 names the cause, the repair is not chosen.
 
-### GAP-200 — The app keeps no automatic, bounded record of its crashes and errors
-
-Nothing in `app/src/main` installs an uncaught-exception handler or reads the platform's exit reasons,
-and nothing in `docs/` mentions telemetry, crash reports or analytics, so there is no decision to follow.
-The one durable log is the server's: `run/jupyter_server.log`, "truncated at every server start, so it is
-one run's worth of file", which `JupyterServerLauncher.kt` says to read with `adb shell run-as
-com.jupydroid.app cat files/spaces/base/run/jupyter_server.log`. **`run-as` works only on a debuggable
-build**, and the release build type sets no `debuggable` (`app/build.gradle.kts`, `buildTypes`; nor does the
-manifest), so that path reads the tablet's debug build and not the published package on a phone. The app's
-own side of a crash leaves only what logcat's ring buffer still holds, and nothing is ever cleared because
-nothing is kept. Two references show the shape: `termux-app@3df69d1da197` installs a
-`Thread.UncaughtExceptionHandler` that writes the crash to a log file and then hands the exception on to
-the default handler (`termux-shared/src/main/java/com/termux/shared/crash/CrashHandler.java:18,35-41`), and
-tells the user from that file the next time it starts (`TermuxCrashUtils.java:130-131`); VS Code ships an
-issue reporter (`vscode@3f3380c668d0 src/vs/workbench/contrib/issue/browser/baseIssueReporterService.ts`).
-The platform also keeps why a process died, which `dumpsys activity exit-info` read on the tablet; the API
-behind it, `ActivityManager.getHistoricalProcessExitReasons`, reaches the app from Android 11.
-
-Where a log can sit so that a release build's file can be read over adb: the app-specific external
-directory, `/sdcard/Android/data/com.jupydroid.app/files`, which needs no permission. On the Android 16
-tablet `adb shell ls` lists it. Not measured: pulling a file from it, and the phone's Android version. The
-app uses no external directory today.
-
-The plan, a proposal: local, automatic, bounded, and nothing sent anywhere; no crash-reporting library
-(the handler needs none).
-
-1. **Automatic capture.** An uncaught-exception handler installed once per process in
-   `JupydroidApplication` appends one JSON line per event, with a schema version, the app's version, the
-   device model, the Android version, a kind (`crash`, `anr`, `native`, `exit`, `error`), the thread, the
-   exception class and message and the stack, then chains to the default handler as Termux does. At every start,
-   the platform's exit reasons for a crash, native crash, ANR or kill since the last one are appended too: the
-   handler never runs for a native crash or an ANR. The errors the app already shows a person go through the
-   same writer. The writer sits behind a port with a `Fake` in `data/fake/`, as every port does.
-2. **Stored where it can be pulled.** Under the app-specific external directory, in files a person or `adb
-   pull` can read on a release build. Because other apps holding the storage permission can read that
-   directory on Android 10 and below, **an entry is redacted when it is written**, not only when shared:
-   the server's bearer token turns up in server artifacts (`GAP-188`, `GAP-191`), so a redaction rule with a test
-   runs before a byte lands on disk.
-3. **Bounded, and pruned without being asked.** A size cap and an age cap, oldest first, applied at every
-   start and every rotation, so old logs never consume storage on their own. The caps are set from the
-   measured size of a day's entries, which is not known yet. The server's log rotates under the same caps
-   instead of being truncated, so a crash is not overwritten by the restart that follows it.
-4. **Cleared on request.** A Settings row, "Diagnostics", lists the entries, shows the space the logs take,
-   and offers "Clear logs" behind a confirmation that states the size it frees, as the Running panel's "Shut
-   Down All" confirmation states its count. It also offers "Share log" through the existing `FileProvider`
-   (`${applicationId}.exports`) and "Report an issue", which opens the repository's issue tracker for the
-   person to submit themselves.
-5. **Analysable later.** `scripts/pull-app-logs.sh` pulls the directory into a local, uncommitted folder
-   (ADR-0132), and `scripts/read_app_log.py`, with a test and a fixture, groups entries by exception class
-   and top frame and counts them per app version, in the pattern of the repo's other `read_*.py` measures.
-   That is how crashes are mapped, and what a later session reads.
-6. An ADR for the policy: a local record, person-initiated sharing, no network call of the app's own, and the
-   caps ([ADR-0163](adr/0163-the-error-log-is-local-redacted-when-written-bounded-and-shared-only-by-the-person.md)).
-
-Until it ships, the reading path on a debug build is the two adb commands in `GAP-199` plus the server-log
-command above. On the published package only `logcat` and `exit-info` answer.
-
 ### GAP-201 — A harness for the Chat cannot be installed from inside the app
 
 The image ships no harness, on purpose: the ACP client's personas "spawn an agent CLI the user installs in
