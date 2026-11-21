@@ -46,6 +46,7 @@ import com.jupydroid.app.data.intent.ContentResolverSharedDocumentReader
 import com.jupydroid.app.data.intent.IntentDocumentSharer
 import com.jupydroid.app.data.intent.IntentErrorLogSharer
 import com.jupydroid.app.data.intent.IntentExternalLinkOpener
+import com.jupydroid.app.data.packagemanager.PackageManagerAppIconRepository
 import com.jupydroid.app.data.space.JupyterSpaceServers
 import com.jupydroid.app.data.space.RunningSpaceServerEndpoint
 import com.jupydroid.app.data.space.SpaceServer
@@ -247,6 +248,7 @@ class JupydroidApplication : Application() {
     themeSettings = DiskThemeSettingsRepository(filesDir),
     platformNightMode = UiModeManagerPlatformNightMode(getSystemService(UiModeManager::class.java)),
     launcherSettings = DiskLauncherSettingsRepository(filesDir),
+    appIcon = PackageManagerAppIconRepository(this),
     // A chat's queued questions are app state too, one file per Space, as VS Code keeps a session's
     // pending requests in its workspace storage (vscode@3f3380c
     // `src/vs/workbench/contrib/chat/common/model/chatSessionStore.ts`).

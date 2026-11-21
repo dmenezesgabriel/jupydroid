@@ -162,7 +162,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   foregrounds, adaptive XMLs, monochrome vector, colours, the two aliases and the application
   icon repoint, template resources deleted; green on the tablet's `resolve-activity`.
 - [x] T2 — Domain: `AppIcon` + `AppIconRepository` + `FakeAppIconRepository`, unit tests.
-- [ ] T3 — `PackageManagerAppIconRepository` + `AppContainer`/`JupydroidApplication` wiring +
+- [x] T3 — `PackageManagerAppIconRepository` + `AppContainer`/`JupydroidApplication` wiring +
   `ArchitectureGuardTest` prefix + instrumented flip/restore test.
 - [ ] T4 — `AppIconRow` in Settings + `SettingsScreen`/`Navigation` wiring + instrumented cases.
 - [ ] T5 — Demo: `.maestro/app-icon.yaml` + `scripts/app-icon-driver.sh` on `SM-X216B` —

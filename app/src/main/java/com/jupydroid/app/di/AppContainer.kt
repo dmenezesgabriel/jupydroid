@@ -1,6 +1,7 @@
 package com.jupydroid.app.di
 
 import com.jupydroid.app.data.crash.ExitReasonRecorder
+import com.jupydroid.app.data.fake.FakeAppIconRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeErrorLogSharer
@@ -30,6 +31,7 @@ import com.jupydroid.app.domain.model.DeletedDocumentSessions
 import com.jupydroid.app.domain.model.ErrorLogOrigin
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
+import com.jupydroid.app.domain.port.AppIconRepository
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ErrorLog
 import com.jupydroid.app.domain.port.ErrorLogSharer
@@ -139,6 +141,11 @@ class AppContainer(
    * `maybeCreate` fills an empty main area unconditionally and needs no flag.
    */
   val launcherSettings: LauncherSettingsRepository = FakeLauncherSettingsRepository(),
+  /**
+   * Which of the two launcher icons the app wears - the platform's component state is the record,
+   * so the Settings row reads and writes it through this rather than a settings file.
+   */
+  val appIcon: AppIconRepository = FakeAppIconRepository(),
   /** The licence files that travel with the APK, which the Licences screen lists - see [LicenceDocuments]. */
   val licenceDocuments: LicenceDocuments = FakeLicenceDocuments(),
   /** Where a rendered link's web address goes when it is tapped - see [ExternalLinkOpener]. */

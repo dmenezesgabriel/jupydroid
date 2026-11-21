@@ -45,6 +45,7 @@ class ArchitectureGuardTest {
       "com.jupydroid.app.data.disk",
       "com.jupydroid.app.data.http",
       "com.jupydroid.app.data.intent",
+      "com.jupydroid.app.data.packagemanager",
       "com.jupydroid.app.data.space",
     )
 
