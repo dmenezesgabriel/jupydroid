@@ -1,6 +1,6 @@
 appId: com.android.settings
 ---
-# The system's own uninstall, from Settings → Apps → JupyterDroid, which the driver opens with
+# The system's own uninstall, from Settings → Apps → Jupydroid, which the driver opens with
 # `am start -a android.settings.APPLICATION_DETAILS_SETTINGS`. `android:hasFragileUserData` is what
 # puts the Keep app data checkbox in the package installer's dialog; without it the dialog has only
 # Cancel and OK.

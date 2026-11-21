@@ -9,13 +9,13 @@ appId: com.sec.android.app.myfiles
 # device owner's own files, and the chooser is drawn over whatever list is behind it. Search for
 # the fixture's name lists the fixture alone, so the chooser frame shows nothing else.
 #
-# "Just once", never "Always": Always makes JupyterDroid the default for this type, and the next
+# "Just once", never "Always": Always makes Jupydroid the default for this type, and the next
 # open would then skip the chooser this flow waits for.
 #
 # Every tap names its id as well as its text, because the same names are on screen elsewhere.
-# JupyterDroid's own rail has a Search, and on the second open it is still drawn when the tap is
+# Jupydroid's own rail has a Search, and on the second open it is still drawn when the tap is
 # aimed: the tap lands on My Files' rail and opens Downloads instead. The tablet's taskbar has a
-# JupyterDroid icon, and a tap there launches the app from the launcher, leaving the chooser alive
+# Jupydroid icon, and a tap there launches the app from the launcher, leaving the chooser alive
 # in its own task - to come back in front of My Files at the next open.
 #
 # TABLET ONLY (SM-X216B): My Files is Samsung's, and the flows after this one run a cell.
@@ -31,6 +31,6 @@ appId: com.sec.android.app.myfiles
     timeout: 10000
 - takeScreenshot: 00-open-with-from-my-files
 - tapOn:
-    text: "JupyterDroid"
+    text: "Jupydroid"
     id: "android:id/text1"
 - tapOn: "Just once"

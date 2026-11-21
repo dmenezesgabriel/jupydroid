@@ -57,7 +57,7 @@ class LauncherIconAliasesTest {
       assertEquals("$alias targetActivity", "$packageName.MainActivity", info.targetActivity)
       assertEquals("$alias exported", true, info.exported)
       assertTrue("$alias icon", info.icon != 0)
-      assertEquals("$alias label", "JupyterDroid", info.loadLabel(context.packageManager).toString())
+      assertEquals("$alias label", "Jupydroid", info.loadLabel(context.packageManager).toString())
     }
   }
 

@@ -57,7 +57,7 @@ capture() {
 
 # Home, then a swipe up into the app drawer - retried, because whether the first swipe lands on
 # the drawer or a home page depends on where the launcher was left. The dump, not the frame, is
-# what says JupyterDroid is listed.
+# what says Jupydroid is listed.
 open_app_drawer() {
   "${DEVICE_ADB[@]}" shell input keyevent KEYCODE_HOME
   sleep 1
@@ -65,11 +65,11 @@ open_app_drawer() {
     "${DEVICE_ADB[@]}" shell input swipe 960 900 960 300
     sleep 1
     if "${DEVICE_ADB[@]}" shell uiautomator dump /sdcard/drawer-check.xml >/dev/null 2>&1 &&
-      "${DEVICE_ADB[@]}" exec-out cat /sdcard/drawer-check.xml | tr -d '\r' | grep -q "JupyterDroid"; then
+      "${DEVICE_ADB[@]}" exec-out cat /sdcard/drawer-check.xml | tr -d '\r' | grep -q "Jupydroid"; then
       return 0
     fi
   done
-  echo "the app drawer never listed JupyterDroid" >&2
+  echo "the app drawer never listed Jupydroid" >&2
   return 1
 }
 
