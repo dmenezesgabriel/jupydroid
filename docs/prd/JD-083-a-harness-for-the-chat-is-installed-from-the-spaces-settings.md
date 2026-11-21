@@ -200,7 +200,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
 - [x] T4 — The measurement: a tablet device test that runs both real installs through `SpaceShell`,
   recording each duration (the `HARNESS_INSTALL_TIMEOUT` value, set from it) and each installed
   size (the catalog's measured-size text).
-- [ ] T5 — `SpaceHarnessesViewModel`: probe-all on open, per-harness install lifecycle —
+- [x] T5 — `SpaceHarnessesViewModel`: probe-all on open, per-harness install lifecycle —
   running with streamed lines, success re-probe, failure excerpt, cancel — unit tests on the fakes.
 - [ ] T6 — `SpaceHarnessesSection` in `SpaceSettingsDialog` + wiring through `SpacesHomeScreen`,
   `Navigation`, `AppContainer`, `JupydroidApplication`; instrumented tests for every state,
