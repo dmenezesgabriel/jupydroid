@@ -22,9 +22,18 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 - tapOn: "Run all cells"
-# Generous: the first run installs the Space and starts jupyter_server, and the tour's cells
-# leave enough output above the stats line to push it below the fold - the wait is a scroll,
-# not an assert (kernel-picker-tablet records the same shape).
+# The scrolls below can only go down, so they must not start until the run's output exists: the
+# pip cell's install can outlast a scroll to the bottom and park the view under the lines they
+# look for. Busy-then-Idle is the whole run - Idle alone would pass on the gap before the first
+# cell starts the kernel (kernel-indicator-states.yaml waits on the same pair).
+- extendedWaitUntil:
+    visible: "Kernel Python 3: Busy"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Kernel Python 3: Idle"
+    timeout: 600000
+# Generous: the tour's cells leave enough output above the stats line to push it below the
+# fold - the wait is a scroll, not an assert (kernel-picker-tablet records the same shape).
 - scrollUntilVisible:
     element:
       text: "mean -?0\\.\\d+, std [01]\\.\\d+"
@@ -34,8 +43,15 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: 01-notebook-with-outputs
-# The second code cell's `text/html` table is below the first frame's fold.
-- scroll
+# The pandas table is the last cell's output, below the first frame's fold. `[4]:` is its prompt -
+# the only text in the notebook that names this cell alone, since every value the table prints is
+# also a literal in the cell's source above it.
+- scrollUntilVisible:
+    element:
+      text: "\\[4\\]:"
+    direction: DOWN
+    timeout: 60000
+    centerElement: true
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: 02-html-table-output
