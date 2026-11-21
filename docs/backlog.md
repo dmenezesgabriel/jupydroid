@@ -351,8 +351,8 @@ on a public repository, in its polished form. The site is for users. The enginee
 
 | Id | Capability | State | PRD | Closes |
 |---|---|---|---|---|
-| `OPS-009` | **A documentation site on GitHub Pages:** its own source directory, a strict build in CI and a Pages deploy; the generator chosen in its PRD (claude-acc-manager uses MkDocs) | in-progress ← next | [PRD](prd/OPS-009-docs-site-on-github-pages.md) | — |
-| `OPS-010` | **The site's screenshots are produced, not hand-taken:** one command runs a Maestro suite on the tablet that captures every picture the site uses, in light and dark | open | — | — |
+| `OPS-009` | **A documentation site on GitHub Pages:** MkDocs Material under `docs-site/` with an explicit `nav` and a `docs` dependency group outside the defaults, `mkdocs build --strict` as the `docs` CI job and the `docs-site-build` commit hook, and a Pages `deploy` job that waits for a public repository ([ADR-0169](adr/0169-the-documentation-site-is-mkdocs-material-under-docs-site-and-pages-deploys-only-while-public.md)) | shipped | — | — |
+| `OPS-010` | **The site's screenshots are produced, not hand-taken:** one command runs a Maestro suite on the tablet that captures every picture the site uses, in light and dark | open ← next | — | — |
 | `OPS-011` | **Getting started:** a tutorial from installing a release to the first Space and the first notebook run | open | — | — |
 | `OPS-012` | **A page per feature area:** Spaces, notebooks, the Console, the terminal, the explorer, search, Git, Chat, MCP, settings and themes, troubleshooting; split per area in its PRD | open | — | — |
 

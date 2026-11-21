@@ -151,6 +151,16 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      # The user documentation site's strict build, the same command docs.yml's `docs` job runs, so a
+      # page that breaks a link or leaves `nav` fails at commit instead of at the pull request
+      # (ADR-0169). `files` is what the build reads: the site source and the lock that pins
+      # mkdocs-material.
+      - id: docs-site-build
+        name: the user documentation site builds strict
+        entry: env NO_MKDOCS_2_WARNING=1 uv run --locked --group docs mkdocs build --strict -f docs-site/mkdocs.yml
+        language: system
+        files: '^(docs-site/|pyproject\.toml$|uv\.lock$)'
+        pass_filenames: false
       # Security audit of the workflows (unpinned actions, token scopes, template injection) and of
       # dependabot.yml (a missing cooldown), from the uv.lock environment. Offline: an online audit
       # needs a token, which is not handed to CI.

@@ -1,5 +1,6 @@
 # The user documentation site, built by .github/workflows/docs.yml and published to GitHub Pages once the
-# repository is public. The engineering documents stay in docs/ and are linked by their GitHub URL.
+# repository is public - the generator, the directory and the deploy guard are ADR-0169's. The
+# engineering documents stay in docs/ and are linked by their GitHub URL.
 #
 # Plain Material config on purpose: Zensical reads mkdocs.yml natively, so no third-party plugin and no
 # custom_dir keeps a move to it a drop-in (scripts/docs_site_config_test.py asserts both).
