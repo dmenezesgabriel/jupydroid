@@ -19,7 +19,8 @@ only there; on x86_64 `spaceServers` is null and every port stays fake:
    if it is running — Settings opens only for a stopped Space).
 2. Tap Settings on Base's row and scroll to the harness section at the foot of the dialog.
 3. Expand OpenCode's entry: the screenshot shows the "what it adds" summary and the install script
-   in the startup script's own monospace — the bytes that will run, before anything runs.
+   in a code cell's own read-only field — `ShellSyntax`-coloured, fixed-height, scrolling when the
+   script outgrows it — the bytes that will run, before anything runs.
 4. Tap Install: the section shows the script's output as it streams, then reports the harness
    installed with its version.
 5. Install Claude the same way — longer, because it first adds Node.js and npm through `apk`.
@@ -143,6 +144,10 @@ are absent; the dialog's stopped-Space scoping, the bounded-exec mechanism, the 
 - **The shown script is the run script, byte for byte** — no templating, no "generated" wrapper;
   the section displays the asset's text and the port runs that same string, which is what makes
   "the bytes shown are the bytes run" a testable claim rather than a promise.
+- **The script reads as code, not as a paragraph** — the same `CodeCellField` the startup script
+  field uses (`SpaceSettingsDialog.kt` `StartupScriptField`), `ShellSyntax` colouring and all,
+  pinned read-only at a fixed height that scrolls internally when the script outgrows it; a wall
+  of monospace in a dialog is not the "see what it adds" the item promises.
 - **Sign-in is not part of this item** — `GAP-179` owns it; an installed-but-signed-out harness is
   an honest state (the persona lists, its first ask meets the harness's own sign-in wall).
 - **The catalog is pinned in the APK, not fetched** — winlator fetches `index.txt` at runtime;
