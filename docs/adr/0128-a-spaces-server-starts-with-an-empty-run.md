@@ -1,6 +1,7 @@
 # ADR-0128 — A Space's server starts with an empty `run/`
 
-Status: accepted
+Status: accepted; its "a postmortem reads its logs before the next start" consequence is amended by
+[ADR-0167](0167-a-spaces-server-log-rotates-into-its-own-archive-under-the-error-logs-caps.md)
 Date: 2026-10-31
 
 ## Context

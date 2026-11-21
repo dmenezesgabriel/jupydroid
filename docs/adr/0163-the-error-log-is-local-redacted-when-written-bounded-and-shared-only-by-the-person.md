@@ -1,6 +1,7 @@
 # ADR-0163 — The error log is local, redacted when written, bounded, and shared only by the person
 
-Status: accepted
+Status: accepted; the server log's rotation under these caps, deferred to the arm64 tablet, is
+[ADR-0167](0167-a-spaces-server-log-rotates-into-its-own-archive-under-the-error-logs-caps.md)
 Date: 2026-11-19
 
 ## Context
