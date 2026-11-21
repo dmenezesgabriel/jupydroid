@@ -188,7 +188,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
 - [x] T1 — Domain: `ChatHarness` + `HarnessVersion`/`HarnessVersionRange` + `CHAT_HARNESS_CATALOG`
   (OpenCode `>=1.0.0,<2`, Claude presence-only) + the probe-script builder and output parser —
   red-first unit tests pinning the personas' own rules (`which` + `--version` + first semver).
-- [ ] T2 — Shipped scripts and their port: `assets/chat-harnesses/opencode.sh` and
+- [x] T2 — Shipped scripts and their port: `assets/chat-harnesses/opencode.sh` and
   `claude-agent-acp.sh` adapted from `.maestro/fixtures/opencode-probe.sh` /
   `claude-acp-probe.sh`'s install arms (self-check ending, ShellCheck-clean),
   `domain/port/HarnessScripts.kt`, `data/asset/AssetHarnessScripts.kt`,
