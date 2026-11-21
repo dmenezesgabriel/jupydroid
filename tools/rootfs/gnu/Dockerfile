@@ -8,24 +8,22 @@
 # it by extracting over its image and never re-extracts (ADR-0073's rule, applied to a second
 # tree).
 #
-# The runtime files come from the sha-pinned ubuntu-base tarball the probes measured, not from
-# this image: ubuntu:24.04's digest moves, the tarball's sha256 does not. This image is only
-# the environment the interpreter's own pip runs in - glibc 2.39, the same series the payload
-# links. FROM scratch at the end so `docker export` yields the payload and nothing else.
+# The runtime files come from the digest-pinned debian:trixie-slim image itself - glibc 2.41
+# and GCC-14's libstdc++, Debian stable, lighter than ubuntu:24.04's glibc 2.39 at the same
+# multiarch paths. This image is also the environment the interpreter's own pip runs in.
+# FROM scratch at the end so `docker export` yields the payload and nothing else.
 #
 # arm64 only: no Space runs on another ABI (ADR-0003).
 
-FROM ubuntu:24.04@sha256:9c7f200c07e3d4a03e7249d2c16bf66a51120fb876aa2242cf31451412543289 AS gnu
+FROM debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS gnu
 
 ARG TARGETARCH
 RUN test "$TARGETARCH" = "arm64" \
  || { echo "the gnu payload is arm64-only: no Space runs on another ABI" >&2; exit 1; }
 
-# ADD --checksum verifies the pinned bytes at fetch; they are the same pins the glibc probes
-# carry (app/src/androidTest ProbeSupport.kt). The CPython digest is the release asset's own.
-ADD --checksum=sha256:04207713ece899c3740823d33690441ad3a7f0ded1101aca744e2b0f37ac7ff2 \
-    https://cdimage.ubuntu.com/ubuntu-base/releases/24.04/release/ubuntu-base-24.04.4-base-arm64.tar.gz \
-    /inputs/ubuntu-base.tar.gz
+# ADD --checksum verifies the pinned bytes at fetch; it is the same pin the glibc probes
+# carry for their own CPython (app/src/androidTest ProbeSupport.kt).
+# The CPython digest is the release asset's own.
 ADD --checksum=sha256:4792f81750282597fb2a3389fe18b945ed2ba6aad5e45ad406d122c58cb33081 \
     "https://github.com/astral-sh/python-build-standalone/releases/download/20261110/cpython-3.12.16%2B20261110-aarch64-unknown-linux-gnu-install_only.tar.gz" \
     /inputs/cpython.tar.gz
@@ -37,17 +35,16 @@ COPY gnu/requirements-gnu.lock jupydroid_kernel.py jupydroid_usersite.py jupydro
 # multiarch path glibc searches by default - the loader's own family, the NSS modules
 # `hosts: dns` loads, and `libstdc++` the wheels' `.so`s link - and the loader copied whole
 # to the PT_INTERP path. `cp -a` keeps each entry's own mode and symlink: libstdc++.so.6
-# stays a link to its soname target.
-RUN mkdir -p /payload/opt/gnu /payload/usr/lib/aarch64-linux-gnu /payload/lib /ubuntu-root \
- && tar -xzf /inputs/ubuntu-base.tar.gz -C /ubuntu-root \
+# stays a link to its soname target, which the glob copies beside it.
+RUN mkdir -p /payload/opt/gnu /payload/usr/lib/aarch64-linux-gnu /payload/lib \
  && tar -xzf /inputs/cpython.tar.gz -C /payload/opt/gnu \
  && for lib in ld-linux-aarch64.so.1 libc.so.6 libm.so.6 libpthread.so.0 librt.so.1 \
-      libdl.so.2 libutil.so.1 libgcc_s.so.1 libstdc++.so.6 libstdc++.so.6.0.33 \
-      libnss_dns.so.2 libnss_files.so.2; do \
-      cp -a "/ubuntu-root/usr/lib/aarch64-linux-gnu/$lib" "/payload/usr/lib/aarch64-linux-gnu/$lib" \
-   || { echo "ubuntu-base lacks $lib at usr/lib/aarch64-linux-gnu" >&2; exit 1; }; \
+      libdl.so.2 libutil.so.1 libgcc_s.so.1 libnss_dns.so.2 libnss_files.so.2; do \
+      cp -a "/usr/lib/aarch64-linux-gnu/$lib" "/payload/usr/lib/aarch64-linux-gnu/$lib" \
+   || { echo "debian lacks $lib at usr/lib/aarch64-linux-gnu" >&2; exit 1; }; \
     done \
- && cp -L /ubuntu-root/usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1 /payload/lib/ld-linux-aarch64.so.1
+ && cp -a /usr/lib/aarch64-linux-gnu/libstdc++.so.6* /payload/usr/lib/aarch64-linux-gnu/ \
+ && cp -L /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1 /payload/lib/ld-linux-aarch64.so.1
 
 # The kernel stack, installed by the interpreter's own pip into its own prefix - the same
 # pip a Space's `%pip install` runs, so the lock's manylinux wheels are the ones the device

@@ -9,8 +9,8 @@
 # Space runs on another ABI (ADR-0003). tools/rootfs/stage-app-artifacts.sh arm64-v8a then
 # copies it into the APK's assets.
 #
-# Every input is pinned inside gnu/Dockerfile - the ubuntu-base and CPython tarballs by the
-# sha256 the probes carry, the kernel stack by requirements-gnu.lock's per-wheel hashes - so
+# Every input is pinned inside gnu/Dockerfile - the debian:trixie-slim image by digest and the
+# CPython tarball by sha256, the kernel stack by requirements-gnu.lock's per-wheel hashes - so
 # a rebuild reproduces the payload that produced the committed evidence. The RUN steps need
 # an arm64 binfmt handler on an x86_64 host, the same one tools/rootfs/build.sh documents.
 set -euo pipefail
