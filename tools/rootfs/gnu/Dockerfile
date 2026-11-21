@@ -9,7 +9,7 @@
 # tree).
 #
 # The runtime files come from the digest-pinned debian:trixie-slim image itself - glibc 2.41
-# and GCC-14's libstdc++, Debian stable, lighter than ubuntu:24.04's glibc 2.39 at the same
+# and the GCC-14 runtime, Debian stable, lighter than ubuntu:24.04's glibc 2.39 at the same
 # multiarch paths. This image is also the environment the interpreter's own pip runs in.
 # FROM scratch at the end so `docker export` yields the payload and nothing else.
 #
@@ -27,15 +27,23 @@ RUN test "$TARGETARCH" = "arm64" \
 ADD --checksum=sha256:4792f81750282597fb2a3389fe18b945ed2ba6aad5e45ad406d122c58cb33081 \
     "https://github.com/astral-sh/python-build-standalone/releases/download/20261110/cpython-3.12.16%2B20261110-aarch64-unknown-linux-gnu-install_only.tar.gz" \
     /inputs/cpython.tar.gz
+
+# libgomp1 - the OpenMP half of the GCC-14 runtime the wheels' `.so`s link, beside
+# libstdc++ and libgcc_s. Pinned the same way the CPython tarball is: Debian's pool path
+# is stable per version and the sha256 is the archive's own, so a rebuild reproduces it.
+ADD --checksum=sha256:43e84cb7971d8a4d8870cab6204e998ea4f23ee1339bb0ff556dd881bac82d25 \
+    "https://deb.debian.org/debian/pool/main/g/gcc-14/libgomp1_14.2.0-19_arm64.deb" \
+    /inputs/libgomp1.deb
 COPY gnu/requirements-gnu.lock jupydroid_kernel.py jupydroid_usersite.py jupydroid_usersite.pth \
      user_site_probe.py /inputs/
 
 # The payload layout is the one the image-shapes probe measured on the tablet: the CPython
 # tree under opt/gnu (its tarball's top level is `python/`), the glibc runtime files at the
 # multiarch path glibc searches by default - the loader's own family, the NSS modules
-# `hosts: dns` loads, and `libstdc++` the wheels' `.so`s link - and the loader copied whole
-# to the PT_INTERP path. `cp -a` keeps each entry's own mode and symlink: libstdc++.so.6
-# stays a link to its soname target, which the glob copies beside it.
+# `hosts: dns` loads, and the GCC-14 runtime `libstdc++`, `libgcc_s` and `libgomp` the
+# wheels' `.so`s link - and the loader copied whole to the PT_INTERP path. `cp -a` keeps
+# each entry's own mode and symlink: libstdc++.so.6 stays a link to its soname target,
+# which the glob copies beside it; libgomp comes out of its pinned deb the same way.
 RUN mkdir -p /payload/opt/gnu /payload/usr/lib/aarch64-linux-gnu /payload/lib \
  && tar -xzf /inputs/cpython.tar.gz -C /payload/opt/gnu \
  && for lib in ld-linux-aarch64.so.1 libc.so.6 libm.so.6 libpthread.so.0 librt.so.1 \
@@ -44,6 +52,8 @@ RUN mkdir -p /payload/opt/gnu /payload/usr/lib/aarch64-linux-gnu /payload/lib \
    || { echo "debian lacks $lib at usr/lib/aarch64-linux-gnu" >&2; exit 1; }; \
     done \
  && cp -a /usr/lib/aarch64-linux-gnu/libstdc++.so.6* /payload/usr/lib/aarch64-linux-gnu/ \
+ && dpkg-deb -x /inputs/libgomp1.deb /tmp/libgomp \
+ && cp -a /tmp/libgomp/usr/lib/aarch64-linux-gnu/libgomp.so.1* /payload/usr/lib/aarch64-linux-gnu/ \
  && cp -L /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1 /payload/lib/ld-linux-aarch64.so.1
 
 # The kernel stack, installed by the interpreter's own pip into its own prefix - the same

@@ -1,8 +1,9 @@
 # Source for the GPL and LGPL parts of the APK
 
-The APK carries programs under the GNU General Public License version 2 and the GNU Lesser General
-Public License version 3: `proot`, `busybox`, and the Alpine packages in the rootfs. This file says where
-the source and build recipe of each already are, in public repositories you can open from the links below.
+The APK carries programs under the GNU General Public License and the GNU Lesser General
+Public License: `proot`, `busybox`, the Alpine packages in the rootfs, and the glibc runtime
+files in the gnu payload. This file says where the source and build recipe of each already
+are, in public repositories you can open from the links below.
 
 This project keeps no copy of that source and sends none; the links are the way to it. Where this
 project changes an upstream program, its part names the change, and the recipe and patches of the
@@ -51,3 +52,16 @@ The recipe of each is in [aports at tag `v3.23.8`](https://github.com/alpinelinu
 
 To check a download against this file, compare it with the sha256 above; to check the rootfs against
 the listing, `tools/rootfs/sbom.sh` regenerates `THIRD_PARTY.md` from the rootfs tarball.
+
+## The gnu payload's runtime files
+
+A Space's kernel runs a second interpreter beside the musl image: the pinned
+python-build-standalone CPython under `opt/gnu`, the glibc runtime files it links under
+`usr/lib/aarch64-linux-gnu`, and its loader at `lib/ld-linux-aarch64.so.1`, all assembled by
+`tools/rootfs/gnu/Dockerfile` in this repository from the digest-pinned `debian:trixie-slim`
+image and the sha256-pinned `libgomp1` deb. The Debian packages those files come from are under
+the GNU licenses: `libc6` (the loader family and the NSS modules `hosts: dns` loads) is
+LGPL-2.1-or-later; `libstdc++6`, `libgcc-s1` and `libgomp1` are GPL-3.0-or-later with the GCC
+Runtime Library Exception. Their source packages are `glibc` and `gcc-14` in Debian trixie,
+readable at <https://sources.debian.org/src/>, with GCC's own source at <https://gcc.gnu.org/>.
+The CPython itself is PSF-licensed, from the pinned python-build-standalone release asset.
