@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extension.api.NotebookCells
+import com.jupydroid.extension.api.ServerAddress
 import com.jupydroid.extension.api.SpaceServerEndpoint
 import com.jupydroid.extensions.ai.data.logcat.ChatSocketLog
 import com.jupydroid.extensions.ai.data.logcat.chatFailureFields
@@ -13,6 +14,7 @@ import com.jupydroid.extensions.ai.domain.PermissionOption
 import com.jupydroid.extensions.ai.domain.ToolCall
 import com.jupydroid.extensions.ai.domain.ToolCallChoiceException
 import com.jupydroid.extensions.ai.domain.ToolCallPermission
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.ProducerScope
@@ -74,7 +76,37 @@ class OkHttpAgentChat(
   @Volatile private var open: OpenChat? = null
 
   // Each emission is the whole transcript, so a slow collector loses nothing by seeing only the latest.
-  override fun transcript(): Flow<ChatTranscript> = callbackFlow {
+  override fun transcript(): Flow<ChatTranscript> = callbackFlow { openChat() }.conflate()
+
+  /**
+   * Opens the chat's socket and persona-event bus, then holds them open until the collector goes
+   * away. `address()` starts the Space's server when none runs, and what it throws is the
+   * launcher's to choose (`SpaceServer.startSpace`): [AgentChat.transcript] promises
+   * [AgentChatException] when the chat cannot be opened, and `openOnce` catches nothing else.
+   */
+  @Suppress("TooGenericExceptionCaught")
+  private suspend fun ProducerScope<ChatTranscript>.openChat() {
+    val opened = try {
+      opening()
+    } catch (failure: Exception) {
+      throw when (failure) {
+        is CancellationException -> failure
+        else -> AgentChatException(
+          "the chat could not be opened: ${failure::class.java.simpleName}: ${failure.message}",
+        )
+      }
+    }
+    // Scoped to this flow, so the server may stop itself again once the panel stops collecting.
+    launch { heartbeat.beat(opened.address) }
+    awaitClose {
+      open = null
+      opened.socket.close(NORMAL_CLOSURE, null)
+      opened.bus?.close(NORMAL_CLOSURE, null)
+    }
+  }
+
+  /** The chat's socket and persona-event bus, opened against [server.address]. */
+  private suspend fun ProducerScope<ChatTranscript>.opening(): OpenedChat {
     val address = server.address()
     val fold = TranscriptFold(this)
     val bus = events.open(address, fold) { command ->
@@ -84,15 +116,8 @@ class OkHttpAgentChat(
       .url(chatUrl(address.baseUrl))
       .header("Authorization", "token ${address.token}")
       .build()
-    val socket = client.newWebSocket(request, TranscriptListener(this, fold))
-    // Scoped to this flow, so the server may stop itself again once the panel stops collecting.
-    launch { heartbeat.beat(address) }
-    awaitClose {
-      open = null
-      socket.close(NORMAL_CLOSURE, null)
-      bus?.close(NORMAL_CLOSURE, null)
-    }
-  }.conflate()
+    return OpenedChat(address, bus, client.newWebSocket(request, TranscriptListener(this, fold)))
+  }
 
   override suspend fun ask(question: String, persona: String, selection: AgentSelection) {
     val socket = open?.socket ?: throw AgentChatException("the chat is not open", question)
@@ -113,8 +138,12 @@ class OkHttpAgentChat(
       put("tool_call_id", call.id)
       put("option_id", option.id)
     }.toString()
-    val (code, body) = client.callWithToken(server, ioDispatcher) { base ->
-      url(base.newBuilder().addPathSegments("ai/acp/permissions").build()).post(decision.toRequestBody(JSON_MEDIA_TYPE))
+    val (code, body) = client.callWithTokenOr(server, ioDispatcher, { message ->
+      ToolCallChoiceException(call, option, message)
+    }) { base ->
+      url(
+        base.newBuilder().addPathSegments("ai/acp/permissions").build(),
+      ).post(decision.toRequestBody(JSON_MEDIA_TYPE))
     }
     if (code != HTTP_OK) throw ToolCallChoiceException(call, option, "http $code, ${body.take(BODY_EXCERPT)}")
   }
@@ -127,7 +156,9 @@ class OkHttpAgentChat(
    */
   override suspend fun stop() {
     val chatId = open?.chatId ?: throw AgentChatException("the chat is not open")
-    val (code, body) = client.callWithToken(server, ioDispatcher) { base ->
+    val (code, body) = client.callWithTokenOr(server, ioDispatcher, { message ->
+      AgentChatException("stopping the reply failed: $message")
+    }) { base ->
       val cancel = base.newBuilder().addPathSegments("api/ai/personas/cancel").addQueryParameter("chat_id", chatId)
       url(cancel.build()).post(ByteArray(0).toRequestBody())
     }
@@ -241,6 +272,9 @@ class OkHttpAgentChat(
 
   /** An open chat's socket, the id the server knows the chat by, and what it shows. */
   private class OpenChat(val socket: WebSocket, val chatId: String, val fold: TranscriptFold)
+
+  /** What opening the chat produced: the address its requests go to, and the socket and bus to close. */
+  private class OpenedChat(val address: ServerAddress, val bus: WebSocket?, val socket: WebSocket)
 
   companion object {
     val HEARTBEAT_INTERVAL: Duration = 30.seconds

@@ -168,6 +168,31 @@ class OkHttpChatFilesTest : ChatFilesContract() {
     assertTrue(failure.message!!, failure.message!!.contains("does not exist"))
   }
 
+  /**
+   * `address()` starts the Space's server when none runs, and its failure's type is the launcher's
+   * to choose: the port promises `ChatFilesException` for every failure, and the list catches
+   * nothing else.
+   */
+  @Test
+  fun list_ofAServerThatCannotBeAskedThrowsAChatFilesExceptionNamingTheAction() {
+    val files = OkHttpChatFiles(server = { throw IllegalStateException("the Space's server failed to come up") })
+
+    val failure = assertThrows(ChatFilesException::class.java) { runBlocking { files.list() } }
+
+    assertTrue(failure.message!!, failure.message!!.contains("listing the workspace's chats"))
+    assertTrue(failure.message!!, failure.message!!.contains("IllegalStateException"))
+  }
+
+  /** An address `toHttpUrl` refuses is a failed read like any other, not an escaped `IllegalArgumentException`. */
+  @Test
+  fun list_ofAnAddressThatIsNotAnHttpUrlThrowsAChatFilesExceptionNamingTheAction() {
+    val files = OkHttpChatFiles(server = { ServerAddress(baseUrl = "not a url", token = "secret-token") })
+
+    val failure = assertThrows(ChatFilesException::class.java) { runBlocking { files.list() } }
+
+    assertTrue(failure.message!!, failure.message!!.contains("listing the workspace's chats"))
+  }
+
   private fun filesUnderTest(client: OkHttpClient = OkHttpClient()): ChatFiles = OkHttpChatFiles(
     server = { ServerAddress(serverRule.server.url("/").toString(), "secret-token") },
     client = client,

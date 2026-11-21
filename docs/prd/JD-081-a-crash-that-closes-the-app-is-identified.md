@@ -152,7 +152,7 @@ process — the class GAP-199 reports, on the surface it names:
   + `read_app_log.py` + `logcat -b crash -d` name the exception or record a clean bounded pass.
 - [x] T2 — Repair the cause the log names, red test first: the escaping failure becomes the port's
   exception type at the adapter boundary (the `answerBody` precedent), with a regression test.
-- [ ] T3 — Sweep the same class across the contributed adapters: every `server.address()` /
+- [x] T3 — Sweep the same class across the contributed adapters: every `server.address()` /
   `toHttpUrl()` / unwrapped call that escapes its port's exception contract gets the same treatment,
   each proven escape red-first.
 - [ ] T4 — Demo on the tablet (the same drive now leaves the failed state, not a dead app), delete this

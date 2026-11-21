@@ -245,6 +245,46 @@ class OkHttpAgentChatTest : AgentChatContract() {
     assertTrue("$failure", failure.message!!.contains("No pending permission request"))
   }
 
+  /** A server that cannot be asked is a refused choice, not an escaped launcher exception. */
+  @Test
+  fun choose_ofAServerThatCannotBeAskedThrowsAToolCallChoiceException() = runBlocking {
+    val chat = OkHttpAgentChat(server = { throw IllegalStateException("the Space's server failed to come up") })
+
+    val failure = runCatching { chat.choose(PENDING, ALLOW) }.exceptionOrNull()
+
+    assertTrue("$failure", failure is ToolCallChoiceException)
+    assertTrue("$failure", failure!!.message!!.contains("IllegalStateException"))
+  }
+
+  /**
+   * `address()` starts the Space's server when none runs, and its failure's type is the launcher's
+   * to choose: the port promises `AgentChatException` when the chat cannot be opened, and
+   * `openOnce` catches nothing else.
+   */
+  @Test
+  fun transcript_ofAServerThatCannotBeAskedFailsWithAnAgentChatException() = runBlocking {
+    val chat = OkHttpAgentChat(server = { throw IllegalStateException("the Space's server failed to come up") })
+
+    val failure = withTimeout(TIMEOUT_MILLIS) {
+      runCatching { chat.transcript().collect {} }.exceptionOrNull()
+    }
+
+    assertTrue("$failure", failure is AgentChatException)
+    assertTrue("$failure", failure!!.message!!.contains("IllegalStateException"))
+  }
+
+  /** An address `toHttpUrl` refuses is a chat that cannot be opened, not an escaped `IllegalArgumentException`. */
+  @Test
+  fun transcript_ofAnAddressThatIsNotAnHttpUrlFailsWithAnAgentChatException() = runBlocking {
+    val chat = OkHttpAgentChat(server = { ServerAddress(baseUrl = "not a url", token = "secret-token") })
+
+    val failure = withTimeout(TIMEOUT_MILLIS) {
+      runCatching { chat.transcript().collect {} }.exceptionOrNull()
+    }
+
+    assertTrue("$failure", failure is AgentChatException)
+  }
+
   /**
    * The chat's id from its `connection` frame, as a query parameter, which is what `CancelHandler`
    * finds the chat's personas by (jupyter_ai_persona_manager `handlers.py`, in the shipped rootfs).
@@ -274,6 +314,30 @@ class OkHttpAgentChatTest : AgentChatContract() {
     assertTrue("$failure", failure is AgentChatException)
     assertTrue("$failure", failure!!.message!!.contains("http 404"))
     assertTrue("$failure", failure.message!!.contains("Chat not initialized: $CHAT_ID"))
+  }
+
+  /**
+   * The open chat's socket is fine; it is the next request's `address()` that fails, and it is
+   * still the port's to translate.
+   */
+  @Test
+  fun stop_ofAServerThatCannotBeAskedThrowsAnAgentChatException() = runBlocking {
+    var asked = 0
+    serverRule.server.dispatcher = ChatLikeTheTabletsServer(writing = true)
+    val chat = OkHttpAgentChat(
+      server = {
+        if (++asked == 1) {
+          ServerAddress(serverRule.server.url("/").toString(), "secret-token")
+        } else {
+          throw IllegalStateException("the Space's server failed to come up")
+        }
+      },
+    )
+
+    val failure = whileOpen(chat) { runCatching { chat.stop() }.exceptionOrNull() }
+
+    assertTrue("$failure", failure is AgentChatException)
+    assertTrue("$failure", failure!!.message!!.contains("IllegalStateException"))
   }
 
   /**
