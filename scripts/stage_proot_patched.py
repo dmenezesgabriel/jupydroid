@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Stages the patched proot pair into the androidTest jniLibs for the device probe.
+"""Stages the patched proot pair `tools/proot/build.sh` produces into a jniLibs dir.
 
-`tools/proot/build.sh` produces `build/proot/proot.static`, a musl-static aarch64
-ELF carrying the seccomp-SIGSYS patch. It is staged under the shipped pair's own
-names - `libproot.so`, with its embedded loader carved out as `libproot-loader.so`
-by `stage_proot.carve_embedded_elf` - into the *test* APK's jniLibs, so
-`GlibcUnderProotProbeDeviceTest` can exec it from the test package's
-`nativeLibraryDir` while the app's own pair stays the shipped one:
+`build/proot/proot.static` is a musl-static aarch64 ELF carrying the seccomp-SIGSYS
+patch. It is staged under the shipped pair's own names - `libproot.so`, with its
+embedded loader carved out as `libproot-loader.so` by `stage_proot.carve_embedded_elf`.
+`tools/rootfs/stage-app-artifacts.sh` runs it for the app's own jniLibs; it can
+stage any jniLibs dir the same way:
 
     python3 scripts/stage_proot_patched.py build/proot/proot.static app/src/androidTest/jniLibs/arm64-v8a
 

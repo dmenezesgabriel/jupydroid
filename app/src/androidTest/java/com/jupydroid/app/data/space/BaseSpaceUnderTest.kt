@@ -6,6 +6,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.io.File
 
 /**
  * **One `jupyter_server` for the whole instrumentation run**, shared by every device test that
@@ -49,4 +50,19 @@ object BaseSpaceUnderTest {
 
   /** The server, or a failure naming the device - for tests that have already assumed a Space. */
   fun require(): SpaceServer = requireNotNull(server) { "no Space runs on this device" }
+}
+
+/**
+ * The patched proot pair staged into this test APK's own `jniLibs` by
+ * `scripts/stage_proot_patched.py`, so a test can hand [spaceServers] a
+ * `nativeLibraryDir` without touching the app's shipped pair.
+ */
+fun patchedProotLibraryDir(): File {
+  val dir = File(InstrumentationRegistry.getInstrumentation().context.applicationInfo.nativeLibraryDir)
+  val missing = listOf(ProotCommand.PROOT, ProotCommand.PROOT_LOADER).filter { !File(dir, it).isFile }
+  require(missing.isEmpty()) {
+    "patched proot not staged in the test APK's jniLibs (missing $missing); " +
+      "run tools/proot/build.sh then scripts/stage_proot_patched.py first"
+  }
+  return dir
 }

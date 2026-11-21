@@ -38,8 +38,8 @@ fun installBaseWhereProotShips() {
  * part measured again after the image's Python has been dropped from the page cache, and any part
  * measured with an import running beside it.
  *
- * `KernelWindowProbeDeviceTest` and `ServerBootProbeDeviceTest` both split a stage this way, on the
- * installed Space and under the same proot the app runs.
+ * `ServerBootProbeDeviceTest` splits a stage this way, on the installed Space and under the same
+ * proot the app runs.
  *
  * ```
  * val probe = SpaceTimingProbe(spaceRuntime(context, BASE_SPACE))
