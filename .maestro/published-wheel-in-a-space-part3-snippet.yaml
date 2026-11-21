@@ -1,0 +1,14 @@
+appId: com.jupydroid.app
+---
+# The same cell's tail: duckdb's quickstart - a `select` run through the relational API -
+# answering `[(42,)]` out of the wheel pip just fetched, in the kernel that installed it.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      text: ".*\\[\\(42,\\)\\].*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 120000
+- takeScreenshot: 04-the-quickstart-snippet-answers
