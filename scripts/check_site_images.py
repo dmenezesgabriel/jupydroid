@@ -5,7 +5,8 @@
 `#only-dark` fragments, so `hero-light.png` and `hero-dark.png` flip together with the theme
 toggle by construction. A `-light` that loses its `-dark` renders a hole in dark mode while
 `mkdocs build --strict` and every link check stay green - nothing else notices the missing
-half. The images live under `docs-site/pages/images/` (ADR-0169).
+half. The images live under `docs-site/pages/images/` (ADR-0169) and ship as `-light`/`-dark` pairs
+produced by `scripts/site-screenshots-driver.sh` (ADR-0170).
 
 **What it reads.** The *tracked* files under that directory - what a fresh clone holds, the
 same rule the Markdown link gate applies to link targets, so a sibling on disk that no commit

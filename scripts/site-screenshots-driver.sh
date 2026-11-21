@@ -19,6 +19,7 @@
 # A frame committed under docs-site/ is published, and check_device_secrets.py judges a binary by
 # its path alone, so the crop is what keeps the clock and the notifications out. The bars' heights
 # are read from the device at capture time (crop_system_bars.py). Every frame is still looked at.
+# The produce-both-schemes contract this driver serves is ADR-0170's.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
