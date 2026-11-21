@@ -158,7 +158,7 @@ Every port gets a `Fake…` in `data/fake/`, which is also what `AppContainer` d
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — Icon resources and manifest: `LauncherIconAliasesTest` red, then the generated
+- [x] T1 — Icon resources and manifest: `LauncherIconAliasesTest` red, then the generated
   foregrounds, adaptive XMLs, monochrome vector, colours, the two aliases and the application
   icon repoint, template resources deleted; green on the tablet's `resolve-activity`.
 - [ ] T2 — Domain: `AppIcon` + `AppIconRepository` + `FakeAppIconRepository`, unit tests.
