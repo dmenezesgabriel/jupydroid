@@ -213,7 +213,7 @@ enough that each takes well under a session; if one does not, decompose it here 
   image id, per-flow evidence dirs, crop-every-PNG), UI-only ordering (Spaces shots before any
   boot), the cold-vs-chained launch measurement, and `.maestro/site-spaces-shots.yaml` +
   `docs-site/pages/spaces.md` + `nav` proving it end to end.
-- [ ] T2 — Interface page: rail, main-area tabs, side panels (Files, Sessions, Search, Outline,
+- [x] T2 — Interface page: rail, main-area tabs, side panels (Files, Sessions, Search, Outline,
   Debugger, contributed Chat/Source Control), the launcher, one-pane bottom bar and "More" rail.
 - [ ] T3 — Notebooks page: cells and cell types, running cells, outputs, the cell-actions menu,
   completions, checkpoints and revert, save/save-as, export formats.

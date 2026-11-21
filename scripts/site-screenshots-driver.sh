@@ -7,7 +7,9 @@
 # with screenshots of its own). The second is SITE_SHOT_FLOWS: one .maestro/site-<area>-shots.yaml
 # per feature area, whose takeScreenshot names ARE the image ids, so every PNG a flow produces is
 # cropped to <name>-<theme>.png with no per-frame list - a new site's picture is a new flow and a
-# new line in that array, nothing else.
+# new line in that array, nothing else. An entry may carry a `portrait:` prefix for the surfaces
+# only a one-pane window draws, and a flow may bring a <flow-stem>-seed.sh that seeds the
+# workspace it shoots.
 #
 #   ANDROID_SERIAL=<tablet serial> scripts/site-screenshots-driver.sh
 #
@@ -36,6 +38,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 . "$ROOT/scripts/java-home.sh"
 # shellcheck source=scripts/maestro-run.sh
 . "$ROOT/scripts/maestro-run.sh"
+# shellcheck source=scripts/rotation-reads.sh
+. "$ROOT/scripts/rotation-reads.sh"
 
 EVIDENCE="${EVIDENCE_ROOT:-$ROOT/evidence/site-screenshots}"
 IMAGES="$ROOT/docs-site/pages/images"
@@ -44,9 +48,14 @@ FIXTURE="$ROOT/.maestro/fixtures/readme-tour.ipynb"
 FIRST_RUN_FLOW="$ROOT/.maestro/release-install-demo.yaml"
 
 # One entry per feature area's shot flow, in the order the pages need them. UI-surface flows run
-# before the flows that boot a Space for cells; a flow that only reads UI never pays a boot.
+# before the flows that boot a Space for cells; a flow that only reads UI never pays a boot. An
+# entry may carry a `portrait:` prefix for the surfaces only a one-pane window draws - the bottom
+# bar and the rail More opens - which have no frame in the landscape every other shot is in, and
+# a flow may bring a <flow-stem>-seed.sh for the workspace it shoots (ADR-0172).
 SITE_SHOT_FLOWS=(
   "$ROOT/.maestro/site-spaces-shots.yaml"
+  "$ROOT/.maestro/site-interface-shots.yaml"
+  "portrait:$ROOT/.maestro/site-interface-one-pane-shots.yaml"
 )
 
 mkdir -p "$IMAGES"
@@ -92,15 +101,26 @@ capture_theme() {
   local out="$EVIDENCE/$theme" frame flow stem shot_dir
   "$ADB" shell cmd uimode night "$night"
 
-  for flow in "${SITE_SHOT_FLOWS[@]}"; do
+  for entry in "${SITE_SHOT_FLOWS[@]}"; do
+    flow="$entry"
+    portrait=""
+    case "$entry" in
+      portrait:*) portrait=1; flow="${entry#portrait:}" ;;
+    esac
     stem="$(basename "$flow" .yaml)"
     shot_dir="$out/$stem"
     reset_notebooks
     clear_user_spaces
+    # A flow may bring the workspace it shoots: <flow-stem>-seed.sh beside it seeds the files a
+    # surface needs that no tap makes reliably - headings for the outline, text to search.
+    seed="$ROOT/.maestro/$stem-seed.sh"
+    if [ -f "$seed" ]; then bash "$seed"; fi
+    if [ -n "$portrait" ]; then rotate_to 0; fi
     run_flow "$flow" "$shot_dir"
     # Read while the app is still in the orientation the frames were taken in.
     "$ADB" shell dumpsys window >"$shot_dir/window.txt"
     crop_site_shots "$shot_dir" "$theme"
+    if [ -n "$portrait" ]; then rotate_to 1; fi
   done
 
   reset_notebooks

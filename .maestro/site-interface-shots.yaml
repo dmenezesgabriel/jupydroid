@@ -1,0 +1,98 @@
+appId: com.jupydroid.app
+---
+# The frames the Interface page shows: the workspace chrome at two panes - the rail, the side
+# panels it swaps, the tab strip and its menu, and the Launcher. A `takeScreenshot` name here IS
+# the image id - scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# The workspace only exists inside a running Space, so base's real server boots - TABLET ONLY
+# (SM-X216B). The files it shoots are the ones site-interface-shots-seed.sh put in the workspace:
+# a notebook whose headings fill the outline, and two files the search finds.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+
+# The launcher fill: an empty main area draws it as a tab of its own, cards and all. Waited for
+# the last card's label so the shot is the whole grid, not a half-drawn one.
+- extendedWaitUntil:
+    visible: "Markdown File"
+    timeout: 30000
+- takeScreenshot: interface-launcher
+
+# A document opened from the browser keeps the Launcher tab - only a launcher card's own opening
+# replaces it - so the strip soon reads Launcher, notebook, markdown file.
+- tapOn: "Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Notes before any heading."
+    timeout: 30000
+
+# --- the side panels, one at a time ---------------------------------------------------------
+- tapOn: "Sessions and Tabs"
+- extendedWaitUntil:
+    visible: "Kernel Sessions"
+    timeout: 10000
+- assertVisible: "Open Tabs"
+- takeScreenshot: interface-sessions
+
+# `^Search$` anchored: the find bar's own toggles share the word, and the rail item and the
+# panel title are the same string by design once it is up.
+- tapOn:
+    text: "^Search$"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+# The panel's own count line - "4 results in 2 files" - which only a real search writes.
+# Maestro's text is a whole-string regex, so the leading count needs its own class.
+- extendedWaitUntil:
+    visible: "[0-9]+ results? in [0-9]+ files?"
+    timeout: 30000
+- hideKeyboard
+- takeScreenshot: interface-search
+
+# The notebook is still the current document under the panel, so the outline lists its headings.
+- tapOn: "Table of contents"
+- extendedWaitUntil:
+    visible: "Table of contents Chapter one"
+    timeout: 10000
+- takeScreenshot: interface-outline
+
+- tapOn: "Debugger"
+- extendedWaitUntil:
+    visible: "Not stopped"
+    timeout: 10000
+- takeScreenshot: interface-debugger
+
+# The panel reads the directory the explorer shows - the workspace root, which is no repository.
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "You are not currently in a Git repository."
+    timeout: 30000
+- takeScreenshot: interface-source-control
+
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- takeScreenshot: interface-chat
+
+# --- the tab strip --------------------------------------------------------------------------
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "Workspace"
+    timeout: 10000
+- tapOn: "field-notes.md"
+- extendedWaitUntil:
+    visible: "Tab: field-notes.md"
+    timeout: 30000
+- assertVisible: "Tab: Launcher"
+- assertVisible: "Tab: Heading Sections.ipynb"
+- takeScreenshot: interface-tabs
+
+# A long press on a tab opens its menu - the rename/duplicate/delete asks live there.
+- longPressOn: "Tab: Heading Sections.ipynb"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 10000
+- takeScreenshot: interface-tab-menu
+- back
