@@ -272,10 +272,27 @@ The decision is T5's; each row names the evidence that settles it.
   `syscall=235` to `tmp/sigsys.log`. `PerSpaceRuntimeDeviceTest` `OK (7 tests)`,
   `PipImportProbeDeviceTest` `OK (1 test)`, `ProotRuntimeProbeDeviceTest` `OK (4 tests)` and
   `TwoSpacesAtOnceDeviceTest` `OK (5 tests)` re-verified on the same build.
-- [ ] T6d — ship it: the patched proot replaces the shipped pair in `jniLibs`, `tools/proot/`
+- [x] T6d — ship it: the patched proot replaces the shipped pair in `jniLibs`, `tools/proot/`
   rides the APK's licence assets, `SOURCE_OFFER.md` names the modification, and the platform
   explanation learns `manylinux` tags ([ADR-0165](../adr/0165-a-package-a-spaces-platform-cannot-have-is-explained-from-pypis-release-files.md)'s
   widening)
+
+  **Result:** `stage-app-artifacts.sh` requires `build/proot/proot.static` and stages it through
+  `stage_proot_patched.py`, which carves `libproot-loader.so` under the shipped pair's names;
+  `release.yml` builds the patched proot in the `rootfs` job (the one with arm64 binfmt) and hands
+  `proot-arm64-v8a` to the `apk` job, which downloads it before staging. `BundleLicences` copies
+  `tools/proot/`'s Dockerfile, build.sh and all seven patches into `assets/licences/proot/`, and
+  `SOURCE_OFFER.md` names the project's `seccomp-sigsys-enosys.patch`, the upstream `v5.4.0` tag,
+  the tarball sha512 `build.sh` pins and `talloc-static` 2.4.3-r0; `source_offer_test.py` reads
+  those pins from `build.sh` so a bump fails until the offer moves. `WheelTarget.SPACE` becomes
+  `WheelTarget.KERNEL` (`cp312`/`manylinux`/`aarch64`) - the pip a cell's `%pip` reaches is the
+  glibc kernel's - `muslClause` names `musllinux` wheels "built for musl, which the Space's kernel
+  does not run", `PipInstallExplanation` defaults to `KERNEL`, and `read_wheel_platforms.py`
+  measures `manylinux` by default. Verified: staged `libproot.so` sha256
+  `15056a03…37bb3f` is byte-identical to `proot.static`; the debug APK carries it plus
+  `assets/licences/proot/`; `ProotRuntimeProbeDeviceTest` `OK (4 tests)` on SM-X216B against the
+  app's own `nativeLibraryDir`; `testDebugUnitTest` green (3946 tests); detekt, ktlintCheck,
+  lintDebug, assembleDebug, actionlint and the python unittest files green.
 - [ ] T7 — the must-list demo: each of the thirty-six packages installs from PyPI's wheels and runs
   a snippet from its own official quickstart, in groups, on the tablet; the row shipped; `GAP-196`
   closed; this file deleted
