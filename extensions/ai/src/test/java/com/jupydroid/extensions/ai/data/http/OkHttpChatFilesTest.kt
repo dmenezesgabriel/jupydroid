@@ -11,12 +11,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import mockwebserver3.MockResponse
+import mockwebserver3.SocketEffect
 import mockwebserver3.junit4.MockWebServerRule
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.TimeUnit
 
 /** The contract, against a loopback server answering `api/contents` as jupyter_server does. */
 class OkHttpChatFilesTest : ChatFilesContract() {
@@ -57,6 +60,18 @@ class OkHttpChatFilesTest : ChatFilesContract() {
 
     assertTrue(failure.message!!, failure.message!!.contains("http 403"))
     assertTrue(failure.message!!, failure.message!!.contains("Forbidden"))
+  }
+
+  /** A server that takes the request and never answers runs into the client's read timeout. */
+  @Test
+  fun list_ofAServerThatNeverAnswersThrowsAChatFilesExceptionNamingTheAction() {
+    serverRule.server.enqueue(MockResponse.Builder().onResponseStart(SocketEffect.Stall).build())
+    val impatient = OkHttpClient.Builder().readTimeout(SILENT_SERVER_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).build()
+
+    val failure = assertThrows(ChatFilesException::class.java) { runBlocking { filesUnderTest(impatient).list() } }
+
+    assertTrue(failure.message!!, failure.message!!.contains("listing the workspace's chats"))
+    assertTrue(failure.message!!, failure.message!!.contains("SocketTimeoutException"))
   }
 
   /** jupyterlab's `newUntitled`, as jupyter-chat's `createChat` calls it at the root. */
@@ -153,8 +168,13 @@ class OkHttpChatFilesTest : ChatFilesContract() {
     assertTrue(failure.message!!, failure.message!!.contains("does not exist"))
   }
 
-  private fun filesUnderTest() = OkHttpChatFiles(
+  private fun filesUnderTest(client: OkHttpClient = OkHttpClient()): ChatFiles = OkHttpChatFiles(
     server = { ServerAddress(serverRule.server.url("/").toString(), "secret-token") },
+    client = client,
     ioDispatcher = Dispatchers.Unconfined,
   )
+
+  private companion object {
+    const val SILENT_SERVER_TIMEOUT_MILLIS = 100L
+  }
 }

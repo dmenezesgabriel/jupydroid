@@ -150,7 +150,7 @@ process — the class GAP-199 reports, on the surface it names:
 - [x] T1 — Reproduce on `SM-X216B` and name the cause from the pulled error log: drive the Chat panel,
   Source Control and a `.chat` document against a frozen or restarting Space server; `pull-app-logs.sh`
   + `read_app_log.py` + `logcat -b crash -d` name the exception or record a clean bounded pass.
-- [ ] T2 — Repair the cause the log names, red test first: the escaping failure becomes the port's
+- [x] T2 — Repair the cause the log names, red test first: the escaping failure becomes the port's
   exception type at the adapter boundary (the `answerBody` precedent), with a regression test.
 - [ ] T3 — Sweep the same class across the contributed adapters: every `server.address()` /
   `toHttpUrl()` / unwrapped call that escapes its port's exception contract gets the same treatment,

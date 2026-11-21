@@ -14,6 +14,7 @@ import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 
 /**
  * The workspace's chats, through jupyter_server's Contents API in the entered Space, the way
@@ -66,12 +67,17 @@ class OkHttpChatFiles(
   /**
    * The body the server answers to the request [shape] makes of the root's `api/contents` URL.
    *
-   * @throws ChatFilesException naming [action] when the answer is not [expected].
+   * @throws ChatFilesException naming [action] when the request cannot be made or the answer is not [expected].
    */
   private suspend fun call(action: String, expected: Int, shape: Request.Builder.(HttpUrl) -> Request.Builder): String {
-    val (code, body) = client.callWithToken(server, ioDispatcher) { base ->
-      shape(base.newBuilder().addPathSegments("api/contents").build())
+    val answer = try {
+      client.callWithToken(server, ioDispatcher) { base ->
+        shape(base.newBuilder().addPathSegments("api/contents").build())
+      }
+    } catch (failure: IOException) {
+      throw ChatFilesException(action, "${failure::class.java.simpleName}: ${failure.message}")
     }
+    val (code, body) = answer
     if (code != expected) throw ChatFilesException(action, "http $code, ${body.take(BODY_EXCERPT)}")
     return body
   }
