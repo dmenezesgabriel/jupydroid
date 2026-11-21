@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# One of the two packages the gap named: `%pip install duckdb` then duckdb's own quickstart - a
+# `select` through the relational API - answering `[(42,)]` in the kernel that installed it. The
+# kernel is the glibc one, so pip takes PyPI's `manylinux_*_aarch64` wheel where the musl
+# interpreter found none.
+#
+# TABLET ONLY (SM-X216B): see `pip-install-in-a-space-body.yaml`.
+- runFlow:
+    file: pip-install-in-a-space-body.yaml
+- inputText: "%pip install duckdb"
+- pressKey: Enter
+- inputText: "import duckdb"
+- pressKey: Enter
+- inputText: 'print(duckdb.sql("select 42 as answer").fetchall())'
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*\\[\\(42,\\)\\].*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 300000
+- takeScreenshot: 02-duckdb-installs-and-answers

@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# The other half of the outcome: a package no release ships a wheel the kernel's platform takes.
+# pywin32 publishes `win32`, `win_amd64` and `win_arm64` wheels and nothing else, so pip answers
+# `(from versions: none)` and the app's own note - a `display_data` output of its own, never
+# pip's stream - says why, checked against PyPI's release files (ADR-0165). The wait names the
+# note's sentence, which appears in no cell source.
+#
+# TABLET ONLY (SM-X216B): see `pip-install-in-a-space-body.yaml`.
+- runFlow:
+    file: pip-install-in-a-space-body.yaml
+- inputText: "%pip install pywin32"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+# pip fails fast on the platform, then the note lands a moment later once PyPI's release files
+# have been asked.
+- extendedWaitUntil:
+    visible:
+      text: ".*ships no manylinux aarch64 wheel.*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 120000
+- takeScreenshot: 04-pywin32-says-why

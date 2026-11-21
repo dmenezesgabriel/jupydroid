@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# A fresh notebook in base with its one cell focused - the state every part of the demo starts
+# from. Each part resets the workspace in the driver, so the notebook is always `Untitled.ipynb`
+# with a single empty cell and the screen holds exactly one "Cell output", which is what lets a
+# part's assertion name `index: 0` and reach the first such node and never a later one
+# (`docs/architecture/cross-cutting.md` §8.6).
+#
+# **Not a flow.** The six `pip-install-in-a-space-part*` flows call it, so the launch, the Space
+# and the notebook are written once.
+#
+# TABLET ONLY (SM-X216B): every part runs a cell, and on x86_64 the app falls back to
+# `FakeKernelGateway`, which echoes a cell's source back as its output.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
