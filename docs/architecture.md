@@ -2314,6 +2314,14 @@ a restored snapshot 0 of 5 (not a cold boot), and `-cores 2` 0 of 5 and then 5 o
 the guest's 2560 MB is the emulator raising the RAM itself, and is not the cause. No setting is kept and the
 stopgap stays. Not known: why it appears; the core count is the one setting not ruled out, since its two samples differ in the host's load as well.
 
+### GAP-212 — The launcher carries the stock Android Studio template icon
+
+`AndroidManifest.xml` names `@mipmap/ic_launcher`, which resolves to the untouched project template:
+`drawable/ic_launcher_background.xml` is the template's `#3DDC84` grid, `ic_launcher_foreground.xml` its
+default gradient glyph, and the `monochrome` layer reuses that same foreground — so on the launcher, in
+Recents and under a themed icon the app reads as the placeholder every new project ships, not as Jupydroid.
+No file a person can hand to a store listing or a review names the app.
+
 ---
 
 ## 12. Glossary

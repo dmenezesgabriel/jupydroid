@@ -26,6 +26,27 @@ class ChatHarnessProbeTest {
     assertTrue(claudeScript.contains("claude-agent-acp --version"))
   }
 
+  /** The whole script, byte for byte: the markers are the contract [presenceFromProbe] reads back. */
+  @Test
+  fun probeScript_isTheScriptByteForByte() {
+    assertEquals(
+      """
+      #!/bin/sh
+      path=${'$'}(command -v opencode 2>/dev/null)
+      if [ -z "${'$'}path" ]; then
+        echo 'harness-probe:absent'
+        exit 0
+      fi
+      echo "harness-probe:path=${'$'}path"
+      timeout -s KILL 15 opencode --version 2>&1
+      rc=$?
+      echo
+      echo "harness-probe:version-rc=${'$'}rc"
+      """.trimIndent(),
+      opencode.probeScript(),
+    )
+  }
+
   /** `command -v` finding nothing is the whole answer: the persona's `which` check fails. */
   @Test
   fun presenceFromProbe_findsNoExecutable_isNotInstalled() {
