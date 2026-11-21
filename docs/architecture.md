@@ -2036,20 +2036,8 @@ never re-runs `site`. The same interpreter still fails after `importlib.invalida
 imports once the path is appended; a second interpreter imports it without the append, which is the
 restart the reporter used. "Sometimes" is the Space that had an earlier install. IPython's `%pip`
 (`IPython/core/magics/packaging.py`) names the workaround and repairs nothing. `JD-077` owns the
-repair; a package with no musllinux wheel is `GAP-196`, not this.
-
-### GAP-196 — `%pip` finds no wheel for duckdb or scikit-learn on the Space's platform
-
-Reported on the published build: pandas installs with `%pip`, and duckdb and scikit-learn answer that the
-package could not be found. The cause is partly measured on 2026-11-09. The Space is Alpine 3.21 on musl
-with Python 3.12 (`tools/rootfs/Dockerfile`), so pip looks for `cp312` `musllinux_*_aarch64` wheels. PyPI's
-latest releases list **none** for duckdb 2.0.0 (15 files) or scikit-learn 1.9.1 (43 files), and seven for
-pandas 3.1.1, among them `pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl`. A source build is not an
-exit: the image carries no C toolchain on purpose (`tools/rootfs/Dockerfile`, the comment above its
-builder stages). Not measured: older releases of the two, pip's own message on the device (the report
-paraphrases it), and which other popular packages are in the same case. Options to measure before one
-is chosen: a package the image's `apk` repository carries under the same name, a wheelhouse the build
-produces, or telling the user plainly why pip cannot see a package that exists.
+repair; a package whose release files fit no wheel the kernel's platform takes is the install
+explanation's case (`PipInstallExplanation`), not this.
 
 ### GAP-197 — Adding a cell, the most repeated notebook act, is only a row in a long menu
 
