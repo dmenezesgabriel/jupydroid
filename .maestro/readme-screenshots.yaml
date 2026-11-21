@@ -22,10 +22,15 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 - tapOn: "Run all cells"
-# Generous: the first run installs the Space and starts jupyter_server.
-- extendedWaitUntil:
-    visible: "mean -?0\\.\\d+, std [01]\\.\\d+"
+# Generous: the first run installs the Space and starts jupyter_server, and the tour's cells
+# leave enough output above the stats line to push it below the fold - the wait is a scroll,
+# not an assert (kernel-picker-tablet records the same shape).
+- scrollUntilVisible:
+    element:
+      text: "mean -?0\\.\\d+, std [01]\\.\\d+"
+    direction: DOWN
     timeout: 180000
+- assertVisible: "mean -?0\\.\\d+, std [01]\\.\\d+"
 - waitForAnimationToEnd:
     timeout: 5000
 - takeScreenshot: 01-notebook-with-outputs
