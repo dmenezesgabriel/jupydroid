@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base. Driven by scripts/git-panel-states-driver.sh, which has just
+# SIGCONTped the proot part 2 stopped - the same jupyter_server answers again, nothing
+# restarted. **No launchApp**, for part 2's reason.
+#
+# The failed panel is still up with its Retry; the button is the item's promise - a read that
+# failed can be asked again. This read meets the resumed server, so `demo`'s branch is what
+# it says within a read's own time, not a restart's.
+- tapOn: "Retry"
+- extendedWaitUntil:
+    visible: "master"
+    timeout: 30000
+- assertNotVisible: "Retry"
+- takeScreenshot: 01-retry-reads-again

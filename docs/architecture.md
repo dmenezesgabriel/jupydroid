@@ -2092,22 +2092,6 @@ The choice of the footer rests on a heuristic, not a measurement: an act repeate
 should be one tap from where the reader already is, and the end of a notebook is where they scroll to
 append. How often each insert is used is not counted here.
 
-### GAP-198 — The Source Control panel can draw nothing at all
-
-Reported on the published build: the Source Control extension is sometimes blank, with not even a
-message that the folder is not a Git repository. The panel does have that message
-(`SourceControlPanel.kt`, `SourceControlWording.kt`), but only when the server answers with git's own
-"fatal: not a git repository" (`GitStatusAnswer.kt:45-49`). Read against the source, two paths leave the
-panel blank, and neither was reproduced here. While the read is in flight the panel draws nothing
-(`StatusReading.Pending -> Unit`), and `OkHttpGitStatusReader.status` makes its call with
-`client.newCall(request).execute()` on a default `OkHttpClient()` (10 s read timeout; no other client was found
-in `di/`), so a stopped or slow server leaves it blank for that long. A refused connection or a timeout then
-throws an `IOException`, and the panel catches only `GitStatusException`
-(`LaunchedEffect` in `SourceControlPanel`), so nothing is drawn for it either. A `Failed` state is not
-blank: `GitStatusException`'s message always names the path and the reason. The repair starts with two red
-tests, a reader that never answers and one that throws `IOException`, and draws a message with a way to
-retry in every state, "not a Git repository" included.
-
 ### GAP-199 — The app sometimes closes itself while navigating, and nothing records why
 
 Reported on the published build, on a phone: now and then the app crashes and closes while moving
@@ -2117,10 +2101,11 @@ history (`adb shell dumpsys activity exit-info com.jupydroid.app`, 16 entries on
 force stops and package updates that installs and drivers caused, with no crash, ANR or native crash.
 The crash was on the reporter's phone, so the log is there. Read it straight after a crash with
 `adb logcat -b crash -d` and the same `exit-info` command: the first names the exception and its stack, the
-second says whether the process died of a crash, a native crash, an ANR or the system. One code lead,
-unproven: GAP-198's `IOException` escapes a `LaunchedEffect` that catches only `GitStatusException`, and
-an exception that leaves one is not handled by the panel. A test that throws it from the reader says
-whether it ends the process. Until a log names the cause, the repair is not chosen.
+second says whether the process died of a crash, a native crash, an ANR or the system. One code lead is
+now closed: `OkHttpGitStatusReader` turns a refused connection or a timeout into `GitStatusException`
+inside the adapter, which the panel catches into its failed state, so an `IOException` no longer leaves the
+`LaunchedEffect` (`OkHttpGitStatusReaderTest`'s refused-connection and never-answers cases). Until a log
+names the cause, the repair is not chosen.
 
 ### GAP-200 — The app keeps no automatic, bounded record of its crashes and errors
 

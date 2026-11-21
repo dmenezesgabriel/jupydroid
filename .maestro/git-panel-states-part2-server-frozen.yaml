@@ -1,0 +1,21 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base. Driven by scripts/git-panel-states-driver.sh, which has just
+# SIGSTOPped base's proot - every tracee, the jupyter_server included, is frozen at its next
+# ptrace stop while the Space still counts as running, so the panel's next read's POST waits
+# out OkHttp's read timeout and comes back a GitStatusException.
+#
+# **No launchApp**: a relaunch would stop the app and take the Space's processes with it.
+# Leaving and reopening the panel is what reads again - the composition drops on the way out,
+# so the next open asks git fresh and the hung connection becomes the adapter's
+# GitStatusException, which the panel says with a Retry. `POST /api/shutdown` cannot make
+# this state: SpaceServer.connection starts a dead server again on the next use
+# (scripts/ai-chat-reconnects-driver.sh measures the new pid), and a signal to the tracee
+# itself is mediated by proot and never lands.
+- tapOn: "Files"
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "git status of 'demo' failed: .*"
+    timeout: 60000
+- assertVisible: "Retry"
+- takeScreenshot: 01-read-failed
