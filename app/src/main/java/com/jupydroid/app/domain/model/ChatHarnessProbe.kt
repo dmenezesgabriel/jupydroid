@@ -3,7 +3,7 @@ package com.jupydroid.app.domain.model
 /**
  * The probe as a POSIX sh script for the Space's shell: the persona's own two checks - `command -v`
  * for `which`, then `<executable> --version` bounded by busybox `timeout` in the `timeout -s KILL`
- * shape `startupScriptArgs` uses (`app/src/main/java/com/jupydroid/app/data/space/SpaceStartupScript.kt`).
+ * shape `boundedShellArgs` uses (`app/src/main/java/com/jupydroid/app/data/space/BoundedSpaceShell.kt`).
  *
  * Lines starting `harness-probe:` are the probe's own; every other line is the executable's
  * `--version` output, which [presenceFromProbe] reads for a version. `absent` is the whole answer

@@ -193,7 +193,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   `claude-acp-probe.sh`'s install arms (self-check ending, ShellCheck-clean),
   `domain/port/HarnessScripts.kt`, `data/asset/AssetHarnessScripts.kt`,
   `data/fake/FakeHarnessScripts.kt`, unit tests.
-- [ ] T3 — `SpaceShell`: `domain/port/SpaceShell.kt`, `data/space/ProotSpaceShell.kt` +
+- [x] T3 — `SpaceShell`: `domain/port/SpaceShell.kt`, `data/space/ProotSpaceShell.kt` +
   `spaceShell(...)` factory (null on a bad ABI, as `spaceServers`), `data/fake/FakeSpaceShell.kt`,
   the bounded-args helper generalized out of `startupScriptArgs`, unit tests on the fake and the
   args, and a tablet device test that runs a real probe — proving the port execs in a Space.
