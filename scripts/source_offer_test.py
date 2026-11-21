@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Tests for SOURCE_OFFER.md: the written offer must name the pins the build actually uses.
 
-The offer is prose, but every pin in it is also a fact in code (`stage_proot.py`, the Dockerfile,
-`THIRD_PARTY.md`). These tests read both sides, so a bumped proot, busybox or Alpine release fails
-here until the offer moves with it.
+The offer is prose, but every pin in it is also a fact in code (`tools/proot/build.sh`, the
+Dockerfile, `THIRD_PARTY.md`). These tests read both sides, so a bumped proot, busybox or Alpine
+release fails here until the offer moves with it.
 """
 
 from __future__ import annotations
@@ -12,12 +12,12 @@ import re
 import unittest
 from pathlib import Path
 
-import stage_proot
-
 REPO = Path(__file__).resolve().parent.parent
 BUSYBOX_SHA256_LINE = re.compile(r'echo "([0-9a-f]{64})  /tmp/busybox\.tar\.bz2"')
 ALPINE_RELEASE_ROW = re.compile(r"\| alpine-release \| (\d+\.\d+\.\d+)-r\d+ \|")
 APORTS_PROOT_COMMIT = re.compile(r"aports/(?:-/)?(?:blob|tree|raw)/([0-9a-f]{40})/community/proot")
+PROOT_TAG = re.compile(r"proot/archive/(v\d+\.\d+\.\d+)/")
+PROOT_SHA512 = re.compile(r'PROOT_SHA512="([0-9a-f]{128})"')
 
 
 def read(relative: str) -> str:
@@ -35,10 +35,12 @@ class SourceOfferTest(unittest.TestCase):
     def setUp(self) -> None:
         self.offer = read("SOURCE_OFFER.md")
 
-    def test_it_names_the_proot_package_the_app_stages_and_its_checksum(self) -> None:
-        package = stage_proot.PROOT_URL.rsplit("/", 1)[1]
-        self.assertIn(package, self.offer)
-        self.assertIn(stage_proot.PROOT_SHA256, self.offer)
+    def test_it_names_the_proot_build_the_app_stages_and_its_pins(self) -> None:
+        # The shipped pair is the patched build, so the offer names the upstream tag and the
+        # tarball checksum tools/proot/build.sh pins, not an Alpine package.
+        self.assertIn(pinned_by(PROOT_TAG, "tools/proot/build.sh"), self.offer)
+        self.assertIn(pinned_by(PROOT_SHA512, "tools/proot/build.sh"), self.offer)
+        self.assertIn("seccomp-sigsys-enosys.patch", self.offer)
 
     def test_it_pins_proots_recipe_to_an_aports_commit_not_to_edge(self) -> None:
         self.assertRegex(self.offer, APORTS_PROOT_COMMIT)

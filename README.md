@@ -56,8 +56,8 @@ The first launch unpacks the rootfs, which takes a while.
 | Android SDK | `sdk.dir` in `local.properties` |
 | Docker | building the rootfs image |
 | `zstd` | compressing it |
-| Python 3 | `scripts/stage_proot.py`, standard library only |
-| network | the pinned Alpine `proot` package, fetched by sha256 |
+| Python 3 | `scripts/stage_proot_patched.py`, standard library only |
+| network | the pinned upstream proot tarball, fetched by sha512 |
 
 Building the arm64 image on an x86_64 host runs under qemu, which needs Docker's arm64 binfmt
 handler; `tools/rootfs/build.sh` says how to register it and that it does not survive a reboot.

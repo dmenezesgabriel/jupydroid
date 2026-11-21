@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Stages proot and its loader into arm64 `jniLibs`, the runtime every Space runs under (ADR-0073).
+"""Stages stock proot and its loader into arm64 `jniLibs`; also the carve helpers the patched stager reuses.
+
+The pair every Space ships is the patched build `tools/proot/build.sh` writes, staged by
+`scripts/stage_proot_patched.py` - stock proot delivers SIGSYS to a handler a glibc tracee does not
+have when the refused syscall fires during loader startup (ADR-0073). This script remains the stock
+path and owns `carve_embedded_elf`, the loader extraction both staging paths share.
 
 Alpine's `proot-static` is a static-pie ELF, so it runs from `nativeLibraryDir` with no loader
 surgery (ADR-0002). It carries its own exec loader embedded and, unset, writes that out under
@@ -9,7 +14,7 @@ targetSdk 36. So the loader is carved out here and shipped beside it as `libproo
 
 The package is pinned by sha256 and lives in Alpine *edge* - no release branch packages proot for
 aarch64 - and edge drops superseded revisions, so a 404 here means the pin needs a deliberate bump,
-not a silent float. `tools/rootfs/stage-app-artifacts.sh arm64-v8a` runs it:
+not a silent float:
 
     python3 scripts/stage_proot.py app/src/main/jniLibs/arm64-v8a
 

@@ -64,12 +64,16 @@ else
 fi
 
 # proot is what every Space runs under (ADR-0073), so like the rootfs it ships on arm64
-# alone. It comes from a sha-pinned Alpine package - no release branch packages it for
-# aarch64 - and its loader is carved out beside it, because unset, proot execs that loader
-# from filesDir. stage_proot.py carries both reasons.
+# alone. The shipped pair is the patched build tools/proot/build.sh writes: stock proot
+# delivers SIGSYS to a handler, but a glibc tracee has none when the refused syscall fires
+# during loader startup, so the patch reads PROOT_SIGSYS_ENOSYS per tracee and answers
+# ENOSYS only for the marked kernel. stage_proot_patched.py carves the loader out beside it,
+# because unset, proot execs that loader from filesDir.
 if [ "$ABI" = "arm64-v8a" ]; then
+  PROOT_STATIC="$ROOT/build/proot/proot.static"
+  [ -f "$PROOT_STATIC" ] || { echo "missing $PROOT_STATIC; run tools/proot/build.sh first" >&2; exit 1; }
   echo "==> staging proot and its loader"
-  python3 "$ROOT/scripts/stage_proot.py" "$JNI_DIR"
+  python3 "$ROOT/scripts/stage_proot_patched.py" "$PROOT_STATIC" "$JNI_DIR"
 else
   rm -f "$JNI_DIR/libproot.so" "$JNI_DIR/libproot-loader.so"
 fi

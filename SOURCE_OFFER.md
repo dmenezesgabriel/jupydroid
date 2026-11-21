@@ -4,24 +4,38 @@ The APK carries programs under the GNU General Public License version 2 and the 
 Public License version 3: `proot`, `busybox`, and the Alpine packages in the rootfs. This file says where
 the source and build recipe of each already are, in public repositories you can open from the links below.
 
-This project keeps no copy of that source and sends none; the links are the way to it.
+This project keeps no copy of that source and sends none; the links are the way to it. Where this
+project changes an upstream program, its part names the change, and the recipe and patches of the
+modified build — which are the corresponding source's delta — ship in this repository and inside
+the APK's licence assets.
 
 Nothing below is modified from upstream except where its part says so. `THIRD_PARTY.md` lists every
 package in the rootfs with its licence; this file covers the ones whose licence asks for source.
 
 ## `proot`
 
-`proot` is shipped as `libproot.so` and the loader inside it, `libproot-loader.so`. Licence: GPL-2.0-or-later.
+`proot` is shipped as `libproot.so` and the loader inside it, `libproot-loader.so`, **modified**:
+built from upstream `proot-me/proot` tag `v5.4.0` plus patches. Licence: GPL-2.0-or-later.
 
-The Alpine package `proot-static-5.4.0-r2.apk`, sha256 `6965c02f281b4d2c46e69f28b48eb9ceea443eb7bc2b9cad3af5163906a184c3` (`scripts/stage_proot.py` checks it). Its recipe, patches and upstream tarball checksum are in [`community/proot` at aports commit a9e2a2dc](https://github.com/alpinelinux/aports/tree/a9e2a2dc46f377eb25884f7fea9834492de7f518/community/proot); the upstream source is `proot-me/proot` tag `v5.4.0`. A commit is named because Alpine edge, where this package lives, drops superseded revisions.
+`seccomp-sigsys-enosys.patch` is this project's: it makes the tracer answer ENOSYS instead of
+delivering SIGSYS to a tracee whose environment marks it `PROOT_SIGSYS_ENOSYS`, which is how the
+Space's glibc kernel survives the loader-startup syscalls Android's seccomp filter refuses while
+the musl tree keeps the delivered signal. The other six patches under `tools/proot/patches/` are
+Alpine's, vendored verbatim: their sha512s are the ones `community/proot`'s APKBUILD records at
+[aports commit a9e2a2dc](https://github.com/alpinelinux/aports/tree/a9e2a2dc46f377eb25884f7fea9834492de7f518/community/proot),
+which also names the upstream tarball checksum `c4d7b7428758c0d8f6a89ecaa01d1d7d5d9663a84b7e730e8160bc2a2385a7e278589f5dd86f5cd4f8e0736f09b3097b9efea7814096fd2d28e6032435b9ee63`
+that `tools/proot/build.sh` pins. The build recipe is `tools/proot/Dockerfile` and
+`tools/proot/build.sh` in this repository, and a copy of the recipe and patches ships inside the
+APK at `assets/licences/proot/`.
 
 ## `talloc`
 
-`talloc` is linked statically into `proot`. Licence: LGPL-3.0-or-later.
+`talloc` is linked statically into `proot`, from Alpine's `talloc-static` package - version
+2.4.3-r0, measured in the built image. Licence: LGPL-3.0-or-later.
 
-[`main/talloc` at the same aports commit](https://github.com/alpinelinux/aports/tree/a9e2a2dc46f377eb25884f7fea9834492de7f518/main/talloc) (2.4.3-r0).
-
-`proot`'s recipe builds the static binary with `-static -ltalloc`, so rebuilding it from the two recipes relinks it with a changed talloc.
+[`main/talloc` at aports tag `v3.23.8`](https://github.com/alpinelinux/aports/tree/v3.23.8/main/talloc)
+carries that version; `tools/proot/Dockerfile` links it with `-static -ltalloc`, so rebuilding
+`proot` from the recipe above relinks it with a changed talloc.
 
 ## `busybox`
 

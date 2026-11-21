@@ -295,6 +295,11 @@ abstract class BundleLicences : DefaultTask() {
     @get:PathSensitive(PathSensitivity.NAME_ONLY)
     abstract val licenceFiles: ConfigurableFileCollection
 
+    /** The proot recipe and patches, the corresponding-source delta of the modified `libproot.so`. */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val prootSourceFiles: ConfigurableFileCollection
+
     @get:OutputDirectory
     abstract val outputDir: DirectoryProperty
 
@@ -307,6 +312,10 @@ abstract class BundleLicences : DefaultTask() {
             from(licenceFiles)
             into(outputDir.dir("licences"))
         }
+        fileSystem.sync {
+            from(prootSourceFiles)
+            into(outputDir.dir("licences/proot"))
+        }
     }
 }
 
@@ -315,6 +324,11 @@ val bundleLicences by tasks.registering(BundleLicences::class) {
     group = "build"
     licenceFiles.from(
         listOf("LICENSE", "NOTICE", "THIRD_PARTY.md", "SOURCE_OFFER.md").map { rootProject.file(it) },
+    )
+    prootSourceFiles.from(
+        rootProject.fileTree("tools/proot").apply {
+            include("Dockerfile", "build.sh", "patches/**")
+        },
     )
 }
 

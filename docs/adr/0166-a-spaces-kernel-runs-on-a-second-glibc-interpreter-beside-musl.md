@@ -49,7 +49,7 @@ or per library; a mediation that is structurally required is made once and whole
 basis, never grown piecemeal; and a mechanism that needs no table outranks one that does.
 
 The tracer route also means shipping a modified proot — GPL-2.0-or-later (`SOURCE_OFFER.md`),
-shipped in the APK as `libproot.so` plus the carved `libproot-loader.so` (`scripts/stage_proot.py`).
+shipped in the APK as `libproot.so` plus the carved `libproot-loader.so` (`scripts/stage_proot_patched.py`).
 GPLv2's corresponding-source obligation attaches to the modification.
 
 ## Decision drivers
