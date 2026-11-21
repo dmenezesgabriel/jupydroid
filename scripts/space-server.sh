@@ -83,33 +83,40 @@ proot_pid() {
 }
 
 # The Space's processes with their states, for the evidence a freeze and a resume leave:
-# the tracer, the server it traces and the kernels under it.
+# the tracer, the server it traces and the kernels under it. A Space that never ran a cell
+# has no kernel line, and an empty category is not an error - each listing ends `|| true`
+# so the function's status stays 0 under pipefail, where a caller's grep on its output
+# decides the verdict, not the listing's own emptiness.
 space_processes() {
   {
     "${DEVICE_ADB[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
-      grep 'libproot.so .*-m jupyter_server' | grep -- 'files/spaces/base ' | grep -v grep"
+      grep 'libproot.so .*-m jupyter_server' | grep -- 'files/spaces/base ' | grep -v grep || true"
     "${DEVICE_ADB[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
-      grep -- '-m jupyter_server ' | grep -v 'libproot.so' | grep -v grep"
+      grep -- '-m jupyter_server ' | grep -v 'libproot.so' | grep -v grep || true"
     "${DEVICE_ADB[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
-      grep -- '-m jupydroid_kernel' | grep -v 'libproot.so' | grep -v grep"
+      grep -- '-m jupydroid_kernel' | grep -v 'libproot.so' | grep -v grep || true"
   }
 }
 
 # Stops base's proot and proves the freeze took: the server reads `t` - a tracee stopped
 # inside ptrace waits on its tracer - while the Space still counts as running.
 freeze_space() { # freeze_space <evidence-dir>
-  local evidence_dir="$1" pid
+  local evidence_dir="$1" pid deadline
   pid="$(proot_pid)"
   [ -n "$pid" ] || { echo "no proot tracing base's jupyter_server - the Space never started" >&2; return 1; }
   echo "base's proot pid $pid"
   space_processes | tee "$evidence_dir/ps-before-freeze.txt"
   "${DEVICE_ADB[@]}" shell "run-as $APP kill -STOP $pid" || return 1
-  sleep 2
-  space_processes | tee "$evidence_dir/ps-frozen.txt"
-  # The file, not a second sample: one more `ps` round-trip is one more chance for adb to answer
-  # late under a server that is still starting, and the tee'd capture is the state being judged.
-  grep -- '-m jupyter_server ' "$evidence_dir/ps-frozen.txt" | grep -v 'libproot.so' | grep -Eq ' [Tt] ' ||
-    { echo "jupyter_server did not freeze under its stopped proot" >&2; return 1; }
+  # A tracee freezes at its next ptrace stop, and an idle server reaches one only when its
+  # event loop next crosses a syscall boundary - measured past a fixed 2 s sleep on SM-X216B,
+  # so the capture is polled until the server reads stopped or the deadline says it never will.
+  # The file, not a live sample: the tee'd capture is the state being judged.
+  deadline=$((SECONDS + 90))
+  until space_processes | tee "$evidence_dir/ps-frozen.txt" |
+    grep -- '-m jupyter_server ' | grep -v 'libproot.so' | grep -Eq ' [Tt] '; do
+    [ "$SECONDS" -lt "$deadline" ] || { echo "jupyter_server did not freeze under its stopped proot" >&2; return 1; }
+    sleep 2
+  done
 }
 
 # CONTs the proot freeze_space stopped, so whatever reads the Space next meets the same live

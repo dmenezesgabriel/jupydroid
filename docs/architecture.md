@@ -2092,21 +2092,6 @@ The choice of the footer rests on a heuristic, not a measurement: an act repeate
 should be one tap from where the reader already is, and the end of a notebook is where they scroll to
 append. How often each insert is used is not counted here.
 
-### GAP-199 — The app sometimes closes itself while navigating, and nothing records why
-
-Reported on the published build, on a phone: now and then the app crashes and closes while moving
-through it, the example given being the extensions. Not reproduced, and there is no log to read on this
-host: no `logcat*.txt` file the audit runs saved holds a `FATAL EXCEPTION`, and the tablet's process-exit
-history (`adb shell dumpsys activity exit-info com.jupydroid.app`, 16 entries on 2026-11-09) holds only
-force stops and package updates that installs and drivers caused, with no crash, ANR or native crash.
-The crash was on the reporter's phone, so the log is there. Read it straight after a crash with
-`adb logcat -b crash -d` and the same `exit-info` command: the first names the exception and its stack, the
-second says whether the process died of a crash, a native crash, an ANR or the system. One code lead is
-now closed: `OkHttpGitStatusReader` turns a refused connection or a timeout into `GitStatusException`
-inside the adapter, which the panel catches into its failed state, so an `IOException` no longer leaves the
-`LaunchedEffect` (`OkHttpGitStatusReaderTest`'s refused-connection and never-answers cases). Until a log
-names the cause, the repair is not chosen.
-
 ### GAP-201 — A harness for the Chat cannot be installed from inside the app
 
 The image ships no harness, on purpose: the ACP client's personas "spawn an agent CLI the user installs in
