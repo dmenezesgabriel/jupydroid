@@ -85,6 +85,37 @@ class OkHttpGitStatusReaderTest : GitStatusReaderContract() {
     assertTrue("$failure", failure!!.message!!.contains("'demo'"))
   }
 
+  /**
+   * `address()` starts the Space's server when none runs, and its failure's type is the launcher's
+   * to choose (`SpaceServer.startSpace`): the port promises `GitStatusException` for every failure,
+   * and the panel catches nothing else.
+   */
+  @Test
+  fun status_ofAServerThatCannotBeAskedThrowsAGitStatusExceptionNamingThePath() = runTest {
+    val failure = runCatching { readerThatCannotBeAsked().status("demo") }.exceptionOrNull()
+
+    assertTrue("$failure", failure is GitStatusException)
+    assertTrue("$failure", failure!!.message!!.contains("'demo'"))
+    assertTrue("$failure", failure.message!!.contains("IllegalStateException"))
+  }
+
+  /** An address `toHttpUrl` refuses is a failed read like any other, not an escaped `IllegalArgumentException`. */
+  @Test
+  fun status_ofAnAddressThatIsNotAnHttpUrlThrowsAGitStatusExceptionNamingThePath() = runTest {
+    val reader = OkHttpGitStatusReader(
+      server = { ServerAddress(baseUrl = "not a url", token = "secret-token") },
+    )
+
+    val failure = runCatching { reader.status("demo") }.exceptionOrNull()
+
+    assertTrue("$failure", failure is GitStatusException)
+    assertTrue("$failure", failure!!.message!!.contains("'demo'"))
+  }
+
+  private fun readerThatCannotBeAsked(): GitStatusReader = OkHttpGitStatusReader(
+    server = { throw IllegalStateException("the Space's server failed to come up") },
+  )
+
   private fun readerUnderTest(client: OkHttpClient = OkHttpClient()): GitStatusReader = OkHttpGitStatusReader(
     server = { ServerAddress(baseUrl = serverRule.server.url("/").toString(), token = "secret-token") },
     client = client,
