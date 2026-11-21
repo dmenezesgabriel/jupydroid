@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# The healthy half of the stalled-server drive: a fresh install enters base, the Space's
+# server starts, and Chat's list reads it - `New chat` only shows once `files.list()` has
+# answered. The driver freezes the server between this flow and part 2.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# At two panes the contributed panels are rail rows; at one they sit behind More.
+- runFlow:
+    when:
+      notVisible: "Chat"
+    commands:
+      - tapOn: "More"
+      - extendedWaitUntil:
+          visible: "Chat"
+          timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "New chat"
+    timeout: 30000
+- takeScreenshot: chat-healthy

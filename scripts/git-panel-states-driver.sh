@@ -36,53 +36,6 @@ EVIDENCE="$ROOT/evidence/git-panel-states"
 
 mapfile -t DEVICE_ADB < <(device_adb)
 
-# The pid of the proot tracing base's jupyter_server - the one process whose stop freezes the
-# whole Space, every tracee blocking at its next ptrace stop until the tracer runs again.
-# pylsp's proot is a different tracee command, so it does not match.
-proot_pid() {
-  "${adb[@]}" shell "ps -A -o PID,CMDLINE | tr -d '\r' |
-    grep 'libproot.so .*-m jupyter_server' | grep -- 'files/spaces/base ' | grep -v grep |
-    awk '{print \$1; exit}'"
-}
-
-# The Space's processes with their states, for the evidence a freeze and a resume leave:
-# the tracer, the server it traces and the kernels under it.
-space_processes() {
-  {
-    "${adb[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
-      grep 'libproot.so .*-m jupyter_server' | grep -- 'files/spaces/base ' | grep -v grep"
-    "${adb[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
-      grep -- '-m jupyter_server ' | grep -v 'libproot.so' | grep -v grep"
-    "${adb[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
-      grep -- '-m jupydroid_kernel' | grep -v 'libproot.so' | grep -v grep"
-  }
-}
-
-# Stops base's proot and proves the freeze took: the server reads `t` - a tracee stopped
-# inside ptrace waits on its tracer - while the Space still counts as running.
-freeze_space() {
-  local pid
-  pid="$(proot_pid)"
-  [ -n "$pid" ] || { echo "no proot tracing base's jupyter_server - the Space never started" >&2; return 1; }
-  echo "base's proot pid $pid"
-  space_processes | tee "$EVIDENCE/ps-before-freeze.txt"
-  "${adb[@]}" shell "run-as $APP kill -STOP $pid" || return 1
-  sleep 2
-  space_processes | tee "$EVIDENCE/ps-frozen.txt"
-  space_processes | grep -- '-m jupyter_server ' | grep -v 'libproot.so' | grep -Eq ' [Tt] ' ||
-    { echo "jupyter_server did not freeze under its stopped proot" >&2; return 1; }
-}
-
-# CONTs the proot freeze_space stopped, so the panel's Retry meets the same live server.
-resume_space() {
-  local pid
-  pid="$(proot_pid)"
-  [ -n "$pid" ] || { echo "base's proot exited while frozen - nothing to resume" >&2; return 1; }
-  "${adb[@]}" shell "run-as $APP kill -CONT $pid" || return 1
-  sleep 2
-  space_processes | tee "$EVIDENCE/ps-resumed.txt"
-}
-
 # What the screen holds after each part, kept beside the flows' own screenshots.
 dump_screen() { # dump_screen <name>
   "${adb[@]}" shell "uiautomator dump /sdcard/git-panel-states-$1.xml" >/dev/null
@@ -100,11 +53,11 @@ rotate_to 1
 run_flow "$ROOT/.maestro/git-panel-states-part1-root-and-demo.yaml" "$EVIDENCE" || exit 1
 dump_screen part1-root-and-demo
 
-freeze_space || exit 1
+freeze_space "$EVIDENCE" || exit 1
 run_flow "$ROOT/.maestro/git-panel-states-part2-server-frozen.yaml" "$EVIDENCE" || exit 1
 dump_screen part2-server-frozen
 
-resume_space || exit 1
+resume_space "$EVIDENCE" || exit 1
 run_flow "$ROOT/.maestro/git-panel-states-part3-retry.yaml" "$EVIDENCE" || exit 1
 dump_screen part3-retry
 

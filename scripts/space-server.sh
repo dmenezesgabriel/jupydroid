@@ -72,3 +72,53 @@ pull_server_log() { # pull_server_log <dest>
   "${DEVICE_ADB[@]}" shell "run-as $APP cat $SPACE_RUN_DIR/jupyter_server.log" >"$1" 2>/dev/null || true
   python3 "$ROOT_DIR/scrub_device_secrets.py" "$(dirname "$1")"
 }
+
+# The pid of the proot tracing base's jupyter_server - the one process whose stop freezes the
+# whole Space, every tracee blocking at its next ptrace stop until the tracer runs again.
+# pylsp's proot is a different tracee command, so it does not match.
+proot_pid() {
+  "${DEVICE_ADB[@]}" shell "ps -A -o PID,CMDLINE | tr -d '\r' |
+    grep 'libproot.so .*-m jupyter_server' | grep -- 'files/spaces/base ' | grep -v grep |
+    awk '{print \$1; exit}'"
+}
+
+# The Space's processes with their states, for the evidence a freeze and a resume leave:
+# the tracer, the server it traces and the kernels under it.
+space_processes() {
+  {
+    "${DEVICE_ADB[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
+      grep 'libproot.so .*-m jupyter_server' | grep -- 'files/spaces/base ' | grep -v grep"
+    "${DEVICE_ADB[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
+      grep -- '-m jupyter_server ' | grep -v 'libproot.so' | grep -v grep"
+    "${DEVICE_ADB[@]}" shell "ps -A -o PID,STAT,CMDLINE | tr -d '\r' |
+      grep -- '-m jupydroid_kernel' | grep -v 'libproot.so' | grep -v grep"
+  }
+}
+
+# Stops base's proot and proves the freeze took: the server reads `t` - a tracee stopped
+# inside ptrace waits on its tracer - while the Space still counts as running.
+freeze_space() { # freeze_space <evidence-dir>
+  local evidence_dir="$1" pid
+  pid="$(proot_pid)"
+  [ -n "$pid" ] || { echo "no proot tracing base's jupyter_server - the Space never started" >&2; return 1; }
+  echo "base's proot pid $pid"
+  space_processes | tee "$evidence_dir/ps-before-freeze.txt"
+  "${DEVICE_ADB[@]}" shell "run-as $APP kill -STOP $pid" || return 1
+  sleep 2
+  space_processes | tee "$evidence_dir/ps-frozen.txt"
+  # The file, not a second sample: one more `ps` round-trip is one more chance for adb to answer
+  # late under a server that is still starting, and the tee'd capture is the state being judged.
+  grep -- '-m jupyter_server ' "$evidence_dir/ps-frozen.txt" | grep -v 'libproot.so' | grep -Eq ' [Tt] ' ||
+    { echo "jupyter_server did not freeze under its stopped proot" >&2; return 1; }
+}
+
+# CONTs the proot freeze_space stopped, so whatever reads the Space next meets the same live
+# server - or, when the app died under the freeze, lets the orphaned server finish cleanly.
+resume_space() { # resume_space <evidence-dir>
+  local evidence_dir="$1" pid
+  pid="$(proot_pid)"
+  [ -n "$pid" ] || { echo "base's proot exited while frozen - nothing to resume" >&2; return 1; }
+  "${DEVICE_ADB[@]}" shell "run-as $APP kill -CONT $pid" || return 1
+  sleep 2
+  space_processes | tee "$evidence_dir/ps-resumed.txt"
+}

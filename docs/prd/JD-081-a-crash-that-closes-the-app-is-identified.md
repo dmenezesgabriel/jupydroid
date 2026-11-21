@@ -147,7 +147,7 @@ process — the class GAP-199 reports, on the surface it names:
 
 ## Tasks
 
-- [ ] T1 — Reproduce on `SM-X216B` and name the cause from the pulled error log: drive the Chat panel,
+- [x] T1 — Reproduce on `SM-X216B` and name the cause from the pulled error log: drive the Chat panel,
   Source Control and a `.chat` document against a frozen or restarting Space server; `pull-app-logs.sh`
   + `read_app_log.py` + `logcat -b crash -d` name the exception or record a clean bounded pass.
 - [ ] T2 — Repair the cause the log names, red test first: the escaping failure becomes the port's

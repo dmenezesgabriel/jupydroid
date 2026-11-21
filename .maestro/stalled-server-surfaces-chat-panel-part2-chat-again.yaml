@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# The stalled half: the driver has SIGSTOPped base's proot, so every read a contributed panel
+# makes hangs to OkHttp's read timeout. Source Control's read lands on its failed state with a
+# Retry - proof the freeze took - then Chat's `files.list()` meets the same stall.
+#
+# The last wait is the measurement, not a gate: against the unfixed app the process dies inside
+# it and maestro reports the flow failed; the driver's pid and log pulls carry the evidence.
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "Retry"
+    timeout: 60000
+- takeScreenshot: source-control-failed
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "New chat"
+    timeout: 30000
+- takeScreenshot: chat-again

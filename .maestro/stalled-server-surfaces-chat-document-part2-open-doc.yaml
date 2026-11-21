@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# The stalled half: tapping the seeded `.chat` opens it as a chat document, whose transcript
+# read goes through the same Space server the driver has frozen.
+#
+# The wait is for the fixture's own message - text only a completed transcript read can draw -
+# so it is the measurement, not a gate: against the unfixed app the process dies inside it and
+# maestro reports the flow failed; the driver's pid and log pulls carry the evidence.
+- tapOn: "talk.chat"
+- extendedWaitUntil:
+    visible: "Written before the uninstall."
+    timeout: 30000
+- takeScreenshot: chat-document
