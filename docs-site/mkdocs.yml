@@ -47,3 +47,4 @@ validation:
 nav:
   - Home: index.md
   - Getting started: getting-started.md
+  - Spaces: spaces.md

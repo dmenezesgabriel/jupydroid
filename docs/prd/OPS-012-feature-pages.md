@@ -209,7 +209,7 @@ One coherent change per commit. Page tasks each end with the driver run on `SM-X
 produces their pairs, every frame inspected, and the strict build plus site gates green. Small
 enough that each takes well under a session; if one does not, decompose it here before coding.
 
-- [ ] T1 — Shot pipeline + Spaces page: the `site-<area>-shots.yaml` convention (shots named by
+- [x] T1 — Shot pipeline + Spaces page: the `site-<area>-shots.yaml` convention (shots named by
   image id, per-flow evidence dirs, crop-every-PNG), UI-only ordering (Spaces shots before any
   boot), the cold-vs-chained launch measurement, and `.maestro/site-spaces-shots.yaml` +
   `docs-site/pages/spaces.md` + `nav` proving it end to end.
