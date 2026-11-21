@@ -15,7 +15,8 @@ On the arm64 tablet (`SM-X216B`) — the device the backlog row names; nothing h
 the surfaces are the tablet's own launcher, so the emulator's would prove a different thing:
 
 1. Cold start: `fresh_install` of the debug APK, launch the app (the launch itself proves the
-   enabled alias resolves). Go Home and open the app drawer: the icon is the blue orbit.
+   enabled alias resolves). Go Home and open the app drawer: the icon is the blue orbit and the
+   label under it reads `Jupydroid`.
 2. Open Settings, scroll to the "App icon" row under Theme: the screenshot shows both previews,
    blue selected.
 3. Tap "Black orbit": the process may restart (the platform's own behaviour on a component-state
@@ -124,6 +125,11 @@ State plainly: every layer of the capability is absent; only the Settings row's 
   tablet did.
 - **No legacy square/round bitmaps.** minSdk 32 guarantees `mipmap-anydpi-v26`; shipping
   `mipmap-<density>/ic_launcher_<n>.webp` fallbacks would be unreachable code.
+- **The label under the icon reads "Jupydroid".** `app_name` still says `JupyterDroid`, the
+  template's name, and launcher, Recents and Settings > Apps all display it — the icon is only
+  half the identity. The string changes; the in-tree assertions that expect the old label
+  (`LauncherIconAliasesTest`, the icon driver's drawer grep) change with it. Internal symbol
+  names (`JupyterDroidTheme`, `Theme.JupyterDroid`) are not surfaces and stay.
 
 ## Open decisions
 
