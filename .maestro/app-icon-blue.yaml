@@ -1,0 +1,17 @@
+appId: com.jupydroid.app
+---
+# The return half: the row opens still wearing black - the platform's component state read back
+# through the port after the process was killed - and Blue orbit restores the default icon.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+- assertVisible: "App icon"
+- takeScreenshot: 01-black-orbit-still-worn
+- tapOn: "Blue orbit"
+- takeScreenshot: 02-blue-orbit-selected
