@@ -22,16 +22,19 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.fake.FakeAppIconRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
+import com.jupydroid.app.domain.model.AppIcon
 import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
+import com.jupydroid.app.domain.port.AppIconRepository
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.JupyterDroidTheme
@@ -381,6 +384,41 @@ class SettingsScreenTest {
     }
   }
 
+  /**
+   * The icon row reads [AppIconRepository] - the platform's component state behind the port - so
+   * what it shows is whichever alias is enabled, blue on a fresh install.
+   */
+  @Test
+  fun appIconRowShowsTheRepositorysCurrentIcon() {
+    startScreen(appIconRepository = FakeAppIconRepository(AppIcon.BLACK_ORBIT))
+
+    compose.onNodeWithText(APP_ICON_BLACK).performScrollTo().assertIsSelected()
+    compose.onNodeWithText(APP_ICON_BLUE).assertIsNotSelected()
+  }
+
+  @Test
+  fun tappingBlackOrbitWritesTheAppIconRepository() {
+    val repository = FakeAppIconRepository()
+    startScreen(appIconRepository = repository)
+
+    compose.onNodeWithText(APP_ICON_BLUE).performScrollTo().assertIsSelected()
+    compose.onNodeWithText(APP_ICON_BLACK).performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { repository.currentIcon() == AppIcon.BLACK_ORBIT }
+    compose.waitForIdle()
+    compose.onNodeWithText(APP_ICON_BLACK).assertIsSelected()
+    compose.onNodeWithText(APP_ICON_BLUE).assertIsNotSelected()
+  }
+
+  @Test
+  fun appIconChoicesAreRadioButtonsForAScreenReader() {
+    startScreen()
+
+    listOf(APP_ICON_BLUE, APP_ICON_BLACK).forEach { label ->
+      compose.onNodeWithText(label).assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+    }
+  }
+
   @Test
   fun tappingTheLicencesRowAsksToOpenThem() {
     var opened = 0
@@ -394,6 +432,7 @@ class SettingsScreenTest {
   private fun startScreen(
     editorSettingsRepository: EditorSettingsRepository = FakeEditorSettingsRepository(),
     themeSettingsRepository: ThemeSettingsRepository = FakeThemeSettingsRepository(),
+    appIconRepository: AppIconRepository = FakeAppIconRepository(),
     onOpenLicences: () -> Unit = {},
     frame: @Composable (@Composable () -> Unit) -> Unit = { screen -> screen() },
   ) {
@@ -403,6 +442,7 @@ class SettingsScreenTest {
           SettingsScreen(
             editorSettingsRepository = editorSettingsRepository,
             themeSettingsRepository = themeSettingsRepository,
+            appIconRepository = appIconRepository,
             applicationScope = scope,
             onOpenLicences = onOpenLicences,
             diagnostics = DiagnosticsViewModel(FakeErrorLog(), FakeErrorLogSharer()),
@@ -430,6 +470,8 @@ class SettingsScreenTest {
   private fun EditorSettingsRepository.currentSettings(): EditorSettings = runBlocking { observeSettings().first() }
 
   private fun ThemeSettingsRepository.currentSettings(): ThemeSettings = runBlocking { observeSettings().first() }
+
+  private fun AppIconRepository.currentIcon(): AppIcon = runBlocking { observeIcon().first() }
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L

@@ -378,6 +378,7 @@ fun MainNavigation(
             SettingsScreen(
               editorSettingsRepository = appContainer.editorSettings,
               themeSettingsRepository = appContainer.themeSettings,
+              appIconRepository = appContainer.appIcon,
               applicationScope = appContainer.applicationScope,
               onOpenLicences = { backStack.openLicences() },
               diagnostics = viewModel { DiagnosticsViewModel(appContainer.errorLog, appContainer.errorLogSharer) },

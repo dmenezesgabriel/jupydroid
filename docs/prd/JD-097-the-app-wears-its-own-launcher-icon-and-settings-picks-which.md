@@ -164,7 +164,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
 - [x] T2 — Domain: `AppIcon` + `AppIconRepository` + `FakeAppIconRepository`, unit tests.
 - [x] T3 — `PackageManagerAppIconRepository` + `AppContainer`/`JupydroidApplication` wiring +
   `ArchitectureGuardTest` prefix + instrumented flip/restore test.
-- [ ] T4 — `AppIconRow` in Settings + `SettingsScreen`/`Navigation` wiring + instrumented cases.
+- [x] T4 — `AppIconRow` in Settings + `SettingsScreen`/`Navigation` wiring + instrumented cases.
 - [ ] T5 — Demo: `.maestro/app-icon.yaml` + `scripts/app-icon-driver.sh` on `SM-X216B` —
   fresh-install blue, switch to black, launcher/Recents/App-info surfaces, relaunch and
   `install -r` survival, evidence under `evidence/<flow-name>/`; close `GAP-212`, delete this PRD,
