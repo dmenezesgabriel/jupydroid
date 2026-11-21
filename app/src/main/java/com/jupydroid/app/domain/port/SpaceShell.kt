@@ -24,7 +24,8 @@ sealed interface SpaceShellEvent {
  *
  * The Space's `jupyter_server` is not involved: the process runs under proot with the Space as
  * `/` (ADR-0073), so it answers for a Space that is stopped - the only state the Settings dialog
- * offers it in anyway.
+ * offers it in anyway, and the only honest one while persona classes are cached per server
+ * process (ADR-0168).
  *
  * ```
  * spaceShell.run("base", "command -v opencode", 15.seconds).toList()

@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# The third of the three flows scripts/chat-harness-install-driver.sh runs: the app killed and
+# relaunched, which kills base's server with it, so base reads stopped again and its Settings opens.
+#
+# The rows' labels are the live probe's answer - `command -v` plus `--version` asked of the Space's
+# disk on every open, never state the app stored - so "Installed" here is the probe speaking after
+# a cold start, which is the persistence the item claims.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 30000
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Claude"
+    direction: DOWN
+    timeout: 600000
+# The probes answer asynchronously after the rows are already drawn; "Checking…" lasting a minute
+# on a warm rootfs is still the honest wait, not a stall.
+- extendedWaitUntil:
+    visible: "Installed · 1\\.19\\.3"
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      text: "Installed( · \\d+\\.\\d+\\.\\d+)?"
+      index: 1
+    timeout: 120000
+- takeScreenshot: 01-relaunched-both-installed
+- tapOn: "Cancel"
