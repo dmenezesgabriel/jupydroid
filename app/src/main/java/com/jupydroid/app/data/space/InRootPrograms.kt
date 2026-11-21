@@ -9,8 +9,15 @@ package com.jupydroid.app.data.space
  * each find their own.
  */
 
-/** The interpreter: the server, every kernel and every `PythonRunner` command run as this. */
+/** The musl interpreter: the server and every `PythonRunner` command run as this. */
 const val SPACE_INTERPRETER = "/usr/bin/python3"
+
+/**
+ * The gnu payload's CPython, which the kernelspec's argv names for the default kernel: the
+ * server stays musl and only the kernel is glibc, so `%pip` gets PyPI's manylinux wheels
+ * (ADR-0166). `tools/rootfs/gnu/Dockerfile` installs it at this path inside the payload.
+ */
+const val GNU_INTERPRETER = "/opt/gnu/python/bin/python3.12"
 
 /** The shell terminado spawns and `SHELL` names; busybox's `sh` applet in the image. */
 const val SPACE_SHELL = "/bin/sh"

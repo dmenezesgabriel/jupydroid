@@ -23,7 +23,7 @@ class SpaceDirsTest {
 
     SpaceDirs(spaceDir).ensure()
 
-    listOf("home/jupydroid", "run", "tmp", "pkgs").forEach { relative ->
+    listOf("home/jupydroid", "run", "tmp", "pkgs", "pkgs-gnu").forEach { relative ->
       assertTrue("expected $relative under $spaceDir", File(spaceDir, relative).isDirectory)
     }
   }
@@ -60,6 +60,7 @@ class SpaceDirsTest {
     assertEquals(File(spaceDir, "run"), SpaceDirs(spaceDir).runtime)
     assertEquals(File(spaceDir, "tmp"), SpaceDirs(spaceDir).tmp)
     assertEquals(File(spaceDir, "pkgs"), SpaceDirs(spaceDir).pkgs)
+    assertEquals(File(spaceDir, "pkgs-gnu"), SpaceDirs(spaceDir).gnuPkgs)
   }
 
   /** A Space is its own `/` under proot (ADR-0073), so a process names each dir by its path under the Space. */
@@ -71,6 +72,7 @@ class SpaceDirsTest {
     assertEquals("/run", dirs.inRoot(dirs.runtime))
     assertEquals("/tmp", dirs.inRoot(dirs.tmp))
     assertEquals("/pkgs", dirs.inRoot(dirs.pkgs))
+    assertEquals("/pkgs-gnu", dirs.inRoot(dirs.gnuPkgs))
   }
 
   @Test
@@ -99,7 +101,8 @@ class SpaceDirsTest {
   @Test
   fun clearRuntime_leavesWhatTheNotebooksAndPackagesHold() {
     val dirs = SpaceDirs(configOnlySpace()).apply { ensure() }
-    val kept = listOf(dirs.workspace, dirs.pkgs, dirs.tmp).map { File(it, "kept.txt").apply { writeText("kept") } }
+    val kept = listOf(dirs.workspace, dirs.pkgs, dirs.gnuPkgs, dirs.tmp)
+      .map { File(it, "kept.txt").apply { writeText("kept") } }
 
     dirs.clearRuntime()
 

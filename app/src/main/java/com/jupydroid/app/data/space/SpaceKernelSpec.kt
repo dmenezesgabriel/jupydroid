@@ -13,17 +13,17 @@ import kotlinx.serialization.json.putJsonObject
 import java.io.File
 
 /**
- * Points the Space's `python3` kernelspec at the image's own interpreter and our kernel module.
+ * Points the Space's `python3` kernelspec at an interpreter and our kernel module.
  *
- * The kernelspec shipped in the image launches bare `python -m ipykernel_launcher`. Under proot the
- * image runs as built (ADR-0073), so argv[0] is [SPACE_INTERPRETER], the same `/usr/bin/python3`
- * the server was started as; the module is what this file exists to replace.
+ * The default spec runs the gnu payload's CPython ([GNU_INTERPRETER]) while the server stays
+ * musl: only the kernel is glibc, so `%pip` gets PyPI's manylinux wheels (ADR-0166). Its env is
+ * [DEFAULT_KERNEL_ENV] - jupyter_client merges a spec's env over the server's
+ * (`jupyter_client/provisioning/provisioner_base.py` in the pinned rootfs), which is how the
+ * kernel alone gets the glibc half of the refusal split. A registered environment's spec keeps
+ * running the venv's own interpreter over the image's kernel module ([installEnvironment]).
  *
  * Written over the shipped kernelspec in `usr/share/jupyter/kernels/`, which is
  * `<sys.prefix>/share/jupyter`, a directory jupyter_core searches.
- *
- * A registered environment's spec runs the same module under the environment's interpreter
- * ([installEnvironment]); both carry the same flags, environment and metadata.
  *
  * Both replace the spec whole rather than rewriting it where it sits (ADR-0089): half a spec is a
  * kernel the server cannot start, and a registered environment's spec is written once, so nothing
@@ -72,12 +72,32 @@ object SpaceKernelSpec {
   /** Where a registered environment's spec goes: `<sys.prefix>/local/share/jupyter`, never the workspace. */
   private const val ENVIRONMENT_KERNELS_PATH = "usr/local/share/jupyter/kernels"
 
+  /**
+   * The env the default kernel's spec carries, merged over the server's by jupyter_client. The
+   * glibc half of the refusal split (ADR-0166): `LD_PRELOAD` is emptied rather than omitted so the
+   * musl preloads never enter a glibc process; `PYTHONUSERBASE` and `PATH` give `%pip` a user base
+   * no musl wheel can contaminate; `PROOT_SIGSYS_ENOSYS` is what the patched tracer reads from
+   * the tracee's own environment to answer every seccomp trap with ENOSYS. `PATH` keeps `/pkgs/bin`
+   * after the gnu base, so a musl-only console script still runs under its own interpreter.
+   */
+  internal val DEFAULT_KERNEL_ENV = mapOf(
+    "PYTHONFAULTHANDLER" to "1",
+    "LD_PRELOAD" to "",
+    "PYTHONUSERBASE" to "/$SPACE_GNU_PKGS_DIR",
+    "PROOT_SIGSYS_ENOSYS" to "1",
+    "PATH" to
+      "/$SPACE_GNU_PKGS_DIR/bin:/$SPACE_PKGS_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  )
+
+  /** A venv kernel stays musl: it inherits the server's preloads and handler, needing only faulthandler. */
+  private val ENVIRONMENT_KERNEL_ENV = mapOf("PYTHONFAULTHANDLER" to "1")
+
   /** Written on every launch, so a Space extracted by an older version gets today's argv. */
   suspend fun install(baseDir: File, ioDispatcher: CoroutineDispatcher = Dispatchers.IO) = withContext(ioDispatcher) {
     val kernelJson = File(baseDir, KERNEL_PATH)
     kernelJson.parentFile?.mkdirs()
     kernelJson.writeTextAtomically(
-      kernelSpecJson(listOf(SPACE_INTERPRETER, "-m", KERNEL_MODULE), DEFAULT_KERNEL_DISPLAY_NAME),
+      kernelSpecJson(listOf(GNU_INTERPRETER, "-m", KERNEL_MODULE), DEFAULT_KERNEL_DISPLAY_NAME, DEFAULT_KERNEL_ENV),
     )
   }
 
@@ -98,14 +118,17 @@ object SpaceKernelSpec {
   ) = withContext(ioDispatcher) {
     val kernelJson = File(spaceDir, "$ENVIRONMENT_KERNELS_PATH/$name/kernel.json")
     kernelJson.parentFile?.mkdirs()
-    kernelJson.writeTextAtomically(kernelSpecJson(listOf(interpreter, "-c", RUN_KERNEL_MODULE_BY_PATH), displayName))
+    kernelJson.writeTextAtomically(
+      kernelSpecJson(listOf(interpreter, "-c", RUN_KERNEL_MODULE_BY_PATH), displayName, ENVIRONMENT_KERNEL_ENV),
+    )
   }
 
-  private fun kernelSpecJson(launch: List<String>, displayName: String): String = buildJsonObject {
-    putJsonArray("argv") { (launch + listOf("-f", "{connection_file}", KERNEL_LOG_LEVEL)).forEach(::add) }
-    put("display_name", displayName)
-    put("language", "python")
-    putJsonObject("env") { put("PYTHONFAULTHANDLER", "1") }
-    putJsonObject("metadata") { put("debugger", true) }
-  }.toString()
+  private fun kernelSpecJson(launch: List<String>, displayName: String, env: Map<String, String>): String =
+    buildJsonObject {
+      putJsonArray("argv") { (launch + listOf("-f", "{connection_file}", KERNEL_LOG_LEVEL)).forEach(::add) }
+      put("display_name", displayName)
+      put("language", "python")
+      putJsonObject("env") { env.forEach { (name, value) -> put(name, value) } }
+      putJsonObject("metadata") { put("debugger", true) }
+    }.toString()
 }

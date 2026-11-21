@@ -2,6 +2,15 @@ package com.jupydroid.app.data.space
 
 import java.io.File
 
+/** The musl interpreter's user base: `pkgs` on disk, `/pkgs` inside the root. */
+const val SPACE_PKGS_DIR = "pkgs"
+
+/**
+ * The gnu interpreter's own user base (ADR-0166): a musl wheel's `libc.musl` dependency must
+ * never load into a glibc process, so the two installs never share a site directory.
+ */
+const val SPACE_GNU_PKGS_DIR = "pkgs-gnu"
+
 /**
  * The writable directories a Space's processes need, provisioned the first time the Space runs.
  *
@@ -25,7 +34,10 @@ class SpaceDirs(val spaceDir: File) {
   val tmp: File get() = File(spaceDir, "tmp")
 
   /** `PYTHONUSERBASE`: what `pip` installs into this Space, and its console scripts under `bin`. */
-  val pkgs: File get() = File(spaceDir, "pkgs")
+  val pkgs: File get() = File(spaceDir, SPACE_PKGS_DIR)
+
+  /** The gnu kernel's own `PYTHONUSERBASE` - separate from [pkgs] so the two libcs never share wheels. */
+  val gnuPkgs: File get() = File(spaceDir, SPACE_GNU_PKGS_DIR)
 
   /**
    * [dir]'s path as a process in this Space sees it: the Space is its own `/` under proot
@@ -38,7 +50,7 @@ class SpaceDirs(val spaceDir: File) {
 
   /** Creates whichever of the Space's writable directories are missing; never touches their contents. */
   fun ensure() {
-    listOf(workspace, runtime, tmp, pkgs).forEach { dir ->
+    listOf(workspace, runtime, tmp, pkgs, gnuPkgs).forEach { dir ->
       check(dir.isDirectory || dir.mkdirs()) { "could not create '$dir': expected a directory, found ${shapeOf(dir)}" }
     }
   }

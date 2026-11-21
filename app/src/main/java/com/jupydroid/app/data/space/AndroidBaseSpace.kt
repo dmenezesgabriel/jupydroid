@@ -32,8 +32,11 @@ fun spaceServerLauncher(
   context: Context,
   settingsFor: suspend (Space) -> SpaceSettings,
   defaultKernelFor: suspend (Space) -> String,
+  nativeLibraryDir: File = File(context.applicationInfo.nativeLibraryDir),
 ): JupyterServerLauncher = JupyterServerLauncher(
-  runtimeFor = { space, settings -> spaceRuntime(context, space, settings.spaceProcessVariables()) },
+  runtimeFor = { space, settings ->
+    spaceRuntime(context, space, settings.spaceProcessVariables(), nativeLibraryDir)
+  },
   dirsFor = { space -> spaceDirs(context, space) },
   settingsFor = settingsFor,
   defaultKernelFor = defaultKernelFor,
@@ -61,6 +64,7 @@ fun spaceServers(
   watchScope: CoroutineScope,
   spaceRepository: SpaceRepository,
   kernelSpecsOnDisk: KernelSpecs,
+  nativeLibraryDir: File = File(context.applicationInfo.nativeLibraryDir),
 ): JupyterSpaceServers? {
   if (runCatching { deviceAbi() }.isFailure) return null
   return JupyterSpaceServers { id, reportRunning ->
@@ -71,6 +75,7 @@ fun spaceServers(
         context,
         settingsFor = { space -> spaceRepository.storedSettingsOf(space) },
         defaultKernelFor = { space -> kernelSpecsOnDisk.specs(space).default },
+        nativeLibraryDir = nativeLibraryDir,
       ),
       watchScope = watchScope,
       reportRunning = reportRunning,

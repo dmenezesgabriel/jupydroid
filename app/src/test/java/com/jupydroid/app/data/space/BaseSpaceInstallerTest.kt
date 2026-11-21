@@ -66,11 +66,11 @@ class BaseSpaceInstallerTest {
   }
 
   @Test
-  fun install_pointsTheKernelSpecAtTheImagesInterpreter() = runTest {
+  fun install_pointsTheKernelSpecAtTheGnuInterpreter() = runTest {
     val installed = installer(version = 1).installIfNeeded()
 
     val kernelJson = File(installed.baseDir, "usr/share/jupyter/kernels/python3/kernel.json").readText()
-    assertTrue(kernelJson, "\"$SPACE_INTERPRETER\"" in kernelJson)
+    assertTrue(kernelJson, "\"$GNU_INTERPRETER\"" in kernelJson)
   }
 
   /** Base's server-less callers (`PythonRunner`) run pip with no server start to write it. */

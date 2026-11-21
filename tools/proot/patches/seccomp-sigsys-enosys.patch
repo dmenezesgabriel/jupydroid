@@ -1,6 +1,14 @@
 --- a/src/tracee/event.c
 +++ b/src/tracee/event.c
-@@ -388,6 +388,52 @@
+@@ -27,6 +27,7 @@
+ #include <sys/types.h>  /* waitpid(2), */
+ #include <sys/wait.h>   /* waitpid(2), */
+ #include <sys/utsname.h> /* uname(2), */
++#include <fcntl.h>      /* open(2), */
+ #include <unistd.h>     /* fork(2), chdir(2), getpid(2), */
+ #include <string.h>     /* strcmp(3), */
+ #include <errno.h>      /* errno(3), */
+@@ -388,6 +389,113 @@
  }
  
  /**
@@ -49,11 +57,91 @@
 +	return get_sysnum(tracee, CURRENT);
 +}
 +
++/* The most an exec environment is expected to reach; a longer one
++ * loses only its tail to the scan, and a miss answers ABSENT - the
++ * signal is then delivered as stock proot does.  */
++#define SIGSYS_ENVIRON_MAX (64 * 1024)
++
++/**
++ * Scan @tracee's exec environment for PROOT_SIGSYS_ENOSYS.  Entries in
++ * /proc/<pid>/environ are NUL-separated, and the file reports the
++ * environment execve(2) was given - where a kernelspec's env lands,
++ * invisible to the tracer's own getenv.  Presence is the whole test,
++ * matching getenv(3): any value, empty included, asks for ENOSYS-only.
++ */
++static bool tracee_environ_has_sigsys_enosys(Tracee *tracee)
++{
++	static const char marker[] = "PROOT_SIGSYS_ENOSYS=";
++	const size_t marker_len = sizeof(marker) - 1;
++	char proc_path[64]; /* > sizeof("/proc//environ") + 2 * sizeof(#ULONG_MAX) */
++	char *buf;
++	ssize_t got;
++	size_t i;
++	int status, fd;
++
++	buf = talloc_size(tracee->ctx, SIGSYS_ENVIRON_MAX);
++	if (buf == NULL)
++		return false;
++
++	status = snprintf(proc_path, sizeof(proc_path), "/proc/%d/environ",
++			  tracee->pid);
++	if (status < 0 || (size_t) status >= sizeof(proc_path))
++		return false;
++
++	fd = open(proc_path, O_RDONLY | O_CLOEXEC);
++	if (fd < 0)
++		return false;
++	got = read(fd, buf, SIGSYS_ENVIRON_MAX);
++	close(fd);
++	if (got <= 0)
++		return false;
++
++	for (i = 0; i + marker_len <= (size_t) got; i++) {
++		if ((i == 0 || buf[i - 1] == '\0') &&
++		    memcmp(buf + i, marker, marker_len) == 0)
++			return true;
++	}
++	return false;
++}
++
++/**
++ * @tracee's own PROOT_SIGSYS_ENOSYS answer, computed once per exec'd
++ * program: the SIGSYS case asks it on every seccomp trap, and
++ * PTRACE_EVENT_EXEC resets it because execve(2) is the one event that
++ * replaces the environment it is read from.
++ */
++static int tracee_sigsys_enosys(Tracee *tracee)
++{
++	if (tracee->sigsys_enosys == SIGSYS_ENOSYS_UNKNOWN)
++		tracee->sigsys_enosys = tracee_environ_has_sigsys_enosys(tracee)
++		    ? SIGSYS_ENOSYS_PRESENT : SIGSYS_ENOSYS_ABSENT;
++	return tracee->sigsys_enosys;
++}
++
 +/**
   * For kernels >= 4.8.0
   * Handle the current event (@tracee_status) of the given @tracee.
   * This function returns the "computed" signal that should be used to
-@@ -602,6 +648,40 @@
+@@ -581,11 +689,17 @@
+ 			break;
+ 
+ 		case SIGTRAP | PTRACE_EVENT_VFORK_DONE << 8:
+-		case SIGTRAP | PTRACE_EVENT_EXEC  << 8:
+ 		case SIGTRAP | PTRACE_EVENT_EXIT  << 8:
+ 			signal = 0;
+ 			break;
+ 
++		case SIGTRAP | PTRACE_EVENT_EXEC  << 8:
++			/* execve(2) replaced the environment the marker is
++			 * read from, so the cached answer is asked again.  */
++			tracee->sigsys_enosys = SIGSYS_ENOSYS_UNKNOWN;
++			signal = 0;
++			break;
++
+ 		case SIGSTOP:
+ 			/* Stop this tracee until PRoot has received
+ 			 * the EVENT_*FORK|CLONE notification.  */
+@@ -602,6 +716,44 @@
  			}
  			break;
  
@@ -69,11 +157,15 @@
 +			 * every seccomp trap, for a libc whose signal path
 +			 * cannot survive delivery (measured on glibc under
 +			 * threads by GlibcPythonWheelProbeDeviceTest); the
-+			 * rest keep the handler.  The loader's startup pair
-+			 * is ENOSYS-safe for everyone - no handler is armed
-+			 * yet.  */
++			 * rest keep the handler.  The variable is read on the
++			 * tracer's own environment for a whole traced tree,
++			 * and on the tracee's for one program - a kernelspec's
++			 * env reaches only the tracee.  The loader's startup
++			 * pair is ENOSYS-safe for everyone - no handler is
++			 * armed yet.  */
 +			if (is_seccomp &&
 +			    (getenv("PROOT_SIGSYS_ENOSYS") != NULL ||
++			     tracee_sigsys_enosys(tracee) == SIGSYS_ENOSYS_PRESENT ||
 +			     seccomp_trap_is_enosys_safe(sysnum))) {
 +				signal = 0;
 +				VERBOSE(tracee, 1,
@@ -94,6 +186,24 @@
  		default:
  			/* Deliver this signal as-is.  */
  			break;
+--- a/src/tracee/tracee.h
++++ b/src/tracee/tracee.h
+@@ -226,6 +226,15 @@
+ 	/* Ensure the sysexit stage is always hit under seccomp.  */
+ 	bool sysexit_pending;
+ 
++	/* This tracee's own PROOT_SIGSYS_ENOSYS answer, cached per
++	 * exec'd program: a kernelspec's env reaches the tracee's
++	 * environment, never the tracer's own getenv.  */
++	enum {
++		SIGSYS_ENOSYS_UNKNOWN = 0,
++		SIGSYS_ENOSYS_PRESENT,
++		SIGSYS_ENOSYS_ABSENT,
++	} sigsys_enosys;
++
+ 
+ 	/**********************************************************************
+ 	 * Shared or private resources, depending on the CLONE_FS/VM flags.   *
 --- a/src/syscall/sysnums.list
 +++ b/src/syscall/sysnums.list
 @@ -258,6 +258,7 @@

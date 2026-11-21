@@ -92,11 +92,7 @@ class JupyterServerLauncher(
     val settings = settingsFor(space)
     val defaultKernel = defaultKernelFor(space)
     val runtime = runtimeFor(space, settings)
-    withContext(ioDispatcher) {
-      dirs.ensure()
-      SpacePipConfig.ensure(dirs.spaceDir)
-      dirs.clearRuntime() // a stale jpserver-<pid>.json would advertise a dead port
-    }
+    prepareWritableDirs(dirs, runtime, ioDispatcher)
     runStartupScript(runtime, dirs.runtime, settings.startupScript)
     val started = withContext(ioDispatcher) {
       val rootDir = dirs.inRoot(dirs.workspace)
@@ -206,6 +202,20 @@ class JupyterServerLauncher(
     val STOP_TIMEOUT = 10.seconds
     const val OUTLIVED_SHUTDOWN = "jupyter_server outlived api/shutdown"
     val POLL_INTERVAL = 100.milliseconds
+  }
+}
+
+/**
+ * The Space's writable state as a start leaves it: directories provisioned, both pip.confs in
+ * place, `etc/resolv.conf` fresh for the gnu resolver, and `run/` cleared of a dead server's
+ * files. All of it under [ioDispatcher] - none of it belongs on the caller's thread.
+ */
+private suspend fun prepareWritableDirs(dirs: SpaceDirs, runtime: SpaceRuntime, ioDispatcher: CoroutineDispatcher) {
+  withContext(ioDispatcher) {
+    dirs.ensure()
+    SpacePipConfig.ensure(dirs.spaceDir)
+    runtime.writeGnuResolvConf() // glibc's resolver reads etc/resolv.conf; musl's cannot (ADR-0166)
+    dirs.clearRuntime() // a stale jpserver-<pid>.json would advertise a dead port
   }
 }
 

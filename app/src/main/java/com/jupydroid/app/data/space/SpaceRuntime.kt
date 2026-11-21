@@ -125,6 +125,26 @@ class SpaceRuntime(
   }
 
   /**
+   * Writes `etc/resolv.conf` with [DnsServerSource]'s current nameservers, for the gnu kernel:
+   * glibc's resolver reads that file where musl's cannot be redirected to it
+   * ([dnsResolverShim] is the musl answer). Called on every server start so a network change
+   * reaches the next kernel - the same freshness the nameserver snapshot in [environment] gives
+   * musl's.
+   *
+   * The file is deleted before it is written: the image's entry may be a symlink, and following
+   * it would write wherever it points instead of the Space's own file. An empty answer writes
+   * nothing - there is no truer configuration to invent.
+   */
+  fun writeGnuResolvConf() {
+    val servers = dnsServers.current()
+    if (servers.isEmpty()) return
+    val resolvConf = File(spaceDir, "etc/resolv.conf")
+    resolvConf.parentFile?.mkdirs()
+    resolvConf.delete()
+    resolvConf.writeText(servers.joinToString("\n", postfix = "\n") { "nameserver $it" })
+  }
+
+  /**
    * A [ProcessBuilder] running the Space's interpreter with [args], with Android's own
    * environment replaced by the Space's. Shared so the short-lived [PythonRunner] and the
    * long-lived server launcher cannot drift apart on how a Space process is set up.

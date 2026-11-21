@@ -220,6 +220,53 @@ class SpaceRuntimeTest {
   }
 
   /**
+   * glibc's resolver reads `etc/resolv.conf` where musl's cannot be redirected to it - the file
+   * is rewritten on every server start so a network change reaches the next kernel, the same
+   * freshness the nameserver snapshot gives musl's (ADR-0166).
+   */
+  @Test
+  fun writeGnuResolvConf_namesTheConfiguredNameservers() {
+    val spaceDir = tempFolder.newFolder("space")
+    val runtime = SpaceRuntime(spaceDir, nativeDir, dnsServers = DnsServerSource { listOf("8.8.8.8", "1.1.1.1") })
+
+    runtime.writeGnuResolvConf()
+
+    assertEquals("nameserver 8.8.8.8\nnameserver 1.1.1.1\n", File(spaceDir, "etc/resolv.conf").readText())
+  }
+
+  /** No servers to report yet - there is nothing truer to write, so the file is left as it is. */
+  @Test
+  fun writeGnuResolvConf_leavesTheFileWhenNoServersAreReported() {
+    val spaceDir = tempFolder.newFolder("space")
+    val resolvConf = File(spaceDir, "etc/resolv.conf").apply {
+      parentFile?.mkdirs()
+      writeText("nameserver 192.0.2.1\n")
+    }
+    val runtime = SpaceRuntime(spaceDir, nativeDir, dnsServers = DnsServerSource { emptyList() })
+
+    runtime.writeGnuResolvConf()
+
+    assertEquals("nameserver 192.0.2.1\n", resolvConf.readText())
+  }
+
+  /** The image's entry may be a symlink; following it would write outside the Space's own file. */
+  @Test
+  fun writeGnuResolvConf_replacesASymlinkRatherThanFollowingIt() {
+    val spaceDir = tempFolder.newFolder("space")
+    val outside = tempFolder.newFile("outside.conf").apply { writeText("nameserver 192.0.2.9\n") }
+    val resolvConf = File(spaceDir, "etc/resolv.conf")
+    resolvConf.parentFile?.mkdirs()
+    java.nio.file.Files.createSymbolicLink(resolvConf.toPath(), outside.toPath())
+    val runtime = SpaceRuntime(spaceDir, nativeDir, dnsServers = DnsServerSource { listOf("8.8.8.8") })
+
+    runtime.writeGnuResolvConf()
+
+    assertFalse(java.nio.file.Files.isSymbolicLink(resolvConf.toPath()))
+    assertEquals("nameserver 8.8.8.8\n", resolvConf.readText())
+    assertEquals("nameserver 192.0.2.9\n", outside.readText())
+  }
+
+  /**
    * PEP 668's answer for this interpreter: installs ground in the Space's own user base,
    * not the image's site-packages. Measured on-device: bare `pip install` is
    * refused by `EXTERNALLY-MANAGED` even with `--user`; with `PYTHONUSERBASE` + `PIP_USER`
@@ -316,7 +363,9 @@ class SpaceRuntimeTest {
   /**
    * The names the Settings dialog refuses are exactly the names a process is given, on a rootfs
    * carrying every preload with nameservers reported - so a variable added here without being
-   * locked, or locked without being set, fails.
+   * locked, or locked without being set, fails. The kernel's spec env is the one place a name is
+   * set that [SpaceRuntime.environment] does not carry: the glibc kernel's `PROOT_SIGSYS_ENOSYS`
+   * reaches it through kernel.json, not the server's environment (ADR-0166).
    */
   @Test
   fun derivedVariableNamesAreExactlyWhatEveryProcessIsGiven() {
@@ -325,7 +374,10 @@ class SpaceRuntimeTest {
     }
     val runtime = SpaceRuntime(everyPreload, nativeDir, dnsServers = DnsServerSource { listOf("8.8.8.8") })
 
-    assertEquals(DERIVED_VARIABLE_NAMES, runtime.processBuilder(listOf("-c", "pass")).environment().keys)
+    assertEquals(
+      DERIVED_VARIABLE_NAMES,
+      runtime.processBuilder(listOf("-c", "pass")).environment().keys + SpaceKernelSpec.DEFAULT_KERNEL_ENV.keys,
+    )
   }
 
   private fun rootOf(command: List<String>): String = command[command.indexOf("-r") + 1]

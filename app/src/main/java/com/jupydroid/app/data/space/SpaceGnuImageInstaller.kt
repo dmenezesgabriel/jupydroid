@@ -54,8 +54,8 @@ class SpaceGnuImageInstaller(
   private companion object {
     const val STAMP_PATH = ".jupydroid/gnu-version"
 
-    /** The payload's interpreter, which proot is handed for a glibc process. */
-    const val GNU_INTERPRETER_PATH = "opt/gnu/python/bin/python3.12"
+    /** The payload's interpreter under [spaceDir], which the kernelspec names inside the root. */
+    val GNU_INTERPRETER_PATH = GNU_INTERPRETER.removePrefix("/")
 
     /** Everything the payload owns inside a Space - what a version bump must clear first. */
     val OVERLAY_PATHS = listOf("opt/gnu", "usr/lib/aarch64-linux-gnu", "lib/ld-linux-aarch64.so.1")
