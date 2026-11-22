@@ -145,7 +145,7 @@ and gates the merge (`gate`, `test (3.11..3.13)`, `pip-audit`, `zizmor`, `gitlea
   `200` from `/secret-scanning/alerts` as the commit-body evidence.
 - [x] T2 — Private vulnerability reporting on: `PUT`, then `GET …/private-vulnerability-reporting`
   reporting `enabled: true`.
-- [ ] T3 — Ruleset `main required checks`: `POST` the sibling's shape with the eight pull-request
+- [x] T3 — Ruleset `main required checks`: `POST` the sibling's shape with the eight pull-request
   contexts; `GET` read-back naming them. The commit body notes `docs` is deliberately absent until
   `docs.yml` reaches `main`.
 - [ ] T4 — arm64 runner, RED→GREEN: update `scripts/release_rootfs_workflow_test.py` to assert
