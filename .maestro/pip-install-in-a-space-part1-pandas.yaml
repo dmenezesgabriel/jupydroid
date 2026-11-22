@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# The control: `%pip install pandas` then `import pandas` in the same cell. pandas ships a wheel
+# the Space's kernel takes, so this is the case that always worked - the demo's baseline the two
+# refusals are read against. The wait names the version the kernel printed, a value only a real
+# import can produce; pip's own "Successfully installed" line is asserted by the driver on the
+# saved notebook.
+#
+# TABLET ONLY (SM-X216B): see `pip-install-in-a-space-body.yaml`.
+- runFlow:
+    file: pip-install-in-a-space-body.yaml
+- inputText: "%pip install pandas"
+- pressKey: Enter
+- inputText: "import pandas"
+- pressKey: Enter
+- inputText: 'print("PANDAS", pandas.__version__)'
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+# pandas and its dependencies resolve against PyPI, so the floor is a network round trip.
+- extendedWaitUntil:
+    visible:
+      text: ".*PANDAS [0-9].*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 600000
+- takeScreenshot: 01-pandas-installs-and-imports

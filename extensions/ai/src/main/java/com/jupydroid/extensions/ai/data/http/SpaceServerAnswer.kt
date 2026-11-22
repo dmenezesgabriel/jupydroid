@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.ai.data.http
 
 import com.jupydroid.extension.api.SpaceServerEndpoint
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl
@@ -37,5 +38,25 @@ internal suspend fun OkHttpClient.callWithToken(
     .build()
   return withContext(ioDispatcher) {
     newCall(request).execute().use { SpaceServerAnswer(it.code, it.body.string()) }
+  }
+}
+
+/**
+ * [callWithToken]'s answer, or [failureOf]'s exception naming the failure when the request cannot
+ * even be made: `address()` starts the Space's server when none runs, and what it throws is the
+ * launcher's to choose; the port promises its own exception for every failure.
+ */
+@Suppress("TooGenericExceptionCaught")
+internal suspend fun OkHttpClient.callWithTokenOr(
+  server: SpaceServerEndpoint,
+  ioDispatcher: CoroutineDispatcher,
+  failureOf: (String) -> Exception,
+  shape: Request.Builder.(HttpUrl) -> Request.Builder,
+): SpaceServerAnswer = try {
+  callWithToken(server, ioDispatcher, shape)
+} catch (failure: Exception) {
+  throw when (failure) {
+    is CancellationException -> failure
+    else -> failureOf("${failure::class.java.simpleName}: ${failure.message}")
   }
 }

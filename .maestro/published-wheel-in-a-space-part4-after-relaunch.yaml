@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app. Relaunched, the Demo Space is stopped, so it is run again
+# before it is opened - Open on a stopped Space stays on the Spaces list. Once the server is up
+# the cell runs again in a kernel started after the install: what pip wrote under `pkgs-gnu` is on
+# the Space's disk, so duckdb resolves with no second install - pip reports it satisfied and the
+# quickstart answers again.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Run Demo \\(space-1\\)"
+    timeout: 30000
+- tapOn: "Run Demo \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Stop Demo \\(space-1\\)"
+    timeout: 240000
+- tapOn: "Open Demo \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+# The cell kept its execution count across the relaunch, so the prompt reads [1]:, not [ ]:.
+- extendedWaitUntil:
+    visible: "\\[1\\]:"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*\\[\\(42,\\)\\].*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 120000
+- takeScreenshot: 05-the-snippet-answers-after-a-relaunch

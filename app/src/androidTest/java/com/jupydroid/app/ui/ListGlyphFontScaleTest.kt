@@ -1,8 +1,15 @@
 package com.jupydroid.app.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -14,6 +21,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.disk.DiskNotebookRepository
@@ -112,23 +120,35 @@ class ListGlyphFontScaleTest {
     compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodes(hasText(RECENT_PATH)).fetchSemanticsNodes().isNotEmpty() }
   }
 
-  private fun showSearchWithOneMatch() {
+  /** [cutAt] hides what the panel lays out below it, as the soft keyboard hides the list's tail. */
+  private fun showSearchWithOneMatch(cutAt: Dp = Dp.Unspecified) {
     val replace = WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), FakeWorkspaceRepository())
     compose.setContent {
       JupyterDroidTheme {
         AtFontScale(fontScale) {
           scaled = LocalDensity.current
-          SearchSidePanel(
-            searcher = FakeWorkspaceSearcher(mapOf(MATCHED_FILE to "cat")),
-            replace = replace,
-            onOpenMatch = { _, _ -> },
-          )
+          CutAt(cutAt) {
+            SearchSidePanel(
+              searcher = FakeWorkspaceSearcher(mapOf(MATCHED_FILE to "cat")),
+              replace = replace,
+              onOpenMatch = { _, _ -> },
+            )
+          }
         }
       }
     }
     compose.onNodeWithContentDescription(SEARCH_WORKSPACE_BOX).performTextInput("cat")
     compose.waitUntil(TIMEOUT_MILLIS) {
       compose.onAllNodes(hasContentDescription(fileMatchLabel(MATCHED_FILE, 1))).fetchSemanticsNodes().isNotEmpty()
+    }
+  }
+
+  @Composable
+  private fun CutAt(height: Dp, content: @Composable () -> Unit) {
+    if (height == Dp.Unspecified) return content()
+    // `requiredHeight` would centre the taller panel in the cut, hiding its top instead of its tail.
+    Box(Modifier.height(height).clipToBounds()) {
+      Box(Modifier.wrapContentHeight(Alignment.Top, unbounded = true).height(WINDOW_HEIGHT)) { content() }
     }
   }
 
@@ -142,8 +162,13 @@ class ListGlyphFontScaleTest {
     )
   }
 
-  private fun height(node: SemanticsNodeInteraction): Dp =
-    with(scaled) { node.fetchSemanticsNode().boundsInRoot.height.toDp() }
+  /**
+   * The node's laid-out height, not `boundsInRoot`, which a scrolling list clips to its viewport. The soft keyboard
+   * the search box raises cuts the list's tail, so a header it cut read 43dp for a 45dp chevron beside an unclipped
+   * label whenever the keyboard arrived between two readings; see
+   * `theSearchChevronKeepsItsRatioWhenTheListIsCutThroughItsHeader`.
+   */
+  private fun height(node: SemanticsNodeInteraction): Dp = with(scaled) { node.fetchSemanticsNode().size.height.toDp() }
 
   private fun assertEachKeepsItsRatio(surfaces: List<Surface>) {
     val drifted = surfaces.associate { surface ->
@@ -187,6 +212,13 @@ class ListGlyphFontScaleTest {
   }
 
   @Test
+  fun theSearchChevronKeepsItsRatioWhenTheListIsCutThroughItsHeader() {
+    showSearchWithOneMatch(cutAt = CUT_THROUGH_HEADER)
+
+    assertEachKeepsItsRatio(searchSurfaces)
+  }
+
+  @Test
   fun theSearchFileHeaderStillHoldsItsGrownChevronAndNameAtTwiceTheFontScale() {
     showSearchWithOneMatch()
 
@@ -195,6 +227,15 @@ class ListGlyphFontScaleTest {
 
   private companion object {
     const val TIMEOUT_MILLIS = 5_000L
+
+    /** The 640dp window of `dev36`, which the panel fills when nothing cuts it. */
+    val WINDOW_HEIGHT = 640.dp
+
+    /**
+     * Inside the header's row at every scale: it spans 280dp to 328dp at 1.0 and 306dp to 367dp at 2.0 on `dev36`.
+     * Higher, the clipped glyph and the clipped label shrink together and their ratio hides the cut.
+     */
+    val CUT_THROUGH_HEADER = 325.dp
     const val ENTRY_NAME = "notes.txt"
     const val RECENT_PATH = "reports/summary.ipynb"
     const val MATCHED_FILE = "found.py"

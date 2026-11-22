@@ -2025,27 +2025,19 @@ one meaning.
 ### GAP-195 — A package installed with `%pip` is sometimes not importable in the next cell
 
 Reported on the published build: after `%pip install <package>` in one cell, an `import` in the cell
-below sometimes says the package was not found, and selecting the kernel again makes it work. Not
-measured, and the two readings below predict different fixes. The first is Python's import caches: a
-directory that appeared after the interpreter first listed its parent is not seen until
-`importlib.invalidate_caches()`. Whether IPython's `%pip` calls it after an install is not read here:
-`IPython/core/magics/packaging.py` in the shipped rootfs says. The second is that the install landed
-outside the kernel's `sys.path`, which a restart's fresh path would hide. The repair starts by
-reproducing on the tablet with a package that installs, `%pip install` then `import` in the next cell,
-and printing `sys.path` and the package's `__file__` when it fails.
-
-### GAP-196 — `%pip` finds no wheel for duckdb or scikit-learn on the Space's platform
-
-Reported on the published build: pandas installs with `%pip`, and duckdb and scikit-learn answer that the
-package could not be found. The cause is partly measured on 2026-11-09. The Space is Alpine 3.21 on musl
-with Python 3.12 (`tools/rootfs/Dockerfile`), so pip looks for `cp312` `musllinux_*_aarch64` wheels. PyPI's
-latest releases list **none** for duckdb 2.0.0 (15 files) or scikit-learn 1.9.1 (43 files), and seven for
-pandas 3.1.1, among them `pandas-3.1.1-cp312-cp312-musllinux_1_2_aarch64.whl`. A source build is not an
-exit: the image carries no C toolchain on purpose (`tools/rootfs/Dockerfile`, the comment above its
-builder stages). Not measured: older releases of the two, pip's own message on the device (the report
-paraphrases it), and which other popular packages are in the same case. Options to measure before one
-is chosen: a package the image's `apk` repository carries under the same name, a wheelhouse the build
-produces, or telling the user plainly why pip cannot see a package that exists.
+below sometimes says the package was not found, and selecting the kernel again makes it work.
+**Measured on the tablet** (SM-X216B, 2026-11-20, `PipImportProbeDeviceTest`): it is the path, not
+the import system's cache. `site.addusersitepackages` adds the user site only when the directory
+already exists (`usr/lib/python3.12/site.py`: `if ENABLE_USER_SITE and os.path.isdir(user_site)`),
+the image ships no `pkgs/` at all, and `SpaceDirs.ensure` creates `pkgs` but not the
+`lib/python3.12/site-packages` under it. A kernel started before the Space's first install therefore
+has `user_site_on_path: False`, and the install that creates the directory runs in a subprocess that
+never re-runs `site`. The same interpreter still fails after `importlib.invalidate_caches()` and
+imports once the path is appended; a second interpreter imports it without the append, which is the
+restart the reporter used. "Sometimes" is the Space that had an earlier install. IPython's `%pip`
+(`IPython/core/magics/packaging.py`) names the workaround and repairs nothing. `JD-077` owns the
+repair; a package whose release files fit no wheel the kernel's platform takes is the install
+explanation's case (`PipInstallExplanation`), not this.
 
 ### GAP-197 — Adding a cell, the most repeated notebook act, is only a row in a long menu
 
@@ -2100,146 +2092,21 @@ The choice of the footer rests on a heuristic, not a measurement: an act repeate
 should be one tap from where the reader already is, and the end of a notebook is where they scroll to
 append. How often each insert is used is not counted here.
 
-### GAP-198 — The Source Control panel can draw nothing at all
+### GAP-201 — The Chat panel gives no pointer when no harness is installed
 
-Reported on the published build: the Source Control extension is sometimes blank, with not even a
-message that the folder is not a Git repository. The panel does have that message
-(`SourceControlPanel.kt`, `SourceControlWording.kt`), but only when the server answers with git's own
-"fatal: not a git repository" (`GitStatusAnswer.kt:45-49`). Read against the source, two paths leave the
-panel blank, and neither was reproduced here. While the read is in flight the panel draws nothing
-(`StatusReading.Pending -> Unit`), and `OkHttpGitStatusReader.status` makes its call with
-`client.newCall(request).execute()` on a default `OkHttpClient()` (10 s read timeout; no other client was found
-in `di/`), so a stopped or slow server leaves it blank for that long. A refused connection or a timeout then
-throws an `IOException`, and the panel catches only `GitStatusException`
-(`LaunchedEffect` in `SourceControlPanel`), so nothing is drawn for it either. A `Failed` state is not
-blank: `GitStatusException`'s message always names the path and the reason. The repair starts with two red
-tests, a reader that never answers and one that throws `IOException`, and draws a message with a way to
-retry in every state, "not a Git repository" included.
-
-### GAP-199 — The app sometimes closes itself while navigating, and nothing records why
-
-Reported on the published build, on a phone: now and then the app crashes and closes while moving
-through it, the example given being the extensions. Not reproduced, and there is no log to read on this
-host: no `logcat*.txt` file the audit runs saved holds a `FATAL EXCEPTION`, and the tablet's process-exit
-history (`adb shell dumpsys activity exit-info com.jupydroid.app`, 16 entries on 2026-11-09) holds only
-force stops and package updates that installs and drivers caused, with no crash, ANR or native crash.
-The crash was on the reporter's phone, so the log is there. Read it straight after a crash with
-`adb logcat -b crash -d` and the same `exit-info` command: the first names the exception and its stack, the
-second says whether the process died of a crash, a native crash, an ANR or the system. One code lead,
-unproven: GAP-198's `IOException` escapes a `LaunchedEffect` that catches only `GitStatusException`, and
-an exception that leaves one is not handled by the panel. A test that throws it from the reader says
-whether it ends the process. Until a log names the cause, the repair is not chosen.
-
-### GAP-200 — The app keeps no automatic, bounded record of its crashes and errors
-
-Nothing in `app/src/main` installs an uncaught-exception handler or reads the platform's exit reasons,
-and nothing in `docs/` mentions telemetry, crash reports or analytics, so there is no decision to follow.
-The one durable log is the server's: `run/jupyter_server.log`, "truncated at every server start, so it is
-one run's worth of file", which `JupyterServerLauncher.kt` says to read with `adb shell run-as
-com.jupydroid.app cat files/spaces/base/run/jupyter_server.log`. **`run-as` works only on a debuggable
-build**, and the release build type sets no `debuggable` (`app/build.gradle.kts`, `buildTypes`; nor does the
-manifest), so that path reads the tablet's debug build and not the published package on a phone. The app's
-own side of a crash leaves only what logcat's ring buffer still holds, and nothing is ever cleared because
-nothing is kept. Two references show the shape: `termux-app@3df69d1da197` installs a
-`Thread.UncaughtExceptionHandler` that writes the crash to a log file and then hands the exception on to
-the default handler (`termux-shared/src/main/java/com/termux/shared/crash/CrashHandler.java:18,35-41`), and
-tells the user from that file the next time it starts (`TermuxCrashUtils.java:130-131`); VS Code ships an
-issue reporter (`vscode@3f3380c668d0 src/vs/workbench/contrib/issue/browser/baseIssueReporterService.ts`).
-The platform also keeps why a process died, which `dumpsys activity exit-info` read on the tablet; the API
-behind it, `ActivityManager.getHistoricalProcessExitReasons`, reaches the app from Android 11.
-
-Where a log can sit so that a release build's file can be read over adb: the app-specific external
-directory, `/sdcard/Android/data/com.jupydroid.app/files`, which needs no permission. On the Android 16
-tablet `adb shell ls` lists it. Not measured: pulling a file from it, and the phone's Android version. The
-app uses no external directory today.
-
-The plan, a proposal: local, automatic, bounded, and nothing sent anywhere; no crash-reporting library
-(the handler needs none).
-
-1. **Automatic capture.** An uncaught-exception handler installed once per process in
-   `JupydroidApplication` appends one JSON line per event, with a schema version, the app's version, the
-   device model, the Android version, a kind (`crash`, `anr`, `native`, `exit`, `error`), the thread, the
-   exception class and message and the stack, then chains to the default handler as Termux does. At every start,
-   the platform's exit reasons for a crash, native crash, ANR or kill since the last one are appended too: the
-   handler never runs for a native crash or an ANR. The errors the app already shows a person go through the
-   same writer. The writer sits behind a port with a `Fake` in `data/fake/`, as every port does.
-2. **Stored where it can be pulled.** Under the app-specific external directory, in files a person or `adb
-   pull` can read on a release build. Because other apps holding the storage permission can read that
-   directory on Android 10 and below, **an entry is redacted when it is written**, not only when shared:
-   the server's bearer token turns up in server artifacts (`GAP-188`, `GAP-191`), so a redaction rule with a test
-   runs before a byte lands on disk.
-3. **Bounded, and pruned without being asked.** A size cap and an age cap, oldest first, applied at every
-   start and every rotation, so old logs never consume storage on their own. The caps are set from the
-   measured size of a day's entries, which is not known yet. The server's log rotates under the same caps
-   instead of being truncated, so a crash is not overwritten by the restart that follows it.
-4. **Cleared on request.** A Settings row, "Diagnostics", lists the entries, shows the space the logs take,
-   and offers "Clear logs" behind a confirmation that states the size it frees, as the Running panel's "Shut
-   Down All" confirmation states its count. It also offers "Share log" through the existing `FileProvider`
-   (`${applicationId}.exports`) and "Report an issue", which opens the repository's issue tracker for the
-   person to submit themselves.
-5. **Analysable later.** `scripts/pull-app-logs.sh` pulls the directory into a local, uncommitted folder
-   (ADR-0132), and `scripts/read_app_log.py`, with a test and a fixture, groups entries by exception class
-   and top frame and counts them per app version, in the pattern of the repo's other `read_*.py` measures.
-   That is how crashes are mapped, and what a later session reads.
-6. An ADR for the policy: a local record, person-initiated sharing, no network call of the app's own, and the
-   caps.
-
-Until it ships, the reading path on a debug build is the two adb commands in `GAP-199` plus the server-log
-command above. On the published package only `logcat` and `exit-info` answer.
-
-### GAP-201 — A harness for the Chat cannot be installed from inside the app
-
-The image ships no harness, on purpose: the ACP client's personas "spawn an agent CLI the user installs in
-the Space" (`tools/rootfs/Dockerfile:278-282`), and a rootfs upgrade deletes what was installed
-(`opencode`, `claude-agent-acp` and the `apk add`ed and `npm -g` packages in `usr/`, ADR-0125). Nothing in the
-app installs one: no source line names an install command for a harness, and `ChatPanel.kt:147` says only
-that questions queue while there is no agent. Reported: from inside the app there should be an easy way to
-install a harness that works with the Chat extension, with the choice in the Space's settings dialog and
-the install script expandable, so the person sees exactly what it will put in the Space.
-
-What the Space has, read on the tablet on 2026-11-09: `python3` and `pip`, and **no `node`, `npm`, `npx` or
-`uv`**, the image adding only `python3 py3-pip git` (`tools/rootfs/Dockerfile:87`). `sbin/apk` is there with
-Alpine 3.21's `main` and `community` repositories in `etc/apk/repositories`. `usr/local/bin` was empty:
-the last rootfs bump had cleared both harnesses. So an `npm install -g` is not runnable until a runtime is
-installed first, and the script the person is shown has to say so.
-
-What "compatible with our extension" means, from the persona code. `jupyter-ai-acp-client@77016f63530f`
-provides eight personas, each needing one executable and naming its install (`README.md:57-79`): Claude,
-`claude-agent-acp`, `npm install -g @zed-industries/claude-agent-acp`; OpenCode, `opencode` at least 1.0.0 and
-below 2, `npm install -g opencode-ai`; Codex, `codex-acp`, `npm install -g @zed-industries/codex-acp`;
-Mistral-Vibe, `vibe-acp`, `uv tool install mistral-vibe` or `pip install mistral-vibe`; Copilot, `npm install -g
-@github/copilot` among other routes; and Kilo (at least 7.0.0), Kiro (at least 1.25.0, below 2) and Goose (at least
-1.8.0, below 2), each from its vendor's page. Only two have been run on a Space: OpenCode and Claude
-(`GAP-179`'s sign-ins). They disagree on a name: the README says `@zed-industries/claude-agent-acp`, and
-`GAP-179` records `@agentclientprotocol/claude-agent-acp` 0.97.0 on the tablet. Which scope the script
-installs is read from the registry, not assumed. Whether the other six start on musl and arm64 under
-Android's filter is not measured.
-
-The plan, a proposal, in the order a person meets it:
-
-1. **A catalog the app ships as data.** One entry per harness: its persona, its executable and the version
-   range the persona requires, the package at one **exact** version, and the install script as a file. It
-   starts with the two that have run, OpenCode and Claude, and gains an entry when that harness has been
-   run on the tablet, because "compatible" is a measurement. Only official packages the ACP client's README
-   names go in.
-2. **A section in the Space settings dialog** (`SpaceSettingsDialog.kt`, beside the startup script and default
-   kernel): each harness with whether the Space has it (its executable found, and its version) and, once one
-   is chosen, its install script **expanded** in the monospace the startup script field already uses, under a
-   plain summary of what it adds: a runtime (`apk add nodejs npm`, when `node` is absent), the harness at its
-   pinned version, and the size, which is measured, not guessed. Nothing runs until the person presses
-   Install. A test holds that the bytes shown are the bytes run.
-3. **It runs the way the startup script does**: in the Space's shell, bounded by `timeout`, with the
-   output shown while it runs and a log excerpt when it fails (`SpaceStartupScript.kt`, a five-minute
-   bound that is kept only if a measured install fits it). Whether it needs the Space's server running is
-   read, not assumed.
-4. **It does not run while the app is behind another.** An install is a download, and `GAP-179` records the
-   platform destroying a Space program's sockets seconds after the app leaves the screen. The install screen
-   says so, keeps the app in front, and a re-run after an interruption finishes the job.
-5. **It comes back after a rootfs upgrade.** ADR-0125 deletes the harness, so the section shows it as not
-   installed again and one press reinstalls it. Signing in to the harness is its own step and is not part of
-   this item; `GAP-179` covers why it can fail.
-6. Open until the first slice is on a phone: a pointer from the Chat panel when no harness is installed, so a
-   person who opens Chat first finds the install. What the panel shows now with no agent was not read.
+What remains of the harness-install gap: the install itself shipped. A stopped Space's Settings
+carries the catalog — OpenCode and Claude, the two personas measured to run — each row answering
+installed or not by a live probe of the Space's disk, its install script expandable to the exact
+bytes before Install runs them bounded with the output streaming into the row
+(`SpaceHarnessesSection.kt`, `SpaceHarnessesViewModel.kt`, `domain/port/SpaceShell.kt`, ADR-0168),
+and a new chat's picker lists both. What is still missing is the signpost for the person who opens
+Chat first: with no persona installed the transcript's agent list is empty, so `chatControls`
+(`extensions/ai/src/main/java/com/jupydroid/extensions/ai/ui/ChatControl.kt`) offers no chip —
+`choosable` is `offered.isNotEmpty()` (`domain/AgentChoice.kt`) — `selectedAgent` answers null, the
+question field composes disabled (`ChatPanel.kt`'s `enabled = agent != null && read`), and `askDue`
+holds every question unwritten because a question to no one is answered by none. An empty chat with
+a greyed-out field and no word about why. The repair is a pointer in the panel — what it says and
+where it leads is its own item's design; open until the first slice is on a phone.
 
 ### GAP-202 — Keyboard focus is a pale plate at 1.14:1, not an indicator
 
@@ -2281,6 +2148,133 @@ test is not in it. In the same run `backClosesTheRailWithoutActing` failed with 
 separate cause. The repair starts by reading the five items' bounds on the failing build, so the 3.33dp is
 attributed to an item before anything is changed; the test is the red test already, and what it then needs is
 either the bar's layout or the test's expectation, decided by what the bounds show.
+
+### GAP-205 — Tablet flows tap an empty cell at a fixed point that no longer lands on its field
+
+`.maestro/` holds 23 `point: "1300,354"` taps across 20 flows, each meant to focus an empty code cell on the
+tablet; `release-install-demo.yaml` says in its comment that the field is at `[805,334][1884,406]`. Read on
+the tablet from the build of `a2d37992`, with a freshly created notebook open, the field is about
+`[800,284][1895,336]` (the `uiautomator` dump and the screenshot agree), so the point is 18px below it and
+lands on nothing. The flow then types into no field, `hideKeyboard` sends BACK with no keyboard up, the
+notebook's tab closes and the Launcher is what is left; the flow reports "Run cell" not found, which reads as
+a regression in the app and is not one: tapped by hand at the field's real position, the same cell ran on the
+kernel and printed `42`. What is not known: which commit moved the field. `JD-089` replaced 20 of the 23 taps
+with a tap on the field's name (`.maestro/focus-cell.yaml`, ADR-0155), each run on the tablet. The three
+left, `chat-markdown-insert.yaml`, `chat-markdown-copy.yaml` (a `longPressOn` by the same name, inline) and
+`delete-stops-session-demo-delete.yaml`, were converted by `JD-093`, and each driver ran green on the tablet.
+The two chat flows needed opencode reinstalled in base after a rootfs bump; its sign-in had survived, and the
+unchanged insert driver was red at `Insert below active cell \(no active cell\)` with the Launcher on screen.
+
+### GAP-206 — The rootfs ships a Critical zlib CVE and seven vulnerable Python wheels on an end-of-life Alpine
+
+Once the repository was public, the `Security` workflow ran its scans on `main` for the first time, and two
+of its jobs failed on the rootfs, which the app bundles and every Space runs.
+
+1. **`grype` over the Alpine base: one Critical.** `zlib 1.3.2-r1` is vulnerable to `CVE-2026-4738`, fixed in
+   `1.4-r0` (`--only-fixed --fail-on medium`, exit 2). Grype also warns that 15 packages come from an EOL
+   distribution, `alpine 3.21.9`. `tools/rootfs/Dockerfile` names `alpine:3.21` at one digest in all three
+   stages (`sigsys-builder`, `busybox-builder` and the final image).
+2. **`osv-scanner` over the lockfiles: seven vulnerabilities in four packages**, all in
+   `tools/rootfs/requirements.lock`: `dnspython 2.9.0` (7.5, fixed in 2.9.2), `opentelemetry-api 1.45.1`
+   (5.3, 1.45.2), `soupsieve 2.9.1` (four advisories, 3.1 to 7.5, whose fixed versions the scanner lists as
+   2.10.0, 3.0.2 and 4.0.0) and `tornado 6.6` (3.1, 6.6.1). `main` and the branch that was merged pin the same
+   versions, so the merge did not introduce them.
+
+This is the class `GAP-183` and `GAP-184` recorded and `JD-064` closed on 2026-10-29 (the base moved to
+the `alpine:3.21` that carried the fixed OpenSSL and zlib, and the wheels were pinned at their fixed
+versions). Those fixes held for what was known then; these advisories were published after, which is why
+the scan is a gate and not a one-off, and why this repair should also say how the next advisory reaches us
+before the release it would block.
+
+What is not known: which supported Alpine release carries `zlib 1.4-r0`, whether the rootfs's other musl-built
+pieces (the busybox build, the SIGSYS shim, the wheels compiled against the base) still build and run on it, and
+which of the seven are reachable from a Space. The repair starts by reading both scanners' output from a build
+of the current image, then choosing the Alpine release from where the fixed `zlib` is published, in an ADR.
+Python's lock is recompiled from `requirements.in` as its header says, with the hashes. The proof is an
+image rebuilt from the new base whose kernel answers a cell on the tablet, and both scans green on it.
+
+### GAP-207 — A finding's card covers the line it describes
+
+Read off the frames of the tablet demo for a line holding a breakpoint and a finding, at 1280dp and at 800dp
+(both widths agree): tapping the squiggle under `never_defined_lsp_name` opens the card, and the card's top
+edge lies 12px inside the 31px line it is anchored to (pixel rows of the saved frames at density 240: the cell's
+box is 55px, of which the line is 31px and the padding the rest, and the card's top is 31px below the box's top
+where the line's bottom is 43px below it). It hides the lower part of `print(never_defined_lsp_name)`, its
+squiggle and the lower half of the breakpoint's circle on that line; a reader cannot see the code the card is
+about while it is open. The next cell's header is covered too, and any card below its line covers it. The card is `DiagnosticDetailPopup`
+(`DiagnosticMarks.kt`), positioned by `CompletionPopupPosition` from the line's rect, the same provider the
+completion popup uses, which is meant to float beside what it completes. Not known: whether the provider puts
+the card at the line's top plus a fixed offset or at a rect the caller computes too small, whether the
+completion popup covers its own line the same way, and where VS Code puts a marker's hover relative to its line
+(`vscode@3f3380c6`, the hover contribution under `src/vs/editor/contrib/hover`). The repair starts by reading
+those, then a test of the card's bounds against its line's, red first.
+
+### GAP-208 — Four tablet flows fail at a step after the cell they type into
+
+Read on the tablet with the cell focused by its name, so each flow now types, runs its cell and gets as far as
+the output: `tab-reload-demo.yaml` fails at `Assert that "before\s*" is visible`, because the `notes.txt` tab
+already reads `after` when it is selected after the cell rewrote the file, where the flow expects the stale text
+until the reload icon is tapped (`ActiveTabReload.kt` says nothing re-reads a clean document, so either a tab
+composed afresh reads the file or the flow is stale); `session-follows-rename-demo-tab.yaml` and
+`recreated-path-demo-notebook.yaml` fail at `Rename file`, because a long press on a tab now opens a menu
+(Close All Other Tabs, Close Tabs to Right, Rename…, Save As…, Revert to Checkpoint…, Duplicate, Delete…) where
+they expect the rename dialog; `delete-stops-session-demo-delete.yaml` fails at `Tap on "Recent actions"` after
+`Tap on "Files"`. `delete-stops-session-demo-overwrite.yaml` continues from the first, so it cannot be run alone.
+Not known: which commits changed each of these, and how many of the flows not yet converted stop at one of them
+too. The repair reads each failing frame, decides per step whether the app or the flow moved, and runs each flow
+green on the tablet, which is also what proves the tap in `delete-stops-session-demo-delete.yaml` that no run reached.
+`delete-stops-session-demo-overwrite.yaml`'s three taps have run and stop at the same `Recent actions` step.
+
+### GAP-209 — Tablet drivers stop at a step after the first cell, on a pixel
+
+Read on the tablet with the first cell focused by its name. `input-prompt-demo-answers.yaml` types, runs and
+answers the first cell (`Name? Ada`, `hi Ada`), then inserts a second cell and taps `point: "1300,620"` for its
+field, which is at about `[800,520][1895,573]`: the point is 47px below it, nothing is typed, the empty cell runs
+(`[2]: ran in 0.1 s`) and the flow fails at `Assert that "Input prompt" is visible`. 18 `point: "1300,N"` taps with
+`N` other than 354 stand in 13 flows, each after a cell that is not the first. Three more drivers stop at
+one: `display-update-demo-driver.sh` at `1300,539` (all three sources land in cell 1, which raises `SyntaxError`),
+`output-caps-demo-driver.sh` at `1300,524` (the same) and `ansi-colour-demo-driver.sh` at `1300,625` (the empty
+second cell runs, `[2]:`, and `blue` never appears). `text-output-link-demo-driver.sh` once stopped in part 2
+after the link tap, where `back_to_app` read `com.android.chrome` still resumed ten seconds after BACK; it did not
+again in five consecutive runs on the tablet (parts 2, 3 and 5 each read Chrome after the tap and this app after BACK,
+the driver exiting 0 with its last assertion on the saved notebook), so that one is closed as not reproduced rather than
+repaired; if it returns, the first move is `dumpsys activity activities` at the failure, before anything else runs. The three first-cell taps `JD-089` left
+are converted too (see `GAP-205`). The tap by the field's name reaches a later cell as it reaches the first:
+`.maestro/focus-cell.yaml` takes `CELL_INDEX`, and every driver above ran green on the tablet.
+
+### GAP-210 — A press on the right half of a minimum-width tab closes it
+
+On a 320dp window a strip of four tabs gives each the 80dp floor, and the close button's 24dp box sits at
+x=52..76, so Compose's 48dp minimum touch target for it spans x=40..88: the press that lands on a tab's centre
+(x=40) is the close button's. Read on `dev36` at 320x640: `TabCloseSiblingsTest`'s long press at the centre of
+`a.py` removed `a.py` from the back stack and opened no menu (the tree after it had three tabs at 107dp and no
+second window), at x=39 the menu opened and the stack kept all four, at x=41 `a.py` was gone. The same fact
+reaches a tap, since a tap at x>=40 is the close button's too: the tab's right half activates nothing. At 360dp
+four tabs share 90dp each and the centre (x=45) is clear of x=50, which is why a 360px `wm size` override with four
+tabs had hidden it; five tabs there are at the 80dp floor and read the same as four at 320dp.
+Not known: whether a tap at the same point closes the tab on a device as it does under injected input, and which
+of the references leaves room beside its close button on a phone. The repair reads both, then either narrows the
+close target or raises the tab's floor, with a test that presses the centre of a minimum-width tab.
+
+### GAP-211 — A cold `dev36` boot raises SystemUI's "isn't responding" dialog, and the repairs so far clear it rather than prevent it
+
+Seen on a cold boot of `dev36` (`-no-window -gpu swiftshader_indirect`) from 2026-11-03 to 2026-11-17: Maestro flows stopped
+at it over the Spaces home on four days, a cold boot after a 180 s idle on 2026-11-17 had it up when the suite's driver
+started (it pressed `Wait`; whether it returned mid-run was not sampled), and the instrumented suite ran its whole length under it
+(`mCurrentFocus` was `Application Not Responding: com.android.systemui` in 789 of 789 samples taken every 2 s),
+which is why four focus tests that need the root's focus failed alone while Compose-only assertions passed.
+What was tried and what it showed: clearing the dialog returns it; an idle wait of 45, 120, 180 and 300 s after
+`sys.boot_completed` gave three clean runs and three with the dialog; a host at load 1.2 with every job slot free
+still raised it, so a loaded host does not explain it; one failure frame showed Play services' DroidGuard and Pay
+tasks running 60 s after boot on the `google_apis` image. `am instrument` alone ran clean five times on one day.
+`scripts/clear_system_anr.py` presses the dialog's `Wait` before the suite and the driver refuses to start if
+one stays up; that bounds the damage and does not say why it appears.
+Measured by changing one setting at a time against five cold boots each, the dialog counted per boot
+([ADR-0161](adr/0161-a-cold-dev36-boots-dialog-is-cleared-not-prevented-because-no-setting-gave-none-twice.md)):
+the baseline 3 of 5, 4096 MB of RAM 3 of 5, an image without Google APIs 3 of 5, Play services held off 5 of 5,
+a restored snapshot 0 of 5 (not a cold boot), and `-cores 2` 0 of 5 and then 5 of 5. The `config.ini` 96M against
+the guest's 2560 MB is the emulator raising the RAM itself, and is not the cause. No setting is kept and the
+stopgap stays. Not known: why it appears; the core count is the one setting not ruled out, since its two samples differ in the host's load as well.
 
 ---
 

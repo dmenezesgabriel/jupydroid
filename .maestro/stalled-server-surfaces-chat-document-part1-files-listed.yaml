@@ -1,0 +1,15 @@
+appId: com.jupydroid.app
+---
+# The healthy half of the chat-document drive: a `.chat` the driver seeded is listed in Files
+# while the Space's server is still live. Files is the workspace's first panel - open-base-space
+# lands on it - so there is nothing to tap: a tap on its rail row would close it again.
+# The driver freezes the server between this flow and part 2, so the document's transcript
+# read is what meets the stall.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "talk.chat"
+    timeout: 30000
+- takeScreenshot: files-listed

@@ -1,0 +1,18 @@
+appId: com.jupydroid.app
+---
+# Settings' App icon row selecting the black orbit design. What the launcher, Recents and
+# Settings > Apps then draw is the driver script's adb evidence - those surfaces are outside
+# the app, so no assertion here can see them. Nothing below runs a cell.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+- assertVisible: "App icon"
+- takeScreenshot: 01-app-icon-row
+- tapOn: "Black orbit"
+- takeScreenshot: 02-black-orbit-selected

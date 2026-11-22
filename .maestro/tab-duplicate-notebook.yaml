@@ -15,11 +15,6 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "print\\(6 \\* 7\\)"
     timeout: 30000
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 - longPressOn: "Tab: kernel.ipynb"
 - extendedWaitUntil:
     visible: "Duplicate"

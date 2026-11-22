@@ -1,0 +1,60 @@
+appId: com.jupydroid.app
+---
+# Landscape, two panes, in base. Driven by scripts/git-panel-states-driver.sh.
+#
+# Demo steps 1-2: Source Control on the workspace root says it is not a repository and offers
+# Retry; `git init` in the Space's own terminal makes `demo` one, Retry still says so for the
+# root, and once the explorer browses into `demo` the panel reads its branch.
+#
+# The commit after `git init` is what makes the branch `master`: an unborn HEAD reads
+# "No commits yet on …", which jupyterlab-git captions "(initial)"
+# (jupyterlab-git@b62a87b7 `packages/core/jupyterlab_git_core/git.py`).
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "You are not currently in a Git repository."
+    timeout: 30000
+- assertVisible: "Retry"
+- takeScreenshot: 01-root-not-a-repository
+
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+- tapOn:
+    id: "terminal-input"
+- inputText: "git init -q demo && git -C demo -c user.name=d -c user.email=d@d commit -q --allow-empty -m init"
+- pressKey: Enter
+- hideKeyboard
+
+# The panel never left the root's read; Retry asks again and the root is still no repository.
+- tapOn: "Retry"
+- extendedWaitUntil:
+    visible: "You are not currently in a Git repository."
+    timeout: 30000
+- takeScreenshot: 02-retry-still-the-root
+
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "demo"
+    timeout: 30000
+- tapOn: "demo"
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "master"
+    timeout: 30000
+- assertVisible: "Current branch"
+- assertNotVisible: "Retry"
+- takeScreenshot: 03-demo-branch

@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -122,22 +124,24 @@ class LauncherAutoCreateTest {
     val repository = DiskNotebookRepository(tempFolder.root)
     File(tempFolder.root, "report.txt").writeText("a file for the listing")
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = AppContainer(
-            enteredSpacePorts = { _, _ ->
-              EnteredSpacePorts(
-                notebookRepository = repository,
-                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
-                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
-              )
-            },
-            launcherSettings = settings,
-          ),
-          sharedNotebook = null,
-          onImportConsumed = {},
-          twoPane = twoPane,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(
+              enteredSpacePorts = { _, _ ->
+                EnteredSpacePorts(
+                  notebookRepository = repository,
+                  workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
+                )
+              },
+              launcherSettings = settings,
+            ),
+            sharedNotebook = null,
+            onImportConsumed = {},
+            twoPane = twoPane,
+          )
+        }
       }
     }
     compose.enterBaseSpace()

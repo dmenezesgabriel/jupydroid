@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# The control for the note: `%pip install duckdbzz`, a name that exists nowhere, gets pip's own
+# two lines and nothing else - pip's text for a typo is identical to pip's text for a package the
+# platform cannot have, which is why the note is only ever written after PyPI's release files
+# confirm it (ADR-0165). The flow waits on pip's error and stops there; the driver sleeps and then
+# reads the saved notebook, because the note a confirmed miss would earn arrives a moment *after*
+# pip's text and an assertion made here could pass before it would have appeared.
+#
+# TABLET ONLY (SM-X216B): see `pip-install-in-a-space-body.yaml`.
+- runFlow:
+    file: pip-install-in-a-space-body.yaml
+- inputText: "%pip install duckdbzz"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*No matching distribution found for duckdbzz.*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 300000
+- takeScreenshot: 05-a-typo-gets-pips-text-alone

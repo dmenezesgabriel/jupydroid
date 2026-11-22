@@ -6,18 +6,10 @@ appId: com.jupydroid.app
 # `delete_all_checkpoints`, and `old`, which then holds only `.ipynb_checkpoints`, deletes as empty:
 # `is_non_empty_dir` leaves the checkpoint folder out
 # (`usr/lib/python3.12/site-packages/jupyter_server/services/contents/filemanager.py`).
-#
-# Recents is cleared first so the listing row is the only `gone.py` with a menu to open, the reason
-# `explorer-delete-open-document.yaml` gives.
 - launchApp
 - waitForAnimationToEnd:
     timeout: 5000
 - runFlow: open-base-space.yaml
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 - tapOn: "old"
 - extendedWaitUntil:
     visible: "gone.py"

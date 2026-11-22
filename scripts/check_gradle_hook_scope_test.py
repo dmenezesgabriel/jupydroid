@@ -152,10 +152,11 @@ class RealConfigTest(unittest.TestCase):
         unread = [
             "docs/adr/0001-x.md",
             "docs/backlog.md",
+            "docs-site/mkdocs.yml",
             "AGENTS.md",
             "README.md",
             "scripts/check_doc_citations.py",
-            "scripts/claude-autopilot/run.ts",
+            "scripts/autopilot/run.ts",
             "scripts/testdata/dialog-margin/delete-320dp.png",
             ".maestro/flows/x.yaml",
             ".github/workflows/ci.yml",

@@ -1,0 +1,28 @@
+appId: com.jupydroid.app
+---
+# Puts the focus in a code cell's field, by the name the field carries. `CELL_INDEX` is which one, counted
+# from 0 among the notebook's code cells in reading order (a markdown cell carries no such field).
+# Every caller passes it with `env`, the first cell's `0` included: a default written here would be
+# defined after the caller's value and win, so every call would focus the first cell.
+#
+# **Not a flow.** No driver runs this; every flow that types into a notebook's cell calls it with
+# `runFlow`, so the name and the wait for it are written once instead of at every caller. A pixel
+# moved with every layout change above the cell, and a tap that missed read as "Run cell not
+# found" once the soft keyboard's BACK closed the tab, which looks like an app regression and is not.
+# A later cell's pixel moved further, with every output line above it.
+#
+# `Code cell` is the accessibility text of a child of the field's `EditText`
+# (`EditorCell.kt`, `CODE_CELL_NAME`; ADR-0143), and a tap on it lands inside the field. A notebook
+# with several cells holds several nodes of that name, so the cell is taken with `index`; Maestro's
+# text selectors are full-string regexes, so the name cannot match a longer one. The wait names the
+# same index, so a notebook that lacks the cell fails here and not at a later tap.
+- extendedWaitUntil:
+    visible:
+      text: "Code cell"
+      index: ${CELL_INDEX}
+    timeout: 5000
+- tapOn:
+    text: "Code cell"
+    index: ${CELL_INDEX}
+- waitForAnimationToEnd:
+    timeout: 3000

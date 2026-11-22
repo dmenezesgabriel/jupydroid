@@ -1,0 +1,13 @@
+appId: com.jupydroid.app
+---
+# The third of the five flows scripts/tab-middle-press-driver.sh runs. A long press on the middle of
+# tab-d opens its menu; at the 80dp floor the close took that press and the menu never opened.
+#
+# The menu is left open for the driver's hierarchy, which holds its rows. The popup is a window of its own,
+# so the tabs behind it are not Maestro's to assert here: the next flow does that once the menu is gone.
+- longPressOn: "Tab: tab-d.txt"
+- extendedWaitUntil:
+    visible: "Close All Other Tabs"
+    timeout: 5000
+- assertVisible: "Close Tabs to Right"
+- takeScreenshot: 03-a-long-press-on-the-middle-opens-the-menu

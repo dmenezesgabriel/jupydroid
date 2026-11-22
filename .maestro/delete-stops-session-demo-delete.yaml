@@ -27,12 +27,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-# The empty cell's field has no text to tap by, so it is tapped at a point inside it: SM-X216B's
-# 1920x1200 puts the field at [805,319][1884,391] (`maestro hierarchy`).
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -52,13 +50,8 @@ appId: com.jupydroid.app
 
 # ---- deleted with its tab open: the tab closes and the row leaves ----
 - tapOn: "Files"
-# Recents is cleared before each long press, for the reason explorer-rename-open-document.yaml
-# gives: an opened file is listed twice, and only the listing's row carries the menu.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
+# An opened file is listed twice when Recents is open, and only the listing's row carries the menu.
+# The section arrives shut (ADR-0121), so the listing's row is the one match.
 - longPressOn: "a.ipynb"
 - extendedWaitUntil:
     visible: "Delete"
@@ -94,10 +87,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -116,11 +109,6 @@ appId: com.jupydroid.app
     timeout: 15000
 - takeScreenshot: 03-b-tab-closed-its-kernel-still-listed
 - tapOn: "Files"
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 - longPressOn: "b.ipynb"
 - extendedWaitUntil:
     visible: "Delete"

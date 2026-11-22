@@ -302,7 +302,7 @@ class StdioLanguageServerDeviceTest {
   @Test
   fun nothingWasRefusedWhileTheAdapterRan() {
     assertEquals(
-      "seccomp refused a syscall other than mbind while pylsp ran",
+      "seccomp refused a syscall outside the tolerated set while pylsp ran",
       emptyList<String>(),
       seccompRefusalsIn(baseDir),
     )

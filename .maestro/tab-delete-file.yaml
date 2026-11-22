@@ -53,13 +53,6 @@ appId: com.jupydroid.app
 - takeScreenshot: 03-cancel-kept-the-tab-dirty
 
 # ---- Delete closes it, unasked about the edit ----
-# Recents cleared first, for the reason explorer-rename-open-document.yaml gives: an opened file is
-# listed twice, and the absence below must be the listing's.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 - longPressOn: "Tab: notes.py"
 - extendedWaitUntil:
     visible: "Delete…"

@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# The second of the five flows scripts/tab-middle-press-driver.sh runs, on the strip the first left: tab-e
+# is active and its left neighbour tab-d shows only the part the strip's scroller leaves it, so a tap on
+# that part would land on tab-d's close, not its middle. The strip is dragged 70dp (the window's px are dp
+# at density 160) until tab-d is whole at both 320dp and 360dp; a slow drag, so the scroll does not fling.
+#
+# Maestro taps the centre of the node it finds, which is then the tab's middle - the press that closed the
+# tab at the 80dp floor. The tap activates tab-d (its document, `tab_marker_d`, replaces tab-e's). The strip
+# then scrolls tab-e out of view, and a tab out of view is not in a hierarchy, so "none was removed" is
+# shown by dragging the strip back to tab-e and then forward again, which leaves tab-d whole for the next flow.
+- swipe:
+    start: 100, 42
+    end: 170, 42
+    duration: 1500
+- assertVisible: "Close tab: tab-d.txt"
+- takeScreenshot: 02a-tab-d-whole-before-the-tap
+- tapOn: "Tab: tab-d.txt"
+- extendedWaitUntil:
+    visible: ".*tab_marker_d.*"
+    timeout: 5000
+- takeScreenshot: 02b-a-tap-on-the-middle-activates-the-tab
+- swipe:
+    start: 170, 42
+    end: 100, 42
+    duration: 1500
+- assertVisible: "Tab: tab-e.txt"
+- takeScreenshot: 02c-the-old-active-tab-is-still-in-the-strip
+- swipe:
+    start: 100, 42
+    end: 170, 42
+    duration: 1500
+- assertVisible: "Close tab: tab-d.txt"

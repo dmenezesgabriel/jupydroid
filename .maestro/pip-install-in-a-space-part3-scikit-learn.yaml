@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# The other package the gap named: `%pip install scikit-learn` then `import sklearn`. Its wheel
+# is `manylinux_2_27_aarch64` and it links OpenMP, so this is also the heaviest install the demo
+# makes - numpy, scipy, joblib and threadpoolctl ride along - and the longest wait.
+#
+# TABLET ONLY (SM-X216B): see `pip-install-in-a-space-body.yaml`.
+- runFlow:
+    file: pip-install-in-a-space-body.yaml
+- inputText: "%pip install scikit-learn"
+- pressKey: Enter
+- inputText: "import sklearn"
+- pressKey: Enter
+- inputText: 'print("SKLEARN", sklearn.__version__)'
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+# The wait is on the cell's own "ran in" mark, not on `SKLEARN`: pip's six-wheel log makes the
+# output taller than the viewport, so the print lands below the fold and is never composed - a
+# `visible:` wait on it times out against a cell that finished (`docs/architecture/cross-cutting.md`
+# §8.6). "ran in" sits in the cell's chrome, outside the output container, and no source line can
+# satisfy it; the driver reads `SKLEARN 1.9.1` off the saved notebook, which keeps every line.
+- extendedWaitUntil:
+    visible: ".*ran in [0-9].*"
+    timeout: 600000
+- takeScreenshot: 03-scikit-learn-installs-and-imports

@@ -1,0 +1,11 @@
+appId: com.jupydroid.app
+---
+# The fifth of the five flows scripts/tab-middle-press-driver.sh runs, on the strip the fourth left with
+# tab-d whole. The close glyph of tab-d is tapped: it is the one press that closes a tab, and only that tab
+# goes.
+- assertVisible: "Close tab: tab-d.txt"
+- tapOn: "Close tab: tab-d.txt"
+- extendedWaitUntil:
+    notVisible: "Tab: tab-d.txt"
+    timeout: 10000
+- takeScreenshot: 05-the-close-closes-only-its-tab

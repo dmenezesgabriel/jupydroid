@@ -19,24 +19,10 @@ internal const val LOG_EXCERPT = 2000
 
 /**
  * The startup script's command line inside the Space: [script] in the Space's shell, bounded by
- * busybox's `timeout`. The bound is enforced inside the Space because its SIGKILL lands on the
- * script, a tracee, while the app's only handle is proot, which a kill would orphan the script from.
- *
- * **An outer shell runs `timeout` and exits with its status**, because proot passes on a tracee's
- * exit status but reports one killed by a signal as `0` - so a script killed at its bound would read
- * as a success (`SpaceStartupScriptDeviceTest.aScriptPastItsTimeoutIsKilledWithWhatItStartedAndExits137`).
- * The outer shell is never signalled; it sees `137` as an ordinary status. The trailing `exit $?`
- * is what keeps it there: busybox `ash` execs the last command of a `-c` string in place of itself,
- * which would make `timeout` proot's tracee again. [script] reaches the inner shell as `$1`, so no
- * quoting of it is needed.
+ * busybox's `timeout` ([boundedShellArgs]), with [STARTUP_SCRIPT_ARG0] naming it in `ps`.
  */
-internal fun startupScriptArgs(script: String, timeout: Duration): List<String> = listOf(
-  SPACE_SHELL,
-  "-c",
-  "$SPACE_TIMEOUT -s KILL ${timeout.inWholeSeconds} $SPACE_SHELL -c \"\$1\"; exit \$?",
-  STARTUP_SCRIPT_ARG0,
-  script,
-)
+internal fun startupScriptArgs(script: String, timeout: Duration): List<String> =
+  boundedShellArgs(STARTUP_SCRIPT_ARG0, script, timeout)
 
 /** The outer shell's `$0`, which names it in `ps` and in any message the shell prints. */
 private const val STARTUP_SCRIPT_ARG0 = "startup-script"

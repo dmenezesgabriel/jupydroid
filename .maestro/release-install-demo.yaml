@@ -1,7 +1,10 @@
 appId: com.jupydroid.app
 ---
 # The demo: the released APK, downloaded from a GitHub Release and installed fresh, launches, runs
-# base's kernel and answers a cell. Driven by scripts/release-install-demo-driver.sh.
+# base's kernel and answers a cell. Driven by scripts/release-install-demo-driver.sh on the
+# release APK, and by scripts/site-screenshots-driver.sh on the debug build for the getting-started
+# page's light/dark pairs - every step is UI, so either build drives it; the site driver crops the
+# system bars off what is captured.
 #
 # The notebook is created through the UI, not seeded: a release APK is not debuggable, so the
 # `run-as` that `seed_notebook` uses is refused on it.
@@ -27,12 +30,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-# The empty cell's field has no text to tap by, so it is tapped at a point inside it: SM-X216B's
-# 1920x1200 puts the field at [805,334][1884,406] (`maestro hierarchy`).
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "print(6 * 7)"
 - hideKeyboard
 - takeScreenshot: 02-cell-typed

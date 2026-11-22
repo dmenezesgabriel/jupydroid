@@ -14,11 +14,10 @@ appId: com.jupydroid.app
     timeout: 5000
 - tapOn: "Cell actions"
 - tapOn: "Cell menu Insert code below"
-# The new cell's field, where uiautomator put it on SM-X216B's 1920x1200: [805,525][1884,597].
-- tapOn:
-    point: "1300,561"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
 - inputText: "raise ValueError(\"https://jupyter.org\")"
 - hideKeyboard
 - tapOn:

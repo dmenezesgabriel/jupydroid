@@ -27,7 +27,7 @@ appId: com.sec.android.app.myfiles
       visible: "Open with"
     commands:
       - tapOn:
-          text: "JupyterDroid"
+          text: "Jupydroid"
           id: "android:id/text1"
       - tapOn: "Just once"
       - extendedWaitUntil:

@@ -1,0 +1,26 @@
+appId: com.jupydroid.app
+---
+# A cold install of the build, base entered and a notebook made from the explorer's New menu - the
+# state every Space starts in. The driver installed the APK with none of an earlier run's state and
+# cleared the workspace, so this notebook is the only one on the device and `pkgs/` has never been
+# written.
+#
+# TABLET ONLY (SM-X216B): every part of this demo runs cells, and on x86_64 the app falls back to
+# `FakeKernelGateway`, which echoes a cell's source back as its output.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- takeScreenshot: 01-a-new-notebook-in-base

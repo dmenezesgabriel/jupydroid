@@ -3,6 +3,7 @@ package com.jupydroid.extensions.ai.data.http
 import com.jupydroid.extension.api.NotebookCellSummary
 import com.jupydroid.extension.api.NotebookCellType
 import com.jupydroid.extension.api.NotebookCells
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonObjectBuilder
 import kotlinx.serialization.json.JsonPrimitive
@@ -35,7 +36,12 @@ internal sealed interface LabCommandOutcome {
  * ```
  */
 internal class NotebookLabCommands(private val notebook: NotebookCells) {
-  /** [name] run with [args]; one this app does not answer fails by its name, as an unknown command does. */
+  /**
+   * [name] run with [args]; one this app does not answer fails by its name, as an unknown command
+   * does. The notebook's own failures — `insert`'s `IllegalArgumentException` included — are a
+   * Failed result the agent reads, not an exception that kills the chat's flow.
+   */
+  @Suppress("TooGenericExceptionCaught")
   fun answer(name: String, args: JsonObject): LabCommandOutcome = try {
     when (name) {
       GET_NOTEBOOK_INFO -> LabCommandOutcome.Done(notebookInfo(args))
@@ -44,6 +50,9 @@ internal class NotebookLabCommands(private val notebook: NotebookCells) {
     }
   } catch (refusal: LabCommandRefusal) {
     LabCommandOutcome.Failed(refusal.message)
+  } catch (failure: Exception) {
+    if (failure is CancellationException) throw failure
+    LabCommandOutcome.Failed("${failure::class.java.simpleName}: ${failure.message}")
   }
 
   private fun notebookInfo(args: JsonObject): JsonObject {

@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -178,9 +179,12 @@ class RichTextImageTest {
     runBlocking { workspace.writeBytes("reports/img/chart.png", png) }
     compose.setContent {
       JupyterDroidTheme {
+        // `requiredWidth`, not `width`: the column is the width a test names, and at the emulator's 320dp a
+        // `width(600.dp)` is measured down to the window's 320, so the wide-column cases would read the window
+        // (the same box in `CellOutputImageTest`).
         // Scrolled, as the cell list is: under a bounded height `aspectRatio` sizes an image taller than
         // the screen from the height instead, and its width is no longer the one asked for.
-        Box(modifier = Modifier.width(WIDE_COLUMN).verticalScroll(rememberScrollState())) {
+        Box(modifier = Modifier.requiredWidth(WIDE_COLUMN).verticalScroll(rememberScrollState())) {
           RemoteImagesResolved(FakeRemoteImageReader(mapOf(CHART_URL to png))) {
             WorkspaceImagesResolved("reports/nb.ipynb", workspace) { around { RichText(blocks) } }
           }

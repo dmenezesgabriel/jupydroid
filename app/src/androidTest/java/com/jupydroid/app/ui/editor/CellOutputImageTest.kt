@@ -2,7 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
@@ -99,9 +99,11 @@ class CellOutputImageTest {
     val output = CellOutput.DisplayData(mapOf("image/png" to JsonPrimitive(png)), metadata = metadata)
     compose.setContent {
       JupyterDroidTheme {
+        // `requiredWidth`, not `width`: the column is the width a test names, and at the emulator's 320dp a
+        // `width(600.dp)` is measured down to the window's 320 so the wide-column cases read the window.
         // Scrolled, as the cell list is: under a bounded height `aspectRatio` sizes an image taller than
         // the screen from the height instead, and its width is no longer the one asked for.
-        Box(modifier = Modifier.width(column).verticalScroll(rememberScrollState())) {
+        Box(modifier = Modifier.requiredWidth(column).verticalScroll(rememberScrollState())) {
           CellOutputs(
             outputs = listOf(output),
             hidden = false,

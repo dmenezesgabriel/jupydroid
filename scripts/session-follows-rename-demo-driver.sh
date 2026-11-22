@@ -32,7 +32,7 @@ record() { echo "$1" | tee -a "$EVIDENCE/strip.txt"; }
 fail() { echo "$1" >&2; exit 1; }
 # Dotfiles are left out: the workspace is the kernel's HOME, and IPython keeps its profile there.
 tree() {
-  "${adb[@]}" shell "run-as $APP sh -c 'cd $NOTEBOOK_DIR && find . -mindepth 1 -not -path \"./.*\"'" |
+  "${adb[@]}" shell "run-as $APP sh -c 'cd $NOTEBOOK_DIR && find . -mindepth 1 -not -path \"*/.*\"'" |
     tr -d '\r' | sort | tr '\n' ' '
 }
 

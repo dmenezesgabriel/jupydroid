@@ -27,7 +27,12 @@ appId: com.jupydroid.app
 - takeScreenshot: 01-a-ran-once
 
 # ---- renamed from its tab: the row takes the new name ----
+# A long press on a tab opens its menu (`MainAreaTab.kt`), and Rename… in it opens the dialog.
 - longPressOn: "Tab: a.ipynb"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000
@@ -65,13 +70,8 @@ appId: com.jupydroid.app
 - tapOn: "Tab: Launcher"
 - tapOn: "Files"
 - tapOn: "Workspace"
-# Recents is cleared for the reason explorer-rename-open-document.yaml gives: an opened folder is
-# listed twice, and only the listing's row carries the menu.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
+# The Recents section arrives shut (ADR-0121), so an opened folder is listed once and the only row
+# named "f" is the listing's, which carries the menu.
 - longPressOn: "f"
 - extendedWaitUntil:
     visible: "Rename"

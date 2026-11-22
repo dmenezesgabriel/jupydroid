@@ -34,12 +34,12 @@ appId: com.jupydroid.app
     timeout: 30000
 - assertNotVisible: "print\\(6\\*7\\)"
 - takeScreenshot: 03-an-empty-cell
-# The empty cell's field has no text to press by and the editor gives it no tag, so it is pressed at
-# a point inside it: in landscape with the explorer open, SM-X216B puts the field at
-# [805,319][1884,391] (`maestro hierarchy`). The Paste is the platform's floating toolbar's, scoped
-# to it as text-history-clipboard.yaml does.
+# The empty cell's field is pressed by the name it carries (ADR-0155), inline because focus-cell.yaml
+# only taps. The Paste is the platform's floating toolbar's, scoped to it as
+# text-history-clipboard.yaml does.
 - longPressOn:
-    point: "1300,354"
+    text: "Code cell"
+    index: 0
 - waitForAnimationToEnd:
     timeout: 5000
 - tapOn:

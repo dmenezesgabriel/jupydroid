@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# Not a shot flow - the warm half of site-files-import-shots-seed.sh. A VIEW intent that
+# cold-starts the app opens its document while the Space's server is still booting, and the
+# notebook's kernel asks are blocking calls (SessionRest in
+# app/src/main/java/com/jupydroid/app/data/space/KernelLifecycle.kt) whose timeout escapes the
+# open path as a process crash. Warming first lands the intent inside a running workspace
+# instead: importNotebook keeps the Space already entered
+# (app/src/main/java/com/jupydroid/app/DocumentOpeners.kt), so the copy and the open meet a
+# server that already answers.
+- launchApp
+- runFlow: open-base-space.yaml

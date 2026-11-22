@@ -25,11 +25,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-# The empty field's point, as part 1 measured it.
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -93,10 +92,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -118,10 +117,10 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "x = 41"
 - hideKeyboard
 - tapOn: "Run cell"
@@ -136,12 +135,7 @@ appId: com.jupydroid.app
 - assertVisible: "Open kernel session: keep.ipynb"
 - takeScreenshot: 08-e-and-keep-each-hold-a-kernel
 - tapOn: "Files"
-# Recents is cleared for the reason part 1 gives: only the listing's row carries the menu.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
+# Recents arrives shut (ADR-0121), so only the listing's row carries the menu.
 - longPressOn: "e.ipynb"
 - extendedWaitUntil:
     visible: "Delete"
@@ -177,10 +171,16 @@ appId: com.jupydroid.app
 - tapOn: "Insert code below"
 - waitForAnimationToEnd:
     timeout: 3000
-# Beneath a one-line cell with no output the new field is at [805,488][1884,522]
-# (`uiautomator dump`, as the rename demo measured it).
+# The inserted cell is the notebook's second field, so the second node named `Code cell`; a pixel
+# below the first cell moved with every layout change above it (ADR-0155).
+- extendedWaitUntil:
+    visible:
+      text: "Code cell"
+      index: 1
+    timeout: 5000
 - tapOn:
-    point: "1300,505"
+    text: "Code cell"
+    index: 1
 - waitForAnimationToEnd:
     timeout: 3000
 - inputText: "x + 1"

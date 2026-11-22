@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
@@ -66,6 +67,8 @@ internal fun EditorContent(
   listState: LazyListState,
   /** Told once a landing field took its caret - `NotebookCellEdits.caretLanded` wired through. */
   onCaretLanded: () -> Unit,
+  /** A tap on the footer's "Code" or "Markdown", reporting the kind to append - see [AddCellFooter]. */
+  onAddCell: (CellKind) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   // Which cell/line's condition is being edited, or null while the dialog is closed - ephemeral
@@ -168,6 +171,7 @@ internal fun EditorContent(
               onCaretLanded = onCaretLanded,
             )
           }
+          item(key = ADD_CELL_FOOTER_KEY, contentType = ADD_CELL_FOOTER_KEY) { AddCellFooter(onAdd = onAddCell) }
         }
       }
     }

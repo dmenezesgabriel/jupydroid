@@ -16,13 +16,6 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "other = \"seeded\"\\s*"
     timeout: 10000
-# Recents cleared, for the reason explorer-rename-open-document.yaml gives: an opened file is
-# listed twice, and each name waited for below must be the listing's.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
 
 # ---- the tab's menu ----
 - longPressOn: "Tab: other.py"

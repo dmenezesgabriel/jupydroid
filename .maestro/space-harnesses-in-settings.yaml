@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# A stopped Space's Settings lists the Chat harnesses under "Harnesses": the live probe's answer
+# beside each name, what installing adds, and - expanded - the install script's own bytes. No
+# Install is pressed: the installs themselves are the install demo's, not this section's check.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 30000
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 10000
+# The section sits under the startup script, in the dialog's own scroll; scrolled to its last
+# row so both rows are on screen, not just the heading.
+- scrollUntilVisible:
+    element: "Claude"
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: 01-harnesses-section
+- tapOn: "OpenCode"
+- extendedWaitUntil:
+    visible: "Install script"
+    timeout: 15000
+- assertVisible: "OpenCode 1.19.3, about 186 MiB; adds no runtime - the Space's python3 fetches the pinned build"
+- takeScreenshot: 02-opencode-expanded
+# The script is one selectable text taller than the dialog's fold, so no assertion can land
+# inside it; scrolling on to Claude's row carries its middle through the viewport instead.
+- scrollUntilVisible:
+    element: "Claude"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 03-opencode-script-scrolled
+- tapOn: "Claude"
+- scrollUntilVisible:
+    element: "Node.js and npm through apk when absent, then @agentclientprotocol/claude-agent-acp 0.97.0 - about 586 MiB"
+    direction: DOWN
+    timeout: 15000
+    centerElement: true
+- takeScreenshot: 04-claude-expanded
+- tapOn: "Cancel"

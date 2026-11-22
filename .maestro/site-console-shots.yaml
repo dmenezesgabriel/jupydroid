@@ -1,0 +1,152 @@
+appId: com.jupydroid.app
+---
+# The frames the Console page shows: a standalone console's transcript with its input() prompt
+# answered, the recall and actions controls, the notebook's Kernel menu offering a console on its
+# own kernel, and that shared console answering from the notebook's variables. A `takeScreenshot`
+# name here IS the image id - scripts/site-screenshots-driver.sh crops every PNG this flow takes
+# into docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# Both halves need a real kernel - the standalone console's own and the notebook's shared one -
+# so TABLET ONLY (SM-X216B): on the x86_64 emulator FakeKernelGateway echoes the source instead
+# of evaluating it. The notebook the second half shoots is the one
+# site-console-shots-seed.sh put in the workspace: "Console Kernel Share.ipynb", one cell that
+# defines `shared` and prints it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# The launcher auto-fills the detail area at this window, so the Console card is on screen -
+# standalone-console.yaml's own reach.
+- extendedWaitUntil:
+    visible: "Console"
+    timeout: 30000
+- assertVisible: "Tab: Launcher"
+- tapOn:
+    id: "launcher-card-NEW_CONSOLE"
+- extendedWaitUntil:
+    visible: "Tab: Console 1"
+    timeout: 30000
+
+# `21 * 2` -> `42` is the same distinguishing move standalone-console.yaml makes: an answer only
+# a real kernel produces. Generous on the wait - the first entry boots the console's kernel.
+- tapOn:
+    id: "console-input-field"
+- inputText: "21 * 2"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+
+# `input()` blocks the entry on a prompt the transcript answers in place -
+# input-prompt-answers.yaml's own shape, on the standalone kernel this time. Single quotes for
+# its reason: the field's auto-closing pairs type over cleanly.
+- tapOn:
+    id: "console-input-field"
+- inputText: "name = input('Name? ')"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible: "Input prompt"
+    timeout: 60000
+# The answer field holds the caret here, so the keyboard is certainly up - hiding it is a hide,
+# not the Back a hideKeyboard with nothing to dismiss would send (input-prompt-answers.yaml's
+# own measured trap). The frame wants the prompt, not the IME over it.
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: console-input-prompt
+- tapOn: "Input prompt"
+- inputText: "Ada"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      text: "Name\\? +Ada"
+      # childOf resolves to the FIRST "Cell output" - entry 1's, which holds the 42 - so the
+      # second entry's answer is scoped by index, console-clear-entries.yaml's own measured trap.
+      childOf: {text: "Cell output", index: 1}
+    timeout: 60000
+
+# The transcript as a person leaves it: two entries, their prompts and answers, the input row
+# below. A tap on the transcript drops the field's focus, which is what lowers the keyboard -
+# hideKeyboard is never safe here: with the keyboard already down it presses Back, which closed
+# this console once already. "42" is unique on the transcript, so the tap cannot miss.
+- tapOn: "42"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: console-open
+
+# The recall pair is unconditional on a console (ConsoleInputRow's own doc comment): previous
+# refills the field with the last entry the kernel saw.
+- tapOn: "Previous kernel history entry"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: console-history
+
+# The overflow: Interrupt Kernel sits disabled while nothing runs, Clear Console Cells below it -
+# console-shares-kernel.yaml's own menu. `back` dismisses the dropdown without leaving the
+# console; the field's visibility afterwards is the proof.
+- tapOn: "Console actions"
+- extendedWaitUntil:
+    visible: "Clear Console Cells"
+    timeout: 10000
+- takeScreenshot: console-actions
+- back
+- assertVisible:
+    id: "console-input-field"
+
+# The second way in: a notebook's own kernel. The Files panel is still showing beside the
+# console, so the seeded notebook is one scroll and one tap away - console-shares-kernel.yaml's
+# own reach. Running its cell is what gives the shared console a variable to answer with.
+- scrollUntilVisible:
+    element:
+      text: "Console Kernel Share.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Console Kernel Share.ipynb"
+- extendedWaitUntil:
+    visible: "(?s).*shared = 21 \\* 2.*"
+    timeout: 30000
+- tapOn: "Run cell"
+# Generous: this kernel's first run installs the Space's session and boots ipykernel.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+
+# The menu row is the shot: New Console for Notebook sits in the kernel overflow beside the
+# shutdowns, which is where a person looking for a console on this kernel finds it.
+- tapOn: "Kernel actions"
+- extendedWaitUntil:
+    visible: "New Console for Notebook"
+    timeout: 10000
+- takeScreenshot: console-for-notebook-menu
+- tapOn: "New Console for Notebook"
+- extendedWaitUntil:
+    visible:
+      id: "console-input-field"
+    timeout: 10000
+
+# `shared` was defined by the notebook's run, so 43 can only come from the same kernel -
+# console-shares-kernel.yaml's distinguishing move, shot instead of asserted.
+- tapOn:
+    id: "console-input-field"
+- inputText: "shared + 1"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible:
+      text: "43"
+      childOf: {text: "Cell output"}
+    timeout: 60000
+# The field keeps the caret through Run and transcript taps cannot move Compose focus, so the
+# IME is certainly up here; the field tap makes that certain on a run where it was not. hideKeyboard
+# is then a hide, never the Back it sends with nothing to dismiss (input-prompt-answers.yaml's trap).
+- tapOn:
+    id: "console-input-field"
+- waitForAnimationToEnd:
+    timeout: 3000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: console-for-notebook

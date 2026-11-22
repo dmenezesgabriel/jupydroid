@@ -66,12 +66,15 @@ class OkHttpChatFiles(
   /**
    * The body the server answers to the request [shape] makes of the root's `api/contents` URL.
    *
-   * @throws ChatFilesException naming [action] when the answer is not [expected].
+   * @throws ChatFilesException naming [action] when the request cannot be made or the answer is not [expected].
    */
   private suspend fun call(action: String, expected: Int, shape: Request.Builder.(HttpUrl) -> Request.Builder): String {
-    val (code, body) = client.callWithToken(server, ioDispatcher) { base ->
+    val answer = client.callWithTokenOr(server, ioDispatcher, { message ->
+      ChatFilesException(action, message)
+    }) { base ->
       shape(base.newBuilder().addPathSegments("api/contents").build())
     }
+    val (code, body) = answer
     if (code != expected) throw ChatFilesException(action, "http $code, ${body.take(BODY_EXCERPT)}")
     return body
   }

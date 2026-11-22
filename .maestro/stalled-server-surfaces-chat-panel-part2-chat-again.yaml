@@ -1,0 +1,19 @@
+appId: com.jupydroid.app
+---
+# The stalled half: the driver has SIGSTOPped base's proot, so every read a contributed panel
+# makes hangs to OkHttp's read timeout. Each surface's port turns that into its own exception,
+# and the panel draws its failed state with the process alive - the repair this drive verifies.
+#
+# Source Control lands on its failed state with a Retry; Chat's `files.list()` lands on the
+# list's own failed text, which carries no New chat - the exception the port promised is what
+# a person reads.
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "Retry"
+    timeout: 60000
+- takeScreenshot: source-control-failed
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "listing the workspace's chats failed: .*"
+    timeout: 60000
+- takeScreenshot: chat-list-failed

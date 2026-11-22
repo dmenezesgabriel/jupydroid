@@ -32,9 +32,9 @@ import com.jupydroid.extension.api.MarginedAlertDialog
  * `Synchronize`).
  *
  * **Live for any document**, jupyterlab's `isEnabled` - a widget with a context - rather than VS
- * Code's "only while dirty": VS Code can afford that because a watcher re-reads a clean model for
- * it, and here nothing does, so a clean document is exactly the stale one. Greyed for a tab that
- * is not a document, so the strip keeps its shape.
+ * Code's "only while dirty". A clean document here follows its file too (ADR-0097), so the icon is
+ * the explicit act for it and, for a dirty one, the only way to take the disk's version. Greyed for
+ * a tab that is not a document, so the strip keeps its shape.
  *
  * **A document with unsaved work is asked about first**, with the command's own dialog and words
  * (jupyterlab@7f0e690 `packages/docmanager-extension/src/index.tsx`, `CommandIDs.reload`): the

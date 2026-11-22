@@ -1,13 +1,19 @@
 package com.jupydroid.app
 
+import android.app.ActivityManager
 import android.app.Application
 import android.app.UiModeManager
+import android.os.Build
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
+import com.jupydroid.app.data.asset.AssetHarnessScripts
 import com.jupydroid.app.data.asset.AssetLicenceDocuments
+import com.jupydroid.app.data.crash.ActivityManagerProcessExits
+import com.jupydroid.app.data.crash.ErrorLogUncaughtExceptionHandler
 import com.jupydroid.app.data.disk.DiskDocumentCheckpoints
 import com.jupydroid.app.data.disk.DiskEditorSettingsRepository
+import com.jupydroid.app.data.disk.DiskErrorLog
 import com.jupydroid.app.data.disk.DiskExplorerSettingsRepository
 import com.jupydroid.app.data.disk.DiskLauncherSettingsRepository
 import com.jupydroid.app.data.disk.DiskNotebookRepository
@@ -22,6 +28,8 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.disk.DiskWorkspaceSearcher
 import com.jupydroid.app.data.disk.InotifyWorkspaceWatcher
 import com.jupydroid.app.data.disk.NotebookWorkspaceMigration
+import com.jupydroid.app.data.fake.FakeErrorLog
+import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.data.fake.FakeKernelDebugger
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeKernelSessions
@@ -29,12 +37,16 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookExporter
 import com.jupydroid.app.data.fake.FakeSpaceServers
+import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.http.OkHttpRemoteImageReader
+import com.jupydroid.app.data.http.PyPiWheelIndex
 import com.jupydroid.app.data.http.remoteImageClient
 import com.jupydroid.app.data.intent.ContentResolverSharedDocumentReader
 import com.jupydroid.app.data.intent.IntentDocumentSharer
+import com.jupydroid.app.data.intent.IntentErrorLogSharer
 import com.jupydroid.app.data.intent.IntentExternalLinkOpener
+import com.jupydroid.app.data.packagemanager.PackageManagerAppIconRepository
 import com.jupydroid.app.data.space.JupyterSpaceServers
 import com.jupydroid.app.data.space.RunningSpaceServerEndpoint
 import com.jupydroid.app.data.space.SpaceServer
@@ -54,11 +66,13 @@ import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.data.space.spaceImageInstaller
 import com.jupydroid.app.data.space.spaceKernelSpecsOnDisk
 import com.jupydroid.app.data.space.spaceServers
+import com.jupydroid.app.data.space.spaceShell
 import com.jupydroid.app.data.space.spacesDir
 import com.jupydroid.app.data.uimode.UiModeManagerPlatformNightMode
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.ActiveTerminals
+import com.jupydroid.app.domain.model.ErrorLogOrigin
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.spaceWithId
@@ -98,6 +112,7 @@ class JupydroidApplication : Application() {
 
   override fun onCreate() {
     super.onCreate()
+    installCrashRecorder()
     // When the app is left - the screen lock, a swipe away, a covering app - the server
     // follows, unless something is still running. `ProcessLifecycleOwner` is the one lifecycle
     // that tracks the *process*, so a covered activity counts as stopped and a rotation does not.
@@ -109,6 +124,27 @@ class JupydroidApplication : Application() {
       },
     )
   }
+
+  /**
+   * Once per process, here: `onCreate` runs once, so the previous default - the platform's - is chained to
+   * exactly once. The container is asked for lazily, inside the handler, so this adds nothing to start-up.
+   */
+  private fun installCrashRecorder() {
+    Thread.setDefaultUncaughtExceptionHandler(
+      ErrorLogUncaughtExceptionHandler(
+        { container.errorLog },
+        errorLogOrigin(),
+        Thread.getDefaultUncaughtExceptionHandler(),
+      ),
+    )
+  }
+
+  /** The build every error-log entry is written for, the crash handler's and the exit reasons' alike. */
+  private fun errorLogOrigin() = ErrorLogOrigin(
+    appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
+    deviceModel = Build.MODEL,
+    androidVersion = Build.VERSION.RELEASE,
+  )
 
   private fun buildContainer(): AppContainer {
     // Built here rather than defaulted inside the container, because the servers watch their
@@ -200,6 +236,10 @@ class JupydroidApplication : Application() {
     spaceRepository = spaceRepository,
     spaceEnvironments = DiskSpaceEnvironments(spacesDir(this)),
     stoppedSpaceKernelSpecs = kernelSpecsOnDisk,
+    // Null where no Space can run, as the servers are - the fake then answers the section's
+    // probes and installs the way every other Space-backed surface does on such a device.
+    spaceShell = spaceShell(this, spaceRepository) ?: FakeSpaceShell(),
+    harnessScripts = AssetHarnessScripts(assets::open),
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
     // state, not a Contents API file.
     editorSettings = DiskEditorSettingsRepository(filesDir),
@@ -208,6 +248,7 @@ class JupydroidApplication : Application() {
     themeSettings = DiskThemeSettingsRepository(filesDir),
     platformNightMode = UiModeManagerPlatformNightMode(getSystemService(UiModeManager::class.java)),
     launcherSettings = DiskLauncherSettingsRepository(filesDir),
+    appIcon = PackageManagerAppIconRepository(this),
     // A chat's queued questions are app state too, one file per Space, as VS Code keeps a session's
     // pending requests in its workspace storage (vscode@3f3380c
     // `src/vs/workbench/contrib/chat/common/model/chatSessionStore.ts`).
@@ -226,6 +267,20 @@ class JupydroidApplication : Application() {
       remoteImageClient(File(cacheDir, "remote-images")),
       appVersion = packageManager.getPackageInfo(packageName, 0).versionName.orEmpty(),
     ),
+    // PyPI's own release files, asked once per failed install - what a `%pip` miss pip cannot
+    // explain is explained from (ADR-0165).
+    wheelIndex = PyPiWheelIndex(),
+    // The app-specific external directory, so a person can `adb pull` it on a release build with no
+    // `run-as`; null where the device has no external storage, which the fake covers.
+    errorLog = getExternalFilesDir(null)?.let(::DiskErrorLog) ?: FakeErrorLog(),
+    errorLogSharer = getExternalFilesDir(null)?.let { IntentErrorLogSharer(this, it) } ?: FakeErrorLogSharer(),
+    // A file of its own in `filesDir`, not in the log's directory: clearing the log must not make the
+    // platform's memory of old deaths read as new ones.
+    processExits = ActivityManagerProcessExits(
+      getSystemService(ActivityManager::class.java),
+      File(filesDir, "exit-reasons-mark"),
+    ),
+    errorLogOrigin = errorLogOrigin(),
     applicationScope = applicationScope,
     // Where no Space can run there is no server import to read, so the default reads nothing.
     preReadServerImports = servers?.let { { serverImportPreReader(this, spaceRepository, it).preReadAll() } } ?: {},

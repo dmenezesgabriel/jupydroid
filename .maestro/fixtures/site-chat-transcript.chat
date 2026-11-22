@@ -1,0 +1,133 @@
+{
+  "messages": [
+    {
+      "id": "0f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f",
+      "body": "Check probe.txt and tell me what it says, then list the files here.",
+      "time": 1795320000.0,
+      "sender": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "type": "msg",
+      "raw_time": false,
+      "metadata": {
+        "to_persona": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona"
+      }
+    },
+    {
+      "id": "1a2b3c4d-5e6f-4a7b-9c8d-9e0f1a2b3c4d",
+      "body": "probe.txt says hello. The workspace holds probe.txt, sorbet.txt and untitled1.chat.",
+      "time": 1795320004.0,
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+      "type": "msg",
+      "raw_time": false,
+      "metadata": {
+        "tool_calls": [
+          {
+            "tool_call_id": "call-read-probe",
+            "title": "home/jupydroid/probe.txt",
+            "kind": "read",
+            "status": "completed",
+            "session_id": "ses_4f8c2a1b9d0e4f6a8b2c4d6e8f0a2b4c"
+          },
+          {
+            "tool_call_id": "call-ls",
+            "title": "ls -la",
+            "kind": "execute",
+            "status": "completed",
+            "permission_status": "resolved",
+            "permission_options": [
+              { "option_id": "allow_once", "name": "Allow once", "kind": "allow_once" },
+              { "option_id": "allow_always", "name": "Always allow", "kind": "allow_always" },
+              { "option_id": "reject_once", "name": "Reject", "kind": "reject_once" }
+            ],
+            "selected_option_id": "allow_once",
+            "session_id": "ses_4f8c2a1b9d0e4f6a8b2c4d6e8f0a2b4c"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2b3c4d5e-6f7a-4b8c-ad9e-af0b1c2d3e4f",
+      "body": "Now remove the build folder and note it in sorbet.txt.",
+      "time": 1795320010.0,
+      "sender": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "type": "msg",
+      "raw_time": false,
+      "metadata": {
+        "to_persona": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona"
+      }
+    },
+    {
+      "id": "3c4d5e6f-7a8b-4c9d-beaf-b01c2d3e4f5a",
+      "body": "",
+      "time": 1795320012.0,
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+      "type": "msg",
+      "raw_time": false,
+      "metadata": {
+        "tool_calls": [
+          {
+            "tool_call_id": "call-rm-build",
+            "title": "rm -rf build",
+            "kind": "execute",
+            "status": "failed",
+            "permission_status": "resolved",
+            "permission_options": [
+              { "option_id": "allow_once", "name": "Allow once", "kind": "allow_once" },
+              { "option_id": "allow_always", "name": "Always allow", "kind": "allow_always" },
+              { "option_id": "reject_once", "name": "Reject", "kind": "reject_once" }
+            ],
+            "selected_option_id": "reject_once",
+            "session_id": "ses_4f8c2a1b9d0e4f6a8b2c4d6e8f0a2b4c"
+          },
+          {
+            "tool_call_id": "call-edit-sorbet",
+            "title": "home/jupydroid/sorbet.txt",
+            "kind": "edit",
+            "permission_status": "pending",
+            "permission_options": [
+              { "option_id": "allow_once", "name": "Allow once", "kind": "allow_once" },
+              { "option_id": "allow_always", "name": "Always allow", "kind": "allow_always" },
+              { "option_id": "reject_once", "name": "Reject", "kind": "reject_once" }
+            ],
+            "session_id": "ses_4f8c2a1b9d0e4f6a8b2c4d6e8f0a2b4c"
+          }
+        ]
+      }
+    }
+  ],
+  "users": {
+    "a1b2c3d4e5f60718293a4b5c6d7e8f90": {
+      "username": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "name": "Anonymous Adrastea",
+      "display_name": "Anonymous Adrastea",
+      "initials": "AA",
+      "avatar_url": null,
+      "color": null,
+      "bot": false
+    },
+    "hidden::jupyter_ai_system": {
+      "username": "hidden::jupyter_ai_system",
+      "name": "System",
+      "display_name": "System",
+      "initials": null,
+      "avatar_url": null,
+      "color": null,
+      "bot": true
+    },
+    "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona": {
+      "username": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+      "name": "OpenCode",
+      "display_name": "OpenCode",
+      "initials": null,
+      "avatar_url": "/api/ai/avatars/jupyter-ai-personas%3A%3Ajupyter_ai_acp_client%3A%3AOpenCodeAcpPersona",
+      "color": null,
+      "bot": true
+    }
+  },
+  "attachments": {},
+  "metadata": {
+    "id": "7d8e9f0a1b2c4d5e6f7a8b9c0d1e2f3a",
+    "acp_session_ids": {
+      "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona": "ses_4f8c2a1b9d0e4f6a8b2c4d6e8f0a2b4c"
+    }
+  }
+}

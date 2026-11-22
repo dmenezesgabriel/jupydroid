@@ -8,8 +8,8 @@ import java.io.File
  * **What a set of processes holds while it waits**: the memory and CPU time of every process whose
  * arguments [matches] accepts, read from `/proc` as Android counts an app's own.
  *
- * `KernelWindowProbeDeviceTest` weighs a pre-started kernel this way, and `ServerBootProbeDeviceTest`
- * a pre-started server, which is two processes: proot and the server it traces.
+ * `ServerBootProbeDeviceTest` weighs a pre-started server this way, which is two processes:
+ * proot and the server it traces.
  *
  * ```
  * val server = ProcessFootprint { "jupyter_server" in it }

@@ -1,0 +1,12 @@
+appId: com.jupydroid.app
+---
+# The stalled half: tapping the seeded `.chat` opens it as a chat document, whose transcript
+# read goes through the same Space server the driver has frozen. The port turns the stall
+# into the chat's own failure, drawn as the panel's failed state with the process alive -
+# the same text ai-chat-socket-failure.yaml waits for when the server exits under an open
+# chat.
+- tapOn: "talk.chat"
+- extendedWaitUntil:
+    visible: "the chat's socket (failed|was closed): .*"
+    timeout: 120000
+- takeScreenshot: chat-document-failed

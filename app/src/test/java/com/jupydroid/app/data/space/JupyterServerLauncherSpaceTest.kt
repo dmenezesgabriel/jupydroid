@@ -207,6 +207,28 @@ class JupyterServerLauncherSpaceTest {
     assertEquals(emptyList<File>(), stale.filter(File::exists))
   }
 
+  /**
+   * The run before this one leaves its log in the Space's `server-logs/`, so the restart after a
+   * crash does not overwrite the crash's account of itself (ADR-0167); `run/` still holds only
+   * this run's files.
+   */
+  @Test
+  fun start_archivesThePreviousRunsServerLog() = runBlocking {
+    val launcher = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }
+    File(spaceOneDir(), "run").mkdirs()
+    File(spaceOneDir(), "run/jupyter_server.log").writeText("the run that crashed\n")
+
+    launcher.start(spaceOne)
+
+    val archives = File(spaceOneDir(), "server-logs").listFiles().orEmpty().toList()
+    assertEquals(1, archives.size)
+    assertTrue(archives[0].name, archives[0].name.startsWith("jupyter_server-"))
+    assertEquals("the run that crashed\n", archives[0].readText())
+    val live = File(spaceOneDir(), "run/jupyter_server.log")
+    assertTrue("the redirect opens this run's log", live.isFile)
+    assertFalse("the live log is this run's alone", "the run that crashed" in live.readText())
+  }
+
   @Test
   fun start_connectsToTheServerTheSpaceItWasHandedReported() = runBlocking {
     val connection = launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
@@ -220,7 +242,7 @@ class JupyterServerLauncherSpaceTest {
   fun start_provisionsASpaceThatHoldsOnlyItsConfig() = runBlocking {
     launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
 
-    listOf("home/jupydroid", "tmp", "pkgs").forEach { relative ->
+    listOf("home/jupydroid", "tmp", "pkgs", "pkgs-gnu").forEach { relative ->
       assertTrue("expected $relative under ${spaceOneDir()}", File(spaceOneDir(), relative).isDirectory)
     }
   }
@@ -231,6 +253,18 @@ class JupyterServerLauncherSpaceTest {
     launcherWith { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
 
     assertTrue(File(spaceOneDir(), "usr/pip.conf").isFile)
+  }
+
+  /**
+   * glibc's resolver reads `etc/resolv.conf`, which musl's cannot be redirected to - the file is
+   * written on every start so a network change reaches the next kernel, the same freshness the
+   * nameserver snapshot gives musl's (ADR-0166).
+   */
+  @Test
+  fun start_writesTheSpacesGnuResolvConf() = runBlocking {
+    launcherWith(dnsServers = listOf("8.8.8.8")) { FakeJupyterServerScript.listening(it, port = 4321) }.start(spaceOne)
+
+    assertEquals("nameserver 8.8.8.8\n", File(spaceOneDir(), "etc/resolv.conf").readText())
   }
 
   @Test
@@ -255,12 +289,20 @@ class JupyterServerLauncherSpaceTest {
   }
 
   /** [installInterpreter] puts the fake server into space-1's root, where the launcher runs it. */
-  private fun launcherWith(installInterpreter: (File) -> File): JupyterServerLauncher {
+  private fun launcherWith(
+    dnsServers: List<String> = emptyList(),
+    installInterpreter: (File) -> File,
+  ): JupyterServerLauncher {
     installInterpreter(spaceOneDir())
     FakeSpaceShellScript.installIn(spaceOneDir())
     return JupyterServerLauncher(
       runtimeFor = { space, settings ->
-        SpaceRuntime(spaceDirIn(spacesDir, space.id), nativeDir, variables = settings.spaceProcessVariables())
+        SpaceRuntime(
+          spaceDirIn(spacesDir, space.id),
+          nativeDir,
+          dnsServers = DnsServerSource { dnsServers },
+          variables = settings.spaceProcessVariables(),
+        )
       },
       dirsFor = { space -> SpaceDirs(spaceDirIn(spacesDir, space.id)) },
       settingsFor = { spaceOneSettings },

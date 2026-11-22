@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# The cell below the install, in the kernel that ran it: no restart, and the path it prints is
+# under `/pkgs/`, the Space's user base, not the image's own site-packages. Before the repair this
+# raised `ModuleNotFoundError` and only selecting the kernel again made it resolve (ADR-0164).
+#
+# The assertion names `tabulate/__init__.py` rather than `/pkgs/` alone: the image's own copy would
+# satisfy neither, and the driver reads the whole path off the saved file.
+#
+# `index: 1` is the appended cell, not the notebook's third: a selector's index counts the nodes
+# composed on screen, and at the document's end the cell above the new one is still composed while
+# the first has scrolled away. The same holds for the Run below.
+- launchApp:
+    stopApp: false
+- scrollUntilVisible:
+    element:
+      text: "Markdown"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Code"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
+- inputText: "import tabulate; print(tabulate.__file__)"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible:
+      text: ".*tabulate/__init__\\.py"
+      childOf: {text: "Cell output", index: 1}
+    timeout: 120000
+- takeScreenshot: 04-the-next-cell-imports-it

@@ -1,0 +1,125 @@
+appId: com.jupydroid.app
+---
+# The first of the three flows scripts/chat-harness-install-driver.sh runs: a cold install, base
+# stopped, its Settings open on the Harnesses section - the live probe's "Not installed" beside each
+# name, each install script expandable to the exact bytes that will run, then both installed through
+# the section's own Install, the run's output streamed into the row.
+#
+# TABLET ONLY (SM-X216B): the probe and the install exec inside the Space's real proot shell, which
+# only arm64 ships a rootfs for. On a fresh install the first probe pays the rootfs's extract inside
+# its prepare, so "Checking…" lasting minutes is the honest answer, not a stall - the wait for the
+# second row's "Not installed" is the bound.
+#
+# Each row collapses again after its script is shown, so the install's streamed tail sits beside the
+# row's name and the keep-open hint at the section's top - both on screen for the frames. The output
+# is one selectable text of the run's last lines, so assertions land on the row's own markers -
+# the script's first echo, the earlier-lines count - never inside the stream itself
+# (cross-cutting.md §8.6); the frames are the evidence for what streamed.
+# `Installed` labels are whole-string regexes, and Claude's bare-or-versioned form also matches
+# OpenCode's "Installed · 1.19.3", so Claude's wait takes the second match - the rows keep the
+# catalog's order, OpenCode first.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 30000
+- tapOn: "Settings Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 10000
+# Both rows on screen, each still answering: the probe is `command -v` + `--version` in the Space.
+- scrollUntilVisible:
+    element: "Claude"
+    direction: DOWN
+    timeout: 600000
+- extendedWaitUntil:
+    visible:
+      text: "Not installed"
+      index: 1
+    timeout: 600000
+- assertVisible: "Install OpenCode"
+- assertVisible: "Install Claude"
+- takeScreenshot: 01-harnesses-not-installed
+
+# OpenCode first: expand to the bytes that will run, then Install - the same string the row shows is
+# the string SpaceShell is handed. The script is longer than the fold, so its head and its Install
+# offer are two frames.
+- tapOn: "OpenCode"
+- extendedWaitUntil:
+    visible: "Install script"
+    timeout: 15000
+- assertVisible: "OpenCode 1.19.3, about 186 MiB; adds no runtime - the Space's python3 fetches the pinned build"
+- takeScreenshot: 02-opencode-script-head
+- scrollUntilVisible:
+    element: "Install OpenCode"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 03-opencode-install-offer
+# The expanded script pushed the row's name off the top; back up to it to collapse, then down to
+# the offer again - collapsed, the streamed tail lands beside the name.
+- scrollUntilVisible:
+    element: "OpenCode"
+    direction: UP
+    timeout: 15000
+- tapOn: "OpenCode"
+- scrollUntilVisible:
+    element: "Install OpenCode"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Install OpenCode"
+- scrollUntilVisible:
+    element: "[\\s\\S]*Keep Jupydroid open[\\s\\S]*"
+    direction: UP
+    timeout: 15000
+- assertVisible: "Keep Jupydroid open while an install runs.*"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*fetching opencode[\\s\\S]*"
+    timeout: 120000
+- takeScreenshot: 04-opencode-install-streaming
+- extendedWaitUntil:
+    visible: "Installed · 1\\.19\\.3"
+    timeout: 400000
+- takeScreenshot: 05-opencode-installed
+
+# Claude second: the longer arm - apk adds nodejs and npm before npm installs the pinned adapter.
+- scrollUntilVisible:
+    element: "Claude"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Claude"
+- extendedWaitUntil:
+    visible: "Node.js and npm through apk when absent, then @agentclientprotocol/claude-agent-acp 0.97.0 - about 586 MiB"
+    timeout: 15000
+- takeScreenshot: 06-claude-script-head
+- scrollUntilVisible:
+    element: "Install Claude"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: 07-claude-install-offer
+- scrollUntilVisible:
+    element: "Claude"
+    direction: UP
+    timeout: 15000
+- tapOn: "Claude"
+- scrollUntilVisible:
+    element: "Install Claude"
+    direction: DOWN
+    timeout: 15000
+- tapOn: "Install Claude"
+- scrollUntilVisible:
+    element: "[\\s\\S]*Keep Jupydroid open[\\s\\S]*"
+    direction: UP
+    timeout: 15000
+# What apk and npm print is theirs to word, and the ten-line tail has already moved past the
+# fetch lines by the time a poll lands; "… N earlier lines" is the row's own proof that more
+# than the tail's worth streamed - the bounded stream working, whatever the tools said.
+- extendedWaitUntil:
+    visible: "… [0-9]+ earlier lines"
+    timeout: 240000
+- takeScreenshot: 08-claude-install-streaming
+- extendedWaitUntil:
+    visible:
+      text: "Installed( · \\d+\\.\\d+\\.\\d+)?"
+      index: 1
+    timeout: 400000
+- takeScreenshot: 09-claude-installed
+- tapOn: "Cancel"

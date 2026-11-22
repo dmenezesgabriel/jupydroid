@@ -13,10 +13,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.fake.FakeHarnessScripts
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
+import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
@@ -104,7 +106,16 @@ class SpacesHomeScreenFontScaleTest {
       JupyterDroidTheme {
         Box(Modifier.requiredWidth(width)) {
           AtFontScale(fontScale) {
-            SpacesHomeScreen(repository, servers, environments, kernelSpecs, onOpen = {}, viewModel = model)
+            SpacesHomeScreen(
+              repository,
+              servers,
+              environments,
+              kernelSpecs,
+              spaceShell = FakeSpaceShell(),
+              harnessScripts = FakeHarnessScripts(),
+              onOpen = {},
+              viewModel = model,
+            )
           }
         }
       }

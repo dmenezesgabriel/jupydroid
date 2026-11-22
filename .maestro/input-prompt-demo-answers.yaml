@@ -29,12 +29,10 @@ appId: com.jupydroid.app
     timeout: 30000
 
 # input(): the field appears under the cell, labelled with the prompt, while the cell runs.
-# The empty cell's field has no text to tap by and the editor gives it no tag, so it is tapped at a
-# point inside it: SM-X216B's 1920x1200 puts the field at [805,319][1884,391] (`maestro hierarchy`).
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "name = input(\"Name?\"); print(\"hi\", name)"
 - hideKeyboard
 - tapOn:
@@ -65,13 +63,10 @@ appId: com.jupydroid.app
     text: "Cell actions"
     index: 0
 - tapOn: "Cell menu Insert code below"
-# The new cell's field sits at [805,556][1884,628] under the first cell's two output lines, and
-# the language server's diagnostic mark covers [805,576][1884,607] of it - tapped below the mark,
-# which opens its own detail popup rather than the field.
-- tapOn:
-    point: "1300,620"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
 - inputText: "import getpass; s = getpass.getpass(\"Secret?\"); print(len(s))"
 - hideKeyboard
 - tapOn:
@@ -101,11 +96,10 @@ appId: com.jupydroid.app
     text: "Cell actions"
     index: 1
 - tapOn: "Cell menu Insert code below"
-# Two output lines lower again: [805,793][1884,865], the diagnostic mark over [805,813][1884,844].
-- tapOn:
-    point: "1300,857"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 2
 - inputText: "input(\"Wait?\")"
 - hideKeyboard
 - tapOn:

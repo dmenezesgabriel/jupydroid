@@ -29,12 +29,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TARBALL="$ROOT/build/rootfs/rootfs-$ABI.tzst"
 JNI_DIR="$ROOT/app/src/main/jniLibs/$ABI"
 ASSET_DIR="$ROOT/app/src/main/assets/spaces/base"
+GNU_TARBALL="$ROOT/build/rootfs/gnu-$ABI.tzst"
+GNU_ASSET_DIR="$ROOT/app/src/main/assets/spaces/gnu"
 
 if [ "$ABI" = "arm64-v8a" ]; then
   [ -f "$TARBALL" ] || { echo "missing $TARBALL; run tools/rootfs/build.sh $ABI first" >&2; exit 1; }
+  [ -f "$GNU_TARBALL" ] || { echo "missing $GNU_TARBALL; run tools/rootfs/build-gnu.sh first" >&2; exit 1; }
 fi
 
-mkdir -p "$JNI_DIR" "$ASSET_DIR"
+mkdir -p "$JNI_DIR" "$ASSET_DIR" "$GNU_ASSET_DIR"
 
 # The surgery these names belonged to is gone (ADR-0073): under proot the image runs as
 # itself, so no ELF is extracted, patched or staged out of the rootfs. rm rather than
@@ -48,21 +51,32 @@ rm -f "$JNI_DIR"/libloader.so "$JNI_DIR"/libpython3.so "$JNI_DIR"/libbusybox.so 
 if [ "$ABI" = "arm64-v8a" ]; then
   echo "==> staging rootfs asset"
   cp "$TARBALL" "$ASSET_DIR/rootfs-$ABI.tzst"
+
+  # The gnu interpreter payload ships as its own asset beside base's, so a Space that already
+  # has its image gains the second interpreter by extracting over it - never by re-extracting
+  # (ADR-0166).
+  echo "==> staging gnu payload asset"
+  cp "$GNU_TARBALL" "$GNU_ASSET_DIR/gnu-$ABI.tzst"
 else
   echo "==> skipping rootfs asset for $ABI (no Space can run there)"
   rm -f "$ASSET_DIR/rootfs-$ABI.tzst"
+  rm -f "$GNU_ASSET_DIR/gnu-$ABI.tzst"
 fi
 
 # proot is what every Space runs under (ADR-0073), so like the rootfs it ships on arm64
-# alone. It comes from a sha-pinned Alpine package - no release branch packages it for
-# aarch64 - and its loader is carved out beside it, because unset, proot execs that loader
-# from filesDir. stage_proot.py carries both reasons.
+# alone. The shipped pair is the patched build tools/proot/build.sh writes: stock proot
+# delivers SIGSYS to a handler, but a glibc tracee has none when the refused syscall fires
+# during loader startup, so the patch reads PROOT_SIGSYS_ENOSYS per tracee and answers
+# ENOSYS only for the marked kernel. stage_proot_patched.py carves the loader out beside it,
+# because unset, proot execs that loader from filesDir.
 if [ "$ABI" = "arm64-v8a" ]; then
+  PROOT_STATIC="$ROOT/build/proot/proot.static"
+  [ -f "$PROOT_STATIC" ] || { echo "missing $PROOT_STATIC; run tools/proot/build.sh first" >&2; exit 1; }
   echo "==> staging proot and its loader"
-  python3 "$ROOT/scripts/stage_proot.py" "$JNI_DIR"
+  python3 "$ROOT/scripts/stage_proot_patched.py" "$PROOT_STATIC" "$JNI_DIR"
 else
   rm -f "$JNI_DIR/libproot.so" "$JNI_DIR/libproot-loader.so"
 fi
 
 echo "==> staged:"
-ls -l "$JNI_DIR" "$ASSET_DIR"
+ls -l "$JNI_DIR" "$ASSET_DIR" "$GNU_ASSET_DIR"

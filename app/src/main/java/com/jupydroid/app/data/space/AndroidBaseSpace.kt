@@ -15,28 +15,6 @@ import com.jupydroid.app.domain.port.TerminalGateway
 import kotlinx.coroutines.CoroutineScope
 import java.io.File
 
-/**
- * Wires [BaseSpaceInstaller] to the Android app's own directories.
- *
- * Kept apart from the installer so the installer stays a plain JVM class that unit
- * tests can drive against a temp folder, with no Context in sight.
- */
-fun baseSpaceInstaller(context: Context, abi: SpaceAbi = deviceAbi()): BaseSpaceInstaller = BaseSpaceInstaller(
-  archive = { context.assets.open("spaces/base/rootfs-${abi.androidAbi}.tzst") },
-  baseDir = baseSpaceDir(context),
-)
-
-/**
- * The bundled image a create copies into a new Space, wired to the app's assets.
- *
- * [deviceAbi] is resolved inside the lambda rather than here, so on an ABI with no rootfs
- * (x86_64) the refusal lands when a Space is *created* - as the act's on-screen failure - and
- * not while the composition root is being built.
- */
-fun spaceImageInstaller(context: Context): SpaceImageInstaller = SpaceImageInstaller(
-  archive = ArchiveSource { context.assets.open("spaces/base/rootfs-${deviceAbi().androidAbi}.tzst") },
-)
-
 fun baseSpaceDir(context: Context): File = spaceDirIn(spacesDir(context), BASE_SPACE.id)
 
 /**
@@ -54,8 +32,11 @@ fun spaceServerLauncher(
   context: Context,
   settingsFor: suspend (Space) -> SpaceSettings,
   defaultKernelFor: suspend (Space) -> String,
+  nativeLibraryDir: File = File(context.applicationInfo.nativeLibraryDir),
 ): JupyterServerLauncher = JupyterServerLauncher(
-  runtimeFor = { space, settings -> spaceRuntime(context, space, settings.spaceProcessVariables()) },
+  runtimeFor = { space, settings ->
+    spaceRuntime(context, space, settings.spaceProcessVariables(), nativeLibraryDir)
+  },
   dirsFor = { space -> spaceDirs(context, space) },
   settingsFor = settingsFor,
   defaultKernelFor = defaultKernelFor,
@@ -83,6 +64,7 @@ fun spaceServers(
   watchScope: CoroutineScope,
   spaceRepository: SpaceRepository,
   kernelSpecsOnDisk: KernelSpecs,
+  nativeLibraryDir: File = File(context.applicationInfo.nativeLibraryDir),
 ): JupyterSpaceServers? {
   if (runCatching { deviceAbi() }.isFailure) return null
   return JupyterSpaceServers { id, reportRunning ->
@@ -93,6 +75,7 @@ fun spaceServers(
         context,
         settingsFor = { space -> spaceRepository.storedSettingsOf(space) },
         defaultKernelFor = { space -> kernelSpecsOnDisk.specs(space).default },
+        nativeLibraryDir = nativeLibraryDir,
       ),
       watchScope = watchScope,
       reportRunning = reportRunning,
@@ -159,4 +142,4 @@ fun baseSpaceTerminalGateway(server: SpaceServer): TerminalGateway = BaseSpaceTe
  * The rootfs must match the ABI Android picked for the APK's native libraries, which
  * is the first supported one - not necessarily the only one the device can run.
  */
-private fun deviceAbi(): SpaceAbi = SpaceAbi.of(Build.SUPPORTED_ABIS.first())
+internal fun deviceAbi(): SpaceAbi = SpaceAbi.of(Build.SUPPORTED_ABIS.first())

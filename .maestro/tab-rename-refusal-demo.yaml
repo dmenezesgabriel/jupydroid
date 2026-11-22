@@ -71,7 +71,12 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "Tab: a.py"
     timeout: 30000
+# A long press on a tab opens its menu (`MainAreaTab.kt`), and Rename… in it opens the dialog.
 - longPressOn: "Tab: a.py"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000
@@ -128,6 +133,10 @@ appId: com.jupydroid.app
 - takeScreenshot: 05-the-shell-removed-b
 - tapOn: "Tab: b.py"
 - longPressOn: "Tab: b.py"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000

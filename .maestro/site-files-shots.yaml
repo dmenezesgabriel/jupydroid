@@ -1,0 +1,125 @@
+appId: com.jupydroid.app
+---
+# The frames the Files page shows: the workspace browser at the root and inside a folder, a
+# plain file in the file editor beside it, the Recents section once opens have filled it, the
+# New menu, a created row, the row's own menu and the rename and delete dialogs it raises. A
+# `takeScreenshot` name here IS the image id - scripts/site-screenshots-driver.sh crops every
+# PNG this flow takes into docs-site/pages/images/<name>-<theme>.png, so the name is a published
+# filename.
+#
+# The workspace only exists inside a running Space, so base's real server boots - TABLET ONLY
+# (SM-X216B). The tree it shoots is the one site-files-shots-seed.sh put in the workspace: a
+# reports/ folder holding a notebook and a CSV, and At Root.ipynb and script.py at the root.
+# At two panes the browser is the side panel beside the document area - the shots show the
+# arrangement a tablet actually has, the panel staying up while a file opens next to it.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# "Workspace" is the root crumb and only the browser draws it - its presence is what says the
+# Files panel is the side area up. The seeded rows are waited for, not assumed: the listing is
+# a read of a running server's tree.
+- extendedWaitUntil:
+    visible: "At Root.ipynb"
+    timeout: 30000
+- assertVisible: "Workspace"
+- assertVisible: "reports"
+- assertVisible: "script.py"
+- takeScreenshot: files-browser
+
+# Inside reports/ the crumb grows a segment - navigation, not a label - and the listing is the
+# folder's own two rows.
+- tapOn: "reports"
+- extendedWaitUntil:
+    visible: "data.csv"
+    timeout: 10000
+- assertVisible: "Nested.ipynb"
+- takeScreenshot: files-folder
+
+# A non-notebook opens in the plain file editor beside the panel - the reference's own split:
+# the notebook factory claims .ipynb and the file editor is the default for everything else.
+- tapOn: "data.csv"
+- extendedWaitUntil:
+    visible: ".*region,amount.*"
+    timeout: 15000
+- takeScreenshot: files-editor
+
+# "Workspace" is drawn twice here - the panel's crumb and the open editor's ancestor trail -
+# and both run the same goToFolder, so whichever the tap lands on browses the panel to the
+# root. Recents has something to show now: opening data.csv recorded the file and its folder.
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "At Root.ipynb"
+    timeout: 10000
+# One more open so the section has a file of its own beside the folder it came from. The panel
+# never left the root, and this notebook sits at it - no ancestor crumbs over its editor, so
+# "Workspace" below is the panel's alone.
+- tapOn: "At Root.ipynb"
+- extendedWaitUntil:
+    visible: "print('this one is at the root')"
+    timeout: 30000
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "reports/data.csv"
+    timeout: 10000
+- assertVisible: "At Root.ipynb"
+- takeScreenshot: files-recents
+
+# The New drop-down is the bar's own "+" - the reference's filebrowser New widget adapted to a
+# bar. The menu must show all three before any is tapped, or "New notebook" alone could come
+# from anywhere.
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- assertVisible: "New Python file"
+- assertVisible: "New folder"
+- takeScreenshot: files-new-menu
+- tapOn: "New Python file"
+- extendedWaitUntil:
+    visible: "untitled.py"
+    timeout: 15000
+- takeScreenshot: files-created
+
+# A row's own menu - the long press is the touch form of the reference's context menu.
+- longPressOn: "untitled.py"
+- extendedWaitUntil:
+    visible: "Rename"
+    timeout: 5000
+- assertVisible: "Delete"
+- takeScreenshot: files-row-menu
+
+# The dialog opens with the stem selected and the suffix kept, so typing replaces `untitled`
+# and leaves `.py` alone - the reference's own setSelectionRange. hideKeyboard before the shot:
+# the field is focused on open, and the frame wants the whole dialog, not the IME over its
+# buttons.
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "Rename file"
+    timeout: 5000
+- inputText: "export"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: files-rename-dialog
+- tapOn: "Rename"
+- extendedWaitUntil:
+    visible: "export.py"
+    timeout: 10000
+
+# Delete asks first, and says permanently - there is no trash on an app's private files.
+- longPressOn: "export.py"
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Are you sure you want to permanently delete: export.py?"
+    timeout: 5000
+- takeScreenshot: files-delete-confirm
+- tapOn:
+    text: "Delete"
+    index: 1
+- extendedWaitUntil:
+    notVisible: "export.py"
+    timeout: 10000

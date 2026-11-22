@@ -1,0 +1,41 @@
+appId: com.jupydroid.app
+---
+# The frames the MCP page shows: the Chat list's "MCP servers" action, the .jupyter/mcp_settings.json
+# it opens holding an empty server list, and the same file after one server is typed in. A
+# `takeScreenshot` name here IS the image id - scripts/site-screenshots-driver.sh crops every PNG
+# this flow takes into docs-site/pages/images/<name>-<theme>.png, so the name is a published
+# filename (ADR-0171).
+#
+# The workspace only exists inside a running Space, so base's real server boots - TABLET ONLY
+# (SM-X216B). site-mcp-shots-seed.sh removes .jupyter/mcp_settings.json - a dot-path reset_notebooks
+# never reaches - and lands quince_mcp.py, the server the typed line names. No chat is opened and
+# no agent is asked anything: the file is the whole surface.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- takeScreenshot: mcp-chat-list
+- tapOn: "MCP servers"
+- extendedWaitUntil:
+    visible: "Tab: mcp_settings.json"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: '[\s\S]*"mcp_servers": \[\][\s\S]*'
+    timeout: 10000
+- takeScreenshot: mcp-settings-empty
+
+# Below the last line, so the caret lands at the end of the file and the erase empties it; one line
+# typed a key at a time lands as typed, each opener closing itself (PythonTypingRules).
+- tapOn: '[\s\S]*"mcp_servers": \[\][\s\S]*'
+- tapOn:
+    point: "75%,85%"
+- eraseText: 40
+- inputText: '{"mcp_servers":[{"name":"quince","command":"python3","args":["/home/jupydroid/quince_mcp.py"]}]}'
+- extendedWaitUntil:
+    visible: '\{"mcp_servers":\[\{"name":"quince","command":"python3","args":\["/home/jupydroid/quince_mcp.py"\]\}\]\}\s*'
+    timeout: 10000
+- takeScreenshot: mcp-settings-server

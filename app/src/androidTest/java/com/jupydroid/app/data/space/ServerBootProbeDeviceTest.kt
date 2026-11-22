@@ -124,7 +124,12 @@ class ServerBootProbeDeviceTest {
 
     /** One launcher for the class: `JupyterServerLauncher.start` begins with `stop()`. */
     val launcher by lazy {
-      spaceServerLauncher(context, settingsFor = { SpaceSettings() }, defaultKernelFor = { DEFAULT_KERNEL_ID })
+      spaceServerLauncher(
+        context,
+        settingsFor = { SpaceSettings() },
+        defaultKernelFor = { DEFAULT_KERNEL_ID },
+        nativeLibraryDir = patchedProotLibraryDir(),
+      )
     }
 
     fun importServer(extraEnv: Map<String, String> = emptyMap()): Long =

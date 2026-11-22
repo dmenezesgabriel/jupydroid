@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# After the driver crashed the app with `am crash` and this flow relaunched it: Diagnostics counts what
+# the handler and the platform's exit reasons wrote, "Clear logs" asks first and states the size it
+# frees, "Cancel" keeps every entry, and confirming leaves 0 B.
+#
+# Runs no cell, so the emulator is enough (AGENTS.md rule 2). The screenshots are what a person sees;
+# the driver reads the log's files afterwards, which no frame can show.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+# To the end of the list, the Licences row after Diagnostics: at 2.0 the section is taller than what
+# a scroll to its own title leaves on screen.
+- scrollUntilVisible:
+    element:
+      text: "Licences"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Diagnostics"
+- assertVisible: "[1-9][0-9]* entr(y|ies) · [0-9.]+ [KM]?B"
+- assertNotVisible: "0 entries · 0 B"
+- takeScreenshot: 01-the-crash-is-counted
+- tapOn: "Clear logs"
+- assertVisible: "Clear logs\\?"
+- assertVisible: "Clear [1-9][0-9]* entr(y|ies) \\([0-9.]+ [KM]?B\\)\\? This cannot be undone."
+- takeScreenshot: 02-the-confirmation-states-the-size
+- tapOn: "Cancel"
+- assertVisible: "[1-9][0-9]* entr(y|ies) · [0-9.]+ [KM]?B"
+- takeScreenshot: 03-cancelled-and-nothing-was-cleared
+- tapOn: "Clear logs"
+- tapOn: "Confirm Clear logs"
+- assertVisible: "0 entries · 0 B"
+- takeScreenshot: 04-cleared
+- tapOn: "Clear logs"
+- assertNotVisible: "Clear logs\\?"

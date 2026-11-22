@@ -10,13 +10,8 @@ appId: com.jupydroid.app
       notVisible: "New"
     commands:
       - tapOn: "Files"
-# Recents lists what was opened beside the listing's row, so the section is emptied to leave the
-# listing's row the one match.
-- tapOn: "Recent actions"
-- tapOn: "Clear Recent Documents"
-- extendedWaitUntil:
-    notVisible: "Recent"
-    timeout: 5000
+# Recents lists what was opened beside the listing's row, but the section arrives shut (ADR-0121),
+# so the listing's row is the one match.
 - tapOn: "b.ipynb"
 - extendedWaitUntil:
     visible: ".*${MAESTRO_TYPED}.*"

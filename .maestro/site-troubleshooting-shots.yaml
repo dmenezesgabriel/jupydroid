@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# The frames the Troubleshooting page shows: Settings' Diagnostics section with real entries -
+# what the app recorded before this flow's launch - the "Clear logs" confirmation that states
+# what it frees, and the section emptied after confirming. A `takeScreenshot` name here IS the
+# image id - scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename (ADR-0171).
+#
+# The workspace only exists inside a running Space, because the rail's Settings gear lives there -
+# TABLET ONLY (SM-X216B). site-troubleshooting-shots-seed.sh empties the error log and then crashes
+# the app with `am crash`, so the entries the section counts are ones the app's own handlers
+# wrote, not a fixture's. The flow ends having confirmed the clear: the log is app state
+# reset_notebooks never reaches, and an emptied one is what the next flow's Diagnostics reads.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+
+# To the foot of the list, the Licences row after Diagnostics: the section is taller than what a
+# scroll to its own title leaves on screen (diagnostics-empty.yaml's own note).
+- scrollUntilVisible:
+    element:
+      text: "Licences"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Diagnostics"
+- extendedWaitUntil:
+    visible: "[1-9][0-9]* entr(y|ies) · [0-9.]+ [KM]?B"
+    timeout: 20000
+- assertVisible: "Share log"
+- assertVisible: "Clear logs"
+- takeScreenshot: diagnostics-entries
+
+# The confirmation names what it frees before anything is deleted; Cancel keeps every entry, so
+# the confirm below is the only path taken.
+- tapOn: "Clear logs"
+- extendedWaitUntil:
+    visible: "Clear logs\\?"
+    timeout: 10000
+- assertVisible: "Clear [1-9][0-9]* entr(y|ies) \\([0-9.]+ [KM]?B\\)\\? This cannot be undone."
+- takeScreenshot: diagnostics-clear-confirm
+- tapOn: "Confirm Clear logs"
+- extendedWaitUntil:
+    visible: "0 entries · 0 B"
+    timeout: 20000
+- takeScreenshot: diagnostics-cleared

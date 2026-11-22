@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed-icon silhouette shared by both launcher icons: the planet-and-orbit mark both artworks
+  draw, reduced to one alpha shape. Android tints it with the launcher's themed-icon colour, so
+  it must stay a plain silhouette inside the 72dp safe zone - no strokes-as-detail, no colour.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M22,54A32,13 0 0,1 86,54A32,13 0 0,1 22,54"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="5"
+        android:fillColor="#00000000" />
+    <path
+        android:pathData="M34,54a20,20 0 1,0 40,0a20,20 0 1,0 -40,0"
+        android:fillColor="#FF000000" />
+</vector>

@@ -3,13 +3,17 @@ package com.jupydroid.app.ui.shell
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.FailsOnceGitStatusReader
+import com.jupydroid.app.NeverAnsweringGitStatusReader
 import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.theme.JupyterDroidTheme
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.git.GitExtension
 import com.jupydroid.extensions.git.data.fake.FakeGitStatusReader
+import com.jupydroid.extensions.git.domain.GitStatusReader
 import com.jupydroid.extensions.git.domain.RepositoryStatus
 import org.junit.Rule
 import org.junit.Test
@@ -26,9 +30,8 @@ import org.junit.runner.RunWith
 class ContributedSidePanelTest {
   @get:Rule val compose = createComposeRule()
 
-  private val sourceControl = GitExtension(
-    readerFor = { FakeGitStatusReader(repositories = mapOf("demo" to RepositoryStatus.Repository("master"))) },
-  ).sidePanels.single()
+  private val workspace =
+    FakeGitStatusReader(repositories = mapOf("demo" to RepositoryStatus.Repository("master")))
 
   @Test
   fun theHostTitlesThePanelWithItsLabel() {
@@ -51,7 +54,31 @@ class ContributedSidePanelTest {
     compose.onNodeWithText("You are not currently in a Git repository.").assertIsDisplayed()
   }
 
-  private fun show(browsedDirectory: String) {
+  @Test
+  fun whileGitIsBeingReadThePanelSaysSo() {
+    show(browsedDirectory = "demo", reader = NeverAnsweringGitStatusReader())
+
+    compose.onNodeWithText("Reading Git status…").assertIsDisplayed()
+  }
+
+  @Test
+  fun aFailedReadOffersRetryAndRetryReadsAgain() {
+    show(browsedDirectory = "demo", reader = FailsOnceGitStatusReader(branch = "master"))
+
+    compose.onNodeWithText("git status of 'demo' failed: connection refused").assertIsDisplayed()
+    compose.onNodeWithText("Retry").performClick()
+    compose.onNodeWithText("master").assertIsDisplayed()
+  }
+
+  @Test
+  fun aDirectoryOutsideARepositoryOffersRetry() {
+    show(browsedDirectory = "")
+
+    compose.onNodeWithText("Retry").assertIsDisplayed()
+  }
+
+  private fun show(browsedDirectory: String, reader: GitStatusReader = workspace) {
+    val sourceControl = GitExtension(readerFor = { reader }).sidePanels.single()
     compose.setContent {
       JupyterDroidTheme {
         ContributedSidePanel(

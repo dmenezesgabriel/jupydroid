@@ -27,9 +27,6 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-# Three empty cells first, then typed bottom-up, so a cell that wraps as it fills never moves a field
-# still to be typed. Where `uiautomator dump` put the three empty fields on SM-X216B's 1920x1200:
-# [805,319][1884,391], [805,488][1884,560] and [805,657][1884,729].
 - tapOn:
     text: "Cell actions"
     index: 0
@@ -39,24 +36,24 @@ appId: com.jupydroid.app
     index: 1
 - tapOn: "Cell menu Insert code below"
 
-- tapOn:
-    point: "1300,693"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 2
 - inputText: "img3 = Image(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAGAAAAAQCAIAAABm2O2uAAAAQUlEQVR4nO3QMQ0AIQDAQEAN/vUgBgWfjvxwp6DpPHsPvq3XAX9nUDAoGBQMCgYFg4JBwaBgUDAoGBQMCgYFg8IFXXYBTK6sqH8AAAAASUVORK5CYII=')); display(img3)"
 - hideKeyboard
-- tapOn:
-    point: "1300,524"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
 - inputText: "import base64; from IPython.display import Image; display(Image(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAGAAAAAQCAIAAABm2O2uAAAAQElEQVR4nO3QMQ0AIQDAQEANspGKgk9HfrhT0HTuswff1uuAvzMoGBQMCgYFg4JBwaBgUDAoGBQMCgYFg4JB4QIhPgEQpW0vQgAAAABJRU5ErkJggg=='), width=100))"
 - hideKeyboard
 # Typed in pieces of 200 characters: Maestro types about five a second on SM-X216B, and gives one
 # `inputText` 120 s before it calls the device server dead.
-- tapOn:
-    point: "1300,355"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "display({'image/jpeg': '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDACgcHiMeGSgjISMtKygwPGRBPDc3PHtYXUlkkYCZlo+AjIqgtObDoKrarYqMyP/L2u71////m8H////6/+b9//j/2wBDASstLTw1PHZBQXb4pYyl+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4"
 - inputText: "+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj4+Pj/wAARCAAIAGADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAT/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFgEBAQEAAAAAAAAAAAAAAAAAAAMF/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/aAAwDAQACEQMRAD8A"
 - inputText: "mASaAAAAAAAAAAD/2Q=='}, raw=True); display({'image/gif': 'R0lGODdhYAAIAIEAACigKAAAAAAAAAAAACwAAAAAYAAIAAAILwABCBxIsKDBgwgTKlzIsKHDhxAjSpxIsaLFixgzatzIsaPHjyBDihxJsqTJjQEBADs='}, raw=True); display({'i"

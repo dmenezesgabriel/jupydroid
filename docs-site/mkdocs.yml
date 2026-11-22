@@ -1,0 +1,80 @@
+# The user documentation site, built by .github/workflows/docs.yml and published to GitHub Pages once the
+# repository is public - the generator, the directory and the deploy guard are ADR-0169's. The
+# engineering documents stay in docs/ and are linked by their GitHub URL.
+#
+# Plain Material config on purpose: Zensical reads mkdocs.yml natively, so no third-party plugin and no
+# custom_dir keeps a move to it a drop-in (scripts/docs_site_config_test.py asserts both).
+site_name: JupyterDroid
+site_description: Offline Jupyter notebook app for Android, running a real jupyter_server and ipykernel.
+site_url: https://dmenezesgabriel.github.io/jupydroid/
+repo_url: https://github.com/dmenezesgabriel/jupydroid
+# mkdocs derives edit/master/docs/ for a github.com repo_url - wrong branch and wrong directory
+# here, so the pages' source path on main is stated.
+edit_uri: edit/main/docs-site/pages/
+
+docs_dir: pages
+# Under /build, which .gitignore already holds out of the tree.
+site_dir: ../build/site
+
+theme:
+  name: material
+  logo: assets/images/mark.svg
+  favicon: assets/images/mark.svg
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+  features:
+    - content.action.edit
+    - content.code.copy
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.top
+    - toc.follow
+
+plugins:
+  - search
+
+# mkdocs' built-in extensions are toc, tables and fenced_code - no highlighter. superfences
+# parses the fences and pymdownx.highlight colors them; highlight alone leaves them plain.
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight
+
+# `mkdocs build --strict` turns each of these into an error, so a page left out of `nav` or a link to a
+# file that does not exist fails the build instead of shipping. The nav is explicit for the same reason.
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Spaces: spaces.md
+  - Interface: interface.md
+  - Notebooks: notebooks.md
+  - Console: console.md
+  - Terminal: terminal.md
+  - Files: files.md
+  - Search: search.md
+  - Git: git.md
+  - Chat: chat.md
+  - MCP servers: mcp.md
+  - Settings: settings.md
+  - Troubleshooting: troubleshooting.md

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">
+  <!-- The launcher icons' shared monochrome mark - app/src/main/res/drawable/ic_launcher_monochrome.xml -
+       tinted for the site's two schemes so one file serves logo and favicon. -->
+  <style>
+    .planet {
+      fill: #001439;
+    }
+    .orbit {
+      fill: none;
+      stroke: #001439;
+      stroke-width: 5;
+    }
+    @media (prefers-color-scheme: dark) {
+      .planet {
+        fill: #e8e8e8;
+      }
+      .orbit {
+        stroke: #e8e8e8;
+      }
+    }
+  </style>
+  <path class="orbit" d="M22,54A32,13 0 0,1 86,54A32,13 0 0,1 22,54" />
+  <path class="planet" d="M34,54a20,20 0 1,0 40,0a20,20 0 1,0 -40,0" />
+</svg>

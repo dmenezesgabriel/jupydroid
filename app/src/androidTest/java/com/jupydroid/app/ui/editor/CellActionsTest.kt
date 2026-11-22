@@ -16,10 +16,9 @@ import org.junit.runner.RunWith
 /**
  * Both surfaces offer the same actions and report the same thing when one is chosen.
  *
- * The presentation is passed in rather than read from the window. `currentWindowAdaptiveInfo()`
- * measures the *activity's* window, which a `DeviceConfigurationOverride` around a composable
- * does not change - so a test that tried to force a width would have driven one branch twice
- * while appearing to cover both. The rule that maps width to presentation is pure and tested on
+ * The presentation is passed in rather than read from the window, so a test states the branch it
+ * means: a `ForcedSize` would compact the whole scene, where the question is only which of the
+ * two surfaces draws. The rule that maps width to presentation is pure and tested on
  * the JVM (`CellActionPresentationTest`); what needs a device is that each branch renders and
  * responds, and that is what this asserts.
  */

@@ -1,0 +1,4 @@
+# Every interpreter in a Space adds its user base to sys.path, even before the first `pip install`
+# has written it: `site.addusersitepackages` adds the directory only when it exists, and the cell
+# below `%pip install` then cannot import what the install wrote. ADR-0164 carries the measurement.
+import jupydroid_usersite; jupydroid_usersite.add_user_site()

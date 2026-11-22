@@ -29,23 +29,22 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-# Both cells are typed before either runs, so each empty field is where `maestro hierarchy` put
-# it on SM-X216B's 1920x1200: the first at [805,319][1884,391], the second, inserted below an
-# unrun first cell, at [805,488][1884,560].
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+# Both cells are typed before either runs, each focused by its field's name: a pixel tapped below an
+# unrun cell missed the field on SM-X216B's 1920x1200.
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "for i in range(200_000): print(i)"
 - hideKeyboard
 - tapOn:
     text: "Cell actions"
     index: 0
 - tapOn: "Cell menu Insert code below"
-- tapOn:
-    point: "1300,524"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 1
 - inputText: "for i in range(300): display(i)"
 - hideKeyboard
 
@@ -98,12 +97,13 @@ appId: com.jupydroid.app
     timeout: 60000
 - takeScreenshot: 03-the-last-output
 
-# Back up to the print's row. Chunk 0 is matched whole, `0` through `999`, which only exists once
-# every line is drawn.
+# Back up to the print's row, past 300 drawn outputs. Each swipe costs about 3.7 s on SM-X216B, since
+# Maestro reads the whole tree after every one, and 16 swipes in 60 s had not reached the row yet.
+# Chunk 0 is matched whole, `0` through `999`, which only exists once every line is drawn.
 - scrollUntilVisible:
     element: "199970 lines hidden"
     direction: UP
-    timeout: 60000
+    timeout: 180000
 - tapOn: "199970 lines hidden"
 - extendedWaitUntil:
     visible:

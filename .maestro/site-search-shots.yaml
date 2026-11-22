@@ -1,0 +1,160 @@
+appId: com.jupydroid.app
+---
+# The frames the Search page shows, in two halves. First the in-document find bar on two
+# notebooks - the counter, the options menu, the replace row and the outputs filter - then the
+# workspace search panel: results grouped by file, a match opened, the include/exclude scope,
+# the replace row, the counted Replace All question and its report. A `takeScreenshot` name here
+# IS the image id - scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# The workspace only exists inside a running Space, so base's real server boots - TABLET ONLY
+# (SM-X216B). The tree it shoots is the one site-search-shots-seed.sh put in the workspace:
+# notes.py and readme.md beside a reports/ folder, and five notebooks - the find-bar pair, the
+# cell-labelled matches and the replace targets. The find half runs first because the workspace
+# Replace All at the end rewrites every "cat" it finds: "Printed Matches.ipynb" keeps its word
+# in a stored output the source rewrite does not reach, and a later "cat" query would read half
+# of what it did before.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "notes.py"
+    timeout: 30000
+
+# --- the notebook find bar ---------------------------------------------------------------------
+# "Find And Replace.ipynb" carries five "velocity" matches across code, markdown and raw cells -
+# the count is what proves all three cell kinds are searched.
+- tapOn: "Find And Replace.ipynb"
+- extendedWaitUntil:
+    visible: "Velocity = 0"
+    timeout: 30000
+- tapOn: "Find in notebook"
+- inputText: "velocity"
+- extendedWaitUntil:
+    visible: "Matches 1/5"
+    timeout: 10000
+# The keyboard goes away before the frame: it was up for the typing, and the shot wants the
+# lit matches down among the cells, not the IME over them.
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: notebook-find-bar
+# The options live behind the overflow - the bar already carries five targets.
+- tapOn: "Search options"
+- extendedWaitUntil:
+    visible: "Search cell outputs"
+    timeout: 10000
+- takeScreenshot: notebook-find-options
+# Replace is a row the options disclose, not a second bar.
+- tapOn: "Show replace"
+- extendedWaitUntil:
+    visible: "Replace with"
+    timeout: 10000
+- tapOn: "Replace with"
+- inputText: "speed"
+- hideKeyboard
+- takeScreenshot: notebook-replace
+- tapOn: "Close search"
+- extendedWaitUntil:
+    visible: "Find in notebook"
+    timeout: 10000
+
+# --- the outputs filter ------------------------------------------------------------------------
+# "Printed Matches.ipynb" stores its output in nbformat - no kernel needed. "cat" finds the
+# source's one match by default; the outputs filter adds the identical word it printed.
+- tapOn: "Printed Matches.ipynb"
+- extendedWaitUntil:
+    visible: "the cat sat on the mat"
+    timeout: 30000
+- tapOn: "Find in notebook"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "Matches 1/1"
+    timeout: 10000
+- tapOn: "Search options"
+- tapOn: "Search cell outputs"
+- extendedWaitUntil:
+    visible: "Matches 1/2"
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: notebook-search-outputs
+- tapOn: "Close search"
+
+# --- the workspace panel -----------------------------------------------------------------------
+# The rail's Search swaps the side panel; typing is what searches - there is no submit.
+- tapOn:
+    text: "^Search$"
+- tapOn: "Search the workspace"
+- inputText: "cat"
+- extendedWaitUntil:
+    visible: "[0-9]+ results? in [0-9]+ files?"
+    timeout: 30000
+- hideKeyboard
+- takeScreenshot: search-results
+
+# A match row opens its file at the match, the panel still up beside it. The first group's row
+# is the one tapped: it is at the top of the tree, so nothing has to be scrolled to reach it.
+- tapOn: "Line 1, CAT_REPORT_TITLE = \\\"quarterly cat report\\\""
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: analysis.py"
+    timeout: 30000
+- takeScreenshot: search-open-match
+
+# The two glob boxes behind the details chevron - include `*.py` reaches any depth, so the
+# nested file stays while the notebooks and the markdown leave the walk.
+- tapOn: "Show search details"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "files to include"
+    timeout: 10000
+- assertVisible: "files to exclude"
+- takeScreenshot: search-scope
+- tapOn: "files to include"
+- inputText: "*.py"
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "[0-9]+ results? in [0-9]+ files?"
+    timeout: 30000
+- takeScreenshot: search-scope-filtered
+# Cleared again, so the replace below is the whole workspace's answer and not the scope's - and
+# the details shut, so the replace row's own frames are not read through two glob boxes.
+- tapOn: "files to include"
+- eraseText
+- hideKeyboard
+- extendedWaitUntil:
+    visible: "[0-9]+ results? in [0-9]+ files?"
+    timeout: 30000
+- tapOn: "Hide search details"
+- extendedWaitUntil:
+    notVisible: "files to include"
+    timeout: 10000
+
+# The replace row discloses under its own chevron: the box, the preserve-case toggle and the
+# counted question behind Replace all in workspace.
+- tapOn: "Show replace"
+- extendedWaitUntil:
+    visible: "Hide replace"
+    timeout: 10000
+- tapOn: "Replace across the workspace"
+- inputText: "dog"
+- hideKeyboard
+- tapOn: "Preserve case"
+- extendedWaitUntil:
+    visible: "Replace verbatim"
+    timeout: 10000
+- takeScreenshot: search-replace-row
+- tapOn: "Replace all in workspace"
+- extendedWaitUntil:
+    visible: "Replace All"
+    timeout: 10000
+- assertVisible: "Replace [0-9]+ occurrences across [0-9]+ files with 'dog'\\?"
+- takeScreenshot: search-replace-confirm
+- tapOn:
+    text: "^Replace$"
+- extendedWaitUntil:
+    visible: "Replaced [0-9]+ occurrences across [0-9]+ files with 'dog'\\."
+    timeout: 60000
+- takeScreenshot: search-replace-report

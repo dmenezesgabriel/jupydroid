@@ -1,0 +1,61 @@
+appId: com.jupydroid.app
+---
+# The first of the five flows scripts/tab-middle-press-driver.sh runs, at 320dp and again at 360dp. Five
+# text documents from `reports/` open in order, so the strip holds five tabs and every one of them is at
+# its floor (`TAB_MIN_WIDTH`): four tabs at 320dp and five at 360dp are the narrowest cases GAP-210 names,
+# and five fill both. The driver takes a hierarchy after each flow, because Maestro cannot write one.
+#
+# Each document opens from the browser the `Workspace` crumb returns to, the one-pane form of a second tab
+# (`tabs-narrow.yaml` explains why Back would pop the document instead).
+#
+# Runs no cell, so the emulator is evidence.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Files"
+- tapOn: "reports"
+- tapOn: "tab-a.txt"
+- extendedWaitUntil:
+    visible: "Tab: tab-a.txt"
+    timeout: 30000
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "reports"
+- tapOn: "tab-b.txt"
+- extendedWaitUntil:
+    visible: "Tab: tab-b.txt"
+    timeout: 30000
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "reports"
+- tapOn: "tab-c.txt"
+- extendedWaitUntil:
+    visible: "Tab: tab-c.txt"
+    timeout: 30000
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "reports"
+- tapOn: "tab-d.txt"
+- extendedWaitUntil:
+    visible: "Tab: tab-d.txt"
+    timeout: 30000
+- tapOn: "Workspace"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "reports"
+- tapOn: "tab-e.txt"
+- extendedWaitUntil:
+    visible: "Tab: tab-e.txt"
+    timeout: 30000
+# The active tab is read off its document: each file holds its own `tab_marker_<letter>` (the driver seeds
+# them), and the dump never reports `selected` for a tab.
+- assertVisible: ".*tab_marker_e.*"
+- takeScreenshot: 01-five-tabs-at-the-floor

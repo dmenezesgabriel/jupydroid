@@ -46,7 +46,7 @@ appId: com.android.chrome
     timeout: 10000
 - takeScreenshot: 01-open-with-from-downloads
 - tapOn:
-    text: "JupyterDroid"
+    text: "Jupydroid"
     id: "android:id/text1"
 # This resolver is not My Files': its row tap both selects and fires, so "Just once" is
 # already gone - tapped only when the select-then-confirm half is the one that drew.

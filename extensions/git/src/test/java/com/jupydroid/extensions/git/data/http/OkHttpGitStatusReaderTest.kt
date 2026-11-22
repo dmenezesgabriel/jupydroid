@@ -1,6 +1,7 @@
 package com.jupydroid.extensions.git.data.http
 
 import com.jupydroid.extension.api.ServerAddress
+import com.jupydroid.extensions.git.domain.GitStatusException
 import com.jupydroid.extensions.git.domain.GitStatusReader
 import com.jupydroid.extensions.git.domain.GitStatusReaderContract
 import com.jupydroid.extensions.git.domain.RepositoryStatus
@@ -11,8 +12,11 @@ import kotlinx.serialization.json.buildJsonObject
 import mockwebserver3.Dispatcher
 import mockwebserver3.MockResponse
 import mockwebserver3.RecordedRequest
+import mockwebserver3.SocketEffect
 import mockwebserver3.junit4.MockWebServerRule
+import okhttp3.OkHttpClient
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import java.util.concurrent.TimeUnit
@@ -57,12 +61,69 @@ class OkHttpGitStatusReaderTest : GitStatusReaderContract() {
     assertEquals("/git/status", serverRule.server.takeRequest(TIMEOUT_SECONDS, TimeUnit.SECONDS)!!.target)
   }
 
-  private fun readerUnderTest(): GitStatusReader = OkHttpGitStatusReader(
+  /** A stopped server refuses the connection, and the port promises `GitStatusException` for every failure. */
+  @Test
+  fun status_ofAServerThatRefusesTheConnectionThrowsAGitStatusExceptionNamingThePath() = runTest {
+    val reader = readerUnderTest()
+    serverRule.server.close()
+
+    val failure = runCatching { reader.status("demo") }.exceptionOrNull()
+
+    assertTrue("$failure", failure is GitStatusException)
+    assertTrue("$failure", failure!!.message!!.contains("'demo'"))
+  }
+
+  /** A server that takes the request and never answers runs into the client's read timeout. */
+  @Test
+  fun status_ofAServerThatNeverAnswersThrowsAGitStatusExceptionNamingThePath() = runTest {
+    serverRule.server.enqueue(MockResponse.Builder().onResponseStart(SocketEffect.Stall).build())
+    val impatient = OkHttpClient.Builder().readTimeout(SILENT_SERVER_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS).build()
+
+    val failure = runCatching { readerUnderTest(impatient).status("demo") }.exceptionOrNull()
+
+    assertTrue("$failure", failure is GitStatusException)
+    assertTrue("$failure", failure!!.message!!.contains("'demo'"))
+  }
+
+  /**
+   * `address()` starts the Space's server when none runs, and its failure's type is the launcher's
+   * to choose (`SpaceServer.startSpace`): the port promises `GitStatusException` for every failure,
+   * and the panel catches nothing else.
+   */
+  @Test
+  fun status_ofAServerThatCannotBeAskedThrowsAGitStatusExceptionNamingThePath() = runTest {
+    val failure = runCatching { readerThatCannotBeAsked().status("demo") }.exceptionOrNull()
+
+    assertTrue("$failure", failure is GitStatusException)
+    assertTrue("$failure", failure!!.message!!.contains("'demo'"))
+    assertTrue("$failure", failure.message!!.contains("IllegalStateException"))
+  }
+
+  /** An address `toHttpUrl` refuses is a failed read like any other, not an escaped `IllegalArgumentException`. */
+  @Test
+  fun status_ofAnAddressThatIsNotAnHttpUrlThrowsAGitStatusExceptionNamingThePath() = runTest {
+    val reader = OkHttpGitStatusReader(
+      server = { ServerAddress(baseUrl = "not a url", token = "secret-token") },
+    )
+
+    val failure = runCatching { reader.status("demo") }.exceptionOrNull()
+
+    assertTrue("$failure", failure is GitStatusException)
+    assertTrue("$failure", failure!!.message!!.contains("'demo'"))
+  }
+
+  private fun readerThatCannotBeAsked(): GitStatusReader = OkHttpGitStatusReader(
+    server = { throw IllegalStateException("the Space's server failed to come up") },
+  )
+
+  private fun readerUnderTest(client: OkHttpClient = OkHttpClient()): GitStatusReader = OkHttpGitStatusReader(
     server = { ServerAddress(baseUrl = serverRule.server.url("/").toString(), token = "secret-token") },
+    client = client,
   )
 
   private companion object {
     const val TIMEOUT_SECONDS = 5L
+    const val SILENT_SERVER_TIMEOUT_MILLIS = 100L
   }
 }
 

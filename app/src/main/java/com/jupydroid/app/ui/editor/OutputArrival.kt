@@ -20,7 +20,7 @@ import com.jupydroid.app.domain.port.KernelEvent
 internal fun EditorUiState.afterOutput(event: KernelEvent.Output): EditorUiState = when (val output = event.output) {
   is CellOutput.ClearOutput -> afterClear(event.cellId, output.wait)
   is CellOutput.DisplayUpdate -> withDisplayUpdated(output.display)
-  else -> withOutputAdded(event.cellId, output)
+  else -> withOutput(event.cellId, output)
 }
 
 private fun EditorUiState.afterClear(cellId: String, wait: Boolean): EditorUiState = if (wait) {
@@ -32,8 +32,11 @@ private fun EditorUiState.afterClear(cellId: String, wait: Boolean): EditorUiSta
 /**
  * [output] joins [cellId]'s outputs, spending a pending `clear(wait)`. A display carrying an id
  * already shown first updates the earlier ones, then is appended, as JupyterLab's `_onIOPub` does.
+ *
+ * Reached from outside a run too: the note a confirmed platform miss earns is appended when the
+ * run has ended, and it is an output like any other (`PipInstallExplanation`).
  */
-private fun EditorUiState.withOutputAdded(cellId: String, output: CellOutput): EditorUiState {
+internal fun EditorUiState.withOutput(cellId: String, output: CellOutput): EditorUiState {
   val shown = output.redrawnDisplay()?.let { withDisplayUpdated(it) } ?: this
   val carried = if (cellId in clearsPending) emptyList() else shown.outputs[cellId].orEmpty()
   return shown.copy(

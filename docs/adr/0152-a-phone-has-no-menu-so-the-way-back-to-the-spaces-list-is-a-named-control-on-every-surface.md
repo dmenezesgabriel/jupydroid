@@ -24,7 +24,7 @@ placement cannot be copied. It has to become something visible.
 
 The one-pane strip has the room. Its fixed slots are the Up arrow (48dp), Reload (40dp) and Save (44dp), which
 leave the tab scroller 188, 228 and 280dp at 320, 360 and 412dp. A 48dp control leaves 140, 180 and 232dp, each
-over the 80dp tab floor (`TAB_MIN_WIDTH`). At 800dp, read from a `uiautomator dump` on the tablet, the control
+over the 96dp tab floor (`TAB_MIN_WIDTH`). At 800dp, read from a `uiautomator dump` on the tablet, the control
 is a 48 x 48dp target at x 752-800dp, after Save.
 
 ## Decision drivers

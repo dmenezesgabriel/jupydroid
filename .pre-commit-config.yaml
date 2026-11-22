@@ -151,6 +151,24 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      # The user documentation site's strict build, the same command docs.yml's `docs` job runs, so a
+      # page that breaks a link or leaves `nav` fails at commit instead of at the pull request
+      # (ADR-0169). `files` is what the build reads: the site source and the lock that pins
+      # mkdocs-material.
+      - id: docs-site-build
+        name: the user documentation site builds strict
+        entry: env NO_MKDOCS_2_WARNING=1 uv run --locked --group docs mkdocs build --strict -f docs-site/mkdocs.yml
+        language: system
+        files: '^(docs-site/|pyproject\.toml$|uv\.lock$)'
+        pass_filenames: false
+      # A `*-light.png` without its `*-dark.png` renders a hole in dark mode while the strict build
+      # stays green; the gate reads the tracked files, so any docs-site change re-runs it.
+      - id: site-images
+        name: a site image ships in both colour schemes
+        entry: uv run --locked python scripts/check_site_images.py
+        language: system
+        files: '^docs-site/'
+        pass_filenames: false
       # Security audit of the workflows (unpinned actions, token scopes, template injection) and of
       # dependabot.yml (a missing cooldown), from the uv.lock environment. Offline: an online audit
       # needs a token, which is not handed to CI.
@@ -170,20 +188,20 @@ repos:
         language: system
         stages: [commit-msg]
       # Only when the rules, the npm settings or the lockfile change (any root-level .mjs is a config or
-      # its test), or the claude-autopilot loop or the recorded sessions its tests read (ADR-0147); the
+      # its test), or the autopilot loop or the recorded sessions its tests read (ADR-0147); the
       # hook above is what runs on every commit.
       - id: commitlint-config-tests
         name: the commit tooling's and the autopilot loop's own tests
         entry: npm test
         language: system
-        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs|scripts/claude-autopilot/.*|scripts/testdata/claude-autopilot-frames/.*)$'
+        files: '^(package(-lock)?\.json|\.npmrc|[^/]+\.mjs|scripts/autopilot/.*|scripts/testdata/autopilot-frames/.*)$'
         pass_filenames: false
       # `tsc --noEmit` over the loop and its tests: Node strips the types without checking them.
-      - id: claude-autopilot-typecheck
+      - id: autopilot-typecheck
         name: the autopilot loop typechecks
         entry: npm run typecheck
         language: system
-        files: '^(package(-lock)?\.json|scripts/claude-autopilot/.*)$'
+        files: '^(package(-lock)?\.json|scripts/autopilot/.*)$'
         pass_filenames: false
       # The vendored agent-harness skills are the pinned ones, byte for byte (ADR-0149).
       - id: agent-harness-skills

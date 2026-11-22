@@ -17,16 +17,36 @@ class SpaceKernelSpecTest {
   @get:Rule val tempFolder = TemporaryFolder()
 
   /**
-   * The kernel is the image's own interpreter, named inside the root the server runs under
-   * (ADR-0073): the same `/usr/bin/python3` the server itself was started as.
+   * The kernel is the gnu payload's own CPython, named inside the root the server runs under
+   * (ADR-0073, ADR-0166): the server stays musl, and only the kernel is glibc so `%pip` gets
+   * PyPI's manylinux wheels.
    */
   @Test
-  fun install_pointsArgvAtTheImagesOwnInterpreter() = runTest {
+  fun install_pointsArgvAtTheGnuInterpreter() = runTest {
     val baseDir = tempFolder.newFolder("base")
 
     SpaceKernelSpec.install(baseDir)
 
-    assertEquals(SPACE_INTERPRETER, argv(baseDir).first())
+    assertEquals(GNU_INTERPRETER, argv(baseDir).first())
+  }
+
+  /**
+   * The kernel's environment is the glibc half of the refusal split (ADR-0166): no musl preload
+   * may enter a glibc process, the tracer answers its seccomp traps with ENOSYS instead of
+   * delivering SIGSYS, and its installs land in a user base of their own - a musl wheel's
+   * `libc.musl` dependency must never load beside glibc's.
+   */
+  @Test
+  fun install_givesTheKernelTheGlibcEnvironment() = runTest {
+    val baseDir = tempFolder.newFolder("base")
+
+    SpaceKernelSpec.install(baseDir)
+
+    val env = kernelEnv(baseDir)
+    assertEquals("", env["LD_PRELOAD"])
+    assertEquals("1", env["PROOT_SIGSYS_ENOSYS"])
+    assertEquals("/pkgs-gnu", env["PYTHONUSERBASE"])
+    assertTrue(env.getValue("PATH"), env.getValue("PATH").startsWith("/pkgs-gnu/bin:"))
   }
 
   /** A kernel death with no traceback is the failure mode we refuse to ship. */
@@ -143,6 +163,9 @@ class SpaceKernelSpecTest {
 
   private fun argv(baseDir: File): List<String> = Json.parseToJsonElement(kernelJson(baseDir).readText())
     .jsonObject.getValue("argv").jsonArray.map { it.jsonPrimitive.content }
+
+  private fun kernelEnv(baseDir: File): Map<String, String> = Json.parseToJsonElement(kernelJson(baseDir).readText())
+    .jsonObject.getValue("env").jsonObject.mapValues { it.value.jsonPrimitive.content }
 
   private fun kernelJson(baseDir: File) = File(baseDir, "usr/share/jupyter/kernels/python3/kernel.json")
 }

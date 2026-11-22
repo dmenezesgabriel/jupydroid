@@ -50,6 +50,7 @@ from pathlib import Path
 
 from kotlin_source import comments_only
 from notebook_source import notebook_code_comments
+from patch_source import patch_prose
 from script_source import hash_comments, python_prose
 from xml_source import xml_comments
 
@@ -133,12 +134,16 @@ SCANNERS: dict[str, Callable[[str], str]] = {
     ".h": comments_only,
     ".g4": comments_only,
     ".ts": comments_only,
+    ".patch": patch_prose,
     ".sh": hash_comments,
     ".py": python_prose,
     ".toml": hash_comments,
     ".lock": hash_comments,
     ".in": hash_comments,
     ".ini": hash_comments,
+    # A `.pth` in site-packages is executed by `site.addpackage` line by line, and a line starting
+    # with `#` is a comment there too, so a hook's prose is read the way a shell script's is.
+    ".pth": hash_comments,
     ".config": hash_comments,
     ".yaml": hash_comments,
     "Dockerfile": hash_comments,

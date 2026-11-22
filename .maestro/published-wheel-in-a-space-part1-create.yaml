@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# A cold install of the build, a Space made and entered, and a notebook opened in it - the
+# state the published-wheel demo starts from. The Space's kernel is the glibc one, so what the
+# next parts install is a manylinux wheel, not a musllinux one.
+#
+# TABLET ONLY (SM-X216B): the parts run cells, and on x86_64 the app falls back to
+# `FakeKernelGateway`, which echoes a cell's source back as its output.
+- launchApp
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Demo"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Demo \\(space-1\\)"
+    timeout: 60000
+- takeScreenshot: 01-demo-space-created
+- tapOn: "Run Demo \\(space-1\\)"
+# Stop, not an enabled Open: the node Maestro finds by Open's name is a child that reads enabled
+# whatever the button's state (`open-base-space.yaml` says the same of base).
+- extendedWaitUntil:
+    visible: "Stop Demo \\(space-1\\)"
+    timeout: 240000
+- tapOn: "Open Demo \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 60000
+- takeScreenshot: 02-a-notebook-in-the-demo-space

@@ -11,13 +11,19 @@
 # so the premise of the rootfs approach is intact: no hand-cross-compiling.
 #
 # Pinned by digest so a rebuild reproduces the image that produced the committed
-# evidence. alpine:3.21 as of 2026-10-29. `apk add` never upgrades what the base already holds, so
-# the digest is what moves the base's own packages: this one carries libcrypto3/libssl3 3.3.7-r2,
-# zlib 1.3.2-r1 and musl 1.2.5-r12, past the advisories grype matched in the one before it.
+# evidence. alpine:3.23 (3.23.8) as of 2026-11-16, 3.21 having reached end of life. `apk add` never
+# upgrades what the base already holds, so the digest is what moves the base's own packages: this one
+# carries libcrypto3/libssl3 3.5.9-r0 and musl 1.2.5-r24.
+#
+# It does not carry the fixed zlib. Alpine publishes its base images less often than its package
+# repository: on 2026-11-16 every tag (3.22.8, 3.23.8, 3.24.4, edge) held zlib 1.3.2-r1 or older while
+# v3.23/main had 1.4-r0, built 2026-11-06, the release that fixes CVE-2026-4738. The shipped stage
+# therefore installs zlib at that exact version (see below), and the advisory scan reads the image
+# this file builds, because a scan of the bare base cannot pass while the base lags.
 
 # A separate stage purely so the shipped rootfs does not grow a C toolchain: only the
 # 8 KB .so crosses over. See sigsys_report.c for why it exists.
-FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd AS sigsys-builder
+FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2 AS sigsys-builder
 RUN apk add --no-cache gcc musl-dev
 COPY sigsys_report.c /tmp/sigsys_report.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libsigsys_report.so /tmp/sigsys_report.c \
@@ -36,6 +42,17 @@ COPY getaddrinfo_shim.c /tmp/getaddrinfo_shim.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /tmp/getaddrinfo_shim.c \
  && strip /tmp/libgetaddrinfo_shim.so
 
+# Ships on both ABIs for the same reason: SELinux's link() denial is platform policy, not an
+# arch difference. See proc_fd_shim.c for the apk-tools publish path it reroutes.
+COPY proc_fd_shim.c /tmp/proc_fd_shim.c
+RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libproc_fd_shim.so /tmp/proc_fd_shim.c \
+ && strip /tmp/libproc_fd_shim.so
+
+# Its build-time probe is a real binary, not a script, because the claim under test is that the
+# access() interposition fires - only a caller reaching access() through the PLT can show that.
+COPY proc_fd_probe.c /tmp/proc_fd_probe.c
+RUN gcc -O2 -Wall -Wextra -Werror -o /tmp/proc_fd_probe /tmp/proc_fd_probe.c
+
 # busybox is built here rather than taken from `apk add busybox`, and the reason is one config
 # flag: Alpine ships CONFIG_FEATURE_SUID=y, which compiles in check_suid() and makes every applet
 # dispatch call setgid()/setuid() - both refused to app processes by Android's seccomp filter, so
@@ -53,7 +70,7 @@ RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libgetaddrinfo_shim.so /
 #
 # Built with Alpine's config, so every applet symlink the rootfs already carries still names an
 # applet this binary has.
-FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd AS busybox-builder
+FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2 AS busybox-builder
 RUN apk add --no-cache gcc musl-dev make perl bzip2 linux-headers utmps-dev utmps-static pkgconf
 COPY busybox.config /tmp/busybox.config
 RUN wget -qO /tmp/busybox.tar.bz2 https://busybox.net/downloads/busybox-1.37.0.tar.bz2 \
@@ -81,10 +98,15 @@ RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
  && /tmp/busybox/busybox ls / >/dev/null \
  && /tmp/busybox/busybox | head -1
 
-FROM alpine:3.21@sha256:ee16d92f96db08d9d2d07da48555a27f3a69d8f0759021dbc601195ed0d2b5bd
+FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2
 
 # git is what jupyterlab-git's server half runs for every answer it gives (ADR-0104).
-RUN apk add --no-cache python3 py3-pip git
+#
+# zlib is pinned to one exact version, not upgraded with a bare `apk upgrade`: the build must fail on
+# the day the repository drops 1.4-r0 (Alpine keeps only a package's newest version) instead of
+# shipping whatever it holds then. When that happens, move the pin to the new version after reading
+# the advisories it answers; once a base image carries a fixed zlib, delete the pin.
+RUN apk add --no-cache python3 py3-pip git zlib=1.4-r0
 
 # --break-system-packages: Alpine marks the system interpreter PEP 668
 # externally-managed. This image *is* the environment, so there is nothing to
@@ -98,8 +120,8 @@ RUN apk add --no-cache python3 py3-pip git
 # The hashes cover the musllinux wheels of both ABIs, so one lock serves the arm64 and x86_64 builds.
 #
 # pip and setuptools are pinned in the lock too, so this install replaces the copies apk put there:
-# Alpine 3.21's py3-pip 24.3.1-r0 and the py3-setuptools 70.3.0-r0 it depends on are its newest,
-# and both carry advisories fixed only on PyPI. apk's database still names the old versions.
+# Alpine 3.23's py3-pip 25.1.1-r1 and the py3-setuptools 80.9.0-r2 it depends on are the repository's
+# newest, and the lock holds later ones from PyPI. apk's database still names the old versions.
 COPY requirements.lock /tmp/requirements.lock
 RUN pip3 install --no-cache-dir --break-system-packages --only-binary=:all: --require-hashes \
       -r /tmp/requirements.lock \
@@ -173,6 +195,32 @@ print('kernel entry point OK')"
 # even import under musl, the Space's language features would fail on device.
 RUN pylsp --version
 
+# **Every interpreter in a Space adds its user base, before the first install has written it.**
+# `site.addusersitepackages` adds the directory only when it already exists, and a Space's `pkgs/`
+# starts empty, so the kernel that runs `%pip install` never has the path its own install writes
+# into: the cell below cannot import what it installed until the kernel restarts. The `.pth` is the
+# hook (the shape `distutils-precedence.pth` beside it already uses), and it names no interpreter
+# version: ADR-0164 records the measurement and the four other shapes weighed.
+COPY jupydroid_usersite.py /usr/lib/python3.12/site-packages/jupydroid_usersite.py
+COPY jupydroid_usersite.pth /usr/lib/python3.12/site-packages/jupydroid_usersite.pth
+
+# Fail the image build, not the device: one interpreter whose user base does not exist yet, the
+# shape of a kernel started before the Space's first install. See user_site_probe.py.
+COPY user_site_probe.py /tmp/user_site_probe.py
+RUN PYTHONUSERBASE=/tmp/probe-pkgs python3 /tmp/user_site_probe.py \
+ && rm -rf /tmp/probe-pkgs /tmp/user_site_probe.py
+
+# The other half of the same decision: a venv keeps its isolation. `site` never processes the
+# image's site-packages in one, so the hook does not load, and `ENABLE_USER_SITE` is false there
+# too - which is what makes a venv's own `%pip` the only thing its kernels see (ADR-0164).
+RUN PYTHONUSERBASE=/tmp/probe-pkgs python3 -m venv --without-pip /tmp/probe-venv \
+ && PYTHONUSERBASE=/tmp/probe-pkgs /tmp/probe-venv/bin/python -c "\
+import site, sys;\
+assert not site.ENABLE_USER_SITE, f'a venv enabled the user site: {site.ENABLE_USER_SITE!r}';\
+assert site.getusersitepackages() not in sys.path, 'a venv put the user site on sys.path';\
+print('venv keeps its isolation')" \
+ && rm -rf /tmp/probe-venv
+
 # Diagnostic only, and inert unless LD_PRELOAD names it, so it costs 8 KB and nothing else.
 COPY --from=sigsys-builder /tmp/libsigsys_report.so /lib/libsigsys_report.so
 
@@ -183,6 +231,17 @@ COPY --from=sigsys-builder /tmp/libgetaddrinfo_shim.so /lib/libgetaddrinfo_shim.
 COPY getaddrinfo_shim_probe.py /tmp/getaddrinfo_shim_probe.py
 RUN JUPYDROID_NAMESERVERS=127.0.0.1 LD_PRELOAD=/lib/libgetaddrinfo_shim.so python3 /tmp/getaddrinfo_shim_probe.py \
  && rm -f /tmp/getaddrinfo_shim_probe.py
+
+# Ships on both ABIs; see the note beside its build above.
+COPY --from=sigsys-builder /tmp/libproc_fd_shim.so /lib/libproc_fd_shim.so
+
+# Prove the interposer answers ENOENT for the directory apk-tools probes and leaves every other
+# access() - /proc/self/fd/<n> included - working. Here rather than on device because a shim
+# that fails to load is a build error; whether apk then completes an install is the device
+# tests' question (ApkInstallDeviceTest).
+COPY --from=sigsys-builder /tmp/proc_fd_probe /tmp/proc_fd_probe
+RUN LD_PRELOAD=/lib/libproc_fd_shim.so /tmp/proc_fd_probe \
+ && rm -f /tmp/proc_fd_probe
 
 # **The interposer ships in the x86_64 image alone**, because on arm64 musl already issues the
 # `*at` syscalls - the legacy four do not exist in that kernel ABI - so it would be dead code.
@@ -315,7 +374,12 @@ RUN jupyter server extension list 2>&1 | tee /tmp/extensions.txt \
 
 # HOME must exist inside the rootfs: jupyter_server writes runtime state there,
 # and on device it is not /root.
-RUN mkdir -p /home/jupydroid /tmp/spaces
+#
+# `/root/.local` is the site hook's own residue, removed here because every `python3` RUN above
+# creates root's user site: a Space's HOME is /home/jupydroid and its user site lives under
+# `pkgs/`, so the image ships no user site at all (ADR-0164).
+RUN mkdir -p /home/jupydroid /tmp/spaces \
+ && rm -rf /root/.local
 ENV HOME=/home/jupydroid
 
 # Last, so no RUN above is served by a shell this line replaced: the image's own busybox becomes

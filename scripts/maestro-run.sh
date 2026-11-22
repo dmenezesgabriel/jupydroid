@@ -74,13 +74,20 @@ MAESTRO_DEVICE="${ANDROID_SERIAL:-}"
 # sweep, forever. `edit-updates-recents` is the one that breaks first: it backdates its
 # fixture to 2020 precisely so the row is stale, which pins it to the *bottom* of a list sorted
 # by recency, and at 64 notebooks a 20-second `scrollUntilVisible` no longer reaches it.
+#
+# `./*` skips every dotfile, and the workspace is the kernel's HOME, so it is not all dotfiles that
+# go: `.config/opencode` and `.local/share/opencode` hold the tablet's opencode config and its
+# sign-in database, which a chat flow needs and a reset must not sign out. The one hidden entry a
+# driver leaves is `.ipynb_checkpoints` (jupyter_server's own checkpoint folder), and the next
+# driver's disk checks read it, so it is named. A checkpoint folder inside a folder goes with that
+# folder. See `scripts/reset_notebooks_script_test.py`.
 reset_notebooks() {
   # First thing any seeding driver does, so this is where the "is the app even here" check earns
   # its keep: without it the three `run-as` calls below print `unknown package`, the seed lands
   # nowhere, and the flow drives the launcher. See [require_installed_app].
   require_installed_app || exit 1
   "$ADB" shell am force-stop "$APP"
-  "$ADB" shell "run-as $APP sh -c 'cd \"$NOTEBOOK_DIR\" 2>/dev/null && rm -rf ./*' || true"
+  "$ADB" shell "run-as $APP sh -c 'cd \"$NOTEBOOK_DIR\" 2>/dev/null && rm -rf ./* ./.ipynb_checkpoints' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$RECENTS_STORE\"' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$EDITOR_SETTINGS_STORE\"' || true"
   "$ADB" shell "run-as $APP sh -c 'rm -f \"$EXPLORER_SETTINGS_STORE\"' || true"

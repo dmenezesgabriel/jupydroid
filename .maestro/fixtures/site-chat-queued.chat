@@ -1,0 +1,53 @@
+{
+  "messages": [
+    {
+      "id": "4d5e6f7a-8b9c-4d0e-9f1a-b2c3d4e5f6a7",
+      "body": "Summarize what probe.txt contains.",
+      "time": 1795320200.0,
+      "sender": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "type": "msg",
+      "raw_time": false
+    },
+    {
+      "id": "5e6f7a8b-9c0d-4e1f-8a2b-c3d4e5f6a7b8",
+      "body": "probe.txt contains a single line: hello.",
+      "time": 1795320203.0,
+      "sender": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+      "type": "msg",
+      "raw_time": false
+    }
+  ],
+  "users": {
+    "a1b2c3d4e5f60718293a4b5c6d7e8f90": {
+      "username": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "name": "Anonymous Adrastea",
+      "display_name": "Anonymous Adrastea",
+      "initials": "AA",
+      "avatar_url": null,
+      "color": null,
+      "bot": false
+    },
+    "hidden::jupyter_ai_system": {
+      "username": "hidden::jupyter_ai_system",
+      "name": "System",
+      "display_name": "System",
+      "initials": null,
+      "avatar_url": null,
+      "color": null,
+      "bot": true
+    },
+    "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona": {
+      "username": "jupyter-ai-personas::jupyter_ai_acp_client::OpenCodeAcpPersona",
+      "name": "OpenCode",
+      "display_name": "OpenCode",
+      "initials": null,
+      "avatar_url": "/api/ai/avatars/jupyter-ai-personas%3A%3Ajupyter_ai_acp_client%3A%3AOpenCodeAcpPersona",
+      "color": null,
+      "bot": true
+    }
+  },
+  "attachments": {},
+  "metadata": {
+    "id": "8e9f0a1b2c4d5e6f7a8b9c0d1e2f3a4b"
+  }
+}

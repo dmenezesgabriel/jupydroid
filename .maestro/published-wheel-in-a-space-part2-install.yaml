@@ -1,0 +1,30 @@
+appId: com.jupydroid.app
+---
+# `%pip install duckdb` then duckdb's own quickstart in the Demo Space's kernel - the glibc
+# interpreter, whose pip resolves PyPI's `manylinux_*_aarch64` wheel where the musl interpreter
+# found none. One cell holds both: the `%pip` line runs pip, the next two run the snippet in the
+# same kernel, which is all the persistence claim needs - and it keeps the demo clear of the
+# notebook's append-a-cell edge when the cell above carries a tall output.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
+- inputText: "%pip install duckdb"
+- pressKey: Enter
+- inputText: "import duckdb"
+- pressKey: Enter
+- inputText: "print(duckdb.sql(\"select 42 as answer\").fetchall())"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*Successfully installed duckdb.*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 300000
+- takeScreenshot: 03-duckdb-installed-from-pypi

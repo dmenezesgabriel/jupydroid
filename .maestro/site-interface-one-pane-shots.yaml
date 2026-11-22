@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# The frames the Interface page shows at one pane: the bottom bar under the Files panel, and the
+# rail More opens with what the bar has no room for. A `takeScreenshot` name here IS the image id -
+# scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# The driver runs this flow in portrait, where the window is one pane; the same surfaces at two
+# panes are site-interface-shots.yaml's. base's real server boots to reach the workspace -
+# TABLET ONLY (SM-X216B). The files it lists are the ones
+# site-interface-one-pane-shots-seed.sh put in the workspace.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+
+# The bar is the window's own bottom edge at one pane: Files, Sessions and Tabs, Search, the
+# launcher's +, and More. `More` is the proof it is drawn - it exists nowhere else.
+- extendedWaitUntil:
+    visible: "More"
+    timeout: 30000
+- takeScreenshot: interface-one-pane
+
+# More opens the modal rail: New terminal and the contributed panels the bar cannot hold, with
+# Spaces and Settings at its foot where the two-pane rail keeps them.
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 10000
+- assertVisible: "New terminal"
+- assertVisible: "Source Control"
+- assertVisible: "Chat"
+- takeScreenshot: interface-more-rail
+- back
+
+# And the bar's own panels still switch the window at this width - Search fills it, bar item
+# selected, exactly as the rail's pick does beside two panes.
+- tapOn:
+    text: "^Search$"
+- extendedWaitUntil:
+    visible: "Search the workspace"
+    timeout: 10000
+- takeScreenshot: interface-one-pane-search

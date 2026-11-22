@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -104,24 +106,26 @@ class OpenDocumentMarkingTest {
       )
     }
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = AppContainer(
-            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = { _, _ ->
-              EnteredSpacePorts(
-                notebookRepository = repository,
-                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
-                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
-              )
-            },
-          ),
-          sharedNotebook = null,
-          onImportConsumed = {},
-          // Two panes, because `openDocumentPath` is the list-pane marking and there is no list
-          // pane beside the document at one.
-          twoPane = true,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(
+              launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+              enteredSpacePorts = { _, _ ->
+                EnteredSpacePorts(
+                  notebookRepository = repository,
+                  workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
+                )
+              },
+            ),
+            sharedNotebook = null,
+            onImportConsumed = {},
+            // Two panes, because `openDocumentPath` is the list-pane marking and there is no list
+            // pane beside the document at one.
+            twoPane = true,
+          )
+        }
       }
     }
     compose.enterBaseSpace()

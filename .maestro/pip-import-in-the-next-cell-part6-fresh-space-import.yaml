@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# The control's second cell, in the kernel that ran the install: the same shape as base's, in a
+# Space made after the repair, so a package that installed before it still installs and imports.
+#
+# `index: 0` here and `index: 1` in the two parts above is the same cell - the appended one - seen
+# from a different scroll position: a selector's index counts the nodes composed on screen, and a
+# pip install of pandas leaves an output taller than the viewport, so the install cell is no longer
+# composed when the new cell is revealed. The path is asserted on the screen rather than under one
+# cell's output for the same reason, and no cell's source holds it.
+- launchApp:
+    stopApp: false
+- scrollUntilVisible:
+    element:
+      text: "Markdown"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Code"
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
+- inputText: "import pandas; print(pandas.__file__)"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: ".*pandas/__init__\\.py"
+    timeout: 120000
+- takeScreenshot: 06-the-fresh-space-imports-pandas

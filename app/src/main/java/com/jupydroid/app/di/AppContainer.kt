@@ -1,42 +1,58 @@
 package com.jupydroid.app.di
 
+import com.jupydroid.app.data.crash.ExitReasonRecorder
+import com.jupydroid.app.data.fake.FakeAppIconRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
+import com.jupydroid.app.data.fake.FakeErrorLog
+import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.data.fake.FakeExplorerSettingsRepository
 import com.jupydroid.app.data.fake.FakeExternalLinkOpener
+import com.jupydroid.app.data.fake.FakeHarnessScripts
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeLicenceDocuments
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakePlatformNightMode
+import com.jupydroid.app.data.fake.FakeProcessExits
 import com.jupydroid.app.data.fake.FakeRemoteImageReader
 import com.jupydroid.app.data.fake.FakeSharedDocumentReader
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
+import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.data.fake.FakeTerminalSettingsRepository
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
+import com.jupydroid.app.data.fake.FakeWheelIndex
 import com.jupydroid.app.data.space.IdleServerStopper
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.ActiveTerminals
 import com.jupydroid.app.domain.model.DeletedDocumentSessions
+import com.jupydroid.app.domain.model.ErrorLogOrigin
 import com.jupydroid.app.domain.model.NotebookBreakpoints
 import com.jupydroid.app.domain.model.spaceWithId
+import com.jupydroid.app.domain.port.AppIconRepository
 import com.jupydroid.app.domain.port.EditorSettingsRepository
+import com.jupydroid.app.domain.port.ErrorLog
+import com.jupydroid.app.domain.port.ErrorLogSharer
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
 import com.jupydroid.app.domain.port.ExternalLinkOpener
+import com.jupydroid.app.domain.port.HarnessScripts
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.LauncherSettingsRepository
 import com.jupydroid.app.domain.port.LicenceDocuments
 import com.jupydroid.app.domain.port.PlatformNightMode
+import com.jupydroid.app.domain.port.ProcessExits
 import com.jupydroid.app.domain.port.RemoteImageReader
 import com.jupydroid.app.domain.port.SharedDocumentReader
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
+import com.jupydroid.app.domain.port.SpaceShell
 import com.jupydroid.app.domain.port.TerminalSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
+import com.jupydroid.app.domain.port.WheelIndex
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
@@ -93,6 +109,16 @@ class AppContainer(
    */
   val stoppedSpaceKernelSpecs: KernelSpecs = FakeKernelSpecs(),
   /**
+   * A stopped Space's proot shell, which the Settings' harness installs and probes run through.
+   * Null on a device that cannot run a Space becomes the fake, as every Space-backed port does.
+   */
+  val spaceShell: SpaceShell = FakeSpaceShell(),
+  /**
+   * The install script each catalog harness ships - APK data, so real on every device, the fake
+   * only where a test has no assets behind it.
+   */
+  val harnessScripts: HarnessScripts = FakeHarnessScripts(),
+  /**
    * The app-wide editor preferences - `notebook:toggle-autoclosing-brackets` today, grown
    * rather than replaced. Read by every notebook and file editor alike, which is what "universal"
    * means (`fileeditor:toggle-autoclosing-brackets-universal`).
@@ -115,6 +141,11 @@ class AppContainer(
    * `maybeCreate` fills an empty main area unconditionally and needs no flag.
    */
   val launcherSettings: LauncherSettingsRepository = FakeLauncherSettingsRepository(),
+  /**
+   * Which of the two launcher icons the app wears - the platform's component state is the record,
+   * so the Settings row reads and writes it through this rather than a settings file.
+   */
+  val appIcon: AppIconRepository = FakeAppIconRepository(),
   /** The licence files that travel with the APK, which the Licences screen lists - see [LicenceDocuments]. */
   val licenceDocuments: LicenceDocuments = FakeLicenceDocuments(),
   /** Where a rendered link's web address goes when it is tapped - see [ExternalLinkOpener]. */
@@ -123,6 +154,16 @@ class AppContainer(
   val sharedDocumentReader: SharedDocumentReader = FakeSharedDocumentReader(),
   /** Where a rendered image's web address is fetched from - see [RemoteImageReader]. */
   val remoteImageReader: RemoteImageReader = FakeRemoteImageReader(),
+  /** What a PyPI package publishes, so a `%pip` miss is explained from PyPI's own files - see [WheelIndex]. */
+  val wheelIndex: WheelIndex = FakeWheelIndex(),
+  /** Where the app's crashes and errors are recorded - see [ErrorLog]. */
+  val errorLog: ErrorLog = FakeErrorLog(),
+  /** How the error log is offered to another app - see [ErrorLogSharer]. */
+  val errorLogSharer: ErrorLogSharer = FakeErrorLogSharer(),
+  /** How earlier processes ended, read into [errorLog] as the process starts - see [ProcessExits]. */
+  processExits: ProcessExits = FakeProcessExits(),
+  /** Which build the exit entries are written for; blank where nothing built it, as in a test. */
+  errorLogOrigin: ErrorLogOrigin = ErrorLogOrigin(appVersion = "", deviceModel = "", androidVersion = ""),
   /**
    * Every extension built into the APK (ADR-0104) - the one place one is constructed. The real
    * extension rather than a fake by default, because an extension already falls back on its own
@@ -152,6 +193,8 @@ class AppContainer(
   init {
     applicationScope.launch { preReadServerImports() }
     applicationScope.launch { pushThemeToPlatform() }
+    applicationScope.launch { errorLog.prune() }
+    applicationScope.launch { ExitReasonRecorder(processExits, errorLog, errorLogOrigin).recordUnreported() }
   }
 
   /**

@@ -28,6 +28,7 @@ Tests in rewrite_history_test.py.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import tempfile
@@ -45,14 +46,30 @@ IDENTITY = "Gabriel Menezes <50274255+dmenezesgabriel@users.noreply.github.com>"
 Runner = Callable[[list[str], Path], None]
 
 
+def _environment_without_git() -> dict[str, str]:
+    """The caller's environment minus every `GIT_*` variable.
+
+    A pre-commit hook run from a linked worktree exports `GIT_DIR`, which outranks `git -C` and `cwd=`: a
+    `git filter-repo` started from a test then rewrote the shared repository instead of its fixture.
+    """
+    return {name: value for name, value in os.environ.items() if not name.startswith("GIT_")}
+
+
 def run_in(argv: list[str], cwd: Path) -> None:
     """Run [argv] in [cwd]; a non-zero exit raises, since a half-rewritten history is worse than none."""
-    subprocess.run(argv, cwd=cwd, check=True)
+    subprocess.run(argv, cwd=cwd, check=True, env=_environment_without_git())
 
 
 def _git_lines(root: Path, *args: str) -> list[str]:
     """Lines `git -C root args` printed; a failing git raises with its own stderr."""
-    done = subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, errors="replace", check=True)
+    done = subprocess.run(
+        ["git", "-C", str(root), *args],
+        capture_output=True,
+        text=True,
+        errors="replace",
+        check=True,
+        env=_environment_without_git(),
+    )
     return done.stdout.splitlines()
 
 

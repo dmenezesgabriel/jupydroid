@@ -1,0 +1,73 @@
+appId: com.jupydroid.app
+---
+# The control: a Space made after the repair, which has never installed anything, installs a package
+# that installs today and does not fail. Back to the Spaces home first, where a Space is made.
+#
+# `back` is repeated until the home is on screen because a notebook can be in edit mode, in command
+# mode or behind its own tab, and one press lands differently in each. A run notebook can still be
+# dirty when Back lands: the save-before-close gate answers it with a dialog, and Discard leaves it
+# rather than cancelling back into the editor. Absent whenever autosave already flushed.
+- launchApp:
+    stopApp: false
+- back
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      visible: "Discard"
+    commands:
+      - tapOn: "Discard"
+- repeat:
+    while:
+      notVisible: "Open Base \\(base\\)"
+    times: 4
+    commands:
+      - back
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- tapOn: "Create"
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 60000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 180000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 10000
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 5000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 10000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 30000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
+- inputText: "%pip install pandas"
+- hideKeyboard
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*Successfully installed pandas.*"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- takeScreenshot: 05-a-fresh-space-installs-pandas

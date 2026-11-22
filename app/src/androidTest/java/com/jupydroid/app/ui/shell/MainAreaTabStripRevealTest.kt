@@ -36,26 +36,27 @@ import org.junit.runner.RunWith
  * `scrollToSelectedTab` do: a tab that opens past the row's edge would otherwise be active and
  * unseen, listed `[0,0][0,0]` in a screen reader's tree at 320dp.
  *
- * The strip is held to a phone's 320dp whatever the device is, and five tabs at the 80dp floor are
- * 400dp of row, so the last two start beyond the edge.
+ * The strip is held to a phone's 320dp whatever the device is, and five tabs at the 96dp floor are
+ * 480dp of row, so the last two start beyond the edge.
  */
 @RunWith(AndroidJUnit4::class)
 class MainAreaTabStripRevealTest {
   @get:Rule val compose = createComposeRule()
 
   private val tabs: List<NavKey> = listOf(Launcher, Settings, Terminal("1"), Terminal("2"), Terminal("3"))
-  private val backStack = mutableStateListOf<NavKey>(Explorer(BASE_SPACE.id), *tabs.toTypedArray())
+  private val backStack = mutableStateListOf<NavKey>()
   private val open = OpenDocuments()
   private val paths = mutableStateMapOf<NavKey, String>()
   private val liveTitles = mutableStateMapOf<NavKey, String>()
 
-  private fun stripAtPhoneWidth() {
+  private fun stripAtPhoneWidth(twoPane: Boolean = true, shown: List<NavKey> = tabs) {
+    backStack += listOf(Explorer(BASE_SPACE.id)) + shown
     compose.setContent {
       JupyterDroidTheme {
         Box(Modifier.width(PHONE_WIDTH)) {
           TabbedDocumentPane(
-            backStack, open, paths, tabs, liveTitles, FakeWorkspaceRepository(), FakeWorkspaceFiles(),
-            onCloseTab = {}, onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),
+            backStack, open, paths, shown, liveTitles, FakeWorkspaceRepository(), FakeWorkspaceFiles(),
+            twoPane = twoPane, onCloseTab = {}, onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),
           ) {
             Text("the document")
           }
@@ -89,6 +90,18 @@ class MainAreaTabStripRevealTest {
     stripAtPhoneWidth()
 
     assertTabWhollyVisible("Terminal 3")
+  }
+
+  /**
+   * At one pane the Up arrow, Reload, Save and Spaces leave the scroller 144dp of the 320, so the
+   * two tabs' fair share of the strip's whole width (160dp each) is wider than the row that holds
+   * the active one, and no scroll can show it whole.
+   */
+  @Test
+  fun aTabFitsTheRowTheOnePaneStripLeavesIt() {
+    stripAtPhoneWidth(twoPane = false, shown = listOf(Terminal("1"), Terminal("2")))
+
+    assertTabWhollyVisible("Terminal 2")
   }
 
   @Test

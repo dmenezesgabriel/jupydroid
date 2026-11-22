@@ -2,17 +2,25 @@
 
 package com.jupydroid.app.di
 
+import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeKernelGateway
 import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakePlatformNightMode
+import com.jupydroid.app.data.fake.FakeProcessExits
 import com.jupydroid.app.data.fake.FakeThemeSettingsRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.ErrorLogEntry
+import com.jupydroid.app.domain.model.ErrorLogKind
+import com.jupydroid.app.domain.model.ErrorLogSummary
 import com.jupydroid.app.domain.model.KernelSpec
+import com.jupydroid.app.domain.model.ProcessExit
+import com.jupydroid.app.domain.model.ProcessExitReason
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.model.WorkspaceChange
+import com.jupydroid.app.domain.port.ErrorLog
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.ui.editor.AnnouncingWorkspaceFiles
@@ -121,6 +129,30 @@ class AppContainerTest {
     runCurrent()
 
     assertEquals(1, preReads)
+  }
+
+  /** The error log trims itself as the process starts, so a log nobody opens still never outgrows its caps. */
+  @Test
+  fun buildingTheContainer_prunesTheErrorLogOnce() = runTest {
+    val errorLog = PruneCountingErrorLog()
+
+    AppContainer(errorLog = errorLog, applicationScope = backgroundScope)
+    runCurrent()
+
+    assertEquals(1, errorLog.prunes)
+  }
+
+  /** A death the handler never saw reaches the log as the process starts, and a second container finds nothing new. */
+  @Test
+  fun buildingTheContainer_recordsTheUnreportedExitsOnce() = runTest {
+    val errorLog = FakeErrorLog()
+    val processExits = FakeProcessExits(listOf(ProcessExit(1_000L, pid = 7, ProcessExitReason.ANR, description = "")))
+
+    AppContainer(errorLog = errorLog, processExits = processExits, applicationScope = backgroundScope)
+    AppContainer(errorLog = errorLog, processExits = processExits, applicationScope = backgroundScope)
+    runCurrent()
+
+    assertEquals(listOf(ErrorLogKind.ANR), errorLog.entries.map { it.kind })
   }
 
   /** The stored choice reaches the platform as the container is built, before any screen asks. */
@@ -251,4 +283,19 @@ class AppContainerTest {
     val events = gateway.execute(session, cellId = "cell-1", code = "1 + 1").toList()
     assertTrue(events.last() is KernelEvent.Idle)
   }
+}
+
+private class PruneCountingErrorLog : ErrorLog {
+  var prunes = 0
+    private set
+
+  override suspend fun append(entry: ErrorLogEntry) = Unit
+
+  override suspend fun prune() {
+    prunes += 1
+  }
+
+  override suspend fun summary() = ErrorLogSummary(entryCount = 0, sizeBytes = 0)
+
+  override suspend fun clear() = Unit
 }

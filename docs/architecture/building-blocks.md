@@ -55,7 +55,7 @@ which is checkable.
 | Package | What it is | Placement rule |
 |---|---|---|
 | `domain/{model,port}` | the app's own types and its ports | no `android.*`, no other layer — **guard-tested** |
-| `data/{disk,fake,intent,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
+| `data/{disk,fake,http,intent,space}` | adapters implementing ports | one file per adapter, named `<Mechanism><PortConcept>` |
 | `ui/{editor,explorer,fileeditor,terminal}` | screens and ViewModels | reads ports; never constructs an adapter |
 | `ui/shell` | the chrome that belongs to **no** screen — the activity bar and the side panels | drawn by `Navigation` beside the panes rather than inside one; the state it moves stays at the root with `Navigation.kt` |
 | `di` | `AppContainer`, the composition root | constructed once per process, in `JupydroidApplication` |
@@ -120,6 +120,7 @@ Defined in `domain/port/`; each is contract-tested and has a real implementation
 | `ExplorerSettingsRepository` | the app-wide explorer preferences | `DiskExplorerSettingsRepository` |
 | `NotebookExporter` | list nbconvert's formats, convert one notebook | `OkHttpNotebookExporter` over the server's nbconvert endpoints, behind `BaseSpaceNotebookExporter` |
 | `DocumentSharer` | offer a workspace file to another app | `IntentDocumentSharer` → `FileProvider` + `ACTION_SEND` |
+| `WheelIndex` | what a PyPI package publishes, release by release, so a `%pip` miss pip cannot explain is explained from the source of truth | `PyPiWheelIndex` over PyPI's JSON API |
 
 Every port also has a `Fake…` in `data/fake/`, which is what `AppContainer`'s defaults are — tests
 get one for free, and an x86_64 device, where no Space can run, keeps the fake kernel so the UI still
@@ -199,6 +200,10 @@ CellOutput (sealed)
   DisplayData(mimeBundle)                    // mime -> payload
   ExecuteResult(mimeBundle, executionCount)
   ClearOutput
+
+// What a Space's pip installs for, and what PyPI says a package publishes (ADR-0165).
+WheelTarget(pythonTag, platformFamily, architecture)
+PackageReleases(latestVersion, wheelNamesByVersion)
 
 KernelSession(id, spaceId, kernelId)
 KernelEvent (sealed)

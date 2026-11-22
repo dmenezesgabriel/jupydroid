@@ -1,0 +1,32 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app. Relaunched, base entered and the notebook reopened, the cell
+# that raised before the install runs again in a kernel started after it: what pip wrote is on the
+# Space's disk, so it resolves with no second install and no restart of anything.
+#
+# The assertion is the path, not the absence of an error: a re-run replaces a cell's previous
+# output (`EditorUiState.startingRun`, `app/src/main/java/com/jupydroid/app/ui/editor/CellExecutions.kt`),
+# so a cell that raised again would draw a new traceback and never this line.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Untitled.ipynb"
+# The saved output, drawn before anything runs: the cell is the one the demo ran. `index: 0` is
+# this cell's own output - the third cell's saved output already holds the path, so a `childOf`
+# without it would pass on that one and say nothing about the cell that raised.
+- extendedWaitUntil:
+    visible:
+      text: ".*ModuleNotFoundError.*"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: ".*tabulate/__init__\\.py"
+      childOf: {text: "Cell output", index: 0}
+    timeout: 180000
+- takeScreenshot: 07-the-same-cell-imports-after-a-relaunch

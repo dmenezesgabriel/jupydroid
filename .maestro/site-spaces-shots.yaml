@@ -1,0 +1,91 @@
+appId: com.jupydroid.app
+---
+# The frames the Spaces page shows: the New Space dialog, the home with a user Space beside
+# base, the Space settings dialog, and base Running beside Thesis Stopped. A `takeScreenshot`
+# name here IS the image id - scripts/site-screenshots-driver.sh crops every PNG this flow
+# takes into docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# Runs no cell, but taps Run on base for the Running frame, so base's real server boots -
+# TABLET ONLY (SM-X216B). The Space it creates is deleted before the flow ends: a row a shot
+# flow leaves is a row the next flow's home does not expect.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)"
+    timeout: 10000
+- assertVisible: "Spaces"
+- assertNotVisible: "Files"
+
+# A user Space, so the list shows what a device with two Spaces looks like. The dialog shot
+# keeps the typed name and hides the keyboard: an empty dialog under the keys says less.
+- tapOn: "New Space"
+- extendedWaitUntil:
+    visible: "Create"
+    timeout: 5000
+- inputText: "Thesis"
+- hideKeyboard
+- takeScreenshot: spaces-create
+- tapOn: "Create"
+# A create copies the Space's rootfs skeleton and the row lists only when the act ends, which
+# outlasted 10 s on the tablet - the wait is for the copy, not the tap.
+- extendedWaitUntil:
+    visible: "Thesis"
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible: "Working on Spaces"
+    timeout: 60000
+- takeScreenshot: spaces-list
+
+# Settings opens only while the row reads Stopped, so it is shot before base runs. The dialog
+# scrolls inside its own fold - Claude's harness row sits below it - so the page gets two
+# frames: the fields above, then the harness rows. Both reads behind the lower sections, the
+# environments scan and the harness probes, settle before the first frame, or a shot publishes
+# "Checking…" as if it were the answer.
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 10000
+- extendedWaitUntil:
+    notVisible: "Checking…"
+    timeout: 60000
+- extendedWaitUntil:
+    visible: "None found directly in ~.*"
+    timeout: 30000
+- takeScreenshot: space-settings
+# Claude's row is the catalog's last, so scrolling to it carries the environments' tail and both
+# harness rows through the fold (space-harnesses-in-settings.yaml scrolls to the same row).
+- scrollUntilVisible:
+    element: "Claude"
+    direction: DOWN
+    timeout: 15000
+- takeScreenshot: space-settings-bottom
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+
+# Run boots base's server; "Stop Base" is the row's running proof, the wait open-base-space.yaml
+# shares. Thesis stays Stopped beside it, so one frame shows both states.
+- tapOn: "Run Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 120000
+- extendedWaitUntil:
+    notVisible: "Working on Spaces"
+    timeout: 120000
+- assertVisible: "Running"
+- takeScreenshot: spaces-running
+
+# Cleanup: the Space the flow made does not outlive it.
+- tapOn: "Delete Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Are you sure.*"
+    timeout: 5000
+- tapOn:
+    text: "Delete"
+    below: "Are you sure.*"
+# The delete removes the same rootfs skeleton the create copied, so the row outlives the tap.
+- extendedWaitUntil:
+    notVisible: "Thesis"
+    timeout: 60000

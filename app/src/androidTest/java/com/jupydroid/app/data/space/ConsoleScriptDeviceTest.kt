@@ -73,7 +73,7 @@ class ConsoleScriptDeviceTest {
     runInSpace(SPACE_SHELL, "-c", "pip --version")
 
     assertEquals(
-      "seccomp refused a syscall other than mbind while pip ran",
+      "seccomp refused a syscall outside the tolerated set while pip ran",
       emptyList<String>(),
       seccompRefusalsIn(baseDir),
     )

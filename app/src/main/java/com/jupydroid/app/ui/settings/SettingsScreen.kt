@@ -23,12 +23,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jupydroid.app.domain.model.AppIcon
 import com.jupydroid.app.domain.model.AutosaveInterval
 import com.jupydroid.app.domain.model.CodeFontSize
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.model.ThemeOverride
 import com.jupydroid.app.domain.model.ThemeSettings
+import com.jupydroid.app.domain.port.AppIconRepository
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
 import com.jupydroid.app.theme.editorPalette
@@ -57,17 +59,22 @@ const val SETTINGS_SCREEN_TAG = "settings_screen"
  * open rather than replacing it - see that function's own doc comment.
  *
  * ```
- * SettingsScreen(editorSettingsRepository, themeSettingsRepository, applicationScope, onOpenLicences)
+ * SettingsScreen(editorSettingsRepository, themeSettingsRepository, appIconRepository,
+ *   applicationScope, onOpenLicences, diagnostics)
  * ```
  */
 @Composable
 fun SettingsScreen(
   editorSettingsRepository: EditorSettingsRepository,
   themeSettingsRepository: ThemeSettingsRepository,
+  /** The launcher-icon choice - the platform's component state behind the port, not a settings file. */
+  appIconRepository: AppIconRepository,
   /** Writes must outlive this screen's own composition - a tap and a navigate-away can race. */
   applicationScope: CoroutineScope,
   /** Opens the Licences screen over this one; the back stack stays with the caller. */
   onOpenLicences: () -> Unit,
+  /** The error log's summary and its confirmed clear. */
+  diagnostics: DiagnosticsViewModel,
   modifier: Modifier = Modifier,
 ) {
   val settings by editorSettingsRepository.observeSettings().collectAsStateWithLifecycle(EditorSettings())
@@ -93,6 +100,7 @@ fun SettingsScreen(
   fun updateTheme(changed: ThemeOverride) {
     applicationScope.launch { themeSettingsRepository.update(ThemeSettings(override = changed)) }
   }
+  val appIcon by appIconRepository.observeIcon().collectAsStateWithLifecycle(AppIcon.BLUE_ORBIT)
 
   Scaffold(
     modifier = modifier.fillMaxSize().testTag(SETTINGS_SCREEN_TAG),
@@ -105,6 +113,7 @@ fun SettingsScreen(
   ) { padding ->
     Column(modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState())) {
       ThemeOverrideRow(themeSettings.override, ::updateTheme)
+      AppIconRow(appIcon, appIconRepository::select)
       SettingsToggleRow(SHOW_LINE_NUMBERS, settings.lineNumbersShown) {
         update(settings.copy(lineNumbersShown = it))
       }
@@ -167,6 +176,7 @@ fun SettingsScreen(
       SettingsToggleRow(OUTPUT_HEADINGS, settings.tocIncludeOutput) {
         update(settings.copy(tocIncludeOutput = it))
       }
+      DiagnosticsSection(diagnostics)
       LicencesLinkRow(onOpenLicences)
     }
   }

@@ -19,6 +19,7 @@ from check_doc_citations import (
 )
 from kotlin_source import comments_only
 from notebook_source import notebook_code_comments
+from patch_source import patch_prose
 from script_source import hash_comments, python_prose
 from xml_source import xml_comments
 
@@ -137,8 +138,12 @@ class ScannerForTest(unittest.TestCase):
                 self.assertIs(comments_only, scanner_for(suffix))
 
     def test_a_typescript_source_gets_the_slash_scanner(self):
-        """The claude-autopilot loop is TypeScript under `scripts/`, and a type with no scanner fails the run."""
+        """The autopilot loop is TypeScript under `scripts/`, and a type with no scanner fails the run."""
         self.assertIs(comments_only, scanner_for(".ts"))
+
+    def test_a_patch_gets_the_scanner_that_reads_only_what_it_adds(self):
+        """`tools/proot/patches/` is the first tracked diff set; its added comments are prose."""
+        self.assertIs(patch_prose, scanner_for(".patch"))
 
     def test_a_comment_in_a_typescript_source_is_a_citation(self):
         found = citations_in("const x = 1; // see docs/PLAN.md\n", scanner_for(".ts"))
@@ -157,6 +162,10 @@ class ScannerForTest(unittest.TestCase):
 
     def test_a_notebook_gets_the_scanner_that_reads_its_code_cells(self):
         self.assertIs(notebook_code_comments, scanner_for(".ipynb"))
+
+    def test_a_pth_hook_gets_the_hash_scanner(self):
+        """`site.addpackage` skips a `.pth` line starting with `#` and executes the rest as code."""
+        self.assertIs(hash_comments, scanner_for(".pth"))
 
     def test_a_comment_in_a_notebook_code_cell_is_a_citation(self):
         source = json.dumps({"cells": [{"cell_type": "code", "source": ["# see docs/PLAN.md\n"]}]})

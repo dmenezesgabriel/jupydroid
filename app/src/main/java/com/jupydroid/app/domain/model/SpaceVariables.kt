@@ -29,6 +29,9 @@ val DERIVED_VARIABLE_NAMES: Set<String> = setOf(
   "JUPYDROID_NAMESERVERS",
   "PROOT_LOADER",
   "PROOT_TMP_DIR",
+  // Set on the glibc kernel alone through its kernelspec env (ADR-0166): a Space-wide value
+  // would answer every musl process's seccomp traps with ENOSYS and cost it the SIGSYS log.
+  "PROOT_SIGSYS_ENOSYS",
 )
 
 /**

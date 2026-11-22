@@ -20,19 +20,22 @@ appId: com.jupydroid.app
 - extendedWaitUntil:
     visible: "\\[ \\]:"
     timeout: 30000
-# The empty cell's field has no text to tap by, so it is tapped at a point inside it: SM-X216B's
-# 1920x1200 puts the field at [805,319][1884,391] (`maestro hierarchy`).
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "${MAESTRO_TYPED}"
 - hideKeyboard
 - waitForAnimationToEnd:
     timeout: 3000
 - assertVisible: "Unsaved changes"
 - takeScreenshot: 01-a-ipynb-typed-into-owes-a-write
+# A long press on a tab opens its menu (`MainAreaTab.kt`), and Rename… in it opens the dialog.
 - longPressOn: "Tab: a.ipynb"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000

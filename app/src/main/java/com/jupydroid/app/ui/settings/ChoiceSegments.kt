@@ -120,7 +120,9 @@ private val TOUCH_TARGET = 48.dp
 private val SEGMENT_HEIGHT = 40.dp
 
 /**
- * 8 dp each side where Material3's segment takes 12: with the check icon, three segments of the
- * widest text a 320 dp phone shows at 200% need 280 of its 288 dp, and 12 dp makes it 304.
+ * 6 dp each side where Material3's segment takes 12. The check is sized from its label (33 dp at
+ * 200%), so on a 320 dp phone the Theme row's three labels (90 + 61 + 56 dp), the check and its 8 dp
+ * gap need 248 dp before padding: 6 dp makes it 282 of the row's 288 dp, 8 dp made it 294 and
+ * broke "Dark" (`SettingsScreenTest.everyThemeChoiceKeepsItsWholeWordOnAPhoneAtTwiceTheFontScale`).
  */
-private val SEGMENT_PADDING = 8.dp
+private val SEGMENT_PADDING = 6.dp

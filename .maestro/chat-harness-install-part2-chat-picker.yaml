@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# The second of the three flows scripts/chat-harness-install-driver.sh runs: part 1's two installs
+# done, base run, a new Chat's agent picker - the personas' requirement check ran at the chat
+# entry-point's load against the now-installed executables, so both are listed and none is chosen.
+#
+# OpenCode is picked and asked one trivial question. Neither harness is signed in - credentials are
+# GAP-179's, and a fresh install holds none - so what the turn ends in is whatever an unsigned
+# harness honestly does: an answer from a free model, the model's own refusal, or the chat's
+# failure line. The flow waits for the turn to end rather than for an answer's text; the frame is
+# the evidence of which it was.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Chat"
+    timeout: 5000
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Choose agent"
+    timeout: 60000
+- takeScreenshot: 01-new-chat-asks-for-an-agent
+
+- tapOn: "Choose agent"
+- extendedWaitUntil:
+    visible: "Claude"
+    timeout: 10000
+- assertVisible: "OpenCode"
+- takeScreenshot: 02-the-picker-lists-both-harnesses
+
+- tapOn: "OpenCode"
+- extendedWaitUntil:
+    notVisible: "Choose agent"
+    timeout: 10000
+- tapOn: "Ask the agent"
+- inputText: "Reply with the single word: ok"
+- hideKeyboard
+- tapOn: "Send"
+# The question's own bubble proves the ask landed; the agent's spawn and first token take minutes
+# under proot, so the turn's end is what is waited for - Stop is drawn only while the agent writes,
+# and an agent that fails before writing raises none, so its appearance is optional and its
+# disappearance the bound.
+- extendedWaitUntil:
+    visible: "Reply with the single word: ok"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Stop"
+    timeout: 240000
+    optional: true
+- extendedWaitUntil:
+    notVisible: "Stop"
+    timeout: 300000
+- takeScreenshot: 03-the-ask-ended

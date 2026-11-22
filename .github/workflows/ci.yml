@@ -53,10 +53,10 @@ jobs:
 
       # The Gradle hooks run in gradle-gate. A hook renamed in .pre-commit-config.yaml is no
       # longer skipped by this list and starts running here, where there is no Gradle setup.
-      # commitlint-config-tests and claude-autopilot-typecheck need Node and `npm ci`, which this job does not set up.
+      # commitlint-config-tests and autopilot-typecheck need Node and `npm ci`, which this job does not set up.
       - name: Python and ShellCheck hooks
         env:
-          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests,commitlint-config-tests,claude-autopilot-typecheck
+          SKIP: ktlint-check,detekt,cpd,android-lint,unit-tests,commitlint-config-tests,autopilot-typecheck
         run: uv run --locked pre-commit run --all-files
 
   gradle-gate:

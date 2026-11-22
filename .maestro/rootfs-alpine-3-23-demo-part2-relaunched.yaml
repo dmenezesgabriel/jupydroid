@@ -1,0 +1,25 @@
+appId: com.jupydroid.app
+---
+# After a kill, the relaunch keeps the image the upgrade extracted: the stamp matches, so nothing
+# re-extracts, and the same cell prints the same versions. The driver re-seeds `Versions.ipynb`
+# before this, so no output saved by the first part can satisfy the wait.
+#
+# TABLET ONLY (SM-X216B): the notebook runs a cell.
+- launchApp
+- runFlow: open-base-space.yaml
+- extendedWaitUntil:
+    visible: "Versions.ipynb"
+    timeout: 10000
+- tapOn: "Versions.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "zlib=1\\.4-r0 dnspython=2\\.9\\.2 opentelemetry-api=1\\.45\\.2 soupsieve=4\\.1\\.1 tornado=6\\.6\\.1"
+      childOf: {text: "Cell output"}
+    timeout: 180000
+- takeScreenshot: 01-relaunched-reads-the-same-versions

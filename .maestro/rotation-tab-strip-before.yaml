@@ -19,7 +19,12 @@ appId: com.jupydroid.app
     timeout: 10000
 # Renamed while it is the top tab, as `renamed-tab-demo` does: beneath a terminal the tab keeps the
 # name it left even with no rotation at all, which is a separate defect and not this flow's question.
+# A long press on a tab opens its menu (`MainAreaTab.kt`), and Rename… in it opens the dialog.
 - longPressOn: "Tab: ${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000

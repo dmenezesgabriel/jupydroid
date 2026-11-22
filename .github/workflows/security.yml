@@ -171,7 +171,9 @@ jobs:
     # `main`, the weekly cron and a manual dispatch.
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    # The image build alone took 140 s cold on 8 cores; the runner has fewer, and the scan adds a
+    # database fetch.
+    timeout-minutes: 20
     permissions:
       contents: read
     env:
@@ -191,18 +193,22 @@ jobs:
           echo "${GRYPE_SHA256}  ${RUNNER_TEMP}/${archive}" | sha256sum -c -
           tar -xzf "${RUNNER_TEMP}/${archive}" -C "${RUNNER_TEMP}" grype
 
-      # The image is the last `FROM alpine:` of the rootfs Dockerfile, read at run time so a base
-      # bump cannot leave this scan on a stale digest. It is the shipped base, fetched without a
-      # Docker daemon (`registry:`) for the platform the rootfs runs on. Only a CVE with a fix
-      # blocks: an unfixed one (busybox, CVE-2025-60876) is listed and nothing can be done about it
-      # (ADR-0131). The vulnerability database is fetched fresh on purpose, since a weekly run
+      # The image is the one tools/rootfs/Dockerfile builds, not its base. Alpine publishes base images
+      # less often than its package repository, so the final stage installs a fixed zlib itself and a
+      # scan of the bare base would stay red however the Dockerfile moved (ADR-0156). It is built for
+      # linux/amd64 on the runner's own CPU: the lock's hashes cover both ABIs and apk resolves the same
+      # versions for both, so the package set is the one the arm64 rootfs ships, without the emulated
+      # build that `tools/rootfs/build.sh arm64-v8a` needs. Only a CVE with a fix blocks: an unfixed
+      # one (busybox, CVE-2025-60876) is listed and nothing can be done about it (ADR-0131), and no
+      # advisory is waived. The vulnerability database is fetched fresh on purpose, since a weekly run
       # exists to meet advisories published after the last commit. The source-built busybox is not
       # an apk package, so grype reads Alpine's, not ours.
-      - name: Scan the Alpine base
+      - name: Build the rootfs image
+        run: docker build --platform linux/amd64 --tag jupydroid-rootfs:scan tools/rootfs
+
+      - name: Scan the rootfs image
         run: |
-          image="$(grep -E '^FROM alpine:' tools/rootfs/Dockerfile | tail -1 | cut -d' ' -f2)"
-          "${RUNNER_TEMP}/grype" "registry:${image}" --platform linux/arm64 \
-            --only-fixed --fail-on medium
+          "${RUNNER_TEMP}/grype" docker:jupydroid-rootfs:scan --only-fixed --fail-on medium
 
   mobsf:
     name: mobsf

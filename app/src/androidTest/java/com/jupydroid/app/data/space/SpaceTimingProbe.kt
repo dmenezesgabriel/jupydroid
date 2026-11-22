@@ -26,7 +26,11 @@ fun installBaseWhereProotShips() {
     "no rootfs ships for ${Build.SUPPORTED_ABIS.first()}",
     runCatching { SpaceAbi.of(Build.SUPPORTED_ABIS.first()) }.isSuccess,
   )
-  runBlocking { baseSpaceInstaller(InstrumentationRegistry.getInstrumentation().targetContext).installIfNeeded() }
+  val context = InstrumentationRegistry.getInstrumentation().targetContext
+  runBlocking {
+    baseSpaceInstaller(context).installIfNeeded()
+    gnuSpaceImageInstaller(context).ensureInstalled(baseSpaceDir(context))
+  }
 }
 
 /**
@@ -34,8 +38,8 @@ fun installBaseWhereProotShips() {
  * part measured again after the image's Python has been dropped from the page cache, and any part
  * measured with an import running beside it.
  *
- * `KernelWindowProbeDeviceTest` and `ServerBootProbeDeviceTest` both split a stage this way, on the
- * installed Space and under the same proot the app runs.
+ * `ServerBootProbeDeviceTest` splits a stage this way, on the installed Space and under the same
+ * proot the app runs.
  *
  * ```
  * val probe = SpaceTimingProbe(spaceRuntime(context, BASE_SPACE))

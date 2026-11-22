@@ -30,15 +30,14 @@ import org.junit.runner.RunWith
 import kotlin.math.abs
 
 /**
- * The squiggle is canvas, not semantics - the same `drawBehind` limitation the mark has
- * (`DiagnosticMarkTapTest`), so its *ink* is what is asserted: pixels at a diagnosed row's
- * bottom, matched to the palette's own severity colour the way `CellEditorBoxTest` samples
- * the box's edge.
+ * The squiggle is canvas, not semantics, so its *ink* is what is asserted: pixels at a
+ * diagnosed row's bottom, matched to the palette's own severity colour the way
+ * `CellEditorBoxTest` samples the box's edge. The gutter draws no diagnostic mark since the
+ * squiggle took over its tap (`DiagnosticMarkTapTest`), so no test here looks for one.
  *
  * The scan regions are the field's own geometry: the text's left edge is where the text
  * node's bounds say it is (the same way `DiagnosticMarkTapTest` derives the gutter), and
  * the wave band is the image's bottom strip, where `getLineBottom` draws the underline.
- * The mark column's ink is located by the mark's own pixels, not an assumed row height.
  */
 @RunWith(AndroidJUnit4::class)
 class DiagnosticSquiggleDrawTest {
@@ -99,39 +98,6 @@ class DiagnosticSquiggleDrawTest {
     assertTrue("the wave should span far more of the range than the dots", dotsExtent < waveExtent / 2)
   }
 
-  /** The mark's glyph is the severity: warning's triangle-! is bottom-heavy, error's circle-x even. */
-  @Test
-  fun aWarningMarkIsATriangle_anErrorMarkACircle() {
-    setContent()
-    diagnostics = listOf(diagnostic(SEVERITY_WARNING, start = 15, end = 28))
-    compose.waitForIdle()
-
-    val warning = capture()
-    val warningTop =
-      colourCount(
-        warning,
-        markThird(warning, DarkEditorPalette.diagnosticWarning, 0),
-        DarkEditorPalette.diagnosticWarning,
-      )
-    val warningBottom =
-      colourCount(
-        warning,
-        markThird(warning, DarkEditorPalette.diagnosticWarning, 2),
-        DarkEditorPalette.diagnosticWarning,
-      )
-    assertTrue("a triangle is wider at its base", warningBottom > warningTop)
-
-    diagnostics = listOf(diagnostic(SEVERITY_ERROR, start = 15, end = 28))
-    compose.waitForIdle()
-
-    val error = capture()
-    val errorTop =
-      colourCount(error, markThird(error, DarkEditorPalette.diagnosticError, 0), DarkEditorPalette.diagnosticError)
-    val errorBottom =
-      colourCount(error, markThird(error, DarkEditorPalette.diagnosticError, 2), DarkEditorPalette.diagnosticError)
-    assertTrue("a circle carries as much top as bottom", abs(errorTop - errorBottom) <= errorBottom / 3)
-  }
-
   private fun setContent(text: String = TWO_LINES) {
     compose.setContent {
       JupyterDroidTheme(darkTheme = true) {
@@ -155,7 +121,7 @@ class DiagnosticSquiggleDrawTest {
   /**
    * The code's left edge in pixels - the text node's bounds past the gutter, the same
    * measurement `DiagnosticMarkTapTest.gutterWidthPx` makes. Squiggle ink lives at or past
-   * it; the mark column's own ink sits before it.
+   * it; the gutter sits before it.
    */
   private fun textLeftPx(): Int {
     val box = compose.onNodeWithTag(FIELD_TAG).getUnclippedBoundsInRoot()
@@ -169,26 +135,6 @@ class DiagnosticSquiggleDrawTest {
   /** Scans stop this far short of the image edge - the mark column's outer bound. */
   private fun waveRegion(image: ImageBitmap): Region =
     Region(textLeftPx(), image.width, image.height - WAVE_BAND_PX, image.height)
-
-  /**
-   * One vertical third of [colour]'s own mark - the mark cell is located by its ink rather
-   * than by assumed row geometry: the pixels' own bounding box inside the mark column is
-   * the mark's extent.
-   */
-  private fun markThird(image: ImageBitmap, colour: Color, third: Int): Region {
-    val pixels = image.toPixelMap()
-    var y0 = Int.MAX_VALUE
-    var y1 = -1
-    for (y in 0 until image.height) {
-      for (x in 0 until MARK_COLUMN_CAP) {
-        if (!near(pixels[x, y], colour)) continue
-        y0 = minOf(y0, y)
-        y1 = maxOf(y1, y)
-      }
-    }
-    val thirdTop = y0 + (y1 - y0 + 1) * third / 3
-    return Region(0, MARK_COLUMN_CAP, thirdTop, y0 + (y1 - y0 + 1) * (third + 1) / 3)
-  }
 
   /** The leftmost x inside the text-side wave [band] carrying [colour], or null. */
   private fun leftmostX(image: ImageBitmap, band: IntRange, colour: Color): Int? {
@@ -230,14 +176,6 @@ class DiagnosticSquiggleDrawTest {
       }
     }
     return if (xs.isEmpty()) 0 else xs.last() - xs.first()
-  }
-
-  /** How many pixels in [region] carry [colour] - a shape probe, not a fill probe. */
-  private fun colourCount(image: ImageBitmap, region: Region, colour: Color): Int {
-    val pixels = image.toPixelMap()
-    return (region.x0 until region.x1).sumOf { x ->
-      (region.y0 until region.y1).count { y -> near(pixels[x, y], colour) }
-    }
   }
 
   /**
@@ -282,9 +220,6 @@ class DiagnosticSquiggleDrawTest {
 
     /** The wave band's scan height - the 3dp tile plus the slack the field leaves under it. */
     const val WAVE_BAND_PX = 10
-
-    /** The mark column cannot reach this far - one row tall, ~31px at this density. */
-    const val MARK_COLUMN_CAP = 45
 
     /** Under half the error<->warning token distance (~0.8) so severities cannot cross-match. */
     const val TOLERANCE = 0.35f

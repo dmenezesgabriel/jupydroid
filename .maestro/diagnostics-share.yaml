@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# After the driver crashed the app with `am crash` and this flow relaunched it: Diagnostics counts what the
+# handler and the platform's exit reasons wrote, and "Share log" opens the platform's chooser for the log's one
+# bundled file. Backing out of the chooser returns to Settings with every entry still there: sharing copies,
+# it never clears.
+#
+# Runs no cell, so the emulator is enough (AGENTS.md rule 2). The driver reads the bundle the chooser was
+# handed afterwards, which no frame can show.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+# To the end of the list, the Licences row after Diagnostics: at 2.0 the section is taller than what
+# a scroll to its own title leaves on screen.
+- scrollUntilVisible:
+    element:
+      text: "Licences"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "[1-9][0-9]* entr(y|ies) · [0-9.]+ [KM]?B"
+- assertVisible: "Share log"
+- takeScreenshot: 01-the-crash-is-counted
+- tapOn: "Share log"
+# The chooser is another app's window over this one, so Settings' own row leaves the hierarchy when it is up.
+# `waitForAnimationToEnd` alone returned before it had drawn, and the Back after it closed a chooser nobody saw.
+- extendedWaitUntil:
+    notVisible: "Share log"
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: ".*error-log.jsonl.*"
+- takeScreenshot: 02-the-chooser-opens
+- pressKey: Back
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "Share log"
+- assertVisible: "[1-9][0-9]* entr(y|ies) · [0-9.]+ [KM]?B"
+- takeScreenshot: 03-back-in-settings-with-every-entry

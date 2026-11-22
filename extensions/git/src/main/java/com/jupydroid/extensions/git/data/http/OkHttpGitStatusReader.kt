@@ -1,8 +1,10 @@
 package com.jupydroid.extensions.git.data.http
 
 import com.jupydroid.extension.api.SpaceServerEndpoint
+import com.jupydroid.extensions.git.domain.GitStatusException
 import com.jupydroid.extensions.git.domain.GitStatusReader
 import com.jupydroid.extensions.git.domain.RepositoryStatus
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -11,6 +13,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.IOException
 
 /**
  * `POST git/<path>/status` on jupyterlab-git's handler in the entered Space's `jupyter_server`.
@@ -29,19 +32,39 @@ class OkHttpGitStatusReader(
   private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : GitStatusReader {
   override suspend fun status(path: String): RepositoryStatus {
+    val body = withContext(ioDispatcher) { answerBody(path, requestFor(path)) }
+    // The 500 a failure comes with carries git's own message, which is what tells "not a repository"
+    // from a real failure, so the code is not checked here: the body decides.
+    return GitStatusAnswer.parse(path, body)
+  }
+
+  /**
+   * The status request for [path]. `address()` starts the Space's server when none runs, and what it
+   * throws is the launcher's to choose; [GitStatusReader.status] promises [GitStatusException] for
+   * every failure, and the panel catches nothing else.
+   */
+  @Suppress("TooGenericExceptionCaught")
+  private suspend fun requestFor(path: String): Request = try {
     val address = server.address()
-    val request = Request.Builder()
+    Request.Builder()
       .url(statusUrl(address.baseUrl, path))
       .header("Authorization", "token ${address.token}")
       // `GitStatusHandler.post` reads no body; OkHttp needs one for a POST all the same.
       .post(ByteArray(0).toRequestBody())
       .build()
-    val body = withContext(ioDispatcher) {
-      client.newCall(request).execute().use { it.body.string() }
-    }
-    // The 500 a failure comes with carries git's own message, which is what tells "not a repository"
-    // from a real failure, so the code is not checked here: the body decides.
-    return GitStatusAnswer.parse(path, body)
+  } catch (failure: Exception) {
+    if (failure is CancellationException) throw failure
+    throw GitStatusException(path, "${failure::class.java.simpleName}: ${failure.message}")
+  }
+
+  /**
+   * A refused connection or a timeout is a failed read like any other: [GitStatusReader.status] promises
+   * [GitStatusException] for every failure, and the panel catches nothing else.
+   */
+  private fun answerBody(path: String, request: Request): String = try {
+    client.newCall(request).execute().use { it.body.string() }
+  } catch (failure: IOException) {
+    throw GitStatusException(path, "${failure::class.java.simpleName}: ${failure.message}")
   }
 
   /** `git/<path>/status`, segments encoded and slashes kept; the root adds no segment (`git/status`). */

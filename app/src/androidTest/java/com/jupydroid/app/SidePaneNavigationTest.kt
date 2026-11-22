@@ -160,12 +160,12 @@ class SidePaneNavigationTest {
    * anywhere else.
    *
    * **The query is what is asserted, and the results moved next door** - measured rather than
-   * preferred. Under `ForcedSize` the list pane lays out at **zero height**: the query box measures
-   * `Rect(0,0,0,0)` here while the rail beside it measures properly, because
-   * `currentWindowAdaptiveInfo()` reads the *activity's* window and not the override (this file's
-   * own `windowFor`, and `TwoPaneLayoutTest` records the same). This test used to read a result row
-   * in that pane, which a `Column` lays out anyway by overflowing a parent with no room - a
-   * `LazyColumn` composes only what fits, so there is nothing there to read.
+   * preferred: the query box measured `Rect(0,0,0,0)` in this pane while the rail beside it
+   * measured properly, the adaptive library then reading the activity's window rather than the
+   * composition's (since 1.3.0 `ForcedSize` reaches the measure,
+   * https://issuetracker.google.com/issues/358626778). A `LazyColumn` composes only what fits -
+   * where a `Column` lays out anyway by overflowing a parent with no room - so a result row is
+   * read where the panel owns its window.
    *
    * A box still holding *"cat"* proves the whole of the claim: a rebuilt `WorkspaceSearchViewModel`
    * starts at `SearchQuery("")`, so surviving text is a surviving instance. The results half is

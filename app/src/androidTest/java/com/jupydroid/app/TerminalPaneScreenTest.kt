@@ -3,18 +3,20 @@ package com.jupydroid.app
 import android.content.pm.ActivityInfo
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.WindowInsets
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.core.graphics.Insets
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
@@ -62,21 +64,24 @@ class TerminalPaneScreenTest {
     compose.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     compose.waitForIdle()
 
+    val windowHeight = compose.activity.window.decorView.height
+    val imeInsetPixels = (windowHeight * IME_INSET_WINDOW_FRACTION).toInt()
+    var imePixels by mutableIntStateOf(0)
+
+    // The composition's own insets, not the window's: the focused field asks for the emulator's real
+    // keyboard, which arrives about half a second after the first layout and re-dispatches its insets
+    // over any sent to the window, so a baseline taken beside it read 13 rows on one run and 26 on the next.
     compose.setContent {
-      JupyterDroidTheme {
-        cell = terminalCellMetrics()
-        TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)
+      DeviceConfigurationOverride(DeviceConfigurationOverride.WindowInsets(imeInsets(imePixels))) {
+        JupyterDroidTheme {
+          cell = terminalCellMetrics()
+          TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)
+        }
       }
     }
     val rowsWithoutIme = settledRows(viewModel)
 
-    compose.runOnUiThread {
-      val withIme = WindowInsetsCompat.Builder()
-        .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, IME_INSET_PIXELS))
-        .setVisible(WindowInsetsCompat.Type.ime(), true)
-        .build()
-      ViewCompat.dispatchApplyWindowInsets(compose.activity.window.decorView, withIme)
-    }
+    imePixels = imeInsetPixels
     val rowsWithIme = settledRows(viewModel)
 
     val cellHeight = requireNotNull(cell) { "terminalCellMetrics was never composed" }.height.toInt()
@@ -87,10 +92,10 @@ class TerminalPaneScreenTest {
     // this floor-divided figure (the finding about the double-counted IME inset has
     // the numbers), so the tolerance below is asymmetric on purpose - tight above, where a doubled
     // inset would show up, looser below, where only rounding lives.
-    val expectedRows = IME_INSET_PIXELS / cellHeight
+    val expectedRows = imeInsetPixels / cellHeight
     assertTrue(
-      "the terminal shrank by $shrunkByRows rows for a $IME_INSET_PIXELS px keyboard " +
-        "($cellHeight px per row); expected roughly $expectedRows (one keyboard's worth), " +
+      "the terminal shrank by $shrunkByRows rows ($rowsWithoutIme to $rowsWithIme) for a $imeInsetPixels px " +
+        "keyboard ($cellHeight px per row); expected roughly $expectedRows (one keyboard's worth), " +
         "not roughly ${2 * expectedRows} (a doubled inset)",
       shrunkByRows in (expectedRows - LOWER_SLACK_ROWS)..(expectedRows + UPPER_SLACK_ROWS),
     )
@@ -135,6 +140,11 @@ class TerminalPaneScreenTest {
    * (`shrank by -1 rows` on two separate runs) - waiting until two consecutive idle passes agree
    * is what actually waits for the cascade to finish, not for one arbitrary hop in it.
    */
+  private fun imeInsets(pixels: Int): WindowInsetsCompat = WindowInsetsCompat.Builder()
+    .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, pixels))
+    .setVisible(WindowInsetsCompat.Type.ime(), pixels > 0)
+    .build()
+
   private fun settledRows(viewModel: TerminalPaneViewModel): Int {
     var previous = viewModel.emulator.screen.rows
     repeat(MAX_SETTLE_PASSES) {
@@ -147,8 +157,13 @@ class TerminalPaneScreenTest {
   }
 
   private companion object {
-    /** Same value `TerminalCanvasTest` already uses for its own synthetic keyboard. */
-    const val IME_INSET_PIXELS = 600
+    /**
+     * A keyboard the window can give up. `TerminalCanvasTest`'s 600 px is more than the 528 px the terminal
+     * holds in a 640 px window, so the grid stops at its two-row floor and the shrink reads the window, not
+     * the keyboard. Two fifths of the window shrinks it by 256 px (14 rows) and a doubled inset (512 px)
+     * still reads as 27, past the upper slack.
+     */
+    const val IME_INSET_WINDOW_FRACTION = 0.4f
     const val LOWER_SLACK_ROWS = 5
     const val UPPER_SLACK_ROWS = 3
     const val MAX_SETTLE_PASSES = 10

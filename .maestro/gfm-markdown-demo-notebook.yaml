@@ -70,11 +70,10 @@ appId: com.jupydroid.app
 # A code cell below it.
 - tapOn: "Cell actions"
 - tapOn: "Cell menu Insert code below"
-# The new cell's field, where uiautomator put it on SM-X216B's 1920x1200: [805,581][1884,653].
-- tapOn:
-    point: "1300,617"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "from IPython.display import Markdown, display; display(Markdown(\"| a | b |\\n|:--|--:|\\n| x | 1 |\")); print(6*7)"
 - hideKeyboard
 - tapOn:

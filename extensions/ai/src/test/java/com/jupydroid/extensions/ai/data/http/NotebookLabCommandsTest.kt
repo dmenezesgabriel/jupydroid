@@ -1,6 +1,8 @@
 package com.jupydroid.extensions.ai.data.http
 
+import com.jupydroid.extension.api.NotebookCellSummary
 import com.jupydroid.extension.api.NotebookCellType
+import com.jupydroid.extension.api.NotebookCells
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -10,6 +12,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -151,6 +154,21 @@ class NotebookLabCommandsTest {
     assertEquals(LabCommandOutcome.Failed("jupyterlab-ai-commands:run-cell is not a command this app answers"), failed)
   }
 
+  /**
+   * `insert`'s `IllegalArgumentException` is the port's to throw (`extension-api`'s `NotebookCells`);
+   * a command the notebook cannot take is a Failed result the agent reads, not an exception that
+   * kills the chat's flow.
+   */
+  @Test
+  fun aCellTheNotebookRefusesIsAFailedResultNotAnException() {
+    val refusing = NotebookLabCommands(NotebookThatRefusesInserts("untitled.ipynb"))
+
+    val failed = refusing.answer(ADD_CELL, addCell(reference = "a", position = "above"))
+
+    check(failed is LabCommandOutcome.Failed) { "expected Failed, got $failed" }
+    assertTrue(failed.error.contains("IllegalArgumentException"))
+  }
+
   private fun done(outcome: LabCommandOutcome): JsonObject {
     check(outcome is LabCommandOutcome.Done) { "expected Done, got $outcome" }
     return outcome.result
@@ -172,4 +190,17 @@ class NotebookLabCommandsTest {
     const val GET_NOTEBOOK_INFO = "jupyterlab-ai-commands:get-notebook-info"
     const val ADD_CELL = "jupyterlab-ai-commands:add-cell"
   }
+}
+
+/** A notebook whose insert refuses every index, as `NotebookCells.insert` documents it may. */
+private class NotebookThatRefusesInserts(override val path: String) : NotebookCells {
+  override val available: Boolean get() = true
+
+  override val cells: List<NotebookCellSummary>
+    get() = listOf(NotebookCellSummary("a", NotebookCellType.CODE))
+
+  override val activeCellId: String? get() = "a"
+
+  override fun insert(index: Int, type: NotebookCellType, source: String): String? =
+    throw IllegalArgumentException("cell index $index is outside 0..1")
 }

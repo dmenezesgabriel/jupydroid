@@ -30,12 +30,13 @@ appId: com.jupydroid.app
     visible: "\\[ \\]:"
     timeout: 30000
 
-# The empty first field, where `maestro hierarchy` put it on SM-X216B's 1920x1200:
-# [805,319][1884,391], as display-update-demo-run.yaml measured it.
-- tapOn:
-    point: "1300,354"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+
+    file: focus-cell.yaml
+
+    env:
+
+      CELL_INDEX: 0
 - inputText: "print(6 * 7)"
 - hideKeyboard
 - tapOn: "Run cell"

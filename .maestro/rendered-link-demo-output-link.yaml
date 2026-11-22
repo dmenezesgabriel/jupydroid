@@ -10,11 +10,10 @@ appId: com.jupydroid.app
 # TABLET ONLY (SM-X216B): the flow runs a cell.
 - tapOn: "Cell actions"
 - tapOn: "Cell menu Insert code below"
-# The new cell's field, where uiautomator put it on SM-X216B's 1920x1200: [805,467][1884,539].
-- tapOn:
-    point: "1300,503"
-- waitForAnimationToEnd:
-    timeout: 3000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
 - inputText: "from IPython.display import Markdown, display; display(Markdown(\"see https://jupyter.org\")); print(6*7)"
 - hideKeyboard
 - tapOn:

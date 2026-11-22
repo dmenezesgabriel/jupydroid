@@ -176,8 +176,9 @@ def header(rows: list[ListedPackage], syft_version: str, rootfs_sha256: str) -> 
         "SPDX list is shown as written, and `NOASSERTION` means the package declared none syft could read.\n\n"
         "Not covered by this table: the Alpine `busybox` row is the package syft found, but the shipped\n"
         "busybox is built from source in `tools/rootfs/Dockerfile`; `proot` is staged into the APK's native\n"
-        "libraries, outside the rootfs; and the Gradle libraries are not read here. Where to get the source of\n"
-        "the GPL and LGPL parts is in `SOURCE_OFFER.md`.\n\n"
+        "libraries, outside the rootfs; the gnu interpreter and its runtime files are a second payload\n"
+        "beside the rootfs, built by `tools/rootfs/gnu/Dockerfile`; and the Gradle libraries are not read\n"
+        "here. Where to get the source of the GPL and LGPL parts is in `SOURCE_OFFER.md`.\n\n"
     )
 
 

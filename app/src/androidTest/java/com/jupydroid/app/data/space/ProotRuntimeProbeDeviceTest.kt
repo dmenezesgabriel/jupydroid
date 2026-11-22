@@ -37,13 +37,15 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
 
 /**
- * **`jupyter_server`, a kernel and `import numpy` under proot, in a private copy of the image** -
- * the run ADR-0073 rests on.
+ * **`jupyter_server` and a kernel under proot, in a private copy of the image** - the run
+ * ADR-0073 rests on.
  *
- * The whole Jupyter stack runs as the image's own `/usr/bin/python3` with the private root as `/`:
- * nothing in it is pointed at `nativeLibraryDir` except proot and its loader. It answers the three
- * things nobody had measured: ZMQ over the ipc transport through a translated root, the SIGSYS
- * reporter preloaded from inside that root, and the idle cull.
+ * The server runs as the image's own `/usr/bin/python3` and the kernel as the gnu interpreter the
+ * Space's kernelspec names, both with the private root as `/`: nothing in it is pointed at
+ * `nativeLibraryDir` except proot and its loader, and the tracer is the patched build a kernel's
+ * `PROOT_SIGSYS_ENOSYS` needs. It answers the three things nobody had measured: ZMQ over the ipc
+ * transport through a translated root, the SIGSYS reporter preloaded into the musl server from
+ * inside that root, and the idle cull.
  *
  * ```
  * ANDROID_SERIAL=TABLET_SERIAL ./gradlew :app:connectedDebugAndroidTest \
@@ -66,21 +68,27 @@ class ProotRuntimeProbeDeviceTest {
     assertEquals(HTTP_OK, server.request("api/status").first)
   }
 
-  /** The image's own interpreter and numpy, over Unix-domain sockets whose paths proot translates. */
+  /** The gnu interpreter and its bundled ipykernel, over Unix-domain sockets whose paths proot translates. */
   @Test(timeout = 180_000)
-  fun aKernelUnderProotImportsNumpyOverTheIpcTransport() {
-    assertEquals(kernelAnswer.toString(), "2.5.1", kernelAnswer.text("numpy"))
-    assertEquals(kernelAnswer.toString(), "/usr", kernelAnswer.text("prefix"))
+  fun aKernelUnderProotImportsIpykernelOverTheIpcTransport() {
+    assertEquals(kernelAnswer.toString(), "7.3.0", kernelAnswer.text("ipykernel"))
+    assertEquals(kernelAnswer.toString(), GNU_INTERPRETER, kernelAnswer.text("executable"))
     assertEquals(kernelAnswer.toString(), "ipc", kernelAnswer.text("transport"))
   }
 
   /**
-   * `getsignal` returns None only when something outside Python installed the handler - the
-   * preload, named by its in-root path. numpy's `mbind` is the one refusal tolerated (ADR-0004).
+   * The refusal split, asked of both interpreters: the kernel is glibc, so its `getsignal` is
+   * `SIG_DFL` - no preload entered it - while the musl `/usr/bin/python3` run beside it with the
+   * server's own preload env reports `None`, the handler `sigsys_report.so` installs outside
+   * Python's sight. numpy's `mbind` is the one refusal tolerated (ADR-0004).
    */
   @Test(timeout = 180_000)
   fun theSigsysReporterIsArmedFromInsideTheRoot() {
-    assertEquals(kernelAnswer.toString(), "None", kernelAnswer.text("sigsys_handler"))
+    assertTrue(
+      "the glibc kernel kept a musl preload: ${kernelAnswer.text("kernel_sigsys_handler")}",
+      "SIG_DFL" in kernelAnswer.text("kernel_sigsys_handler"),
+    )
+    assertEquals(kernelAnswer.toString(), "None", kernelAnswer.text("musl_sigsys_handler"))
     assertEquals(emptyList<String>(), seccompRefusalsIn(root.dir))
   }
 
@@ -127,11 +135,15 @@ class ProotRuntimeProbeDeviceTest {
       root.prepareForProot()
       hostRuntimeDir.mkdirs()
       File(root.dir, IN_ROOT_HOME.removePrefix("/")).mkdirs()
-      runBlocking { SpaceKernelSpec.install(root.dir) }
+      runBlocking {
+        gnuSpaceImageInstaller(context).ensureInstalled(root.dir)
+        SpaceKernelSpec.install(root.dir)
+      }
       val begin = TimeSource.Monotonic.markNow()
-      process = ProcessBuilder(root.proot.argv(listOf("/usr/bin/python3") + serverArgs()))
+      val proot = ProotCommand(patchedProotLibraryDir(), root.dir)
+      process = ProcessBuilder(proot.argv(listOf("/usr/bin/python3") + serverArgs()))
         .apply { environment().clear() }
-        .apply { environment().putAll(root.proot.environment() + inRootEnvironment()) }
+        .apply { environment().putAll(proot.environment() + inRootEnvironment()) }
         .redirectErrorStream(true)
         .redirectOutput(jupyterServerLogFile(hostRuntimeDir))
         .start()
@@ -220,13 +232,21 @@ class ProotRuntimeProbeDeviceTest {
     const val SAVED_LOG = "proot-runtime-probe-server.log"
 
     val KERNEL_PROBE = """
-      import json, signal, sys, numpy
+      import importlib.metadata, json, os, signal, subprocess, sys
       from ipykernel.kernelapp import IPKernelApp
       connection = IPKernelApp.instance().connection_file
+      musl_env = dict(os.environ)
+      musl_env.pop("PROOT_SIGSYS_ENOSYS", None)
+      musl_env["LD_PRELOAD"] = "/lib/libsigsys_report.so"
+      musl_env["JUPYDROID_SIGSYS_LOG"] = "/tmp/sigsys.log"
+      musl = subprocess.run(
+          ["/usr/bin/python3", "-c", "import signal; print(repr(signal.getsignal(signal.SIGSYS)))"],
+          env=musl_env, capture_output=True, text=True)
       print(json.dumps({
-          "numpy": numpy.__version__, "prefix": sys.prefix,
+          "ipykernel": importlib.metadata.version("ipykernel"), "executable": sys.executable,
           "transport": json.load(open(connection))["transport"],
-          "sigsys_handler": repr(signal.getsignal(signal.SIGSYS)),
+          "kernel_sigsys_handler": repr(signal.getsignal(signal.SIGSYS)),
+          "musl_sigsys_handler": musl.stdout.strip(),
       }))
     """.trimIndent()
   }

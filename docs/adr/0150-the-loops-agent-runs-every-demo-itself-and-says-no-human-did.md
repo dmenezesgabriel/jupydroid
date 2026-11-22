@@ -39,14 +39,14 @@ its loop states it in every session's opening prompt.
 
 **A demo the loop's agent runs itself, as a person would, counts as run, and the agent says it was not run by a human.**
 
-- `DEMO_RULE` in `scripts/claude-autopilot/run.ts` is part of `STANDING_RULES`, so every session opens with
+- `DEMO_RULE` in `scripts/autopilot/run.ts` is part of `STANDING_RULES`, so every session opens with
   it: run the demo yourself with `adb` and Maestro on the device rule 2 names, take a screenshot and a UI
   dump at every step that changes the screen, look at and analyze the screenshots, and do not stop to ask a
   person. The commit body says `Demo run by the agent, not by a human`, then what each step showed and every
   difference from what the item expects. `demo-rule.test.ts` pins each of those parts.
 - The orchestrator never answers "run" on the agent's word, answers a "ship it?" question with "prepare only"
   and the instruction to run it, and checks the shipping commit for that sentence and the transcript for the
-  `adb`/Maestro calls and screenshot reads (`scripts/claude-autopilot/ORCHESTRATOR.md`).
+  `adb`/Maestro calls and screenshot reads (`scripts/autopilot/ORCHESTRATOR.md`).
 - This is how the **loop's** sessions read the backlog's rule. The rule itself is unchanged for a session
   started by hand, where a person is present, and a demo that ran a cell on the x86_64 emulator does not count.
 

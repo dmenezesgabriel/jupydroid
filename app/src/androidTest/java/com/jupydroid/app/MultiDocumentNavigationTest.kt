@@ -1,5 +1,7 @@
 package com.jupydroid.app
 
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -138,26 +140,28 @@ class MultiDocumentNavigationTest {
       repository.saveNotebook(notebook(BETA_TITLE, BETA_SOURCE))
     }
     compose.setContent {
-      JupyterDroidTheme {
-        MainNavigation(
-          appContainer = AppContainer(
-            launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
-            enteredSpacePorts = { _, _ ->
-              EnteredSpacePorts(
-                notebookRepository = repository,
-                workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
-                workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
-                kernelGateway = gateway,
-              )
-            },
-          ),
-          sharedNotebook = null,
-          onImportConsumed = {},
-          openDocuments = open,
-          // Two panes on purpose: the list has to stay beside the editor for the second tap to
-          // stack a document instead of leaving the first behind on Back.
-          twoPane = true,
-        )
+      DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
+        JupyterDroidTheme {
+          MainNavigation(
+            appContainer = AppContainer(
+              launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
+              enteredSpacePorts = { _, _ ->
+                EnteredSpacePorts(
+                  notebookRepository = repository,
+                  workspaceRepository = DiskWorkspaceRepository(tempFolder.root),
+                  workspaceFiles = DiskWorkspaceFiles(tempFolder.root),
+                  kernelGateway = gateway,
+                )
+              },
+            ),
+            sharedNotebook = null,
+            onImportConsumed = {},
+            openDocuments = open,
+            // Two panes on purpose: the list has to stay beside the editor for the second tap to
+            // stack a document instead of leaving the first behind on Back.
+            twoPane = true,
+          )
+        }
       }
     }
     compose.enterBaseSpace()

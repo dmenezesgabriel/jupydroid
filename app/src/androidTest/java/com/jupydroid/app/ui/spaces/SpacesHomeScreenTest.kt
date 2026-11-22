@@ -20,10 +20,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.jupydroid.app.data.fake.FakeHarnessScripts
 import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
+import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.MAX_IDLE_SHUTDOWN_MINUTES
 import com.jupydroid.app.domain.model.PythonEnvironment
@@ -409,7 +411,16 @@ class SpacesHomeScreenTest {
     val model = SpacesViewModel(repository, servers, environments, kernelSpecs)
     compose.setContent {
       JupyterDroidTheme {
-        SpacesHomeScreen(repository, servers, environments, kernelSpecs, onOpen = onOpen, viewModel = model)
+        SpacesHomeScreen(
+          repository,
+          servers,
+          environments,
+          kernelSpecs,
+          spaceShell = FakeSpaceShell(),
+          harnessScripts = FakeHarnessScripts(),
+          onOpen = onOpen,
+          viewModel = model,
+        )
       }
     }
     compose.waitUntil(TIMEOUT_MILLIS) { model.uiState.value.spaces.isNotEmpty() }

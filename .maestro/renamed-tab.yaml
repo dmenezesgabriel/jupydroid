@@ -21,7 +21,12 @@ appId: com.jupydroid.app
 - waitForAnimationToEnd:
     timeout: 10000
 - takeScreenshot: 01-second-beneath-the-terminal
+# A long press on a tab opens its menu (`MainAreaTab.kt`), and Rename… in it opens the dialog.
 - longPressOn: "Tab: ${MAESTRO_SECOND}"
+- extendedWaitUntil:
+    visible: "Rename…"
+    timeout: 5000
+- tapOn: "Rename…"
 - extendedWaitUntil:
     visible: "Rename file"
     timeout: 5000

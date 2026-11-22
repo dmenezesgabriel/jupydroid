@@ -86,6 +86,35 @@ class CellInsertedAtTest {
     assertEquals("cell index -1 is outside 0..1", refused.message)
   }
 
+  /** The footer's two buttons: the caller names a kind and never an index. */
+  @Test
+  fun appendingAKindPutsAnEmptyCellOfThatKindLastAndActive() = runTest {
+    val state = MutableStateFlow(stateOf("a", "b"))
+    val edits = editsOf(state)
+
+    val code = edits.appendCell(CellKind.CODE)
+    assertEquals(listOf("a", "b", code), state.value.cells.map { it.id })
+    assertEquals(CellKind.CODE, state.value.cells.last().kind)
+    assertEquals("", state.value.cells.last().source)
+    assertEquals(code, state.value.selectedCellId)
+
+    val markdown = edits.appendCell(CellKind.MARKDOWN)
+    assertEquals(markdown, state.value.cells.last().id)
+    assertEquals(CellKind.MARKDOWN, state.value.cells.last().kind)
+    assertEquals(markdown, state.value.selectedCellId)
+  }
+
+  @Test
+  fun oneUndoTakesAnAppendedCellBack() = runTest {
+    val state = MutableStateFlow(stateOf("a", "b"))
+    val edits = editsOf(state)
+
+    edits.appendCell(CellKind.CODE)
+    edits.undo()
+
+    assertEquals(listOf("a", "b"), state.value.cells.map { it.id })
+  }
+
   private fun TestScope.editsOf(state: MutableStateFlow<EditorUiState>) = NotebookCellEdits(
     state,
     DocumentAutosave(TestScope(testScheduler), MutableStateFlow(EditorSettings()), { false }) {},

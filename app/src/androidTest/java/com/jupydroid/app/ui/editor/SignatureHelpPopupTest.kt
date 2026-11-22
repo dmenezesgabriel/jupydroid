@@ -1,15 +1,21 @@
 package com.jupydroid.app.ui.editor
 
+import android.view.WindowManager
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -35,7 +41,9 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class SignatureHelpPopupTest {
-  @get:Rule val compose = createComposeRule()
+  @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+  private var keyboard: SoftwareKeyboardController? = null
 
   @Test
   fun typingTheOpener_showsTheSignatureCard() {
@@ -158,6 +166,35 @@ class SignatureHelpPopupTest {
     compose.onNodeWithContentDescription("$SIGNATURE_COUNT 1 of 2").assertIsDisplayed()
   }
 
+  /**
+   * Signature help is the one card that prefers *above* its caret, so its edge is the bottom one -
+   * read through [assertPopupEdgeOnAnchorLine] either way: inside `cellEditorBox` the card must
+   * rest on the caret's line, not a padding off it.
+   */
+  @Test
+  fun theCardsEdgeRestsOnItsCaret() {
+    val field = setContent(boxed = true)
+
+    focusField(field, "os.path.join")
+    compose.onNode(hasSetTextAction()).performTextInput("(")
+    compose.mainClock.advanceTimeBy(GRACE_MS)
+    compose.onNodeWithContentDescription(SIGNATURE_HELP).assertIsDisplayed()
+
+    // The keyboard the typing raised serves nothing the card asserts on; hiding it lets the
+    // window settle before the read. The popup's own window repositions off the test clock,
+    // so the edge is polled until both nodes agree. (assertPopupEdgeOnAnchorLine still
+    // demands an exact edge.)
+    compose.runOnIdle { keyboard?.hide() }
+    lateinit var popup: Rect
+    lateinit var inner: Rect
+    compose.waitUntil(timeoutMillis = 5_000) {
+      popup = compose.onNodeWithContentDescription(SIGNATURE_HELP).fetchSemanticsNode().boundsOnScreen()
+      inner = compose.onNodeWithText("os.path.join", substring = true).fetchSemanticsNode().boundsOnScreen()
+      popupEdgeOnAnchorLine(popup, inner)
+    }
+    assertPopupEdgeOnAnchorLine(popup = popup, inner = inner)
+  }
+
   /** The card never takes the field's focus - typing keeps landing in the cell. */
   @Test
   fun theCard_neverStealsTyping() {
@@ -172,17 +209,36 @@ class SignatureHelpPopupTest {
     compose.runOnIdle { assertEquals("os.path.join(a)", field.text.toString()) }
   }
 
+  // SOFT_INPUT_ADJUST_RESIZE is deprecated in code since API 30 (setSoftInputMode is the
+  // flagged surface); the manifest attribute MainActivity uses carries no deprecation.
+  @Suppress("DEPRECATION")
+  private fun applyAdjustResize() {
+    compose.activity.window.attributes =
+      compose.activity.window.attributes.apply {
+        softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+      }
+  }
+
   private fun setContent(
+    boxed: Boolean = false,
     signatureHelpAt: suspend (code: String, cursorOffset: Int) -> LanguageSignatureHelp? = { _, _ -> HELP },
   ): TextFieldState {
+    // Production declares adjustResize on MainActivity (AndroidManifest.xml): the keyboard
+    // arrives as an inset the layout answers, not a shove of the window frame. The bare test
+    // activity defaults to unspecified, and on this emulator the framework shoves the frame -
+    // a Popup then keeps the window-space anchor it measured before the shove, an artifact of
+    // the fixture, not the app. Wear the same contract the cells run under.
+    compose.activity.runOnUiThread { applyAdjustResize() }
     lateinit var field: TextFieldState
     compose.setContent {
+      keyboard = LocalSoftwareKeyboardController.current
       JupyterDroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH).testTag(FIELD_TAG)) {
           field = rememberTextFieldState("")
           CodeCellField(
             state = field,
             onSourceEdited = {},
+            modifier = if (boxed) Modifier.fillMaxWidth().cellEditorBox(editing = true) else Modifier,
             signatureHelpAt = signatureHelpAt,
           )
         }
