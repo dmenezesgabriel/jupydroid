@@ -132,8 +132,8 @@ and the URI segment is built and compared in one file.
 
 ## Tasks
 
-- [ ] T1 — This PRD.
-- [ ] T2 — The rename, one commit: `JupyterDroidTheme` → `JupydroidTheme` (definition, KDoc,
+- [x] T1 — This PRD.
+- [x] T2 — The rename, one commit: `JupyterDroidTheme` → `JupydroidTheme` (definition, KDoc,
   `MainActivity`, every androidTest caller — one mechanical pass, they must move together or
   nothing compiles); `Theme.JupyterDroid` → `Theme.Jupydroid` (both `themes.xml` + manifest);
   `JupyterDroidMeta` → `JupydroidMeta`; `clientName` `"JupyterDroid"` → `"Jupydroid"`; the

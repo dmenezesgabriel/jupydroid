@@ -18,7 +18,7 @@ import com.jupydroid.app.RunningTab
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.model.KernelSessionRegistry
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -53,7 +53,7 @@ class RunningPanelGlyphFontScaleTest {
   }
 
   private fun showPanel() = compose.setContent {
-    JupyterDroidTheme {
+    JupydroidTheme {
       AtFontScale(fontScale) {
         scaled = LocalDensity.current
         RunningSidePanel(

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import com.jupydroid.extension.api.SidePanelContribution
@@ -377,7 +377,7 @@ class ChatListSidePanelTest {
 
   private fun show(panel: SidePanelContribution, shown: () -> Boolean = { true }) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         if (shown()) {
           ContributedSidePanel(
             contribution = panel,

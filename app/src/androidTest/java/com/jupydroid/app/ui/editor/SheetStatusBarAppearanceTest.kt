@@ -9,7 +9,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
  * what `enableEdgeToEdge()` set on the activity (ADR-0094). Left alone, the icons were dark on the
  * dimmed dark theme: 1.07:1 on a phone.
  *
- * The theme is forced by `JupyterDroidTheme(darkTheme = ...)` and not by the device's night mode,
+ * The theme is forced by `JupydroidTheme(darkTheme = ...)` and not by the device's night mode,
  * because the sheet must follow the app's choice, which is what the Theme row stores.
  */
 @RunWith(AndroidJUnit4::class)
@@ -48,7 +48,7 @@ class SheetStatusBarAppearanceTest {
   }
 
   private fun assertSheetStatusBarIcons(darkTheme: Boolean, sheet: @Composable () -> Unit) {
-    compose.setContent { JupyterDroidTheme(darkTheme = darkTheme, content = sheet) }
+    compose.setContent { JupydroidTheme(darkTheme = darkTheme, content = sheet) }
     compose.waitForIdle()
 
     // `APPEARANCE_LIGHT_STATUS_BARS` means a light bar, and so dark icons.

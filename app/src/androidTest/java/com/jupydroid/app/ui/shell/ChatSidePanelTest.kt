@@ -41,7 +41,7 @@ import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.RecordingClipboard
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.shell.UntitledChatPanel.Companion.TIMEOUT_MILLIS
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.domain.AgentChat
@@ -420,7 +420,7 @@ class ChatSidePanelTest {
   private fun showBesideAPane(alsoCompose: @Composable () -> Unit = {}) {
     compose.setContent {
       alsoCompose()
-      JupyterDroidTheme {
+      JupydroidTheme {
         WindowKeyRowHosted {
           Row(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.width(SIDE_PANE)) {
@@ -442,7 +442,7 @@ class ChatSidePanelTest {
     val clipboard = RecordingClipboard(context.getSystemService(ClipboardManager::class.java))
     compose.setContent {
       CompositionLocalProvider(LocalClipboard provides clipboard) {
-        JupyterDroidTheme { ContributedSidePanel(panel.contribution(answering), UntitledChatPanel.HOST) }
+        JupydroidTheme { ContributedSidePanel(panel.contribution(answering), UntitledChatPanel.HOST) }
       }
     }
     panel.open()

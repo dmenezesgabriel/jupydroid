@@ -14,7 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeExternalLinkOpener
 import com.jupydroid.app.data.fake.FakeTerminalGateway
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneViewModel
 import com.jupydroid.app.ui.terminal.terminalCellMetrics
@@ -114,7 +114,7 @@ class TerminalLinkTapTest {
 
   private fun showTheTerminal(text: String) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         cell = terminalCellMetrics()
         RenderedLinksFollowed(opener) {
           TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)

@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -100,7 +100,7 @@ class NotebookBarRangedRunsTest {
 
   private fun showBar(canRunAllAbove: Boolean, canRunSelectedAndBelow: Boolean) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         NotebookBar(
           busy = false,
           onRunAll = { ran += RunRange.ALL },

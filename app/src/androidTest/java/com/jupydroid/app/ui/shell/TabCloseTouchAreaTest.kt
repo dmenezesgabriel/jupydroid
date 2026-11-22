@@ -24,7 +24,7 @@ import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -54,7 +54,7 @@ class TabCloseTouchAreaTest {
 
   private fun showStrip(twoPane: Boolean) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TabbedDocumentPane(
           backStack, open, paths, tabs, liveTitles, FakeWorkspaceRepository(), FakeWorkspaceFiles(),
           twoPane = twoPane, onCloseTab = { closed += it }, onOpenDocument = {},

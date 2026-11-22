@@ -50,7 +50,7 @@ internal class FocusRingEdgeProbe(private val compose: ComposeContentTestRule) {
 
   fun show(darkTheme: Boolean, control: @Composable () -> Unit) {
     compose.setContent {
-      JupyterDroidTheme(darkTheme = darkTheme) {
+      JupydroidTheme(darkTheme = darkTheme) {
         ring = chromePalette.focusBorder
         inputMode = LocalInputModeManager.current
         Box(Modifier.testTag(TOUCH_TARGET)) { control() }

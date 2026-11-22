@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -184,7 +184,7 @@ class NotebookBarTest {
     onPickKernel: () -> Unit = {},
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         NotebookBar(
           busy = busy,
           onRunAll = {},

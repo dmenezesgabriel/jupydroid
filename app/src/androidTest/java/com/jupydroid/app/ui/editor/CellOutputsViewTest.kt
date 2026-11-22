@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellOutput
 import com.jupydroid.app.domain.model.StreamName
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -54,7 +54,7 @@ class CellOutputsViewTest {
   fun aScrolledCellIsShorterThanTheSameOutputUnscrolled() {
     var scrolled by mutableStateOf(false)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         CellOutputs(
           outputs = listOf(
             tallStream(),
@@ -86,7 +86,7 @@ class CellOutputsViewTest {
   @Test
   fun aHiddenCellStaysCollapsedEvenWhenScrolled() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         CellOutputs(
           outputs = listOf(tallStream()),
           hidden = true,
@@ -120,7 +120,7 @@ class CellOutputsViewTest {
   @Test
   fun oneOutputLineIsAsTallAsALineOfCode() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box {
           CellOutputs(
             outputs = listOf(oneLine()),
@@ -178,7 +178,7 @@ class CellOutputsViewTest {
   fun aLongOutputDrawnWholeIsAsTallAsOneText() {
     val stream = linesOfOutput(CHUNKED)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box {
           CellOutputs(
             outputs = listOf(stream),
@@ -372,7 +372,7 @@ class CellOutputsViewTest {
     search: () -> List<CellSearchHighlight> = { emptyList() },
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         CompositionLocalProvider(LocalUriHandler provides links) {
           Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
             CellOutputs(

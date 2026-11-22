@@ -28,7 +28,7 @@ import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.model.resolvesToDark
 import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.import.sharedNotebookFrom
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.RemoteImagesResolved
 import com.jupydroid.app.ui.shell.WindowKeyRowHosted
 
@@ -47,7 +47,7 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     setContent {
       val themeSettings by appContainer.themeSettings.observeSettings().collectAsStateWithLifecycle(ThemeSettings())
-      JupyterDroidTheme(darkTheme = themeSettings.override.resolvesToDark(isSystemInDarkTheme())) {
+      JupydroidTheme(darkTheme = themeSettings.override.resolvesToDark(isSystemInDarkTheme())) {
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
           RenderedDocumentsServed { AppWindow() }
         }

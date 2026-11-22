@@ -21,7 +21,7 @@ import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.DISCLOSURE_TAG
 import com.jupydroid.app.ui.editor.DebuggerVariablesSheet
 import com.jupydroid.app.ui.editor.KernelIndicator
@@ -62,7 +62,7 @@ class EditorGlyphFontScaleTest {
   private val variable = GlyphRow("variable disclosure", DISCLOSURE_TAG, VARIABLE_TEXT, hasText(VARIABLE_TEXT))
 
   private fun show(content: @Composable () -> Unit) = compose.setContent {
-    JupyterDroidTheme {
+    JupydroidTheme {
       AtFontScale(fontScale) {
         scaled = LocalDensity.current
         content()

@@ -8,7 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.spaces.StartupScriptField
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -27,7 +27,7 @@ class CodeCellFieldNameTest {
   @Test
   fun aFieldIsNamedByWhatItsCallerSaysItEdits() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         CodeCellField(state = rememberTextFieldState(), onSourceEdited = {}, fieldName = "Console input")
       }
     }
@@ -42,7 +42,7 @@ class CodeCellFieldNameTest {
   @Test
   fun aCallerThatSaysNothingStillGetsAName() {
     compose.setContent {
-      JupyterDroidTheme { CodeCellField(state = rememberTextFieldState(), onSourceEdited = {}) }
+      JupydroidTheme { CodeCellField(state = rememberTextFieldState(), onSourceEdited = {}) }
     }
 
     assertEquals(1, namedNodes("Code editor"))
@@ -52,7 +52,7 @@ class CodeCellFieldNameTest {
   @Test
   fun theStartupScriptHasOneNodeAnsweringToItsHeading() {
     compose.setContent {
-      JupyterDroidTheme { StartupScriptField(rememberTextFieldState("export X=1")) }
+      JupydroidTheme { StartupScriptField(rememberTextFieldState("export X=1")) }
     }
 
     assertEquals(1, namedNodes("Startup script"))

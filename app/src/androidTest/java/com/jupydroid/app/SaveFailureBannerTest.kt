@@ -18,7 +18,7 @@ import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.port.NotebookRepository
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.COULD_NOT_SAVE
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -72,7 +72,7 @@ class SaveFailureBannerTest {
       readable.saveNotebook(Notebook(TITLE, TITLE, "python3", listOf(Cell("c1", CellKind.CODE, CELL_SOURCE))))
     }
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

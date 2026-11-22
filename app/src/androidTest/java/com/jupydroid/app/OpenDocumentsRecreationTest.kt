@@ -20,7 +20,7 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.LauncherSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -101,7 +101,7 @@ class OpenDocumentsRecreationTest {
   private fun showTheShell() {
     compose.activityRule.scenario.onActivity { activity ->
       activity.setContent {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = appContainer,
             sharedNotebook = null,

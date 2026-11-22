@@ -11,7 +11,7 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneViewModel
@@ -45,7 +45,7 @@ class TerminalMarginTest {
     compose.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     compose.waitForIdle()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         cell = terminalCellMetrics()
         TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)
       }

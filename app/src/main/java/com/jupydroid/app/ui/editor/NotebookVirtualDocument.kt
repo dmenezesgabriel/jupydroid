@@ -42,7 +42,7 @@ class NotebookVirtualDocument(notebookId: String, cells: List<Cell>) {
    * off-document (the first `definition` run's miss). `URI`'s empty authority is what
    * keeps the `file:///` triple-slash rather than `file:/`.
    */
-  val uri: String = URI("file", "", "/jupyterdroid/notebooks/$notebookId.py", null).toASCIIString()
+  val uri: String = URI("file", "", "/jupydroid/notebooks/$notebookId.py", null).toASCIIString()
 
   /** The whole text a `didOpen`/`didChange` sync sends. */
   val text: String

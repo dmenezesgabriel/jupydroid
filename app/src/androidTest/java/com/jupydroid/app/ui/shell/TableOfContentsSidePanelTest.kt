@@ -7,7 +7,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.DocumentOutline
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.TocHeading
 import com.jupydroid.app.ui.editor.TocNumbering
 import org.junit.Assert.assertEquals
@@ -107,7 +107,7 @@ class TableOfContentsSidePanelTest {
 
   private fun show(outline: DocumentOutline?) {
     compose.setContent {
-      JupyterDroidTheme { TableOfContentsSidePanel(outline = outline) }
+      JupydroidTheme { TableOfContentsSidePanel(outline = outline) }
     }
   }
 

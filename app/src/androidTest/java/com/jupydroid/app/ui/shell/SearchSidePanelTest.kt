@@ -26,7 +26,7 @@ import com.jupydroid.app.domain.model.SearchProgress
 import com.jupydroid.app.domain.model.SearchQuery
 import com.jupydroid.app.domain.model.SearchScope
 import com.jupydroid.app.domain.port.WorkspaceSearcher
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import com.jupydroid.app.ui.assertReservesMinimumTouchTarget
 import com.jupydroid.app.ui.editor.HIDE_REPLACE
@@ -72,7 +72,7 @@ class SearchSidePanelTest {
     workspace = FakeWorkspaceRepository(textByPath = files)
     val replace = WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), workspace)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SearchSidePanel(
           searcher = searcher,
           replace = replace,
@@ -387,7 +387,7 @@ class SearchSidePanelTest {
     val showing = mutableStateOf(true)
     val replace = WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), FakeWorkspaceRepository())
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         if (showing.value) {
           SearchSidePanel(
             searcher = FakeWorkspaceSearcher(mapOf("notes.py" to "print(cat)")),

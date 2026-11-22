@@ -6,7 +6,7 @@ Date: 2026-10-13
 ## Context
 
 The Theme row (System, Light, Dark, `ThemeOverride`) reached Compose alone: `MainActivity` resolved
-it against `isSystemInDarkTheme()` and handed `JupyterDroidTheme` the answer. Everything drawn
+it against `isSystemInDarkTheme()` and handed `JupydroidTheme` the answer. Everything drawn
 outside that call read the **device's** configuration: the window's background (split by
 `values-night`, `app/src/main/res/values-night/colors.xml`), the status bar's icons
 (`enableEdgeToEdge()`'s `SystemBarStyle.auto`) and the terminal (`isSystemInDarkTheme()` as a default

@@ -1,4 +1,4 @@
-# JupyterDroid
+# Jupydroid
 
 Offline Jupyter notebook app for Android. Runs a **real** `jupyter_server` + `ipykernel`
 inside a bundled musl (Alpine) Linux rootfs, run unprivileged under `proot`, on loopback, with a

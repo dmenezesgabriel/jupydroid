@@ -15,7 +15,7 @@ import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.PHONE_WIDTH
 import com.jupydroid.app.ui.isCut
@@ -90,7 +90,7 @@ class RunningSidePanelFontScaleTest {
   private fun showOnAPhoneAt2x(tabTitles: List<String>) {
     val tabs = tabTitles.map { RunningTab(Editor(it), it) }
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(Modifier.requiredWidth(PHONE_WIDTH)) {
           AtFontScale(2f) {
             RunningSidePanel(

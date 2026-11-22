@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.SidePanel
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.SidePanelContribution
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -200,7 +200,7 @@ class SidePanelRailTest {
 
   private fun show(selected: ShownPanel?) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SidePanelRail(
           selected = selected,
           onChoose = { chosen += it },

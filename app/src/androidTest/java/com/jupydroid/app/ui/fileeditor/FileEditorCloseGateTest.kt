@@ -28,7 +28,7 @@ import com.jupydroid.app.domain.model.FileStamp
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
 import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import kotlinx.coroutines.CoroutineScope
@@ -187,7 +187,7 @@ class FileEditorCloseGateTest {
         editorSettings = FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = false)),
       )
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         val order = remember { mutableStateListOf<NavKey>() }
         val tabs = backStack.mainAreaTabs().orderedAsOpened(order)
         LaunchedEffect(tabs) {

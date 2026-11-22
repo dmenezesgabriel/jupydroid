@@ -22,7 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.terminal.CellStyle
 import com.jupydroid.app.terminal.TerminalPalette
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import com.jupydroid.app.ui.terminal.TerminalPaneViewModel
@@ -73,7 +73,7 @@ class TerminalPaneScreenTest {
     // over any sent to the window, so a baseline taken beside it read 13 rows on one run and 26 on the next.
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.WindowInsets(imeInsets(imePixels))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           cell = terminalCellMetrics()
           TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)
         }
@@ -113,7 +113,7 @@ class TerminalPaneScreenTest {
     val viewModel = TerminalPaneViewModel(session, gateway, palette = TerminalPalette.VS_CODE_LIGHT)
     var dark by mutableStateOf(false)
     compose.setContent {
-      JupyterDroidTheme(darkTheme = dark) {
+      JupydroidTheme(darkTheme = dark) {
         TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)
       }
     }

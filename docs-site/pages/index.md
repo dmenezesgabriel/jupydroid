@@ -1,4 +1,4 @@
-# JupyterDroid
+# Jupydroid
 
 An offline Jupyter notebook app for Android. It runs a real `jupyter_server` and `ipykernel` inside a
 bundled Linux root filesystem on the device, on loopback, with a native Android interface. There is no

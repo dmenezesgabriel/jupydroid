@@ -93,7 +93,7 @@ fun TerminalPaneScreen(
   terminalSettingsRepository: TerminalSettingsRepository = FakeTerminalSettingsRepository(),
   // Read here, not inside the factory lambda below - `LocalAnsiPalette` is read in composition and
   // the factory runs once, outside recomposition, the way `viewModel {}` always does. It follows the
-  // app's Theme row through `JupyterDroidTheme`, where the device's night mode would not.
+  // app's Theme row through `JupydroidTheme`, where the device's night mode would not.
   palette: TerminalPalette = LocalAnsiPalette.current,
   /**
    * The shell's OSC title, reported up to the tab that carries it - `term.onTitleChange` sets

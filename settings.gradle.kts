@@ -29,7 +29,7 @@ plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
 
-rootProject.name = "JupyterDroid"
+rootProject.name = "Jupydroid"
 include(":app")
 // Extensions are modules beside `:app`, built against `:extension-api` (ADR-0104).
 include(":extension-api")

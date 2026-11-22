@@ -8,7 +8,7 @@ import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -112,7 +112,7 @@ class EditorTopBarTest {
 
   private fun showTopBar(canUndo: Boolean = false, canRedo: Boolean = false) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         EditorTopBar(
           canUndo = canUndo,
           canRedo = canRedo,

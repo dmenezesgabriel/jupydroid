@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -156,7 +156,7 @@ class NotebookBreadcrumbTest {
     shown.value = crumbs
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           EditorTopBar(
             canUndo = false,
             canRedo = false,

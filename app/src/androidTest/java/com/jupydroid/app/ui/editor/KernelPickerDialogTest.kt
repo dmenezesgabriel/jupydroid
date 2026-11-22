@@ -14,7 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.KernelPickGroup
 import com.jupydroid.app.domain.model.KernelPickOption
 import com.jupydroid.app.domain.port.KernelChoice
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -129,7 +129,7 @@ class KernelPickerDialogTest {
     onDismiss: () -> Unit = {},
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         KernelPickerDialog(
           groups = groups,
           notebookTitle = "Data.ipynb",

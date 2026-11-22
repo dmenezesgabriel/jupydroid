@@ -21,7 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.port.CompletionMatch
 import com.jupydroid.app.domain.port.CompletionResult
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -75,7 +75,7 @@ class CompletionPopupAnchorTest {
     val field = TextFieldState(QUERY, TextRange(QUERY.length))
     compose.setContent {
       keyboard = LocalSoftwareKeyboardController.current
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH).testTag(FIELD_TAG)) {
           CodeCellField(
             state = field,

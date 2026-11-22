@@ -10,7 +10,7 @@ import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.theme.DarkChromePalette
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -62,7 +62,7 @@ class ShellSidePaneTest {
    */
   private fun startSidePane(twoPane: Boolean) {
     compose.setContent {
-      JupyterDroidTheme(darkTheme = true) {
+      JupydroidTheme(darkTheme = true) {
         ShellSidePane(
           showingPanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS),
           onePanePanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS),

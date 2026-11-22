@@ -32,7 +32,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.console.CONSOLE_INPUT_FIELD_TAG
 import com.jupydroid.app.ui.editor.NEW_CONSOLE_FOR_NOTEBOOK
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
@@ -183,7 +183,7 @@ class ConsoleNavigationTest {
       )
     }
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

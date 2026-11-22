@@ -11,7 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import com.jupydroid.app.ui.terminal.TerminalPaneScreen
 import kotlinx.coroutines.awaitCancellation
@@ -61,7 +61,7 @@ class TerminalHardwareKeyTest {
   private fun openTerminalScreen(): RecordingTerminalGateway {
     val gateway = RecordingTerminalGateway()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TerminalPaneScreen(session = TerminalSession("1"), terminalGateway = gateway)
       }
     }

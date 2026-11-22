@@ -16,7 +16,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Breakpoint
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -136,7 +136,7 @@ class BreakpointGutterTapTest {
     onGutterLongPress: (Int) -> Unit = {},
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH)) {
           CodeCellField(
             state = rememberTextFieldState(text),

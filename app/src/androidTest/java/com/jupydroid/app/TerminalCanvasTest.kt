@@ -27,7 +27,7 @@ import com.jupydroid.app.terminal.TerminalEmulator
 import com.jupydroid.app.terminal.TerminalNotices
 import com.jupydroid.app.terminal.TerminalPalette
 import com.jupydroid.app.terminal.TerminalReplies
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.codeTextStyle
 import com.jupydroid.app.ui.terminal.TerminalCanvas
 import com.jupydroid.app.ui.terminal.TerminalTextSelection
@@ -120,7 +120,7 @@ class TerminalCanvasTest {
     var redraw by mutableStateOf(0)
     var cell: Size? = null
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         key(redraw) {
           TerminalCanvas(emulator, onGridSizeChanged = { _, measured ->
             cell = measured
@@ -189,7 +189,7 @@ class TerminalCanvasTest {
     var reportedCell: Size? = null
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TerminalCanvas(
           emulator,
           onGridSizeChanged = { grid, cell ->
@@ -223,7 +223,7 @@ class TerminalCanvasTest {
     var reportedGrid: IntSize? = null
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TerminalCanvas(
           emulator,
           onGridSizeChanged = { grid, _ -> reportedGrid = grid },
@@ -262,14 +262,14 @@ class TerminalCanvasTest {
     var largeCell: Size? = null
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TerminalCanvas(
           emulator,
           textStyle = codeTextStyle(fontSize = 10.sp),
           onGridSizeChanged = { _, cell -> smallCell = cell },
         )
       }
-      JupyterDroidTheme {
+      JupydroidTheme {
         TerminalCanvas(
           emulator,
           textStyle = codeTextStyle(fontSize = 30.sp),
@@ -299,7 +299,7 @@ class TerminalCanvasTest {
     var topRow by mutableStateOf(0)
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         key(topRow) {
           TerminalCanvas(emulator, topRow = topRow, modifier = Modifier.fillMaxSize())
         }
@@ -331,7 +331,7 @@ class TerminalCanvasTest {
     var cell: Size? = null
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         key(topRow) {
           TerminalCanvas(
             emulator,
@@ -368,7 +368,7 @@ class TerminalCanvasTest {
   }
 
   private fun capture(content: @Composable () -> Unit): ImageBitmap {
-    compose.setContent { JupyterDroidTheme { content() } }
+    compose.setContent { JupydroidTheme { content() } }
     return compose.onRoot().captureToImage()
   }
 

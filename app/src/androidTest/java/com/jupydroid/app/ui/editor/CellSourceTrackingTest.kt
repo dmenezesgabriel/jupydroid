@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -110,7 +110,7 @@ class CellSourceTrackingTest {
   fun theAdoptionOutlivesTheFieldDrawnOverIt() {
     var asMarkdown by mutableStateOf(false)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         adoptRewrittenSource(state, source, revision)
         if (asMarkdown) {
           MarkdownCellField(state = state, onSourceEdited = {})
@@ -132,7 +132,7 @@ class CellSourceTrackingTest {
 
   private fun showField() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         adoptRewrittenSource(state, source, revision)
         CodeCellField(state = state, onSourceEdited = {})
       }

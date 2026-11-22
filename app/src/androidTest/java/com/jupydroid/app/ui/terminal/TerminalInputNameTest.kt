@@ -6,7 +6,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -28,7 +28,7 @@ class TerminalInputNameTest {
     val gateway = FakeTerminalGateway()
     val session = runBlocking { gateway.open() }
     compose.setContent {
-      JupyterDroidTheme { TerminalPaneScreen(session = session, terminalGateway = gateway) }
+      JupydroidTheme { TerminalPaneScreen(session = session, terminalGateway = gateway) }
     }
     compose.waitForIdle()
 

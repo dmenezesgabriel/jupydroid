@@ -23,7 +23,7 @@ import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -50,7 +50,7 @@ class TabMiddlePressTest {
     val tabs: List<NavKey> = (1..tabCount).map { Terminal("$it") }
     backStack += listOf(Explorer(BASE_SPACE.id)) + tabs
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(Modifier.width(window)) {
           TabbedDocumentPane(
             backStack, open, paths, tabs, emptyMap(), FakeWorkspaceRepository(), FakeWorkspaceFiles(),

@@ -3,7 +3,7 @@ package com.jupydroid.app.ui.editor
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.markdown.MarkdownDocument
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -22,7 +22,7 @@ class RichTextCodeBlockActionsTest {
   fun everyCodeBlockIsHandedToItsActionsANestedOneToo() {
     val handed = mutableListOf<String>()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         RichText(MarkdownDocument.parse(TWO_CODE_BLOCKS), codeBlockActions = { code -> handed += code })
       }
     }

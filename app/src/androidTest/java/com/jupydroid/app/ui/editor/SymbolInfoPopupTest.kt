@@ -21,7 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageMarkup
 import com.jupydroid.app.domain.port.LanguageMarkupKind
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -154,7 +154,7 @@ class SymbolInfoPopupTest {
   ): TextFieldState {
     lateinit var field: TextFieldState
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH).testTag(FIELD_TAG)) {
           field = rememberTextFieldState(CODE)
           CodeCellField(

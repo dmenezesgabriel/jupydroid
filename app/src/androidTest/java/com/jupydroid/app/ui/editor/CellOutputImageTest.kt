@@ -16,7 +16,7 @@ import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellOutput
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -98,7 +98,7 @@ class CellOutputImageTest {
     }
     val output = CellOutput.DisplayData(mapOf("image/png" to JsonPrimitive(png)), metadata = metadata)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         // `requiredWidth`, not `width`: the column is the width a test names, and at the emulator's 320dp a
         // `width(600.dp)` is measured down to the window's 320 so the wide-column cases read the window.
         // Scrolled, as the cell list is: under a bounded height `aspectRatio` sizes an image taller than

@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.ai.AiExtension
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
@@ -81,7 +81,7 @@ class ChatTabTest {
       chatFilesFor = { FakeChatFiles(listOf("untitled.chat")) },
     ).sidePanels.single()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ContributedSidePanel(
           contribution = panel,
           host = SidePanelHost(

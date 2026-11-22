@@ -16,7 +16,7 @@ import com.jupydroid.app.OpenDocuments
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.SHOW_REPLACE
 import com.jupydroid.app.ui.scrollUntilFound
 import kotlinx.coroutines.runBlocking
@@ -47,7 +47,7 @@ class SearchReplaceAllTest {
     workspace = FakeWorkspaceRepository(textByPath = files.toMap())
     val replace = WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), workspace)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SearchSidePanel(
           searcher = FakeWorkspaceSearcher(files.toMap()),
           replace = replace,

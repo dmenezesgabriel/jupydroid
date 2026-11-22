@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntRect
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.CellDiagnostic
 import com.jupydroid.app.ui.editor.DETAIL_GLYPH_TAG
 import com.jupydroid.app.ui.editor.DiagnosticDetailPopup
@@ -47,7 +47,7 @@ class DiagnosticGlyphFontScaleTest {
   }
 
   private fun showPopup() = compose.setContent {
-    JupyterDroidTheme {
+    JupydroidTheme {
       if (shown) {
         DiagnosticDetailPopup(
           diagnostics = listOf(CellDiagnostic(1, 0, 1, SEVERITY_ERROR, code = null, source = null, message = "bad")),

@@ -13,7 +13,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import com.jupydroid.extension.api.RenameFileDialog
 import org.junit.Assert.assertEquals
@@ -171,7 +171,7 @@ class RenameFileDialogTest {
   /** The file defaults, untouched: what every file caller gets. */
   private fun showDialog(currentTitle: String) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         RenameFileDialog(
           currentTitle = currentTitle,
           onConfirm = { confirmed += it },
@@ -189,7 +189,7 @@ class RenameFileDialogTest {
     confirmLabel: String = "Rename",
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         RenameFileDialog(
           currentTitle = currentTitle,
           onConfirm = { confirmed += it },

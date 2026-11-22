@@ -37,7 +37,7 @@ class NotebookDiagnosticsTest {
   private lateinit var document: NotebookLanguageDocument
   private lateinit var diagnostics: NotebookDiagnostics
 
-  private val uri = "file:///jupyterdroid/notebooks/Analysis.ipynb.py"
+  private val uri = "file:///jupydroid/notebooks/Analysis.ipynb.py"
 
   @Before
   fun setUp() {

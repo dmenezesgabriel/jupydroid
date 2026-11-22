@@ -20,7 +20,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.theme.ChromePalette
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.textLayout
 import com.jupydroid.extension.api.SidePanelContribution
@@ -112,7 +112,7 @@ class SideBarForegroundTest {
   }
 
   private fun show(panel: @Composable () -> Unit) = compose.setContent {
-    JupyterDroidTheme(darkTheme = true) {
+    JupydroidTheme(darkTheme = true) {
       ChromeCapture { chrome = it }
       panel()
     }

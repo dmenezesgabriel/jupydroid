@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -39,7 +39,7 @@ class CellTypeControlTest {
 
   @Test
   fun theControlNamesTheTypeItWasGiven() {
-    compose.setContent { JupyterDroidTheme { CellTypeControl(kind = CellKind.MARKDOWN, onPick = {}) } }
+    compose.setContent { JupydroidTheme { CellTypeControl(kind = CellKind.MARKDOWN, onPick = {}) } }
 
     compose.onNodeWithText("Markdown").assertIsDisplayed()
   }
@@ -56,14 +56,14 @@ class CellTypeControlTest {
    */
   @Test
   fun itsNameCarriesTheTypeItIsShowing() {
-    compose.setContent { JupyterDroidTheme { CellTypeControl(kind = CellKind.RAW, onPick = {}) } }
+    compose.setContent { JupydroidTheme { CellTypeControl(kind = CellKind.RAW, onPick = {}) } }
 
     compose.onNodeWithContentDescription("Cell type Raw").assertIsDisplayed()
   }
 
   @Test
   fun itOffersAllThreeTypes() {
-    compose.setContent { JupyterDroidTheme { CellTypeControl(kind = CellKind.CODE, onPick = {}) } }
+    compose.setContent { JupydroidTheme { CellTypeControl(kind = CellKind.CODE, onPick = {}) } }
 
     compose.onNodeWithContentDescription(cellTypeDescription(CellKind.CODE)).performClick()
 
@@ -80,7 +80,7 @@ class CellTypeControlTest {
   @Test
   fun pickingATypeReportsIt() {
     var picked: CellKind? = null
-    compose.setContent { JupyterDroidTheme { CellTypeControl(kind = CellKind.CODE, onPick = { picked = it }) } }
+    compose.setContent { JupydroidTheme { CellTypeControl(kind = CellKind.CODE, onPick = { picked = it }) } }
 
     compose.onNodeWithContentDescription(cellTypeDescription(CellKind.CODE)).performClick()
     compose.onNodeWithContentDescription(cellTypePickDescription(CellKind.RAW)).performClick()
@@ -100,7 +100,7 @@ class CellTypeControlTest {
    */
   @Test
   fun itReservesATouchTarget() {
-    compose.setContent { JupyterDroidTheme { CellTypeControl(kind = CellKind.MARKDOWN, onPick = {}) } }
+    compose.setContent { JupydroidTheme { CellTypeControl(kind = CellKind.MARKDOWN, onPick = {}) } }
 
     compose.onNodeWithContentDescription(
       cellTypeDescription(WIDEST_LABEL),
@@ -128,7 +128,7 @@ class CellTypeControlTest {
   @Test
   fun theWidestLabelFitsTheBarAtTheNarrowestWidthThatOffersIt() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(NARROWEST_WITH_ROOM)) {
           androidx.compose.foundation.layout.Column {
             EditorTopBar(
@@ -172,7 +172,7 @@ class CellTypeControlTest {
   @Test
   fun itSitsClearOfTheActionsAtThatWidth() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(NARROWEST_WITH_ROOM)) {
           EditorTopBar(
             canUndo = true,
@@ -200,7 +200,7 @@ class CellTypeControlTest {
   @Test
   fun theBarLeavesItAloneWhereThereIsNoRoom() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(COMPACT)) {
           EditorTopBar(
             canUndo = true,
@@ -261,7 +261,7 @@ class CellTypeControlTest {
 
   private fun showTopBar(cellTypeOnBar: Boolean, onChangeCellKind: (CellKind) -> Unit = {}) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         EditorTopBar(
           canUndo = true,
           canRedo = true,

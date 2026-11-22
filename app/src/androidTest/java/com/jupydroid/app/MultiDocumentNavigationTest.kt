@@ -25,7 +25,7 @@ import com.jupydroid.app.domain.port.KernelChoice
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.SessionType
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -141,7 +141,7 @@ class MultiDocumentNavigationTest {
     }
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

@@ -26,7 +26,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.FakeTerminalGateway
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
 import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_END_TAG
 import com.jupydroid.app.ui.terminal.TERMINAL_SELECTION_START_TAG
@@ -200,7 +200,7 @@ class TerminalSelectionTest {
 
   private fun showTheTerminal(clipboard: Clipboard, text: String) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         cell = terminalCellMetrics()
         CompositionLocalProvider(LocalClipboard provides clipboard, LocalTextToolbar provides toolbar) {
           TerminalPaneScreen(session = session, terminalGateway = gateway, viewModel = viewModel)

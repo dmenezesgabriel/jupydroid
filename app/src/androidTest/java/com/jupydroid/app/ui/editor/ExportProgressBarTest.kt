@@ -4,7 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,6 +45,6 @@ class ExportProgressBarTest {
   }
 
   private fun showProgress(state: ExportState) {
-    compose.setContent { JupyterDroidTheme { ExportProgressBar(state) } }
+    compose.setContent { JupydroidTheme { ExportProgressBar(state) } }
   }
 }

@@ -31,7 +31,7 @@ import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.ExplorerSettingsRepository
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -494,7 +494,7 @@ class ExplorerScreenTest {
       FakeExplorerSettingsRepository(ExplorerSettings(recentsCollapsed = false)),
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ExplorerScreen(
           workspaceRepository = DiskWorkspaceRepository(temp.root),
           workspaceFiles = DiskWorkspaceFiles(temp.root),

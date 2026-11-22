@@ -9,7 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import com.jupydroid.extension.api.RenameFileDialog
 import org.junit.Assert.assertTrue
@@ -65,7 +65,7 @@ class RenameFileDialogKeyboardTest {
   private fun showFolderRenameAt2x() {
     useFontScale(2f)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         RenameFileDialog(currentTitle = "reports", heading = "Rename folder", onConfirm = {}, onDismiss = {})
       }
     }

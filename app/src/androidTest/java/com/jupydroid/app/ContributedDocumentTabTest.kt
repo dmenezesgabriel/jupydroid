@@ -25,7 +25,7 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.LauncherSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.DocumentContribution
 import com.jupydroid.extension.api.Extension
 import com.jupydroid.extension.api.SidePanelContribution
@@ -148,7 +148,7 @@ class ContributedDocumentTabTest {
     val size = if (twoPane) DpSize(1280.dp, 800.dp) else DpSize(800.dp, 1280.dp)
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

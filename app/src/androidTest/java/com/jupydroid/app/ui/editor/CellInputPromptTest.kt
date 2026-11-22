@@ -12,7 +12,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.KernelInputRequest
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -73,7 +73,7 @@ class CellInputPromptTest {
 
   private fun show(request: KernelInputRequest?, onAnswer: (String) -> Unit) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         CellOutputs(
           outputs = emptyList(),
           hidden = false,

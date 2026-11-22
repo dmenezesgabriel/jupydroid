@@ -4,7 +4,7 @@
 #
 # Plain Material config on purpose: Zensical reads mkdocs.yml natively, so no third-party plugin and no
 # custom_dir keeps a move to it a drop-in (scripts/docs_site_config_test.py asserts both).
-site_name: JupyterDroid
+site_name: Jupydroid
 site_description: Offline Jupyter notebook app for Android, running a real jupyter_server and ipykernel.
 site_url: https://dmenezesgabriel.github.io/jupydroid/
 repo_url: https://github.com/dmenezesgabriel/jupydroid

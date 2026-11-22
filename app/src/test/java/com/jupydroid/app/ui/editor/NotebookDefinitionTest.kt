@@ -138,7 +138,7 @@ class NotebookDefinitionTest {
       NotebookLanguageDocument(server, BASE_SPACE) { "Go to Definition.ipynb" },
     )
     server.answer =
-      listOf(location("file:///jupyterdroid/notebooks/Go%20to%20Definition.ipynb.py", 0, 4, 0, 17))
+      listOf(location("file:///jupydroid/notebooks/Go%20to%20Definition.ipynb.py", 0, 4, 0, 17))
 
     val target = definition.at(cells(), "cell-2", "total = compute_total([1, 2])", 8)
 
@@ -267,6 +267,6 @@ class NotebookDefinitionTest {
 
   private companion object {
     /** The virtual document's own uri - `NotebookVirtualDocument`'s shape for `Analysis.ipynb`. */
-    const val DOCUMENT_URI = "file:///jupyterdroid/notebooks/Analysis.ipynb.py"
+    const val DOCUMENT_URI = "file:///jupydroid/notebooks/Analysis.ipynb.py"
   }
 }

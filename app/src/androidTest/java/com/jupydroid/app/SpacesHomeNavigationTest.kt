@@ -33,7 +33,7 @@ import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.domain.model.spaceWithId
 import com.jupydroid.app.import.SharedNotebook
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -205,7 +205,7 @@ class SpacesHomeNavigationTest {
     File(workspaceOf(THESIS_ID), THESIS_FILE).writeText("a file in Thesis")
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = container,
             sharedNotebook = sharedNotebook,

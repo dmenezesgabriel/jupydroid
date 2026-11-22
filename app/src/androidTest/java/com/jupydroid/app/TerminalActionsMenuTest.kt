@@ -10,7 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.TerminalFontSize
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.terminal.DECREASE_TERMINAL_FONT_SIZE
 import com.jupydroid.app.ui.terminal.INCREASE_TERMINAL_FONT_SIZE
 import com.jupydroid.app.ui.terminal.PASTE_INTO_TERMINAL
@@ -112,7 +112,7 @@ class TerminalActionsMenuTest {
 
   private fun showBar(fontSizeSp: Int = TerminalFontSize.DEFAULT) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TerminalBar(
           fontSizeSp = fontSizeSp,
           onIncreaseFontSize = { increases++ },

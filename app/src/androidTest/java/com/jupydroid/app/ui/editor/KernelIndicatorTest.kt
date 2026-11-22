@@ -11,7 +11,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -130,7 +130,7 @@ class KernelIndicatorTest {
   ) {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           EditorTopBar(
             canUndo = false,
             canRedo = false,

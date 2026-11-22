@@ -36,7 +36,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -88,7 +88,7 @@ class TabbedDocumentPaneInsetsTest {
     val open = OpenDocuments()
     val paths = mutableStateMapOf<NavKey, String>()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         val order = remember { mutableStateListOf<NavKey>() }
         val tabs = backStack.mainAreaTabs().orderedAsOpened(order)
         LaunchedEffect(tabs) {

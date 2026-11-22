@@ -15,7 +15,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -87,7 +87,7 @@ class MarkdownCellFieldTest {
   @Test
   fun aMarkdownSourceLaysOutLikeARawCellsSource() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Column(modifier = Modifier.width(FIELD_WIDTH)) {
           MarkdownCellField(
             state = rememberTextFieldState(THREE_LINES),

@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.isSpecified
 import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.ai.AiExtension
@@ -37,7 +37,7 @@ class UntitledChatPanel(private val compose: ComposeContentTestRule, private val
   /** The panel alone, answered by [answering] and keeping its waiting questions in [kept], open on the chat. */
   fun show(answering: AgentChat, kept: QueuedQuestionsStore = FakeQueuedQuestionsStore()) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(if (width.isSpecified) Modifier.requiredWidth(width) else Modifier) {
           ContributedSidePanel(contribution = contribution(answering, kept), host = HOST)
         }
