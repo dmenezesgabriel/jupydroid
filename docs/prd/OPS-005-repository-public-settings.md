@@ -148,7 +148,7 @@ and gates the merge (`gate`, `test (3.11..3.13)`, `pip-audit`, `zizmor`, `gitlea
 - [x] T3 — Ruleset `main required checks`: `POST` the sibling's shape with the eight pull-request
   contexts; `GET` read-back naming them. The commit body notes `docs` is deliberately absent until
   `docs.yml` reaches `main`.
-- [ ] T4 — arm64 runner, RED→GREEN: update `scripts/release_rootfs_workflow_test.py` to assert
+- [x] T4 — arm64 runner, RED→GREEN: update `scripts/release_rootfs_workflow_test.py` to assert
   `runs-on: ubuntu-24.04-arm`, no binfmt step, and the gnu payload in the artifact; then edit
   `release.yml` — `runs-on`, binfmt step deleted, comments rewritten off qemu, a `build-gnu.sh` step
   added before the artifact upload, `gnu-arm64-v8a.tzst` and its manifest added to the upload paths

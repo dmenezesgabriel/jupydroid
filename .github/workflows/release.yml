@@ -8,8 +8,9 @@ name: Release
 # release-tag.yml pushes the tag with the app token, because a tag pushed with GITHUB_TOKEN starts no workflow.
 # Why the pieces are the way they are: ADR-0140.
 #
-# The arm64 rootfs is the only one a Space can run (ADR-0003), and the repository is private on the free plan,
-# which has no hosted arm64 runner, so every RUN of the Dockerfile executes under qemu.
+# The arm64 rootfs is the only one a Space can run (ADR-0003). The repository is public, so GitHub's
+# free arm64 runner builds it natively - every RUN of the Dockerfile executes on the runner's own CPU,
+# with no qemu (ADR-0173).
 #
 # `ref` rebuilds an existing tag by hand, which is also how a failed release is retried: publishing is
 # idempotent, so a second run updates the Release instead of failing on it.
@@ -32,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # First and cheap, so a ref that is not a release tag fails in a minute rather than after the 32-minute rootfs.
+  # First and cheap, so a ref that is not a release tag fails in a minute rather than after the rootfs.
   # The tag must be an ancestor of main: a rebuild may re-publish a release, never an arbitrary commit.
   version:
     name: version
@@ -74,8 +75,9 @@ jobs:
     name: rootfs
     needs: version
     if: github.repository == 'dmenezesgabriel/jupydroid'
-    runs-on: ubuntu-24.04
-    # Measured at 32 minutes on a 2 vCPU runner (the build 31 min 06 s, the SBOM 16 s); about three times that.
+    runs-on: ubuntu-24.04-arm
+    # The emulated build measured 32 minutes; native arm64 has run nowhere yet, so the ceiling keeps the
+    # qemu-era headroom until the probe reports the real number.
     timeout-minutes: 90
     permissions:
       contents: read
@@ -93,19 +95,13 @@ jobs:
           checksum: "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
           enable-cache: false
 
-      # The arm64 handler does not survive a reboot, so every fresh runner needs it before the first RUN
-      # (`exec /bin/sh: exec format error` otherwise). Pinned by digest, as tools/rootfs/build.sh names it:
-      # this is qemu-v10.2.3, pushed 2026-06-08.
-      - name: Register the arm64 binfmt handler
-        run: docker run --privileged --rm tonistiigi/binfmt@sha256:400a4873b838d1b89194d982c45e5fb3cda4593fbfd7e08a02e76b03b21166f0 --install arm64
-
-      # The elapsed times go to the job summary: how long the build takes under qemu is what decides
-      # whether a release can wait for it.
+      # The elapsed times go to the job summary: the first native run's numbers decide whether the
+      # timeout can come down.
       - name: Build the arm64 rootfs
         run: |
           started=$SECONDS
           tools/rootfs/build.sh arm64-v8a
-          echo "rootfs build under qemu: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
+          echo "rootfs build: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Catalogue the rootfs
         run: |
@@ -114,13 +110,21 @@ jobs:
           echo "sbom: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
 
       # The patched proot every Space runs under (ADR-0073): built from the pinned upstream
-      # tarball and the vendored patches under tools/proot/, on the same binfmt this job
-      # registered for the rootfs.
+      # tarball and the vendored patches under tools/proot/, natively like the rest of the job.
       - name: Build the patched proot
         run: |
           started=$SECONDS
           tools/proot/build.sh
-          echo "proot build under qemu: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
+          echo "proot build: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
+
+      # The gnu interpreter payload (ADR-0166). stage-app-artifacts.sh arm64-v8a refuses without
+      # gnu-arm64-v8a.tzst and no workflow built it, so the next release would have failed at staging.
+      # Fixes: 946f72d82360 ("build(space): the gnu interpreter payload builds as its own asset beside the rootfs")
+      - name: Build the gnu payload
+        run: |
+          started=$SECONDS
+          tools/rootfs/build-gnu.sh
+          echo "gnu payload build: $((SECONDS - started)) s" >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -129,6 +133,8 @@ jobs:
             build/rootfs/rootfs-arm64-v8a.tzst
             build/rootfs/rootfs-arm64-v8a.manifest.txt
             build/rootfs/sbom-arm64-v8a.json
+            build/rootfs/gnu-arm64-v8a.tzst
+            build/rootfs/gnu-arm64-v8a.manifest.txt
           if-no-files-found: error
           retention-days: 7
 
