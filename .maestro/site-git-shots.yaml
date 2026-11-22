@@ -1,0 +1,94 @@
+appId: com.jupydroid.app
+---
+# The frames the Git page shows: the Source Control panel where the browsed directory is not a
+# repository, the Space's terminal making one, and the panel reading that repository's branch and
+# changed files. A `takeScreenshot` name here IS the image id - scripts/site-screenshots-driver.sh
+# crops every PNG this flow takes into docs-site/pages/images/<name>-<theme>.png, so the name is a
+# published filename (ADR-0171).
+#
+# The workspace only exists inside a running Space, so base's real server boots - TABLET ONLY
+# (SM-X216B). The repository is made in the Space's own terminal rather than seeded: the page's
+# second claim is that git itself runs there, and the panel the Git extension contributes (ADR-0104)
+# reads the directory the Files panel browses. The root shot therefore comes before the terminal,
+# and the repository shot after browsing into demo/.
+#
+# Terminal canvas text never reaches the accessibility dump (§8.6), so the shell's work is proven
+# by what Files shows - demo/ and GIT_READY at the root - and by the panel's own rows naming the
+# branch and each file's status, never by reading the echoed command back.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+
+# The workspace root is an ordinary directory, not a repository: the panel says so and offers
+# Retry, which is also what a failed read offers.
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "You are not currently in a Git repository."
+    timeout: 30000
+- assertVisible: "Retry"
+- takeScreenshot: git-not-a-repository
+
+# open-new-terminal.yaml is the one reach both widths share; at two panes it taps the launcher's
+# Terminal card. The first inputText races the field's IME connection (§8.6), so terminal-input is
+# tapped before every command and the repository is made in two commands where a pause is cheap.
+- runFlow: open-new-terminal.yaml
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+- tapOn:
+    id: "terminal-input"
+- inputText: "git init -q demo && cd demo && echo '# demo' > README.md && git add README.md && git -c user.name=d -c user.email=d@d commit -qm init"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- tapOn:
+    id: "terminal-input"
+- inputText: "echo 'print(1)' >> README.md && echo 'x = 1' > notes.py && git add notes.py && echo draft > draft.txt && git checkout -q -b feature && touch ../GIT_READY"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+
+# GIT_READY is the marker the second command ends with: it sits at the workspace root, outside
+# demo/, so the repository's own status stays exactly the three files the panel will list. Its
+# presence in Files is the proof the shell ran to the end; the canvas's echo is not read (§8.6).
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "GIT_READY"
+    timeout: 60000
+- assertVisible: "demo"
+- tapOn:
+    id: "terminal-input"
+- inputText: "git status --short --branch"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: git-terminal
+
+# Back on Files the panel follows the directory it browses: demo/ is the repository the terminal
+# just made, so Source Control reads branch feature and the staged, changed and untracked rows.
+- tapOn: "demo"
+- extendedWaitUntil:
+    visible: "draft.txt"
+    timeout: 15000
+- assertVisible: "README.md"
+- assertVisible: "notes.py"
+- tapOn: "Source Control"
+- extendedWaitUntil:
+    visible: "feature"
+    timeout: 30000
+- assertVisible: "Current branch"
+- assertVisible: "Staged (1)"
+- assertVisible: "notes.py • Added"
+- assertVisible: "Changed (1)"
+- assertVisible: "README.md • Modified"
+- assertVisible: "Untracked (1)"
+- assertVisible: "draft.txt • Untracked"
+- takeScreenshot: git-status
