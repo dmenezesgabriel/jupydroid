@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# The frames the Chat page shows for the controls along the input: a new chat with its folded
+# chip, the chip's menu naming the agent, its session mode and its models, and the "/" list of the
+# agent's commands. A `takeScreenshot` name here IS the image id -
+# scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename (ADR-0171).
+#
+# The workspace only exists inside a running Space, so base's real server boots - TABLET ONLY
+# (SM-X216B). site-chat-agent-shots-seed.sh drops the pinned opencode binary into the Space
+# rootfs; the persona's session starts unsigned - is_authed() answers true and the session's
+# config options do not wait on a sign-in (jupyter-ai-acp-client acp_personas/opencode.py). What
+# needs a credential is a live answer, which no frame here asks for.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "No chat opened"
+    timeout: 30000
+- takeScreenshot: chat-blank
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Ask the agent"
+    timeout: 30000
+
+# Selecting the persona spawns `opencode acp` under proot before it can say what it offers; the
+# chip naming opencode's model says the session is up (chat-slash-commands.yaml waits the same).
+- extendedWaitUntil:
+    visible: "OpenCode/Big Pickle"
+    timeout: 300000
+- takeScreenshot: chat-new
+
+# In the chat pane's width the controls fold into the one chip naming the model in use; opened, its
+# menu lists every control's values - Agent, Session Mode, then the searchable Model list.
+- tapOn: "OpenCode/Big Pickle"
+- extendedWaitUntil:
+    visible: "Session Mode"
+    timeout: 30000
+- takeScreenshot: chat-controls
+- pressKey: Back
+
+- tapOn: "Ask the agent"
+- inputText: "/"
+- extendedWaitUntil:
+    visible: "/customize-opencode"
+    timeout: 60000
+- takeScreenshot: chat-slash

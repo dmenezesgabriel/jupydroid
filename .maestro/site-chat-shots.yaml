@@ -1,0 +1,40 @@
+appId: com.jupydroid.app
+---
+# The frames the Chat page shows: the panel's chat list, a transcript whose tool calls ran under
+# different permission answers and ends on one still waiting, and a chat holding queued questions.
+# A `takeScreenshot` name here IS the image id - scripts/site-screenshots-driver.sh crops every PNG
+# this flow takes into docs-site/pages/images/<name>-<theme>.png, so the name is a published
+# filename (ADR-0171).
+#
+# The workspace only exists inside a running Space, so base's real server boots - TABLET ONLY
+# (SM-X216B). site-chat-shots-seed.sh writes the three .chat files and the queue file; no harness
+# is installed, so the queue holds and no agent chips join the transcript frames.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- tapOn: "Chat"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- takeScreenshot: chat-list
+
+# untitled.chat's exchange ends on a call waiting on the user: the whole transcript fits the pane,
+# so one frame holds the question, the read that ran unasked, the shell command allowed once, the
+# one rejected, and the pending row offering the agent's options beneath its tree branch - the only
+# place "Always allow" appears.
+- tapOn: "^untitled$"
+- extendedWaitUntil:
+    visible: "Always allow"
+    timeout: 30000
+- takeScreenshot: chat-transcript
+
+- tapOn: "All chats"
+- extendedWaitUntil:
+    visible: "Open an existing chat:"
+    timeout: 30000
+- tapOn: "^untitled1$"
+- extendedWaitUntil:
+    visible: "2 queued"
+    timeout: 30000
+- takeScreenshot: chat-queued

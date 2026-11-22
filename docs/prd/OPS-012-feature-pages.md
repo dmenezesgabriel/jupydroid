@@ -225,7 +225,7 @@ enough that each takes well under a session; if one does not, decompose it here 
   workspace search, replace, and in-document find.
 - [x] T6 — Git page: the Source Control panel's branch and changed files, and that git runs in
   the terminal.
-- [ ] T7 — Chat and MCP pages: chats, the agent/model/mode/effort chips, slash commands, tool
+- [x] T7 — Chat and MCP pages: chats, the agent/model/mode/effort chips, slash commands, tool
   calls and permissions, queued questions; `.jupyter/mcp_settings.json` via "MCP servers".
 - [ ] T8 — Settings and Troubleshooting pages: every Settings section and theme/app-icon choice;
   the arm64 caveat, the Diagnostics error log, and where a Space's server log lives.
