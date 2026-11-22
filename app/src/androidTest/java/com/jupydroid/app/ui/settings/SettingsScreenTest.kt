@@ -226,7 +226,7 @@ class SettingsScreenTest {
     val repository = FakeEditorSettingsRepository(EditorSettings(accessKernelHistory = false))
     startScreen(repository)
 
-    compose.onNodeWithText(KERNEL_HISTORY_ACCESS).performClick()
+    compose.onNodeWithText(KERNEL_HISTORY_ACCESS).performScrollTo().performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().accessKernelHistory }
   }
@@ -254,7 +254,7 @@ class SettingsScreenTest {
     val repository = FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = true))
     startScreen(repository)
 
-    compose.onNodeWithText(AUTOSAVE_DOCUMENTS).performClick()
+    compose.onNodeWithText(AUTOSAVE_DOCUMENTS).performScrollTo().performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().autosaveEnabled }
   }
