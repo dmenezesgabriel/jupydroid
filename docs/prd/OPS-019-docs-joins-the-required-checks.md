@@ -114,8 +114,8 @@ is measured read-backs against our own ruleset and workflow, not a reference.
 
 ## Tasks
 
-- [ ] T1 — This PRD.
-- [ ] T2 — Ruleset gains `docs`: `GET` ruleset `27844457`, `PUT` it back with the same eight contexts
+- [x] T1 — This PRD.
+- [x] T2 — Ruleset gains `docs`: `GET` ruleset `27844457`, `PUT` it back with the same eight contexts
   plus `{context: "docs"}` — `strict_required_status_checks_policy: false` and
   `do_not_enforce_on_create: false` preserved verbatim; `GET` read-back naming nine contexts. Then
   `gh pr close` + `gh pr reopen` on PRs `22`, `32`, `34` so their merge commits pick up `docs.yml`,
