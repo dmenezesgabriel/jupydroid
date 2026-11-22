@@ -292,7 +292,7 @@ reference we transcribe from permits ([`architecture/cross-cutting.md`](architec
 | `JD-065` | **Settings shows the licences of everything the APK ships:** the app's own, the transcribed upstreams', and the rootfs packages' with their source offer ([ADR-0135](adr/0135-the-apk-bundles-its-licences-and-settings-shows-them.md)) | shipped | — | `GAP-136` |
 | `OPS-004` | **A front door for strangers:** a README (what it is, screenshots, install, build from source including the rootfs), CONTRIBUTING (the working agreement, pre-commit, the device rule stated generically), SECURITY.md (private vulnerability reporting), a code of conduct, issue and PR templates | shipped | — | — |
 | `OPS-005` | **The repository's public settings are finished:** the repo is already public and `CODE_OF_CONDUCT.md`'s contact is filled — what remains is secret scanning and push protection on, private vulnerability reporting on, `main` protected and requiring M10's checks once they exist; this unlocks CodeQL and Scorecard, the free arm64 runner and the Pages deploy | shipped | — | — |
-| `OPS-019` | **`docs` joins the required checks once it can:** when `.github/workflows/docs.yml` reaches `main`, the `main required checks` ruleset gains the `docs` context and the first Pages `deploy` run is watched green — requiring it earlier would deadlock every pull request branched off `main` | open ← next | — | — |
+| `OPS-019` | **`docs` joins the required checks once it can:** when `.github/workflows/docs.yml` reaches `main`, the `main required checks` ruleset gains the `docs` context and the first Pages `deploy` run is watched green — requiring it earlier would deadlock every pull request branched off `main` | shipped | — | — |
 
 ### M10 — Delivery
 
