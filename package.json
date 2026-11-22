@@ -22,7 +22,7 @@
     "@commitlint/cz-commitlint": "21.2.4",
     "@types/node": "24.19.2",
     "commitizen": "4.3.2",
-    "inquirer": "12.11.1",
+    "inquirer": "14.3.0",
     "typescript": "6.0.3"
   }
 }
