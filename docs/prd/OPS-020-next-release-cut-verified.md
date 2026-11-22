@@ -124,7 +124,7 @@ the machinery ADR-0140 already built, not designing a new one.
 - [x] T2 — Merge the audit branch: `gh pr ready 36`, wait until `gradle-gate` and the other seven
   required contexts are green on the pull request, then `gh pr merge 36 --merge` (merge commit, per
   the PR's body). The commit body names the merge commit sha and the check-run ids it waited on.
-- [ ] T3 — Prove the docs deploy live: watch the `Docs` workflow's `deploy` job go green on the merge
+- [x] T3 — Prove the docs deploy live: watch the `Docs` workflow's `deploy` job go green on the merge
   push, then `curl -fsS https://dmenezesgabriel.github.io/jupydroid/` until it serves the built site
   (it answered 404 before). Commit body quotes the job id and the fetched page's identifying line.
   If `deploy` fails on Pages source configuration, `actions/configure-pages` in `docs.yml` is the
