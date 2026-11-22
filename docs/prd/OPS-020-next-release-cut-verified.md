@@ -121,7 +121,7 @@ the machinery ADR-0140 already built, not designing a new one.
 ## Tasks
 
 - [x] T1 — This PRD, and the `OPS-013` → `OPS-020` renumber that gives the row a unique id.
-- [ ] T2 — Merge the audit branch: `gh pr ready 36`, wait until `gradle-gate` and the other seven
+- [x] T2 — Merge the audit branch: `gh pr ready 36`, wait until `gradle-gate` and the other seven
   required contexts are green on the pull request, then `gh pr merge 36 --merge` (merge commit, per
   the PR's body). The commit body names the merge commit sha and the check-run ids it waited on.
 - [ ] T3 — Prove the docs deploy live: watch the `Docs` workflow's `deploy` job go green on the merge
