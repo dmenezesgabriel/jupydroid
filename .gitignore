@@ -10,6 +10,8 @@
 .DS_Store
 /build
 /captures
+# playwright-cli session snapshots and logs stay local (ADR-0132); the curated frames are committed under docs-site/pages/images/.
+/.playwright-cli/
 .externalNativeBuild
 .cxx
 local.properties

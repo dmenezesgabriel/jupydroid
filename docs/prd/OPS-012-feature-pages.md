@@ -236,7 +236,7 @@ enough that each takes well under a session; if one does not, decompose it here 
   smaller project keeps (logo and favicon, palette and scheme toggles, nav footer, tabs,
   annotations, copy buttons as pages need them); the commit body names what was taken and what
   was left, and the strict build stays green.
-- [ ] T10 — Browser validation: serve the built site (`mkdocs serve` or a static server over
+- [x] T10 — Browser validation: serve the built site (`mkdocs serve` or a static server over
   `build/site`) and walk it with `playwright-cli` — the command surface is
   `.claude/skills/playwright-cli/SKILL.md` and the binary is installed globally. Visit every
   `nav` page: `goto`, `snapshot`, `screenshot` — the curated frames are the record of the walk,
