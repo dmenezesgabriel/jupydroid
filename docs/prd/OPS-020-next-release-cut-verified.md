@@ -129,7 +129,7 @@ the machinery ADR-0140 already built, not designing a new one.
   (it answered 404 before). Commit body quotes the job id and the fetched page's identifying line.
   If `deploy` fails on Pages source configuration, `actions/configure-pages` in `docs.yml` is the
   first thing read — a defect to fix, not a workaround.
-- [ ] T4 — Cut the release: wait for the `Release cut` run on the merge push to rebuild
+- [x] T4 — Cut the release: wait for the `Release cut` run on the merge push to rebuild
   `release/next` and refresh PR #31 (confirm its head contains the merge — never merge the stale
   pre-merge PR), wait its required checks, `gh pr merge 31 --merge`; `release-tag.yml` tags the
   merge commit; `gh run watch` the `Release` run to green; `gh release view <tag>` shows the APK,
