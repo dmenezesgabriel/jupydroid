@@ -23,7 +23,7 @@
 
 # A separate stage purely so the shipped rootfs does not grow a C toolchain: only the
 # 8 KB .so crosses over. See sigsys_report.c for why it exists.
-FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2 AS sigsys-builder
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS sigsys-builder
 RUN apk add --no-cache gcc musl-dev
 COPY sigsys_report.c /tmp/sigsys_report.c
 RUN gcc -shared -fPIC -O2 -Wall -Wextra -Werror -o /tmp/libsigsys_report.so /tmp/sigsys_report.c \
@@ -70,7 +70,7 @@ RUN gcc -O2 -Wall -Wextra -Werror -o /tmp/proc_fd_probe /tmp/proc_fd_probe.c
 #
 # Built with Alpine's config, so every applet symlink the rootfs already carries still names an
 # applet this binary has.
-FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2 AS busybox-builder
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS busybox-builder
 RUN apk add --no-cache gcc musl-dev make perl bzip2 linux-headers utmps-dev utmps-static pkgconf
 COPY busybox.config /tmp/busybox.config
 RUN wget -qO /tmp/busybox.tar.bz2 https://busybox.net/downloads/busybox-1.37.0.tar.bz2 \
@@ -98,7 +98,7 @@ RUN grep -q '^# CONFIG_FEATURE_SUID is not set$' /tmp/busybox/.config \
  && /tmp/busybox/busybox ls / >/dev/null \
  && /tmp/busybox/busybox | head -1
 
-FROM alpine:3.23@sha256:469c9ea410b9215eaee7976ba6c0639039b444be8e5d638f7abbada189971eb2
+FROM alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 
 # git is what jupyterlab-git's server half runs for every answer it gives (ADR-0104).
 #
