@@ -219,7 +219,7 @@ enough that each takes well under a session; if one does not, decompose it here 
   Debugger, contributed Chat/Source Control), the launcher, one-pane bottom bar and "More" rail.
 - [x] T3 — Notebooks page: cells and cell types, running cells, outputs, the cell-actions menu,
   completions, checkpoints and revert, save/save-as, export formats.
-- [ ] T4 — Console and Terminal pages: the kernel console and the shell terminal, their launcher
+- [x] T4 — Console and Terminal pages: the kernel console and the shell terminal, their launcher
   cards, tabs and settings.
 - [ ] T5 — Files and Search pages: the Files panel, New menu, file editor, recents, import;
   workspace search, replace, and in-document find.

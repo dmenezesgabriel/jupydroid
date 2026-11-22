@@ -50,3 +50,5 @@ nav:
   - Spaces: spaces.md
   - Interface: interface.md
   - Notebooks: notebooks.md
+  - Console: console.md
+  - Terminal: terminal.md

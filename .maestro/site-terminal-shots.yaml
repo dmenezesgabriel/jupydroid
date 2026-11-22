@@ -1,0 +1,141 @@
+appId: com.jupydroid.app
+---
+# The frames the Terminal page shows: a fresh shell with the extra-keys row, a long-press
+# selection with its handles and floating toolbar, the Open Link ask a tapped address raises, the
+# actions menu, and the font size stepped up. A `takeScreenshot` name here IS the image id -
+# scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# Every frame is a real shell's answer - the Space's busybox ash on the tablet's own pty - so
+# TABLET ONLY (SM-X216B): on the x86_64 emulator FakeTerminalGateway echoes what it is sent and
+# none of the printed blocks below would exist. The selection and link frames borrow
+# terminal-selection-handles.yaml's and terminal-link-tap-part1-printed.yaml's own moves: the
+# word and the address are printed at the grid's centre column on every row but the last, because
+# the canvas's text never reaches the accessibility dump (§8.6) and a tap on the input field's
+# centre is the only aim a flow has.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+# open-new-terminal.yaml is the one reach both widths share: the launcher's Terminal card at two
+# panes, the More rail's New terminal at one.
+- runFlow: open-new-terminal.yaml
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+# Generous and fixed: a cold rootfs/JIT can still be mid-launch at 5s, leaving an
+# apparently-empty frame (terminal-font-size.yaml's own settle).
+- waitForAnimationToEnd:
+    timeout: 15000
+# The first inputText races the field's IME connection; the tap settles it (§8.6). `clear`
+# follows so the banner the first shell draws is not in the frame, then `pwd` leaves the shot a
+# real answer - the Space's own path - rather than a bare prompt.
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- inputText: "pwd"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 5000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: terminal-open
+
+# `sel$((6*7))` prints `sel42word` only where a shell computed it - the pty echoes the typed
+# command, so the source alone could never pass for the answer. The word is centred on the grid
+# rather than padded beside a `head`: a tap on the input field's centre is the grid's centre
+# column, and centred leaves the word five cells of margin on each side where a head-pad left
+# four on one and twenty on the other - a miss the tablet actually produced. The count is fixed,
+# not `stty size`: the command runs while the IME still compresses the grid, and rows sized to
+# it leave the canvas blank everywhere the eye can reach once the keyboard drops. 200 rows
+# overflow any grid this window draws, so the tapped row is always a word row.
+- inputText: "clear; set -- $(stty size); for r in $(seq 200); do printf \"%$(($2/2-4))s%s\\n\" \"\" \"sel$((6*7))word\"; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn:
+    id: "terminal-input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- assertVisible:
+    id: "terminal-selection-start"
+- assertVisible:
+    id: "terminal-selection-end"
+- takeScreenshot: terminal-selection
+# Copy ends the selection, handles and all - the same exit terminal-selection-handles.yaml takes,
+# so what follows types on a clean screen.
+- tapOn:
+    text: "Copy"
+    id: "android:id/floating_toolbar_menu_item_text"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# The same centred print, now an address: a tap on it asks before it opens, because an OSC 8 or
+# printed link's target is whatever the program wrote. The field tap first is the §8.6 settle -
+# Copy's toolbar is a window of its own, and it lands on sel42word, which is no link. Centred
+# like the word above, and for the same two reasons: the fixed row count survives the
+# IME-compressed grid the command runs on, and the centre column is where the field's tap lands.
+- tapOn:
+    id: "terminal-input"
+- inputText: "clear; set -- $(stty size); for r in $(seq 200); do printf \"%$(($2/2-12))s%s\\n\" \"\" \"https://example.org/sel$((6*7))\"; done"
+- pressKey: Enter
+- waitForAnimationToEnd:
+    timeout: 10000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "terminal-input"
+# A tap the link lookup does not take falls through to the field and raises the IME - seen once
+# on the tablet as a centre tap that found no link while the canvas was still settling after the
+# keyboard dropped. The retry fires only when the ask never appeared; inside it the untaken tap
+# has provably raised the IME, so hideKeyboard is a hide, not the Back it sends with nothing to
+# dismiss (input-prompt-answers.yaml's trap).
+- waitForAnimationToEnd:
+    timeout: 3000
+- runFlow:
+    when:
+      notVisible: "Open Link\\?"
+    commands:
+      - tapOn:
+          id: "terminal-input"
+      - extendedWaitUntil:
+          visible: "Open Link\\?"
+          timeout: 10000
+      - hideKeyboard
+      - waitForAnimationToEnd:
+          timeout: 3000
+- extendedWaitUntil:
+    visible: "Open Link\\?"
+    timeout: 10000
+- assertVisible: "Do you want to navigate to https://example\\.org/sel42\\? This link could potentially be dangerous\\."
+- takeScreenshot: terminal-link
+- tapOn: "Cancel"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# The overflow holds the font stepper and Paste - terminal-font-size.yaml's own two-tap reach:
+# each row dismisses the menu on tap, so it reopens before the second step. No clearing follows:
+# the link block still fills the canvas, and a tap on the field's centre to refocus would hit the
+# centred address and raise the Open Link ask instead - the shot wants the bigger type, which the
+# block shows as well as a prompt would.
+- tapOn: "Terminal actions"
+- extendedWaitUntil:
+    visible: "Increase Terminal Font Size"
+    timeout: 10000
+- takeScreenshot: terminal-actions
+- tapOn: "Increase Terminal Font Size"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn: "Terminal actions"
+- tapOn: "Increase Terminal Font Size"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: terminal-font-size
