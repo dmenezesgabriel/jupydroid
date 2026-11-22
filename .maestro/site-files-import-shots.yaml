@@ -1,0 +1,24 @@
+appId: com.jupydroid.app
+---
+# The frames the Files page's import half shows: a .ipynb another app hands over, landing open
+# beside the browser that lists it. No launchApp - site-files-import-shots-seed.sh warms base
+# first, then fires the VIEW intent that the running app takes onNewIntent into the copy
+# (scripts/import-view-intent-driver.sh's own mechanism), and the import must land in the
+# process this flow then observes.
+#
+# The destination is a running Space, so base's real server boots - TABLET ONLY (SM-X216B).
+- extendedWaitUntil:
+    visible: "Tab: Intro to NumPy.ipynb"
+    timeout: 300000
+- takeScreenshot: files-imported-open
+
+# The rail's Recents recorded the open, and the section arrives shut, so the heading is the tap.
+# The document stays open for the frame: closing the last tab can catch the notebook's session
+# asks mid-flight, and SessionRest's blocking execute() in
+# app/src/main/java/com/jupydroid/app/data/space/KernelLifecycle.kt lets the cancelled call's
+# timeout escape as a process crash.
+- tapOn: "Recent"
+- extendedWaitUntil:
+    visible: "Intro to NumPy.ipynb"
+    timeout: 10000
+- takeScreenshot: files-imported-listed

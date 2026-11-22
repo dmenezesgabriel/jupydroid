@@ -221,7 +221,7 @@ enough that each takes well under a session; if one does not, decompose it here 
   completions, checkpoints and revert, save/save-as, export formats.
 - [x] T4 — Console and Terminal pages: the kernel console and the shell terminal, their launcher
   cards, tabs and settings.
-- [ ] T5 — Files and Search pages: the Files panel, New menu, file editor, recents, import;
+- [x] T5 — Files and Search pages: the Files panel, New menu, file editor, recents, import;
   workspace search, replace, and in-document find.
 - [ ] T6 — Git page: the Source Control panel's branch and changed files, and that git runs in
   the terminal.
