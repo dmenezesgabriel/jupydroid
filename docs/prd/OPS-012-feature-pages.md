@@ -236,7 +236,21 @@ enough that each takes well under a session; if one does not, decompose it here 
   smaller project keeps (logo and favicon, palette and scheme toggles, nav footer, tabs,
   annotations, copy buttons as pages need them); the commit body names what was taken and what
   was left, and the strict build stays green.
-- [ ] T10 — Ship: full driver rerun on `SM-X216B` with every frame inspected, strict build and all
+- [ ] T10 — Browser validation: serve the built site (`mkdocs serve` or a static server over
+  `build/site`) and walk it with `playwright-cli` — the command surface is
+  `.claude/skills/playwright-cli/SKILL.md` and the binary is installed globally. Visit every
+  `nav` page: `goto`, `snapshot`, `screenshot` — the curated frames are the record of the walk,
+  so they are **committed**, following the site's own asset convention: `-light`/`-dark` pairs
+  under `docs-site/pages/images/` ([ADR-0169](../adr/0169-the-documentation-site-is-mkdocs-material-under-docs-site-and-pages-deploys-only-while-public.md)),
+  which `scripts/check_site_images.py` gates. Only those curated PNGs are versioned: the
+  transient output stays out of git — `.playwright-cli/` session snapshots and logs (add it to
+  `.gitignore` if the walk runs from the repo root), `build/site` (already ignored under
+  `/build`), and anything the server writes.
+  Then interact, not just render: follow the nav links, flip the palette toggle to the other
+  scheme and back, run the site search, open the menus, tabs, annotations and copy buttons T9
+  kept. **Look at every frame** — a broken image, dead link or misrender found here is fixed in
+  this change, not passed over. The commit body names the pages walked and what was found.
+- [ ] T11 — Ship: full driver rerun on `SM-X216B` with every frame inspected, strict build and all
   site gates green, delete this PRD, edit the backlog row to `shipped`, commit.
 
 ## Out of scope
