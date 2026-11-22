@@ -143,7 +143,7 @@ and gates the merge (`gate`, `test (3.11..3.13)`, `pip-audit`, `zizmor`, `gitlea
 - [x] T1 — Secret scanning and push protection on: one `PATCH` carrying both
   `security_and_analysis` statuses (the gh-secure#21 payload trap), then the `GET` read-back and a
   `200` from `/secret-scanning/alerts` as the commit-body evidence.
-- [ ] T2 — Private vulnerability reporting on: `PUT`, then `GET …/private-vulnerability-reporting`
+- [x] T2 — Private vulnerability reporting on: `PUT`, then `GET …/private-vulnerability-reporting`
   reporting `enabled: true`.
 - [ ] T3 — Ruleset `main required checks`: `POST` the sibling's shape with the eight pull-request
   contexts; `GET` read-back naming them. The commit body notes `docs` is deliberately absent until
