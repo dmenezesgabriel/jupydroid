@@ -154,7 +154,7 @@ and gates the merge (`gate`, `test (3.11..3.13)`, `pip-audit`, `zizmor`, `gitlea
   added before the artifact upload, `gnu-arm64-v8a.tzst` and its manifest added to the upload paths
   (the `apk` job's `build/rootfs` download already carries them to `stage-app-artifacts.sh`). ADR-0173
   records why the runner moved and what the probe must still prove.
-- [ ] T5 — Probe: add `.github/workflows/arm64-probe.yml` (`on: push` to the working branch, `paths:`
+- [x] T5 — Probe: add `.github/workflows/arm64-probe.yml` (`on: push` to the working branch, `paths:`
   covering itself and `tools/rootfs/**`, `tools/proot/**`; `ubuntu-24.04-arm`; the same four build
   steps, timed to the job summary, no publish path), push the branch so it runs, and read the run —
   every build green natively is the evidence; the measured times feed T6's timeout decision.
