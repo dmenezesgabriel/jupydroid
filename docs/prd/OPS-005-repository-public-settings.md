@@ -140,7 +140,7 @@ and gates the merge (`gate`, `test (3.11..3.13)`, `pip-audit`, `zizmor`, `gitlea
 
 ## Tasks
 
-- [ ] T1 — Secret scanning and push protection on: one `PATCH` carrying both
+- [x] T1 — Secret scanning and push protection on: one `PATCH` carrying both
   `security_and_analysis` statuses (the gh-secure#21 payload trap), then the `GET` read-back and a
   `200` from `/secret-scanning/alerts` as the commit-body evidence.
 - [ ] T2 — Private vulnerability reporting on: `PUT`, then `GET …/private-vulnerability-reporting`
