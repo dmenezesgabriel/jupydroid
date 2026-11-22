@@ -1,0 +1,72 @@
+appId: com.jupydroid.app
+---
+# The frames the Settings page shows: the app-wide Settings screen section by section - the theme
+# and app-icon choices with the editor rows, the autosave/kernel/table-of-contents rows, the empty
+# Diagnostics section and the Licences row - and the Licences screen the row opens. A
+# `takeScreenshot` name here IS the image id - scripts/site-screenshots-driver.sh crops every PNG
+# this flow takes into docs-site/pages/images/<name>-<theme>.png, so the name is a published
+# filename (ADR-0171).
+#
+# The workspace only exists inside a running Space, because the rail's Settings gear lives there -
+# TABLET ONLY (SM-X216B). No seed: the screen's content is the app's own rows, and the Diagnostics
+# section's empty state is what a fresh install reads. The list is barely over one pane tall, so
+# three scroll stops cover it: the top already shows every editor toggle through "Kernel history
+# access", and only the autosave, numbering, Diagnostics and Licences rows sit below the fold.
+#
+# "Number top-level headings" renders only while "Heading numbers" is on, so the flow switches it
+# on for the numbering shot. Nothing else is changed: the theme stays System (the driver resets
+# theme-settings.json per flow) and the app icon stays Blue orbit, whose PackageManager state
+# reset_notebooks does not reach.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- runFlow: open-settings.yaml
+- extendedWaitUntil:
+    visible: "Back to files|Close tab: Settings"
+    timeout: 5000
+
+# The top of the list: the theme choice, the two launcher icons, and the editor rows - the pane
+# is tall enough that "Kernel history access" is the last of them on screen.
+- assertVisible: "Theme"
+- assertVisible: "App icon"
+- assertVisible: "Kernel history access"
+- takeScreenshot: settings-appearance
+
+# The rows below the fold: autosave and the kernel-on-close switch, then the numbering rows -
+# "Number top-level headings" exists only under an enabled "Heading numbers", so the switch goes
+# on first and the shot shows all three.
+- scrollUntilVisible:
+    element:
+      text: "Heading numbers"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Heading numbers"
+- scrollUntilVisible:
+    element:
+      text: "Output headings"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "Number top-level headings"
+- takeScreenshot: settings-toc
+
+# The foot of the list: Diagnostics reads its summary off disk asynchronously, so the shot waits
+# for the count rather than for the section's title - "Reading the error log…" is not the answer.
+- scrollUntilVisible:
+    element:
+      text: "Licences"
+    direction: DOWN
+    timeout: 20000
+- extendedWaitUntil:
+    visible: "0 entries · 0 B"
+    timeout: 20000
+- assertVisible: "Share log"
+- assertVisible: "Clear logs"
+- takeScreenshot: settings-diagnostics
+
+# The Licences row opens the licence documents the APK ships, over Settings.
+- tapOn: "Licences"
+- extendedWaitUntil:
+    visible: "Third-party software"
+    timeout: 10000
+- takeScreenshot: settings-licences

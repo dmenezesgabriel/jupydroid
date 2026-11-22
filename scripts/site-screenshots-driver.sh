@@ -66,6 +66,8 @@ SITE_SHOT_FLOWS=(
   "$ROOT/.maestro/site-chat-shots.yaml"
   "$ROOT/.maestro/site-chat-agent-shots.yaml"
   "$ROOT/.maestro/site-mcp-shots.yaml"
+  "$ROOT/.maestro/site-settings-shots.yaml"
+  "$ROOT/.maestro/site-troubleshooting-shots.yaml"
 )
 
 mkdir -p "$IMAGES"

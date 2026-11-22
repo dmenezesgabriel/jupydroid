@@ -227,7 +227,7 @@ enough that each takes well under a session; if one does not, decompose it here 
   the terminal.
 - [x] T7 — Chat and MCP pages: chats, the agent/model/mode/effort chips, slash commands, tool
   calls and permissions, queued questions; `.jupyter/mcp_settings.json` via "MCP servers".
-- [ ] T8 — Settings and Troubleshooting pages: every Settings section and theme/app-icon choice;
+- [x] T8 — Settings and Troubleshooting pages: every Settings section and theme/app-icon choice;
   the arm64 caveat, the Diagnostics error log, and where a Space's server log lives.
 - [ ] T9 — Site polish: census `textualize/textual` at `5e5b7ef58b8c5572c13a3ff9027d756623661495`,
   cloned under `reference/research_repos/textual` — its config is split `mkdocs-common.yml` +
