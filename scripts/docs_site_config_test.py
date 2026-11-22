@@ -62,6 +62,22 @@ class SiteConfigTest(unittest.TestCase):
         self.assertEqual(config["plugins"], ["search"])
         self.assertNotIn("custom_dir", config["theme"], f"a custom theme directory is not a Zensical drop-in: {config}")
 
+    def test_theme_logo_and_favicon_are_files_the_build_ships(self) -> None:
+        config = load_site_config()
+        pages_directory = SITE_DIRECTORY / config["docs_dir"]
+        for key in ("logo", "favicon"):
+            asset = config["theme"].get(key)
+            self.assertIsInstance(asset, str, f"theme.{key} must name a file: {config['theme']}")
+            resolved = (pages_directory / asset).resolve()
+            self.assertTrue(
+                resolved.is_relative_to(pages_directory) and resolved.is_file(),
+                f"theme.{key} names {asset!r}, which is not a file under {config['docs_dir']}",
+            )
+
+    def test_edit_uri_points_at_the_pages_directory_on_main(self) -> None:
+        config = load_site_config()
+        self.assertEqual(config.get("edit_uri"), f"edit/main/docs-site/{config['docs_dir']}/")
+
 
 class DocsDependencyGroupTest(unittest.TestCase):
     def setUp(self) -> None:

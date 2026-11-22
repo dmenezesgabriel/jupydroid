@@ -8,6 +8,9 @@ site_name: JupyterDroid
 site_description: Offline Jupyter notebook app for Android, running a real jupyter_server and ipykernel.
 site_url: https://dmenezesgabriel.github.io/jupydroid/
 repo_url: https://github.com/dmenezesgabriel/jupydroid
+# mkdocs derives edit/master/docs/ for a github.com repo_url - wrong branch and wrong directory
+# here, so the pages' source path on main is stated.
+edit_uri: edit/main/docs-site/pages/
 
 docs_dir: pages
 # Under /build, which .gitignore already holds out of the tree.
@@ -15,6 +18,8 @@ site_dir: ../build/site
 
 theme:
   name: material
+  logo: assets/images/mark.svg
+  favicon: assets/images/mark.svg
   palette:
     - media: "(prefers-color-scheme)"
       toggle:
@@ -31,11 +36,25 @@ theme:
         icon: material/brightness-4
         name: Switch to system preference
   features:
-    - navigation.top
+    - content.action.edit
     - content.code.copy
+    - navigation.footer
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.top
+    - toc.follow
 
 plugins:
   - search
+
+# mkdocs' built-in extensions are toc, tables and fenced_code - no highlighter. superfences
+# parses the fences and pymdownx.highlight colors them; highlight alone leaves them plain.
+markdown_extensions:
+  - toc:
+      permalink: true
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight
 
 # `mkdocs build --strict` turns each of these into an error, so a page left out of `nav` or a link to a
 # file that does not exist fails the build instead of shipping. The nav is explicit for the same reason.

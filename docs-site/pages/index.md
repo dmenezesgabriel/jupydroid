@@ -4,8 +4,10 @@ An offline Jupyter notebook app for Android. It runs a real `jupyter_server` and
 bundled Linux root filesystem on the device, on loopback, with a native Android interface. There is no
 remote server.
 
-The runtime is arm64-only. On other architectures the app installs and shows its interface against a fake
-kernel that echoes a cell's source back as its output, so a cell does not run there.
+!!! warning "Arm64 only"
+    The runtime is arm64-only. On other architectures the app installs and shows its interface
+    against a fake kernel that echoes a cell's source back as its output, so a cell does not run
+    there.
 
 ![A notebook on a tablet: a code cell, its printed output and the file browser beside it](images/notebook-with-outputs-light.png#only-light)
 ![A notebook on a tablet: a code cell, its printed output and the file browser beside it](images/notebook-with-outputs-dark.png#only-dark)
