@@ -229,11 +229,13 @@ enough that each takes well under a session; if one does not, decompose it here 
   calls and permissions, queued questions; `.jupyter/mcp_settings.json` via "MCP servers".
 - [ ] T8 — Settings and Troubleshooting pages: every Settings section and theme/app-icon choice;
   the arm64 caveat, the Diagnostics error log, and where a Space's server log lives.
-- [ ] T9 — Site polish: census `textualize/textual`'s `mkdocs.yml` at `5e5b7ef58b8c5572c13a3ff9027d756623661495`
-  — its theme features, plugins, markdown extensions and nav — and adopt each knob a smaller
-  project keeps (logo and favicon, palette and scheme toggles, nav footer, tabs, annotations,
-  copy buttons as pages need them); the commit body names what was taken and what was left, and
-  the strict build stays green.
+- [ ] T9 — Site polish: census `textualize/textual` at `5e5b7ef58b8c5572c13a3ff9027d756623661495`,
+  cloned under `reference/research_repos/textual` — its config is split `mkdocs-common.yml` +
+  `mkdocs-online.yml`/`mkdocs-offline.yml` + `mkdocs-nav.yml` via `INHERIT` (`Makefile` composes
+  them): read its theme features, plugins, markdown extensions and nav, and adopt each knob a
+  smaller project keeps (logo and favicon, palette and scheme toggles, nav footer, tabs,
+  annotations, copy buttons as pages need them); the commit body names what was taken and what
+  was left, and the strict build stays green.
 - [ ] T10 — Ship: full driver rerun on `SM-X216B` with every frame inspected, strict build and all
   site gates green, delete this PRD, edit the backlog row to `shipped`, commit.
 
