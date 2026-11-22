@@ -35,7 +35,7 @@ dev = [
 # only `uv run --group docs mkdocs build --strict` does. The theme alone, with no plugin, keeps a move to
 # Zensical, which reads mkdocs.yml natively, a drop-in (scripts/docs_site_config_test.py).
 docs = [
-    "mkdocs-material>=9.8,<10",
+    "mkdocs-material>=9.8.1,<10",
 ]
 
 # The release cut. The git tag is the only record of a version: no file holds one, so nothing is edited by regex
