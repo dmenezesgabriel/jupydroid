@@ -20,7 +20,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.mainAreaTabs
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -42,7 +42,7 @@ class LeaveWorkspaceControlTest {
   private fun strip(twoPane: Boolean, vararg entries: NavKey) {
     backStack.addAll(entries)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         val tabs = backStack.mainAreaTabs()
         val gate = rememberMainAreaCloseGate(backStack, tabs, open, paths)
         TabbedDocumentPane(

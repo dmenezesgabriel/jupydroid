@@ -37,7 +37,7 @@ import com.jupydroid.app.domain.model.ThemeSettings
 import com.jupydroid.app.domain.port.AppIconRepository
 import com.jupydroid.app.domain.port.EditorSettingsRepository
 import com.jupydroid.app.domain.port.ThemeSettingsRepository
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.PHONE_WIDTH
 import com.jupydroid.app.ui.breaksInsideAWord
@@ -226,7 +226,7 @@ class SettingsScreenTest {
     val repository = FakeEditorSettingsRepository(EditorSettings(accessKernelHistory = false))
     startScreen(repository)
 
-    compose.onNodeWithText(KERNEL_HISTORY_ACCESS).performClick()
+    compose.onNodeWithText(KERNEL_HISTORY_ACCESS).performScrollTo().performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { repository.currentSettings().accessKernelHistory }
   }
@@ -254,7 +254,7 @@ class SettingsScreenTest {
     val repository = FakeEditorSettingsRepository(EditorSettings(autosaveEnabled = true))
     startScreen(repository)
 
-    compose.onNodeWithText(AUTOSAVE_DOCUMENTS).performClick()
+    compose.onNodeWithText(AUTOSAVE_DOCUMENTS).performScrollTo().performClick()
 
     compose.waitUntil(TIMEOUT_MILLIS) { !repository.currentSettings().autosaveEnabled }
   }
@@ -437,7 +437,7 @@ class SettingsScreenTest {
     frame: @Composable (@Composable () -> Unit) -> Unit = { screen -> screen() },
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         frame {
           SettingsScreen(
             editorSettingsRepository = editorSettingsRepository,

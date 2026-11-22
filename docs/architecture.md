@@ -1,4 +1,4 @@
-# JupyterDroid — Architecture
+# Jupydroid — Architecture
 
 An [arc42](https://arc42.org/overview) description of the system. Sections 5, 6 and 8 are large
 enough to live in their own files under `architecture/`.
@@ -19,7 +19,7 @@ it is. Ephemeral work lives in [`backlog.md`](backlog.md) and `prd/` and is dele
 
 ## 1. Introduction and goals
 
-JupyterDroid is an **offline JupyterLab client for Android that runs the real stack on the device**:
+Jupydroid is an **offline JupyterLab client for Android that runs the real stack on the device**:
 stock `jupyter_server` and `ipykernel` in a bundled musl (Alpine) rootfs on loopback, driven by a
 Compose-native UI. No remote server, ever.
 
@@ -111,7 +111,7 @@ home, busybox seccomp, palette consumers, driver isolation, doc citations).
 ┌────────────────────────────── Android device ──────────────────────────────┐
 │                                                                            │
 │  ┌──────────────────────┐        ┌──────────────────────────────────────┐  │
-│  │ JupyterDroid (Compose)│       │ Space — musl rootfs in filesDir      │  │
+│  │ Jupydroid (Compose)   │       │ Space — musl rootfs in filesDir      │  │
 │  │  Explorer · Editor    │       │                                      │  │
 │  │  FileEditor · Terminal│◄─────►│  jupyter_server  (127.0.0.1, token)  │  │
 │  └──────────┬───────────┘  HTTP  │        │                             │  │

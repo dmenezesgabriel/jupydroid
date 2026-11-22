@@ -39,7 +39,7 @@ class NotebookLanguageDocumentTest {
 
     val sync = server.syncs.single()
     assertEquals(synced.uri, sync.uri)
-    assertEquals("file:///jupyterdroid/notebooks/Analysis.ipynb.py", sync.uri)
+    assertEquals("file:///jupydroid/notebooks/Analysis.ipynb.py", sync.uri)
     // The layout: block text + trailing newline, two blank lines between blocks.
     assertEquals("import os\n\n\nos.getcwd()\n", sync.text)
   }
@@ -73,8 +73,8 @@ class NotebookLanguageDocumentTest {
 
     document.sync(listOf(code("c1", "x = 1")))
 
-    assertEquals(listOf("file:///jupyterdroid/notebooks/Analysis.ipynb.py"), server.closes)
-    assertEquals("file:///jupyterdroid/notebooks/Renamed.ipynb.py", server.syncs.last().uri)
+    assertEquals(listOf("file:///jupydroid/notebooks/Analysis.ipynb.py"), server.closes)
+    assertEquals("file:///jupydroid/notebooks/Renamed.ipynb.py", server.syncs.last().uri)
   }
 
   /**

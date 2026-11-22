@@ -6,7 +6,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.DeleteFileDialog
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -32,7 +32,7 @@ class DialogMarginTest {
   @Test
   fun aWrappedDialogKeepsItsMarginToBothEdges() {
     compose.setContent {
-      JupyterDroidTheme { SaveBeforeCloseDialog(longName, onSave = {}, onDiscard = {}, onCancel = {}) }
+      JupydroidTheme { SaveBeforeCloseDialog(longName, onSave = {}, onDiscard = {}, onCancel = {}) }
     }
     compose.onNodeWithText(question).assertIsDisplayed()
 
@@ -48,7 +48,7 @@ class DialogMarginTest {
   fun aWrappedDeleteDialogKeepsItsMarginToBothEdges() {
     val question = "Are you sure you want to permanently delete: $longName?"
     compose.setContent {
-      JupyterDroidTheme { DeleteFileDialog(longName, onDelete = {}, onDismiss = {}) }
+      JupydroidTheme { DeleteFileDialog(longName, onDelete = {}, onDismiss = {}) }
     }
     compose.onNodeWithText(question).assertIsDisplayed()
 

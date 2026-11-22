@@ -19,7 +19,7 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.LauncherSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
@@ -75,7 +75,7 @@ class DeletedTabTest {
     File(tempFolder.root, "second.py").writeText("second = 2\n")
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

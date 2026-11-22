@@ -21,7 +21,7 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.port.TerminalSession
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LauncherCommand
 import kotlinx.coroutines.runBlocking
@@ -153,7 +153,7 @@ class TabStripRecreationTest {
     compose.activityRule.scenario.onActivity { activity ->
       activity.setContent {
         DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
-          JupyterDroidTheme {
+          JupydroidTheme {
             MainNavigation(
               appContainer = appContainer,
               sharedNotebook = null,

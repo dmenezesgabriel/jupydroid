@@ -22,7 +22,7 @@ import com.jupydroid.app.data.fake.FakeSpaceShell
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.PHONE_WIDTH
 import com.jupydroid.app.ui.breaksInsideAWord
@@ -103,7 +103,7 @@ class SpacesHomeScreenFontScaleTest {
     val kernelSpecs = FakeKernelSpecs()
     val model = SpacesViewModel(repository, servers, environments, kernelSpecs)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(Modifier.requiredWidth(width)) {
           AtFontScale(fontScale) {
             SpacesHomeScreen(

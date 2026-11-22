@@ -10,7 +10,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import com.jupydroid.app.RecordingNotebookCells
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extensions.ai.data.fake.FakeAgentChat
 import com.jupydroid.extensions.ai.domain.ChatMessage
 import org.junit.Assert.assertEquals
@@ -72,7 +72,7 @@ class ChatCodeInsertTest {
   private fun showOver(notebookCells: RecordingNotebookCells): RecordingNotebookCells {
     val answer = FakeAgentChat(history = listOf(ChatMessage(id = "a", body = ANSWER, fromMe = false)))
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ContributedSidePanel(panel.contribution(answer), UntitledChatPanel.HOST.copy(notebookCells = notebookCells))
       }
     }

@@ -21,7 +21,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.DarkEditorPalette
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.theme.Spacing
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -50,14 +50,14 @@ class CellEditorBoxTest {
 
   @Test
   fun theRestingBorderIsDrawnInTheEditorBorderColour() {
-    compose.setContent { JupyterDroidTheme(darkTheme = true) { BoxedField(editing = false) } }
+    compose.setContent { JupydroidTheme(darkTheme = true) { BoxedField(editing = false) } }
 
     assertEquals(DarkEditorPalette.cellEditorBorder, nearestPaletteColourAtLeftEdge())
   }
 
   @Test
   fun theBorderTurnsBrandBlueForTheCellBeingEdited() {
-    compose.setContent { JupyterDroidTheme(darkTheme = true) { BoxedField(editing = true) } }
+    compose.setContent { JupydroidTheme(darkTheme = true) { BoxedField(editing = true) } }
 
     assertEquals(DarkEditorPalette.stripeSelected, nearestPaletteColourAtLeftEdge())
   }
@@ -75,7 +75,7 @@ class CellEditorBoxTest {
   fun drawingTheBorderDoesNotMoveTheContentInsideIt() {
     var bordered by mutableStateOf(false)
     compose.setContent {
-      JupyterDroidTheme(darkTheme = true) {
+      JupydroidTheme(darkTheme = true) {
         if (bordered) {
           BoxedField(editing = true)
         } else {

@@ -27,7 +27,7 @@ import com.jupydroid.app.domain.port.DebugEvent
 import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -131,7 +131,7 @@ class EditorScreenDebuggerAtOnePaneWidthTest {
   /** [EditorScreen] with the width/side-panel combination each case names. */
   @Composable
   private fun EditorScreenUnderTest(viewModel: EditorViewModel, twoPane: Boolean, onShowDebugger: (() -> Unit)?) {
-    JupyterDroidTheme {
+    JupydroidTheme {
       EditorScreen(
         notebookId = NOTEBOOK_ID,
         notebookRepository = repository,

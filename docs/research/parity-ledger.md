@@ -2651,7 +2651,7 @@ registered-`ITheme` registry and `setCSSOverride` (`thememanager.ts:270-429`), t
 keys the commands write, `NotebookActions`'s `toggleAllLineNumbers`/`renderSideBySide`/
 `renderDefault` (`actions.tsx:1792-1812,2043-2053`), the persisted `sideBySideOutputRatio`, and
 `content.scrollbar` — the flag the "Show Minimap" label actually flips. Ours: `ThemeOverride`'s
-tri-state resolved through `isSystemInDarkTheme()` at `MainActivity` into `JupyterDroidTheme`'s
+tri-state resolved through `isSystemInDarkTheme()` at `MainActivity` into `JupydroidTheme`'s
 two palettes (`EditorPalettes`/`ChromePalettes`/`ColorRamp`, the pair `resolve_vscode_theme.py`
 verifies them against), `ThemeSettings`, the fourteen-field `EditorSettings` with `CodeFontSize`,
 the three cell fields plus `FileEditorScreen`'s `CodeCellField`, the
@@ -2680,7 +2680,7 @@ affordances), `GAP-130` (font family), `GAP-131` (localisation), `GAP-132` (styl
 
 | Reference entry | Ours | Verdict | Why / id |
 |---|---|---|---|
-| `apputils:change-theme` — `manager.setTheme(theme)` across a registered-`ITheme` registry: three shipped `*-extension` theme packages plus whatever plugins add; Settings-submenu and palette mounts carry one item per theme (`themesplugins.ts:119-160,427-449`; `thememanager.ts:280-309`) | `ThemeOverrideRow`'s Light/Dark segments → `ThemeSettings.override` over `DiskThemeSettingsRepository`; `JupyterDroidTheme` swaps the `EditorPalettes`/`ChromePalettes` pair | adapted | the pick exists on a closed set — `ThemeOverride`'s own docstring folds the open registry into two palettes because a third name would have nothing to name |
+| `apputils:change-theme` — `manager.setTheme(theme)` across a registered-`ITheme` registry: three shipped `*-extension` theme packages plus whatever plugins add; Settings-submenu and palette mounts carry one item per theme (`themesplugins.ts:119-160,427-449`; `thememanager.ts:280-309`) | `ThemeOverrideRow`'s Light/Dark segments → `ThemeSettings.override` over `DiskThemeSettingsRepository`; `JupydroidTheme` swaps the `EditorPalettes`/`ChromePalettes` pair | adapted | the pick exists on a closed set — `ThemeOverride`'s own docstring folds the open registry into two palettes because a third name would have nothing to name |
 | `apputils:change-light-theme`, `apputils:change-dark-theme` — `setPreferred{Light,Dark}Theme` writes the theme `preferredTheme` falls back to while adaptive is on (`themesplugins.ts:162-238`; `thememanager.ts:68-92`) | the same two segments — `SYSTEM` resolves to whichever palette the system reports | adapted | the preferred pair is the palette pair; `ThemeOverride`'s docstring folds the two strings into the tri-state on the same reasoning |
 | `apputils:adaptive-theme` — `toggleAdaptiveTheme` plus the `matchMedia('(prefers-color-scheme: dark)')` listener swapping preferred themes live (`themesplugins.ts:240-263,368-386`; `thememanager.ts:356-374`) | `ThemeOverride.SYSTEM` → `resolvesToDark(isSystemInDarkTheme())` at `MainActivity`; recomposition reacts the way the listener does | adapted | the same track-the-system state as one enum rather than a boolean beside two strings — `resolvesToDark` cites `thememanager.ts:68-92` itself, and `ThemeSettings`'s docstring records why SYSTEM defaults on where `adaptive-theme` ships `false` |
 | `apputils:theme-scrollbars` — `toggleThemeScrollbars` flips `themes.json`'s `theme-scrollbars`, setting `data-jp-theme-scrollbars` and mounting `scrollbar.raw.css` while a theme asks (`themesplugins.ts:265-275`; `thememanager.ts:329-354`) | — | **absent** | `GAP-132`. No styled scrollbar exists for the attribute to colour — Compose scrollables draw the platform's transient indicators, and the terminal's missing scroll chrome is `GAP-090`'s own record |
@@ -2785,7 +2785,7 @@ Four paths end to end — a document through the shell's tab machinery, a settin
 its disk store, a theme override through the palettes, a launcher card through its destination.
 **A document:** launch builds the one process-scoped `AppContainer` in `JupydroidApplication` —
 each `Disk*` store's `loadValidated` paying its read on the main thread inside it, `GAP-070` —
-→ `MainActivity` → `JupyterDroidTheme` → `MainNavigation`, where the shell's whole state is
+→ `MainActivity` → `JupydroidTheme` → `MainNavigation`, where the shell's whole state is
 `remember`ed beside the saveable `rememberNavBackStack` — `sidePanel`, `openTabOrder`,
 `openDocumentPaths`, `liveTabTitles`, `openDocuments`, `consoleSession`, `browseRequest`,
 `revealRequest` — → `NavDisplay` under `ListDetailSceneStrategy` measuring its own panes → a
@@ -2818,7 +2818,7 @@ settings screens themselves → applied live, no restart — → a restart recon
 repositories in `AppContainer` and `loadValidated` re-reads what the write left. **A theme
 override:** the settings row → the same store → `DiskThemeSettingsRepository` →
 `MainActivity`'s `collectAsStateWithLifecycle` on `observeSettings()` →
-`ThemeOverride.resolvesToDark` → `JupyterDroidTheme` re-providing `LocalEditorPalette` and
+`ThemeOverride.resolvesToDark` → `JupydroidTheme` re-providing `LocalEditorPalette` and
 `LocalChromePalette` — *static* locals, so the swap is one deliberate whole-tree recomposition
 rather than per-node notification — → the same `loadValidated` read restoring it after restart.
 **A launcher card:** `SidePanelRail`'s `+` or the empty-dock `maybeCreate` fill → `openLauncher`

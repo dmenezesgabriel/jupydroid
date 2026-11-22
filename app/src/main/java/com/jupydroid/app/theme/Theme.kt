@@ -54,11 +54,11 @@ val LocalAnsiPalette = staticCompositionLocalOf { TerminalPalette.VS_CODE_DARK }
  * answers for presentation (ADR-0040).
  *
  * ```
- * JupyterDroidTheme { EditorScreen(...) }
+ * JupydroidTheme { EditorScreen(...) }
  * ```
  */
 @Composable
-fun JupyterDroidTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun JupydroidTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
   val palette = if (darkTheme) DarkEditorPalette else LightEditorPalette
   val chrome = if (darkTheme) DarkChromePalette else LightChromePalette
   val ansi = if (darkTheme) TerminalPalette.VS_CODE_DARK else TerminalPalette.VS_CODE_LIGHT

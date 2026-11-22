@@ -12,7 +12,7 @@ import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.EVALUATE_FIELD_TAG
 import org.junit.Rule
 import org.junit.Test
@@ -106,7 +106,7 @@ class DebuggerSidePanelTest {
     onEvaluate: suspend (String) -> DebugVariable? = { null },
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         DebuggerSidePanel(stack = stack, onExpand = onExpand, onSelectFrame = onSelectFrame, onEvaluate = onEvaluate)
       }
     }

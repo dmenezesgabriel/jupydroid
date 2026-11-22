@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.jupydroid.app.domain.model.Breakpoint
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
@@ -208,7 +208,7 @@ class DiagnosticMarkTapTest {
   ): TextFieldState {
     val state = TextFieldState(text)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         // The tag sits on the *wrapper*, not the field: the field's own semantics bounds start
         // where the code does - past the start padding the gutter occupies - while `detectGutterTap`'s
         // `down.position.x` is measured from the element's own left edge, one gutter width earlier.

@@ -342,7 +342,7 @@ class EditorCellActionTest {
   private fun definitionAnswering() = FakeLanguageServerPort().apply {
     definitionAnswer = listOf(
       LanguageLocation(
-        "file:///jupyterdroid/notebooks/nb-1.py",
+        "file:///jupydroid/notebooks/nb-1.py",
         LanguageRange(LanguagePosition(0, 4), LanguagePosition(0, 17)),
       ),
     )

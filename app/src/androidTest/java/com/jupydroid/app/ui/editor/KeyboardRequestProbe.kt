@@ -7,7 +7,7 @@ import androidx.compose.ui.platform.InterceptPlatformTextInput
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.performClick
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.awaitCancellation
 
 private const val KEYBOARD_REQUEST_TIMEOUT_MS = 5_000L
@@ -25,7 +25,7 @@ fun ComposeContentTestRule.inputTypeAskedBy(field: @Composable () -> Unit): Int 
   var asked: EditorInfo? = null
 
   setContent {
-    JupyterDroidTheme {
+    JupydroidTheme {
       InterceptPlatformTextInput(
         interceptor = { request, _ ->
           asked = EditorInfo().also { request.createInputConnection(it) }

@@ -23,7 +23,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.mainAreaTabs
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -64,7 +64,7 @@ class TabDeleteTest {
     backStack.add(FileEditor("notes.py"))
     backStack.add(FileEditor("other.py"))
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TabbedDocumentPane(
           backStack = backStack,
           openDocuments = open,

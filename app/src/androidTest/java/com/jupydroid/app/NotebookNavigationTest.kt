@@ -19,7 +19,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -123,7 +123,7 @@ class NotebookNavigationTest {
       repository.saveNotebook(notebook(BETA_TITLE, BETA_SOURCE))
     }
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

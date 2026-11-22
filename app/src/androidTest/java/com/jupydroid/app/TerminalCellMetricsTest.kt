@@ -8,7 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.terminal.TerminalEmulator
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.codeTextStyle
 import com.jupydroid.app.ui.terminal.terminalCellMetrics
 import org.junit.Assert.assertEquals
@@ -35,7 +35,7 @@ class TerminalCellMetricsTest {
     var second: Size? by mutableStateOf(null)
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         first = terminalCellMetrics()
         second = terminalCellMetrics()
       }
@@ -63,7 +63,7 @@ class TerminalCellMetricsTest {
     var pitch = 0f
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         val measurer = rememberTextMeasurer()
         val style = codeTextStyle()
         fun right(glyphs: Int) = measurer.measure("X".repeat(glyphs), style).getLineRight(0)

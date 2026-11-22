@@ -13,7 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -77,7 +77,7 @@ class LineNumberGutterTest {
   private fun assertGutterIsReservedOnlyWhenShown(text: String, field: @Composable (Boolean) -> Unit) {
     var shown by mutableStateOf(true)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH)) { field(shown) }
       }
     }

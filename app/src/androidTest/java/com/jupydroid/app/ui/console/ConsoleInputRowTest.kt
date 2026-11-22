@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.RECALL_NEXT_ENTRY
 import com.jupydroid.app.ui.editor.RECALL_PREVIOUS_ENTRY
 import com.jupydroid.app.ui.editor.SYMBOL_ROW_TAG
@@ -48,7 +48,7 @@ class ConsoleInputRowTest {
   fun typingAndTappingRunInvokesOnSubmit() {
     var submitted = false
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = { submitted = true })
       }
     }
@@ -68,7 +68,7 @@ class ConsoleInputRowTest {
   fun typingANewlineDoesNotInvokeOnSubmit() {
     var submitted = false
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = { submitted = true })
       }
     }
@@ -82,7 +82,7 @@ class ConsoleInputRowTest {
   @Test
   fun theFieldIsNamedForTheConsole() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
     }
 
     compose.onNodeWithContentDescription(CONSOLE_INPUT_NAME).assertIsDisplayed()
@@ -93,7 +93,7 @@ class ConsoleInputRowTest {
   fun tappingRecallPreviousInvokesOnRecallPreviousEntry() {
     var recalled = false
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ConsoleInputRow(
           state = TextFieldState(),
           running = false,
@@ -112,7 +112,7 @@ class ConsoleInputRowTest {
   fun tappingRecallNextInvokesOnRecallNextEntry() {
     var recalled = false
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ConsoleInputRow(
           state = TextFieldState(),
           running = false,
@@ -132,7 +132,7 @@ class ConsoleInputRowTest {
   fun typingReportsTheEditedSourceOnADebounce() {
     var reported: String? = null
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}, onSourceEdited = { reported = it })
       }
     }
@@ -151,7 +151,7 @@ class ConsoleInputRowTest {
   @Test
   fun theInputFieldFillsMostOfTheRowRatherThanItsOwnIntrinsicWidth() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
     }
 
     val field = compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).getUnclippedBoundsInRoot().width
@@ -165,7 +165,7 @@ class ConsoleInputRowTest {
   @Test
   fun runIsDisabledWhileAnEntryIsRunning() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = true, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState(), running = true, onSubmit = {}) }
     }
 
     compose.onNodeWithContentDescription("Run").assertIsNotEnabled()
@@ -174,7 +174,7 @@ class ConsoleInputRowTest {
   @Test
   fun runIsEnabledWhileNothingIsRunning() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
     }
 
     compose.onNodeWithContentDescription("Run").assertIsEnabled()
@@ -187,7 +187,7 @@ class ConsoleInputRowTest {
   @Test
   fun theSymbolRowIsAbsentUntilThePromptHasTheCaret() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
     }
 
     compose.onNodeWithTag(SYMBOL_ROW_TAG).assertDoesNotExist()
@@ -197,7 +197,7 @@ class ConsoleInputRowTest {
   fun aKeyFromTheSymbolRowTypesIntoThePrompt() {
     val state = TextFieldState()
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = state, running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = state, running = false, onSubmit = {}) }
     }
 
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performClick()
@@ -210,7 +210,7 @@ class ConsoleInputRowTest {
   @Test
   fun theSymbolRowCarriesNoSecondHistoryPair() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}) }
     }
 
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).performClick()
@@ -221,7 +221,7 @@ class ConsoleInputRowTest {
   @Test
   fun theSettingOffKeepsTheSymbolRowAway() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ConsoleInputRow(state = TextFieldState(), running = false, onSubmit = {}, symbolRowShown = false)
       }
     }
@@ -235,7 +235,7 @@ class ConsoleInputRowTest {
   @Test
   fun capturesAnInputRowScreenshotForEvidence() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState("1 + 1"), running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState("1 + 1"), running = false, onSubmit = {}) }
     }
     compose.onNodeWithTag(CONSOLE_INPUT_FIELD_TAG).assertIsDisplayed()
 
@@ -258,7 +258,7 @@ class ConsoleInputRowTest {
   @Test
   fun capturesTheHistoryButtonsScreenshotForEvidence() {
     compose.setContent {
-      JupyterDroidTheme { ConsoleInputRow(state = TextFieldState("1 + 1"), running = false, onSubmit = {}) }
+      JupydroidTheme { ConsoleInputRow(state = TextFieldState("1 + 1"), running = false, onSubmit = {}) }
     }
     compose.onNodeWithContentDescription(RECALL_PREVIOUS_ENTRY).assertIsDisplayed()
 

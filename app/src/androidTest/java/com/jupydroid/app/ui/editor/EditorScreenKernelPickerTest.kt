@@ -23,7 +23,7 @@ import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -106,7 +106,7 @@ class EditorScreenKernelPickerTest {
       kernelSpecs = FakeKernelSpecs(),
     )
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         EditorScreen(
           notebookId = NOTEBOOK_ID,
           notebookRepository = repository,

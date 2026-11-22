@@ -31,7 +31,7 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.WorkspaceRepository
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.NotebookKernelSession
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -176,7 +176,7 @@ class ConsoleScreenTest {
     openDocument: (String) -> Unit = {},
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ConsoleScreen(
           viewModel = viewModel,
           editorSettingsRepository = editorSettingsRepository,

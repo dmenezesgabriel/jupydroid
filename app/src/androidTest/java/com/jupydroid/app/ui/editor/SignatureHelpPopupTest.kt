@@ -26,7 +26,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.port.LanguageParameter
 import com.jupydroid.app.domain.port.LanguageSignature
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -232,7 +232,7 @@ class SignatureHelpPopupTest {
     lateinit var field: TextFieldState
     compose.setContent {
       keyboard = LocalSoftwareKeyboardController.current
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(modifier = Modifier.width(FIELD_WIDTH).testTag(FIELD_TAG)) {
           field = rememberTextFieldState("")
           CodeCellField(

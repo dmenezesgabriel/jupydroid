@@ -15,7 +15,7 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.LauncherSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LauncherCommand
 import com.jupydroid.app.ui.terminal.TERMINAL_INPUT_TAG
@@ -60,7 +60,7 @@ class RenamedTabBeneathTest {
   private fun startApp() {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane = true))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

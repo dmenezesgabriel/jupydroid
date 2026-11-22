@@ -20,7 +20,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.DarkEditorPalette
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -100,7 +100,7 @@ class DiagnosticSquiggleDrawTest {
 
   private fun setContent(text: String = TWO_LINES) {
     compose.setContent {
-      JupyterDroidTheme(darkTheme = true) {
+      JupydroidTheme(darkTheme = true) {
         // The surface `cellEditorBox` paints in production (`EditorCell`) - without it the
         // translucent hint (`0xB3`) composites over the window's own surface and is invisible.
         Box(modifier = Modifier.width(FIELD_WIDTH).background(DarkEditorPalette.cellBackground).testTag(FIELD_TAG)) {

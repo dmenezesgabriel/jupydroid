@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.PHONE_WIDTH
 import com.jupydroid.app.ui.breaksInsideAWord
@@ -87,7 +87,7 @@ class ChatListFontScaleTest {
       queuesFor = { FakeQueuedQuestionsStore() },
     ).sidePanels.single()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(Modifier.requiredWidth(width)) {
           AtFontScale(fontScale) { ContributedSidePanel(panel, host()) }
         }

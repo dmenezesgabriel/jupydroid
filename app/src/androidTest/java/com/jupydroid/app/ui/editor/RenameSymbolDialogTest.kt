@@ -13,7 +13,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -113,7 +113,7 @@ class RenameSymbolDialogTest {
 
   private fun showDialog(currentName: String) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         RenameSymbolDialog(
           currentName = currentName,
           onConfirm = { confirmed += it },

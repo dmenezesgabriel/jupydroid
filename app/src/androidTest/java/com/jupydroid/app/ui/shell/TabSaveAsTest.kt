@@ -29,7 +29,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.mainAreaTabs
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -58,7 +58,7 @@ class TabSaveAsTest {
     open.opened(document)
     backStack.add(FileEditor("dir/notes.py"))
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TabbedDocumentPane(
           backStack = backStack,
           openDocuments = open,

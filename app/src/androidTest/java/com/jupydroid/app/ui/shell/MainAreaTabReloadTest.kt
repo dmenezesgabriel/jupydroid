@@ -22,7 +22,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.mainAreaTabs
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -46,7 +46,7 @@ class MainAreaTabReloadTest {
   private fun strip(vararg entries: NavKey) {
     val backStack = mutableStateListOf(Explorer(BASE_SPACE.id), *entries)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TabbedDocumentPane(
           backStack = backStack,
           openDocuments = open,

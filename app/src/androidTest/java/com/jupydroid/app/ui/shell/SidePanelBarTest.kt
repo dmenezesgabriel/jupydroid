@@ -20,7 +20,7 @@ import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.SidePanel
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.SidePanelContribution
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -305,7 +305,7 @@ class SidePanelBarTest {
 
   private fun show(selected: ShownPanel) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SidePanelBar(
           selected = selected,
           onChoose = { chosen += it },
@@ -343,7 +343,7 @@ class SidePanelBarTest {
   private fun showAt(size: DpSize) {
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(size)) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           SidePanelBar(
             selected = ShownPanel.Shell(SidePanel.FILES),
             onChoose = { chosen += it },

@@ -23,7 +23,7 @@ import com.jupydroid.app.data.fake.FakeDocumentCheckpoints
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -60,7 +60,7 @@ class MainAreaTabFontScaleTest {
 
   private fun showTab() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         AtFontScale(fontScale) {
           scaled = LocalDensity.current
           labelLine = with(scaled) { MaterialTheme.typography.bodySmall.lineHeight.toDp() }

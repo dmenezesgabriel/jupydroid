@@ -20,7 +20,7 @@ import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.LauncherSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LauncherCommand
 import com.jupydroid.app.ui.shell.NEW_LAUNCHER
@@ -100,7 +100,7 @@ class LauncherNavigationTest {
     val repository = DiskNotebookRepository(tempFolder.root)
     File(tempFolder.root, "report.txt").writeText("a file for the listing")
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

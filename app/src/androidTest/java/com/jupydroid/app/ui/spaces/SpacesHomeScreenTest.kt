@@ -35,7 +35,7 @@ import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
@@ -410,7 +410,7 @@ class SpacesHomeScreenTest {
   ): SpacesViewModel {
     val model = SpacesViewModel(repository, servers, environments, kernelSpecs)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SpacesHomeScreen(
           repository,
           servers,

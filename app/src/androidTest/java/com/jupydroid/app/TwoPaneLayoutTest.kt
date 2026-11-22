@@ -26,7 +26,7 @@ import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -195,7 +195,7 @@ class TwoPaneLayoutTest {
     }
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
@@ -228,7 +228,7 @@ class TwoPaneLayoutTest {
     )
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

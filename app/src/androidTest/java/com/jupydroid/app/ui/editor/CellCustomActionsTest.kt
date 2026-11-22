@@ -9,7 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -106,7 +106,7 @@ class CellCustomActionsTest {
 
   private fun showCell(cell: Cell) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Column(
           modifier = androidx.compose.ui.Modifier
             .testTag(CELL)

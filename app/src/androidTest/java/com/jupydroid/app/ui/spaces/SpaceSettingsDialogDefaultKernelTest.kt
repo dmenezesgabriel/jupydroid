@@ -8,7 +8,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -53,7 +53,7 @@ class SpaceSettingsDialogDefaultKernelTest {
 
   private fun show(space: SpaceConfig) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SpaceSettingsDialog(space, kernelChoices = CHOICES, onSave = { saved = it }, onDismiss = {})
       }
     }

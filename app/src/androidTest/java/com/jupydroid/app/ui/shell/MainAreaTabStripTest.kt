@@ -39,7 +39,7 @@ import com.jupydroid.app.domain.port.FileNameTakenException
 import com.jupydroid.app.domain.port.WorkspaceFiles
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -106,7 +106,7 @@ class MainAreaTabStripTest {
   private fun strip(vararg entries: NavKey, twoPane: Boolean = true, root: NavKey = Explorer(BASE_SPACE.id)) {
     backStack = mutableStateListOf(root, *entries)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         // The same reconcile `MainNavigation` runs: the strip is handed opening order while the
         // stack keeps its own, which is what the activation tests below are exercising.
         val order = remember { mutableStateListOf<NavKey>() }

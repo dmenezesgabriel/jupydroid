@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.KernelSpec
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.CELL_TYPE_CARET_TAG
 import com.jupydroid.app.ui.editor.CellTypeControl
 import com.jupydroid.app.ui.editor.cellTypeDescription
@@ -86,7 +86,7 @@ class ButtonGlyphFontScaleTest {
   )
 
   private fun show(content: @Composable () -> Unit) = compose.setContent {
-    JupyterDroidTheme {
+    JupydroidTheme {
       AtFontScale(fontScale) {
         scaled = LocalDensity.current
         content()

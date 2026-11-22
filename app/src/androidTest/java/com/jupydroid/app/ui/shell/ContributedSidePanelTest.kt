@@ -9,7 +9,7 @@ import com.jupydroid.app.FailsOnceGitStatusReader
 import com.jupydroid.app.NeverAnsweringGitStatusReader
 import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.extension.api.SidePanelHost
 import com.jupydroid.extensions.git.GitExtension
 import com.jupydroid.extensions.git.data.fake.FakeGitStatusReader
@@ -80,7 +80,7 @@ class ContributedSidePanelTest {
   private fun show(browsedDirectory: String, reader: GitStatusReader = workspace) {
     val sourceControl = GitExtension(readerFor = { reader }).sidePanels.single()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         ContributedSidePanel(
           contribution = sourceControl,
           host = SidePanelHost(

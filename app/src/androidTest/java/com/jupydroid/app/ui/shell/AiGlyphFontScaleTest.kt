@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.extensions.ai.domain.AgentModel
 import com.jupydroid.extensions.ai.domain.AgentModels
@@ -78,7 +78,7 @@ class AiGlyphFontScaleTest {
   private fun show(width: Dp) {
     val chat = SettableAgentChat(ChatTranscript(agentModels = MODELS))
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         AtFontScale(fontScale) {
           scaled = LocalDensity.current
           Box(if (width.isSpecified) Modifier.requiredWidth(width) else Modifier) {

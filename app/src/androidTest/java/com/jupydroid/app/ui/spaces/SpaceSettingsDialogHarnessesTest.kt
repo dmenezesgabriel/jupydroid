@@ -24,7 +24,7 @@ import com.jupydroid.app.domain.model.HarnessVersion
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.defaultSpaceConfig
 import com.jupydroid.app.domain.port.SpaceShellEvent
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -269,7 +269,7 @@ class SpaceSettingsDialogHarnessesTest {
 
   private fun show(state: SpaceHarnessesState) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SpaceSettingsDialog(
           space = thesis,
           harnesses = state,
@@ -289,7 +289,7 @@ class SpaceSettingsDialogHarnessesTest {
     val spacesModel = SpacesViewModel(repository, servers, environments, kernelSpecs)
     val harnessesModel = SpaceHarnessesViewModel(shell, scripts)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SpacesHomeScreen(
           repository,
           servers,

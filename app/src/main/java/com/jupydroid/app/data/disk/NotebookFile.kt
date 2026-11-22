@@ -35,7 +35,7 @@ data class NotebookFile(
 )
 
 @Serializable
-data class NotebookFileMetadata(val kernelspec: KernelSpecMeta? = null, val jupydroid: JupyterDroidMeta? = null)
+data class NotebookFileMetadata(val kernelspec: KernelSpecMeta? = null, val jupydroid: JupydroidMeta? = null)
 
 @Serializable
 data class KernelSpecMeta(val name: String, @SerialName("display_name") val displayName: String)
@@ -47,7 +47,7 @@ data class KernelSpecMeta(val name: String, @SerialName("display_name") val disp
  * before then still carry the key; `ignoreUnknownKeys` reads past it and the next save drops it.
  */
 @Serializable
-data class JupyterDroidMeta(val title: String)
+data class JupydroidMeta(val title: String)
 
 @Serializable
 data class CellFile(

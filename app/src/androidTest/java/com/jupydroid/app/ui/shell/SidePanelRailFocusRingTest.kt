@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.SidePanel
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.theme.chromePalette
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -86,7 +86,7 @@ class SidePanelRailFocusRingTest {
 
   private fun showRail(darkTheme: Boolean) {
     compose.setContent {
-      JupyterDroidTheme(darkTheme = darkTheme) {
+      JupydroidTheme(darkTheme = darkTheme) {
         ring = chromePalette.focusBorder
         inputMode = LocalInputModeManager.current
         SidePanelRail(

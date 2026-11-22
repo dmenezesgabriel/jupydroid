@@ -12,7 +12,7 @@ import com.jupydroid.app.domain.model.DebugStack
 import com.jupydroid.app.domain.model.DebugVariableGroup
 import com.jupydroid.app.domain.port.DebugStackFrame
 import com.jupydroid.app.domain.port.DebugVariable
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -102,7 +102,7 @@ class DebuggerVariablesSheetTest {
     onEvaluate: suspend (String) -> DebugVariable? = { null },
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         DebuggerVariablesSheet(
           stack = stack,
           onExpand = onExpand,

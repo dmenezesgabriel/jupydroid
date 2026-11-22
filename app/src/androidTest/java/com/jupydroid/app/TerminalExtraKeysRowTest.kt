@@ -28,7 +28,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.port.TerminalEvent
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.app.domain.port.TerminalSession
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import com.jupydroid.app.ui.shell.WindowKeyRowHosted
@@ -130,7 +130,7 @@ class TerminalExtraKeysRowTest {
   fun aHostedRowSpansTheWindowAndItsCtrlStillArmsAndLocks() {
     val gateway = RecordingTerminalGateway()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         WindowKeyRowHosted {
           Row(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.width(200.dp))
@@ -201,7 +201,7 @@ class TerminalExtraKeysRowTest {
   private fun openTerminalScreenAtFontScale(scale: Float): RecordingTerminalGateway {
     val gateway = RecordingTerminalGateway()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         AtFontScale(scale) { TerminalPaneScreen(session = TerminalSession("1"), terminalGateway = gateway) }
       }
     }
@@ -213,7 +213,7 @@ class TerminalExtraKeysRowTest {
   private fun openTerminalScreen(): RecordingTerminalGateway {
     val gateway = RecordingTerminalGateway()
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TerminalPaneScreen(session = TerminalSession("1"), terminalGateway = gateway)
       }
     }

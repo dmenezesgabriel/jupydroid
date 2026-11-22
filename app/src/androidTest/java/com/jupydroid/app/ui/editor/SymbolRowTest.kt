@@ -12,7 +12,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -103,7 +103,7 @@ class SymbolRowTest {
   @Test
   fun aKeyTypesIntoAMarkdownCellToo() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         val input = remember { FocusedCellInput() }
         Column {
           MarkdownCellField(
@@ -194,7 +194,7 @@ class SymbolRowTest {
 
   private fun showFieldAndRow(accessKernelHistory: Boolean = false) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         val input = remember { FocusedCellInput() }
         Column {
           CodeCellField(

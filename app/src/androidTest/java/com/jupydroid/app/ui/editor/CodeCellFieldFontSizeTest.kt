@@ -4,7 +4,7 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -26,7 +26,7 @@ class CodeCellFieldFontSizeTest {
     var largeLayout: TextLayoutResult? = null
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         CodeCellField(
           state = rememberTextFieldState(CODE),
           onSourceEdited = {},
@@ -34,7 +34,7 @@ class CodeCellFieldFontSizeTest {
           onLayoutMeasured = { smallLayout = it },
         )
       }
-      JupyterDroidTheme {
+      JupydroidTheme {
         CodeCellField(
           state = rememberTextFieldState(CODE),
           onSourceEdited = {},

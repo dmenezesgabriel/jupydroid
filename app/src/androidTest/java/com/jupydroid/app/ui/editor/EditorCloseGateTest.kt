@@ -36,7 +36,7 @@ import com.jupydroid.app.domain.model.EditorSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
 import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import kotlinx.coroutines.CoroutineScope
@@ -186,7 +186,7 @@ class EditorCloseGateTest {
    */
   @Composable
   private fun EditorScreenUnderTest(viewModel: EditorViewModel) {
-    JupyterDroidTheme {
+    JupydroidTheme {
       val order = remember { mutableStateListOf<NavKey>() }
       val tabs = backStack.mainAreaTabs().orderedAsOpened(order)
       LaunchedEffect(tabs) {

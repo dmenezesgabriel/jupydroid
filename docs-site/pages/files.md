@@ -69,7 +69,7 @@ files is the [Search](search.md) panel's job, and a match opens the file at it.
 
 ## Importing
 
-A `.ipynb` another app hands over — **Open with JupyterDroid** from a file manager — is copied
+A `.ipynb` another app hands over — **Open with Jupydroid** from a file manager — is copied
 into the workspace and opened like any other document, so it lands in the listing and in
 Recent. There is no import button because there is no other door: the system's share sheet is
 the picker. A notebook over **15 MiB** is refused with a message rather than copied.

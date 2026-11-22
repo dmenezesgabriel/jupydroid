@@ -45,7 +45,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_blue"
         android:supportsRtl="true"
-        android:theme="@style/Theme.JupyterDroid">
+        android:theme="@style/Theme.Jupydroid">
         <!--
           windowSoftInputMode belongs on the activity, not on <application>: the platform only
           reads it here, and set one level up it is silently ignored. It was, and the activity

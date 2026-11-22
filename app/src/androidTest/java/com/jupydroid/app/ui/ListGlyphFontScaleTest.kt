@@ -37,7 +37,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.ExplorerSettings
 import com.jupydroid.app.domain.model.RecentDocument
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.explorer.ENTRY_ROW_ICON_TAG
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.explorer.RECENTS_TWISTIE_TAG
@@ -99,7 +99,7 @@ class ListGlyphFontScaleTest {
   private fun showExplorer() {
     File(temp.root, ENTRY_NAME).writeText("x")
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         AtFontScale(fontScale) {
           scaled = LocalDensity.current
           ExplorerScreen(
@@ -124,7 +124,7 @@ class ListGlyphFontScaleTest {
   private fun showSearchWithOneMatch(cutAt: Dp = Dp.Unspecified) {
     val replace = WorkspaceReplace(OpenDocuments(), FakeNotebookRepository(), FakeWorkspaceRepository())
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         AtFontScale(fontScale) {
           scaled = LocalDensity.current
           CutAt(cutAt) {

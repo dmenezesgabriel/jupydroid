@@ -25,7 +25,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.html.HtmlDocument
 import com.jupydroid.app.markdown.MarkdownDocument
 import com.jupydroid.app.richtext.RichBlock
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
@@ -178,7 +178,7 @@ class RichTextImageTest {
     val workspace = FakeWorkspaceRepository()
     runBlocking { workspace.writeBytes("reports/img/chart.png", png) }
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         // `requiredWidth`, not `width`: the column is the width a test names, and at the emulator's 320dp a
         // `width(600.dp)` is measured down to the window's 320, so the wide-column cases would read the window
         // (the same box in `CellOutputImageTest`).
@@ -198,7 +198,7 @@ class RichTextImageTest {
       putJsonObject("attachments") { putJsonObject("chart.png") { put("image/png", png) } }
     }
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(modifier = Modifier.width(column)) {
           CellAttachmentImagesResolved(preserved) { RichText(MarkdownDocument.parse(source)) }
         }

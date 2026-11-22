@@ -14,7 +14,7 @@ import com.jupydroid.app.data.fake.FakeKernelSpecs
 import com.jupydroid.app.data.fake.FakeRecentDocumentsRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.theme.ChromePalette
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.app.ui.textLayout
 import org.junit.Assert.assertEquals
@@ -76,7 +76,7 @@ class ExplorerRowColourTest {
   private fun showDarkExplorer(openDocumentPath: String?) {
     File(temp.root, NAME).writeText("x")
     compose.setContent {
-      JupyterDroidTheme(darkTheme = true) {
+      JupydroidTheme(darkTheme = true) {
         ChromeCapture { chrome = it }
         ExplorerScreen(
           workspaceRepository = DiskWorkspaceRepository(temp.root),

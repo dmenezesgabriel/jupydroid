@@ -25,7 +25,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.TerminalSession
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -313,7 +313,7 @@ class RunningSidePanelTest {
   private fun show(tabs: List<RunningTab> = emptyList(), saveAllEnabled: Boolean = false) {
     viewModel = RunningPanelViewModel(kernelSessions, terminalGateway)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         RunningSidePanel(
           kernelSessions = kernelSessions,
           terminalGateway = terminalGateway,

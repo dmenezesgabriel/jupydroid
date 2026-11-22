@@ -19,7 +19,7 @@ import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.TextEdit
 import com.jupydroid.app.mainAreaTabs
 import com.jupydroid.app.orderedAsOpened
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.junit.Assert.assertEquals
@@ -165,7 +165,7 @@ class MainAreaCloseGateTest {
   /** The gate mounted the way `MainNavigation` mounts it - over a real stack of documents. */
   private fun show() {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         val tabs = backStack.mainAreaTabs().orderedAsOpened(order)
         LaunchedEffect(tabs) {
           order.clear()

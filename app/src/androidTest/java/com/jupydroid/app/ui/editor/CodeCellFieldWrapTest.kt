@@ -8,7 +8,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -30,7 +30,7 @@ class CodeCellFieldWrapTest {
     var unwrappedLayout: TextLayoutResult? = null
 
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(Modifier.width(BOX_WIDTH)) {
           CodeCellField(
             state = rememberTextFieldState(LONG_LINE),
@@ -40,7 +40,7 @@ class CodeCellFieldWrapTest {
           )
         }
       }
-      JupyterDroidTheme {
+      JupydroidTheme {
         Box(Modifier.width(BOX_WIDTH)) {
           CodeCellField(
             state = rememberTextFieldState(LONG_LINE),

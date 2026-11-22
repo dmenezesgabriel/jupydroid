@@ -60,7 +60,7 @@ class FocusRingTest {
     var ring = Color.Unspecified
     lateinit var inputMode: InputModeManager
     compose.setContent {
-      JupyterDroidTheme(darkTheme = darkTheme) {
+      JupydroidTheme(darkTheme = darkTheme) {
         ring = chromePalette.focusBorder
         inputMode = LocalInputModeManager.current
         Box(

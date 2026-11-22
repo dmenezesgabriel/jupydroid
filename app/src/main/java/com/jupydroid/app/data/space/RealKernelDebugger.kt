@@ -146,7 +146,7 @@ private suspend fun nextSeq(seqLock: Mutex, seqBySession: MutableMap<String, Int
  */
 private fun initializeArgs(session: KernelSession) = buildJsonObject {
   put("clientID", "jupydroid")
-  put("clientName", "JupyterDroid")
+  put("clientName", "Jupydroid")
   put("adapterID", session.kernelId)
   put("pathFormat", "path")
   put("linesStartAt1", true)

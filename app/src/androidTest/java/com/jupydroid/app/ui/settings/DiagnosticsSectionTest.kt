@@ -16,7 +16,7 @@ import com.jupydroid.app.data.fake.FakeErrorLog
 import com.jupydroid.app.data.fake.FakeErrorLogSharer
 import com.jupydroid.app.domain.model.ErrorLogEntry
 import com.jupydroid.app.domain.model.ErrorLogKind
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.PHONE_WIDTH
 import com.jupydroid.app.ui.isCut
@@ -43,7 +43,7 @@ class DiagnosticsSectionTest {
   private fun show(fontScale: Float = 1f) {
     val viewModel = DiagnosticsViewModel(log, sharer)
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         // A `Column`, as Settings lays the section out: in a `Box` the rows stack and the last one takes every click.
         Column(Modifier.requiredWidth(PHONE_WIDTH)) { AtFontScale(fontScale) { DiagnosticsSection(viewModel) } }
       }

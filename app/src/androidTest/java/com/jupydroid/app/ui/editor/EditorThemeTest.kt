@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.sp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.syntax.SyntaxKind
 import com.jupydroid.app.theme.CodeText
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Rule
@@ -23,7 +23,7 @@ import org.junit.runner.RunWith
  * `Color.Unspecified` does not fall back to `LocalContentColor`. On light that reads fine, which
  * is exactly why a one-theme check missed it - so this asserts both, and that they differ.
  *
- * It now drives [JupyterDroidTheme] rather than a bare `MaterialTheme`, because the editor's
+ * It now drives [JupydroidTheme] rather than a bare `MaterialTheme`, because the editor's
  * colours come from `LocalEditorPalette` and a `MaterialTheme` alone no longer changes any of
  * them. Asserting through the real theme is also the stronger test: it is the composable the app
  * actually installs.
@@ -49,7 +49,7 @@ class EditorThemeTest {
     lateinit var code: TextStyle
     lateinit var prose: TextStyle
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         code = richTextCodeStyle()
         prose = richTextProseStyle()
       }
@@ -73,8 +73,8 @@ class EditorThemeTest {
     lateinit var light: TextStyle
     // Both in one composition: a test rule accepts setContent exactly once.
     compose.setContent {
-      JupyterDroidTheme(darkTheme = true) { dark = codeSourceStyle() }
-      JupyterDroidTheme(darkTheme = false) { light = codeSourceStyle() }
+      JupydroidTheme(darkTheme = true) { dark = codeSourceStyle() }
+      JupydroidTheme(darkTheme = false) { light = codeSourceStyle() }
     }
 
     assertNotEquals("dark theme source must have a colour", Color.Unspecified, dark.color)
@@ -97,7 +97,7 @@ class EditorThemeTest {
     lateinit var renderedCode: TextStyle
     lateinit var prose: TextStyle
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         source = codeSourceStyle()
         renderedCode = richTextCodeStyle()
         prose = richTextProseStyle()
@@ -120,7 +120,7 @@ class EditorThemeTest {
   fun codeTextStyleOverridesTheSizeAndItsLineHeightTogether() {
     lateinit var resized: TextStyle
     compose.setContent {
-      JupyterDroidTheme { resized = codeTextStyle(fontSize = 20.sp) }
+      JupydroidTheme { resized = codeTextStyle(fontSize = 20.sp) }
     }
 
     assertEquals(20.sp, resized.fontSize)
@@ -139,7 +139,7 @@ class EditorThemeTest {
     lateinit var resized: TextStyle
     lateinit var default: TextStyle
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         resized = codeSourceStyle(fontSize = 20.sp)
         default = codeSourceStyle()
       }
@@ -161,8 +161,8 @@ class EditorThemeTest {
     lateinit var dark: Map<SyntaxKind, SpanStyle>
     lateinit var light: Map<SyntaxKind, SpanStyle>
     compose.setContent {
-      JupyterDroidTheme(darkTheme = true) { dark = syntaxStyles() }
-      JupyterDroidTheme(darkTheme = false) { light = syntaxStyles() }
+      JupydroidTheme(darkTheme = true) { dark = syntaxStyles() }
+      JupydroidTheme(darkTheme = false) { light = syntaxStyles() }
     }
 
     assertEquals("both themes must style the same kinds", dark.keys, light.keys)

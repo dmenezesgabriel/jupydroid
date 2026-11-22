@@ -11,7 +11,7 @@ import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.domain.model.SpaceSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -73,7 +73,7 @@ class SpaceSettingsDialogThreadCapTest {
 
   private fun show(space: SpaceConfig) {
     compose.setContent {
-      JupyterDroidTheme { SpaceSettingsDialog(space, onSave = { saved = it }, onDismiss = {}) }
+      JupydroidTheme { SpaceSettingsDialog(space, onSave = { saved = it }, onDismiss = {}) }
     }
   }
 

@@ -10,7 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -120,7 +120,7 @@ class SpaceSettingsDialogEnvironmentsTest {
     refusal: String? = null,
   ) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         SpaceSettingsDialog(
           thesis,
           environments,

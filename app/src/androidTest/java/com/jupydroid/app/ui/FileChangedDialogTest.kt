@@ -5,7 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -59,7 +59,7 @@ class FileChangedDialogTest {
 
   private fun show(name: String) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         FileChangedDialog(
           name = name,
           onOverwrite = { answers += "overwrite" },

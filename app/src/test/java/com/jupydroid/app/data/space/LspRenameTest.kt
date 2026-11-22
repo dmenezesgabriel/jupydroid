@@ -168,7 +168,7 @@ class LspRenameTest {
   }
 
   private companion object {
-    const val URI = "file:///jupyterdroid/notebooks/nb.py"
+    const val URI = "file:///jupydroid/notebooks/nb.py"
     const val OTHER_URI = "file:///site-packages/other.py"
   }
 }

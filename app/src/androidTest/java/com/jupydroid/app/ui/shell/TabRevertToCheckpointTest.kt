@@ -21,7 +21,7 @@ import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.mainAreaTabs
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -48,7 +48,7 @@ class TabRevertToCheckpointTest {
     open.opened(document)
     backStack.add(FileEditor("notes.py"))
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         TabbedDocumentPane(
           backStack = backStack,
           openDocuments = open,

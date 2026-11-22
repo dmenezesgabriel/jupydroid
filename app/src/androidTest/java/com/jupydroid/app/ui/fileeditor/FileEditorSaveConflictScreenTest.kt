@@ -12,7 +12,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceFiles
 import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
 import com.jupydroid.app.domain.model.TextEdit
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.FILE_CHANGED_TITLE
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -82,7 +82,7 @@ class FileEditorSaveConflictScreenTest {
   private fun showTheFileRewrittenUnderAnEdit() {
     notes.writeText("cat = 1")
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         FileEditorScreen(
           path = "notes.py",
           workspaceRepository = DiskWorkspaceRepository(temp.root),

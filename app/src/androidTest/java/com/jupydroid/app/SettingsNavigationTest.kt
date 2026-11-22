@@ -21,7 +21,7 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.LauncherSettings
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.settings.LICENCES
 import com.jupydroid.app.ui.settings.LICENCES_SCREEN_TAG
 import com.jupydroid.app.ui.settings.SETTINGS_SCREEN_TAG
@@ -107,7 +107,7 @@ class SettingsNavigationTest {
 
   private fun startApp(twoPane: Boolean = false) {
     compose.setContent {
-      JupyterDroidTheme {
+      JupydroidTheme {
         MainNavigation(
           appContainer = AppContainer(
             launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),

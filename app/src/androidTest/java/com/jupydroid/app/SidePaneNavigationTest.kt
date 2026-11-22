@@ -31,7 +31,7 @@ import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
-import com.jupydroid.app.theme.JupyterDroidTheme
+import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.shell.MORE
 import com.jupydroid.app.ui.shell.SEARCH_WORKSPACE_BOX
 import com.jupydroid.extension.api.Extension
@@ -380,7 +380,7 @@ class SidePaneNavigationTest {
     runBlocking { repository.saveNotebook(notebook()) }
     compose.setContent {
       DeviceConfigurationOverride(DeviceConfigurationOverride.ForcedSize(windowFor(twoPane.value))) {
-        JupyterDroidTheme {
+        JupydroidTheme {
           MainNavigation(
             appContainer = AppContainer(
               launcherSettings = FakeLauncherSettingsRepository(LauncherSettings(launcherSeen = true)),
