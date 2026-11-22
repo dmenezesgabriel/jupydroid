@@ -76,9 +76,9 @@ jobs:
     needs: version
     if: github.repository == 'dmenezesgabriel/jupydroid'
     runs-on: ubuntu-24.04-arm
-    # The emulated build measured 32 minutes; native arm64 has run nowhere yet, so the ceiling keeps the
-    # qemu-era headroom until the probe reports the real number.
-    timeout-minutes: 90
+    # The four native builds measured under four minutes together on the arm64 probe (ADR-0173);
+    # fifteen leaves headroom for a cold runner without keeping the qemu era's half hour.
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
