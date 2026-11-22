@@ -56,6 +56,7 @@ SITE_SHOT_FLOWS=(
   "$ROOT/.maestro/site-spaces-shots.yaml"
   "$ROOT/.maestro/site-interface-shots.yaml"
   "portrait:$ROOT/.maestro/site-interface-one-pane-shots.yaml"
+  "$ROOT/.maestro/site-notebooks-shots.yaml"
 )
 
 mkdir -p "$IMAGES"

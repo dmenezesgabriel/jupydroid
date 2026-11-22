@@ -1,0 +1,173 @@
+appId: com.jupydroid.app
+---
+# The frames the Notebooks page shows: the three cell types and the chrome around them, a run
+# caught mid-flight and its outputs, the completion popup, the save/revert asks, and the export
+# picker. A `takeScreenshot` name here IS the image id -
+# scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# The workspace only exists inside a running Space, and running cells and completions need its
+# kernel - TABLET ONLY (SM-X216B). The notebook it shoots is the one
+# site-notebooks-shots-seed.sh put in the workspace: "Notebook Tour.ipynb", three cell types and
+# four code cells whose prints are computed, the last one sleeping so a run can be caught alive.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+- scrollUntilVisible:
+    element:
+      text: "Notebook Tour.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Notebook Tour.ipynb"
+- extendedWaitUntil:
+    visible: "print\\(6 \\* 7\\)"
+    timeout: 30000
+
+# The first cell is the active one on a notebook just opened, so the bar names it - Markdown,
+# since the tour opens on prose. The picker it opens is the same three types every cell can be.
+- takeScreenshot: notebooks-open
+- tapOn: "Cell type Markdown"
+- extendedWaitUntil:
+    visible: "Cell type picker Raw"
+    timeout: 10000
+- takeScreenshot: notebooks-cell-type
+- back
+# Back closes the picker, not the notebook - the bar's own Run-all proves which screen survived.
+- assertVisible: "Run all cells"
+
+# The middle code cell's menu, pinned from both sides for `format-cell.yaml`'s reason: every
+# header carries the same "Cell actions" description and a bare tap finds the first cell's.
+# Below the markdown cell's closing line, above this cell's own source - only this cell's ⋮
+# sits between them (the markdown cell's own ⋮ is above its text, not below it).
+- scrollUntilVisible:
+    element:
+      text: "(?s).*total = 0.*"
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    text: "Cell actions"
+    below:
+      text: "The cells below print both."
+    above:
+      text: "(?s).*total = 0.*"
+- extendedWaitUntil:
+    visible: "Cell menu Insert code below"
+    timeout: 10000
+- takeScreenshot: notebooks-cell-menu
+- back
+- assertVisible: "Run all cells"
+
+# Down to the sleeping last cell first: the cells are a LazyColumn, so a "Stop cell" is only on
+# screen while its own cell is composed - scrolled here, the fast cells' stops are disposed and
+# the one that appears can only be the sleeper's. Run all then pays kernel boot and three quick
+# cells before the six-second sleep, which is the window the shot catches.
+- scrollUntilVisible:
+    element:
+      text: "(?s).*time\\.sleep.*"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Run all cells"
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 180000
+- takeScreenshot: notebooks-running
+# The sleep ends the run-all; its output is computed (`{3 * 2}` is 6 in the file, not on screen).
+- extendedWaitUntil:
+    visible: "awake after 6 s"
+    timeout: 60000
+
+# Back up to where the executed cells and their outputs are: two `[n]:` prompts, `ran in` timings
+# and the text each cell printed.
+- scrollUntilVisible:
+    element:
+      text: "the total is 6"
+    direction: UP
+    timeout: 10000
+- takeScreenshot: notebooks-outputs
+
+# Completions come from the kernel, which never starts one for typing alone - the run-all above
+# is what made this possible. The topmost composed code cell takes the line; `focus-cell.yaml`
+# is the one place the field's name and wait are written.
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
+- pressKey: Enter
+- inputText: "pri"
+- extendedWaitUntil:
+    visible: "Completions"
+    timeout: 60000
+# The kernel labels the match with its signature - "Completion print(values, sep, end, file,
+# flush)" - so the row is matched by prefix, never by the bare word the keyboard also offers.
+- assertVisible: "Completion print.*"
+- takeScreenshot: notebooks-completion
+- tapOn: "Completion print.*"
+- hideKeyboard
+
+# The completion left the document dirty, which is the state Save As is usually asked from. The
+# tab's long-press menu is where it lives; the dialog is the shot, the name typed so the frame
+# shows what a person would type.
+- longPressOn: "Tab: Notebook Tour.ipynb"
+- extendedWaitUntil:
+    visible: "Save As…"
+    timeout: 5000
+- tapOn: "Save As…"
+- extendedWaitUntil:
+    visible: "Save File As…"
+    timeout: 5000
+- inputText: "Notebook Tour copy"
+- takeScreenshot: notebooks-save-as
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Tab: Notebook Tour copy.ipynb"
+    timeout: 30000
+# The dialog's dismissal already lowered the IME; a hideKeyboard with nothing to dismiss risks
+# a back press, and back with one tab open leaves the notebook.
+
+# A checkpoint exists from the moment the document opened, so the copy reverts to what the
+# Save As wrote - the ask is the shot. One more edit first, or there is nothing to revert.
+# Save As reloads the document and the scroll resets to the top, so the greeting cell - the
+# one the completion went into - has to be scrolled back to before it can take the edit.
+- scrollUntilVisible:
+    element:
+      text: "(?s).*name = \"jupyter\".*"
+    direction: DOWN
+    timeout: 20000
+- tapOn: '(?s).*name = "jupyter".*'
+- inputText: "!"
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- longPressOn: "Tab: Notebook Tour copy.ipynb"
+- extendedWaitUntil:
+    visible: "Revert to Checkpoint…"
+    timeout: 5000
+- tapOn: "Revert to Checkpoint…"
+- extendedWaitUntil:
+    visible: "Revert Notebook to checkpoint"
+    timeout: 5000
+- takeScreenshot: notebooks-revert
+- tapOn: "Revert"
+- extendedWaitUntil:
+    notVisible: "Unsaved changes"
+    timeout: 30000
+
+# The notebook's own overflow: the export row and the view toggles folded into it. The picker it
+# opens asks the Space what it can convert to, so the formats arrive after a beat.
+- tapOn: "Notebook actions"
+- extendedWaitUntil:
+    visible: "Save and Export Notebook As…"
+    timeout: 10000
+- takeScreenshot: notebooks-menu
+- tapOn: "Save and Export Notebook As…"
+- extendedWaitUntil:
+    visible: "Reveal.js Slides"
+    timeout: 30000
+- takeScreenshot: notebooks-export
+- tapOn: "Markdown"
+- extendedWaitUntil:
+    visible: "Exported to .*"
+    timeout: 60000
+- takeScreenshot: notebooks-exported
