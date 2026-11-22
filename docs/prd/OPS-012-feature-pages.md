@@ -51,9 +51,11 @@ on 2026-11-21 and the clone under `reference/research_repos/vscode-docs` is at i
 | `termux-app` | ABSENT | `docs/en/index.md` | Placeholder page only. |
 | `winlator` | PARTIAL | `README.md` | Install/launch/tips in one README. |
 | the shipped rootfs | ABSENT | — | Runtime packages, not user documentation. |
+| `textual` | FULL | `mkdocs.yml`, `docs/` | The flagship Material for MkDocs consumer — censused for the site's own configuration: theme features, plugins, markdown extensions, nav shape — not for page structure. |
 
-**Count:** 11 rows censused — the template's seven, `vscode-docs` (the backlog names it), and
-the three upstreams of this app's contributed surfaces: 2 FULL, 5 PARTIAL, 4 ABSENT. Both
+**Count:** 12 rows censused — the template's seven, `vscode-docs` and `textual` (the backlog
+names the first; the maintainer names the second for site polish), and the three upstreams of
+this app's contributed surfaces: 3 FULL, 5 PARTIAL, 4 ABSENT. Both
 mature products that have a user guide split it by feature area; every smaller reference keeps
 its whole surface in one README or one short page. Which reference is authoritative for which
 question is in [`../architecture/cross-cutting.md`](../architecture/cross-cutting.md).
@@ -227,7 +229,12 @@ enough that each takes well under a session; if one does not, decompose it here 
   calls and permissions, queued questions; `.jupyter/mcp_settings.json` via "MCP servers".
 - [ ] T8 — Settings and Troubleshooting pages: every Settings section and theme/app-icon choice;
   the arm64 caveat, the Diagnostics error log, and where a Space's server log lives.
-- [ ] T9 — Ship: full driver rerun on `SM-X216B` with every frame inspected, strict build and all
+- [ ] T9 — Site polish: census `textualize/textual`'s `mkdocs.yml` at `5e5b7ef58b8c5572c13a3ff9027d756623661495`
+  — its theme features, plugins, markdown extensions and nav — and adopt each knob a smaller
+  project keeps (logo and favicon, palette and scheme toggles, nav footer, tabs, annotations,
+  copy buttons as pages need them); the commit body names what was taken and what was left, and
+  the strict build stays green.
+- [ ] T10 — Ship: full driver rerun on `SM-X216B` with every frame inspected, strict build and all
   site gates green, delete this PRD, edit the backlog row to `shipped`, commit.
 
 ## Out of scope
