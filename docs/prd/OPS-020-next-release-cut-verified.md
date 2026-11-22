@@ -135,7 +135,7 @@ the machinery ADR-0140 already built, not designing a new one.
   merge commit; `gh run watch` the `Release` run to green; `gh release view <tag>` shows the APK,
   `SHA256SUMS`, `sbom-arm64-v8a.json`, `SOURCE_OFFER.md`, the changelog notes and the attestation.
   Commit body names every run id and the Release URL.
-- [ ] T5 — Install the released APK on `SM-X216B`:
+- [x] T5 — Install the released APK on `SM-X216B`:
   `scripts/release-install-demo-driver.sh <tag>` — checksum, signature, badging, fresh install,
   non-debuggable version check, and the Maestro flow's cell run; the driver's evidence stays local
   ([ADR-0132](../adr/0132-evidence-is-local-and-reproduction-is-a-tested-script.md)). The commit body
