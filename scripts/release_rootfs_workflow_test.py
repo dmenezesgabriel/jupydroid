@@ -86,6 +86,16 @@ class ReleaseRootfsWorkflowTest(unittest.TestCase):
         self.assertEqual(checkout["with"]["ref"], "${{ inputs.ref || github.ref }}")
         self.assertIs(checkout["with"]["persist-credentials"], False)
 
+    def test_uv_is_verified_against_the_arm64_tarball(self) -> None:
+        # setup-uv verifies one checksum against whichever tarball the runner's arch downloads.
+        # On ubuntu-24.04-arm that is uv-aarch64-unknown-linux-gnu.tar.gz, whose sha256 the
+        # 0.11.8 release publishes beside it; the x86_64 value fails the step before uv exists.
+        setup_uv = next(step for step in rootfs_steps() if str(step.get("uses", "")).startswith("astral-sh/setup-uv@"))
+        self.assertEqual(
+            setup_uv["with"]["checksum"],
+            "eee8dd658d20e5ac85fec9c2326b6cbc9d83a1eef09ef07433e58698ac849591",
+        )
+
     def test_the_gnu_payload_is_built_before_the_artifact_upload(self) -> None:
         # stage-app-artifacts.sh arm64-v8a refuses without gnu-arm64-v8a.tzst, so the payload has to be
         # built here - no workflow built it before, and the next release would have failed at staging.
