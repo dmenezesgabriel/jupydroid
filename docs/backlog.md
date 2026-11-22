@@ -359,6 +359,20 @@ on a public repository, in its polished form. The site is for users. The enginee
 | `OPS-011` | **Getting started:** a tutorial from installing a release to the first Space and the first notebook run, shaped like jupyterlab.readthedocs.io's Get Started (install → launch → first document); its PRD censuses jupyterlab/jupyterlab `docs/` and microsoft/vscode-docs first, naming what a smaller project keeps and what it leaves | shipped | — | — |
 | `OPS-012` | **A page per feature area:** Spaces, notebooks, the Console, the terminal, the explorer, search, Git, Chat, MCP, settings and themes, troubleshooting — the surface list jupyterlab.readthedocs.io's User Guide splits by; its PRD censuses jupyterlab/jupyterlab `docs/` and microsoft/vscode-docs first, naming what a smaller project keeps and what it leaves; split per area in its PRD, each page's pictures suite-produced shots of that area's surface — every Settings section, the rail bar, explorer and search features, context menus; produced efficiently — one provisioning pass serves every shot, UI-only frames never boot a Space, and a flow captures a shot list per area, not one image per flow | shipped | — | — |
 
+### M13 — Engineering health
+
+**Why after the first release.** The app works and ships; now the codebase pays down the debt a
+working system accrues. Each audit measures first — deterministic tools over the tree and the call
+graph, not taste — and its findings become gaps and fix items with demos of their own. Nothing here
+removes a feature.
+
+| Id | Capability | State | PRD | Closes |
+|---|---|---|---|---|
+| `OPS-023` | **The README says and shows the app as it is today:** the text predates the shipped surface — every claim checked against the released app, stale statements rewritten, and its images re-produced by the site-shot suite convention so light and dark pairs match the current screens; verified by reading the rendered page | open | — | — |
+| `AUD-015` | **Object calisthenics, measured then enforced:** a deterministic census — a tree-sitter or AST walk, not a grep — of four rules across the Kotlin tree: `else`/`else if`/`else` arms of `when` against guard clauses and early returns, nesting beyond one level, call chains beyond one dot except through a documented builder type, and abbreviated names; findings become `GAP-NNN` rows and fix items that ship battle-tested, and the detector joins the gates so the rules stay held | open | — | — |
+| `AUD-016` | **The call graph walked from every entry point to its leaves:** each entry point traced deterministically to its last dependency, asymptotic cost read off the walk, and shared mutable state surveyed for races; repairs reach first for throttle, debounce, exponential backoff, queue limits and conditional updates — findings become `GAP-NNN` rows and fix items | open | — | — |
+| `AUD-017` | **Memory, CPU and storage measured on the install devices:** the app's footprint profiled on `SM-X216B` and `dev36` without cutting a feature — retention leaks, duplicate work, oversized artifacts and payloads; findings become `GAP-NNN` rows and fix items that keep every feature and improve the numbers | open | — | — |
+
 ### Known gaps
 
 Measured gaps are recorded as `GAP-NNN` in
