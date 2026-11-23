@@ -153,9 +153,24 @@ recorded divergence yet. **absent** — the evidence that names the cause.
   API-level question stays open. Evidence is in the local evidence tree
   (kernel.log, launcher.log, QMP register dumps, launch logs). T2 onward needs a
   real arm64 Android-13 runtime.
-- [ ] T2 — Name the first divergence: instrument the kernel-launch path (proot verbosity or a
+- [x] T2 — Name the first divergence: instrument the kernel-launch path (proot verbosity or a
   tracer-side report of suppressed syscalls, `ProotRuntimeProbeDeviceTest`-style probe, debug-build
   `jupyter_server.log`) until the refused syscall or stuck stage is identified.
+  **Verdict: the refused syscall is `clone3` (435), and the divergence is proot's suppressed
+  SIGSYS leaving a bogus return on arm64, not a kernel-version delta.** A `qemu-system-aarch64`
+  VM booting `vmlinuz-4.19.0-27-arm64` with the shipped rootfs ran the real kernelspec launch
+  under a faithful Android-13 app seccomp policy (216 arm64 nrs from the AOSP `genseccomp`
+  inputs). `clone3` is refused on API 33/34 (allowed only from API 35). Proot suppressed the
+  resulting SIGSYS three times — the thread-creation calls ipykernel/ZMQ need — then the
+  kernel never bound its channels (`Kernel died before replying to kernel_info`). On arm64
+  `syscall_rollback` restores `x0 = orig_x0` = the call's first argument, not `-ENOSYS`, so
+  `clone3(cl_args, …)` "returns" a pointer-as-tid; glibc only falls back to `clone()` on
+  `-ENOSYS`, so `pthread_create` reports success for a thread that does not exist and the
+  caller waits forever. Control: the identical launch under an API-35-shaped policy
+  (`clone3`/`epoll_pwait2` allowed) spawned all threads, bound `iopub` on 46000, printed the
+  IOPub workaround warning and reached ipykernel's ready banner — on 4.19 an allowed `clone3`
+  returns a real `-ENOSYS` and glibc falls back cleanly. The write-up and the three VM serial
+  logs are in the local evidence tree under this item's name.
 - [ ] T3 — Repair the cause, red test first: unit test where the mechanism is Kotlin; device
   evidence where it is the tracer or the payload.
 - [ ] T4 — Demo: the fixed build answers a cell on arm64 emulator images API 33→36 and on
