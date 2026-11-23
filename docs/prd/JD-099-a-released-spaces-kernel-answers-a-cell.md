@@ -171,8 +171,28 @@ recorded divergence yet. **absent** — the evidence that names the cause.
   IOPub workaround warning and reached ipykernel's ready banner — on 4.19 an allowed `clone3`
   returns a real `-ENOSYS` and glibc falls back cleanly. The write-up and the three VM serial
   logs are in the local evidence tree under this item's name.
-- [ ] T3 — Repair the cause, red test first: unit test where the mechanism is Kotlin; device
+- [x] T3 — Repair the cause, red test first: unit test where the mechanism is Kotlin; device
   evidence where it is the tracer or the payload.
+  **Verdict: fixed — the tracer writes `-ENOSYS` into the tracee's result register for every
+  suppressed seccomp `SIGSYS`, and the API-33-shaped arm64 VM answers `print(6*7)` with `42`.**
+  Red first: the x86 trap harness (`trapfilter 39` + `tracee`) showed the buggy proot returning
+  the syscall number with `errno=0` instead of `-1`/`ENOSYS`; the patched amd64 build
+  (`build/proot-x86-t3/proot-x86.static`) returns `-1 errno=38` and the tracee survives. The
+  repair is class-wide in `seccomp-sigsys-enosys.patch`: `seccomp_trap_sysnum` reports
+  `regs_ready`, and `seccomp_trap_answer_enosys` snapshots CURRENT→ORIGINAL, pokes
+  `SYSARG_RESULT = -ENOSYS` and pushes registers before the signal is suppressed — if the
+  answer cannot be written, the `SIGSYS` is delivered instead of silently dropped. The arm64
+  `build/proot/proot.static` (sha256 `bf8fbad4…`) was staged with `stage_proot_patched.py` into
+  the VM rootfs. Booted under `qemu-system-aarch64` with `vmlinuz-4.19.0-27-arm64` and the
+  android13 TRAP policy, the kernel logged `answered ENOSYS for clone3; SIGSYS suppressed`
+  exactly once, spawned every thread, bound all five channels, reached `kernel ready`, and the
+  client read `print(6*7)` → IOPub `stream '42'`. Two scratch-harness faults were found and
+  fixed along the way, both local-only: the initramfs never brought `lo` up so every
+  `127.0.0.1` connect was refused even with the channels listening (a no-proot/no-filter
+  control hung identically until `ip link set lo up`), and the SDK's `qemu-system-aarch64`
+  is the emulator frontend — the usable QEMU is the 10.2.1 deb set under `/tmp/qemu-dl` with
+  `-L /tmp/qemu-dl/romroot/usr/share/qemu`. Serial log and manifest are in the local evidence
+  tree under this item's name.
 - [ ] T4 — Demo: the fixed build answers a cell on arm64 emulator images API 33→36 and on
   `SM-X216B`; delete this PRD, close the backlog row.
 

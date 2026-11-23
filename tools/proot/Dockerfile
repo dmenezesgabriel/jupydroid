@@ -1,8 +1,10 @@
-# Builds proot 5.4.0 as a musl-static aarch64 ELF, patched so the SIGSYS Android's
-# seccomp filter raises for the optional syscalls a glibc loader issues before any
-# preload constructor can arm a handler (`set_robust_list`, then `rseq`) is dropped,
-# and the ENOSYS the kernel already set stands - what a guest SIGSYS handler
-# returning normally does. Without it a glibc loader dies before that handler exists.
+# Builds proot 5.4.0 as a musl-static aarch64 ELF, patched so a seccomp SIGSYS stop is
+# answered by writing -ENOSYS into the tracee's result register - what a guest SIGSYS
+# handler returning normally does. It covers the optional syscalls a glibc loader issues
+# before any preload constructor can arm a handler (`set_robust_list`, then `rseq`) and
+# every refusal under PROOT_SIGSYS_ENOSYS; dropping the signal alone leaves the kernel's
+# rolled-back register (on arm64, the call's first argument), not -ENOSYS. Without it a
+# glibc loader dies before that handler exists.
 #
 # The recipe is Alpine's own (aports community/proot APKBUILD at
 # a9e2a2dc46f377eb25884f7fea9834492de7f518): the six patches under patches/ are

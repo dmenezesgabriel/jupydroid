@@ -8,7 +8,7 @@
  #include <unistd.h>     /* fork(2), chdir(2), getpid(2), */
  #include <string.h>     /* strcmp(3), */
  #include <errno.h>      /* errno(3), */
-@@ -388,6 +389,113 @@
+@@ -388,6 +389,133 @@
  }
  
  /**
@@ -39,22 +39,42 @@
 + * even under PROOT_SIGSYS_ENOSYS.  @arch_nr is the raw number the kernel
 + * reports (-1 likewise); si_syscall is the architecture's own number - on
 + * arm64 the one in x8 - which is also what get_sysnum translates.
++ * @regs_ready is true only when the tracee's register bank was fetched,
++ * which the ENOSYS answer needs before it can be written back.
 + */
-+static Sysnum seccomp_trap_sysnum(Tracee *tracee, int *arch_nr, bool *is_seccomp)
++static Sysnum seccomp_trap_sysnum(Tracee *tracee, int *arch_nr, bool *is_seccomp, bool *regs_ready)
 +{
 +	siginfo_t siginfo;
 +
 +	*arch_nr = -1;
 +	*is_seccomp = false;
++	*regs_ready = false;
 +	if (ptrace(PTRACE_GETSIGINFO, tracee->pid, NULL, &siginfo) < 0)
 +		return PR_void;
 +	if (siginfo.si_code != SYS_SECCOMP)
 +		return PR_void;
 +	*is_seccomp = true;
++	*arch_nr = siginfo.si_syscall;
 +	if (fetch_regs(tracee) < 0)
 +		return PR_void;
-+	*arch_nr = siginfo.si_syscall;
++	*regs_ready = true;
 +	return get_sysnum(tracee, CURRENT);
++}
++
++/**
++ * Answer a suppressed seccomp trap the way the guest's own SIGSYS handler
++ * would: -ENOSYS in the result register.  SECCOMP_RET_TRAP skips the
++ * syscall, and the kernel's rollback does not promise -ENOSYS there - on
++ * arm64 it restores x0 to the call's first argument, which for clone3(2)
++ * is a pointer a libc cannot tell from a tid.  Snapshot CURRENT as
++ * ORIGINAL first so push_regs()' restore pass is a no-op, then poke only
++ * the result register (seccomp(2); ADR-0166).
++ */
++static int seccomp_trap_answer_enosys(Tracee *tracee)
++{
++	save_current_regs(tracee, ORIGINAL);
++	poke_reg(tracee, SYSARG_RESULT, (word_t) -ENOSYS);
++	return push_regs(tracee);
 +}
 +
 +/* The most an exec environment is expected to reach; a longer one
@@ -122,7 +142,7 @@
   * For kernels >= 4.8.0
   * Handle the current event (@tracee_status) of the given @tracee.
   * This function returns the "computed" signal that should be used to
-@@ -581,11 +689,17 @@
+@@ -581,11 +709,17 @@
  			break;
  
  		case SIGTRAP | PTRACE_EVENT_VFORK_DONE << 8:
@@ -141,36 +161,44 @@
  		case SIGSTOP:
  			/* Stop this tracee until PRoot has received
  			 * the EVENT_*FORK|CLONE notification.  */
-@@ -602,6 +716,44 @@
+@@ -602,6 +736,52 @@
  			}
  			break;
  
 +		case SIGSYS: {
 +			int arch_nr;
-+			bool is_seccomp;
-+			Sysnum sysnum = seccomp_trap_sysnum(tracee, &arch_nr, &is_seccomp);
++			bool is_seccomp, regs_ready, answer_enosys;
++			Sysnum sysnum = seccomp_trap_sysnum(tracee, &arch_nr,
++							   &is_seccomp, &regs_ready);
 +
-+			/* Dropping the signal leaves the ENOSYS the kernel
-+			 * already set standing - what a guest SIGSYS handler
-+			 * returning normally does, without the round trip
-+			 * through it.  PROOT_SIGSYS_ENOSYS asks for that on
-+			 * every seccomp trap, for a libc whose signal path
-+			 * cannot survive delivery (measured on glibc under
-+			 * threads by GlibcPythonWheelProbeDeviceTest); the
-+			 * rest keep the handler.  The variable is read on the
-+			 * tracer's own environment for a whole traced tree,
++			answer_enosys = is_seccomp && regs_ready &&
++			    (getenv("PROOT_SIGSYS_ENOSYS") != NULL ||
++			     tracee_sigsys_enosys(tracee) == SIGSYS_ENOSYS_PRESENT ||
++			     seccomp_trap_is_enosys_safe(sysnum));
++
++			/* A seccomp trap is not an ENOSYS by itself: the
++			 * syscall never ran, so the result register holds
++			 * whatever the kernel's rollback left - on arm64 the
++			 * call's first argument, which clone3(2)'s caller
++			 * cannot tell from a tid.  Suppression therefore has
++			 * to write -ENOSYS before the signal is dropped, the
++			 * same value the guest's SIGSYS handler would return
++			 * (seccomp(2); ADR-0166).  PROOT_SIGSYS_ENOSYS asks
++			 * for that on every seccomp trap, for a libc whose
++			 * signal path cannot survive delivery (measured on
++			 * glibc under threads by
++			 * GlibcPythonWheelProbeDeviceTest); the rest keep the
++			 * handler.  The variable is read on
++			 * the tracer's own environment for a whole traced tree,
 +			 * and on the tracee's for one program - a kernelspec's
 +			 * env reaches only the tracee.  The loader's startup
 +			 * pair is ENOSYS-safe for everyone - no handler is
 +			 * armed yet.  */
-+			if (is_seccomp &&
-+			    (getenv("PROOT_SIGSYS_ENOSYS") != NULL ||
-+			     tracee_sigsys_enosys(tracee) == SIGSYS_ENOSYS_PRESENT ||
-+			     seccomp_trap_is_enosys_safe(sysnum))) {
++			if (answer_enosys && seccomp_trap_answer_enosys(tracee) == 0) {
 +				signal = 0;
 +				VERBOSE(tracee, 1,
-+					"vpid %" PRIu64 ": suppressed SIGSYS for "
-+					"%s; ENOSYS stands",
++					"vpid %" PRIu64 ": answered ENOSYS for "
++					"%s; SIGSYS suppressed",
 +					tracee->vpid, stringify_sysnum(sysnum));
 +			}
 +			else {
