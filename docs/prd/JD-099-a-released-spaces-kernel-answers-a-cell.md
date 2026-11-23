@@ -115,9 +115,12 @@ recorded divergence yet. **absent** — the evidence that names the cause.
 
 ## Open decisions
 
-- **Does the API-33 emulator reproduce the hang?** If yes, the cause is in the API-level userspace
-  (the seccomp allowlist is the named variable). If no, the bounded-negative redirects to
-  kernel/vendor causes and this item says so plainly rather than claiming a fix it cannot verify.
+- **Does an arm64 API-33 runtime reproduce the hang?** T1 showed no such runtime can be stood up
+  on this host (emulator impossible, Cuttlefish guest kernel hangs under TCG), so the question
+  moves to whatever physical arm64 Android-13 device is attached next. If it reproduces, the
+  cause is in the API-level userspace (the seccomp allowlist is the named variable); if not, the
+  bounded-negative redirects to kernel/vendor causes and this item says so plainly rather than
+  claiming a fix it cannot verify.
 - **How a suppressed syscall becomes visible for glibc** — proot verbosity, a tracer-side log, or
   both; decided in T2 on what the reproduction shows.
 
@@ -138,10 +141,18 @@ recorded divergence yet. **absent** — the evidence that names the cause.
 
 ## Tasks
 
-- [ ] T1 — Stand up the arm64 API 33 emulator (`system-images;android-33;google_apis;arm64-v8a`
+- [x] T1 — Stand up the arm64 API 33 emulator (`system-images;android-33;google_apis;arm64-v8a`
   + AVD, booted under TCG) and reproduce with the **released v0.2.0 APK** fresh-installed: drive a
   cell through Maestro, capture `logcat -s JupydroidSpace`, screenshots, snapshots and
   `maestro.log` into `evidence/`; verdict recorded as reproduced or bounded-negative.
+  **Verdict: bounded-negative, at the vehicle level.** The emulator path is impossible on this
+  x86_64 host (hardcoded arch check, all builds — ADR-0003), and the fallback — an arm64
+  Android-13 Cuttlefish guest under QEMU/TCG — boots U-Boot then hangs in early kernel init at a
+  fixed PC across every configuration tried, so Android userspace and ADB never came up. No
+  physical arm64 API-33 device is attached. The released APK was never installed; the
+  API-level question stays open. Evidence is in the local evidence tree
+  (kernel.log, launcher.log, QMP register dumps, launch logs). T2 onward needs a
+  real arm64 Android-13 runtime.
 - [ ] T2 — Name the first divergence: instrument the kernel-launch path (proot verbosity or a
   tracer-side report of suppressed syscalls, `ProotRuntimeProbeDeviceTest`-style probe, debug-build
   `jupyter_server.log`) until the refused syscall or stuck stage is identified.
