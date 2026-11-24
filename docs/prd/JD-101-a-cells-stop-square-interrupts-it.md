@@ -166,7 +166,7 @@ Every port gets a `Fake…` in `data/fake/`, which is also what `AppContainer` d
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — Stop during connect: `stopRunningCell` while `opened == null` keeps the ask — once
+- [x] T1 — Stop during connect: `stopRunningCell` while `opened == null` keeps the ask — once
   `open()` returns, the cell's execute is never sent and the cell resolves CANCELLED, not
   run-to-completion mislabeled. Red first: a gateway whose `connect` is held reproduces today's
   drop; green: the pending stop is checked inside `reopeningIfStale` after `open()` and before

@@ -154,33 +154,6 @@ internal class RecordingKernelGateway(
   }
 }
 
-/**
- * A kernel that takes its time coming up, which on a device is the ordinary case: installing the
- * Space, starting `jupyter_server` and starting the kernel is the slow part of a run, and the
- * tablet measured fourteen seconds of it.
- */
-internal class SlowToConnectKernelGateway : KernelGateway by FakeKernelGateway() {
-  private val connectable = CompletableDeferred<Unit>()
-
-  override suspend fun connect(
-    space: Space,
-    documentPath: String,
-    kernel: KernelChoice?,
-    sessionType: SessionType?,
-  ): KernelSession {
-    connectable.await()
-    return KernelSession(
-      id = "slow-${space.id}",
-      spaceId = space.id,
-      kernelId = "kernel-1",
-      kernelName = "python3",
-      serverSessionId = "server-session-1",
-    )
-  }
-
-  fun letItConnect() = connectable.complete(Unit)
-}
-
 /** A PATCH that holds until released, the way [SlowToConnectKernelGateway] gates a connect. */
 internal class SlowToChangeKernelGateway : KernelGateway by FakeKernelGateway() {
   private val changeable = CompletableDeferred<Unit>()
