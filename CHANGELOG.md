@@ -2,6 +2,150 @@
 
 <!-- version list -->
 
+## v0.3.0 (2026-11-24)
+
+### Bug Fixes
+
+- **editor**: A refused interrupt folds into the run's own channel
+  ([`fcb8876`](https://github.com/dmenezesgabriel/jupydroid/commit/fcb8876e19ae21e8268fd4ca9dc0f00b0de79d17))
+
+- **editor**: A stop pressed while the kernel connects is kept, not dropped
+  ([`62a0a1e`](https://github.com/dmenezesgabriel/jupydroid/commit/62a0a1e59b6b21be462ab7645442db458dff2431))
+
+- **space**: Answer every suppressed seccomp SIGSYS with -ENOSYS at the tracer
+  ([`8a8c0a2`](https://github.com/dmenezesgabriel/jupydroid/commit/8a8c0a27d9b1e88625200f52e5bd07c45fd4ff44))
+
+### Chores
+
+- **repo**: Docs joins the main required checks (OPS-019 T2)
+  ([`6dc3596`](https://github.com/dmenezesgabriel/jupydroid/commit/6dc3596e57c379a473f37ae9f52ec80487290b02))
+
+- **repo**: Every product spelling reads Jupydroid (OPS-021 T2)
+  ([`38fd665`](https://github.com/dmenezesgabriel/jupydroid/commit/38fd665f09405492d8a65c270692f4bf6add5522))
+
+- **repo**: Every product spelling reads Jupydroid, and OPS-021 ships
+  ([`424ea84`](https://github.com/dmenezesgabriel/jupydroid/commit/424ea847ced1c41680d72e3a6e555bd02970a5ec))
+
+- **repo**: The docs check gates every pull request, and OPS-019 ships
+  ([`fade458`](https://github.com/dmenezesgabriel/jupydroid/commit/fade4588ad5e119fe90b3e17f4d9d11f1d9b5094))
+
+- **repo**: The next release is cut and verified end to end, and OPS-020 ships
+  ([`85c6172`](https://github.com/dmenezesgabriel/jupydroid/commit/85c6172e51db54168454f7f6c05ef61dcbaee7a1))
+
+### Documentation
+
+- **adr**: A run in flight is handed to a retained holder when its screen dies
+  ([`c97e51e`](https://github.com/dmenezesgabriel/jupydroid/commit/c97e51e049c5860fe6bbaae4953ea63fa252008e))
+
+- **backlog**: JD-099's demo covers API 33 through 36
+  ([`6ca164f`](https://github.com/dmenezesgabriel/jupydroid/commit/6ca164f5cf6380988a50518d403b480ce1e732ab))
+
+- **backlog**: JD-099's failing device is an S20 FE on Android 13
+  ([`6ca164f`](https://github.com/dmenezesgabriel/jupydroid/commit/6ca164f5cf6380988a50518d403b480ce1e732ab))
+
+- **backlog**: JD-099's phone log says a UID process died SIGNALED
+  ([`ca87d96`](https://github.com/dmenezesgabriel/jupydroid/commit/ca87d96eab186424536b309d639ee1390461ef20))
+
+- **backlog**: JD-099's phone log says the app itself died SIGNALED
+  ([`ca87d96`](https://github.com/dmenezesgabriel/jupydroid/commit/ca87d96eab186424536b309d639ee1390461ef20))
+
+- **backlog**: JD-100 is next
+  ([`3158070`](https://github.com/dmenezesgabriel/jupydroid/commit/315807038c4067ad64c43419a52111d5871ab56f))
+
+- **backlog**: JD-101 is next
+  ([`2e00834`](https://github.com/dmenezesgabriel/jupydroid/commit/2e00834593c8f5b05da807ab063049d9812354bf))
+
+- **backlog**: JD-102 is next
+  ([`85625fb`](https://github.com/dmenezesgabriel/jupydroid/commit/85625fb3dbc18cba2222cda7031983a2104833a1))
+
+- **backlog**: M13 audits and fixes the codebase's engineering health
+  ([`409cb13`](https://github.com/dmenezesgabriel/jupydroid/commit/409cb134c0185019b895e0b10ed2edd61ed2d06b))
+
+- **backlog**: OPS-021 renames every JupyterDroid spelling to Jupydroid
+  ([`c0bc8a9`](https://github.com/dmenezesgabriel/jupydroid/commit/c0bc8a9849923aff725310cc409d06904792c201))
+
+- **backlog**: OPS-021 takes the next marker
+  ([`5df711c`](https://github.com/dmenezesgabriel/jupydroid/commit/5df711c07f82c6d85563cc5d5186430b1cbd7fef))
+
+- **backlog**: OPS-022 is next
+  ([`e70be46`](https://github.com/dmenezesgabriel/jupydroid/commit/e70be46249ad428c4477a98a8dbbed7968fa0e0b))
+
+- **backlog**: OPS-022 keeps the deployed docs in step with each release
+  ([`f98ef3a`](https://github.com/dmenezesgabriel/jupydroid/commit/f98ef3ab1607a85660ffba5d633e8f55f11de3ab))
+
+- **backlog**: OPS-024 makes small releases the standing practice
+  ([`dc46343`](https://github.com/dmenezesgabriel/jupydroid/commit/dc46343f1e6f7418c471dfa90d7786a4838670b1))
+
+- **backlog**: Pid 557 can be a UID-sharing child, not only the app
+  ([`ca87d96`](https://github.com/dmenezesgabriel/jupydroid/commit/ca87d96eab186424536b309d639ee1390461ef20))
+
+- **backlog**: Three released-app kernel regressions jump the queue
+  ([`6ca164f`](https://github.com/dmenezesgabriel/jupydroid/commit/6ca164f5cf6380988a50518d403b480ce1e732ab))
+
+- **icons**: Queue the supplied orbit-bugdroid art for the launcher
+  ([`a8b470f`](https://github.com/dmenezesgabriel/jupydroid/commit/a8b470fd07673dcd7e78ec39377a35a1c64686b2))
+
+- **prd**: JD-099 T1 verdict is bounded-negative - no arm64 API-33 vehicle exists on this host
+  ([`8c1a3bc`](https://github.com/dmenezesgabriel/jupydroid/commit/8c1a3bc3e42e6c4eb2865cb97dee33aa70dc2447))
+
+- **prd**: JD-099 T2 names the divergence - clone3 refused, proot leaves a bogus return on arm64
+  ([`c3e0b15`](https://github.com/dmenezesgabriel/jupydroid/commit/c3e0b15543340c619fbf82abe5feab615191490f))
+
+- **prd**: JD-099's plan is written - reproduce on an arm64 API 33 emulator, name the divergence,
+  repair red-first
+  ([`1d7cc38`](https://github.com/dmenezesgabriel/jupydroid/commit/1d7cc38b49e20a5a462d11d6d0e05092d39bccbb))
+
+- **prd**: JD-100's plan is written - a retained per-document execution holder carries the run
+  across its screen's death
+  ([`f10098a`](https://github.com/dmenezesgabriel/jupydroid/commit/f10098a2db28804e03374f3e0a6b9f5ba856ffe7))
+
+- **prd**: JD-101's plan is written - the stop keeps its ask through the connect, and a refused
+  interrupt folds
+  ([`80a653d`](https://github.com/dmenezesgabriel/jupydroid/commit/80a653d3672716ccb0149f3b58b3fe9b3e0e7b73))
+
+- **prd**: OPS-019's plan is written - docs joins the required checks
+  ([`dcf6215`](https://github.com/dmenezesgabriel/jupydroid/commit/dcf62150c41c6fcdbd3ee8315969086bfb61e927))
+
+- **prd**: OPS-021's plan is written - every product spelling reads Jupydroid
+  ([`4e54015`](https://github.com/dmenezesgabriel/jupydroid/commit/4e54015f32b4abb7bf0908a9cc6d6f47fe0f7f4b))
+
+- **prd**: The next release cut and verified end to end (OPS-020 T4)
+  ([`a9a7462`](https://github.com/dmenezesgabriel/jupydroid/commit/a9a7462f5cf852642ba2b46eceac0183bee7bd9f))
+
+- **prd**: The released v0.2.0 APK installed fresh and answered a cell (OPS-020 T5)
+  ([`b528fc5`](https://github.com/dmenezesgabriel/jupydroid/commit/b528fc5b837c5633a91f5cc961223bbd0ed0f55b))
+
+### Features
+
+- **editor**: A detached run keeps its own edges - writes, settings, file, key
+  ([`c6c3130`](https://github.com/dmenezesgabriel/jupydroid/commit/c6c3130bd2be7ac2483d64e38151c556c7f151c7))
+
+- **editor**: A run in flight is handed to the retained executions, not ended
+  ([`b88723b`](https://github.com/dmenezesgabriel/jupydroid/commit/b88723b0ebce764a31facfae9e7bcd61314ac5f2))
+
+- **editor**: Reopening adopts the retained run
+  ([`f9fd784`](https://github.com/dmenezesgabriel/jupydroid/commit/f9fd784b73733df24e34b4f6235a367627f86c90))
+
+### Refactoring
+
+- **editor**: The kernel's collectors end with close(), not with the screen's scope
+  ([`652ab9a`](https://github.com/dmenezesgabriel/jupydroid/commit/652ab9a471c022a166fb36aff7029db62f23570c))
+
+### Testing
+
+- **maestro**: A cell's stop square interrupts it, so the item ships
+  ([`cf03b35`](https://github.com/dmenezesgabriel/jupydroid/commit/cf03b352e26b35155b5e7cbc017b1eb99473fa02))
+
+- **maestro**: A released Space's kernel answers a cell on arm64 API 33 and 36, so the item ships
+  ([`94ea912`](https://github.com/dmenezesgabriel/jupydroid/commit/94ea912c6301d7dccbc81d410584cb4845fb90d9))
+
+- **maestro**: A running notebook survives leaving it, so the item ships
+  ([`1f87043`](https://github.com/dmenezesgabriel/jupydroid/commit/1f870435cee8cc3691ef3166d25a478bfde7f48c))
+
+- **settings**: Scroll the kernel-history and autosave rows into view before tapping
+  ([`47fe87c`](https://github.com/dmenezesgabriel/jupydroid/commit/47fe87cd175d81830c845bc59ed89bce790e1fa3))
+
+
 ## v0.2.0 (2026-11-22)
 
 ### Bug Fixes
