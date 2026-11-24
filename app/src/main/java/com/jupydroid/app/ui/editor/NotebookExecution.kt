@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import com.jupydroid.app.domain.model.ActiveCellRuns
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -19,13 +18,21 @@ import kotlinx.coroutines.launch
  * connection simply drops and whatever the kernel was doing is nobody's problem
  * (`packages/apputils/src/sessioncontext.tsx:679-709`). Ours keeps the collection alive on
  * purpose, so it also has to decide when it is done: [watchDetached] ends the kernel's
- * lifetime and reports the drain the moment no execution is RUNNING or QUEUED **and** no run is
- * counted in flight. Both halves are load-bearing - the last cell's `finishedRun` lands in the
- * state before its `checkpoint()` returns inside `ActiveCellRuns.whileRunning`, so executions
- * alone would tear down mid-write, and `lifetime.cancel()` would take the write with it.
+ * lifetime and reports the drain the moment no execution is RUNNING or QUEUED **and** no run
+ * work is counted in flight on this kernel. Both halves are load-bearing - the last cell's
+ * `finishedRun` lands in the state before its `checkpoint()` returns inside
+ * `NotebookCellRuns.runCells`, so executions alone would tear down mid-write, and
+ * `lifetime.cancel()` would take the write with it. The count is the kernel's own rather than
+ * `ActiveCellRuns`' app-wide one, so a second notebook's run never holds this one's drain.
+ *
+ * The file follow the screen kept is the holder's too while it is detached - a rename or
+ * delete announced in the meantime still reaches the document's path, session and write-back
+ * through the dead screen's own callbacks, on [followJob]. It ends with the watch: adoption
+ * hands following back to the screen that took the run over, and the drain leaves nothing
+ * that still cares where the file went.
  *
  * ```
- * NotebookExecution(key, kernel, uiState, activeCellRuns, scope) { registry.remove(it.key, it) }
+ * NotebookExecution(key, kernel, uiState, scope, followJob) { registry.remove(it.key, it) }
  *   .watchDetached()
  * ```
  */
@@ -39,12 +46,13 @@ class NotebookExecution(
    * comes back can adopt it as its own state rather than copying run fields across.
    */
   val uiState: MutableStateFlow<EditorUiState>,
-  private val activeCellRuns: ActiveCellRuns,
   /**
    * The scope the teardown's disconnect launches on - `applicationScope`, outliving both the
    * screen that is gone and this holder.
    */
   private val scope: CoroutineScope,
+  /** The detached file follow's coroutine - cancelled by [stopWatching] or by the drain itself. */
+  private val followJob: Job?,
   /** Told once, when the last run ends detached - the registry drops its entry here. */
   private val onDrained: (NotebookExecution) -> Unit,
 ) {
@@ -67,17 +75,29 @@ class NotebookExecution(
   fun watchDetached() {
     watchJob =
       watchScope.launch {
-        combine(uiState, activeCellRuns.inFlight) { state, runs -> state.runInFlight to runs }
+        combine(uiState, kernel.cellRunsInFlight) { state, runs -> state.runInFlight to runs }
           .distinctUntilChanged()
           .first { (runInFlight, runs) -> !runInFlight && runs == 0 }
         kernel.close(scope)
         onDrained(this@NotebookExecution)
+        followJob?.cancel()
       }
   }
+
+  /**
+   * Whether the screen opening [opening] is this run's document come back: the same Space, the
+   * file where it lives **now** - a rename moves [EditorUiState.notebookId] while the key keeps
+   * the path it was opened under - and not deleted out from under the run. A recreated file at
+   * the old path is a different document and answers false.
+   */
+  fun speaksFor(opening: NotebookExecutionKey): Boolean = key.spaceId == opening.spaceId &&
+    uiState.value.notebookId == opening.opening.path &&
+    !uiState.value.gone
 
   /** A screen that took the run over owns the kernel now - the drain watch is no longer its to fire. */
   fun stopWatching() {
     watchJob?.cancel()
     watchJob = null
+    followJob?.cancel()
   }
 }

@@ -7,9 +7,11 @@ import com.jupydroid.app.domain.port.WorkspaceWatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
@@ -35,7 +37,11 @@ import kotlinx.coroutines.launch
  */
 class DocumentFileFollow(
   private val changes: Flow<WorkspaceChange>,
-  private val watcher: WorkspaceWatcher,
+  /**
+   * What writes to the file are heard through - null for a follow that only wants the moves and
+   * deletes, like the one a detached run keeps: nothing is left to re-read a write into.
+   */
+  private val watcher: WorkspaceWatcher?,
   /** Where the document lives now - read at each change, since a rename moves it. */
   private val path: () -> String,
   /** This app moved the file there; the document takes on the new path. */
@@ -43,16 +49,19 @@ class DocumentFileFollow(
   /** This app deleted the file; the document must stop writing before anything closes it. */
   private val onGone: () -> Unit,
   /** Something wrote the file, which had [FileStamp] when the write was heard. */
-  private val onWritten: suspend (FileStamp) -> Unit,
+  private val onWritten: suspend (FileStamp) -> Unit = {},
 ) {
   /** The path the watch is on, moved by a rename so the old name's writes are someone else's. */
   private val watched = MutableStateFlow(path())
 
   /** Both follows, for as long as [scope] lives - the document's own. */
   fun followIn(scope: CoroutineScope) {
-    scope.launch { changes.collect(::follow) }
+    followChangesIn(scope)
     scope.launch { writesSettled().collect { onWritten(it) } }
   }
+
+  /** Only the moves and deletes, for a follow with no writes to hear - the [Job] ends it. */
+  fun followChangesIn(scope: CoroutineScope): Job = scope.launch { changes.collect(::follow) }
 
   private fun follow(change: WorkspaceChange) {
     when (change) {
@@ -75,7 +84,7 @@ class DocumentFileFollow(
    */
   @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
   private fun writesSettled(): Flow<FileStamp> =
-    watched.flatMapLatest { watcher.writesTo(it) }.debounce(WRITES_SETTLE_MILLIS)
+    watched.flatMapLatest { watcher?.writesTo(it) ?: emptyFlow() }.debounce(WRITES_SETTLE_MILLIS)
 
   private companion object {
     const val WRITES_SETTLE_MILLIS = 75L

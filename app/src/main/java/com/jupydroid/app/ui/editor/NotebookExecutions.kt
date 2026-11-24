@@ -1,8 +1,8 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.DocumentOpening
-import com.jupydroid.app.domain.model.ActiveCellRuns
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import java.util.concurrent.ConcurrentHashMap
 
@@ -24,7 +24,7 @@ data class NotebookExecutionKey(val spaceId: String, val opening: DocumentOpenin
  * `ViewModelStore`, and not the process, whose kernels die with it anyway.
  *
  * ```
- * executions.retain(key, kernel, debugger, uiState, activeCellRuns, applicationScope)
+ * executions.retain(key, kernel, debugger, uiState, scope, followJob)
  * executions.adopt(key)  // the run a reopening editor takes over - null once it has drained
  * executions.at(key)     // the same holder, for a test that only inspects it
  * ```
@@ -35,18 +35,20 @@ class NotebookExecutions {
   /**
    * Hands a detached run to the registry and arms its drain watch. The conditional remove in
    * [NotebookExecution]'s own `onDrained` is what keeps a holder replaced under the same key
-   * from evicting its successor when its own run finally ends.
+   * from evicting its successor when its own run finally ends - a gone document's holder can
+   * share the key a recreated file's run retains under, and both still owe their own kernel
+   * its close.
    */
   fun retain(
     key: NotebookExecutionKey,
     kernel: NotebookKernel,
     debugger: NotebookDebugger,
     uiState: MutableStateFlow<EditorUiState>,
-    activeCellRuns: ActiveCellRuns,
     scope: CoroutineScope,
+    followJob: Job?,
   ): NotebookExecution {
     val execution =
-      NotebookExecution(key, kernel, debugger, uiState, activeCellRuns, scope) { drained ->
+      NotebookExecution(key, kernel, debugger, uiState, scope, followJob) { drained ->
         retained.remove(key, drained)
       }
     retained[key] = execution
@@ -55,11 +57,21 @@ class NotebookExecutions {
   }
 
   /**
-   * Takes the run retained for [key] out of the registry and stops its drain watch - the screen
-   * that asked owns the kernel from here, so a drain it never sees must not close it underneath.
+   * Takes the run retained for the document [key] opens out of the registry and stops its
+   * drain watch - the screen that asked owns the kernel from here, so a drain it never sees
+   * must not close it underneath.
+   *
+   * Matched by where the document lives rather than by the key alone: the key keeps the path
+   * the tab opened under, so a file renamed while its run was detached is found under its new
+   * name, and a file recreated at the old name - or the gone document itself - is not. See
+   * [NotebookExecution.speaksFor].
    */
   fun adopt(key: NotebookExecutionKey): NotebookExecution? {
-    val execution = retained.remove(key) ?: return null
+    val execution =
+      retained.values
+        .filter { it.speaksFor(key) }
+        .minByOrNull { it.key.opening.ordinal }
+    if (execution == null || !retained.remove(execution.key, execution)) return null
     execution.stopWatching()
     return execution
   }

@@ -17,8 +17,12 @@ internal class NotebookKernelBindings(
   val checkpoint: suspend () -> Unit,
   /** `kernelChanged` -> `metadata.kernelspec`, told each time a kernel binds. */
   val onKernelBound: suspend (KernelSession, KernelSpec?) -> Unit,
-  /** `kernelShutdown`, read at close rather than at open - see [NotebookKernel.close]. */
-  val shutdownOnClose: () -> Boolean,
+  /**
+   * `kernelShutdown`, read at close rather than at open - see [NotebookKernel.close]. Suspending
+   * because the answer must come from the settings repository, not the cleared screen's
+   * `viewModelScope`-bound snapshot of it: a run that drains while detached outlives that scope.
+   */
+  val shutdownOnClose: suspend () -> Boolean,
   /** The `options` a range-format carries, read at ask time. */
   val formattingOptions: () -> LanguageFormatOptions,
 )

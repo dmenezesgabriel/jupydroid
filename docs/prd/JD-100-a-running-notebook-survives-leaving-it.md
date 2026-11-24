@@ -193,7 +193,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   retained run fields (`executions`, `outputs`, `executionCounts`, `inputRequests`,
   `clearsPending`, kernel fields, debug stop), rebinds checkpoint/kernel-bound to itself, and
   live events reach the new screen; Stop and `answerInput` work mid-run.
-- [ ] T4 — Detached edges: idle-session policy, `shutdownKernelOnClose` at detach-final,
+- [x] T4 — Detached edges: idle-session policy, `shutdownKernelOnClose` at detach-final,
   session/kernel ended while detached, rename/delete while detached, eviction races (run ends
   between the detach check and the handoff), ordinal reuse on reopen.
 - [ ] T5 — The demo on `SM-X216B`: every leg of the Demo script with screenshots, dumps and

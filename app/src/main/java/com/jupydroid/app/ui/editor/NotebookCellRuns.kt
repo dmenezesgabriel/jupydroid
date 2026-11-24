@@ -11,6 +11,8 @@ import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -57,6 +59,16 @@ internal class NotebookCellRuns(
   /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
   private var interrupting: String? = null
 
+  private val _inFlight = MutableStateFlow(0)
+
+  /**
+   * This notebook's own run work in flight - [ActiveCellRuns] scoped to one kernel. The count
+   * spans a whole [runCells] rather than each execute, so the markdown render's checkpoint, the
+   * queue and a finished cell's trailing checkpoint write all count - which is what a detached
+   * drain waits on without holding the kernel open for another notebook's run.
+   */
+  val inFlight: StateFlow<Int> = _inFlight.asStateFlow()
+
   /**
    * Runs one cell - the cell header's own Run button.
    *
@@ -102,15 +114,17 @@ internal class NotebookCellRuns(
    * of cell does when it is run.
    */
   suspend fun runCells(cells: List<Cell>) {
-    renderMarkdownIn(cells)
-    val queue = cells.filter { it.kind == CellKind.CODE }
-    // Claimed up front so every waiting cell says so, rather than looking un-run until its turn
-    // comes. Anything still queued when one raises becomes SKIPPED.
-    uiState.update { it.queueingRun(queue.map(Cell::id)) }
-    for (cell in queue) {
-      if (!execute(cell)) break
+    _inFlight.counted {
+      renderMarkdownIn(cells)
+      val queue = cells.filter { it.kind == CellKind.CODE }
+      // Claimed up front so every waiting cell says so, rather than looking un-run until its turn
+      // comes. Anything still queued when one raises becomes SKIPPED.
+      uiState.update { it.queueingRun(queue.map(Cell::id)) }
+      for (cell in queue) {
+        if (!execute(cell)) break
+      }
+      uiState.update { it.skippingQueued() }
     }
-    uiState.update { it.skippingQueued() }
   }
 
   /**
@@ -210,9 +224,11 @@ internal class NotebookCellRuns(
    */
   private fun explainMiss(cell: Cell) {
     scope.launch {
-      val note = explanation.noteFor(uiState.value.outputs[cell.id].orEmpty()) ?: return@launch
-      uiState.update { it.withOutput(cell.id, note) }
-      checkpoint()
+      _inFlight.counted {
+        val note = explanation.noteFor(uiState.value.outputs[cell.id].orEmpty()) ?: return@counted
+        uiState.update { it.withOutput(cell.id, note) }
+        checkpoint()
+      }
     }
   }
 
@@ -245,5 +261,15 @@ internal class NotebookCellRuns(
     // passes the failure lane by rather than landing as an error output the cell never earned.
   }.catch { failure ->
     if (failure is KernelPickRequiredException) throw failure else emit(kernelFailure(cell.id, failure))
+  }
+}
+
+/** Counts [work] as run work in flight on this counter for as long as it lasts - see [NotebookCellRuns.inFlight]. */
+private suspend fun <T> MutableStateFlow<Int>.counted(work: suspend () -> T): T {
+  update { it + 1 }
+  try {
+    return work()
+  } finally {
+    update { it - 1 }
   }
 }

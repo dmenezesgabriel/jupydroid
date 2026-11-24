@@ -136,6 +136,11 @@ internal class RecordingKernelGateway(
     interrupted.complete(Unit)
   }
 
+  /** Lets every held run finish unanswered - how a detached run ends when its session is shut down elsewhere. */
+  fun endHeldRuns() {
+    interrupted.complete(Unit)
+  }
+
   override suspend fun disconnect(session: KernelSession) {
     disconnected += session
   }

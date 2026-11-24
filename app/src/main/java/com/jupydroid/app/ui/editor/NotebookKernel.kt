@@ -19,6 +19,7 @@ import com.jupydroid.app.domain.port.SteppingCommand
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -169,6 +170,13 @@ class NotebookKernel internal constructor(
       debugger = debugger,
       explanation = explanation,
     )
+
+  /**
+   * This notebook's own run work in flight - what a detached drain waits on, so one notebook's
+   * run never holds another's kernel open and a finished run's trailing checkpoint still counts.
+   * See [NotebookCellRuns.inFlight].
+   */
+  val cellRunsInFlight: StateFlow<Int> get() = runs.inFlight
 
   /**
    * `notebook:access-previous-history-entry` / `access-next-history-entry` - what the kernel has
