@@ -1,0 +1,59 @@
+appId: com.jupydroid.app
+---
+# A cell run is in flight and its Space is stopped from the Spaces home - the item's first leg.
+#
+# Cold start on the tablet: enter base, open the seeded notebook, run its chatty cell (a `tick i`
+# print a second for six minutes, so it is still RUNNING when the stop lands), then leave for the
+# Spaces home the way `run-survives-leaving-part8-space-stop-ends-run.yaml` does and tap
+# "Stop Base (base)". `[*]:` and `Stop cell` are the on-screen proof a run is in flight;
+# `Run Base (base)` afterwards is the stop having landed.
+#
+# What this leg does NOT assert is the point of the item: whether the row *keeps* offering Run.
+# The driver holds the Spaces home for five seconds on a cleared logcat before the next part
+# asks - a stopped Space's server must not come back on its own
+# (`SpaceServer.liveOrNull` peeks under `startLock` and never starts;
+# `perRunningServer_liveOrNull_askedDuringAStopAnswersNullAndStartsNothing` pins the contract).
+#
+# TABLET ONLY (SM-X216B): only arm64 ships a rootfs; on x86_64 `MainActivity` falls back to
+# `FakeKernelGateway`, which echoes the cell's source and never really runs the loop.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Stop Stays Stopped.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Stop Stays Stopped.ipynb"
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- takeScreenshot: 01-run-in-flight
+# The leave is the one `leave-a-space-from-here.yaml` writes once: "Spaces" names the strip's
+# Home button on a document at one pane and the rail's foot row at two, with "More" covering
+# the browser's one-pane bar - a document needs no More, but the guard costs nothing.
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+- assertVisible: "Spaces"
+- tapOn: "Spaces"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 10000
+- takeScreenshot: 02-on-the-spaces-home-mid-run
+- tapOn: "Stop Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 30000
+- takeScreenshot: 03-base-stopped-mid-run

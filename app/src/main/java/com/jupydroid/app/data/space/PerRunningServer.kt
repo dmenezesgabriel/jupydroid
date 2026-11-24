@@ -28,22 +28,23 @@ class PerRunningServer<T : Any>(
   private val buildLock = Mutex()
 
   /** The client for the running server, starting one if there is none. */
-  suspend fun get(): T {
-    val live = server.connection()
-    return buildLock.withLock {
-      val cached = current
-      if (cached != null && live.generation == generation) return@withLock cached
-      generation = live.generation
-      build(live.connection).also { current = it }
-    }
-  }
+  suspend fun get(): T = clientFor(server.connection())
 
   /**
    * The client for the server that is *already* running, or null when none is.
    *
    * **It must not start one.** Ending a session after the backstop stopped a server would
    * otherwise boot a whole runtime - seven seconds and ~130 MB - to close a websocket that no
-   * longer exists.
+   * longer exists. The peek waits out a stop in flight and answers for the settled state, so a
+   * read raced against one cannot queue a start behind the stop's lock.
    */
-  suspend fun liveOrNull(): T? = if (server.isRunning()) get() else null
+  suspend fun liveOrNull(): T? = server.liveOrNull()?.let { clientFor(it) }
+
+  /** The client cache both asks share, keyed on which start the server is on. */
+  private suspend fun clientFor(live: StartedServer): T = buildLock.withLock {
+    val cached = current
+    if (cached != null && live.generation == generation) return@withLock cached
+    generation = live.generation
+    build(live.connection).also { current = it }
+  }
 }

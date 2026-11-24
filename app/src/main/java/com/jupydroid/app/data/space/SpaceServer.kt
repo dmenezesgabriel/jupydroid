@@ -74,8 +74,16 @@ class SpaceServer(
   // would bind a different port and the first would be orphaned.
   private val startLock = Mutex()
 
-  /** Whether the server process is alive - asked of the launcher, never of a flag set here. */
-  fun isRunning(): Boolean = launcher.isRunning()
+  /**
+   * The running server, or null when there is none - and it never starts one.
+   *
+   * The peek runs under [startLock], so a call queued behind a [stop] in flight answers for
+   * the settled state rather than for a process still dying
+   * (`perRunningServer_liveOrNull_askedDuringAStopAnswersNullAndStartsNothing`).
+   */
+  suspend fun liveOrNull(): StartedServer? = startLock.withLock {
+    started?.takeIf { launcher.isRunning() }
+  }
 
   /**
    * The running server, starting one if there is none.

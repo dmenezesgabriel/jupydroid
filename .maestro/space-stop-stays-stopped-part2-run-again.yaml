@@ -1,0 +1,62 @@
+appId: com.jupydroid.app
+---
+# The item's second leg, on the Spaces home the driver held for five seconds after the stop:
+# the row must still offer Run - a server that came back on its own would read Stop here - and
+# Run must bring the Space back whole, a cell answering on it.
+#
+# `assertNotVisible` on "Stop Base (base)" is the money assertion: `RunOrStopButton` in
+# `app/src/main/java/com/jupydroid/app/ui/spaces/SpacesHomeScreen.kt` draws Stop only while the
+# row reads running, so its absence is the stop still standing. The driver's `ps` count and its
+# cleared-logcat window cover the same claim from outside the screen.
+#
+# TABLET ONLY (SM-X216B): only arm64 ships a rootfs; on x86_64 `MainActivity` falls back to
+# `FakeKernelGateway`, which echoes the cell's source and never really runs the loop.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 10000
+- assertNotVisible: "Stop Base \\(base\\)"
+- takeScreenshot: 01-still-offers-run
+- tapOn: "Run Base \\(base\\)"
+# A real server's first start on the tablet is tens of seconds, the same wait `open-base-space.yaml`
+# gives it - Stop is drawn only once Run has returned.
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 120000
+- takeScreenshot: 02-base-running-again
+- runFlow: open-base-space.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Stop Stays Stopped.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Stop Stays Stopped.ipynb"
+# The stop killed the kernel with the server, so the reopened cell offers Run again - the same
+# state `run-survives-leaving-part9-reopen-after-space-stop.yaml` reads.
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+# `tick N` is a value the kernel had to print - the source holds `tick {i}`, which no
+# `tick [0-9]+` can match - scoped to the output subtree per
+# `scripts/check_maestro_output_assertions.py`.
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*tick [0-9]+.*"
+      childOf:
+        text: "Cell output"
+    timeout: 30000
+- takeScreenshot: 03-cell-runs-on-the-restarted-space

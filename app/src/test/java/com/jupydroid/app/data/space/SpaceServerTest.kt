@@ -12,8 +12,8 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -140,13 +140,13 @@ class SpaceServerTest {
 
   /** The launcher decides, not a flag this class sets when it starts something. */
   @Test
-  fun isRunning_answersForTheProcessRatherThanForWhatWasEverStarted() = runTest {
+  fun liveOrNull_answersForTheProcessRatherThanForWhatWasEverStarted() = runTest {
     val server = server(RecordingServerLauncher(diesAfterFirstStart = true))
 
     server.connection() // the first process, which this launcher reports as already gone
-    assertFalse("a dead server must not report itself running", server.isRunning())
+    assertNull("a dead server must not report itself live", server.liveOrNull())
     server.connection() // its replacement, which survives
-    assertTrue("the replacement is running", server.isRunning())
+    assertNotNull("the replacement is live", server.liveOrNull())
   }
 
   @Test
@@ -174,6 +174,48 @@ class SpaceServerTest {
 
     assertNull(clients.liveOrNull())
     assertEquals(0, launcher.startCount)
+  }
+
+  /**
+   * A passive read asked while a stop is still in flight must answer for the settled state.
+   * Reading `isRunning` before queueing on the start lock saw a process that was still dying,
+   * then started a fresh server the moment the stop let go - the Space the user stopped came
+   * back up by itself.
+   */
+  @Test
+  fun perRunningServer_liveOrNull_askedDuringAStopAnswersNullAndStartsNothing() = runTest {
+    val launcher = RecordingServerLauncher(holdsStop = true)
+    val server = server(launcher)
+    val clients = PerRunningServer(server) { Any() }
+    clients.get()
+
+    val stopping = async { server.stop() }
+    val peeking = async { clients.liveOrNull() }
+    runCurrent()
+    launcher.releaseStop()
+
+    stopping.await()
+    assertNull(peeking.await())
+    assertEquals(1, launcher.startCount)
+  }
+
+  /** A server that is *gone* answers null too; the next real ask still starts one. */
+  @Test
+  fun perRunningServer_liveOrNull_answersNothingForAServerThatIsGone() = runTest {
+    val launcher = RecordingServerLauncher(diesAfterFirstStart = true)
+    val clients = PerRunningServer(server(launcher)) { Any() }
+    clients.get()
+
+    assertNull(clients.liveOrNull())
+    assertEquals(1, launcher.startCount)
+  }
+
+  /** The passive read shares `get`'s client cache: same server, same client, no rebuild. */
+  @Test
+  fun perRunningServer_liveOrNull_answersTheClientGetBuilt() = runTest {
+    val clients = PerRunningServer(server(RecordingServerLauncher())) { Any() }
+
+    assertSame(clients.get(), clients.liveOrNull())
   }
 
   /** What lets the home say Running: the start is reported, not inferred later by asking. */
@@ -321,6 +363,8 @@ class SpaceServerTest {
     private val failWith: Exception? = null,
     /** Simulates the first server process dying; the one started after it survives. */
     private val diesAfterFirstStart: Boolean = false,
+    /** Holds [stop] open until [releaseStop] - the window a real stop's shutdown takes. */
+    private val holdsStop: Boolean = false,
   ) : ServerLauncher {
     var startCount = 0
       private set
@@ -343,8 +387,16 @@ class SpaceServerTest {
       exited.complete(Unit)
     }
 
+    private val stopReleased = CompletableDeferred<Unit>()
+
+    /** Lets a [holdsStop] launcher finish its stop. */
+    fun releaseStop() {
+      stopReleased.complete(Unit)
+    }
+
     override suspend fun stop() {
       stopCount++
+      if (holdsStop) stopReleased.await()
       exit()
     }
 
