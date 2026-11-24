@@ -75,6 +75,7 @@ internal val rawCell = Cell(id = "r1", kind = CellKind.RAW, source = "\\begin{eq
 internal class RecordingKernelGateway(
   private val raiseOn: String? = null,
   private val runsUntilInterrupted: Boolean = false,
+  private val interruptFailure: Throwable? = null,
   private val delegate: KernelGateway = FakeKernelGateway(),
 ) : KernelGateway by delegate {
   val executed = mutableListOf<String>()
@@ -133,6 +134,8 @@ internal class RecordingKernelGateway(
 
   override suspend fun interrupt(session: KernelSession) {
     interruptCount++
+    // A refused interrupt releases nothing: the held run ends only through its own channel.
+    interruptFailure?.let { throw it }
     interrupted.complete(Unit)
   }
 

@@ -171,7 +171,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   run-to-completion mislabeled. Red first: a gateway whose `connect` is held reproduces today's
   drop; green: the pending stop is checked inside `reopeningIfStale` after `open()` and before
   `debugger.startSession`/`execute`.
-- [ ] T2 — A refused interrupt folds: `kernelGateway.interrupt` throwing a non-stale failure
+- [x] T2 — A refused interrupt folds: `kernelGateway.interrupt` throwing a non-stale failure
   must not escape `stopRunningCell`'s launch; the run resolves through its own channel. Red
   first with a throwing fake.
 - [ ] T3 — The demo on `SM-X216B`: the mid-run Stop leg (warm kernel — regression check) and
