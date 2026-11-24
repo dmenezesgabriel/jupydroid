@@ -178,7 +178,7 @@ process survives on the server.
 
 One TDD unit each (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — `NotebookKernel`'s kernel-side collectors (session ended/rebound, run collection,
+- [x] T1 — `NotebookKernel`'s kernel-side collectors (session ended/rebound, run collection,
   explain-miss, debug watch, diagnostics, history, rename-follow) run on `applicationScope`
   under a lifetime `Job` that `close()`/`shutdown()`-final paths cancel. Refactor only:
   `viewModelScope` death no longer silently ends them, so every exit path must cancel

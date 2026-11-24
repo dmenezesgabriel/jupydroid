@@ -22,6 +22,7 @@ import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.SteppingCommand
 import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -46,7 +47,7 @@ import java.time.Clock
  * have put the session in one object and a user of it in another.
  *
  * ```
- * val kernel = NotebookKernel(uiState, kernelGateway, space, viewModelScope, runs, checkpoint, debugger = debugger)
+ * val kernel = NotebookKernel(uiState, kernelGateway, space, applicationScope, runs, checkpoint, debugger = debugger)
  * kernel.runCell(cell)
  * kernel.close(applicationScope)   // on the way out
  * ```
@@ -56,6 +57,13 @@ class NotebookKernel(
   private val kernelGateway: KernelGateway,
   /** The entered Space - whose server runs this notebook's kernel and whose catalogue it resolves. */
   private val space: Space,
+  /**
+   * The scope the kernel's collectors hang their context off - `applicationScope` from the
+   * document, because a run's collection must be able to outlive the screen that started it.
+   * What actually ends them is [lifetime], which only [close] cancels; this scope's own job is
+   * deliberately *not* the parent, so a test's `runTest` is not made to wait on collectors that
+   * never complete.
+   */
   private val scope: CoroutineScope,
   /**
    * A run is counted here for as long as it lasts, opening the kernel included - see
@@ -113,6 +121,21 @@ class NotebookKernel(
    */
   private val onKernelBound: suspend (KernelSession, KernelSpec?) -> Unit = { _, _ -> },
 ) {
+  /**
+   * The one end every launch below shares - only [close] cancels it, so the screen's death is
+   * not one. A supervisor, as the ViewModel scope it replaces was, so one collector's failure
+   * cannot take the rest down with it.
+   */
+  private val lifetime = SupervisorJob()
+
+  /**
+   * `scope`'s context with its job swapped for [lifetime]: the dispatcher and all stay, but
+   * nothing launched here is a child of the passed scope - `applicationScope` in the app is
+   * never cancelled, and in a `runTest` a parented collector that never completes would hold
+   * the test open.
+   */
+  private val kernelScope = CoroutineScope(scope.coroutineContext + lifetime)
+
   /** Which kernel this notebook is on, and how it gets another when that one's server stops. */
   private val session =
     NotebookKernelSession(
@@ -127,7 +150,7 @@ class NotebookKernel(
         }
       },
       onBound = { bound ->
-        scope.launch {
+        kernelScope.launch {
           val spec = kernelSpecs.specs(space).named(bound.kernelName)
           // `specs[kernel.name]?.display_name ?? kernel.name` - the reference's own derivation.
           uiState.update { it.copy(kernelDisplayName = spec?.displayName ?: bound.kernelName) }
@@ -151,12 +174,22 @@ class NotebookKernel(
     }
 
   init {
-    scope.launch { kernelSessions.ended.collect { session.endIfMatches(it) } }
-    scope.launch { kernelSessions.rebound.collect { session.rebindIfMatches(it) } }
+    kernelScope.launch { kernelSessions.ended.collect { session.endIfMatches(it) } }
+    kernelScope.launch { kernelSessions.rebound.collect { session.rebindIfMatches(it) } }
   }
 
   private val runs =
-    NotebookCellRuns(uiState, kernelGateway, session, scope, activeCellRuns, checkpoint, clock, debugger, explanation)
+    NotebookCellRuns(
+      uiState,
+      kernelGateway,
+      session,
+      kernelScope,
+      activeCellRuns,
+      checkpoint,
+      clock,
+      debugger,
+      explanation,
+    )
 
   /**
    * `notebook:access-previous-history-entry` / `access-next-history-entry` - what the kernel has
@@ -167,13 +200,13 @@ class NotebookKernel(
    * kernel's history has a cursor, a batch size and a rule about what ends it, none of which the
    * rest of the kernel wants - and three more methods here is a class about two things.
    */
-  val history = NotebookHistory(session, kernelGateway, scope)
+  val history = NotebookHistory(session, kernelGateway, kernelScope)
 
   /**
    * The session following this notebook's rename - see [NotebookSessionRename]. Exposed rather than
    * forwarded for [history]'s reason: it is the session's bookkeeping, not a kernel act.
    */
-  val sessionRename = NotebookSessionRename(session, kernelSessions, scope)
+  val sessionRename = NotebookSessionRename(session, kernelSessions, kernelScope)
 
   /**
    * The language-server-first ask [completionsAt] delegates to - see [NotebookCompletion] for
@@ -211,7 +244,7 @@ class NotebookKernel(
 
   /** `publishDiagnostics` as per-cell marks in state - see [NotebookDiagnostics]. */
   private val diagnostics =
-    NotebookDiagnostics(uiState, languageServer, languageDocument, scope).also { it.start() }
+    NotebookDiagnostics(uiState, languageServer, languageDocument, kernelScope).also { it.start() }
 
   /**
    * A Console's own session, pre-attached to whatever kernel this notebook already has.
@@ -262,7 +295,7 @@ class NotebookKernel(
    * see [NotebookKernelPicker]. The `shutdown` it delegates is this class's, because ending the
    * session is the kernel's act even when the picker's "No Kernel" is what asked for it.
    */
-  val picker = NotebookKernelPicker(uiState, session, space, kernelSpecs, kernelSessions, scope) { shutdown() }
+  val picker = NotebookKernelPicker(uiState, session, space, kernelSpecs, kernelSessions, kernelScope) { shutdown() }
 
   /** @see NotebookCellRuns.step */
   fun step(command: SteppingCommand) = runs.step(command)
@@ -290,7 +323,7 @@ class NotebookKernel(
    * conditional on the first having had work to do.
    */
   fun restart(then: suspend () -> Unit = {}) {
-    scope.launch {
+    kernelScope.launch {
       // Nothing to replace - the continuation is not conditional on a kernel ever having run.
       if (session.opened == null) {
         then()
@@ -368,7 +401,7 @@ class NotebookKernel(
    */
   fun shutdown(then: () -> Unit = {}) {
     val open = session.forget()
-    scope.launch {
+    kernelScope.launch {
       open?.let { kernelGateway.shutdown(it) }
       // Whatever was in flight died with the process, and nothing that has finished is a lie.
       uiState.update { it.abandoningRun() }
@@ -388,6 +421,9 @@ class NotebookKernel(
    * document sits open is honoured by the close that follows it.
    */
   fun close(on: CoroutineScope) {
+    // First, and unconditionally: the collectors die whether or not a session was ever opened,
+    // and a pending shutdown() or restart() on kernelScope dies with them.
+    lifetime.cancel()
     val open = session.forget() ?: return
     on.launch {
       // shutdown() closes the socket first itself (`RealKernelGateway`'s own ordering), so the

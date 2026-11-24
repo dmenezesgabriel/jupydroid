@@ -3,6 +3,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -94,5 +95,26 @@ class EditorTeardownTest {
     advanceUntilIdle()
 
     assertTrue("nothing connected, so nothing to disconnect", gateway.disconnected.isEmpty())
+  }
+
+  /**
+   * `close()` ends a run's collection itself - the kernel's collectors are not the ViewModel's
+   * scope to lose with it. `onCleared` calls the former and only the former, so the count of
+   * runs in flight is what proves the collection actually stopped: a `collect` still suspended
+   * on the gateway would hold the count at one forever.
+   */
+  @Test
+  fun leavingEndsAnInFlightRunsCollection() = runTest {
+    val runs = ActiveCellRuns()
+    val gateway = RecordingKernelGateway(runsUntilInterrupted = true)
+    val viewModel = loadedEditor(gateway = gateway, activeCellRuns = runs, applicationScope = this)
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+    assertEquals(1, runs.inFlight.value)
+
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertEquals(0, runs.inFlight.value)
   }
 }

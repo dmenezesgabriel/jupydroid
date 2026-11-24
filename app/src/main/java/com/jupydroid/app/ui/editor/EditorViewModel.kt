@@ -187,7 +187,9 @@ class EditorViewModel(
       _uiState,
       kernelGateway,
       space,
-      viewModelScope,
+      // `applicationScope`, not `viewModelScope`: a run's collection must outlive this screen -
+      // what ends it is `kernel.close`, which the screen's own teardown calls.
+      applicationScope,
       activeCellRuns,
       // `context.save()` when autosave is on, model-dirty when it is not: a run's outputs are a
       // document change like any edit, so a notebook that ran unsaved owes a write - which is
