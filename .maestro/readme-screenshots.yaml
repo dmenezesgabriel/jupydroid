@@ -5,8 +5,8 @@ appId: com.jupydroid.app
 # a seeded generator, so neither number is in the source), which FakeKernelGateway - an echo of
 # the source - could not produce.
 # Seeded and cropped by scripts/site-screenshots-driver.sh alone, into
-# docs-site/pages/images/<name>-<theme>.png pairs - the files both front doors embed; each crop
-# removes the system bars off what is captured.
+# docs-site/pages/images/<name>-<theme>.png pairs - the files both front doors embed (ADR-0175);
+# each crop removes the system bars off what is captured.
 #
 # TABLET ONLY (SM-X216B): the flow runs cells.
 - launchApp
