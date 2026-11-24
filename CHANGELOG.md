@@ -2,6 +2,27 @@
 
 <!-- version list -->
 
+## v0.3.1 (2026-11-24)
+
+### Bug Fixes
+
+- **space**: A passive read during a stop never starts the server back up
+  ([`0e67dd1`](https://github.com/dmenezesgabriel/jupydroid/commit/0e67dd171696172d06cabe356cac95cbe8a096c5))
+
+### Documentation
+
+- **backlog**: JD-098 is next
+  ([`c0ebb69`](https://github.com/dmenezesgabriel/jupydroid/commit/c0ebb6997927f6b52fc15322c884d96204ba8853))
+
+- **prd**: JD-102's plan is written - a passive read of a stopped Space's server never starts one
+  ([`b70e433`](https://github.com/dmenezesgabriel/jupydroid/commit/b70e433378d3431b8d66bb4bb536d0aa58eeca89))
+
+### Testing
+
+- **maestro**: A Space stopped by hand stays stopped, so the item ships
+  ([`43b694c`](https://github.com/dmenezesgabriel/jupydroid/commit/43b694cc8065820d1d420a9e9a93a7b0af97ec2c))
+
+
 ## v0.3.0 (2026-11-24)
 
 ### Bug Fixes
