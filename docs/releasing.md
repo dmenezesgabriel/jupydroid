@@ -43,5 +43,6 @@ document are the case in point.
 | Whether the cut ran | `gh run list --workflow=release-cut.yml` |
 
 The cadence is already measured: five tags — `v0.1.0`, `v0.1.1`, `v0.2.0`, `v0.3.0`, `v0.3.1` —
-in the eighteen days to 2026-11-24, two of them cut the same day. The mechanism is
+in the eighteen days to 2026-11-24, two of them cut the same day. The cadence is
+[ADR-0177](adr/0177-releases-ship-what-is-ready.md)'s decision; the mechanism is
 [ADR-0140](adr/0140-a-release-is-cut-from-conventional-commits-and-published-from-a-tag.md).
