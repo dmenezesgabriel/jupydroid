@@ -2,7 +2,8 @@ name: Docs
 
 # The user documentation site: docs-site/ built by MkDocs Material. `docs` is the merge-facing check -
 # it runs the same `mkdocs build --strict` a commit's docs-site-build hook runs - and `deploy` publishes
-# the built site to GitHub Pages on main pushes while the repository is public. The split is permission
+# the built site to GitHub Pages on main pushes and release tags while the repository is public, so the
+# site a release ships is built from its own commit. The split is permission
 # scoping, not ceremony: only `deploy` holds `pages: write` + `id-token: write`; `docs` is
 # contents:read end to end. No paths: filter - a required check that path-skips on untouched PRs would
 # deadlock them.
@@ -12,6 +13,9 @@ name: Docs
 on:
   push:
     branches: [main]
+    # release-tag.yml pushes vX.Y.Z; a tag push is event_name 'push', so the deploy guard below
+    # already covers it - the site deploys from the tagged commit, documenting that release.
+    tags: ["v*"]
   pull_request:
   workflow_dispatch:
 
@@ -47,10 +51,31 @@ jobs:
         with:
           version: "0.11.8"
           checksum: "56dd1b66701ecb62fe896abb919444e4b83c5e8645cca953e6ddd496ff8a0feb"
-          enable-cache: true
+          # Every push this workflow serves publishes the site - main and release tags alike - so
+          # it is a release workflow end to end and never reads the shared cache: an entry a
+          # lower-trust run wrote must not flow into what Pages serves (zizmor's cache-poisoning
+          # audit). uv sync pays the download each run; the docs group is small.
+          enable-cache: false
 
       - name: Install the locked tooling
         run: uv sync --locked
+
+      # The release the build documents: the tag on a tag deploy, else the latest published release.
+      # gh's failure (no releases yet, an unreachable API) must not fail the required docs check -
+      # the site's hook then falls back to git describe and finally leaves <version> literal.
+      # ref_type/ref_name arrive through env: - a tag name is text a person can push, and
+      # interpolating it into run: is a script-injection vector.
+      - name: Stamp the release the site documents
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [ "$REF_TYPE" = "tag" ]; then
+            echo "JUPYDROID_DOCS_RELEASE=$REF_NAME" >> "$GITHUB_ENV"
+          else
+            echo "JUPYDROID_DOCS_RELEASE=$(gh release view --json tagName --jq .tagName 2>/dev/null || true)" >> "$GITHUB_ENV"
+          fi
 
       # The gate's verbatim check: strict mode escalates the validation block (omitted files, broken
       # links) to build errors. The docs group is not a default group, so the run names it.

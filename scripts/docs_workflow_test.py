@@ -55,9 +55,12 @@ def built_site_directory() -> str:
 
 
 class DocsTriggersTest(unittest.TestCase):
-    def test_it_runs_on_every_pull_request_and_push_to_main_and_by_hand(self) -> None:
+    def test_it_runs_on_every_pull_request_push_to_main_release_tag_and_by_hand(self) -> None:
         triggers = triggers_of(docs_workflow())
         self.assertEqual(triggers["push"]["branches"], ["main"])
+        # A v* tag push is the release deploy: the site is rebuilt from the tagged commit so what a
+        # release documents is what it ships, the same trigger release.yml itself uses.
+        self.assertEqual(triggers["push"]["tags"], ["v*"])
         self.assertIn("pull_request", triggers)
         self.assertIn("workflow_dispatch", triggers)
 
@@ -96,6 +99,37 @@ class EveryJobTest(unittest.TestCase):
         self.assertIs(checkout["with"]["persist-credentials"], False)
 
 
+class ReleaseStampTest(unittest.TestCase):
+    """The build is told which release it documents before mkdocs runs: the tag on a tag deploy,
+    else the latest published release - the value the site's hook turns into the page's <version>."""
+
+    def test_a_step_before_the_build_exports_the_release(self) -> None:
+        steps = steps_of(docs_workflow(), "docs")
+        stamp = step_running("docs", "JUPYDROID_DOCS_RELEASE")
+        build = step_running("docs", BUILD_COMMAND)
+        self.assertLess(steps.index(stamp), steps.index(build))
+
+    def test_the_tag_deploy_stamps_its_own_ref_and_other_events_the_latest_release(self) -> None:
+        stamp = step_running("docs", "JUPYDROID_DOCS_RELEASE")
+        run = str(stamp["run"])
+        self.assertIn("$REF_TYPE", run)
+        self.assertIn("$REF_NAME", run)
+        self.assertIn("gh release view --json tagName", run)
+        # gh's failure (no releases yet, an unreachable API) must not fail the required docs check;
+        # the hook absorbs an empty value.
+        self.assertIn("|| true", run)
+        self.assertIn("$GITHUB_ENV", run)
+
+    def test_ref_values_reach_the_shell_through_env_never_interpolation(self) -> None:
+        # github.ref_name is a tag name a person can push: interpolating it into run: is a
+        # script-injection vector, so env: is the reviewed channel (zizmor's template-injection rule).
+        stamp = step_running("docs", "JUPYDROID_DOCS_RELEASE")
+        self.assertNotIn("${{", str(stamp["run"]))
+        self.assertEqual(stamp["env"]["GH_TOKEN"], "${{ github.token }}")
+        self.assertEqual(stamp["env"]["REF_TYPE"], "${{ github.ref_type }}")
+        self.assertEqual(stamp["env"]["REF_NAME"], "${{ github.ref_name }}")
+
+
 class PagesDeployTest(unittest.TestCase):
     def test_deploy_waits_for_the_build(self) -> None:
         self.assertEqual(needs("deploy"), ["docs"])
@@ -104,11 +138,20 @@ class PagesDeployTest(unittest.TestCase):
         self.assertEqual(job("docs")["permissions"], {"contents": "read"})
         self.assertEqual(job("deploy")["permissions"], {"pages": "write", "id-token": "write"})
 
-    def test_upload_and_deploy_wait_for_a_public_repository_on_a_main_push(self) -> None:
+    def test_upload_and_deploy_wait_for_a_public_repository_on_a_push(self) -> None:
         self.assertIn(PUBLIC_PUSH, str(job("deploy")["if"]))
         for action in ("actions/configure-pages@", "actions/upload-pages-artifact@"):
             step = next(s for s in steps_of(docs_workflow(), "docs") if str(s.get("uses", "")).startswith(action))
             self.assertIn(PUBLIC_PUSH, str(step.get("if")), f"{action} is not guarded: {step}")
+
+    def test_the_build_never_reads_the_shared_cache(self) -> None:
+        # Every push this workflow serves publishes the site - main and release tags alike - so it
+        # is a release workflow end to end: a cache entry a lower-trust run wrote must never flow
+        # into what Pages serves (zizmor's cache-poisoning audit).
+        setup = next(
+            s for s in steps_of(docs_workflow(), "docs") if str(s.get("uses", "")).startswith("astral-sh/setup-uv@")
+        )
+        self.assertIs(setup["with"]["enable-cache"], False)
 
     def test_the_uploaded_artifact_is_the_directory_mkdocs_built(self) -> None:
         upload = next(
