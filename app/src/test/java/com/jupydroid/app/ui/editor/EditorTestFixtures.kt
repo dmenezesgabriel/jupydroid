@@ -75,6 +75,7 @@ internal val rawCell = Cell(id = "r1", kind = CellKind.RAW, source = "\\begin{eq
 internal class RecordingKernelGateway(
   private val raiseOn: String? = null,
   private val runsUntilInterrupted: Boolean = false,
+  private val interruptFailure: Throwable? = null,
   private val delegate: KernelGateway = FakeKernelGateway(),
 ) : KernelGateway by delegate {
   val executed = mutableListOf<String>()
@@ -133,6 +134,8 @@ internal class RecordingKernelGateway(
 
   override suspend fun interrupt(session: KernelSession) {
     interruptCount++
+    // A refused interrupt releases nothing: the held run ends only through its own channel.
+    interruptFailure?.let { throw it }
     interrupted.complete(Unit)
   }
 
@@ -152,33 +155,6 @@ internal class RecordingKernelGateway(
   override suspend fun restart(session: KernelSession) {
     restarted += session
   }
-}
-
-/**
- * A kernel that takes its time coming up, which on a device is the ordinary case: installing the
- * Space, starting `jupyter_server` and starting the kernel is the slow part of a run, and the
- * tablet measured fourteen seconds of it.
- */
-internal class SlowToConnectKernelGateway : KernelGateway by FakeKernelGateway() {
-  private val connectable = CompletableDeferred<Unit>()
-
-  override suspend fun connect(
-    space: Space,
-    documentPath: String,
-    kernel: KernelChoice?,
-    sessionType: SessionType?,
-  ): KernelSession {
-    connectable.await()
-    return KernelSession(
-      id = "slow-${space.id}",
-      spaceId = space.id,
-      kernelId = "kernel-1",
-      kernelName = "python3",
-      serverSessionId = "server-session-1",
-    )
-  }
-
-  fun letItConnect() = connectable.complete(Unit)
 }
 
 /** A PATCH that holds until released, the way [SlowToConnectKernelGateway] gates a connect. */

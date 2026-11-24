@@ -8,6 +8,7 @@ import com.jupydroid.app.domain.port.KernelEvent
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelPickRequiredException
 import com.jupydroid.app.domain.port.SteppingCommand
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.update
@@ -156,7 +158,18 @@ internal class NotebookCellRuns(
     // report a KeyboardInterrupt through the ordinary output path. This is what tells the stop
     // apart from the user's own code raising.
     interrupting = running
-    scope.launch { session.whileOpen { open -> kernelGateway.interrupt(open) } }
+    scope.launch {
+      try {
+        session.whileOpen { open -> kernelGateway.interrupt(open) }
+      } catch (cancelled: CancellationException) {
+        throw cancelled
+      } catch (_: Exception) {
+        // Interrupt is best-effort - every reference treats "nothing to interrupt" as a
+        // non-event, and a refused POST must not escape the launch as an uncaught coroutine
+        // failure. The run's own channel, the execute flow's events, reports what the kernel
+        // actually did; `interrupting` stays the kept ask until the run's epilogue reads it.
+      }
+    }
   }
 
   /**
@@ -252,6 +265,11 @@ internal class NotebookCellRuns(
   private fun eventsFor(cell: Cell): Flow<KernelEvent> = flow {
     emitAll(
       session.reopeningIfStale { open ->
+        // A Stop pressed while `open` was connecting found no session for `whileOpen` to ask;
+        // `interrupting` is the kept ask, honored at the one point that sees both it and the
+        // resolved session. The empty flow leaves the kernel idle - no interrupt POST is owed -
+        // and lets the run's own epilogue report the cell CANCELLED.
+        if (interrupting == cell.id) return@reopeningIfStale emptyFlow()
         val attached = debugger.startSession(open, cell)
         val watcher = if (attached) scope.launch { debugger.watchForStop(open, cell) } else null
         kernelGateway.execute(open, cell.id, cell.source).onCompletion { watcher?.cancel() }

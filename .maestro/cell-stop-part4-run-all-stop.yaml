@@ -1,0 +1,58 @@
+appId: com.jupydroid.app
+---
+# The Run All leg: cell 1 runs its chatty loop while cell 2 queues, the cell's own Stop cancels
+# the run, and the queued cell must land SKIPPED - the [-]: marker is ours (executionLabel),
+# since Jupyter's Run All never stops to skip. The "cell two ran" assert sits before the tap so
+# it reads as document content, not as output the flow produced.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- tapOn: "Tab: Cell Stop.ipynb"
+- extendedWaitUntil:
+    visible: "Run all cells"
+    timeout: 30000
+# Cell 1's stopped run leaves a tall output block, so cell 2's source sits below the fold more
+# often than not; scroll to it rather than assume the fold left it on screen.
+- scrollUntilVisible:
+    element:
+      text: ".*cell two ran.*"
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: 01-cell-stop-open-for-run-all
+- tapOn: "Run all cells"
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*tick [0-9]+.*"
+      childOf:
+        text: "Cell output"
+    timeout: 60000
+- takeScreenshot: 02-run-all-mid-first-cell
+- tapOn: "Stop cell"
+- extendedWaitUntil:
+    notVisible: "\\[\\*\\]:"
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible: "Stop cell"
+    timeout: 10000
+# The queued cell's [-]: sits below cell 1's tall output more often than not; scroll to it
+# rather than assume the fold left it on screen.
+- runFlow:
+    when:
+      notVisible: "\\[-\\]:"
+    commands:
+      - scrollUntilVisible:
+          element:
+            text: "\\[-\\]:"
+          direction: DOWN
+          timeout: 30000
+- extendedWaitUntil:
+    visible: "\\[-\\]:"
+    timeout: 10000
+- takeScreenshot: 03-first-cancelled-second-skipped

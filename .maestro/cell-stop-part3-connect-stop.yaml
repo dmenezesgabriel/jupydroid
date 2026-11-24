@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# The item's proof: resumed onto the cold notebook after the idle backstop stopped the Space,
+# Run pays the whole bring-up inside connect, and "Stop cell" - which startingRun shows for the
+# whole of it - is tapped inside that window. The cell must end stopped with its code never
+# reaching the kernel: the driver reads a pristine checkpoint off disk and a session that
+# opened with no execute leaving the app in logcat. The "cold tick" source assert sits before
+# the Run tap on purpose - after the tap it would be an output assertion matching seeded text.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Tab: Cell Stop Cold.ipynb"
+    timeout: 30000
+- assertVisible: ".*cold tick.*"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- takeScreenshot: 01-resumed-on-the-cold-notebook
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- takeScreenshot: 02-stop-pressed-during-connect
+- tapOn: "Stop cell"
+# [*]: covers the whole connect; it clears only when the kept ask resolves the run CANCELLED.
+# A dropped stop would let the loop run its six minutes and this wait would time out.
+- extendedWaitUntil:
+    notVisible: "\\[\\*\\]:"
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible: "Stop cell"
+    timeout: 10000
+- takeScreenshot: 03-stopped-before-any-code-ran
