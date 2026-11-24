@@ -10,7 +10,16 @@ import unittest
 
 from check_markdown_links import dead_links, main
 
-TRACKED = frozenset({"README.md", "docs/README.md", "docs/adr/0001-x.md", "docs/prd/OPS-004.md"})
+TRACKED = frozenset(
+    {
+        "README.md",
+        "docs/README.md",
+        "docs/adr/0001-x.md",
+        "docs/prd/OPS-004.md",
+        "docs-site/pages/images/notebook-with-outputs-light.png",
+        "docs-site/pages/images/notebook-with-outputs-dark.png",
+    }
+)
 
 
 class DeadLinksTest(unittest.TestCase):
@@ -66,6 +75,66 @@ class DeadLinksTest(unittest.TestCase):
 
     def test_a_path_that_climbs_out_of_the_repository_is_dead(self):
         self.assertEqual(["../../x.md"], dead_links("README.md", "[x](../../x.md)", TRACKED))
+
+    def test_an_img_src_to_a_tracked_file_resolves(self):
+        text = '<img src="docs-site/pages/images/notebook-with-outputs-light.png">'
+        self.assertEqual([], dead_links("README.md", text, TRACKED))
+
+    def test_an_img_src_to_a_missing_file_is_dead_whatever_its_fragment(self):
+        text = '<img src="gone.png?v=2#frag">'
+        self.assertEqual(["gone.png"], dead_links("README.md", text, TRACKED))
+
+    def test_a_picture_block_checks_every_source_and_the_img(self):
+        text = (
+            "<picture>\n"
+            '  <source media="(prefers-color-scheme: dark)"\n'
+            '          srcset="docs-site/pages/images/notebook-with-outputs-dark.png">\n'
+            '  <source media="(prefers-color-scheme: light)"\n'
+            '          srcset="docs-site/pages/images/notebook-with-outputs-light.png">\n'
+            '  <img alt="a notebook" src="docs-site/pages/images/notebook-with-outputs-light.png">\n'
+            "</picture>"
+        )
+        self.assertEqual([], dead_links("README.md", text, TRACKED))
+
+    def test_a_picture_block_names_the_embed_that_is_not_tracked(self):
+        text = (
+            "<picture>\n"
+            '  <source media="(prefers-color-scheme: dark)"\n'
+            '          srcset="docs-site/pages/images/gone-dark.png">\n'
+            '  <img alt="a notebook" src="docs-site/pages/images/notebook-with-outputs-light.png">\n'
+            "</picture>"
+        )
+        self.assertEqual(["docs-site/pages/images/gone-dark.png"], dead_links("README.md", text, TRACKED))
+
+    def test_a_srcset_checks_each_candidate(self):
+        text = (
+            '<img srcset="docs-site/pages/images/notebook-with-outputs-light.png 1x, '
+            'docs-site/pages/images/gone.png 2x">'
+        )
+        self.assertEqual(["docs-site/pages/images/gone.png"], dead_links("README.md", text, TRACKED))
+
+    def test_an_https_src_and_srcset_are_not_files(self):
+        text = (
+            '<img src="https://example.org/x.png">'
+            '<source srcset="https://example.org/a.png 1x, https://example.org/b.png 2x">'
+        )
+        self.assertEqual([], dead_links("README.md", text, TRACKED))
+
+    def test_an_embed_inside_code_or_a_comment_is_an_example(self):
+        text = 'an `<img src="gone.png">` inline\n```html\n<img src="gone.png">\n```\n<!-- <img src="gone.png"> -->\n'
+        self.assertEqual([], dead_links("README.md", text, TRACKED))
+
+    def test_single_quoted_and_bare_src_values_are_read(self):
+        text = "<img src='gone-a.png'> <img src=gone-b.png>"
+        self.assertEqual(["gone-a.png", "gone-b.png"], dead_links("README.md", text, TRACKED))
+
+    def test_a_data_src_attribute_is_not_src(self):
+        text = '<img data-src="gone.png" src="docs-site/pages/images/notebook-with-outputs-light.png">'
+        self.assertEqual([], dead_links("README.md", text, TRACKED))
+
+    def test_a_src_inside_another_attributes_quotes_is_not_an_attribute(self):
+        text = '<img alt="write src=gone.png here" src="docs-site/pages/images/notebook-with-outputs-light.png">'
+        self.assertEqual([], dead_links("README.md", text, TRACKED))
 
 
 class MainTest(unittest.TestCase):

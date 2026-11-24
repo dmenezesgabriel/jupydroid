@@ -129,7 +129,7 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port and no app cod
 
 One TDD unit each where code is written (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — `check_markdown_links.py` learns HTML image embeds: `src` and `srcset` attributes on
+- [x] T1 — `check_markdown_links.py` learns HTML image embeds: `src` and `srcset` attributes on
   `img` and `source` tags are held to the same tracked-file rule as `[text](target)` — absolute
   addresses and non-path values skipped, and a `srcset`'s comma-separated candidates each checked.
   Red → green → refactor in `check_markdown_links_test.py`: a `<picture>` block naming an
