@@ -134,7 +134,7 @@ One TDD unit each where code is written (red → green → refactor), one conven
   addresses and non-path values skipped, and a `srcset`'s comma-separated candidates each checked.
   Red → green → refactor in `check_markdown_links_test.py`: a `<picture>` block naming an
   untracked file fails, an `https:` `srcset` is ignored, the existing link cases unchanged.
-- [ ] T2 — `README.md` text rewritten claim by claim against the census: install points at the
+- [x] T2 — `README.md` text rewritten claim by claim against the census: install points at the
   published Releases (`jupydroid-<version>-arm64-v8a.apk`, `SHA256SUMS`), build gains
   `tools/rootfs/build-gnu.sh`, the intro and Status describe the musl Space system with its
   glibc kernel (ADR-0166) and the shipped surface — Spaces and their settings and harnesses,
