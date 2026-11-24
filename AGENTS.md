@@ -192,7 +192,11 @@ step runs this loop start to finish; no stage is skipped or reordered.
 4. **Interact with the real app.** Maestro flows on the device rule 2 names:
    screenshots, snapshots and logs into the local `evidence/<step>/` (ADR-0132).
 5. **Commit semantically and atomically.** One coherent change per commit,
-   conventional-commit subject. No complex git, no reverts, no rewriting
+   conventional-commit subject. A `feat`, `fix` or `perf` subject is a line of the
+   published changelog — write a short description of the change for a release
+   reader, never a backlog id (`JD-`, `OPS-`, `AUD-`, `GAP-`); commitlint's
+   `subject-no-ephemeral-ids` enforces it, and `changelog.exclude_commit_patterns`
+   keeps every other type out of `CHANGELOG.md`. No complex git, no reverts, no rewriting
    history (the one exception, while the repository is private and shared with nobody, is
    `docs/adr/0015-*` and `docs/adr/0133-*`).
    Every commit is fully functional — never broken mid-series. Gate results go in the **commit

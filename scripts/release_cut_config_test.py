@@ -8,6 +8,7 @@ Each test builds a scratch git repository, commits conventional subjects and ask
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 import tempfile
@@ -122,6 +123,21 @@ class ReleaseCutShapeTest(unittest.TestCase):
             with self.subTest(branch=branch):
                 self.assertRegex(branch, f"^{pattern}$")
         self.assertNotRegex("feature/x", f"^{pattern}$")
+
+    def test_the_changelog_drops_every_type_that_never_bumps_the_version(self) -> None:
+        patterns = self.table["changelog"]["exclude_commit_patterns"]
+        for kind in ["docs", "test", "chore", "style", "refactor", "build", "ci"]:
+            with self.subTest(kind=kind):
+                self.assertTrue(
+                    any(re.match(p, f"{kind}(x): bookkeeping") for p in patterns),
+                    f"no pattern drops {kind}",
+                )
+        for kind in ["feat", "fix", "perf"]:
+            with self.subTest(kind=kind):
+                self.assertFalse(
+                    any(re.match(p, f"{kind}(x): a real change") for p in patterns),
+                    f"a pattern would try to drop {kind}",
+                )
 
 
 if __name__ == "__main__":

@@ -6,9 +6,23 @@
 // commits the repository already makes, and a warning on every tenth commit trains people to ignore it.
 const OFF = [0];
 
+// feat/fix/perf subjects become the published changelog (python-semantic-release renders them, and a
+// bumping commit can never be excluded), so they must read as release notes: a short description of
+// the change, never an ephemeral backlog id. Ids are still allowed on the types the changelog drops.
+const noEphemeralIdsInReleaseSubjects = ({ type, subject }) => {
+  const bumpsRelease = ["feat", "fix", "perf"].includes(type ?? "");
+  const carriesId = /\b(?:JD|OPS|AUD|GAP)-\d+\b/.test(subject ?? "");
+  return [
+    !(bumpsRelease && carriesId),
+    "feat/fix/perf subjects are release notes — describe the change, never a JD-/OPS-/AUD-/GAP- id",
+  ];
+};
+
 export default {
   extends: ["@commitlint/config-conventional"],
+  plugins: [{ rules: { "subject-no-ephemeral-ids": noEphemeralIdsInReleaseSubjects } }],
   rules: {
+    "subject-no-ephemeral-ids": [2, "always"],
     "type-enum": [2, "always", ["feat", "fix", "docs", "test", "refactor", "build", "ci", "chore", "perf", "style"]],
     "header-max-length": OFF,
     "body-max-line-length": OFF,

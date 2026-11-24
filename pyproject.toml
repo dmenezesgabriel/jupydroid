@@ -53,6 +53,11 @@ major_on_zero = false
 [tool.semantic_release.changelog]
 mode = "update"
 default_templates = { changelog_file = "CHANGELOG.md" }
+# The changelog is the release notes an end user reads: only version-bumping commits (feat, fix, perf)
+# may appear. Every other type is internal bookkeeping — backlog pointer moves, PRD plans, ship
+# ceremonies — and never renders. PSR keeps a bumping commit even if a pattern matched it, so these
+# patterns cannot hide a real change.
+exclude_commit_patterns = ["docs", "test", "chore", "style", "refactor", "build", "ci", "revert"]
 
 # The release commit rides a normal pull request from release/next, so the cut runs on it as it does on main.
 [tool.semantic_release.branches.main]
