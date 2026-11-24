@@ -1,0 +1,54 @@
+appId: com.jupydroid.app
+---
+# Run it again, leave for the Spaces home mid-run, come back, and stop it from the cell itself.
+# The run was detached and adopted once already; Stop must still reach the kernel, and `[*]:`
+# is gone for good afterwards.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- takeScreenshot: 01-second-run-in-flight
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: part7
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Run Survives.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Run Survives.ipynb"
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- takeScreenshot: 03-back-still-running
+- tapOn: "Stop cell"
+# The interrupt's traceback is not asserted here: it lands in the stderr stream below the
+# stdout's head/tail window, past the cell's fold where no semantics node reaches it - the same
+# fold `tick 359` hit in part 6. What the screen owes is the ended state; what proves the end
+# was an interrupt and not the loop finishing is the driver's disk read - a 360-tick loop
+# cannot end in the seconds this leg takes, and the checkpoint carries `KeyboardInterrupt`.
+- extendedWaitUntil:
+    notVisible: "\\[\\*\\]:"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "Stop cell"
+    timeout: 10000
+- takeScreenshot: 04-stopped-by-the-cell

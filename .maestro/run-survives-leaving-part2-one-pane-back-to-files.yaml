@@ -1,0 +1,34 @@
+appId: com.jupydroid.app
+---
+# One pane (portrait, pinned by the driver): the document is the whole window, so leaving it
+# for the files is the tab strip's Up arrow - "Back to files" over the browser
+# (`upDestinationLabel` in `app/src/main/java/com/jupydroid/app/ui/shell/MainAreaTabStrip.kt`).
+# That closes the document's entry, which is the detach this feature exists for; reopening the
+# notebook from the browser must find the run still in flight, streaming what it has printed.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 30000
+- takeScreenshot: 01-still-running-before-leaving
+- tapOn: "Back to files"
+- extendedWaitUntil:
+    visible: "Run Survives.ipynb"
+    timeout: 10000
+- takeScreenshot: 02-at-the-browser
+- tapOn: "Run Survives.ipynb"
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+# Scoped to the output subtree: the cell's own source also contains the word "tick", and only a
+# kernel-produced line can sit inside `Cell output` (`CellOutputs`' contentDescription).
+- assertVisible:
+    text: "(?s).*tick [0-9]+.*"
+    childOf:
+      text: "Cell output"
+- takeScreenshot: 03-reopened-still-running

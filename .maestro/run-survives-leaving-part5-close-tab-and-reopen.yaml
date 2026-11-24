@@ -1,0 +1,35 @@
+appId: com.jupydroid.app
+---
+# The tab's own close - `Close tab: <title>` on the strip (`MainAreaTab`'s semantics) - removes
+# the document's entry while the run is in flight, the same detach `leaveWorkspace` causes. The
+# run must be retained, and reopening the notebook from the Files panel must adopt it.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 30000
+- takeScreenshot: 01-before-the-close
+- tapOn: "Close tab: Run Survives.ipynb"
+- extendedWaitUntil:
+    notVisible: "Tab: Run Survives.ipynb"
+    timeout: 10000
+- takeScreenshot: 02-tab-closed
+- scrollUntilVisible:
+    element:
+      text: "Run Survives.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Run Survives.ipynb"
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- assertVisible:
+    text: "(?s).*tick [0-9]+.*"
+    childOf:
+      text: "Cell output"
+- takeScreenshot: 03-reopened-still-running
