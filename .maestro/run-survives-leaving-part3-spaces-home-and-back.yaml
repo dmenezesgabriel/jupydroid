@@ -1,0 +1,45 @@
+appId: com.jupydroid.app
+---
+# Two panes (landscape, pinned by the driver - the rotation itself recreated the activity, and
+# the first assertion is the proof the activity-retained holder was adopted again; the dump
+# beside this flow's screenshots shows `tick` lines streaming after it).
+#
+# Leaving for the Spaces home drops every workspace entry (`leaveWorkspace` in
+# `app/src/main/java/com/jupydroid/app/SpacesHome.kt`) - the heaviest detach there is.
+# `leave-a-space-from-here.yaml` is the one written leave: the rail's foot row, the home's own
+# row as the proof, and `open-base-space.yaml` back in. Reopening the notebook must find the
+# run still in flight.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 30000
+# The cell editor can hold focus across the recreation and put the keyboard over the rail's
+# foot, where "Spaces" lives - the first run of this flow failed exactly there.
+- hideKeyboard
+- takeScreenshot: 01-after-rotation-still-running
+- runFlow:
+    file: leave-a-space-from-here.yaml
+    env:
+      SURFACE: part3
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Run Survives.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Run Survives.ipynb"
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- assertVisible:
+    text: "(?s).*tick [0-9]+.*"
+    childOf:
+      text: "Cell output"
+- takeScreenshot: 03-reopened-still-running

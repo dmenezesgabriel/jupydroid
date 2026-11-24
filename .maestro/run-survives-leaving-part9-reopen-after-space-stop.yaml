@@ -1,0 +1,27 @@
+appId: com.jupydroid.app
+---
+# Base is run again after its stop and the notebook reopened: whatever the run was doing, it is
+# not running now - no `[*]:`, no Stop cell. The cell shows what its last checkpoint wrote.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Run Survives.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Run Survives.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "\\[\\*\\]:"
+    timeout: 10000
+- extendedWaitUntil:
+    notVisible: "Stop cell"
+    timeout: 10000
+- takeScreenshot: 01-reopened-not-running

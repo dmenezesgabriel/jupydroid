@@ -1,0 +1,39 @@
+appId: com.jupydroid.app
+---
+# A third run, left going, and the Space itself stopped from the home while the notebook's
+# screen is gone. Stopping the Space is the item's other allowed end: the server dies, the
+# session ends, and the run ends with it. The driver reads `ps` for the server's absence between
+# this part and the next.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- takeScreenshot: 01-third-run-in-flight
+- runFlow:
+    when:
+      visible: "More"
+    commands:
+      - tapOn: "More"
+- assertVisible: "Spaces"
+- tapOn: "Spaces"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 10000
+- takeScreenshot: 02-on-the-home-mid-run
+- tapOn: "Stop Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Run Base \\(base\\)"
+    timeout: 30000
+- takeScreenshot: 03-base-stopped-mid-run

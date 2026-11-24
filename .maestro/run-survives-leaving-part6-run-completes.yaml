@@ -1,0 +1,22 @@
+appId: com.jupydroid.app
+---
+# The run ends on its own: the loop prints its last tick and `run finished`, and the cell gets
+# its execution count - any count, since a Space's kernel outlives the app and a rerun on the
+# same server continues its numbering.
+#
+# `tick 359` itself is not asserted here: a 361-line output is windowed to its head and tail
+# (`outputLineWindowOf`, `app/src/main/java/com/jupydroid/app/ui/editor/OutputLineWindow.kt`),
+# and the tail rows sit below the cell's fold where no semantics node reaches them. What the
+# screen owes is the finished state - the count prompt and the Stop gone - and the driver's
+# disk read is what proves every tick and the count were checkpointed.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "\\[[1-9][0-9]*\\]:"
+    timeout: 300000
+- extendedWaitUntil:
+    notVisible: "Stop cell"
+    timeout: 30000
+- takeScreenshot: 01-run-completed

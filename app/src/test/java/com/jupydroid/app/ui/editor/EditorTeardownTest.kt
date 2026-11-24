@@ -3,6 +3,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.MainDispatcherRule
+import com.jupydroid.app.domain.model.ActiveCellRuns
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
@@ -94,5 +95,33 @@ class EditorTeardownTest {
     advanceUntilIdle()
 
     assertTrue("nothing connected, so nothing to disconnect", gateway.disconnected.isEmpty())
+  }
+
+  /**
+   * Leaving mid-run is no longer the run's end - `onCleared` hands the kernel and its state to
+   * `NotebookExecutions` rather than closing them, so the collection keeps its count in flight
+   * until the run itself finishes. What ends it is then the drain: the stop below is what a
+   * reopened screen's Stop would be, and its completion is what closes the socket.
+   */
+  @Test
+  fun leavingMidRunKeepsTheCollectionAliveUntilTheRunEnds() = runTest {
+    val runs = ActiveCellRuns()
+    val gateway = RecordingKernelGateway(runsUntilInterrupted = true)
+    val viewModel = loadedEditor(gateway = gateway, activeCellRuns = runs, applicationScope = this)
+    viewModel.kernel.runCell(codeCell)
+    advanceUntilIdle()
+    assertEquals(1, runs.inFlight.value)
+
+    viewModel.onCleared()
+    advanceUntilIdle()
+
+    assertEquals("the detached run is still counted in flight", 1, runs.inFlight.value)
+    assertTrue("the socket stays open while the run does", gateway.disconnected.isEmpty())
+
+    viewModel.kernel.stopRunningCell()
+    advanceUntilIdle()
+
+    assertEquals(0, runs.inFlight.value)
+    assertEquals(1, gateway.disconnected.size)
   }
 }

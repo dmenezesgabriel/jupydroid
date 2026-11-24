@@ -136,6 +136,11 @@ internal class RecordingKernelGateway(
     interrupted.complete(Unit)
   }
 
+  /** Lets every held run finish unanswered - how a detached run ends when its session is shut down elsewhere. */
+  fun endHeldRuns() {
+    interrupted.complete(Unit)
+  }
+
   override suspend fun disconnect(session: KernelSession) {
     disconnected += session
   }
@@ -513,6 +518,8 @@ internal fun TestScope.loadedEditor(
   files: WorkspaceFiles = FakeWorkspaceFiles(),
   // Only the cases about a %pip miss PyPI can explain pass one; the rest never ask the network.
   wheelIndex: WheelIndex = FakeWheelIndex(),
+  // Only the cases about a run outliving its screen pass one; the rest retain into their own.
+  notebookExecutions: NotebookExecutions = NotebookExecutions(),
 ): EditorViewModel {
   launch { repository.saveNotebook(notebook ?: Notebook(notebookId, title, "python3", cells)) }
   advanceUntilIdle()
@@ -523,6 +530,7 @@ internal fun TestScope.loadedEditor(
       notebookId, repository, workspace, gateway, exporter, applicationScope, activeCellRuns,
       openDocuments, notebookBreakpoints, debugger, editorSettings, languageServer, kernelSessions, kernelSpecs,
       space, workspaceWatcher = watcher, workspaceFiles = files, wheelIndex = wheelIndex,
+      notebookExecutions = notebookExecutions,
     )
   advanceUntilIdle()
   return viewModel

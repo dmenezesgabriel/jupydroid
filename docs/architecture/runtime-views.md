@@ -48,8 +48,10 @@ hands the second notebook the first one's ViewModel, id and all. Order is load-b
 where it reads its `SavedStateRegistryOwner` from.
 
 The lifetime half matters as much as the identity half: because each entry owns a `ViewModelStore`,
-disposing an entry runs `EditorViewModel.onCleared`, which flushes the last edit and closes the
-kernel socket. Nothing closed a socket before this existed.
+disposing an entry runs `EditorViewModel.onCleared`, which flushes the last edit and then either
+closes the kernel socket or — while a run is still in flight — hands the kernel, its collectors
+and its state flow to the retained executions, which a reopening entry adopts and which closes
+them when the last run drains (ADR-0174). Nothing closed a socket before this existed.
 
 **The back stack is the main area's tab list.** `NotebookBackStack` keeps every open document, with
 `openOrReveal` semantics: a new document pushes, an already-open one is moved to the top rather than

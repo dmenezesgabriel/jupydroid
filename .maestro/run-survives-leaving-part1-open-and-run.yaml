@@ -1,0 +1,38 @@
+appId: com.jupydroid.app
+---
+# Cold start on the tablet: enter base, open the seeded notebook, and run its chatty cell.
+#
+# The cell prints `tick i` once a second for four minutes, so it is still RUNNING through every
+# leave-and-return leg the driver runs next. `[*]:` is the run prompt (`executionLabel` in
+# `app/src/main/java/com/jupydroid/app/ui/editor/ExecutionLabel.kt`) and `Stop cell` is the
+# running cell's own button - together they are the on-screen proof a run is in flight.
+#
+# TABLET ONLY (SM-X216B): only arm64 ships a rootfs; on x86_64 `MainActivity` falls back to
+# `FakeKernelGateway`, which echoes the source and never really runs the loop.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Run Survives.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Run Survives.ipynb"
+# Portrait is one pane, where the document is the window and the strip's leading affordance is
+# the Up arrow named for what is beneath it (`MainAreaTabStrip`'s `upDestinationLabel`).
+- assertVisible: "Back to files"
+- assertVisible: ".*time\\.sleep.*"
+- takeScreenshot: 01-notebook-open
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- takeScreenshot: 02-run-in-flight

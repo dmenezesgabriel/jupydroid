@@ -16,6 +16,17 @@ import java.time.Instant
 val EditorUiState.runningCellId: String?
   get() = executions.entries.firstOrNull { it.value.status == ExecutionStatus.RUNNING }?.key
 
+/**
+ * A run the kernel still owes an answer to - queued for it, or being executed.
+ *
+ * The question a closing screen asks before it lets go of its kernel: a run in flight is the
+ * one thing `SessionContext.dispose()` never ends either - the client connection drops and the
+ * kernel keeps working server-side (`sessioncontext.tsx:679-709`), which is only survivable
+ * because the run's collection, not the screen, owns it from there.
+ */
+val EditorUiState.runInFlight: Boolean
+  get() = executions.values.any { it.status == ExecutionStatus.RUNNING || it.status == ExecutionStatus.QUEUED }
+
 fun EditorUiState.executionOf(cellId: String): CellExecution? = executions[cellId]
 
 /** Never null, so callers do not have to spell out what "no record" means every time. */
