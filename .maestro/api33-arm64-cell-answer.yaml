@@ -1,0 +1,67 @@
+appId: com.jupydroid.app
+---
+# The reproduction drive for a released Space kernel on arm64 Android 13: launch, open base,
+# create a notebook through the UI (a release APK is not debuggable, so nothing can be seeded),
+# and run cells. Every wait is sized for a TCG guest - the cuttlefish arm64 image on an x86_64
+# host emulates the whole system, so a kernel that answers in seconds natively can take minutes
+# here; a timeout in this file is "did not answer", never "answered slowly".
+#
+# `42` is in no source: the cell reads `print(6 * 7)`, so FakeKernelGateway's echo of the source
+# cannot satisfy the wait, and the assertion is scoped to the output subtree for the same reason.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 30000
+- takeScreenshot: 01-spaces-home
+# Inlined rather than runFlow'd from open-base-space.yaml: that subflow's 120 s server-start wait
+# is sized for the tablet, and a TCG guest needs longer at every stage.
+- extendedWaitUntil:
+    visible: "Open Base \\(base\\)|Run Base \\(base\\)"
+    timeout: 120000
+- runFlow:
+    when:
+      visible: "Run Base \\(base\\)"
+    commands:
+      - tapOn: "Run Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Stop Base \\(base\\)"
+    timeout: 900000
+- tapOn: "Open Base \\(base\\)"
+- extendedWaitUntil:
+    visible: "Files"
+    timeout: 120000
+- tapOn: "New"
+- extendedWaitUntil:
+    visible: "New notebook"
+    timeout: 30000
+- tapOn: "New notebook"
+- extendedWaitUntil:
+    visible: "Untitled.ipynb"
+    timeout: 60000
+- tapOn: "Untitled.ipynb"
+- extendedWaitUntil:
+    visible: "\\[ \\]:"
+    timeout: 120000
+- runFlow:
+    file: focus-cell.yaml
+    env:
+      CELL_INDEX: 0
+- inputText: "print(6 * 7)"
+- hideKeyboard
+- takeScreenshot: 02-cell-typed
+- tapOn:
+    text: "Run cell"
+    index: 0
+# The first run starts the Space's kernel; on a TCG guest that alone can take tens of minutes.
+- extendedWaitUntil:
+    visible:
+      text: "42"
+      childOf: {text: "Cell output"}
+    timeout: 900000
+- takeScreenshot: 03-cell-answered
+# Scoped to the output subtree like the `42` wait above: the source stays in the cell's editor
+# after a run, so an unscoped check fails on every real answer. What this guards is the fake
+# kernel's tell - FakeKernelGateway echoes the cell's source *as output*, which lands under
+# "Cell output"; the real kernel's output is `42` alone.
+- assertNotVisible:
+    text: "print\\(6 \\* 7\\)"
+    childOf: {text: "Cell output"}
