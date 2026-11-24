@@ -115,13 +115,13 @@ No `domain`, `data`, `ui` or `di` change: this item ships no port and no app cod
 
 One TDD unit each where code is written (red → green → refactor), one conventional commit each.
 
-- [ ] T1 — this PRD.
-- [ ] T2 — `docs.yml`: `tags: ["v*"]` under `on.push`, the version-stamp step before "Build site
+- [x] T1 — this PRD.
+- [x] T2 — `docs.yml`: `tags: ["v*"]` under `on.push`, the version-stamp step before "Build site
   (strict)", and the header comment's "on main pushes and release tags"; red → green in
   `docs_workflow_test.py` (the trigger assertion gains the tags filter; a new assertion holds the
   stamp step's `ref_type == 'tag'` → `ref_name`, else `gh release view`, `|| true` shape).
   Commit `ci(docs)`.
-- [ ] T3 — the hook: `docs-site/hooks/release_version.py`, the `hooks:` entry in `mkdocs.yml`,
+- [x] T3 — the hook: `docs-site/hooks/release_version.py`, the `hooks:` entry in `mkdocs.yml`,
   and getting-started's `<version>` release naming; red → green in
   `docs_site_release_test.py` (env precedence, `git describe` fallback, unresolved leaves
   `<version>` untouched, `on_page_markdown` substitution, `on_config` stores `config.extra`).
