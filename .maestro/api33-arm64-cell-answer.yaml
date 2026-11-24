@@ -58,5 +58,10 @@ appId: com.jupydroid.app
       childOf: {text: "Cell output"}
     timeout: 900000
 - takeScreenshot: 03-cell-answered
+# Scoped to the output subtree like the `42` wait above: the source stays in the cell's editor
+# after a run, so an unscoped check fails on every real answer. What this guards is the fake
+# kernel's tell - FakeKernelGateway echoes the cell's source *as output*, which lands under
+# "Cell output"; the real kernel's output is `42` alone.
 - assertNotVisible:
     text: "print\\(6 \\* 7\\)"
+    childOf: {text: "Cell output"}
