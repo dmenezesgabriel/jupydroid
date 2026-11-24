@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The black icon's field: the supplied artwork's surround is a radial gradient, a faint cool
+  sheen at the top-centre fading to near-black - measured luminance roughly 34 to 17 across the
+  canvas, centred at (0.5, 0.05) of the layer, subtler than the blue variant's. Three stops at
+  the measured colours, radius 95% of the layer so the far corners settle on the end colour.
+  Adaptive-icon backgrounds are masked by the launcher, so this drawable fills the whole 108dp
+  layer.
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="radial"
+        android:centerX="0.5"
+        android:centerY="0.05"
+        android:gradientRadius="95%p"
+        android:startColor="#1F2227"
+        android:centerColor="#1A1C21"
+        android:endColor="#101014" />
+</shape>

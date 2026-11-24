@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.settings
 
-import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -23,13 +22,19 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.toBitmap
 import com.jupydroid.app.R
 import com.jupydroid.app.domain.model.AppIcon
 import com.jupydroid.app.theme.Spacing
@@ -39,7 +44,7 @@ import com.jupydroid.app.theme.Spacing
  * colour and badged with a check - two cues, so the choice never rides on colour alone.
  *
  * The previews compose the same layers the adaptive icon does - the artwork's foreground bitmap
- * over its sampled background colour inside a rounded clip - so what the row shows is what the
+ * over its gradient background drawable inside a rounded clip - so what the row shows is what the
  * launcher mask will draw, minus the mask's own shape. `painterResource` cannot read the
  * `adaptive-icon` XML itself, which is why the layers are composed here rather than referenced
  * whole.
@@ -84,7 +89,7 @@ private fun AppIconChoice(icon: AppIcon, selected: Boolean, onClick: () -> Unit)
   }
 }
 
-/** The adaptive icon's own composition at preview size: background colour, artwork, selection cues. */
+/** The adaptive icon's own composition at preview size: background artwork, foreground, selection cues. */
 @Composable
 private fun AppIconPreview(look: AppIconLook, selected: Boolean) {
   val shape = RoundedCornerShape(ICON_CORNER_RADIUS)
@@ -92,7 +97,6 @@ private fun AppIconPreview(look: AppIconLook, selected: Boolean) {
     modifier = Modifier
       .size(ICON_SIZE)
       .clip(shape)
-      .background(colorResource(look.backgroundColor))
       .then(
         if (selected) {
           Modifier.border(SELECTED_RING_WIDTH, MaterialTheme.colorScheme.primary, shape)
@@ -101,6 +105,12 @@ private fun AppIconPreview(look: AppIconLook, selected: Boolean) {
         },
       ),
   ) {
+    Image(
+      painter = rememberIconBackground(look.background),
+      contentDescription = null,
+      contentScale = ContentScale.Crop,
+      modifier = Modifier.fillMaxSize(),
+    )
     Image(
       painter = painterResource(look.foreground),
       contentDescription = null,
@@ -127,19 +137,34 @@ private fun AppIconPreview(look: AppIconLook, selected: Boolean) {
   }
 }
 
+/**
+ * The background layer rasterized once per icon: the backgrounds are `<shape>` gradients, which
+ * `painterResource` cannot read (vectors and rasters only), so the same drawable the adaptive
+ * icon references is drawn to a bitmap the preview can paint.
+ */
+@Composable
+private fun rememberIconBackground(@DrawableRes resId: Int): BitmapPainter {
+  val context = LocalContext.current
+  return remember(resId) {
+    val drawable = ContextCompat.getDrawable(context, resId)
+      ?: error("expected a launcher background drawable at $resId, found none")
+    BitmapPainter(drawable.toBitmap(BACKGROUND_BITMAP_PX, BACKGROUND_BITMAP_PX).asImageBitmap())
+  }
+}
+
 /** What one [AppIcon] looks like in the row - one `when` so the three facets cannot drift apart. */
-private data class AppIconLook(val label: String, @DrawableRes val foreground: Int, @ColorRes val backgroundColor: Int)
+private data class AppIconLook(val label: String, @DrawableRes val foreground: Int, @DrawableRes val background: Int)
 
 private fun appIconLook(icon: AppIcon): AppIconLook = when (icon) {
   AppIcon.BLUE_ORBIT -> AppIconLook(
     APP_ICON_BLUE,
     R.drawable.ic_launcher_blue_foreground,
-    R.color.ic_launcher_blue_background,
+    R.drawable.ic_launcher_blue_background,
   )
   AppIcon.BLACK_ORBIT -> AppIconLook(
     APP_ICON_BLACK,
     R.drawable.ic_launcher_black_foreground,
-    R.color.ic_launcher_black_background,
+    R.drawable.ic_launcher_black_background,
   )
 }
 
@@ -150,6 +175,9 @@ internal const val APP_ICON_BLACK = "Black orbit"
 
 /** The preview's edge - large enough to read the orbit artwork, small enough for two on a phone. */
 private val ICON_SIZE = 48.dp
+
+/** The raster size the background drawable is drawn at - the xxxhdpi pixel count of the 108dp layer. */
+private const val BACKGROUND_BITMAP_PX = 432
 
 /** The squircle proportion the launcher masks approximate - a quarter of the edge. */
 private val ICON_CORNER_RADIUS = 12.dp
