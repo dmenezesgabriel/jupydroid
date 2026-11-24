@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# Set up the cold half: open the dedicated single-cell notebook while base still runs, then
+# background the app. The driver polls the device's process list until the idle backstop has
+# stopped the Space's server; the document stays open only because the app was never left, so
+# the next run pays the whole bring-up - server boot, session, kernel - inside connect.
+# "Back to files" exists only on the one-pane layout; at two panes the Files panel is already
+# beside the document, so the return is conditional.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible: "Back to files"
+    commands:
+      - tapOn: "Back to files"
+- scrollUntilVisible:
+    element:
+      text: "Cell Stop Cold.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cell Stop Cold.ipynb"
+- extendedWaitUntil:
+    visible: "Tab: Cell Stop Cold.ipynb"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- assertVisible: "\\[ \\]:"
+- takeScreenshot: 01-cold-notebook-open
+- pressKey: Home
+- takeScreenshot: 02-home-pressed

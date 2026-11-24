@@ -1,0 +1,46 @@
+appId: com.jupydroid.app
+---
+# The warm half of the stop story: a real kernel already executing, so the tap lands mid-run
+# and the run ends on the kernel's KeyboardInterrupt - the path that already worked before the
+# connect-window stop existed. The tick gate is what makes this leg warm: the Cell output
+# container only fills once execute reaches the kernel, so a Stop tapped after it can never be
+# mistaken for the still-connecting case.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- waitForAnimationToEnd:
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      text: "Cell Stop.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Cell Stop.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- extendedWaitUntil:
+    visible: "\\[\\*\\]:"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: "Stop cell"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "(?s).*tick [0-9]+.*"
+      childOf:
+        text: "Cell output"
+    timeout: 60000
+- takeScreenshot: 01-running-mid-cell
+- tapOn: "Stop cell"
+- extendedWaitUntil:
+    notVisible: "\\[\\*\\]:"
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible: "Stop cell"
+    timeout: 10000
+- takeScreenshot: 02-stopped-by-the-cell
