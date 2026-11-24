@@ -179,6 +179,8 @@ fun EditorScreen(
   openDocuments: OpenDocuments = remember { OpenDocuments() },
   /** Where a breakpoint outlives this screen's `EditorViewModel`; see [NotebookBreakpoints]. */
   notebookBreakpoints: NotebookBreakpoints = remember { NotebookBreakpoints() },
+  /** Where a detached run is handed when this screen clears - see [NotebookExecutions]. */
+  notebookExecutions: NotebookExecutions = remember { NotebookExecutions() },
   /** Which of [notebookId]'s opens this screen's tab is - see `DocumentOpening`. */
   opening: Int = 0,
   /** What PyPI publishes, so a `%pip` miss is explained from its files; see [PipInstallExplanation]. */
@@ -205,12 +207,12 @@ fun EditorScreen(
       workspaceWatcher,
       workspaceFiles,
       wheelIndex,
+      notebookExecutions,
     )
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
-  val editorSettings by editorSettingsRepository.observeSettings()
-    .collectAsStateWithLifecycle(EditorSettings())
+  val editorSettings by editorSettingsRepository.observeSettings().collectAsStateWithLifecycle(EditorSettings())
   val focusManager = LocalFocusManager.current
   val cellInput = remember { FocusedCellInput() }
   // Plain `var`s read at tap time, so they are set straight rather than remembered: the row's

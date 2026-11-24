@@ -183,7 +183,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   under a lifetime `Job` that `close()`/`shutdown()`-final paths cancel. Refactor only:
   `viewModelScope` death no longer silently ends them, so every exit path must cancel
   explicitly — behaviour identical while the VM lives.
-- [ ] T2 — The run outlives its screen: `NotebookExecution` holder + `NotebookExecutions`
+- [x] T2 — The run outlives its screen: `NotebookExecution` holder + `NotebookExecutions`
   registry + `RetainedNotebookExecutions`; `EditorViewModel.onCleared` detaches (the owed-write
   flush unchanged) and hands kernel + uiState to the holder while `executions` has
   RUNNING/QUEUED; events, checkpoint and `activeCellRuns` continue on `applicationScope`; the

@@ -93,7 +93,7 @@ class EditorViewModel(
    * Only written to, and only by [kernel]: it is the app's count of runs in flight, and what the
    * idle backstop reads before it stops the server under a backgrounded computation.
    */
-  activeCellRuns: ActiveCellRuns,
+  private val activeCellRuns: ActiveCellRuns,
   /**
    * Where this notebook says it is open, so a workspace replace edits its cells rather than
    * rewriting the file underneath it (`bulkTextEdits.ts:227`).
@@ -148,6 +148,8 @@ class EditorViewModel(
    * the way a device with no network does.
    */
   wheelIndex: WheelIndex = FakeWheelIndex(),
+  /** Where a detached run is handed - see [NotebookExecutions]; the app passes the activity-retained one. */
+  private val notebookExecutions: NotebookExecutions = NotebookExecutions(),
 ) : ViewModel() {
   private val _uiState = MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
@@ -259,6 +261,9 @@ class EditorViewModel(
       repository = notebookRepository,
       saved = { notebook },
     )
+
+  /** Which open document a run this editor detaches is keyed by - [NotebookExecutions]' lookup. */
+  private val executionKey = NotebookExecutionKey(space.id, document.openedAs)
 
   /**
    * `notebook:export-to-format`. Writes a file *beside* the notebook rather than to it, so it
@@ -395,7 +400,13 @@ class EditorViewModel(
     val hadUnsavedWork = save.cancelPending()
     applicationScope.launch {
       if (!save.discarded && (hadUnsavedWork || _uiState.value.dirty)) persist()
-      kernel.close(applicationScope)
+      // A run in flight is not the screen's to end - kernel, collectors and this state flow move
+      // to the retained executions, which closes them when the last run drains (ADR-0025).
+      if (_uiState.value.runInFlight) {
+        notebookExecutions.retain(executionKey, kernel, _uiState, activeCellRuns, applicationScope)
+      } else {
+        kernel.close(applicationScope)
+      }
     }
   }
 

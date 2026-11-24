@@ -133,6 +133,8 @@ fun MainNavigation(
   }
   // The open Console's session and the count that titles the next one - see [RetainedConsole].
   val retainedConsole = rememberRetainedConsole()
+  // The runs that outlived their screens' entries - see [RetainedNotebookExecutions].
+  val notebookExecutions = rememberRetainedNotebookExecutions()
   // The directory the explorer is showing, reported up rather than pulled - the launcher's `cwd`,
   // which the reference keeps bound to the filebrowser's path (`ILauncher.cwd` follows the browser
   // widget's). Saveable so a rotation does not send the launcher back to the root the explorer
@@ -458,6 +460,7 @@ fun MainNavigation(
               onRevealHandled = { revealRequest = null },
               openDocuments = openDocuments,
               opening = editor.opening,
+              notebookExecutions = notebookExecutions,
             )
           }
         }
