@@ -141,7 +141,7 @@ One TDD unit each where code is written (red → green → refactor), one conven
   console, terminal, Files with share-sheet import, search, Source Control, Chat with MCP,
   Settings with theme and icon, Diagnostics — the output mime list is corrected, and the
   Documentation table gains the site row.
-- [ ] T3 — the pictures: two `<picture>` blocks in `README.md` embedding the suite's pairs —
+- [x] T3 — the pictures: two `<picture>` blocks in `README.md` embedding the suite's pairs —
   `<source media="(prefers-color-scheme: dark)" srcset="…-dark.png">`, then light, then
   `<img alt="…" src="…-light.png">` — `docs/images/*.png` and
   `scripts/readme-screenshots-driver.sh` deleted, `.maestro/readme-screenshots.yaml`'s header

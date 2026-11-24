@@ -7,9 +7,19 @@ on a second, glibc CPython beside the musl one, so PyPI's manylinux wheels insta
 ([ADR-0166](docs/adr/0166-a-spaces-kernel-runs-on-a-second-glibc-interpreter-beside-musl.md)).
 No remote server.
 
-![A notebook on a tablet: a code cell, its printed output and the file browser beside it](docs/images/notebook-with-outputs.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs-site/pages/images/notebook-with-outputs-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs-site/pages/images/notebook-with-outputs-light.png">
+  <img alt="A notebook on a tablet: a code cell, its printed output and the file browser beside it"
+       src="docs-site/pages/images/notebook-with-outputs-light.png">
+</picture>
 
-![The same notebook after the second cell ran: its HTML output drawn as a table](docs/images/html-table-output.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs-site/pages/images/html-table-output-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs-site/pages/images/html-table-output-light.png">
+  <img alt="The same notebook after the second cell ran: its HTML output drawn as a table"
+       src="docs-site/pages/images/html-table-output-light.png">
+</picture>
 
 ## Status
 
