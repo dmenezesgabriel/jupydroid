@@ -151,7 +151,9 @@ class EditorViewModel(
   /** Where a detached run is handed - see [NotebookExecutions]; the app passes the activity-retained one. */
   private val notebookExecutions: NotebookExecutions = NotebookExecutions(),
 ) : ViewModel() {
-  private val _uiState = MutableStateFlow(EditorUiState())
+  private val executionKey = NotebookExecutionKey(space.id, DocumentOpening(notebookId, opening))
+  private val retainedExecution = notebookExecutions.adopt(executionKey)
+  private val _uiState = retainedExecution?.uiState ?: MutableStateFlow(EditorUiState())
   val uiState = _uiState.asStateFlow()
   private var notebook: Notebook? = null
 
@@ -176,46 +178,50 @@ class EditorViewModel(
   /** Set when this notebook's file is deleted, so [persist] stops putting it back. */
   private var notebookIsGone = false
 
-  /**
-   * Breakpoints in the gutter, and where the kernel stops once a run arms one. Driven straight
-   * from the screen; see [NotebookDebugger]. Built before [kernel] since [NotebookCellRuns] arms
-   * a cell's breakpoints before it runs.
-   */
-  val debugger = NotebookDebugger(_uiState, notebookBreakpoints, kernelDebugger)
-
-  /** Run, interrupt and complete. Driven straight from the screen; see [NotebookKernel]. */
-  val kernel =
-    NotebookKernel(
-      _uiState,
-      kernelGateway,
-      space,
-      // `applicationScope`, not `viewModelScope`: a run's collection must outlive this screen -
-      // what ends it is `kernel.close`, which the screen's own teardown calls.
-      applicationScope,
-      activeCellRuns,
-      // `context.save()` when autosave is on, model-dirty when it is not: a run's outputs are a
-      // document change like any edit, so a notebook that ran unsaved owes a write - which is
-      // what `Context.model.dirty` says after `execute_request` answers.
+  private val kernelBindings =
+    NotebookKernelBindings(
       checkpoint = {
+        // `context.save()` when autosave is on, model-dirty when it is not: a run's outputs are a
+        // document change like any edit, so a notebook that ran unsaved owes a write.
         if (settings.value.autosaveEnabled) persist() else _uiState.update { it.copy(dirty = true) }
       },
-      debugger = debugger,
-      explanation = PipInstallExplanation(wheelIndex),
-      // `kernelShutdown`, read the way `SessionContext` reads `kernelPreference` - at dispose.
-      shutdownOnClose = { settings.value.shutdownKernelOnClose },
-      // `indentUnit` as the FormattingOptions a range-format must carry - the same live read.
-      formattingOptions = { settings.value.indentUnit.formattingOptions() },
-      languageServer = languageServer,
-      kernelSessions = kernelSessions,
-      kernelSpecs = kernelSpecs,
-      // `kernelChanged` -> `_updateSpec` (`panel.ts:207,248-258`): a bound kernel is persisted
-      // as `metadata.kernelspec` - dirty, then the autosave writes it like any other edit.
       onKernelBound = { bound, spec ->
+        // `kernelChanged` -> `_updateSpec` (`panel.ts:207,248-258`): a bound kernel is persisted
+        // as `metadata.kernelspec` - dirty, then the autosave writes it like any other edit.
         notebook = notebook?.withKernelSpec(bound.kernelName, spec)
         _uiState.update { it.copy(dirty = true) }
         save.schedule()
       },
+      shutdownOnClose = { settings.value.shutdownKernelOnClose },
+      formattingOptions = { settings.value.indentUnit.formattingOptions() },
     )
+
+  /**
+   * Breakpoints in the gutter, and where the kernel stops once a run arms one. Driven straight
+   * from the screen; see [NotebookDebugger]. Built before [kernel] since [NotebookCellRuns] arms
+   * a cell's breakpoints before it runs - and taken from the retained run when there is one, so
+   * the stopped session a detached debugger was watching is still the one step resumes.
+   */
+  val debugger = retainedExecution?.debugger ?: NotebookDebugger(_uiState, notebookBreakpoints, kernelDebugger)
+
+  /** Run, interrupt and complete. Driven straight from the screen; see [NotebookKernel]. */
+  val kernel =
+    retainedExecution?.kernel
+      ?: NotebookKernel(
+        _uiState,
+        kernelGateway,
+        space,
+        // `applicationScope`, not `viewModelScope`: a run's collection must outlive this screen -
+        // what ends it is `kernel.close`, which the screen's own teardown calls.
+        applicationScope,
+        activeCellRuns,
+        bindings = kernelBindings,
+        debugger = debugger,
+        explanation = PipInstallExplanation(wheelIndex),
+        languageServer = languageServer,
+        kernelSessions = kernelSessions,
+        kernelSpecs = kernelSpecs,
+      )
 
   /** The cell menu and its undo history. Driven straight from the screen; see [NotebookCellEdits]. */
   val edits = NotebookCellEdits(_uiState, save)
@@ -257,13 +263,10 @@ class EditorViewModel(
       save,
       notebookId = { liveNotebookId },
       reread = { conflict.revert() },
-      openedAs = DocumentOpening(notebookId, opening),
+      openedAs = executionKey.opening,
       repository = notebookRepository,
       saved = { notebook },
     )
-
-  /** Which open document a run this editor detaches is keyed by - [NotebookExecutions]' lookup. */
-  private val executionKey = NotebookExecutionKey(space.id, document.openedAs)
 
   /**
    * `notebook:export-to-format`. Writes a file *beside* the notebook rather than to it, so it
@@ -280,6 +283,7 @@ class EditorViewModel(
   )
 
   init {
+    kernel.adopt(kernelBindings)
     // Open before it has loaded, so a replace can never slip in between the read and the register
     // and rewrite a file this editor is about to overwrite from stale memory. Until the cells are
     // here [sourceOf] answers null, which the engine reads as the conflict it is.
@@ -287,17 +291,17 @@ class EditorViewModel(
     viewModelScope.launch {
       _uiState.value =
         try {
-          notebookRepository.readStampedNotebook(liveNotebookId)
-            .also { read ->
-              notebook = read.notebook
-              stamp = read.stamp
-            }
-            .notebook.toEditorUiState(defaultCellId = newCellId())
+          val read = notebookRepository.readStampedNotebook(liveNotebookId)
+          notebook = read.notebook
+          stamp = read.stamp
+          val fresh = read.notebook.toEditorUiState(defaultCellId = newCellId())
+          retainedExecution?.uiState?.value?.let { fresh.withRetainedRunFrom(it) } ?: fresh
         } catch (e: IllegalArgumentException) {
           EditorUiState(error = e.message)
         }
-      seedKernelPreference()
+      if (retainedExecution == null) seedKernelPreference()
       debugger.seed(_uiState.value.cells)
+      if (_uiState.value.dirty) save.schedule()
     }
     // The rename that did not come from this screen - from the browser beside it, or from a folder
     // above it. `Context._onFileChanged` -> `_updatePath`, and without it the next debounced save
@@ -403,7 +407,7 @@ class EditorViewModel(
       // A run in flight is not the screen's to end - kernel, collectors and this state flow move
       // to the retained executions, which closes them when the last run drains (ADR-0025).
       if (_uiState.value.runInFlight) {
-        notebookExecutions.retain(executionKey, kernel, _uiState, activeCellRuns, applicationScope)
+        notebookExecutions.retain(executionKey, kernel, debugger, _uiState, activeCellRuns, applicationScope)
       } else {
         kernel.close(applicationScope)
       }

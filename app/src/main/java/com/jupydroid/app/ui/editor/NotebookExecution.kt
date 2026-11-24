@@ -2,6 +2,7 @@ package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
@@ -31,6 +32,8 @@ import kotlinx.coroutines.launch
 class NotebookExecution(
   val key: NotebookExecutionKey,
   val kernel: NotebookKernel,
+  /** The debug bookkeeping the run's cells armed - carried so a reopened screen steps the stop it left. */
+  val debugger: NotebookDebugger,
   /**
    * The flow the kernel keeps writing - exposed as the mutable flow itself so a screen that
    * comes back can adopt it as its own state rather than copying run fields across.
@@ -52,6 +55,7 @@ class NotebookExecution(
    * test open forever.
    */
   private val watchScope = CoroutineScope(scope.coroutineContext + SupervisorJob())
+  private var watchJob: Job? = null
 
   /**
    * Watches for the drain and ends the run's machinery when it lands. Launched rather than
@@ -61,12 +65,19 @@ class NotebookExecution(
    * detached notebook.
    */
   fun watchDetached() {
-    watchScope.launch {
-      combine(uiState, activeCellRuns.inFlight) { state, runs -> state.runInFlight to runs }
-        .distinctUntilChanged()
-        .first { (runInFlight, runs) -> !runInFlight && runs == 0 }
-      kernel.close(scope)
-      onDrained(this@NotebookExecution)
-    }
+    watchJob =
+      watchScope.launch {
+        combine(uiState, activeCellRuns.inFlight) { state, runs -> state.runInFlight to runs }
+          .distinctUntilChanged()
+          .first { (runInFlight, runs) -> !runInFlight && runs == 0 }
+        kernel.close(scope)
+        onDrained(this@NotebookExecution)
+      }
+  }
+
+  /** A screen that took the run over owns the kernel now - the drain watch is no longer its to fire. */
+  fun stopWatching() {
+    watchJob?.cancel()
+    watchJob = null
   }
 }

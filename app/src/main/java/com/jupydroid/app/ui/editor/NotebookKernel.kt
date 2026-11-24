@@ -6,21 +6,16 @@ import com.jupydroid.app.data.fake.FakeLanguageServerPort
 import com.jupydroid.app.data.fake.FakeWheelIndex
 import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
-import com.jupydroid.app.domain.model.IndentUnit
-import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.port.KernelGateway
 import com.jupydroid.app.domain.port.KernelPickRequiredException
 import com.jupydroid.app.domain.port.KernelPreference
-import com.jupydroid.app.domain.port.KernelSession
 import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
-import com.jupydroid.app.domain.port.LanguageFormatOptions
 import com.jupydroid.app.domain.port.LanguageServerPort
 import com.jupydroid.app.domain.port.SessionType
 import com.jupydroid.app.domain.port.StaleKernelSessionException
 import com.jupydroid.app.domain.port.SteppingCommand
-import com.jupydroid.app.domain.port.formattingOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,12 +42,12 @@ import java.time.Clock
  * have put the session in one object and a user of it in another.
  *
  * ```
- * val kernel = NotebookKernel(uiState, kernelGateway, space, applicationScope, runs, checkpoint, debugger = debugger)
+ * val kernel = NotebookKernel(uiState, kernelGateway, space, applicationScope, runs, bindings, debugger = debugger)
  * kernel.runCell(cell)
  * kernel.close(applicationScope)   // on the way out
  * ```
  */
-class NotebookKernel(
+class NotebookKernel internal constructor(
   private val uiState: MutableStateFlow<EditorUiState>,
   private val kernelGateway: KernelGateway,
   /** The entered Space - whose server runs this notebook's kernel and whose catalogue it resolves. */
@@ -71,10 +66,10 @@ class NotebookKernel(
    */
   private val activeCellRuns: ActiveCellRuns,
   /**
-   * What a finished run does to the document - write it, or mark it owed - decided by the
-   * `autosave` setting on the document half; this only says a run has something to commit.
+   * The document-half answers this kernel asks of the screen that owns it - swapped when a
+   * reopening editor takes a retained run over; see [NotebookKernelBindings].
    */
-  private val checkpoint: suspend () -> Unit,
+  bindings: NotebookKernelBindings,
   /** Injected so a test can assert on a run's duration without waiting for one. */
   private val clock: Clock = Clock.systemUTC(),
   /** Arms a cell's breakpoints before it runs, and reports where the kernel stops; see [NotebookCellRuns]. */
@@ -84,19 +79,6 @@ class NotebookKernel(
    * why - null where nothing is to be said; see [NotebookCellRuns].
    */
   private val explanation: PipInstallExplanation = PipInstallExplanation(FakeWheelIndex()),
-  /**
-   * `kernelShutdown`'s live read, consulted by [close] at the moment the document goes - the way
-   * `SessionContext` reads `kernelPreference.shutdownOnDispose` inside `dispose()` rather than
-   * once at construction. A provider and not a field value because a flipped setting reaches
-   * notebooks already open.
-   */
-  private val shutdownOnClose: () -> Boolean = { false },
-  /**
-   * The `options` a `textDocument/rangeFormatting` must carry, read live at ask time the way
-   * [shutdownOnClose] reads its own setting - a flipped `indentUnit` reaches a format asked
-   * after it. Defaults to the schema's own `'4'` unit for a test driving the kernel alone.
-   */
-  private val formattingOptions: () -> LanguageFormatOptions = { IndentUnit.SPACES_4.formattingOptions() },
   /**
    * The Space's language server - the completion source, asked before the kernel and lazily
    * spawned by the port on the first ask. Faked where no Space can run, as [kernelGateway] is.
@@ -114,13 +96,10 @@ class NotebookKernel(
    * `_updateSpec` write.
    */
   private val kernelSpecs: KernelSpecs = FakeKernelSpecs(),
-  /**
-   * `kernelChanged` -> `NotebookPanel._updateSpec` (`panel.ts:248-258`): told the session and the
-   * catalogue entry (or null) each time a kernel binds, so the document can persist
-   * `metadata.kernelspec`. Suspending because resolving the spec is a suspend ask.
-   */
-  private val onKernelBound: suspend (KernelSession, KernelSpec?) -> Unit = { _, _ -> },
 ) {
+  /** The document-half answers currently in force - see [NotebookKernelBindings]. */
+  @Volatile internal var currentBindings = bindings
+
   /**
    * The one end every launch below shares - only [close] cancels it, so the screen's death is
    * not one. A supervisor, as the ViewModel scope it replaces was, so one collector's failure
@@ -154,7 +133,7 @@ class NotebookKernel(
           val spec = kernelSpecs.specs(space).named(bound.kernelName)
           // `specs[kernel.name]?.display_name ?? kernel.name` - the reference's own derivation.
           uiState.update { it.copy(kernelDisplayName = spec?.displayName ?: bound.kernelName) }
-          onKernelBound(bound, spec)
+          currentBindings.onKernelBound(bound, spec)
         }
       },
       onPendingKernelName = { name ->
@@ -185,10 +164,10 @@ class NotebookKernel(
       session,
       kernelScope,
       activeCellRuns,
-      checkpoint,
-      clock,
-      debugger,
-      explanation,
+      checkpoint = { currentBindings.checkpoint() },
+      clock = clock,
+      debugger = debugger,
+      explanation = explanation,
     )
 
   /**
@@ -231,7 +210,8 @@ class NotebookKernel(
   private val definition = NotebookDefinition(session, languageServer, languageDocument)
 
   /** The format ask - `textDocument/rangeFormatting` over the cell's virtual block. */
-  private val format = NotebookFormat(session, languageServer, languageDocument, formattingOptions)
+  private val format =
+    NotebookFormat(session, languageServer, languageDocument) { currentBindings.formattingOptions() }
 
   /** The rename ask - `textDocument/rename` at the caret's virtual position. */
   private val rename = NotebookRename(session, languageServer, languageDocument)
@@ -416,9 +396,9 @@ class NotebookKernel(
    * the client connection and shuts the kernel down only when `shutdownOnDispose` is set, which
    * defaults to false (`packages/apputils/src/sessioncontext.tsx:679-709`). The reference's
    * `kernelShutdown` setting flips exactly this branch - the ordinary close then asks for the
-   * shutdown the ⋮ menu's own command used to be the only way to get, which [shutdownOnClose]
-   * is the live read of: the dispose asks again, not the open, so a setting flipped while the
-   * document sits open is honoured by the close that follows it.
+   * shutdown the ⋮ menu's own command used to be the only way to get, which the bindings'
+   * `shutdownOnClose` is the live read of: the dispose asks again, not the open, so a setting
+   * flipped while the document sits open is honoured by the close that follows it.
    */
   fun close(on: CoroutineScope) {
     // First, and unconditionally: the collectors die whether or not a session was ever opened,
@@ -428,7 +408,7 @@ class NotebookKernel(
     on.launch {
       // shutdown() closes the socket first itself (`RealKernelGateway`'s own ordering), so the
       // branch is one call either way.
-      if (shutdownOnClose()) kernelGateway.shutdown(open) else kernelGateway.disconnect(open)
+      if (currentBindings.shutdownOnClose()) kernelGateway.shutdown(open) else kernelGateway.disconnect(open)
     }
   }
 }

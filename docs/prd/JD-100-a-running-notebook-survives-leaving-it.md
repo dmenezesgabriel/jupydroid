@@ -188,7 +188,7 @@ One TDD unit each (red → green → refactor), one conventional commit each.
   flush unchanged) and hands kernel + uiState to the holder while `executions` has
   RUNNING/QUEUED; events, checkpoint and `activeCellRuns` continue on `applicationScope`; the
   holder tears down — disconnect, cancel lifetime, drop — when the last run ends detached.
-- [ ] T3 — Reopening adopts the run: a new `EditorViewModel` for the same `(Space,
+- [x] T3 — Reopening adopts the run: a new `EditorViewModel` for the same `(Space,
   DocumentOpening)` takes the holder's flow and kernel, seeds fresh disk state merged with the
   retained run fields (`executions`, `outputs`, `executionCounts`, `inputRequests`,
   `clearsPending`, kernel fields, debug stop), rebinds checkpoint/kernel-bound to itself, and
