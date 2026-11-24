@@ -9,4 +9,13 @@
     -->
     <color name="window_background">#FFFFFFFF</color>
 
+    <!--
+      Adaptive-icon backdrop for each launcher variant, sampled from the artwork's own surround:
+      the blue variant's corners sit on dark navy, the black variant's on near-black. The
+      foreground bitmaps carry the surround opaquely, so these only show in the thin ring the
+      launcher mask leaves outside the 72dp artwork square.
+    -->
+    <color name="ic_launcher_blue_background">#001439</color>
+    <color name="ic_launcher_black_background">#010101</color>
+
 </resources>
