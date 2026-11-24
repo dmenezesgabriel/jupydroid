@@ -93,7 +93,7 @@ answers for the settled state, which is the honest answer.
 
 ## Tasks
 
-- [ ] T1 — `SpaceServer.liveOrNull()` peeks the cached start under `startLock` and never starts;
+- [x] T1 — `SpaceServer.liveOrNull()` peeks the cached start under `startLock` and never starts;
       `PerRunningServer.liveOrNull()` delegates through the same client-cache path as `get()`.
       Red first: a `liveOrNull` during a stop in flight returns null and the launcher's
       `startCount` stays 1.
