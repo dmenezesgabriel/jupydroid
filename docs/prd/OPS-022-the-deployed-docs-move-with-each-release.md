@@ -1,6 +1,6 @@
 # OPS-022 — The deployed docs move with each release
 
-Milestone: `M10` · State: open · Depends on: OPS-020 (shipped) · Closes: —
+Milestone: `M10` · State: partial · Depends on: OPS-020 (shipped) · Closes: —
 
 > Delete this file when the item ships ([ADR-0001](../adr/0001-split-durable-decisions-from-ephemeral-build-evidence.md)).
 
@@ -133,6 +133,13 @@ One TDD unit each where code is written (red → green → refactor), one conven
   the next tag's deploy is observed serving that tag (`gh run list --workflow=docs.yml` and the
   Pages curl). If no tag has been cut when the code is otherwise done, the row stays open naming
   the pending check rather than claiming shipped.
+  **Pending the next tag's deploy:** T1–T3 and ADR-0176 are committed; what remains is observing
+  a `v*` tag push run `docs.yml` with its `deploy` job `success` and `curl
+  https://dmenezesgabriel.github.io/jupydroid/getting-started/` naming that tag. That needs the
+  item's commits on `main` (they sync through the usual pull-request flow) and the next release
+  cut — `gh run list --workflow=docs.yml --event push` showed no tag run and `v0.3.1` was the
+  latest tag on 2026-11-24, both predating the trigger. On observation: the row flips `shipped`,
+  this PRD is deleted, and the marker returns to it.
 
 ## Out of scope
 
