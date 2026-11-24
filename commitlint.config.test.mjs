@@ -58,6 +58,17 @@ test("revert is rejected, since the working agreement forbids reverts", () => {
   assertRejected('revert: "feat: add the thing"');
 });
 
+test("a release-bearing subject carrying a backlog id is rejected, since it becomes the changelog", () => {
+  for (const header of ["fix(x): JD-102 keeps a stopped Space down", "feat: OPS-010 ships", "perf: AUD-003 tuned"]) {
+    assertRejected(header);
+  }
+});
+
+test("a backlog id on a type the changelog drops is accepted", () => {
+  assertAccepted("docs(prd): JD-102's plan is written");
+  assertAccepted("docs(backlog): JD-098 is next");
+});
+
 test("a subject with no type is rejected", () => assertRejected("Add verification harness for step 0"));
 
 test("an empty subject is rejected", () => assertRejected("feat(scope): "));
