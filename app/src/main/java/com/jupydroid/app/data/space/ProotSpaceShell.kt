@@ -55,14 +55,7 @@ class ProotSpaceShell(
     val settings = settingsFor(space)
     val process = prepareMutex.withLock {
       withContext(ioDispatcher) { installSpace(spaceId) }
-      withContext(ioDispatcher) {
-        val dirs = dirsFor(space)
-        dirs.ensure()
-        runtimeFor(space, settings)
-          .execProcessBuilder(boundedShellArgs(SHELL_ARG0, script, timeout), killOnExit = true)
-          .redirectErrorStream(true)
-          .start()
-      }
+      startScript(space, settings, script, timeout)
     }
     drain(process, spaceId)
     awaitClose {
@@ -70,6 +63,22 @@ class ProotSpaceShell(
       if (process.isAlive) process.destroyForcibly()
     }
   }
+
+  /**
+   * The script's process, started once the Space's writable state is provisioned: [SpaceDirs.ensure]
+   * the directories, then `etc/resolv.conf` for the glibc processes a script may run - which only a
+   * server start wrote before (ADR-0166).
+   */
+  private suspend fun startScript(space: Space, settings: SpaceSettings, script: String, timeout: Duration): Process =
+    withContext(ioDispatcher) {
+      val dirs = dirsFor(space)
+      dirs.ensure()
+      val runtime = runtimeFor(space, settings)
+      runtime.writeGnuResolvConf()
+      runtime.execProcessBuilder(boundedShellArgs(SHELL_ARG0, script, timeout), killOnExit = true)
+        .redirectErrorStream(true)
+        .start()
+    }
 
   /**
    * The process's merged output as [SpaceShellEvent.Output] lines, then its exit status as

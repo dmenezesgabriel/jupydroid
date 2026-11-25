@@ -38,12 +38,13 @@ class ProotSpaceShellTest {
   private fun shell(
     installSpace: suspend (String) -> Unit = {},
     settingsFor: suspend (Space) -> SpaceSettings = { SpaceSettings() },
+    runtimeFor: (Space, SpaceSettings) -> SpaceRuntime = { _, _ -> SpaceRuntime(spaceDir, nativeDir) },
   ): ProotSpaceShell {
     FakeSpaceShellScript.installIn(spaceDir)
     return ProotSpaceShell(
       installSpace = installSpace,
       settingsFor = settingsFor,
-      runtimeFor = { _, _ -> SpaceRuntime(spaceDir, nativeDir) },
+      runtimeFor = runtimeFor,
       dirsFor = { SpaceDirs(spaceDir) },
     )
   }
@@ -96,6 +97,24 @@ class ProotSpaceShellTest {
     }
 
     assertEquals(1, deepest.get())
+  }
+
+  /**
+   * A script's glibc processes - `jupydroid-env`'s gnu pip - resolve through `etc/resolv.conf`,
+   * which only a server start wrote before, so a run on a stopped Space could not reach PyPI.
+   * The run provisions it fresh, the way `prepareWritableDirs` does for the server (ADR-0166).
+   */
+  @Test
+  fun aRunProvisionsTheGnuResolversConf() = runTest {
+    val shell = shell(
+      runtimeFor = { _, _ ->
+        SpaceRuntime(spaceDir, nativeDir, dnsServers = DnsServerSource { listOf("10.0.0.53") })
+      },
+    )
+
+    shell.run("base", "true", 1.minutes).toList()
+
+    assertEquals("nameserver 10.0.0.53\n", File(spaceDir, "etc/resolv.conf").readText())
   }
 
   /** The script's own status, not proot's - a `Finished` is what the section branches on. */

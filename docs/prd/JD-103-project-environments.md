@@ -193,16 +193,23 @@ whose "registration is the person's act" the create act preserves.
   injective; residual folding collisions are refused at Register naming the holder, as before. The
   container list is `ENVIRONMENT_CONTAINER_DIRS` in `domain/model`, shared with the scan so the
   naming rule and the discovery roots cannot drift.
-- **The env directory a create makes** (T5). vscode-python's convention is `.venv` inside the
-  project folder; a named dir (`envs/<project>`) keeps envs out of the project tree. The script
-  decides; the panel shows whatever was made.
+- **The env directory a create makes** (T5) is **settled: `<project>/.venv`** — vscode-python's
+  `create_venv.py` and IntelliJ both make `.venv` inside the project/content root, and our
+  project is a top-level workspace folder, so the env lives at `<project>/.venv`. Discovery
+  already finds it (T3 scans each project folder's env roots), its lifecycle binds to the
+  project folder, and T2's naming gives `proj-a/.venv` → `proj-a-.venv` /
+  `Python (proj-a/.venv)` for free. `envs/<project>` was rejected: a cleaner spec name but an
+  env detached from the project tree that matches no reference's create convention.
 - **Whether the launcher gains a card per kernel** (T7, only if cheap). JupyterLab's own pattern
   (`index.ts` above); our `LAUNCHER_ITEMS` collapses to one card today.
 - **Whether the panel offers "make Space default"** — recommended no: `SpaceSettings.defaultKernel`
   and its Settings picker already own that act, and a second writer would split the rule
   `effectiveDefaultKernel` keeps in one place.
-- **Whether the helper also registers** (`jupydroid-env register <path>`) or only creates —
-  recommended create-only: Register of a foreign env is the app's disk act and needs no proot.
+- **Whether the helper also registers** (`jupydroid-env register <path>`) or only creates (T5)
+  is **settled: create-only** — `jupydroid-env create <project>` makes the env and its spec in
+  one act; registering an environment made by hand stays the app's disk act
+  (`SpaceEnvironments.register`), which needs no proot. Unknown or missing arguments are a
+  usage refusal, exit 2.
 - **The discovery predicate's details** (T3) is **settled: a project is any top-level directory
   that is not hidden and not itself a conventional env container** — no `.ipynb` or
   `pyproject.toml` marker is required, the env's own `pyvenv.cfg` is the signal, matching
@@ -248,7 +255,7 @@ whose "registration is the person's act" the create act preserves.
 - [x] T4 — **The spec env follows the env's libc.** `pyvenv.cfg` `home` picks the glibc or musl
   env map for `installEnvironment`; the exact glibc map is measured on the tablet. A hand-made
   gnu env then Registers into a kernel that actually starts
-- [ ] T5 — **Create an environment from the app.** The script asset, its port, the
+- [x] T5 — **Create an environment from the app.** The script asset, its port, the
   `/usr/local/bin` install, the `SpaceShell` run with streamed progress, and auto-registration —
   red-first at every layer. Open decisions 2 and 5 are settled
 - [ ] T6 — **The Environments panel.** `SidePanel.ENVIRONMENTS` end to end: enum, label, icon,
