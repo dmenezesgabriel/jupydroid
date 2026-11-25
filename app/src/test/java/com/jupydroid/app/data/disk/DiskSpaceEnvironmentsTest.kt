@@ -75,13 +75,49 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
     )
   }
 
-  /** The roots are fixed, as vscode-python's are: a project's own `.venv` is one level too deep. */
+  /**
+   * A project's own env folders are searched one level down, as vscode-python's per-folder
+   * locator searches each opened folder - and no `.ipynb` or `pyproject.toml` is required: the
+   * env's own `pyvenv.cfg` is the signal a folder holds one.
+   */
   @Test
-  fun environments_doesNotSearchBelowTheRoots() = runTest {
+  fun environments_findsAnEnvironmentInsideAProjectFolder() = runTest {
     makeVenv("thesis/.venv")
+    makeVenv("proj-b/envs/stats", withIpykernel = true)
+
+    assertEquals(
+      listOf(
+        PythonEnvironment("proj-b/envs/stats", hasIpykernel = true),
+        PythonEnvironment("thesis/.venv", hasIpykernel = false),
+      ),
+      listed(),
+    )
+  }
+
+  /** The bound is one project level: env roots inside a project, never deeper. */
+  @Test
+  fun environments_doesNotSearchBelowOneProjectLevel() = runTest {
+    makeVenv("thesis/sub/.venv")
     makeVenv("envs/group/deep")
 
     assertEquals(emptyList<PythonEnvironment>(), listed())
+  }
+
+  /** Hidden folders are tool state, not projects: `.git` and `.ipynb_checkpoints` hold no envs. */
+  @Test
+  fun environments_skipsHiddenFoldersAsProjects() = runTest {
+    makeVenv(".hidden/.venv")
+    makeVenv(".git/envs/x")
+
+    assertEquals(emptyList<PythonEnvironment>(), listed())
+  }
+
+  /** A container's children are environments already; scanning it as a project would list them twice. */
+  @Test
+  fun environments_doesNotListAnEnvironmentTwice() = runTest {
+    makeVenv("envs/stats", withIpykernel = true)
+
+    assertEquals(listOf(PythonEnvironment("envs/stats", hasIpykernel = true)), listed())
   }
 
   @Test
@@ -172,6 +208,40 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
     makeVenv(STATS.path, withIpykernel = true)
 
     assertEquals(listOf(STATS.copy(registeredAs = "stats")), port.environments(EMPTY_SPACE_ID))
+  }
+
+  /** A project env registers under its whole path, so `proj-a` and `proj-b` never share a spec name. */
+  @Test
+  fun register_registersAnEnvironmentInsideAProjectFolder() = runTest {
+    makeVenv("proj-a/.venv", withIpykernel = true)
+
+    val name = environments().register(EMPTY_SPACE_ID, "proj-a/.venv")
+
+    assertEquals("proj-a-.venv", name)
+    assertEquals("/home/jupydroid/proj-a/.venv/bin/python", registeredArgv("proj-a-.venv").first())
+    val specs = DiskKernelSpecs(tempFolder.root).specs(Space(EMPTY_SPACE_ID, "Thesis", emptyList())).specs
+    assertTrue(KernelSpec("proj-a-.venv", "Python (proj-a/.venv)", "python") in specs)
+  }
+
+  /** `rm -r proj-a/.venv` after Register: the spec stays, naming an interpreter that is gone. */
+  @Test
+  fun environments_listsARegisteredProjectEnvironmentDeletedSinceAsGone() = runTest {
+    makeVenv("proj-a/.venv", withIpykernel = true)
+    val port = environments()
+    port.register(EMPTY_SPACE_ID, "proj-a/.venv")
+    File(workspace, "proj-a/.venv").deleteRecursively()
+
+    assertEquals(
+      listOf(
+        PythonEnvironment(
+          "proj-a/.venv",
+          hasIpykernel = false,
+          registeredAs = "proj-a-.venv",
+          isMissing = true,
+        ),
+      ),
+      port.environments(EMPTY_SPACE_ID),
+    )
   }
 
   private fun registeredArgv(name: String): List<String> =

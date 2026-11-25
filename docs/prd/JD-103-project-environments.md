@@ -203,9 +203,14 @@ whose "registration is the person's act" the create act preserves.
   `effectiveDefaultKernel` keeps in one place.
 - **Whether the helper also registers** (`jupydroid-env register <path>`) or only creates —
   recommended create-only: Register of a foreign env is the app's disk act and needs no proot.
-- **The discovery predicate's details** (T3): whether a top-level directory must hold an
-  `.ipynb` or `pyproject.toml` to count as a project, and whether dot-directories are skipped —
-  settled with fixtures, not guessed.
+- **The discovery predicate's details** (T3) is **settled: a project is any top-level directory
+  that is not hidden and not itself a conventional env container** — no `.ipynb` or
+  `pyproject.toml` marker is required, the env's own `pyvenv.cfg` is the signal, matching
+  vscode-python's per-folder locator which asks for no marker either. Dot-directories are skipped
+  as project bases (`.git`, `.ipynb_checkpoints`, `.venv` itself) but not as env children, so
+  `proj-a/.venv` is still found; env containers are skipped as bases because their children are
+  already environments, which also makes duplicate paths impossible. The bound stays one project
+  level: `proj/sub/.venv` and `envs/group/deep` are unfound.
 
 ## Surface
 
@@ -237,7 +242,7 @@ whose "registration is the person's act" the create act preserves.
 - [x] T2 — **Project-aware environment model.** `PythonEnvironment`'s name and display rules
   cover `proj/.venv`-shaped paths: deterministic, unique, `_kernel_name_pat`-safe,
   `envs/stats` → `stats` preserved. Open decision 1 is settled
-- [ ] T3 — **Discovery reaches project envs.** `DiskSpaceEnvironments` scans the env roots inside
+- [x] T3 — **Discovery reaches project envs.** `DiskSpaceEnvironments` scans the env roots inside
   each top-level workspace directory, bounded; dot-dir and project-predicate details settled with
   fixtures. Open decision 6 is settled
 - [ ] T4 — **The spec env follows the env's libc.** `pyvenv.cfg` `home` picks the glibc or musl

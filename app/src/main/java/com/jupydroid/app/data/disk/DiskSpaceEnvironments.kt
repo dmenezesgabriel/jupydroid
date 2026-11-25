@@ -17,11 +17,13 @@ import java.io.File
  * (`workspaceVirtualEnvLocator.ts`) and of the conventional envs directories in HOME
  * (`globalVirtualEnvronmentLocator.ts`, `getGlobalVirtualEnvDirs`), both at
  * `microsoft/vscode-python@f4c86e4f5f7c34b99c5333b1aef50e997288f936`. A Space's HOME *is* its
- * workspace, so the two lists are one.
+ * workspace, so the two lists are one - applied at the workspace and inside each project folder,
+ * the way vscode-python's locator runs per opened folder. Our workspace is one root, so a project
+ * is a top-level directory in it.
  *
- * Fixed roots rather than a walk: the cost is a handful of directory listings however large the
- * workspace grows, and nothing below a root is read - a project's own `.venv` is one level too deep,
- * as it is for vscode-python outside its opened folder.
+ * Fixed roots rather than a walk: the cost is a handful of directory listings per folder however
+ * large the workspace grows, and nothing below a root is read - a project's own `.venv` is found,
+ * but `proj/sub/.venv` is one level too deep, as it is outside vscode-python's opened folder.
  *
  * ```
  * DiskSpaceEnvironments(spacesDir(context)).environments("space-1")
@@ -71,10 +73,29 @@ class DiskSpaceEnvironments(
     return (found + goneIn(dirs, nameByInterpreter, found.map { it.path }.toSet())).sortedBy { it.path }
   }
 
-  private fun foundPathsIn(dirs: SpaceDirs): List<String> = ENV_ROOTS.map { File(dirs.workspace, it) }
-    .flatMap { it.listFiles().orEmpty().asList() }
-    .filter { File(it, "pyvenv.cfg").isFile }
-    .map { it.relativeTo(dirs.workspace).invariantSeparatorsPath }
+  private fun foundPathsIn(dirs: SpaceDirs): List<String> {
+    val workspace = dirs.workspace
+    return scanBasesIn(workspace)
+      .flatMap { base -> ENV_ROOTS.map { File(base, it) } }
+      .flatMap { it.listFiles().orEmpty().asList() }
+      .filter { File(it, "pyvenv.cfg").isFile }
+      .map { it.relativeTo(workspace).invariantSeparatorsPath }
+  }
+
+  /**
+   * The folders the env roots are applied to: the workspace itself and each project folder - a
+   * top-level directory that is not hidden and not itself an env container, whose children the
+   * workspace scan already covers. No `.ipynb` or `pyproject.toml` is required of a project: the
+   * env's own `pyvenv.cfg` is the signal it holds one.
+   */
+  private fun scanBasesIn(workspace: File): List<File> {
+    val projects = workspace.listFiles().orEmpty().asList()
+      .filter { it.isDirectory && it.name.isProjectFolder() }
+    return listOf(workspace) + projects
+  }
+
+  /** A project folder is a top-level directory that is not hidden and holds projects, not envs. */
+  private fun String.isProjectFolder(): Boolean = !startsWith(".") && this !in ENV_CONTAINER_NAMES
 
   /**
    * The environments a spec names as `<workspace>/<path>/bin/python` with nothing left there - what
@@ -107,5 +128,8 @@ class DiskSpaceEnvironments(
 
     /** The workspace itself, then [ENVIRONMENT_CONTAINER_DIRS], in vscode-python's order. */
     val ENV_ROOTS = listOf("") + ENVIRONMENT_CONTAINER_DIRS
+
+    /** The top-level name of each env container - `.local/share/virtualenvs` is `.local` up here. */
+    val ENV_CONTAINER_NAMES = ENVIRONMENT_CONTAINER_DIRS.mapTo(HashSet()) { it.substringBefore('/') }
   }
 }

@@ -23,7 +23,7 @@ const val SPACE_ENVIRONMENTS_TAG = "space-environments"
 internal const val HAS_IPYKERNEL = "ipykernel installed"
 
 /** Said when the workspace holds no environment where the scan looks. */
-internal const val NO_ENVIRONMENTS = "None found directly in ~ or in a folder like ~/envs"
+internal const val NO_ENVIRONMENTS = "None found in ~, a folder like ~/envs, or a project folder"
 
 /** Register's accessible name on the row of the environment at [path], for a test and a Maestro flow. */
 internal fun registerLabel(path: String): String = "Register $path as kernel"
