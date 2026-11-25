@@ -183,12 +183,16 @@ whose "registration is the person's act" the create act preserves.
 
 ## Open decisions
 
-- **The spec name and display name for a project env** (T2). Constraints: deterministic from the
-  path, unique across projects, `_kernel_name_pat`-safe, and `envs/stats` → `stats` preserved so
-  JD-003's registrations keep their names. Candidates: a project-qualified leaf
-  (`proj-a-venv`) or a sanitized relative path; display `Python (<path>)` or the project name.
-  "Lists it by project name" is the item's requirement — the picker must say which project an
-  env belongs to.
+- **The spec name and display name for a project env** (T2) is **settled: the env's path minus one
+  leading conventional-envs directory, `/` folded to `-`** — `PythonEnvironment.specPath` feeding
+  `kernelName`/`kernelDisplayName`. `envs/stats` → `stats` / `Python (stats)` is preserved exactly,
+  since a spec on disk keeps the name it was written with; `proj-a/.venv` → `proj-a-.venv`,
+  displayed `Python (proj-a/.venv)`, so the picker says which project an env belongs to. Container
+  segments after the first stay — `proj-a/envs/stats` → `proj-a-envs-stats`, distinct from
+  `proj-a/stats` → `proj-a-stats` — the more unique of the two candidates, a `/`→`-` join not being
+  injective; residual folding collisions are refused at Register naming the holder, as before. The
+  container list is `ENVIRONMENT_CONTAINER_DIRS` in `domain/model`, shared with the scan so the
+  naming rule and the discovery roots cannot drift.
 - **The env directory a create makes** (T5). vscode-python's convention is `.venv` inside the
   project folder; a named dir (`envs/<project>`) keeps envs out of the project tree. The script
   decides; the panel shows whatever was made.
@@ -230,7 +234,7 @@ whose "registration is the person's act" the create act preserves.
   `/opt/gnu/python/bin/python3.12 -m venv` plus a kernel start inside it is measured — the facts
   the PRD's Who-else section states from source, confirmed on the device. The reproducing command
   goes in the commit body.
-- [ ] T2 — **Project-aware environment model.** `PythonEnvironment`'s name and display rules
+- [x] T2 — **Project-aware environment model.** `PythonEnvironment`'s name and display rules
   cover `proj/.venv`-shaped paths: deterministic, unique, `_kernel_name_pat`-safe,
   `envs/stats` → `stats` preserved. Open decision 1 is settled
 - [ ] T3 — **Discovery reaches project envs.** `DiskSpaceEnvironments` scans the env roots inside

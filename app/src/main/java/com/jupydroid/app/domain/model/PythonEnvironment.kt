@@ -36,22 +36,52 @@ data class PythonEnvironment(
   val kernelRemoveCommand: String get() = "jupyter kernelspec remove $registeredAs"
 
   /**
-   * The kernelspec name a registration gives it: the directory's name, lowercased because
+   * The kernelspec name a registration gives it: [specPath] lowercased, because
    * `jupyter_client/kernelspec.py` lists a spec under its lowercased directory name, with any
-   * character `_kernel_name_pat` (`^[a-z0-9._\-]+$`) refuses folded to `-`, since a directory that
-   * pattern refuses is skipped and its kernel lost.
+   * character `_kernel_name_pat` (`^[a-z0-9._\-]+$`) folded to `-`, since a directory that
+   * pattern refuses is skipped and its kernel lost. `/` is one of those characters, so the path's
+   * segments join with `-` - and a project's env keeps its project in the name, so `proj-a/.venv`
+   * and `proj-b/.venv` never share one.
    */
-  val kernelName: String get() = directoryName.lowercase().replace(SPEC_NAME_REFUSED, "-")
+  val kernelName: String get() = specPath.lowercase().replace(SPEC_NAME_REFUSED, "-")
 
-  /** `Python (<directory>)`, as `ipykernel install --display-name` is conventionally used. */
-  val kernelDisplayName: String get() = "Python ($directoryName)"
+  /** `Python (<specPath>)`, as `ipykernel install --display-name` is conventionally used. */
+  val kernelDisplayName: String get() = "Python ($specPath)"
 
-  private val directoryName: String get() = path.substringAfterLast('/')
+  /**
+   * The path the spec is named for: [path] minus one leading directory of
+   * [ENVIRONMENT_CONTAINER_DIRS] - a container's children are environments, so `envs/stats` is
+   * `stats` - while every later segment stays, so `proj-a/envs/stats` and `proj-a/stats` keep
+   * distinct names.
+   */
+  private val specPath: String
+    get() = ENVIRONMENT_CONTAINER_DIRS
+      .map { "$it/" }
+      .firstOrNull(path::startsWith)
+      ?.let { path.removePrefix(it) }
+      ?: path
 
   private companion object {
     val SPEC_NAME_REFUSED = Regex("[^a-z0-9._\\-]")
   }
 }
+
+/**
+ * The directories whose children are Python environments rather than environments themselves -
+ * the conventional envs directories in HOME of `globalVirtualEnvronmentLocator.ts`'s
+ * `getGlobalVirtualEnvDirs`, both at
+ * `microsoft/vscode-python@f4c86e4f5f7c34b99c5333b1aef50e997288f936`. Applied at the workspace root
+ * and inside each project directory alike, which is why it lives beside the naming rule that
+ * strips one leading match rather than inside the scan that finds them.
+ */
+internal val ENVIRONMENT_CONTAINER_DIRS = listOf(
+  "envs",
+  "Envs",
+  ".direnv",
+  ".venvs",
+  ".virtualenvs",
+  ".local/share/virtualenvs",
+)
 
 /**
  * The environment at [path] among a Space's [environments], once it is shown fit to register - the

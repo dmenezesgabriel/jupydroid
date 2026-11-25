@@ -3,6 +3,7 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.data.space.SpaceDirs
 import com.jupydroid.app.data.space.SpaceKernelSpec
 import com.jupydroid.app.data.space.spaceDirIn
+import com.jupydroid.app.domain.model.ENVIRONMENT_CONTAINER_DIRS
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.registrableEnvironment
 import com.jupydroid.app.domain.port.SpaceEnvironments
@@ -104,15 +105,7 @@ class DiskSpaceEnvironments(
   private companion object {
     const val INTERPRETER = "/bin/python"
 
-    /** The workspace itself, then `getGlobalVirtualEnvDirs`' HOME subdirectories, in its order. */
-    val ENV_ROOTS = listOf(
-      "",
-      "envs",
-      "Envs",
-      ".direnv",
-      ".venvs",
-      ".virtualenvs",
-      ".local/share/virtualenvs",
-    )
+    /** The workspace itself, then [ENVIRONMENT_CONTAINER_DIRS], in vscode-python's order. */
+    val ENV_ROOTS = listOf("") + ENVIRONMENT_CONTAINER_DIRS
   }
 }
