@@ -224,7 +224,7 @@ whose "registration is the person's act" the create act preserves.
 
 ## Tasks
 
-- [ ] T1 — **Measure the kernel model on the tablet.** On `SM-X216B`: two sessions on `python3`
+- [x] T1 — **Measure the kernel model on the tablet.** On `SM-X216B`: two sessions on `python3`
   start two kernels (`GET api/kernels`); a notebook's `metadata.kernelspec.name` becomes the
   session's `kernel.name`; `GET api/kernelspecs` is one server-global catalogue; and
   `/opt/gnu/python/bin/python3.12 -m venv` plus a kernel start inside it is measured — the facts

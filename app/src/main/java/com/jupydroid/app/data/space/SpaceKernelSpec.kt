@@ -70,7 +70,7 @@ object SpaceKernelSpec {
     "import runpy; runpy.run_path('/usr/lib/python3.12/site-packages/$KERNEL_MODULE.py', run_name='__main__')"
 
   /** Where a registered environment's spec goes: `<sys.prefix>/local/share/jupyter`, never the workspace. */
-  private const val ENVIRONMENT_KERNELS_PATH = "usr/local/share/jupyter/kernels"
+  internal const val ENVIRONMENT_KERNELS_PATH = "usr/local/share/jupyter/kernels"
 
   /**
    * The env the default kernel's spec carries, merged over the server's by jupyter_client. The
