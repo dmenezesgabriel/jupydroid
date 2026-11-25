@@ -112,10 +112,9 @@ class SpaceKernelSpecTest {
   fun installEnvironment_runsTheImagesKernelModuleUnderTheEnvironmentsInterpreter() = runTest {
     val spaceDir = tempFolder.newFolder("space-1")
 
-    SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python", "Python (stats)")
+    installStatsEnv(spaceDir, isGnu = false)
 
-    val spec = Json.parseToJsonElement(File(spaceDir, "usr/local/share/jupyter/kernels/stats/kernel.json").readText())
-      .jsonObject
+    val spec = environmentSpecJson(spaceDir, "stats")
     assertEquals(
       listOf(
         "/home/jupydroid/envs/stats/bin/python",
@@ -129,6 +128,35 @@ class SpaceKernelSpecTest {
     )
     assertEquals("Python (stats)", spec.getValue("display_name").jsonPrimitive.content)
     assertTrue(spec.toString(), spec.toString().contains("PYTHONFAULTHANDLER"))
+  }
+
+  /**
+   * A glibc environment's kernel gets the same environment the default kernel does - the
+   * glibc half of the refusal split (ADR-0166): no musl preload may enter it, the tracer
+   * answers its seccomp traps with ENOSYS rather than delivering a SIGSYS glibc's threads
+   * cannot survive, and a stray install stays out of the musl user base.
+   */
+  @Test
+  fun installEnvironment_gnuInterpreterGetsTheGlibcEnvironment() = runTest {
+    val spaceDir = tempFolder.newFolder("space-1")
+
+    installStatsEnv(spaceDir, isGnu = true)
+
+    val env = environmentKernelEnv(spaceDir, "stats")
+    assertEquals("", env["LD_PRELOAD"])
+    assertEquals("1", env["PROOT_SIGSYS_ENOSYS"])
+    assertEquals("/pkgs-gnu", env["PYTHONUSERBASE"])
+    assertTrue(env.getValue("PATH"), env.getValue("PATH").startsWith("/pkgs-gnu/bin:"))
+  }
+
+  /** A musl environment's kernel keeps the server's own environment - the map every spec had. */
+  @Test
+  fun installEnvironment_muslInterpreterKeepsTheServerEnvironment() = runTest {
+    val spaceDir = tempFolder.newFolder("space-1")
+
+    installStatsEnv(spaceDir, isGnu = false)
+
+    assertEquals(mapOf("PYTHONFAULTHANDLER" to "1"), environmentKernelEnv(spaceDir, "stats"))
   }
 
   /**
@@ -151,20 +179,39 @@ class SpaceKernelSpecTest {
   @Test
   fun installEnvironment_replacesTheSpecRatherThanRewritingIt() = runTest {
     val spaceDir = tempFolder.newFolder("space-1")
-    SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python", "Python (stats)")
+    installStatsEnv(spaceDir, isGnu = false)
     val taken = File(spaceDir, "usr/local/share/jupyter/kernels/stats/kernel.json")
       .linkTakenBeforeTheWrite(tempFolder.root)
     val before = taken.readText()
 
-    SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python", "Stats")
+    installStatsEnv(spaceDir, isGnu = false, displayName = "Stats")
 
     assertEquals(before, taken.readText())
+  }
+
+  private suspend fun installStatsEnv(spaceDir: File, isGnu: Boolean, displayName: String = "Python (stats)") {
+    SpaceKernelSpec.installEnvironment(
+      spaceDir,
+      "stats",
+      "/home/jupydroid/envs/stats/bin/python",
+      displayName,
+      isGnu = isGnu,
+    )
   }
 
   private fun argv(baseDir: File): List<String> = Json.parseToJsonElement(kernelJson(baseDir).readText())
     .jsonObject.getValue("argv").jsonArray.map { it.jsonPrimitive.content }
 
-  private fun kernelEnv(baseDir: File): Map<String, String> = Json.parseToJsonElement(kernelJson(baseDir).readText())
+  private fun kernelEnv(baseDir: File): Map<String, String> = envOf(kernelJson(baseDir))
+
+  private fun environmentKernelEnv(spaceDir: File, name: String): Map<String, String> =
+    envOf(File(spaceDir, "usr/local/share/jupyter/kernels/$name/kernel.json"))
+
+  private fun environmentSpecJson(spaceDir: File, name: String) = Json.parseToJsonElement(
+    File(spaceDir, "usr/local/share/jupyter/kernels/$name/kernel.json").readText(),
+  ).jsonObject
+
+  private fun envOf(kernelJson: File): Map<String, String> = Json.parseToJsonElement(kernelJson.readText())
     .jsonObject.getValue("env").jsonObject.mapValues { it.value.jsonPrimitive.content }
 
   private fun kernelJson(baseDir: File) = File(baseDir, "usr/share/jupyter/kernels/python3/kernel.json")

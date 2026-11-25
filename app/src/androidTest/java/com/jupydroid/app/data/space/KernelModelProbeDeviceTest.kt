@@ -44,13 +44,11 @@ import kotlin.time.Duration.Companion.seconds
  * one server-global `GET api/kernelspecs` catalogue every document shares. `GET api/kernels` is
  * read raw because it is not in the port contract.
  *
- * The second arm measures what a glibc environment's spec does today:
+ * The second arm measures a glibc environment's kernel end to end:
  * `SpaceKernelSpec.installEnvironment` (`data/space/SpaceKernelSpec.kt`, ADR-0078) writes the
- * musl-flavoured env map for every environment - no `PROOT_SIGSYS_ENOSYS`, no emptied `LD_PRELOAD`
- * the way `DEFAULT_KERNEL_ENV` gives the gnu default (ADR-0166) - and a venv under
- * `/opt/gnu/python` is the first glibc interpreter that path has been asked to start a kernel
- * under. Whether that start survives is the measurement, not an assumption: a failure here is
- * the finding the spec-env repair is argued from.
+ * env map of the interpreter's libc, so the gnu-made venv's spec carries `DEFAULT_KERNEL_ENV` -
+ * the glibc half of the refusal split (ADR-0166). The measurement is the one the musl map
+ * failed: the kernel answers a cell.
  *
  * Both arms drive the plain `OkHttpKernelLifecycle`, not `SpareBindingKernelLifecycle`
  * (ADR-0080): the spare is the app's own optimisation, and these questions are about the server's
@@ -190,10 +188,18 @@ class KernelModelProbeDeviceTest {
   ) {
     val venv = appendVenv(report)
     appendPip(report, venv)
-    SpaceKernelSpec.installEnvironment(spaceDir, ENV_SPEC_NAME, "$venv/bin/python", ENV_DISPLAY_NAME)
+    SpaceKernelSpec.installEnvironment(
+      spaceDir,
+      ENV_SPEC_NAME,
+      "$venv/bin/python",
+      ENV_DISPLAY_NAME,
+      isGnu = true,
+    )
     appendRegisteredSpec(lifecycle, report)
     writeNotebook(ENV_NOTEBOOK, ENV_SPEC_NAME, ENV_DISPLAY_NAME)
-    report.append(environmentKernelReading(lifecycle, connection))
+    val reading = environmentKernelReading(lifecycle, connection)
+    report.append(reading)
+    assertEnvironmentKernelAnswered(reading)
   }
 
   private fun appendVenv(report: StringBuilder): String {
@@ -295,6 +301,16 @@ class KernelModelProbeDeviceTest {
     return textOf(events)
   }
 
+  /**
+   * The cell's printed JSON is the proof: `kernel_info` and `execute_request` both
+   * round-tripped, `sys.prefix` is the venv - not the base interpreter - and `ipykernel`
+   * resolved from the env's own site-packages.
+   */
+  private fun assertEnvironmentKernelAnswered(reading: String) {
+    assertTrue("the env kernel never answered its cell: $reading", reading.contains("\"ipykernel\": \""))
+    assertTrue("the kernel is not the env's interpreter: $reading", reading.contains("/tmp/$VENV_NAME"))
+  }
+
   /** What the kernel's own stdout and errors said, in order - a traceback's last line included. */
   private fun textOf(events: List<KernelEvent>): String = events
     .mapNotNull { (it as? KernelEvent.Output)?.output }
@@ -371,7 +387,7 @@ class KernelModelProbeDeviceTest {
     val CELL_TIMEOUT = 90.seconds
 
     const val KERNEL_MODEL_HEADER = "== the kernel model, read from the server's own REST\n"
-    const val ENVIRONMENT_HEADER = "== a gnu environment registered as a spec; its kernel start measured\n"
+    const val ENVIRONMENT_HEADER = "== a gnu environment registered as a spec; its kernel answers a cell\n"
     const val IPYTHON_VERSION_PROBE =
       "import importlib.metadata; print(importlib.metadata.version('ipykernel'))"
 

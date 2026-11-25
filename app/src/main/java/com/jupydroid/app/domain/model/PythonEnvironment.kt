@@ -11,6 +11,9 @@ package com.jupydroid.app.domain.model
  * @property path the environment's root, relative to the Space's workspace - `envs/stats`.
  * @property hasIpykernel whether `ipykernel` is in its own site-packages, without which no kernel can
  *   start in it.
+ * @property isGnu whether the environment's interpreter is the gnu payload's - its `pyvenv.cfg`
+ *   `home` sits under `/opt/gnu/` - so a kernel started in it needs the glibc half of the Space's
+ *   environment split rather than the server's musl one (ADR-0166).
  * @property registeredAs the name of the kernelspec that runs this environment's interpreter, or null
  *   when none does.
  * @property isMissing the environment was registered and its interpreter has since been deleted: it is
@@ -19,6 +22,7 @@ package com.jupydroid.app.domain.model
 data class PythonEnvironment(
   val path: String,
   val hasIpykernel: Boolean,
+  val isGnu: Boolean = false,
   val registeredAs: String? = null,
   val isMissing: Boolean = false,
 ) {

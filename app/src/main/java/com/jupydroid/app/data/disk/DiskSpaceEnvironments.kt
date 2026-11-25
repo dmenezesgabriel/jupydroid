@@ -49,7 +49,13 @@ class DiskSpaceEnvironments(
     val holders = kernelDirs.associate { (name, dir) -> name to "'$dir'" }
     val environment = registrableEnvironment(environmentsIn(dirs, kernelDirs), path, holders)
     val name = environment.kernelName
-    SpaceKernelSpec.installEnvironment(dirs.spaceDir, name, interpreterOf(dirs, path), environment.kernelDisplayName)
+    SpaceKernelSpec.installEnvironment(
+      dirs.spaceDir,
+      name,
+      interpreterOf(dirs, path),
+      environment.kernelDisplayName,
+      isGnu = environment.isGnu,
+    )
     name
   }
 
@@ -68,7 +74,13 @@ class DiskSpaceEnvironments(
       .mapNotNull { (name, dir) -> kernelJsonIn(dir)?.let(::kernelInterpreterOf)?.let { it to name } }
       .toMap()
     val found = foundPathsIn(dirs).map {
-      PythonEnvironment(it, hasIpykernel(File(dirs.workspace, it)), nameByInterpreter[interpreterOf(dirs, it)])
+      val envDir = File(dirs.workspace, it)
+      PythonEnvironment(
+        it,
+        hasIpykernel = hasIpykernel(envDir),
+        isGnu = isGnuVenv(envDir),
+        registeredAs = nameByInterpreter[interpreterOf(dirs, it)],
+      )
     }
     return (found + goneIn(dirs, nameByInterpreter, found.map { it.path }.toSet())).sortedBy { it.path }
   }
@@ -123,6 +135,20 @@ class DiskSpaceEnvironments(
   private fun hasIpykernel(envRoot: File): Boolean = File(envRoot, "lib").listFiles().orEmpty()
     .any { File(it, "site-packages/ipykernel/__init__.py").isFile }
 
+  /**
+   * Whether the env's interpreter is the gnu payload's: `pyvenv.cfg`'s `home` is the directory
+   * of the interpreter that made it (`venv/__init__.py` writes `sys._base_executable`'s), so
+   * `/opt/gnu/...` is glibc and `/usr/bin` musl. Anything else - no `home`, an unknown
+   * interpreter - reads musl, which is the env every spec got before the split mattered.
+   */
+  private fun isGnuVenv(envRoot: File): Boolean {
+    val cfg = File(envRoot, "pyvenv.cfg")
+    val home = cfg.takeIf { it.isFile }?.useLines { lines ->
+      lines.firstNotNullOfOrNull { line -> HOME_LINE.matchEntire(line.trim())?.groupValues?.get(1) }
+    } ?: return false
+    return home.startsWith(GNU_PAYLOAD_ROOT)
+  }
+
   private companion object {
     const val INTERPRETER = "/bin/python"
 
@@ -131,5 +157,11 @@ class DiskSpaceEnvironments(
 
     /** The top-level name of each env container - `.local/share/virtualenvs` is `.local` up here. */
     val ENV_CONTAINER_NAMES = ENVIRONMENT_CONTAINER_DIRS.mapTo(HashSet()) { it.substringBefore('/') }
+
+    /** `home = <dir>` in `pyvenv.cfg`; the path never holds a space. */
+    val HOME_LINE = Regex("""home\s*=\s*(\S+)""")
+
+    /** The gnu payload's root inside a Space's `/` - where `tools/rootfs/gnu/Dockerfile` installs it. */
+    const val GNU_PAYLOAD_ROOT = "/opt/gnu/"
   }
 }

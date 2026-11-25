@@ -245,7 +245,7 @@ whose "registration is the person's act" the create act preserves.
 - [x] T3 — **Discovery reaches project envs.** `DiskSpaceEnvironments` scans the env roots inside
   each top-level workspace directory, bounded; dot-dir and project-predicate details settled with
   fixtures. Open decision 6 is settled
-- [ ] T4 — **The spec env follows the env's libc.** `pyvenv.cfg` `home` picks the glibc or musl
+- [x] T4 — **The spec env follows the env's libc.** `pyvenv.cfg` `home` picks the glibc or musl
   env map for `installEnvironment`; the exact glibc map is measured on the tablet. A hand-made
   gnu env then Registers into a kernel that actually starts
 - [ ] T5 — **Create an environment from the app.** The script asset, its port, the

@@ -89,7 +89,7 @@ object SpaceKernelSpec {
       "/$SPACE_GNU_PKGS_DIR/bin:/$SPACE_PKGS_DIR/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
   )
 
-  /** A venv kernel stays musl: it inherits the server's preloads and handler, needing only faulthandler. */
+  /** A musl venv kernel stays musl: it inherits the server's preloads and handler, needing only faulthandler. */
   private val ENVIRONMENT_KERNEL_ENV = mapOf("PYTHONFAULTHANDLER" to "1")
 
   /** Written on every launch, so a Space extracted by an older version gets today's argv. */
@@ -105,8 +105,14 @@ object SpaceKernelSpec {
    * Writes the spec [name] into the Space at [spaceDir], starting a kernel under [interpreter] - an
    * environment's own, as a process in the Space names it - so `sys.prefix` is that environment.
    *
+   * [isGnu] picks the kernel's environment: a glibc interpreter gets [DEFAULT_KERNEL_ENV], the
+   * glibc half of the refusal split (ADR-0166) - no musl preload may enter it and the tracer
+   * answers its seccomp traps with ENOSYS - while a musl one keeps [ENVIRONMENT_KERNEL_ENV] and
+   * inherits the server's own.
+   *
    * ```
-   * SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python", "Python (stats)")
+   * SpaceKernelSpec.installEnvironment(spaceDir, "stats", "/home/jupydroid/envs/stats/bin/python",
+   *   "Python (stats)", isGnu = false)
    * ```
    */
   suspend fun installEnvironment(
@@ -114,12 +120,17 @@ object SpaceKernelSpec {
     name: String,
     interpreter: String,
     displayName: String,
+    isGnu: Boolean,
     ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
   ) = withContext(ioDispatcher) {
     val kernelJson = File(spaceDir, "$ENVIRONMENT_KERNELS_PATH/$name/kernel.json")
     kernelJson.parentFile?.mkdirs()
     kernelJson.writeTextAtomically(
-      kernelSpecJson(listOf(interpreter, "-c", RUN_KERNEL_MODULE_BY_PATH), displayName, ENVIRONMENT_KERNEL_ENV),
+      kernelSpecJson(
+        listOf(interpreter, "-c", RUN_KERNEL_MODULE_BY_PATH),
+        displayName,
+        if (isGnu) DEFAULT_KERNEL_ENV else ENVIRONMENT_KERNEL_ENV,
+      ),
     )
   }
 
