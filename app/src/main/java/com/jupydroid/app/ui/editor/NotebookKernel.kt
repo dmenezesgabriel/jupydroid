@@ -169,6 +169,9 @@ class NotebookKernel internal constructor(
       clock = clock,
       debugger = debugger,
       explanation = explanation,
+      // Read through `currentBindings` like `checkpoint` above it, so an adopted kernel's
+      // edits are owed to the screen that took the run over.
+      noteEdited = { currentBindings.noteEdited() },
     )
 
   /**
@@ -270,6 +273,12 @@ class NotebookKernel internal constructor(
    * @see NotebookCellRuns.run
    */
   fun run(range: RunRange) = runs.run(range)
+
+  /**
+   * The `Shift`/`Alt`+`Enter` run chords - surfaced the way [history] and [asks] are, because a
+   * command with a document half is a collaborator rather than a kernel act.
+   */
+  internal val chords get() = runs.chords
 
   /** @see NotebookCellRuns.stopRunningCell */
   fun stopRunningCell() = runs.stopRunningCell()

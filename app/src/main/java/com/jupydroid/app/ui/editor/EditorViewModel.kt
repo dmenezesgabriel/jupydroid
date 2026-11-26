@@ -196,6 +196,8 @@ class EditorViewModel(
       // long after this screen's settings StateFlow stopped collecting.
       shutdownOnClose = { editorSettings.observeSettings().first().shutdownKernelOnClose },
       formattingOptions = { settings.value.indentUnit.formattingOptions() },
+      // A chord's insert is a document edit like a typed one - same debounced write.
+      noteEdited = save::schedule,
     )
 
   /**

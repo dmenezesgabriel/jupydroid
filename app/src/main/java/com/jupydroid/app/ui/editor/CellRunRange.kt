@@ -1,6 +1,7 @@
 package com.jupydroid.app.ui.editor
 
 import com.jupydroid.app.domain.model.Cell
+import com.jupydroid.app.domain.model.CellKind
 
 /**
  * Which cells each run command works through, as pure functions over [EditorUiState].
@@ -72,6 +73,65 @@ fun EditorUiState.cellsToRun(range: RunRange): List<Cell> {
 fun EditorUiState.withRunStarted(range: RunRange): EditorUiState {
   val last = if (range == RunRange.ABOVE) null else cellsToRun(range).lastOrNull()
   return copy(selectedCellId = last?.id ?: selectedCellId, anchorCellId = null)
+}
+
+/**
+ * The document half of `notebook:run-and-advance` - `Shift`+`Enter`
+ * (`actions.tsx:814-856`).
+ *
+ * `runSelected` runs first: its `lastIndex` is where the head lands, so [withRunStarted] does
+ * the deselect-and-head work and this counts one past it (`:843`). On the last cell there is
+ * nowhere to go, and the reference appends a `defaultCell` and lands on it in edit mode
+ * (`:830-849`) - ours is the appended cell plus [EditorUiState.cellTakingCaret], since our edit
+ * mode is what focus reports rather than a flag to set.
+ *
+ * **The mode is `command` in both branches**, which is `runSelected`'s own sequence
+ * (`:3020`): `'edit'` arrives upstream only once the new widget is in view, and here only once
+ * the field reports the caret held - [EditorViewModel.cellFocusChanged] does the rest.
+ */
+fun EditorUiState.withRunAdvanced(newId: String): EditorUiState {
+  val started = withRunStarted(RunRange.MARKED)
+  val head = started.cells.indexOfFirst { it.id == started.selectedCellId }
+  // `!notebook.activeCell` bails before any of it (`actions.tsx:820-822`).
+  if (head < 0) return this
+  val next = started.cells.getOrNull(head + 1)
+  // `if (activeCellIndex === lastIndex) append else activeCellIndex++` (`actions.tsx:830-852`).
+  return if (next != null) {
+    started.withCellSelected(next.id).withCellRevealed(next.id).copy(mode = CellMode.COMMAND)
+  } else {
+    started.copy(
+      cells = started.cells + Cell(newId, CellKind.CODE, ""),
+      selectedCellId = newId,
+      cellTakingCaret = newId,
+      mode = CellMode.COMMAND,
+      dirty = true,
+    )
+  }
+}
+
+/**
+ * The document half of `notebook:run-and-insert` - `Alt`+`Enter`
+ * (`actions.tsx:864-903`).
+ *
+ * `insertCell(activeCellIndex + 1)` lands **below the head the run left** - `activeCellIndex`
+ * is `lastIndex` by then (`:894`), so a marked run inserts past its last cell, not below where
+ * it was started. The new code cell becomes the head and takes the caret, because the
+ * reference's `notebook.mode = 'edit'` (`:918`) is our [EditorUiState.cellTakingCaret] plus
+ * focus.
+ */
+fun EditorUiState.withRunInserted(newId: String): EditorUiState {
+  val started = withRunStarted(RunRange.MARKED)
+  val head = started.cells.indexOfFirst { it.id == started.selectedCellId }
+  if (head < 0) return this
+  return started.copy(
+    cells = started.cells.toMutableList().apply { add(head + 1, Cell(newId, CellKind.CODE, "")) },
+    selectedCellId = newId,
+    cellTakingCaret = newId,
+    mode = CellMode.COMMAND,
+    dirty = true,
+    // A cell inserted under a collapsed heading lands inside the folded section - `expandParent`
+    // follows every active-cell change (`notebook-extension/src/index.ts:2871-2873`).
+  ).withCellRevealed(newId)
 }
 
 /**

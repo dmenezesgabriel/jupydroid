@@ -170,6 +170,18 @@ data class EditorUiState(
    */
   val markdownTakingCaret: String? = null,
   /**
+   * The code cell whose field should take the caret once it composes, or null while none asked.
+   *
+   * A consumed one-shot, the same contract as [markdownTakingCaret] beside it - and a second
+   * field rather than a reuse, because the two asks have disjoint producers: markdown's is a tap
+   * on rendered prose, while this one is a command's answer - `runAndAdvance`/`runAndInsert`
+   * land the caret in a cell they just made (`packages/notebook/src/actions.tsx:830-849`,
+   * `:908-918`). [NotebookCellEdits.caretTaken] clears it the moment the field reports the caret
+   * held, since a stale ask would re-yank focus every time the cell recomposes on a scroll.
+   * Not persisted.
+   */
+  val cellTakingCaret: String? = null,
+  /**
    * Where a definition jump lands, or null while none is pending.
    *
    * A consumed one-shot like [markdownTakingCaret]: [NotebookCellEdits.landOnDefinition] sets

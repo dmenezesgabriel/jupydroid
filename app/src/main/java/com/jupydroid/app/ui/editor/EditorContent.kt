@@ -11,6 +11,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.IndentUnit
@@ -67,6 +70,15 @@ internal fun EditorContent(
   listState: LazyListState,
   /** Told once a landing field took its caret - `NotebookCellEdits.caretLanded` wired through. */
   onCaretLanded: () -> Unit,
+  /** Told once a caret-asked field took it - `NotebookCellEdits.caretTaken` wired through. */
+  onCaretTaken: () -> Unit,
+  /**
+   * A hardware key chord resolved to a notebook command - see [notebookChord]. Wired once on the
+   * list rather than per cell, which is where a focused field's key events surface on their way
+   * up: `onPreviewKeyEvent` runs before the editor's own Enter handling, so a claimed chord never
+   * reaches the field that would have made it a newline.
+   */
+  onNotebookChord: (NotebookChordIntent) -> Unit,
   /** A tap on the footer's "Code" or "Markdown", reporting the kind to append - see [AddCellFooter]. */
   onAddCell: (CellKind) -> Unit,
   modifier: Modifier = Modifier,
@@ -99,7 +111,16 @@ internal fun EditorContent(
       // the snackbar an export's outcome gets, and there is nothing to remember having shown.
       Column(modifier = modifier.fillMaxSize()) {
         state.saveFailure?.let { SaveFailureBanner(it) }
-        LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+          state = listState,
+          modifier = Modifier.fillMaxSize().onPreviewKeyEvent { event ->
+            // Key-down only: a chord resolves once, and the up-stroke of the same key is nothing.
+            if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+            val intent = notebookChord(state.mode, event.chord()) ?: return@onPreviewKeyEvent false
+            onNotebookChord(intent)
+            true
+          },
+        ) {
           // contentType as well as key: a code cell and a markdown cell compose to very different
           // trees, and telling the list so lets it reuse each kind against its own pool instead of
           // rebuilding whenever the two alternate.
@@ -169,6 +190,9 @@ internal fun EditorContent(
               // before it is handed down - every other cell's field sees null and does nothing.
               caretLanding = state.caretLanding?.takeIf { it.cellId == cell.id },
               onCaretLanded = onCaretLanded,
+              // The chord's caret ask names exactly one cell, filtered the way `caretLanding` is.
+              codeTakesCaret = state.cellTakingCaret == cell.id,
+              onCaretTaken = onCaretTaken,
             )
           }
           item(key = ADD_CELL_FOOTER_KEY, contentType = ADD_CELL_FOOTER_KEY) { AddCellFooter(onAdd = onAddCell) }

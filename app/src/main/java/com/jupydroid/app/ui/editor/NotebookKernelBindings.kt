@@ -25,6 +25,13 @@ internal class NotebookKernelBindings(
   val shutdownOnClose: suspend () -> Boolean,
   /** The `options` a range-format carries, read at ask time. */
   val formattingOptions: () -> LanguageFormatOptions,
+  /**
+   * A run chord edited the document - `runAndAdvance`/`runAndInsert` append or insert a cell
+   * (`packages/notebook/src/actions.tsx:830-849`, `:894-918`) - so it owes the debounced save a
+   * typed edit gets, which [checkpoint] does not cover: the run may have been a markdown-only or
+   * empty claim whose own checkpoint never fires.
+   */
+  val noteEdited: () -> Unit,
 )
 
 /**
