@@ -26,6 +26,7 @@ import com.jupydroid.app.SidePanel
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.port.SpaceEnvironmentCreation
 import com.jupydroid.app.domain.port.SpaceEnvironments
+import com.jupydroid.app.domain.port.SpaceKernelRegistration
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.Spacing
 import com.jupydroid.app.ui.shell.SideBarScaffold
@@ -38,20 +39,25 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * `SidePanel.ENVIRONMENTS` - the Space's Python environments, grouped by the project folder each
- * belongs to, with the two acts that make and register them.
+ * belongs to, with the acts that make and register them.
  *
  * Every top-level project folder (`isProjectFolderName`'s rule, the same one the env scan finds
  * its bases by) is a section: its environments by the shared `EnvironmentRow`, then a Create that
  * runs `jupydroid-env create <project>` through [SpaceEnvironmentCreation] with the script's output
- * streamed into [EnvironmentCreateArea]. An environment outside every project - `envs/stats`, a
+ * streamed into [ScriptActArea]. An environment outside every project - `envs/stats`, a
  * bare `myenv` - lands in the trailing Workspace group. The list polls while composed, the
  * reference's `Poll{interval: 10s, standby: 'when-hidden'}` shape `RunningSidePanel` already
  * keeps, so an environment `jupydroid-env` made in the Space's terminal appears without a
  * relaunch - the demo's own path.
  *
+ * Trailing it all, the Space's own interpreters: a bare interpreter is no environment the scan
+ * finds, so its Register runs `jupydroid-env register` through [SpaceKernelRegistration] - the
+ * same bytes the terminal runs - rather than `SpaceEnvironments.register`, which a `pyvenv.cfg`
+ * is owed for.
+ *
  * ```
  * EnvironmentsSidePanel(appContainer.spaceEnvironments, appContainer.spaceEnvironmentCreation,
- *   spacePorts.workspaceRepository, spacePorts.space.id)
+ *   appContainer.spaceKernelRegistration, spacePorts.workspaceRepository, spacePorts.space.id)
  * ```
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,11 +65,18 @@ import kotlin.time.Duration.Companion.seconds
 fun EnvironmentsSidePanel(
   spaceEnvironments: SpaceEnvironments,
   spaceEnvironmentCreation: SpaceEnvironmentCreation,
+  spaceKernelRegistration: SpaceKernelRegistration,
   workspaceRepository: WorkspaceRepository,
   spaceId: String,
   modifier: Modifier = Modifier,
   viewModel: EnvironmentsPanelViewModel = viewModel {
-    EnvironmentsPanelViewModel(spaceId, spaceEnvironments, spaceEnvironmentCreation, workspaceRepository)
+    EnvironmentsPanelViewModel(
+      spaceId,
+      spaceEnvironments,
+      spaceEnvironmentCreation,
+      spaceKernelRegistration,
+      workspaceRepository,
+    )
   },
 ) {
   val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -75,7 +88,8 @@ fun EnvironmentsSidePanel(
       delay(POLL_INTERVAL)
     }
   }
-  val creating = state.create is EnvironmentCreateState.Running
+  val creating = state.create is ScriptActState.Running
+  val acting = creating || state.interpreterRegister is ScriptActState.Running
   SideBarScaffold(
     modifier = modifier,
     topBar = {
@@ -99,16 +113,22 @@ fun EnvironmentsSidePanel(
         .padding(Spacing.md)
         .fillMaxWidth()
         .verticalScroll(rememberScrollState())
-        .then(if (creating) Modifier.keepScreenOn() else Modifier),
+        .then(if (acting) Modifier.keepScreenOn() else Modifier),
     ) {
-      if (creating) {
+      if (acting) {
         Text(CREATE_KEEP_OPEN_HINT, style = MaterialTheme.typography.bodySmall)
       }
       state.refusal?.let {
         Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
       }
-      state.create?.let { EnvironmentCreateArea(it) }
+      state.create?.let {
+        ScriptActArea(it, "Creating environment for ${it.subject}", "Create failed for ${it.subject}")
+      }
+      state.interpreterRegister?.let {
+        ScriptActArea(it, "Registering kernel for ${it.subject}", "Register failed for ${it.subject}")
+      }
       EnvironmentsBody(state, viewModel)
+      InterpretersSection(state, viewModel)
     }
   }
 }
@@ -137,10 +157,10 @@ private fun EnvironmentsBody(state: EnvironmentsPanelState, viewModel: Environme
 private fun EnvironmentGroups(
   environments: List<PythonEnvironment>,
   projects: List<String>,
-  create: EnvironmentCreateState?,
+  create: ScriptActState?,
   viewModel: EnvironmentsPanelViewModel,
 ) {
-  val creating = create is EnvironmentCreateState.Running
+  val creating = create is ScriptActState.Running
   val projectSet = projects.toSet()
   val envPaths = environments.filter { !it.isMissing }.map { it.path }.toSet()
   val byProject = environments.groupBy { it.projectNameIn(projectSet) }
@@ -190,13 +210,27 @@ private fun ProjectSection(
   }
 }
 
+/**
+ * The Space's own interpreters, one row each with its Register. While one register runs the
+ * others' buttons wait, as a second create's does - the ViewModel refuses a concurrent one and
+ * the row says so before it is pressed.
+ */
+@Composable
+private fun InterpretersSection(state: EnvironmentsPanelState, viewModel: EnvironmentsPanelViewModel) {
+  val interpreters = state.interpreters.orEmpty()
+  if (interpreters.isEmpty()) return
+  Text("Interpreters", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.lg))
+  val registering = state.interpreterRegister is ScriptActState.Running
+  interpreters.forEach { InterpreterRow(it, enabled = !registering, onRegister = viewModel::registerInterpreter) }
+}
+
 /** Create's accessible name on [project]'s section, for a test and a Maestro flow. */
 internal fun createLabel(project: String): String = "Create environment for $project"
 
 /**
  * Said once while a create runs: a cold one is measured in tens of seconds of pip, the panel
  * holds the screen on for it, and a stopped run leaves a half-made `.venv` the script refuses to
- * redo - the terminal's `rm -rf` is the retry (`EnvironmentCreateArea`'s own note).
+ * redo - the terminal's `rm -rf` is the retry (`ScriptActArea`'s own note).
  */
 internal const val CREATE_KEEP_OPEN_HINT =
   "Keep Jupydroid open while an environment is created - it is a download; a stopped run leaves a half-made .venv to remove in a terminal"

@@ -17,6 +17,7 @@ import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeSpaceEnvironmentCreation
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
+import com.jupydroid.app.data.fake.FakeSpaceKernelRegistration
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
@@ -116,12 +117,14 @@ class SideBarForegroundTest {
   fun theEnvironmentsEmptyStateTakesTheSideBarForeground() {
     val environments = FakeSpaceEnvironments()
     val creation = FakeSpaceEnvironmentCreation()
+    val registration = FakeSpaceKernelRegistration()
     val workspace = FakeWorkspaceRepository()
-    val viewModel = EnvironmentsPanelViewModel(BASE_SPACE.id, environments, creation, workspace)
+    val viewModel = EnvironmentsPanelViewModel(BASE_SPACE.id, environments, creation, registration, workspace)
     show {
       EnvironmentsSidePanel(
         spaceEnvironments = environments,
         spaceEnvironmentCreation = creation,
+        spaceKernelRegistration = registration,
         workspaceRepository = workspace,
         spaceId = BASE_SPACE.id,
         viewModel = viewModel,

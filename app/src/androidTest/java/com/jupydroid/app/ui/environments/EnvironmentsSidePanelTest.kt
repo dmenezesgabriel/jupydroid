@@ -12,13 +12,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.data.fake.EnvironmentCreate
 import com.jupydroid.app.data.fake.FakeSpaceEnvironmentCreation
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
+import com.jupydroid.app.data.fake.FakeSpaceKernelRegistration
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.data.fake.KernelRegister
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.PythonEnvironment
+import com.jupydroid.app.domain.model.SpaceInterpreter
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.SpaceEnvironmentCreation
 import com.jupydroid.app.domain.port.SpaceEnvironments
+import com.jupydroid.app.domain.port.SpaceKernelRegistration
 import com.jupydroid.app.domain.port.SpaceShellEvent
 import com.jupydroid.app.domain.port.WorkspaceRepository
 import com.jupydroid.app.theme.JupydroidTheme
@@ -166,7 +170,7 @@ class EnvironmentsSidePanelTest {
     )
     compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.projects != null }
     compose.onNodeWithContentDescription(createLabel("proj-a")).performScrollTo().performClick()
-    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is EnvironmentCreateState.Running }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is ScriptActState.Running }
 
     compose.onNodeWithText("Creating environment for proj-a").assertIsDisplayed()
     compose.onNodeWithText("Creating virtual environment").assertIsDisplayed()
@@ -189,7 +193,7 @@ class EnvironmentsSidePanelTest {
     )
     compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.projects != null }
     compose.onNodeWithContentDescription(createLabel("proj-a")).performScrollTo().performClick()
-    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is EnvironmentCreateState.Failed }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is ScriptActState.Failed }
 
     compose.onNodeWithText("Create failed for proj-a (exit 4)").assertIsDisplayed()
     compose.onNodeWithText("pip: resolution impossible").assertIsDisplayed()
@@ -206,7 +210,7 @@ class EnvironmentsSidePanelTest {
     )
     compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.projects != null }
     compose.onNodeWithContentDescription(createLabel("proj-a")).performScrollTo().performClick()
-    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is EnvironmentCreateState.Refused }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is ScriptActState.Refused }
 
     compose.onNodeWithText("no proot on this device").assertIsDisplayed()
   }
@@ -221,7 +225,7 @@ class EnvironmentsSidePanelTest {
     )
     compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.projects != null }
     compose.onNodeWithContentDescription(createLabel("proj-a")).performScrollTo().performClick()
-    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is EnvironmentCreateState.Running }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.create is ScriptActState.Running }
 
     compose.onNodeWithContentDescription(createLabel("proj-b")).assertIsNotEnabled()
     creation.gate.complete(Unit)
@@ -260,18 +264,91 @@ class EnvironmentsSidePanelTest {
     compose.onNodeWithContentDescription(createLabel("proj-a")).assertIsEnabled()
   }
 
+  /** The Space's own interpreters are a trailing section, each row offering its Register. */
+  @Test
+  fun theSpacesInterpretersAreListedWithRegister() {
+    show()
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.interpreters != null }
+
+    compose.onNodeWithText("Interpreters").assertExists()
+    compose.onNodeWithText("/usr/bin/python3").performScrollTo().assertIsDisplayed()
+    compose.onNodeWithContentDescription(registerLabel("/usr/bin/python3")).assertIsEnabled()
+  }
+
+  /** A registered interpreter's row says its kernel's name instead of offering Register again. */
+  @Test
+  fun aRegisteredInterpreterOffersNoRegister() {
+    show(
+      spaceKernelRegistration = FakeSpaceKernelRegistration(
+        mapOf(
+          BASE_SPACE.id to listOf(
+            SpaceInterpreter("/usr/bin/python3", isGnu = false, registeredAs = "usr-bin-python3"),
+          ),
+        ),
+      ),
+    )
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.interpreters != null }
+
+    compose.onNodeWithText(registeredLabel("usr-bin-python3")).assertExists()
+    compose.onNodeWithContentDescription(registerLabel("/usr/bin/python3")).assertDoesNotExist()
+  }
+
+  /** A tap registers the interpreter through the port and the row shows the kernel's name. */
+  @Test
+  fun anInterpretersRegisterRunsTheScriptAndSaysTheKernel() {
+    val registration = FakeSpaceKernelRegistration()
+    show(spaceKernelRegistration = registration)
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.interpreters != null }
+
+    compose.onNodeWithContentDescription(registerLabel("/usr/bin/python3")).performScrollTo().performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { registration.registers.isNotEmpty() }
+    compose.runOnIdle {
+      assertEquals(listOf(KernelRegister(BASE_SPACE.id, "/usr/bin/python3")), registration.registers)
+    }
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      viewModel.uiState.value.interpreters?.single { it.path == "/usr/bin/python3" }?.registeredAs != null
+    }
+    compose.onNodeWithText(registeredLabel("usr-bin-python3")).assertExists()
+  }
+
+  /** A failed register keeps the exit and the script's tail on screen - its own refusal wording. */
+  @Test
+  fun aFailedInterpreterRegisterShowsTheExitAndTheOutputsTail() {
+    val registration = FakeSpaceKernelRegistration()
+    registration.eventsFor = {
+      listOf(SpaceShellEvent.Output("no ipykernel in it"), SpaceShellEvent.Finished(2))
+    }
+    show(spaceKernelRegistration = registration)
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.interpreters != null }
+
+    compose.onNodeWithContentDescription(registerLabel("/usr/bin/python3")).performScrollTo().performClick()
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.interpreterRegister is ScriptActState.Failed }
+
+    compose.onNodeWithText("Register failed for /usr/bin/python3 (exit 2)").assertIsDisplayed()
+    compose.onNodeWithText("no ipykernel in it").assertIsDisplayed()
+  }
+
   private fun show(
     spaceEnvironments: SpaceEnvironments = FakeSpaceEnvironments(),
     spaceEnvironmentCreation: SpaceEnvironmentCreation = FakeSpaceEnvironmentCreation(),
+    spaceKernelRegistration: SpaceKernelRegistration = FakeSpaceKernelRegistration(),
     workspaceRepository: WorkspaceRepository = FakeWorkspaceRepository(),
     spaceId: String = BASE_SPACE.id,
   ) {
-    viewModel = EnvironmentsPanelViewModel(spaceId, spaceEnvironments, spaceEnvironmentCreation, workspaceRepository)
+    viewModel = EnvironmentsPanelViewModel(
+      spaceId,
+      spaceEnvironments,
+      spaceEnvironmentCreation,
+      spaceKernelRegistration,
+      workspaceRepository,
+    )
     compose.setContent {
       JupydroidTheme {
         EnvironmentsSidePanel(
           spaceEnvironments = spaceEnvironments,
           spaceEnvironmentCreation = spaceEnvironmentCreation,
+          spaceKernelRegistration = spaceKernelRegistration,
           workspaceRepository = workspaceRepository,
           spaceId = spaceId,
           viewModel = viewModel,

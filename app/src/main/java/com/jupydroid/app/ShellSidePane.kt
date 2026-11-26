@@ -166,6 +166,7 @@ fun ShellSidePane(
           EnvironmentsSidePanel(
             spaceEnvironments = appContainer.spaceEnvironments,
             spaceEnvironmentCreation = appContainer.spaceEnvironmentCreation,
+            spaceKernelRegistration = appContainer.spaceKernelRegistration,
             workspaceRepository = spacePorts.workspaceRepository,
             spaceId = spacePorts.space.id,
           )

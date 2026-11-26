@@ -51,6 +51,7 @@ import com.jupydroid.app.data.space.JupyterSpaceServers
 import com.jupydroid.app.data.space.RunningSpaceServerEndpoint
 import com.jupydroid.app.data.space.SpaceServer
 import com.jupydroid.app.data.space.SpaceShellEnvironmentCreation
+import com.jupydroid.app.data.space.SpaceShellKernelRegistration
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
@@ -244,6 +245,9 @@ class JupydroidApplication : Application() {
     // probes and installs the way every other Space-backed surface does on such a device.
     spaceShell = shell,
     spaceEnvironmentCreation = SpaceShellEnvironmentCreation(shell),
+    // Over the same shell as the create: the register IS `jupydroid-env register`, the bytes the
+    // terminal runs by name - and its reads are the Space's disk, like the environments'.
+    spaceKernelRegistration = SpaceShellKernelRegistration(shell, spacesDir(this)),
     harnessScripts = AssetHarnessScripts(assets::open),
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
     // state, not a Contents API file.

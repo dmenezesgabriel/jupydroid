@@ -37,7 +37,7 @@ class DiskSpaceEnvironments(
 ) : SpaceEnvironments {
   override suspend fun environments(spaceId: String): List<PythonEnvironment> = withContext(ioDispatcher) {
     val dirs = spaceDirsOf(spaceId)
-    environmentsIn(dirs, kernelDirsOf(dirs))
+    environmentsIn(dirs)
   }
 
   /**
@@ -48,7 +48,7 @@ class DiskSpaceEnvironments(
     val dirs = spaceDirsOf(spaceId)
     val kernelDirs = kernelDirsOf(dirs)
     val holders = kernelDirs.associate { (name, dir) -> name to "'$dir'" }
-    val environment = registrableEnvironment(environmentsIn(dirs, kernelDirs), path, holders)
+    val environment = registrableEnvironment(environmentsIn(dirs), path, holders)
     val name = environment.kernelName
     SpaceKernelSpec.installEnvironment(
       dirs.spaceDir,
@@ -70,10 +70,8 @@ class DiskSpaceEnvironments(
    * Each found environment, registered under the spec whose `argv[0]` is its own interpreter, and each
    * registered one deleted since ([goneIn]).
    */
-  private fun environmentsIn(dirs: SpaceDirs, kernelDirs: List<Pair<String, File>>): List<PythonEnvironment> {
-    val nameByInterpreter = kernelDirs
-      .mapNotNull { (name, dir) -> kernelJsonIn(dir)?.let(::kernelInterpreterOf)?.let { it to name } }
-      .toMap()
+  private fun environmentsIn(dirs: SpaceDirs): List<PythonEnvironment> {
+    val nameByInterpreter = kernelNameByInterpreter(dirs)
     val found = foundPathsIn(dirs).map {
       val envDir = File(dirs.workspace, it)
       PythonEnvironment(

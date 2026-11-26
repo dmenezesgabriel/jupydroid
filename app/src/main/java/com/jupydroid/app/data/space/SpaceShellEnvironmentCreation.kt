@@ -17,12 +17,6 @@ class SpaceShellEnvironmentCreation(private val spaceShell: SpaceShell) : SpaceE
   override fun create(spaceId: String, project: String): Flow<SpaceShellEvent> =
     spaceShell.run(spaceId, "jupydroid-env create ${project.shellQuoted()}", CREATE_TIMEOUT)
 
-  /**
-   * POSIX single-quoting: wrap in `'…'` and escape each inner `'` as `'\''` - close, escaped
-   * quote, reopen - so a project named `o'brien` or `My Project` reaches the script as one word.
-   */
-  private fun String.shellQuoted(): String = "'${replace("'", "'\\''")}'"
-
   private companion object {
     /** A venv's pip is the slow part; the bound is the harness installs' (`SpaceHarnessesViewModel`). */
     val CREATE_TIMEOUT = 5.minutes

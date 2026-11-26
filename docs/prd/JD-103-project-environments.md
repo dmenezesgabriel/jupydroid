@@ -215,13 +215,22 @@ whose "registration is the person's act" the create act preserves.
 - **Whether the panel offers "make Space default"** — recommended no: `SpaceSettings.defaultKernel`
   and its Settings picker already own that act, and a second writer would split the rule
   `effectiveDefaultKernel` keeps in one place.
-- **Whether the helper also registers** — *reopened by the backlog's standalone-kernel-creation
-  amendment*: `jupydroid-env register` is its own act (T8), an existing interpreter or env
-  becoming a kernelspec with no env create, reachable from the panel and reproducibly from the
-  terminal. What `register` accepts — an env path, an interpreter path, or both — its spec
-  naming, and whether the panel lists interpreters are T8's to settle. T5's settlement stands
-  for `create`: it makes the env and its spec in one act, and unknown or missing arguments are a
-  usage refusal, exit 2.
+- **Whether the helper also registers** (T8) is **settled: `register` accepts an env directory or
+  an interpreter, and the panel lists the Space's own interpreters** — *reopened by the backlog's
+  standalone-kernel-creation amendment* and now closed. An env directory (holds `pyvenv.cfg`), an
+  interpreter path, or a bare PATH name all resolve; a `…/bin/python` beside a `pyvenv.cfg` is the
+  env, so one env has one kernel name however it is spelled. A bare interpreter's spec name is
+  its absolute path minus the leading `/`, folded `/`→`-` — `usr-bin-python3`,
+  `opt-gnu-python-bin-python3.12` — since basenames collide (the Space ships two `python3*`s);
+  its display is `Python (<path>)`, and its libc comes from the `/opt/gnu/` prefix, the same
+  rule `isGnuVenv` uses on `pyvenv.cfg` `home`. The spec bytes are the ones
+  `SpaceKernelSpec.installEnvironment` writes, shared through the script's `write_spec` and
+  pinned field-for-field by `KernelRegisterDeviceTest`. Refusals: outside `$HOME`, no ipykernel
+  importable, name already held, non-executable. The panel's reach is a trailing *Interpreters*
+  section listing the Space's two own pythons; its Register runs `jupydroid-env register` through
+  `SpaceShell` — the same bytes the terminal runs — while env rows keep the disk read.
+  T5's settlement stands for `create`: it makes the env and its spec in one act, and unknown or
+  missing arguments are a usage refusal, exit 2.
 - **The discovery predicate's details** (T3) is **settled: a project is any top-level directory
   that is not hidden and not itself a conventional env container** — no `.ipynb` or
   `pyproject.toml` marker is required, the env's own `pyvenv.cfg` is the signal, matching
@@ -276,10 +285,11 @@ whose "registration is the person's act" the create act preserves.
 - [x] T7 — **Per-kernel launcher cards** — adopted: a card per kernelspec in each kernel section,
   default first then `display_name`, the card's spec recorded on the notebook and preferred by
   the console; the open decision is settled
-- [ ] T8 — **`jupydroid-env register` — kernel creation as its own act.** An existing interpreter
+- [x] T8 — **`jupydroid-env register` — kernel creation as its own act.** An existing interpreter
   or env becomes a kernelspec every notebook's picker offers: the script's `register` verb, the
   port and panel reach the settled open decision gives it, red-first at every layer, verified on
-  the tablet by a kernel created for an existing interpreter with no env create at all
+  the tablet by a kernel created for an existing interpreter with no env create at all. Its own
+  open decision is settled
 - [ ] T9 — **The demo on `SM-X216B`, and the ship.** The numbered Demo above as a Maestro flow with
   evidence; the durable decisions become an ADR; the PRD is deleted and the backlog edited
 

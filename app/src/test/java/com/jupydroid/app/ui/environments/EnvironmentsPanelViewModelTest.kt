@@ -6,13 +6,17 @@ import com.jupydroid.app.MainDispatcherRule
 import com.jupydroid.app.data.fake.EnvironmentCreate
 import com.jupydroid.app.data.fake.FakeSpaceEnvironmentCreation
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
+import com.jupydroid.app.data.fake.FakeSpaceKernelRegistration
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
+import com.jupydroid.app.data.fake.KernelRegister
 import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.PythonEnvironment
+import com.jupydroid.app.domain.model.SpaceInterpreter
 import com.jupydroid.app.domain.model.WorkspaceEntry
 import com.jupydroid.app.domain.model.WorkspaceEntryKind
 import com.jupydroid.app.domain.port.SpaceEnvironmentCreation
 import com.jupydroid.app.domain.port.SpaceEnvironments
+import com.jupydroid.app.domain.port.SpaceKernelRegistration
 import com.jupydroid.app.domain.port.SpaceShellEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -37,12 +41,14 @@ class EnvironmentsPanelViewModelTest {
 
   private val environments = FakeSpaceEnvironments()
   private val creation = FakeSpaceEnvironmentCreation()
+  private val registration = FakeSpaceKernelRegistration()
   private val workspace = FakeWorkspaceRepository()
 
   private fun viewModel() = EnvironmentsPanelViewModel(
     spaceId = BASE_SPACE.id,
     spaceEnvironments = environments,
     spaceEnvironmentCreation = creation,
+    spaceKernelRegistration = registration,
     workspaceRepository = workspace,
   )
 
@@ -54,7 +60,9 @@ class EnvironmentsPanelViewModelTest {
     val state = model.uiState.value
     assertNull(state.environments)
     assertNull(state.projects)
+    assertNull(state.interpreters)
     assertNull(state.create)
+    assertNull(state.interpreterRegister)
     assertNull(state.refusal)
   }
 
@@ -68,6 +76,7 @@ class EnvironmentsPanelViewModelTest {
       BASE_SPACE.id,
       refreshSeededEnvironments(),
       creation,
+      registration,
       refreshSeededFolders(),
     )
 
@@ -85,7 +94,7 @@ class EnvironmentsPanelViewModelTest {
       override suspend fun environments(spaceId: String): List<PythonEnvironment> =
         throw IllegalArgumentException("no Space with id '$spaceId'")
     }
-    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, refusing, creation, workspace)
+    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, refusing, creation, registration, workspace)
     model.refresh()
     advanceUntilIdle()
 
@@ -106,7 +115,7 @@ class EnvironmentsPanelViewModelTest {
         return seeded.environments(spaceId)
       }
     }
-    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, counting, creation, workspace)
+    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, counting, creation, registration, workspace)
     model.refresh()
     advanceUntilIdle()
 
@@ -131,7 +140,7 @@ class EnvironmentsPanelViewModelTest {
         return seeded.environments(spaceId)
       }
     }
-    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, counting, creation, workspace)
+    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, counting, creation, registration, workspace)
     model.refresh()
     advanceUntilIdle()
 
@@ -147,13 +156,13 @@ class EnvironmentsPanelViewModelTest {
   @Test
   fun createStreamsTheScriptsLinesIntoTheState() = runTest {
     val hanging = HangingSpaceEnvironmentCreation()
-    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, environments, hanging, workspace)
+    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, environments, hanging, registration, workspace)
 
     model.create("proj-a")
     advanceUntilIdle()
 
     assertEquals(
-      EnvironmentCreateState.Running("proj-a", listOf("Collecting package metadata")),
+      ScriptActState.Running("proj-a", listOf("Collecting package metadata")),
       model.uiState.value.create,
     )
     assertEquals(listOf(EnvironmentCreate(BASE_SPACE.id, "proj-a")), hanging.creates)
@@ -169,7 +178,7 @@ class EnvironmentsPanelViewModelTest {
         return environments.environments(spaceId)
       }
     }
-    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, counting, creation, workspace)
+    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, counting, creation, registration, workspace)
     model.refresh()
     advanceUntilIdle()
     val readsBefore = reads
@@ -196,7 +205,7 @@ class EnvironmentsPanelViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-      EnvironmentCreateState.Failed("proj-a", exitCode = 3, excerpt = "first line\nlast line"),
+      ScriptActState.Failed("proj-a", exitCode = 3, excerpt = "first line\nlast line"),
       model.uiState.value.create,
     )
   }
@@ -211,7 +220,7 @@ class EnvironmentsPanelViewModelTest {
     advanceUntilIdle()
 
     assertEquals(
-      EnvironmentCreateState.Refused("proj-a", "no proot on this device"),
+      ScriptActState.Refused("proj-a", "no proot on this device"),
       model.uiState.value.create,
     )
   }
@@ -220,7 +229,7 @@ class EnvironmentsPanelViewModelTest {
   @Test
   fun aSecondCreateWhileOneRunsIsRefused() = runTest {
     val hanging = HangingSpaceEnvironmentCreation()
-    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, environments, hanging, workspace)
+    val model = EnvironmentsPanelViewModel(BASE_SPACE.id, environments, hanging, registration, workspace)
 
     model.create("proj-a")
     advanceUntilIdle()
@@ -229,7 +238,7 @@ class EnvironmentsPanelViewModelTest {
 
     assertEquals(listOf(EnvironmentCreate(BASE_SPACE.id, "proj-a")), hanging.creates)
     assertEquals(
-      EnvironmentCreateState.Running("proj-a", listOf("Collecting package metadata")),
+      ScriptActState.Running("proj-a", listOf("Collecting package metadata")),
       model.uiState.value.create,
     )
   }
@@ -248,6 +257,118 @@ class EnvironmentsPanelViewModelTest {
     assertEquals(
       listOf(EnvironmentCreate(BASE_SPACE.id, "proj-a"), EnvironmentCreate(BASE_SPACE.id, "proj-b")),
       creation.creates,
+    )
+  }
+
+  /** A refresh lists the Space's interpreters beside its environments - the panel's third read. */
+  @Test
+  fun refreshListsTheSpacesInterpreters() = runTest {
+    val model = viewModel()
+
+    model.refresh()
+    advanceUntilIdle()
+
+    assertEquals(
+      listOf("/usr/bin/python3", "/opt/gnu/python/bin/python3.12"),
+      model.uiState.value.interpreters?.map { it.path },
+    )
+  }
+
+  /**
+   * Registering an interpreter runs the register through the port, then re-reads so the row
+   * shows the kernel's name - the same streamed shape a create takes, exit 0 clearing it.
+   */
+  @Test
+  fun registerInterpreterRegistersItAndReadsAgain() = runTest {
+    val model = viewModel()
+    model.refresh()
+    advanceUntilIdle()
+
+    model.registerInterpreter("/usr/bin/python3")
+    advanceUntilIdle()
+
+    assertEquals(listOf(KernelRegister(BASE_SPACE.id, "/usr/bin/python3")), registration.registers)
+    assertNull(model.uiState.value.interpreterRegister)
+    assertEquals(
+      "usr-bin-python3",
+      model.uiState.value.interpreters?.single { it.path == "/usr/bin/python3" }?.registeredAs,
+    )
+  }
+
+  /** While the register runs, its lines so far and the interpreter it is for are the state's story. */
+  @Test
+  fun registerInterpreterStreamsTheScriptsLinesIntoTheState() = runTest {
+    val hanging = HangingSpaceKernelRegistration(registration)
+    val model = EnvironmentsPanelViewModel(
+      BASE_SPACE.id,
+      environments,
+      creation,
+      hanging,
+      workspace,
+    )
+
+    model.registerInterpreter("/usr/bin/python3")
+    advanceUntilIdle()
+
+    assertEquals(
+      ScriptActState.Running("/usr/bin/python3", listOf("registering kernel")),
+      model.uiState.value.interpreterRegister,
+    )
+    assertEquals(listOf(KernelRegister(BASE_SPACE.id, "/usr/bin/python3")), hanging.registers)
+  }
+
+  /** A failed exit keeps the code and the output's tail - the script's own refusal wording. */
+  @Test
+  fun aFailedInterpreterRegisterKeepsItsExitAndTheOutputsTail() = runTest {
+    registration.eventsFor =
+      { listOf(SpaceShellEvent.Output("no ipykernel in it"), SpaceShellEvent.Finished(2)) }
+    val model = viewModel()
+
+    model.registerInterpreter("/usr/bin/python3")
+    advanceUntilIdle()
+
+    assertEquals(
+      ScriptActState.Failed("/usr/bin/python3", exitCode = 2, excerpt = "no ipykernel in it"),
+      model.uiState.value.interpreterRegister,
+    )
+  }
+
+  /** A register that never produces an exit - the port refused or the flow died - is refused. */
+  @Test
+  fun anInterpreterRegisterThatThrowsIsRefused() = runTest {
+    registration.eventsFor = { throw IllegalStateException("no proot on this device") }
+    val model = viewModel()
+
+    model.registerInterpreter("/usr/bin/python3")
+    advanceUntilIdle()
+
+    assertEquals(
+      ScriptActState.Refused("/usr/bin/python3", "no proot on this device"),
+      model.uiState.value.interpreterRegister,
+    )
+  }
+
+  /** One register at a time: a second tap while the script runs is refused rather than queued. */
+  @Test
+  fun aSecondInterpreterRegisterWhileOneRunsIsRefused() = runTest {
+    val hanging = HangingSpaceKernelRegistration(registration)
+    val model = EnvironmentsPanelViewModel(
+      BASE_SPACE.id,
+      environments,
+      creation,
+      hanging,
+      workspace,
+    )
+
+    model.registerInterpreter("/usr/bin/python3")
+    advanceUntilIdle()
+    model.registerInterpreter("/opt/gnu/python/bin/python3.12")
+    advanceUntilIdle()
+
+    assertEquals(listOf(KernelRegister(BASE_SPACE.id, "/usr/bin/python3")), hanging.registers)
+    assertEquals(
+      ScriptActState.Running("/usr/bin/python3", listOf("registering kernel")),
+      model.uiState.value.interpreterRegister,
     )
   }
 
@@ -289,6 +410,24 @@ private class HangingSpaceEnvironmentCreation : SpaceEnvironmentCreation {
     val create = EnvironmentCreate(spaceId, project)
     creates += create
     emit(SpaceShellEvent.Output("Collecting package metadata"))
+    awaitCancellation()
+  }
+}
+
+/**
+ * A registration whose run never ends: the state a panel sits in while the register script
+ * works. Its reads answer through the fake it wraps; its registers record their asks the way
+ * [FakeSpaceKernelRegistration] does, cold flow and all.
+ */
+private class HangingSpaceKernelRegistration(private val wrapped: FakeSpaceKernelRegistration) :
+  SpaceKernelRegistration {
+  val registers = mutableListOf<KernelRegister>()
+
+  override suspend fun interpreters(spaceId: String): List<SpaceInterpreter> = wrapped.interpreters(spaceId)
+
+  override fun register(spaceId: String, interpreter: String): Flow<SpaceShellEvent> = flow {
+    registers += KernelRegister(spaceId, interpreter)
+    emit(SpaceShellEvent.Output("registering kernel"))
     awaitCancellation()
   }
 }
