@@ -2,6 +2,38 @@
 
 <!-- version list -->
 
+## v0.4.0 (2026-11-26)
+
+### Features
+
+- **docs-site**: The site stamps the release it documents into its pages
+  ([`3f604d0`](https://github.com/dmenezesgabriel/jupydroid/commit/3f604d0c552d85c9de477500ee126d719d23f0d4))
+
+- **scripts**: The Markdown link gate reads HTML image embeds
+  ([`16ab301`](https://github.com/dmenezesgabriel/jupydroid/commit/16ab30146a61d164ed765008c45fe8feff7f541b))
+
+- **space**: A project environment is created from the app
+  ([`97ea3f6`](https://github.com/dmenezesgabriel/jupydroid/commit/97ea3f63671ae8322a48e5ce15ff7d48f2d61284))
+
+- **space**: A registered environment's kernel spec carries the env's libc
+  ([`f298fcc`](https://github.com/dmenezesgabriel/jupydroid/commit/f298fcc193328846df3fe8cf3c60724fabd28643))
+
+- **space**: An environment inside a project folder is named by its whole path
+  ([`e828bd8`](https://github.com/dmenezesgabriel/jupydroid/commit/e828bd8110a461a6dd7d030b14dc11d9651cdd46))
+
+- **space**: An existing interpreter or env registers as a kernel
+  ([`09e059c`](https://github.com/dmenezesgabriel/jupydroid/commit/09e059c52eb43ac03c2df70f83308d05b30f0736))
+
+- **space**: Environments inside a project's own folders are found
+  ([`b4f539c`](https://github.com/dmenezesgabriel/jupydroid/commit/b4f539c400e878b887e1c65519d6b9994effcdf7))
+
+- **ui**: The launcher draws a card per kernelspec
+  ([`60486c8`](https://github.com/dmenezesgabriel/jupydroid/commit/60486c8702754d393b096482c32133920261cdae))
+
+- **ui**: The Space's Python environments get a side panel
+  ([`09dfcab`](https://github.com/dmenezesgabriel/jupydroid/commit/09dfcab663de76830d3d8f7276d42c4fafa41c8b))
+
+
 ## v0.3.1 (2026-11-24)
 
 ### Bug Fixes
