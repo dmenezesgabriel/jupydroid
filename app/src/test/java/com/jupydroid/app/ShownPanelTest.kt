@@ -33,6 +33,10 @@ class ShownPanelTest {
   @Test
   fun aOnePaneWindowNarrowsTheShellsPanelsAsBefore() {
     assertEquals(ShownPanel.Shell(SidePanel.SEARCH), ShownPanel.Shell(SidePanel.SEARCH).showingAtOnePane())
+    assertEquals(
+      ShownPanel.Shell(SidePanel.ENVIRONMENTS),
+      ShownPanel.Shell(SidePanel.ENVIRONMENTS).showingAtOnePane(),
+    )
     assertEquals(files, ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS).showingAtOnePane())
     assertEquals(files, (null as ShownPanel?).showingAtOnePane())
   }
@@ -52,6 +56,7 @@ class ShownPanelTest {
         ShownPanel.Shell(SidePanel.SEARCH),
         ShownPanel.Contributed("a"),
         ShownPanel.Contributed("b"),
+        ShownPanel.Shell(SidePanel.ENVIRONMENTS),
         ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS),
         ShownPanel.Shell(SidePanel.DEBUGGER),
       ),

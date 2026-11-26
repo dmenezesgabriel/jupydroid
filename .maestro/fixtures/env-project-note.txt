@@ -1,0 +1,1 @@
+A project folder holding no environment yet - the panel offers it a Create.

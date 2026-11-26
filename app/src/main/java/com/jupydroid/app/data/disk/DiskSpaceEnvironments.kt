@@ -5,6 +5,7 @@ import com.jupydroid.app.data.space.SpaceKernelSpec
 import com.jupydroid.app.data.space.spaceDirIn
 import com.jupydroid.app.domain.model.ENVIRONMENT_CONTAINER_DIRS
 import com.jupydroid.app.domain.model.PythonEnvironment
+import com.jupydroid.app.domain.model.isProjectFolderName
 import com.jupydroid.app.domain.model.registrableEnvironment
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import kotlinx.coroutines.CoroutineDispatcher
@@ -102,12 +103,9 @@ class DiskSpaceEnvironments(
    */
   private fun scanBasesIn(workspace: File): List<File> {
     val projects = workspace.listFiles().orEmpty().asList()
-      .filter { it.isDirectory && it.name.isProjectFolder() }
+      .filter { it.isDirectory && it.name.isProjectFolderName() }
     return listOf(workspace) + projects
   }
-
-  /** A project folder is a top-level directory that is not hidden and holds projects, not envs. */
-  private fun String.isProjectFolder(): Boolean = !startsWith(".") && this !in ENV_CONTAINER_NAMES
 
   /**
    * The environments a spec names as `<workspace>/<path>/bin/python` with nothing left there - what
@@ -154,9 +152,6 @@ class DiskSpaceEnvironments(
 
     /** The workspace itself, then [ENVIRONMENT_CONTAINER_DIRS], in vscode-python's order. */
     val ENV_ROOTS = listOf("") + ENVIRONMENT_CONTAINER_DIRS
-
-    /** The top-level name of each env container - `.local/share/virtualenvs` is `.local` up here. */
-    val ENV_CONTAINER_NAMES = ENVIRONMENT_CONTAINER_DIRS.mapTo(HashSet()) { it.substringBefore('/') }
 
     /** `home = <dir>` in `pyvenv.cfg`; the path never holds a space. */
     val HOME_LINE = Regex("""home\s*=\s*(\S+)""")

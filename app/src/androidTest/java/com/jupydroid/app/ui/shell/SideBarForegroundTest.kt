@@ -15,13 +15,19 @@ import com.jupydroid.app.RecordingNotebookCells
 import com.jupydroid.app.RecordingWorkspaceFileOpener
 import com.jupydroid.app.data.fake.FakeKernelSessions
 import com.jupydroid.app.data.fake.FakeNotebookRepository
+import com.jupydroid.app.data.fake.FakeSpaceEnvironmentCreation
+import com.jupydroid.app.data.fake.FakeSpaceEnvironments
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeWorkspaceSearcher
+import com.jupydroid.app.domain.model.BASE_SPACE
 import com.jupydroid.app.domain.model.KernelSessionRegistry
 import com.jupydroid.app.theme.ChromePalette
 import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.ui.environments.EnvironmentsPanelViewModel
+import com.jupydroid.app.ui.environments.EnvironmentsSidePanel
+import com.jupydroid.app.ui.environments.NO_ENVIRONMENTS
 import com.jupydroid.app.ui.textLayout
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.SidePanelHost
@@ -104,6 +110,28 @@ class SideBarForegroundTest {
     compose.waitUntil(TIMEOUT_MILLIS) { compose.onAllNodes(hasText("notes.py")).fetchSemanticsNodes().isNotEmpty() }
 
     assertSideBarForeground("notes.py")
+  }
+
+  @Test
+  fun theEnvironmentsEmptyStateTakesTheSideBarForeground() {
+    val environments = FakeSpaceEnvironments()
+    val creation = FakeSpaceEnvironmentCreation()
+    val workspace = FakeWorkspaceRepository()
+    val viewModel = EnvironmentsPanelViewModel(BASE_SPACE.id, environments, creation, workspace)
+    show {
+      EnvironmentsSidePanel(
+        spaceEnvironments = environments,
+        spaceEnvironmentCreation = creation,
+        workspaceRepository = workspace,
+        spaceId = BASE_SPACE.id,
+        viewModel = viewModel,
+      )
+    }
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      compose.onAllNodes(hasText(NO_ENVIRONMENTS)).fetchSemanticsNodes().isNotEmpty()
+    }
+
+    assertSideBarForeground(NO_ENVIRONMENTS)
   }
 
   private fun assertSideBarForeground(text: String) {

@@ -258,7 +258,7 @@ whose "registration is the person's act" the create act preserves.
 - [x] T5 — **Create an environment from the app.** The script asset, its port, the
   `/usr/local/bin` install, the `SpaceShell` run with streamed progress, and auto-registration —
   red-first at every layer. Open decisions 2 and 5 are settled
-- [ ] T6 — **The Environments panel.** `SidePanel.ENVIRONMENTS` end to end: enum, label, icon,
+- [x] T6 — **The Environments panel.** `SidePanel.ENVIRONMENTS` end to end: enum, label, icon,
   panel UI, ViewModel, rail and `MoreRail` reach at one pane; instrumented tests for what is
   visible to press
 - [ ] T7 — **Per-kernel launcher cards** — only if the open decision adopts them; otherwise this

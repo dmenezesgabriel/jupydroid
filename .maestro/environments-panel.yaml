@@ -1,0 +1,42 @@
+appId: com.jupydroid.app
+---
+# The Environments panel where the shell draws **one pane**: it is no bar item - the bar is at
+# Material's five - so the bottom bar's More lists it on the modal rail after the contributed
+# panels, and picking it fills the pane with the project-grouped list.
+#
+# NARROW WINDOW (<840dp): at two panes the rail's own Environments item reaches the same panel,
+# which `SidePanelRailTest` covers; this flow is the one-pane reach.
+#
+# The driver seeds the workspace it reads: `proj-a` holding a `.venv` with ipykernel, `proj-b`
+# holding nothing, and `envs/stats` without ipykernel - every row state on one screen. Nothing
+# here runs a cell; the panel reads the disk, so the emulator's fake kernel is answer enough.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+- assertVisible: "More"
+- assertNotVisible: "Environments"
+- takeScreenshot: 01-files-bar-has-more-and-no-environments
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Environments"
+    timeout: 5000
+- assertVisible: "New terminal"
+- assertVisible: "Source Control"
+- assertVisible: "Chat"
+- takeScreenshot: 02-more-rail-lists-environments
+- tapOn: "Environments"
+- extendedWaitUntil:
+    visible: "proj-a/.venv"
+    timeout: 10000
+- assertVisible: "Environments"
+- assertVisible: "proj-a"
+- assertVisible: "proj-b"
+- assertVisible: "Workspace"
+- assertVisible: "envs/stats"
+- assertVisible: "ipykernel installed"
+- assertVisible: "No ipykernel, so no kernel can start in it. Add it with:"
+- assertVisible: "Create environment"
+- assertVisible: "Register as kernel"
+- takeScreenshot: 03-environments-panel-grouped-by-project

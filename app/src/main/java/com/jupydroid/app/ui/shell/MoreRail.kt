@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.jupydroid.app.ShownPanel
+import com.jupydroid.app.onePaneOverflow
 import com.jupydroid.app.theme.chromePalette
 import com.jupydroid.extension.api.SidePanelContribution
 import com.jupydroid.extension.api.focusRing
@@ -30,8 +31,8 @@ import kotlinx.coroutines.launch
 
 /**
  * The rail at one pane, shown modally from the bottom bar's More: what the bar has no room for -
- * New terminal, then every contributed panel - with Spaces and Settings at its foot where
- * `SidePanelRail` has them beside two panes (ADR-0109).
+ * New terminal, every contributed panel, then the shell's own [onePaneOverflow] panels - with
+ * Spaces and Settings at its foot where `SidePanelRail` has them beside two panes (ADR-0109).
  *
  * **It does not repeat the bar's panels.** A row named Files over a bar item named Files puts one
  * string on screen twice (ADR-0055), so each destination at one pane is on exactly one surface.
@@ -48,7 +49,7 @@ import kotlinx.coroutines.launch
  * @param selected the panel filling the pane; a contributed panel's row is marked while it shows, as
  *   VS Code radio-checks the active container in its overflow menu
  *   (`vscode@3f3380c6 src/vs/workbench/browser/parts/compositeBarActions.ts`).
- * @param onChoose reports a contributed row's pick, as the bar's own items report theirs.
+ * @param onChoose reports a panel row's pick, as the bar's own items report theirs.
  * @param onNewTerminal `terminal:create-new`, which gave the bar's fifth slot up to More.
  * @param onOpenSettings opens the app-wide Settings screen.
  * @param onLeaveWorkspace leaves the Space for the Spaces list - the dirty-gated leave.
@@ -87,6 +88,10 @@ fun MoreRail(
         val shown = ShownPanel.Contributed(panel.id)
         MoreRailRow(panel.label, panel.icon, selected = shown == selected) { actThenClose { onChoose(shown) } }
       }
+      onePaneOverflow.forEach { panel ->
+        val shown = ShownPanel.Shell(panel)
+        MoreRailRow(panel.label, panel.icon, selected = shown == selected) { actThenClose { onChoose(shown) } }
+      }
     }
     Column {
       MoreRailRow(LEAVE_WORKSPACE, Icons.Filled.Home) { actThenClose(onLeaveWorkspace) }
@@ -98,7 +103,7 @@ fun MoreRail(
 /**
  * One row of [MoreRail]: labelled, because an expanded rail is Material's labelled form. New terminal
  * Spaces and Settings are never selected: they open something in the main area, which owns its own
- * selection. A contributed panel's row is, while that panel fills the pane.
+ * selection. A panel row's is, while that panel fills the pane.
  */
 @Composable
 internal fun MoreRailRow(label: String, icon: ImageVector, selected: Boolean = false, onClick: () -> Unit) {

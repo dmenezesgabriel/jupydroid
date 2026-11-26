@@ -1,6 +1,9 @@
 package com.jupydroid.app.ui.shell
 
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -9,9 +12,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.jupydroid.app.ShownPanel
 import com.jupydroid.app.railOrder
 import com.jupydroid.app.theme.chromePalette
@@ -63,42 +68,53 @@ fun SidePanelRail(
   // beside it, with only the divider between them (
   // measured at y=900). The reference draws the bar a step off the page.
   NavigationRail(modifier = modifier, containerColor = chromePalette.activityBarBackground) {
-    railOrder(contributions.map { it.id }).forEach { panel ->
-      val (label, icon) = when (panel) {
-        is ShownPanel.Shell -> panel.panel.label to panel.panel.icon
-        is ShownPanel.Contributed -> contributed.getValue(panel.id).let { it.label to it.icon }
+    // The items are an open list - every extension adds a panel - so the panel region scrolls
+    // inside the rail's own height rather than the rail asking for more: a window shorter than
+    // the items would otherwise lay the foot out below it, still in the semantics tree and
+    // unreachable to a press. The foot's two stay direct children, pinned where they were.
+    Column(
+      Modifier
+        .weight(1f)
+        .verticalScroll(rememberScrollState()),
+      horizontalAlignment = Alignment.CenterHorizontally,
+      verticalArrangement = Arrangement.spacedBy(RAIL_ITEM_GAP),
+    ) {
+      railOrder(contributions.map { it.id }).forEach { panel ->
+        val (label, icon) = when (panel) {
+          is ShownPanel.Shell -> panel.panel.label to panel.panel.icon
+          is ShownPanel.Contributed -> contributed.getValue(panel.id).let { it.label to it.icon }
+        }
+        NavigationRailItem(
+          selected = panel == selected,
+          onClick = { onChoose(panel) },
+          icon = { Icon(icon, contentDescription = null) },
+          // **Icon-only, which is the reference's own activity bar**: a 32px-wide tab strip carrying a
+          // 20px icon and no text (`--jp-private-sidebar-tab-width: 32px`,
+          // `packages/application/style/sidepanel.css:10,41-44`). Measured before it
+          // was chosen: "Table of contents" is wider than the rail and spilled across the panel
+          // beside it (the run before this). Material allows a rail
+          // item with no label, and the name is still on the item for a screen reader and a flow.
+          // The name on the item rather than on the icon inside it, so a screen reader and a Maestro
+          // flow address one string (ADR-0143).
+          modifier = Modifier.semantics { contentDescription = label }.focusRing(),
+        )
       }
+      // `launcher:create` as the tab strip's `+` - JupyterLab's own reach point for a launcher,
+      // after the panels the way the tab strip's add button sits after the last tab. Always
+      // unselected: it opens a document, and the document owns its selection state.
       NavigationRailItem(
-        selected = panel == selected,
-        onClick = { onChoose(panel) },
-        icon = { Icon(icon, contentDescription = null) },
-        // **Icon-only, which is the reference's own activity bar**: a 32px-wide tab strip carrying a
-        // 20px icon and no text (`--jp-private-sidebar-tab-width: 32px`,
-        // `packages/application/style/sidepanel.css:10,41-44`). Measured before it
-        // was chosen: "Table of contents" is wider than the rail and spilled across the panel
-        // beside it (the run before this). Material allows a rail
-        // item with no label, and the name is still on the item for a screen reader and a flow.
-        // The name on the item rather than on the icon inside it, so a screen reader and a Maestro
-        // flow address one string (ADR-0143).
-        modifier = Modifier.semantics { contentDescription = label }.focusRing(),
+        selected = false,
+        onClick = onOpenLauncher,
+        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+        label = null,
+        modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER }.focusRing(),
       )
     }
-    // `launcher:create` as the tab strip's `+` - JupyterLab's own reach point for a launcher,
-    // after the panels the way the tab strip's add button sits after the last tab. Always
-    // unselected: it opens a document, and the document owns its selection state.
-    NavigationRailItem(
-      selected = false,
-      onClick = onOpenLauncher,
-      icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-      label = null,
-      modifier = Modifier.semantics { contentDescription = NEW_LAUNCHER }.focusRing(),
-    )
     // **VS Code's Manage**: the gear is the global activity, drawn after the view containers at the
     // activity bar's foot (`vscode@3f3380c6 src/vs/workbench/browser/parts/globalCompositeBar.ts`,
     // `GLOBAL_ACTIVITY_ID` in `src/vs/workbench/common/activity.ts`), so it is on screen whatever
     // panel is - which the Files bar's gear, its home before this, was not. Always unselected for
     // the `+`'s reason: Settings opens in the main area, and selection there is the strip's.
-    Spacer(Modifier.weight(1f))
     // The named way back to the list, beside the gear: always unselected for the same reason - it
     // leaves the workspace rather than showing a panel.
     NavigationRailItem(
@@ -129,3 +145,11 @@ const val OPEN_SETTINGS = "Settings"
  * alike - one string, so every surface of a Space is addressed the same way.
  */
 const val LEAVE_WORKSPACE = "Spaces"
+
+/**
+ * The gap between the rail's items - the rail's own `NavigationRailVerticalPadding`, which
+ * `NavigationRail` spaces its direct children by (`androidx@cdb1a6a2
+ * compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/NavigationRail.kt`).
+ * The panel region is a `Column` of its own now, so it restates the gap the rail gave its items.
+ */
+private val RAIL_ITEM_GAP = 4.dp

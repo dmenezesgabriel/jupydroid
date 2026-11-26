@@ -1,6 +1,7 @@
 package com.jupydroid.app.domain.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -102,5 +103,20 @@ class PythonEnvironmentTest {
     val refusal = runCatching { registrableEnvironment(listOf(gone), gone.path, emptyMap()) }.exceptionOrNull()
 
     assertTrue("must say it is gone, was '${refusal?.message}'", refusal?.message?.contains("gone") == true)
+  }
+
+  /** The scan's project folders and the panel's project sections are one rule, so it lives here. */
+  @Test
+  fun isProjectFolderName_takesAnOrdinaryTopLevelDirectory() {
+    assertTrue("proj-a".isProjectFolderName())
+    assertTrue("My Project".isProjectFolderName())
+  }
+
+  @Test
+  fun isProjectFolderName_refusesWhatIsHiddenOrAnEnvContainer() {
+    assertFalse(".config".isProjectFolderName())
+    for (container in listOf("envs", "Envs", ".direnv", ".venvs", ".virtualenvs", ".local")) {
+      assertFalse("'$container' is no project folder", container.isProjectFolderName())
+    }
   }
 }

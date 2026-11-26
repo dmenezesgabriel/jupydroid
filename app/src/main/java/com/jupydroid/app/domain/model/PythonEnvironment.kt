@@ -87,6 +87,16 @@ internal val ENVIRONMENT_CONTAINER_DIRS = listOf(
   ".local/share/virtualenvs",
 )
 
+/** The top-level name of each [ENVIRONMENT_CONTAINER_DIRS] entry - `.local/share/virtualenvs` is `.local`. */
+internal val ENVIRONMENT_CONTAINER_NAMES = ENVIRONMENT_CONTAINER_DIRS.mapTo(HashSet()) { it.substringBefore('/') }
+
+/**
+ * Whether [this] names a project folder at a workspace's top level: a directory that is not hidden
+ * and is not itself an env container, so its children are projects' rather than environments'. The
+ * env scan finds its bases by it and the Environments panel groups by it - one rule, one home.
+ */
+internal fun String.isProjectFolderName(): Boolean = !startsWith(".") && this !in ENVIRONMENT_CONTAINER_NAMES
+
 /**
  * The environment at [path] among a Space's [environments], once it is shown fit to register - the
  * one set of refusals every `SpaceEnvironments` gives. [kernelHolders] maps each kernel name the

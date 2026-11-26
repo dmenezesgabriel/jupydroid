@@ -1,7 +1,10 @@
 package com.jupydroid.app.ui.shell
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -10,6 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.ShownPanel
@@ -39,7 +43,7 @@ class SidePanelRailTest {
   private var settingsOpened = 0
   private var workspaceLeft = 0
 
-  /** Five items - one per [SidePanel], which is what the rail iterates. */
+  /** Six items - one per [SidePanel], which is what the rail iterates. */
   @Test
   fun everyPanelIsOnTheRail() {
     show(SidePanel.FILES)
@@ -47,6 +51,7 @@ class SidePanelRailTest {
     compose.onNodeWithContentDescription(FILES).assertIsDisplayed()
     compose.onNodeWithContentDescription(SESSIONS_AND_TABS).assertIsDisplayed()
     compose.onNodeWithContentDescription(SEARCH).assertIsDisplayed()
+    compose.onNodeWithContentDescription(ENVIRONMENTS).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertIsDisplayed()
     compose.onNodeWithContentDescription(DEBUGGER).assertIsDisplayed()
   }
@@ -74,17 +79,20 @@ class SidePanelRailTest {
     }
   }
 
-  /** At the foot with the gear: below the `+` and every panel, above Settings. */
+  /**
+   * At the foot with the gear, above Settings. The panel region above scrolls when the window is
+   * short, so "below" is read off the foot pair itself - a scrolled item's unclipped bounds reach
+   * past the scroll region's clip and no longer order against the foot's.
+   */
   @Test
   fun spacesSitsAtTheFootAboveSettings() {
     show(SidePanel.FILES)
 
     val spaces = compose.onNodeWithContentDescription(SPACES).getUnclippedBoundsInRoot()
-    val launcher = compose.onNodeWithContentDescription(NEW_LAUNCHER).getUnclippedBoundsInRoot()
     val gear = compose.onNodeWithContentDescription(SETTINGS).getUnclippedBoundsInRoot()
 
-    assertTrue("Spaces $spaces starts below the + $launcher", spaces.top > launcher.bottom)
     assertTrue("Spaces $spaces ends above the gear $gear", spaces.bottom <= gear.top)
+    assertTrue("Spaces $spaces sits beside the gear $gear", gear.top - spaces.bottom < spaces.height)
   }
 
   /** Which one is showing is the rail's own answer, and a screen reader's - `selected`, not a tint. */
@@ -196,6 +204,38 @@ class SidePanelRailTest {
     }
   }
 
+  /**
+   * The rail's items are an open list - every extension adds a panel - so a window shorter than
+   * they are cannot be answered by a taller rail: the panels scroll and the foot's Spaces and
+   * Settings stay on screen at any height. Without the scroll the last items lay out below the
+   * window, still in the semantics tree but unreachable to a press.
+   */
+  @Test
+  fun aRailTooShortForItsItemsKeepsTheFootReachable() {
+    compose.setContent {
+      JupydroidTheme {
+        Box(Modifier.height(SHORT_RAIL)) {
+          SidePanelRail(
+            selected = ShownPanel.Shell(SidePanel.FILES),
+            onChoose = { chosen += it },
+            onOpenLauncher = {},
+            onOpenSettings = { settingsOpened++ },
+            onLeaveWorkspace = { workspaceLeft++ },
+            contributions = manyPanels(),
+          )
+        }
+      }
+    }
+
+    compose.onNodeWithContentDescription(SPACES).assertIsDisplayed()
+    compose.onNodeWithContentDescription(SETTINGS).assertIsDisplayed().performClick()
+
+    compose.runOnIdle { assertEquals(1, settingsOpened) }
+  }
+
+  private fun manyPanels(): List<SidePanelContribution> =
+    (1..8).map { SidePanelContribution("test.panel$it", "Panel $it", Icons.Filled.AccountTree) {} }
+
   private fun show(selected: SidePanel?) = show(selected?.let { ShownPanel.Shell(it) })
 
   private fun show(selected: ShownPanel?) {
@@ -219,9 +259,13 @@ class SidePanelRailTest {
     const val SESSIONS_AND_TABS = "Sessions and Tabs"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
+    const val ENVIRONMENTS = "Environments"
     const val DEBUGGER = "Debugger"
     const val SETTINGS = "Settings"
     const val SOURCE_CONTROL = "Source Control"
     const val SOURCE_CONTROL_ID = "test.sourceControl"
+
+    /** Shorter than the shell's six panels, eight contributed ones and the foot's three items. */
+    val SHORT_RAIL = 360.dp
   }
 }

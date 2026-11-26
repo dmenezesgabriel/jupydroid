@@ -36,6 +36,8 @@ import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.theme.JupydroidTheme
+import com.jupydroid.app.ui.environments.registerLabel
+import com.jupydroid.app.ui.environments.registeredLabel
 import com.jupydroid.extension.api.RENAME_FIELD_TAG
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
