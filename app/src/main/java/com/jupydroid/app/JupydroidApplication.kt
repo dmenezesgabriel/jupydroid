@@ -50,6 +50,8 @@ import com.jupydroid.app.data.packagemanager.PackageManagerAppIconRepository
 import com.jupydroid.app.data.space.JupyterSpaceServers
 import com.jupydroid.app.data.space.RunningSpaceServerEndpoint
 import com.jupydroid.app.data.space.SpaceServer
+import com.jupydroid.app.data.space.SpaceShellEnvironmentCreation
+import com.jupydroid.app.data.space.SpaceShellKernelRegistration
 import com.jupydroid.app.data.space.baseSpaceDir
 import com.jupydroid.app.data.space.baseSpaceKernelDebugger
 import com.jupydroid.app.data.space.baseSpaceKernelGateway
@@ -82,6 +84,7 @@ import com.jupydroid.app.domain.port.KernelSessions
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookExporter
 import com.jupydroid.app.domain.port.SpaceRepository
+import com.jupydroid.app.domain.port.SpaceShell
 import com.jupydroid.app.domain.port.TerminalGateway
 import com.jupydroid.extension.api.SpaceServerEndpoint
 import com.jupydroid.extensions.ai.AiExtension
@@ -167,6 +170,7 @@ class JupydroidApplication : Application() {
       kernelSpecsOnDisk,
       applicationScope,
       DiskRecentDocumentsFile(filesDir),
+      spaceShell(this, spaceRepository) ?: FakeSpaceShell(),
     )
   }
 
@@ -224,6 +228,7 @@ class JupydroidApplication : Application() {
     kernelSpecsOnDisk: KernelSpecs,
     applicationScope: CoroutineScope,
     recentsFile: DiskRecentDocumentsFile,
+    shell: SpaceShell,
   ) = AppContainer(
     enteredSpacePorts = { id, terminals ->
       enteredSpacePortsOf(id, servers, kernelSpecsOnDisk, recentsFile, terminals)
@@ -238,7 +243,11 @@ class JupydroidApplication : Application() {
     stoppedSpaceKernelSpecs = kernelSpecsOnDisk,
     // Null where no Space can run, as the servers are - the fake then answers the section's
     // probes and installs the way every other Space-backed surface does on such a device.
-    spaceShell = spaceShell(this, spaceRepository) ?: FakeSpaceShell(),
+    spaceShell = shell,
+    spaceEnvironmentCreation = SpaceShellEnvironmentCreation(shell),
+    // Over the same shell as the create: the register IS `jupydroid-env register`, the bytes the
+    // terminal runs by name - and its reads are the Space's disk, like the environments'.
+    spaceKernelRegistration = SpaceShellKernelRegistration(shell, spacesDir(this)),
     harnessScripts = AssetHarnessScripts(assets::open),
     // Beside recents' own file rather than inside it, in `filesDir` for the same reason: app
     // state, not a Contents API file.

@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# The terminal half of kernel creation as its own act: `jupydroid-env register` writes a spec
+# for an existing interpreter with no environment made - here the Space's gnu python, whose
+# shipped spec keeps the `python3` name, so this one becomes `opt-gnu-python-bin-python3.12`,
+# the path-folded name the script gives a bare interpreter. The panel's own Register already did
+# the same act for the musl python in the part before; `jupyter kernelspec list` appended to the
+# file lets the driver compare the catalogue both surfaces wrote into.
+#
+# The status goes to a file in the workspace and the driver greps it: cross-cutting.md §8.6
+# forbids gating a flow's pass on `visible:` reading the terminal canvas. `>>` and `$?` rather
+# than `${…}`, which Maestro evaluates as JavaScript.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "New Launcher"
+    timeout: 10000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap settles the IME's connection before typing - the first keystrokes can race it otherwise
+# (terminal-tablet measured `ech` of `echo` eaten).
+- tapOn:
+    id: "terminal-input"
+- inputText: "jupydroid-env register /opt/gnu/python/bin/python3.12 >reg-gnu.txt 2>&1; echo reg-rc=$? >>reg-gnu.txt; jupyter kernelspec list >>reg-gnu.txt 2>&1; tail -8 reg-gnu.txt"
+- pressKey: Enter
+- takeScreenshot: 01-jupydroid-env-register-typed

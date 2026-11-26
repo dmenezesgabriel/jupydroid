@@ -12,7 +12,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 09-after-the-turn-the-tab-keeps-its-new-name
 - tapOn: "Tab: Launcher"
 - tapOn:
-    id: "launcher-card-NEW_CONSOLE"
+    id: "launcher-card-NEW_CONSOLE-python3"
 - extendedWaitUntil:
     visible: "Tab: Console 1"
     timeout: 10000

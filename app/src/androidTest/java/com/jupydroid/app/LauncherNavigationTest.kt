@@ -19,6 +19,7 @@ import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
@@ -69,7 +70,7 @@ class LauncherNavigationTest {
 
     compose.onNodeWithContentDescription(NEW_LAUNCHER).performClick()
     waitForTag("launcher-screen")
-    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_NOTEBOOK.name}").performClick()
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_NOTEBOOK.name}-$DEFAULT_KERNEL_ID").performClick()
 
     // The created notebook is open in the editor - named by its tab now, not a panel row - and
     // it exists on disk, which the disk repository made true rather than a fake merely agreeing.

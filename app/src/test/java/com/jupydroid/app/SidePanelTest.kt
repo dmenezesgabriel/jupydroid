@@ -52,9 +52,14 @@ class SidePanelTest {
    *   (`vscode/…/search/browser/search.contribution.ts:59`). JupyterLab registers no search
    *   panel at all - `shell.add(…, 'left', …)` is called five times in its whole tree and none
    *   of them is one.
-   * - **The table of contents is last-but-one, and only JupyterLab says so**: rank 400
+   * - **The table of contents is last-but-two, and only JupyterLab says so**: rank 400
    *   (`packages/toc-extension/src/index.ts:309`). VS Code has no such container - its Outline is
    *   a view *inside* the explorer's (`vscode/…/outline/browser/outline.contribution.ts:26-38`).
+   * - **Environments sits ahead of the two document-bound panels**: neither reference ranks it -
+   *   JupyterLab's environment surfaces live inside its own panels rather than as `shell.add`
+   *   entries, and VS Code's Python extension draws its env manager inside a view, not a sidebar
+   *   container - so it takes the workspace-scoped half's tail, before the panels that mean
+   *   nothing without an open document.
    * - **The debugger is last of all, and neither reference actually ranks it here**:
    *   JupyterLab's own Debugger sits on the shell's *right* area
    *   (`packages/debugger-extension/src/index.ts:1357`), a second side area this app does not
@@ -70,6 +75,7 @@ class SidePanelTest {
         SidePanel.FILES,
         SidePanel.RUNNING,
         SidePanel.SEARCH,
+        SidePanel.ENVIRONMENTS,
         SidePanel.TABLE_OF_CONTENTS,
         SidePanel.DEBUGGER,
       ),
@@ -116,17 +122,31 @@ class SidePanelTest {
     assertEquals(SidePanel.FILES, SidePanel.FILES.showingAtOnePane())
     assertEquals(SidePanel.RUNNING, SidePanel.RUNNING.showingAtOnePane())
     assertEquals(SidePanel.SEARCH, SidePanel.SEARCH.showingAtOnePane())
+    assertEquals(SidePanel.ENVIRONMENTS, SidePanel.ENVIRONMENTS.showingAtOnePane())
+  }
+
+  /**
+   * **What the bar's More reaches that the bar itself cannot carry.** Five items is Material's
+   * ceiling, so the environments panel - a workspace destination, not a document's surface - waits
+   * on the modal rail rather than falling back to the browser the way the outline and the debugger
+   * do. The rail's rows are `onePaneOverflow`'s, and the list stays explicit: the two
+   * document-bound panels are not on it.
+   */
+  @Test
+  fun theOverflowIsWhatTheBarHasNoRoomFor() {
+    assertEquals(listOf(SidePanel.ENVIRONMENTS), onePaneOverflow)
   }
 
   /**
    * **An earlier defect, narrowed rather than reopened.** A tablet rotated from 1280dp to 800dp with
    * the table of contents up used to keep drawing it with no rail to leave it by, and the browser
-   * could not be reached again without killing the app. The bar has no table-of-contents item -
-   * and no debugger item, a document-bound panel for the same reason - so those panels are still
-   * the cases that fall back, and the fall-back is the browser.
+   * could not be reached again without killing the app. Neither the bar nor More's rail has an item
+   * for a document-bound panel - the table of contents, the debugger - so those are still the
+   * cases that fall back, and the fall-back is the browser. The environments panel is no longer
+   * one: More's rail reaches it.
    */
   @Test
-  fun aPanelWithNoItemOnTheBarFallsBackToTheBrowser() {
+  fun aDocumentBoundPanelFallsBackToTheBrowser() {
     assertEquals(SidePanel.FILES, SidePanel.TABLE_OF_CONTENTS.showingAtOnePane())
     assertEquals(SidePanel.FILES, SidePanel.DEBUGGER.showingAtOnePane())
   }
@@ -143,11 +163,14 @@ class SidePanelTest {
     assertEquals(SidePanel.FILES, collapsed.showingAtOnePane())
   }
 
-  /** Whatever it is handed, it draws something - there is no fourth answer for a caller to miss. */
+  /** Whatever it is handed, it draws something one pane can leave - there is no fourth answer. */
   @Test
   fun everyPanelNarrowsToOneThatIsDrawn() {
     (SidePanel.entries + null).forEach { panel ->
-      assertTrue("$panel narrowed to something the bar cannot leave", panel.showingAtOnePane() in onePaneDestinations)
+      assertTrue(
+        "$panel narrowed to something no one-pane surface can leave",
+        panel.showingAtOnePane() in onePaneDestinations + onePaneOverflow,
+      )
     }
   }
 }

@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Toc
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Science
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,6 +43,10 @@ internal val SidePanel.label: String
     // longer form for tooltips (`running-extension/src/index.ts:101-105`).
     SidePanel.RUNNING -> "Sessions and Tabs"
     SidePanel.SEARCH -> "Search"
+    // Neither reference captions one - JupyterLab's env surfaces are views inside its panels and
+    // VS Code's Python extension draws its env manager inside a view - so the app's own
+    // sentence-case name.
+    SidePanel.ENVIRONMENTS -> "Environments"
     SidePanel.TABLE_OF_CONTENTS -> "Table of contents"
     SidePanel.DEBUGGER -> "Debugger"
   }
@@ -57,6 +62,9 @@ internal val SidePanel.icon: ImageVector
     // omission: the magnifier is on its list of icons that keep their direction in a right-to-left
     // locale, which is why the icon set ships no mirrored variant of it to import.
     SidePanel.SEARCH -> Icons.Filled.Search
+    // Neither reference ships a glyph for it; `Science`, the conical flask, is Material's nearest
+    // to what a Python environment is.
+    SidePanel.ENVIRONMENTS -> Icons.Filled.Science
     // AutoMirrored, for the reason the explorer's own file icon is: the glyph's ragged edge
     // flips in a right-to-left locale, and the plain `Icons.Filled.Toc` is deprecated for it.
     SidePanel.TABLE_OF_CONTENTS -> Icons.AutoMirrored.Filled.Toc

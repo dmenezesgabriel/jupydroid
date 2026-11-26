@@ -117,6 +117,8 @@ select = ["E", "F", "I", "B", "UP", "S"]
 "scripts/release_commit_tag_test.py" = ["S603", "S607"]
 "scripts/remap_cited_shas.py" = ["S603", "S607"]
 "scripts/remap_cited_shas_test.py" = ["S603", "S607"]
+# `git describe`'s argv is literal; the hook resolves the nearest tag for a local build.
+"docs-site/hooks/release_version.py" = ["S607"]
 # The test runs this repository's own script with this interpreter, as the demo driver does; the argv is literal.
 "scripts/installed_release_check_test.py" = ["S603"]
 # The test sources java-home.sh with `sh` and a fixture HOME; the argv is literal.

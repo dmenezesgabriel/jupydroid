@@ -48,7 +48,7 @@ class SidePanelBarTest {
   private var settingsOpened = 0
   private var workspaceLeft = 0
 
-  /** `onePaneDestinations` plus the Launcher and More - and the outline is **not** one. */
+  /** `onePaneDestinations` plus the Launcher and More - and neither document-bound panel is one. */
   @Test
   fun theBarOffersFilesRunningSearchLauncherAndMoreAndNoOutline() {
     show(SidePanel.FILES)
@@ -59,6 +59,7 @@ class SidePanelBarTest {
     compose.onNodeWithContentDescription(NEW_LAUNCHER).assertIsDisplayed()
     compose.onNodeWithContentDescription(MORE).assertIsDisplayed()
     compose.onNodeWithContentDescription(TABLE_OF_CONTENTS).assertDoesNotExist()
+    compose.onNodeWithContentDescription(ENVIRONMENTS).assertDoesNotExist()
   }
 
   /**
@@ -127,9 +128,8 @@ class SidePanelBarTest {
   }
 
   /**
-   * Every contributed panel is a row of the rail, after New terminal and before Settings, in the
-   * order the extensions gave them, then the foot - Spaces over Settings: the bar holds five and no more
-   * (ADR-0109).
+   * Every contributed panel is a row of the rail, after New terminal and before the shell's own
+   * overflow panels and the foot - Spaces over Settings: the bar holds five and no more (ADR-0109).
    */
   @Test
   fun moreListsEveryContributedPanelBetweenNewTerminalAndTheFoot() {
@@ -138,9 +138,36 @@ class SidePanelBarTest {
 
     compose.onNodeWithContentDescription(MORE).performClick()
 
-    val rows = listOf(NEW_TERMINAL, SOURCE_CONTROL, CHAT, LEAVE_WORKSPACE, OPEN_SETTINGS)
+    val rows = listOf(NEW_TERMINAL, SOURCE_CONTROL, CHAT, ENVIRONMENTS, LEAVE_WORKSPACE, OPEN_SETTINGS)
       .map { compose.onNodeWithText(it).assertIsDisplayed().getUnclippedBoundsInRoot() }
     rows.zipWithNext().forEach { (above, below) -> assertTrue("$below sits below $above", below.top >= above.bottom) }
+  }
+
+  /**
+   * The environments panel is a workspace destination the five-item bar cannot carry, so More's
+   * rail is its one-pane reach - a panel pick like a contributed row's, and it closes the rail.
+   */
+  @Test
+  fun anOverflowRowShowsItsPanelAndClosesTheRail() {
+    show(SidePanel.FILES)
+
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(ENVIRONMENTS).performClick()
+
+    compose.runOnIdle { assertEquals(listOf<ShownPanel>(ShownPanel.Shell(SidePanel.ENVIRONMENTS)), chosen) }
+    compose.onNodeWithText(ENVIRONMENTS).assertDoesNotExist()
+  }
+
+  /** The showing overflow panel's row is marked, as a contributed row's is, and no bar item is. */
+  @Test
+  fun theShowingOverflowPanelsRowIsSelectedAndNoBarItemIs() {
+    show(ShownPanel.Shell(SidePanel.ENVIRONMENTS))
+
+    listOf(FILES, SESSIONS_AND_TABS, SEARCH, MORE)
+      .forEach { compose.onNodeWithContentDescription(it).assertIsNotSelected() }
+    compose.onNodeWithContentDescription(MORE).performClick()
+    compose.onNodeWithText(ENVIRONMENTS).assertIsSelected()
+    compose.onNodeWithText(SOURCE_CONTROL).assertIsNotSelected()
   }
 
   /** A contributed row is a panel pick, unlike New terminal and Settings, and it closes the rail. */
@@ -378,6 +405,7 @@ class SidePanelBarTest {
     const val SESSIONS_AND_TABS = "Sessions and Tabs"
     const val SEARCH = "Search"
     const val TABLE_OF_CONTENTS = "Table of contents"
+    const val ENVIRONMENTS = "Environments"
     const val SOURCE_CONTROL = "Source Control"
     const val SOURCE_CONTROL_ID = "git.sourceControl"
     const val CHAT = "Chat"

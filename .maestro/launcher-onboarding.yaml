@@ -4,7 +4,7 @@ appId: com.jupydroid.app
 # *is* a first run: at one pane the launcher is pushed once, and the relaunch proves the flag kept.
 - launchApp
 - runFlow: open-base-space.yaml
-- assertVisible: "Launcher"
+- assertVisible: "Tab: Launcher"
 - assertVisible: "Python 3"
 - assertVisible: "Terminal"
 - takeScreenshot: 01-first-run-launcher
@@ -12,5 +12,5 @@ appId: com.jupydroid.app
 - launchApp
 - runFlow: open-base-space.yaml
 - assertVisible: "Files"
-- assertNotVisible: "Launcher"
+- assertNotVisible: "Tab: Launcher"
 - takeScreenshot: 02-relaunch-lands-on-files

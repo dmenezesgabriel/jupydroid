@@ -22,7 +22,9 @@ package com.jupydroid.app
  * (`outline/browser/outline.contribution.ts:26-38`).
  *
  * The two therefore answer different halves and agree where they overlap: the file browser is
- * first in both, search is second, the table of contents last. Which is the split
+ * first in both, search is second. [ENVIRONMENTS] is the one departure from "both references say
+ * the order" - neither ranks it, so it sits by scope instead: with the workspace panels, ahead of
+ * the document-bound two.
  *
  *
  * **One panel at a time**, which is the area's own behaviour rather than a simplification of it:
@@ -53,6 +55,18 @@ enum class SidePanel {
    * Its query box, option toggles and results tree live in `ui/shell/`.
    */
   SEARCH,
+
+  /**
+   * The Space's Python environments, grouped by the project folder each belongs to, with the acts
+   * that make and register them.
+   *
+   * **Neither reference ranks it**: JupyterLab's environment surfaces are views inside its own
+   * panels rather than `shell.add` entries, and VS Code's Python extension draws its env manager
+   * inside a view, not a sidebar container - so it takes the workspace-scoped half's tail, ahead
+   * of the two panels that mean nothing without an open document. At one pane the five-item bar
+   * cannot carry it, so the bar's More reaches it instead ([onePaneOverflow], ADR-0109).
+   */
+  ENVIRONMENTS,
 
   /** `toc:show-panel`, whose whole body is `labShell.activateById(toc.id)` (`index.ts:161-172`). */
   TABLE_OF_CONTENTS,
@@ -98,16 +112,17 @@ internal fun <T : Any> T?.chosen(panel: T): T? = if (this == panel) null else pa
 /**
  * The panels a **one-pane** window offers on its bottom bar, in the rail's own rank order.
  *
- * [SidePanel.TABLE_OF_CONTENTS] is deliberately absent, and the reason is what the bar is: Files is
- * a screen you navigate *to* and the table of contents is a surface over the document you are
- * already *in*, which is what `toc:show-panel` opens from the notebook's menu at this width
- * (`TableOfContentsPanel`). A destination for it would be a destination for something that has no
- * meaning where the bar is drawn - the bar shows only when a panel *is* the window, and there is no
- * open document for an outline to belong to. [SidePanel.DEBUGGER] is out for the same reason -
- * its call stack is a stopped document's, not a destination of its own.
+ * [SidePanel.TABLE_OF_CONTENTS] and [SidePanel.DEBUGGER] are deliberately absent, and the reason
+ * is what the bar is: Files is a screen you navigate *to* and both of those are surfaces over the
+ * document you are already *in*, which is what `toc:show-panel` opens from the notebook's menu at
+ * this width (`TableOfContentsPanel`). A destination for them would be a destination for something
+ * that has no meaning where the bar is drawn - the bar shows only when a panel *is* the window, and
+ * there is no open document for an outline or a call stack to belong to.
+ * [SidePanel.ENVIRONMENTS] is absent for the other reason: it *is* a destination, but the bar is
+ * already at Material's five-item ceiling, so it waits on the rail behind More ([onePaneOverflow]).
  *
- * Three *panels* - the bar's fourth and fifth items are the Launcher and a new terminal, which
- * this list cannot carry: documents, not [SidePanel]s (see this enum's own doc), so `SidePanelBar`
+ * Three *panels* - the bar's fourth and fifth items are the Launcher and More, which this list
+ * cannot carry: documents and a menu, not [SidePanel]s (see this enum's own doc), so `SidePanelBar`
  * draws them beside these rather than inside them. Five items is Material's own ceiling for a
  * navigation bar - *"three to five destinations of equal importance"*
  * (`developer.android.com/develop/ui/compose/components/navigation-bar`) - and [RUNNING] is what
@@ -116,13 +131,23 @@ internal fun <T : Any> T?.chosen(panel: T): T? = if (this == panel) null else pa
 internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, SidePanel.RUNNING, SidePanel.SEARCH)
 
 /**
+ * The shell's own panels a **one-pane** window reaches through the bar's More rather than on the
+ * bar itself. [SidePanel.ENVIRONMENTS] is a workspace destination, so it cannot fall back to the
+ * browser the way the document-bound panels do - but the bar is already at Material's five-item
+ * ceiling, so [MoreRail] draws one row per entry here. The list stays explicit rather than
+ * derived: the outline and the debugger are no more on it than they are on the bar.
+ */
+internal val onePaneOverflow: List<SidePanel> = listOf(SidePanel.ENVIRONMENTS)
+
+/**
  * What a window that draws **one pane** is left showing, given the panel the rail was last on.
  *
- * The rule is *"can the bar leave it again"*, and it is the narrowed form of an earlier, wider
- * override: a tablet rotated from 1280dp to 800dp used to keep drawing whatever panel it had with no
- * rail to switch away from it, and the browser could not be reached again without killing the app.
- * With a bar there, only a panel the bar has no item for still has to fall back - which is the
- * table of contents, the debugger, and `null`, since a collapsed area over an empty window is not a state.
+ * The rule is *"can a one-pane surface leave it again"*, and it is the narrowed form of an earlier,
+ * wider override: a tablet rotated from 1280dp to 800dp used to keep drawing whatever panel it had
+ * with no rail to switch away from it, and the browser could not be reached again without killing
+ * the app. The bar's items leave [onePaneDestinations]'s panels and More's rail leaves
+ * [onePaneOverflow]'s; only the document-bound two and `null` still fall back, since a collapsed
+ * area over an empty window is not a state.
  *
  * An override rather than a reset: [SidePanel] itself is untouched, so rotating back to two panes
  * restores the panel the user had chosen.
@@ -131,4 +156,5 @@ internal val onePaneDestinations: List<SidePanel> = listOf(SidePanel.FILES, Side
  * val showingPanel = if (twoPane) sidePanel else sidePanel.showingAtOnePane()
  * ```
  */
-internal fun SidePanel?.showingAtOnePane(): SidePanel = this?.takeIf { it in onePaneDestinations } ?: SidePanel.FILES
+internal fun SidePanel?.showingAtOnePane(): SidePanel =
+  this?.takeIf { it in onePaneDestinations || it in onePaneOverflow } ?: SidePanel.FILES

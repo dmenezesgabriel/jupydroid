@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# The driver watched the hand-made musl venv write `hand-rc=0`. On a clean re-entry, the panel's
+# Workspace group - envs outside every project folder land there - now lists `envs/hand` with
+# ipykernel present, and its Register writes the spec the disk route has always written
+# (`SpaceKernelSpec.installEnvironment`): the same env the terminal made, made a kernel by the
+# panel.
+#
+# The navigation is the full cold path rather than a resume: a resumed rail composes its items
+# over seconds on this link, and the first read of "^Environments$" here once raced that settle -
+# the Space already ran, so the run-and-open prelude only re-enters.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "^Environments$"
+- scrollUntilVisible:
+    element: "Register envs/hand as kernel"
+    direction: DOWN
+    timeout: 30000
+- assertVisible: "envs/hand"
+- assertVisible: "ipykernel installed"
+- takeScreenshot: 01-hand-venv-listed-in-workspace-group
+- tapOn: "Register envs/hand as kernel"
+- extendedWaitUntil:
+    visible: "Registered as kernel hand"
+    timeout: 60000
+- assertNotVisible: "Register envs/hand as kernel"
+- takeScreenshot: 02-hand-venv-registered-as-kernel

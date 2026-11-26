@@ -3,7 +3,11 @@
 # engineering documents stay in docs/ and are linked by their GitHub URL.
 #
 # Plain Material config on purpose: Zensical reads mkdocs.yml natively, so no third-party plugin and no
-# custom_dir keeps a move to it a drop-in (scripts/docs_site_config_test.py asserts both).
+# custom_dir keeps a move to it a drop-in (scripts/docs_site_config_test.py asserts both). `hooks:` is
+# mkdocs core, not a plugin: it stays out of `plugins:` for the same reason, and a build that cannot run
+# it leaves the page's <version> placeholder literal rather than breaking.
+hooks:
+  - hooks/release_version.py
 site_name: Jupydroid
 site_description: Offline Jupyter notebook app for Android, running a real jupyter_server and ipykernel.
 site_url: https://dmenezesgabriel.github.io/jupydroid/
@@ -70,6 +74,7 @@ nav:
   - Interface: interface.md
   - Notebooks: notebooks.md
   - Console: console.md
+  - Environments: environments.md
   - Terminal: terminal.md
   - Files: files.md
   - Search: search.md

@@ -78,6 +78,15 @@ class SiteConfigTest(unittest.TestCase):
         config = load_site_config()
         self.assertEqual(config.get("edit_uri"), f"edit/main/docs-site/{config['docs_dir']}/")
 
+    def test_every_hook_entry_names_a_real_file_under_the_site(self) -> None:
+        config = load_site_config()
+        for entry in config.get("hooks", []):
+            resolved = (SITE_DIRECTORY / entry).resolve()
+            self.assertTrue(
+                resolved.is_relative_to(SITE_DIRECTORY) and resolved.is_file(),
+                f"hooks entry {entry!r} is not a file under docs-site/",
+            )
+
 
 class DocsDependencyGroupTest(unittest.TestCase):
     def setUp(self) -> None:

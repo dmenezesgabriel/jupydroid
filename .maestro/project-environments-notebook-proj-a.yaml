@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# The seeded notebook inside proj-a binds no kernel until its picker is used - the pick is the
+# demo's own act: `Python (proj-a/.venv)` is what create registered in the panel part. Both cells
+# then run on the env's interpreter: the first `%pip install`s into the env's own site-packages,
+# the second prints the version the kernel computed - `ver=0.9.0` exists nowhere in the source.
+#
+# "Run all cells" rather than the second cell's own button: `index` counts *rendered* `Run cell`
+# buttons and the count moves with the window (html-output.yaml's header). `scrollUntilVisible`
+# on the printed value is scroll and wait in one.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "proj-a"
+- extendedWaitUntil:
+    visible: "deps.ipynb"
+    timeout: 10000
+- tapOn: "deps.ipynb"
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 30000
+- tapOn: "No Kernel"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+- assertVisible: "Python \\(proj-a/\\.venv\\)"
+- takeScreenshot: 01-picker-offers-proj-a-env
+- tapOn: "Python \\(proj-a/\\.venv\\)"
+- tapOn: "^Select$"
+- extendedWaitUntil:
+    visible: "Kernel Python \\(proj-a/\\.venv\\).*"
+    timeout: 30000
+- takeScreenshot: 02-notebook-bound-to-proj-a-env
+- tapOn: "Run all cells"
+- scrollUntilVisible:
+    element:
+      text: "ver=0\\.9\\.0"
+    direction: DOWN
+    timeout: 300000
+- takeScreenshot: 03-cells-ran-under-proj-a-env

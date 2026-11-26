@@ -26,6 +26,17 @@ import java.nio.file.LinkOption
 internal fun kernelDirsOf(dirs: SpaceDirs): List<Pair<String, File>> =
   kernelSearchPath(dirs).flatMap(::kernelDirsIn).distinctBy { (name, _) -> name }
 
+/**
+ * Every spec's `argv[0]` to the name its directory holds - the answer both environment
+ * registration (`DiskSpaceEnvironments`) and interpreter registration
+ * (`SpaceShellKernelRegistration`) read off the same catalogue, so a stopped Space answers
+ * whose spec runs which interpreter.
+ */
+internal fun kernelNameByInterpreter(dirs: SpaceDirs): Map<String, String> =
+  kernelDirsOf(dirs).mapNotNull { (name, dir) ->
+    kernelJsonIn(dir)?.let(::kernelInterpreterOf)?.let { it to name }
+  }.toMap()
+
 /** The spec in [dir]'s `kernel.json`, or null when it does not parse as an object. */
 internal fun kernelJsonIn(dir: File): JsonObject? =
   runCatching { Json.parseToJsonElement(File(dir, "kernel.json").readText()).jsonObject }.getOrNull()

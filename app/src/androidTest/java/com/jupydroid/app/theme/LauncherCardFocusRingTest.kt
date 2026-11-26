@@ -9,6 +9,7 @@ import com.jupydroid.app.data.fake.FakeNotebookRepository
 import com.jupydroid.app.data.fake.FakeTerminalGateway
 import com.jupydroid.app.data.fake.FakeWorkspaceFiles
 import com.jupydroid.app.domain.model.BASE_SPACE
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
 import com.jupydroid.app.ui.launcher.LauncherCommand
 import com.jupydroid.app.ui.launcher.LauncherScreen
@@ -52,7 +53,8 @@ class LauncherCardFocusRingTest {
     LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {})
   }
 
-  private fun card() = compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_NOTEBOOK.name}")
+  private fun card() =
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_NOTEBOOK.name}-$DEFAULT_KERNEL_ID")
 
   private fun viewModel() = LauncherViewModel(
     FakeNotebookRepository(),

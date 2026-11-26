@@ -1,0 +1,61 @@
+appId: com.jupydroid.app
+---
+# The driver watched `jupydroid-env create proj-c` write `create-rc=0` in the workspace. On a
+# clean re-entry the Environments panel's own 10 s poll finds the env the terminal made with no
+# app act: a `proj-c` section, `proj-c/.venv`, and the kernel the create registered. The picker's
+# half of "the panel and the picker list it" is then read in Dep A's own Select Kernel dialog.
+#
+# The navigation is the full cold path rather than a resume: a resumed rail composes its items
+# over seconds on this link, and the first read of "^Environments$" here once raced that settle -
+# the Space already ran, so the run-and-open prelude only re-enters.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "^Environments$"
+- extendedWaitUntil:
+    visible: "Registered as kernel proj-c-.venv"
+    timeout: 60000
+- assertVisible: "proj-c/.venv"
+- takeScreenshot: 01-panel-lists-the-terminal-made-env
+- tapOn: "Files"
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "proj-a"
+- extendedWaitUntil:
+    visible: "deps.ipynb"
+    timeout: 10000
+- tapOn: "deps.ipynb"
+- extendedWaitUntil:
+    visible: "Code cell"
+    timeout: 30000
+# The chip is either bound (the part-3 pick, still live) or back on "No Kernel" (the binding died
+# with the server the terminal leg's launch restarted) - exactly one of them is on the bar.
+- runFlow:
+    when:
+      visible: "No Kernel"
+    commands:
+      - tapOn: "No Kernel"
+- runFlow:
+    when:
+      visible: "Kernel Python \\(proj-a/\\.venv\\).*"
+    commands:
+      - tapOn: "Kernel Python \\(proj-a/\\.venv\\).*"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+# Every env kernel the Space knows is offered: the two the panel made and the one the terminal made.
+- assertVisible: "Python \\(proj-a/\\.venv\\)"
+- assertVisible: "Python \\(proj-b/\\.venv\\)"
+- assertVisible: "Python \\(proj-c/\\.venv\\)"
+- takeScreenshot: 02-picker-lists-all-three-env-kernels
+- back

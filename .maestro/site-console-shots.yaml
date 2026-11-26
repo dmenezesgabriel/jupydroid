@@ -22,7 +22,7 @@ appId: com.jupydroid.app
     timeout: 30000
 - assertVisible: "Tab: Launcher"
 - tapOn:
-    id: "launcher-card-NEW_CONSOLE"
+    id: "launcher-card-NEW_CONSOLE-python3"
 - extendedWaitUntil:
     visible: "Tab: Console 1"
     timeout: 30000

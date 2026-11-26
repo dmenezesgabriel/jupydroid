@@ -2,9 +2,12 @@ package com.jupydroid.app.ui.launcher
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jupydroid.app.domain.model.KernelSpec
 import com.jupydroid.app.domain.model.Space
 import com.jupydroid.app.domain.model.untitledNotebookIn
 import com.jupydroid.app.domain.port.KernelGateway
+import com.jupydroid.app.domain.port.KernelPreference
+import com.jupydroid.app.domain.port.KernelSpecModels
 import com.jupydroid.app.domain.port.KernelSpecs
 import com.jupydroid.app.domain.port.NotebookRepository
 import com.jupydroid.app.domain.port.SessionType
@@ -48,7 +51,10 @@ class LauncherViewModel(
   private val workspaceFiles: WorkspaceFiles,
   private val terminalGateway: TerminalGateway,
   private val kernelGateway: KernelGateway,
-  /** Asked for [space]'s default kernel, the one a new notebook records, as `ExplorerViewModel.create` does. */
+  /**
+   * The Space's kernelspec catalogue - what the cards are built from, and what a console card's
+   * `kernelPreference` resolves through, as `ExplorerViewModel.create`'s default does.
+   */
   private val kernelSpecs: KernelSpecs,
   /** The entered Space, whose server a standalone console's kernel runs on. */
   private val space: Space,
@@ -71,6 +77,33 @@ class LauncherViewModel(
   /** The failure a launched card reported, until the user dismisses it. */
   private val _error = MutableStateFlow<String?>(null)
   val error: StateFlow<String?> = _error
+
+  /**
+   * The cards the screen draws - one per kernelspec the Space lists, built once at entry the way
+   * the reference rebuilds its launcher items on `specsChanged`
+   * (`notebook-extension/src/index.ts:2578-2611`). Empty until the catalogue answers.
+   */
+  private val _items = MutableStateFlow<List<LauncherItem>>(emptyList())
+  val items: StateFlow<List<LauncherItem>> = _items
+
+  init {
+    viewModelScope.launch { _items.value = launcherItems(catalogue()) }
+  }
+
+  /**
+   * The Space's kernelspecs, or its declared [Space.kernels] when the read fails - the same
+   * honest fallback `FakeKernelSpecs` gives a device with no Space, so a refused catalogue leaves
+   * the utility cards and `python3` rather than a blank launcher.
+   */
+  private suspend fun catalogue(): KernelSpecModels = runCatching { kernelSpecs.specs(space) }
+    .getOrElse { failure ->
+      // `runCatching` cannot tell a refusal from a cancellation - the same trap `launch` names.
+      if (failure is CancellationException) throw failure
+      KernelSpecModels(
+        default = space.kernels.firstOrNull()?.name.orEmpty(),
+        specs = space.kernels,
+      )
+    }
 
   /** Runs [item]'s command at [cwd] and hands the result to [onLaunched]. No-ops while pending. */
   fun launch(item: LauncherItem, cwd: String, onLaunched: (LaunchedDocument) -> Unit) {
@@ -98,15 +131,24 @@ class LauncherViewModel(
 
   private suspend fun run(item: LauncherItem, cwd: String): LaunchedDocument = when (item.command) {
     LauncherCommand.NEW_NOTEBOOK -> LaunchedDocument.CreatedNotebook(
-      notebookRepository.createNotebook(untitledNotebookIn(cwd), kernelSpecs.specs(space).defaultSpec).id,
+      notebookRepository.createNotebook(untitledNotebookIn(cwd), kernelOf(item)).id,
     )
 
-    LauncherCommand.NEW_CONSOLE -> mintConsole(cwd)
+    LauncherCommand.NEW_CONSOLE -> mintConsole(cwd, kernelOf(item))
     LauncherCommand.NEW_TERMINAL ->
       LaunchedDocument.OpenedTerminal(terminalGateway.open(cwd.ifEmpty { null }).name)
     LauncherCommand.NEW_TEXT_FILE -> createdFile(cwd, "txt")
     LauncherCommand.NEW_MARKDOWN_FILE -> createdFile(cwd, "md")
     LauncherCommand.NEW_PYTHON_FILE -> createdFile(cwd, "py")
+  }
+
+  /**
+   * The spec a kernel card carries - `args.kernelName` resolved to the catalogue's own row, so
+   * the notebook records its `display_name` too. A kernel command with no spec is a card
+   * [launcherItems] never builds.
+   */
+  private fun kernelOf(item: LauncherItem): KernelSpec = checkNotNull(item.kernel) {
+    "'${item.command}' card carries no kernelspec; expected launcherItems to give every kernel card its spec"
   }
 
   private suspend fun createdFile(cwd: String, extension: String): LaunchedDocument =
@@ -119,11 +161,19 @@ class LauncherViewModel(
    * working directory is [cwd] and the session belongs to the console alone, not to an open
    * notebook.
    */
-  private suspend fun mintConsole(cwd: String): LaunchedDocument.CreatedConsole {
+  private suspend fun mintConsole(cwd: String, kernel: KernelSpec): LaunchedDocument.CreatedConsole {
     val ordinal = consoleOrdinal()
     val name = "console-$ordinal-${UUID.randomUUID()}"
     val path = if (cwd.isEmpty()) name else "$cwd/$name"
-    val session = NotebookKernelSession(kernelGateway, space, sessionType = SessionType.CONSOLE) { path }
+    val session = NotebookKernelSession(
+      kernelGateway,
+      space,
+      // The real catalogue, not the session's `FakeKernelSpecs` default: a preference naming an
+      // env's spec resolves through it, and its pending-name report reads the same rows.
+      kernelSpecs = kernelSpecs,
+      sessionType = SessionType.CONSOLE,
+      kernelPreference = KernelPreference(name = kernel.name),
+    ) { path }
     session.open()
     return LaunchedDocument.CreatedConsole(session, path, "Console $ordinal")
   }

@@ -11,6 +11,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.domain.model.PythonEnvironment
 import com.jupydroid.app.domain.model.SpaceConfig
 import com.jupydroid.app.theme.JupydroidTheme
+import com.jupydroid.app.ui.environments.HAS_IPYKERNEL
+import com.jupydroid.app.ui.environments.NO_ENVIRONMENTS
+import com.jupydroid.app.ui.environments.goneLabel
+import com.jupydroid.app.ui.environments.registerLabel
+import com.jupydroid.app.ui.environments.registeredLabel
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

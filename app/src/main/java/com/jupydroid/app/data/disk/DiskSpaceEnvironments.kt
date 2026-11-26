@@ -3,7 +3,9 @@ package com.jupydroid.app.data.disk
 import com.jupydroid.app.data.space.SpaceDirs
 import com.jupydroid.app.data.space.SpaceKernelSpec
 import com.jupydroid.app.data.space.spaceDirIn
+import com.jupydroid.app.domain.model.ENVIRONMENT_CONTAINER_DIRS
 import com.jupydroid.app.domain.model.PythonEnvironment
+import com.jupydroid.app.domain.model.isProjectFolderName
 import com.jupydroid.app.domain.model.registrableEnvironment
 import com.jupydroid.app.domain.port.SpaceEnvironments
 import kotlinx.coroutines.CoroutineDispatcher
@@ -16,11 +18,13 @@ import java.io.File
  * (`workspaceVirtualEnvLocator.ts`) and of the conventional envs directories in HOME
  * (`globalVirtualEnvronmentLocator.ts`, `getGlobalVirtualEnvDirs`), both at
  * `microsoft/vscode-python@f4c86e4f5f7c34b99c5333b1aef50e997288f936`. A Space's HOME *is* its
- * workspace, so the two lists are one.
+ * workspace, so the two lists are one - applied at the workspace and inside each project folder,
+ * the way vscode-python's locator runs per opened folder. Our workspace is one root, so a project
+ * is a top-level directory in it.
  *
- * Fixed roots rather than a walk: the cost is a handful of directory listings however large the
- * workspace grows, and nothing below a root is read - a project's own `.venv` is one level too deep,
- * as it is for vscode-python outside its opened folder.
+ * Fixed roots rather than a walk: the cost is a handful of directory listings per folder however
+ * large the workspace grows, and nothing below a root is read - a project's own `.venv` is found,
+ * but `proj/sub/.venv` is one level too deep, as it is outside vscode-python's opened folder.
  *
  * ```
  * DiskSpaceEnvironments(spacesDir(context)).environments("space-1")
@@ -33,7 +37,7 @@ class DiskSpaceEnvironments(
 ) : SpaceEnvironments {
   override suspend fun environments(spaceId: String): List<PythonEnvironment> = withContext(ioDispatcher) {
     val dirs = spaceDirsOf(spaceId)
-    environmentsIn(dirs, kernelDirsOf(dirs))
+    environmentsIn(dirs)
   }
 
   /**
@@ -44,9 +48,15 @@ class DiskSpaceEnvironments(
     val dirs = spaceDirsOf(spaceId)
     val kernelDirs = kernelDirsOf(dirs)
     val holders = kernelDirs.associate { (name, dir) -> name to "'$dir'" }
-    val environment = registrableEnvironment(environmentsIn(dirs, kernelDirs), path, holders)
+    val environment = registrableEnvironment(environmentsIn(dirs), path, holders)
     val name = environment.kernelName
-    SpaceKernelSpec.installEnvironment(dirs.spaceDir, name, interpreterOf(dirs, path), environment.kernelDisplayName)
+    SpaceKernelSpec.installEnvironment(
+      dirs.spaceDir,
+      name,
+      interpreterOf(dirs, path),
+      environment.kernelDisplayName,
+      isGnu = environment.isGnu,
+    )
     name
   }
 
@@ -60,20 +70,40 @@ class DiskSpaceEnvironments(
    * Each found environment, registered under the spec whose `argv[0]` is its own interpreter, and each
    * registered one deleted since ([goneIn]).
    */
-  private fun environmentsIn(dirs: SpaceDirs, kernelDirs: List<Pair<String, File>>): List<PythonEnvironment> {
-    val nameByInterpreter = kernelDirs
-      .mapNotNull { (name, dir) -> kernelJsonIn(dir)?.let(::kernelInterpreterOf)?.let { it to name } }
-      .toMap()
+  private fun environmentsIn(dirs: SpaceDirs): List<PythonEnvironment> {
+    val nameByInterpreter = kernelNameByInterpreter(dirs)
     val found = foundPathsIn(dirs).map {
-      PythonEnvironment(it, hasIpykernel(File(dirs.workspace, it)), nameByInterpreter[interpreterOf(dirs, it)])
+      val envDir = File(dirs.workspace, it)
+      PythonEnvironment(
+        it,
+        hasIpykernel = hasIpykernel(envDir),
+        isGnu = isGnuVenv(envDir),
+        registeredAs = nameByInterpreter[interpreterOf(dirs, it)],
+      )
     }
     return (found + goneIn(dirs, nameByInterpreter, found.map { it.path }.toSet())).sortedBy { it.path }
   }
 
-  private fun foundPathsIn(dirs: SpaceDirs): List<String> = ENV_ROOTS.map { File(dirs.workspace, it) }
-    .flatMap { it.listFiles().orEmpty().asList() }
-    .filter { File(it, "pyvenv.cfg").isFile }
-    .map { it.relativeTo(dirs.workspace).invariantSeparatorsPath }
+  private fun foundPathsIn(dirs: SpaceDirs): List<String> {
+    val workspace = dirs.workspace
+    return scanBasesIn(workspace)
+      .flatMap { base -> ENV_ROOTS.map { File(base, it) } }
+      .flatMap { it.listFiles().orEmpty().asList() }
+      .filter { File(it, "pyvenv.cfg").isFile }
+      .map { it.relativeTo(workspace).invariantSeparatorsPath }
+  }
+
+  /**
+   * The folders the env roots are applied to: the workspace itself and each project folder - a
+   * top-level directory that is not hidden and not itself an env container, whose children the
+   * workspace scan already covers. No `.ipynb` or `pyproject.toml` is required of a project: the
+   * env's own `pyvenv.cfg` is the signal it holds one.
+   */
+  private fun scanBasesIn(workspace: File): List<File> {
+    val projects = workspace.listFiles().orEmpty().asList()
+      .filter { it.isDirectory && it.name.isProjectFolderName() }
+    return listOf(workspace) + projects
+  }
 
   /**
    * The environments a spec names as `<workspace>/<path>/bin/python` with nothing left there - what
@@ -101,18 +131,30 @@ class DiskSpaceEnvironments(
   private fun hasIpykernel(envRoot: File): Boolean = File(envRoot, "lib").listFiles().orEmpty()
     .any { File(it, "site-packages/ipykernel/__init__.py").isFile }
 
+  /**
+   * Whether the env's interpreter is the gnu payload's: `pyvenv.cfg`'s `home` is the directory
+   * of the interpreter that made it (`venv/__init__.py` writes `sys._base_executable`'s), so
+   * `/opt/gnu/...` is glibc and `/usr/bin` musl. Anything else - no `home`, an unknown
+   * interpreter - reads musl, which is the env every spec got before the split mattered.
+   */
+  private fun isGnuVenv(envRoot: File): Boolean {
+    val cfg = File(envRoot, "pyvenv.cfg")
+    val home = cfg.takeIf { it.isFile }?.useLines { lines ->
+      lines.firstNotNullOfOrNull { line -> HOME_LINE.matchEntire(line.trim())?.groupValues?.get(1) }
+    } ?: return false
+    return home.startsWith(GNU_PAYLOAD_ROOT)
+  }
+
   private companion object {
     const val INTERPRETER = "/bin/python"
 
-    /** The workspace itself, then `getGlobalVirtualEnvDirs`' HOME subdirectories, in its order. */
-    val ENV_ROOTS = listOf(
-      "",
-      "envs",
-      "Envs",
-      ".direnv",
-      ".venvs",
-      ".virtualenvs",
-      ".local/share/virtualenvs",
-    )
+    /** The workspace itself, then [ENVIRONMENT_CONTAINER_DIRS], in vscode-python's order. */
+    val ENV_ROOTS = listOf("") + ENVIRONMENT_CONTAINER_DIRS
+
+    /** `home = <dir>` in `pyvenv.cfg`; the path never holds a space. */
+    val HOME_LINE = Regex("""home\s*=\s*(\S+)""")
+
+    /** The gnu payload's root inside a Space's `/` - where `tools/rootfs/gnu/Dockerfile` installs it. */
+    const val GNU_PAYLOAD_ROOT = "/opt/gnu/"
   }
 }

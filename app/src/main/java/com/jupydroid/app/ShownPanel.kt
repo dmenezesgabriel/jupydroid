@@ -37,7 +37,7 @@ internal fun ShownPanel?.showingAtOnePane(): ShownPanel =
  * extensions gave them (ADR-0105).
  *
  * ```
- * railOrder(listOf("git.sourceControl")) // Files, Sessions, Search, Source Control, Outline, Debugger
+ * railOrder(listOf("git.sourceControl")) // Files, Sessions, Search, Source Control, Environments, Outline, Debugger
  * ```
  */
 internal fun railOrder(contributedIds: List<String>): List<ShownPanel> {

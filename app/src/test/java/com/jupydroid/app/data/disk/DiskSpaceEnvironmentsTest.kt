@@ -75,13 +75,68 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
     )
   }
 
-  /** The roots are fixed, as vscode-python's are: a project's own `.venv` is one level too deep. */
+  /**
+   * `pyvenv.cfg`'s `home` is the base interpreter's bin dir: `/opt/gnu/...` means the gnu
+   * payload made the env, so a kernel started in it needs the glibc environment rather than
+   * the server's musl one (ADR-0166).
+   */
   @Test
-  fun environments_doesNotSearchBelowTheRoots() = runTest {
+  fun environments_marksAnEnvironmentMadeByTheGnuInterpreter() = runTest {
+    makeVenv("envs/musl")
+    makeVenv("envs/gnu", home = "/opt/gnu/python/bin")
+
+    assertEquals(
+      listOf(
+        PythonEnvironment("envs/gnu", hasIpykernel = false, isGnu = true),
+        PythonEnvironment("envs/musl", hasIpykernel = false),
+      ),
+      listed(),
+    )
+  }
+
+  /**
+   * A project's own env folders are searched one level down, as vscode-python's per-folder
+   * locator searches each opened folder - and no `.ipynb` or `pyproject.toml` is required: the
+   * env's own `pyvenv.cfg` is the signal a folder holds one.
+   */
+  @Test
+  fun environments_findsAnEnvironmentInsideAProjectFolder() = runTest {
     makeVenv("thesis/.venv")
+    makeVenv("proj-b/envs/stats", withIpykernel = true)
+
+    assertEquals(
+      listOf(
+        PythonEnvironment("proj-b/envs/stats", hasIpykernel = true),
+        PythonEnvironment("thesis/.venv", hasIpykernel = false),
+      ),
+      listed(),
+    )
+  }
+
+  /** The bound is one project level: env roots inside a project, never deeper. */
+  @Test
+  fun environments_doesNotSearchBelowOneProjectLevel() = runTest {
+    makeVenv("thesis/sub/.venv")
     makeVenv("envs/group/deep")
 
     assertEquals(emptyList<PythonEnvironment>(), listed())
+  }
+
+  /** Hidden folders are tool state, not projects: `.git` and `.ipynb_checkpoints` hold no envs. */
+  @Test
+  fun environments_skipsHiddenFoldersAsProjects() = runTest {
+    makeVenv(".hidden/.venv")
+    makeVenv(".git/envs/x")
+
+    assertEquals(emptyList<PythonEnvironment>(), listed())
+  }
+
+  /** A container's children are environments already; scanning it as a project would list them twice. */
+  @Test
+  fun environments_doesNotListAnEnvironmentTwice() = runTest {
+    makeVenv("envs/stats", withIpykernel = true)
+
+    assertEquals(listOf(PythonEnvironment("envs/stats", hasIpykernel = true)), listed())
   }
 
   @Test
@@ -106,6 +161,30 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
     environmentsHolding(STATS).register(EMPTY_SPACE_ID, STATS.path)
 
     assertEquals("/home/jupydroid/envs/stats/bin/python", registeredArgv("stats").first())
+  }
+
+  /**
+   * A glibc env's spec carries the glibc half of the refusal split (ADR-0166), not the server's
+   * musl environment: without it the kernel's threads die on the first refused syscall.
+   */
+  @Test
+  fun register_writesTheGlibcEnvironmentForAGnuEnvironment() = runTest {
+    makeVenv("envs/gnu", withIpykernel = true, home = "/opt/gnu/python/bin")
+
+    environments().register(EMPTY_SPACE_ID, "envs/gnu")
+
+    val env = registeredEnv("gnu")
+    assertEquals("", env["LD_PRELOAD"])
+    assertEquals("1", env["PROOT_SIGSYS_ENOSYS"])
+    assertEquals("/pkgs-gnu", env["PYTHONUSERBASE"])
+  }
+
+  /** A musl env's spec is unchanged: it inherits the server's own environment. */
+  @Test
+  fun register_keepsTheServerEnvironmentForAMuslEnvironment() = runTest {
+    environmentsHolding(STATS).register(EMPTY_SPACE_ID, STATS.path)
+
+    assertEquals(mapOf("PYTHONFAULTHANDLER" to "1"), registeredEnv("stats"))
   }
 
   /** What the Space's server will list, read by the same rules the stopped picker reads. */
@@ -174,9 +253,47 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
     assertEquals(listOf(STATS.copy(registeredAs = "stats")), port.environments(EMPTY_SPACE_ID))
   }
 
+  /** A project env registers under its whole path, so `proj-a` and `proj-b` never share a spec name. */
+  @Test
+  fun register_registersAnEnvironmentInsideAProjectFolder() = runTest {
+    makeVenv("proj-a/.venv", withIpykernel = true)
+
+    val name = environments().register(EMPTY_SPACE_ID, "proj-a/.venv")
+
+    assertEquals("proj-a-.venv", name)
+    assertEquals("/home/jupydroid/proj-a/.venv/bin/python", registeredArgv("proj-a-.venv").first())
+    val specs = DiskKernelSpecs(tempFolder.root).specs(Space(EMPTY_SPACE_ID, "Thesis", emptyList())).specs
+    assertTrue(KernelSpec("proj-a-.venv", "Python (proj-a/.venv)", "python") in specs)
+  }
+
+  /** `rm -r proj-a/.venv` after Register: the spec stays, naming an interpreter that is gone. */
+  @Test
+  fun environments_listsARegisteredProjectEnvironmentDeletedSinceAsGone() = runTest {
+    makeVenv("proj-a/.venv", withIpykernel = true)
+    val port = environments()
+    port.register(EMPTY_SPACE_ID, "proj-a/.venv")
+    File(workspace, "proj-a/.venv").deleteRecursively()
+
+    assertEquals(
+      listOf(
+        PythonEnvironment(
+          "proj-a/.venv",
+          hasIpykernel = false,
+          registeredAs = "proj-a-.venv",
+          isMissing = true,
+        ),
+      ),
+      port.environments(EMPTY_SPACE_ID),
+    )
+  }
+
   private fun registeredArgv(name: String): List<String> =
     Json.parseToJsonElement(File(spaceDir, "usr/local/share/jupyter/kernels/$name/kernel.json").readText())
       .jsonObject.getValue("argv").jsonArray.map { it.jsonPrimitive.content }
+
+  private fun registeredEnv(name: String): Map<String, String> =
+    Json.parseToJsonElement(File(spaceDir, "usr/local/share/jupyter/kernels/$name/kernel.json").readText())
+      .jsonObject.getValue("env").jsonObject.mapValues { it.value.jsonPrimitive.content }
 
   private suspend fun listed(): List<PythonEnvironment> = environments().environments(EMPTY_SPACE_ID)
 
@@ -190,9 +307,9 @@ class DiskSpaceEnvironmentsTest : SpaceEnvironmentsContract() {
    * What `python3 -m venv` and `uv venv` both leave: `pyvenv.cfg` at the root, `bin/python` linking to
    * the Space's own interpreter - a target the host cannot resolve - and packages under `lib`.
    */
-  private fun makeVenv(path: String, withIpykernel: Boolean = false) {
+  private fun makeVenv(path: String, withIpykernel: Boolean = false, home: String = "/usr/bin") {
     val root = File(workspace, path).apply { mkdirs() }
-    File(root, "pyvenv.cfg").writeText("home = /usr/bin\nversion = 3.12.10\n")
+    File(root, "pyvenv.cfg").writeText("home = $home\nversion = 3.12.10\n")
     val bin = File(root, "bin").apply { mkdirs() }
     Files.createSymbolicLink(File(bin, "python").toPath(), Paths.get("/usr/bin/python3"))
     val sitePackages = File(root, "lib/python3.12/site-packages").apply { mkdirs() }

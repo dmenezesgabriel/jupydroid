@@ -16,6 +16,7 @@ import com.jupydroid.app.domain.model.MatchedLine
 import com.jupydroid.app.domain.port.KernelSessionModel
 import com.jupydroid.app.domain.port.TerminalSession
 import com.jupydroid.app.theme.chromePalette
+import com.jupydroid.app.ui.environments.EnvironmentsSidePanel
 import com.jupydroid.app.ui.explorer.ExplorerScreen
 import com.jupydroid.app.ui.shell.ContributedSidePanel
 import com.jupydroid.app.ui.shell.DebuggerSidePanel
@@ -160,6 +161,14 @@ fun ShellSidePane(
             onOpenSession = onOpenSession,
             onOpenTerminal = onOpenTerminal,
             documentContributions = appContainer.documentContributions,
+          )
+        SidePanel.ENVIRONMENTS ->
+          EnvironmentsSidePanel(
+            spaceEnvironments = appContainer.spaceEnvironments,
+            spaceEnvironmentCreation = appContainer.spaceEnvironmentCreation,
+            spaceKernelRegistration = appContainer.spaceKernelRegistration,
+            workspaceRepository = spacePorts.workspaceRepository,
+            spaceId = spacePorts.space.id,
           )
         SidePanel.SEARCH ->
           SearchSidePanel(

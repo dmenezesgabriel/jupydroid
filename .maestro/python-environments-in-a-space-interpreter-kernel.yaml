@@ -1,0 +1,63 @@
+appId: com.jupydroid.app
+---
+# The spec the panel's Register wrote is a kernel every picker offers: the seeded notebook,
+# bound to the default `python3`, swaps to `Python (/usr/bin/python3)` in its own picker, and its
+# cell prints the interpreter's prefix - `/usr`, which only a kernel actually started under the
+# musl python can print. FakeKernelGateway echoes the source, which never holds the path.
+- launchApp:
+    stopApp: false
+# Relaunch restores into the Space (where part 2 left it), so back out to the home's
+# Stop/Open row first - the same way `python-environments-in-a-space-register.yaml` does.
+- repeat:
+    while:
+      notVisible: "Open Thesis \\(space-1\\)"
+    times: 4
+    commands:
+      - back
+# The Space may have stopped since part 2 left it running - a process death stops it with the
+# app - so the row can read Run rather than Stop, and it is run again before it is opened.
+- runFlow:
+    when:
+      visible: "Run Thesis \\(space-1\\)"
+    commands:
+      - tapOn: "Run Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+# Open can land on the Launcher (which already offers the registered spec as a notebook kernel).
+# Files toggles the explorer, so it is tapped only when the explorer is not already showing.
+- runFlow:
+    when:
+      notVisible: "Registered.ipynb"
+    commands:
+      - tapOn: "Files"
+- extendedWaitUntil:
+    visible: "Registered.ipynb"
+    timeout: 10000
+- tapOn: "Registered.ipynb"
+- extendedWaitUntil:
+    visible: "Run cell"
+    timeout: 60000
+# A pushed notebook binds no kernel until its picker is used - the chip reads "No Kernel".
+- tapOn: "No Kernel"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+- assertVisible: "Python (/usr/bin/python3)"
+- takeScreenshot: 01-picker-offers-the-registered-interpreter
+- tapOn: "Python (/usr/bin/python3)"
+- tapOn: "^Select$"
+- extendedWaitUntil:
+    visible: "Kernel Python \\(/usr/bin/python3\\).*"
+    timeout: 30000
+- tapOn:
+    text: "Run cell"
+    index: 0
+- scrollUntilVisible:
+    element:
+      text: ".*prefix=/usr.*"
+      childOf: {text: "Cell output"}
+    direction: DOWN
+    timeout: 120000
+- takeScreenshot: 02-cell-ran-in-the-musl-interpreter

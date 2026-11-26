@@ -1,0 +1,49 @@
+appId: com.jupydroid.app
+---
+# Thesis runs, then is opened, so the Environments panel's Interpreters section lists its two own
+# pythons. The glibc row already reads its kernel - the shipped `python3` spec's argv[0] is the
+# gnu interpreter - while the musl `/usr/bin/python3` has none, and its Register runs
+# `jupydroid-env register` through the Space's own shell: kernel creation as its own act, no
+# environment made.
+#
+# The picker part that follows proves what the register wrote; this part's evidence is the row
+# flipping to the spec's name and the driver's capture of the spec itself.
+- launchApp:
+    stopApp: false
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Registered.ipynb"
+    timeout: 10000
+- tapOn: "^Environments$"
+- extendedWaitUntil:
+    visible: "Interpreters"
+    timeout: 10000
+- takeScreenshot: 01-interpreters-section-below-environments
+# scrollUntilVisible once raced the Launcher pane beside the panel for sixty seconds without
+# revealing the Interpreters rows at its foot - a bounded swipe inside the panel's own strip
+# (the rail ends near x=37% at two panes) moves it no matter what the document holds.
+- swipe:
+    start: 20%, 85%
+    end: 20%, 30%
+    duration: 500
+- extendedWaitUntil:
+    visible: "Register /usr/bin/python3 as kernel"
+    timeout: 30000
+# The glibc interpreter is the shipped spec's argv[0], so its row is registered from the start.
+- assertVisible: "/opt/gnu/python/bin/python3.12"
+- assertVisible: "Registered as kernel python3"
+- takeScreenshot: 02-gnu-already-a-kernel-musl-offered
+- tapOn: "Register /usr/bin/python3 as kernel"
+- extendedWaitUntil:
+    visible: "Registered as kernel usr-bin-python3"
+    timeout: 30000
+- assertNotVisible: "Register /usr/bin/python3 as kernel"
+- takeScreenshot: 03-musl-interpreter-registered

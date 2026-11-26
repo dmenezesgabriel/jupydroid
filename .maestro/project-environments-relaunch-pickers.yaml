@@ -1,0 +1,80 @@
+appId: com.jupydroid.app
+---
+# The driver force-stopped the app - the server is its child, so Thesis is stopped. The demo's
+# persistence leg then reads both halves: on the *stopped* Space, Settings still lists the three
+# project environments with their kernel names and its Default kernel menu offers every spec off
+# the disk (the same disk-only read `pick-default` makes); run and entered again, the notebook's
+# own picker still offers them, and `proj-a`'s pick lands on the same kernel its saved
+# `metadata.kernelspec` still names.
+#
+# Nothing is saved in Settings - "the pickers still offer them" is a read, and a changed default
+# is a different act.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 30000
+- tapOn: "Settings Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+# The environments section sits under the startup script, in the dialog's own scroll.
+- scrollUntilVisible:
+    element: "Registered as kernel proj-a-.venv"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "proj-a/.venv"
+- takeScreenshot: 01-stopped-settings-lists-proj-a-env
+- scrollUntilVisible:
+    element: "Registered as kernel proj-c-.venv"
+    direction: DOWN
+    timeout: 10000
+- assertVisible: "Registered as kernel proj-b-.venv"
+- takeScreenshot: 02-stopped-settings-lists-all-three-envs
+- scrollUntilVisible:
+    element: "Default kernel: Python 3"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Default kernel: Python 3"
+- extendedWaitUntil:
+    visible: "Make Python \\(proj-c/\\.venv\\) the default kernel"
+    timeout: 5000
+- assertVisible: "Make Python \\(proj-a/\\.venv\\) the default kernel"
+- assertVisible: "Make Python \\(proj-b/\\.venv\\) the default kernel"
+- takeScreenshot: 03-stopped-space-picker-offers-the-env-kernels
+# Back, not Save: offering is the claim, and a new default is a write the demo does not make.
+- back
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    notVisible: "Idle shutdown \\(minutes\\)"
+    timeout: 5000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "proj-a"
+- extendedWaitUntil:
+    visible: "deps.ipynb"
+    timeout: 10000
+- tapOn: "deps.ipynb"
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 30000
+- tapOn: "No Kernel"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+- assertVisible: "Python \\(proj-a/\\.venv\\)"
+- assertVisible: "Python \\(proj-b/\\.venv\\)"
+- assertVisible: "Python \\(proj-c/\\.venv\\)"
+- takeScreenshot: 04-running-picker-still-offers-the-env-kernels
+- tapOn: "Python \\(proj-a/\\.venv\\)"
+- tapOn: "^Select$"
+- extendedWaitUntil:
+    visible: "Kernel Python \\(proj-a/\\.venv\\).*"
+    timeout: 30000
+- takeScreenshot: 05-proj-a-kernel-rebound-after-relaunch

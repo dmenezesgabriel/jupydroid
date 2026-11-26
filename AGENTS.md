@@ -102,8 +102,9 @@ is skipped "for speed". A step is only finished when all of them hold.
   **arm64 tablet** (`SM-X216B`): only arm64 ships a rootfs, so on the x86_64 `dev36`
   emulator `MainActivity` falls back to `FakeKernelGateway`, which echoes the cell's
   source back as its output. A flow that runs a cell there proves nothing about the
-  kernel and can go green while the kernel has never started. The emulator is fine
-  for anything that does not run a cell.
+  kernel and can go green while the kernel has never started. The tablet is the
+  verification device: the emulator is a fallback for flows that run no cell, only
+  while the tablet is unreachable — the step-closing flow always runs on the tablet.
 - Capture **screenshots, snapshots and logs** of every flow into
   `evidence/<step>/`. `maestro.log` (and `logcat` where the step touches a process
   or the runtime) counts as evidence, not just PNGs.
@@ -113,8 +114,11 @@ is skipped "for speed". A step is only finished when all of them hold.
   whole device's log: home Wi-Fi BSSID/SSID, push tokens, other apps. The commit body names the
   flow and quotes the lines it relies on. A result someone must rerun ships as a tested script,
   and a frame a test asserts on is a fixture in `scripts/testdata/`.
-- **Look at the screenshots.** More than one flow in this repo's history has gone
-  green against the wrong thing; a green log is only half the evidence.
+- **Look at the screenshots — actually render them.** More than one flow in this
+  repo's history has gone green against the wrong thing; a green log is only half
+  the evidence. Shipping a screen requires the captures be viewed, not just
+  asserted non-blank; a session whose tools cannot render an image must say so in
+  the evidence and may not claim the visual check.
 - Unit tests alone are never sufficient to close a step.
 - **Two exceptions, and they are named:** an `AUD-NNN` audit item ships a measurement rather than a
   screen, so it runs no flow and closes on the command that reproduces what it measured

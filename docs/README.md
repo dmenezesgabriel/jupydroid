@@ -17,11 +17,12 @@
 | What Android's sandbox costs a Linux userland | [`research/android-sandbox-fidelity.md`](research/android-sandbox-fidelity.md) |
 | The procedure for a clean session, in order | [`../prompt-execution.md`](../prompt-execution.md) |
 | How work is done — TDD, Maestro, the device rule, hooks | [`../AGENTS.md`](../AGENTS.md) |
+| How a release is cut, and how often | [`releasing.md`](releasing.md) |
 | How each step was actually reached | `git log`: the commit bodies, which name the command that reproduces each result (`evidence/` is local, [ADR-0132](adr/0132-evidence-is-local-and-reproduction-is-a-tested-script.md)) |
 | Starting a new PRD | copy [`prd/_TEMPLATE.md`](prd/_TEMPLATE.md) |
 | Recording a decision | copy [`adr/0000-template.md`](adr/0000-template.md) |
 
-**Durable** is `adr/` and `architecture*`. **Ephemeral** is `backlog.md` and `prd/`. **Measured
+**Durable** is `adr/`, `architecture*` and `releasing.md`. **Ephemeral** is `backlog.md` and `prd/`. **Measured
 research** is `research/`. A durable document must still be true and useful with `reference/`
 absent from disk — which, in every clone, it is.
 

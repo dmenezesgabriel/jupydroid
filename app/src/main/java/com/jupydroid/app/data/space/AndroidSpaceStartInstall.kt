@@ -9,8 +9,9 @@ import com.jupydroid.app.domain.model.BASE_SPACE
  * which is how a restore leaves it ([SpaceImageInstaller.extractIfAbsent]) - and then the gnu
  * interpreter payload ([SpaceGnuImageInstaller.ensureInstalled]), which every Space gains
  * additively: an existing one keeps its image and gets the second interpreter over it
- * (ADR-0166). The kernelspec and the gnu pip.conf are rewritten on every start, not only at
- * extract: a Space whose image predates the glibc kernel still gets today's spec.
+ * (ADR-0166). The kernelspec, the gnu pip.conf and the `jupydroid-env` helper are rewritten on
+ * every start, not only at extract: a Space whose image predates the glibc kernel still gets
+ * today's spec, and one whose APK update carried a newer helper script gets it too.
  *
  * ```
  * SpaceServer(space, installSpace = installOnStartOf(context, space.id), …)
@@ -28,5 +29,6 @@ internal fun installOnStartOf(context: Context, id: String): suspend () -> Unit 
     gnuSpaceImageInstaller(context).ensureInstalled(spaceDir)
     GnuPipConfig.ensure(spaceDir)
     SpaceKernelSpec.install(spaceDir)
+    JupydroidEnvHelper.install(spaceDir, openAsset = { context.assets.open(it) })
   }
 }

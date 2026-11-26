@@ -33,7 +33,7 @@ appId: com.jupydroid.app
 - takeScreenshot: 03-explorer-made-untitled
 
 - tapOn:
-    id: "launcher-card-NEW_NOTEBOOK"
+    id: "launcher-card-NEW_NOTEBOOK-python3"
 - extendedWaitUntil:
     visible: ".*Untitled1.ipynb.*"
     timeout: 30000

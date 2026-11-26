@@ -17,7 +17,9 @@ import com.jupydroid.app.data.fake.FakePlatformNightMode
 import com.jupydroid.app.data.fake.FakeProcessExits
 import com.jupydroid.app.data.fake.FakeRemoteImageReader
 import com.jupydroid.app.data.fake.FakeSharedDocumentReader
+import com.jupydroid.app.data.fake.FakeSpaceEnvironmentCreation
 import com.jupydroid.app.data.fake.FakeSpaceEnvironments
+import com.jupydroid.app.data.fake.FakeSpaceKernelRegistration
 import com.jupydroid.app.data.fake.FakeSpaceRepository
 import com.jupydroid.app.data.fake.FakeSpaceServers
 import com.jupydroid.app.data.fake.FakeSpaceShell
@@ -46,7 +48,9 @@ import com.jupydroid.app.domain.port.PlatformNightMode
 import com.jupydroid.app.domain.port.ProcessExits
 import com.jupydroid.app.domain.port.RemoteImageReader
 import com.jupydroid.app.domain.port.SharedDocumentReader
+import com.jupydroid.app.domain.port.SpaceEnvironmentCreation
 import com.jupydroid.app.domain.port.SpaceEnvironments
+import com.jupydroid.app.domain.port.SpaceKernelRegistration
 import com.jupydroid.app.domain.port.SpaceRepository
 import com.jupydroid.app.domain.port.SpaceServers
 import com.jupydroid.app.domain.port.SpaceShell
@@ -113,6 +117,16 @@ class AppContainer(
    * Null on a device that cannot run a Space becomes the fake, as every Space-backed port does.
    */
   val spaceShell: SpaceShell = FakeSpaceShell(),
+  /**
+   * A project environment's create inside a Space - the `jupydroid-env` run with its progress
+   * streamed. Real where [spaceShell] is; the fake answers the flow without a Space.
+   */
+  val spaceEnvironmentCreation: SpaceEnvironmentCreation = FakeSpaceEnvironmentCreation(),
+  /**
+   * An interpreter's register inside a Space - the `jupydroid-env register` run with its output
+   * streamed. Real where [spaceShell] is; the fake answers the flow without a Space.
+   */
+  val spaceKernelRegistration: SpaceKernelRegistration = FakeSpaceKernelRegistration(),
   /**
    * The install script each catalog harness ships - APK data, so real on every device, the fake
    * only where a test has no assets behind it.

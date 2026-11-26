@@ -30,10 +30,11 @@ data class SpaceProcessRun(val command: String, val exitCode: Int, val output: S
 fun runInSpace(
   vararg command: String,
   runtime: SpaceRuntime = baseSpaceRuntime(InstrumentationRegistry.getInstrumentation().targetContext),
+  extraEnv: Map<String, String> = emptyMap(),
 ): SpaceProcessRun {
   // execProcessBuilder replaces Android's own PATH and linker variables with the Space's, the same
   // way it does for the language server.
-  val process = runtime.execProcessBuilder(command.toList())
+  val process = runtime.execProcessBuilder(command.toList(), extraEnv = extraEnv)
     .redirectErrorStream(true)
     .start()
   val output = process.inputStream.bufferedReader().use { it.readText() }

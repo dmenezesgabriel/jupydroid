@@ -9,8 +9,9 @@ fake kernel that echoes a cell's source back as its output, so a cell does not r
 
 ## Install
 
-Each [release](https://github.com/dmenezesgabriel/jupydroid/releases/latest) publishes one APK,
-`jupydroid-<version>-arm64-v8a.apk`, plus `SHA256SUMS`, an SBOM and the source offer.
+Release `<version>` publishes one APK, `jupydroid-<version>-arm64-v8a.apk`, plus `SHA256SUMS`,
+an SBOM and the source offer; [Releases](https://github.com/dmenezesgabriel/jupydroid/releases)
+lists them all.
 
 - **On the device:** download the APK in the browser, open it from the downloads, and allow the
   install — Android asks once to let the downloading app install apps.
