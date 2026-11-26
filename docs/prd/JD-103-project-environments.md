@@ -31,6 +31,11 @@ Who: the agent, on **`SM-X216B`** — cells run, so rule 2 requires the arm64 ta
 8. A musl environment made by hand — `python3 -m venv ~/envs/hand` then
    `~/envs/hand/bin/pip install ipykernel` — still registers from the panel: the JD-003 route is
    unchanged.
+9. Kernel creation as its own act: an existing interpreter — one of the Space's own pythons, no
+   environment made — becomes a kernelspec every picker offers, through the same act the
+   Environments panel and `jupydroid-env register` in the terminal both reach; a notebook picks
+   it and runs. The verb's exact arguments are T8's to settle; the act is the backlog's "a kernel
+   created for an existing interpreter with no env create at all".
 
 The flow and driver that reproduce this ship as `jd-103-project-environments` (`.maestro/` +
 `scripts/`); the screenshots, `maestro.log` and `run-as` captures they produce stay local
@@ -205,10 +210,12 @@ whose "registration is the person's act" the create act preserves.
 - **Whether the panel offers "make Space default"** — recommended no: `SpaceSettings.defaultKernel`
   and its Settings picker already own that act, and a second writer would split the rule
   `effectiveDefaultKernel` keeps in one place.
-- **Whether the helper also registers** (`jupydroid-env register <path>`) or only creates (T5)
-  is **settled: create-only** — `jupydroid-env create <project>` makes the env and its spec in
-  one act; registering an environment made by hand stays the app's disk act
-  (`SpaceEnvironments.register`), which needs no proot. Unknown or missing arguments are a
+- **Whether the helper also registers** — *reopened by the backlog's standalone-kernel-creation
+  amendment*: `jupydroid-env register` is its own act (T8), an existing interpreter or env
+  becoming a kernelspec with no env create, reachable from the panel and reproducibly from the
+  terminal. What `register` accepts — an env path, an interpreter path, or both — its spec
+  naming, and whether the panel lists interpreters are T8's to settle. T5's settlement stands
+  for `create`: it makes the env and its spec in one act, and unknown or missing arguments are a
   usage refusal, exit 2.
 - **The discovery predicate's details** (T3) is **settled: a project is any top-level directory
   that is not hidden and not itself a conventional env container** — no `.ipynb` or
@@ -263,7 +270,11 @@ whose "registration is the person's act" the create act preserves.
   visible to press
 - [ ] T7 — **Per-kernel launcher cards** — only if the open decision adopts them; otherwise this
   task is struck and the demo covers the picker alone
-- [ ] T8 — **The demo on `SM-X216B`, and the ship.** The numbered Demo above as a Maestro flow with
+- [ ] T8 — **`jupydroid-env register` — kernel creation as its own act.** An existing interpreter
+  or env becomes a kernelspec every notebook's picker offers: the script's `register` verb, the
+  port and panel reach the settled open decision gives it, red-first at every layer, verified on
+  the tablet by a kernel created for an existing interpreter with no env create at all
+- [ ] T9 — **The demo on `SM-X216B`, and the ship.** The numbered Demo above as a Maestro flow with
   evidence; the durable decisions become an ADR; the PRD is deleted and the backlog edited
 
 ## Out of scope
