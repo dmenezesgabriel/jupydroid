@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -223,6 +224,13 @@ class NotebookHardwareKeyTest {
 
     val overflow = compose.onNodeWithContentDescription("Cell actions")
     overflow.performSemanticsAction(SemanticsActions.RequestFocus)
+    // The gate `Enter` is about to meet reads the frame's own snapshot flag, which the blur writes
+    // a beat after the semantics `Focused` does - wait on the button's focus landing, the
+    // observable edge of the same transaction, rather than hoping the write applied (the tablet
+    // races it).
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      overflow.fetchSemanticsNode().config[SemanticsProperties.Focused]
+    }
     overflow.performKeyInput { pressKey(Key.Enter) }
 
     compose.onNodeWithContentDescription("Cell menu Insert code below").assertIsDisplayed()
