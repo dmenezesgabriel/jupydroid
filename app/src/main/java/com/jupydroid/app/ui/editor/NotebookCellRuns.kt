@@ -57,6 +57,11 @@ internal class NotebookCellRuns(
   private val debugger: NotebookDebugger,
   /** The note a run earns when PyPI confirms this Space's platform is why; see [PipInstallExplanation]. */
   private val explanation: PipInstallExplanation,
+  /**
+   * What a chord's document edit owes - the debounced save, since the insert's own run may be a
+   * markdown-only claim whose checkpoint never fires. See [NotebookKernelBindings.noteEdited].
+   */
+  private val noteEdited: () -> Unit,
 ) {
   /** Set while an interrupt is in flight, so the stop is reported as cancelled and not as error. */
   private var interrupting: String? = null
@@ -101,6 +106,13 @@ internal class NotebookCellRuns(
     uiState.update { it.withRunStarted(range) }
     scope.launch { runCells(cells) }
   }
+
+  /**
+   * `run-and-advance` and `run-and-insert` - a [NotebookChordRuns] collaborator the way [NotebookKernel]
+   * holds [NotebookAsks], since the commands are the same machinery plus one document move each
+   * and this file is at detekt's `TooManyFunctions` cap. `::runCells` is what they run through.
+   */
+  internal val chords = NotebookChordRuns(uiState, scope, noteEdited, ::runCells)
 
   /**
    * Runs the given cells in order, stopping at the first that raises - which is what Jupyter

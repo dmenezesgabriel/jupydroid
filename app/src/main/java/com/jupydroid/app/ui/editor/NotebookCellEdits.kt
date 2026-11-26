@@ -295,3 +295,12 @@ fun NotebookCellEdits.appendCell(kind: CellKind): String = insertCellAt(uiState.
 fun NotebookCellEdits.renameFailed(message: String) {
   uiState.update { it.copy(renameOutcome = RenameOutcome((it.renameOutcome?.tick ?: 0) + 1, message)) }
 }
+
+/**
+ * The asked-for field has the caret - [EditorUiState.cellTakingCaret] is a one-shot like
+ * [EditorUiState.caretLanding]: consumed by whoever applies it, or the cell recomposing on a
+ * scroll would yank the caret back minutes after the chord.
+ */
+fun NotebookCellEdits.caretTaken() {
+  uiState.update { it.copy(cellTakingCaret = null) }
+}

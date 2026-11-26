@@ -49,6 +49,16 @@ internal fun CellRevealScroll(state: EditorUiState, listState: LazyListState) {
       ?: return@LaunchedEffect
     if (!listState.isFullyVisible(index)) listState.animateScrollToItem(index)
   }
+  // **The caret-asked cell has to be on screen before its field exists to take the caret** -
+  // `runAndAdvance`/`runAndInsert` await `inViewportChanged` before `mode = 'edit'` for exactly
+  // this (`actions.tsx:839-848`, `:913-918`). The scroll brings it up, the field composes, and
+  // `EditorUiState.cellTakingCaret` does the rest - the same `isFullyVisible` guard, since a
+  // cell already in front of the reader must not be yanked either.
+  LaunchedEffect(state.cellTakingCaret) {
+    val asked = state.cellTakingCaret ?: return@LaunchedEffect
+    val index = state.cellsOnScreen.indexOfFirst { it.id == asked }
+    if (index >= 0 && !listState.isFullyVisible(index)) listState.animateScrollToItem(index)
+  }
 }
 
 /**

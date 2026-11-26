@@ -449,6 +449,14 @@ fun EditorScreen(
               tocHeadings = tocHeadings,
               listState = listState,
               onCaretLanded = viewModel.edits::caretLanded,
+              onCaretTaken = viewModel.edits::caretTaken,
+              // Drop the caret first where the intent drops it - `NotebookCellsPublication`'s own
+              // ordering for leaving an editor: the blur is what carries the mode to `command`,
+              // and it has to precede the command the blur belongs to.
+              onNotebookChord = { intent ->
+                if (intent.dropsCaret) focusManager.clearFocus()
+                viewModel.notebookKey(intent)
+              },
               onAddCell = { kind -> scope.launch { viewModel.edits.appendCellInView(kind, listState) } },
               modifier = Modifier.weight(1f),
             )
@@ -474,31 +482,3 @@ fun EditorScreen(
  * flip while the find bar is held must not let this one overtake them.
  */
 private fun EditorUiState.backAsksToClose(): Boolean = dirty && mode != CellMode.EDIT && !selecting && search == null
-
-/**
- * The `selectKernel` dialog and the condition that raises it - lifted out of [EditorScreen]
- * because the branchcount the pair adds there is a complexity gate's worth on its own.
- *
- * `Context.initialize` -> `selectKernel` (`docregistry/src/context.ts:599-603`): a kernelspec the
- * file names and the catalogue has never heard of opens the picker as soon as the document is
- * ready, and again for each refused run (`cellexecutor.ts:69`). The owe
- * [EditorUiState.kernelPickRequired] counts is the key rather than the groups: a second owe while
- * the first is still up must still be a change. The dialog draws while its groups are in state -
- * see [KernelPickerDialog] for the reference's shape.
- */
-@Composable
-private fun KernelPickerHost(state: EditorUiState, kernel: NotebookKernel) {
-  LaunchedEffect(state.kernelPickRequired) {
-    if (state.kernelPickRequired > 0) kernel.picker.open()
-  }
-  state.kernelPicker?.let { groups ->
-    KernelPickerDialog(
-      groups = groups,
-      notebookTitle = state.title,
-      noKernel = !state.kernelConnected,
-      kernelDisplayName = state.kernelDisplayName,
-      onPick = kernel.picker::pick,
-      onDismiss = kernel.picker::dismiss,
-    )
-  }
-}

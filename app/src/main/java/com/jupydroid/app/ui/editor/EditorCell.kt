@@ -121,6 +121,13 @@ internal fun EditorCell(
   caretLanding: DefinitionTarget? = null,
   /** Told once the landing was applied - `NotebookCellEdits.caretLanded` under another name. */
   onCaretLanded: () -> Unit = {},
+  /**
+   * `true` when a command asked this cell's field to take the caret - `EditorUiState.cellTakingCaret`
+   * already filtered to this cell, so only the cell a run chord made ever sees it. Code cells only.
+   */
+  codeTakesCaret: Boolean = false,
+  /** Told once the field took the caret - `NotebookCellEdits.caretTaken` wired through. */
+  onCaretTaken: () -> Unit = {},
   modifier: Modifier = Modifier,
 ) {
   // One text state per cell, owned here rather than inside the field: a cell has one source, and
@@ -236,6 +243,8 @@ internal fun EditorCell(
             indentUnit = indentUnit,
             caretLanding = caretLanding,
             onCaretLanded = onCaretLanded,
+            takesCaret = codeTakesCaret,
+            onCaretTaken = onCaretTaken,
             fieldName = CODE_CELL_NAME,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )

@@ -127,6 +127,16 @@ fun CodeCellField(
   /** Told once the landing was applied - clears the state's one-shot. */
   onCaretLanded: () -> Unit = {},
   /**
+   * `true` when the notebook asked this cell's field to take the caret - `EditorUiState.cellTakingCaret`
+   * filtered to this cell. The run chords' way of reaching `mode = 'edit'`: `runAndAdvance` and
+   * `runAndInsert` set it on the cell they made, and the field taking focus is what edits it
+   * (`packages/notebook/src/actions.tsx:839-848`, `:913-918` - ours through the caret, theirs
+   * through the flag).
+   */
+  takesCaret: Boolean = false,
+  /** Told once the ask was taken - clears the state's one-shot, so a recomposition cannot re-yank it. */
+  onCaretTaken: () -> Unit = {},
+  /**
    * How the text came out, for a caller that has to put a *place in it* on screen.
    *
    * The field owns this - it is what `BasicTextField` measured - and a caller that guessed instead
@@ -167,6 +177,14 @@ fun CodeCellField(
   val scroll = remember { ScrollState(0) }
   val landingFocus = remember { FocusRequester() }
   val symbolFlash = definitionLandingFlash(state, caretLanding, landingFocus, onCaretLanded)
+
+  // The chord's caret ask lands on the field's own requester - the field has to exist and be
+  // on screen before it can hold a caret, the same fact `inViewportChanged` waits on upstream.
+  LaunchedEffect(takesCaret) {
+    if (!takesCaret) return@LaunchedEffect
+    landingFocus.requestFocus()
+    onCaretTaken()
+  }
 
   LaunchedEffect(symbolAsk) {
     if (symbolAsk > 0) hover = hoverAt(state.text.toString(), state.selection.end)

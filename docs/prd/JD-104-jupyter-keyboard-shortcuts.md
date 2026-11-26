@@ -176,7 +176,7 @@ Every port gets a `Fake…` — unchanged: this item adds no port.
 
 ## Tasks
 
-- [ ] T1 — **The key layer and the run chords.** `notebookChord(mode, chord) → intent` with the
+- [x] T1 — **The key layer and the run chords.** `notebookChord(mode, chord) → intent` with the
   edit-mode rows, `onPreviewKeyEvent` on the cells container, and the three Enter commands:
   `Ctrl+Enter` in place, `Shift+Enter` = `runAndAdvance` (head+1; at the last cell, an undoable
   default-cell insert + EDIT), `Alt+Enter` = `runAndInsert` (insert below + head+1 + EDIT,
