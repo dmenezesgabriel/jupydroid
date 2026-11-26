@@ -29,4 +29,13 @@ class NotebookCellSelection(private val uiState: MutableStateFlow<EditorUiState>
 
   /** `notebook:deselect-all`, which is also how the mode is left. */
   fun deselectAll() = uiState.update { it.withSelectionCollapsed() }
+
+  /**
+   * Focus landing on a cell's frame - upstream's `_evtFocusIn`. Also what a tap on the cell's
+   * chrome asks for, since upstream's `_evtMouseDown` settles on the same selection.
+   */
+  fun activate(cellId: String) = uiState.update { it.withCellActivated(cellId) }
+
+  /** `notebook:enter-edit-mode` - the ask is for the caret; the mode arrives with its focus. */
+  fun enterEditMode() = uiState.update { it.withEditRequested() }
 }

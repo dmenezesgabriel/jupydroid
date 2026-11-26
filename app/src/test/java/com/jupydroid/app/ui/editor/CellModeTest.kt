@@ -5,6 +5,7 @@ import com.jupydroid.app.domain.model.CellKind
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -87,6 +88,78 @@ class CellModeTest {
 
     assertEquals(CellMode.COMMAND, back.mode)
     assertEquals("c1", back.selectedCellId)
+  }
+
+  /**
+   * What `notebook:enter-edit-mode` asks of the state: upstream's `NotebookActions.enterEditMode`
+   * sets the mode and focuses the editor (`packages/notebook/src/actions.tsx`), but here the ask
+   * is for the caret, and the mode arrives with the focus event the field reports - focus cannot
+   * land in a mode that already claims it.
+   */
+  @Test
+  fun askingToEditACodeCell_requestsTheCaretWithoutChangingTheMode() {
+    val asked = notebook.withCellSelected("c1").withEditRequested()
+
+    assertEquals("c1", asked.cellTakingCaret)
+    assertEquals("the ask places the caret; its focus event is what edits", CellMode.COMMAND, asked.mode)
+  }
+
+  @Test
+  fun askingToEditAMarkdownCell_opensItsEditorAndRequestsTheCaret() {
+    val asked = notebook.withCellSelected("c2").withEditRequested()
+
+    assertTrue(asked.markdownBeingEdited.contains("c2"))
+    assertEquals("c2", asked.markdownTakingCaret)
+    assertNull("a markdown cell's caret lives in its editor, not the code field", asked.cellTakingCaret)
+  }
+
+  /**
+   * `activeCell!.inputHidden = false` in `setMode` again: entering edit mode on a collapsed cell
+   * expands the source the caret is about to land in.
+   */
+  @Test
+  fun askingToEditACollapsedCell_expandsItsSource() {
+    val collapsed = notebook.copy(
+      cells = notebook.cells.map { if (it.id == "c1") it.copy(sourceHidden = true) else it },
+    )
+
+    val asked = collapsed.withCellSelected("c1").withEditRequested()
+
+    assertFalse(asked.cells.first { it.id == "c1" }.sourceHidden)
+    assertEquals("c1", asked.cellTakingCaret)
+  }
+
+  @Test
+  fun askingToEditWithNothingSelected_changesNothing() {
+    assertEquals(notebook, notebook.withEditRequested())
+  }
+
+  /**
+   * Focus on a cell's frame is upstream's `_evtFocusIn`: it selects the cell, and the DOM node
+   * being focused is never the editor, so the mode is command
+   * (`packages/notebook/src/widget.ts:3541-3563` - `activeCellIndex` first, `setMode` second).
+   */
+  @Test
+  fun activatingACellFromEdit_returnsToCommandKeepingTheSelection() {
+    val back = notebook.withCellSelected("c1").withMode(CellMode.EDIT).withCellActivated("c1")
+
+    assertEquals(CellMode.COMMAND, back.mode)
+    assertEquals("c1", back.selectedCellId)
+  }
+
+  @Test
+  fun activatingADifferentCell_movesTheSelectionInCommandMode() {
+    val moved = notebook.withCellSelected("c1").withCellActivated("c2")
+
+    assertEquals("c2", moved.selectedCellId)
+    assertEquals(CellMode.COMMAND, moved.mode)
+  }
+
+  @Test
+  fun activatingACellThatIsNotThere_changesNothing() {
+    val editing = notebook.withCellSelected("c1").withMode(CellMode.EDIT)
+
+    assertEquals(editing, editing.withCellActivated("gone"))
   }
 
   /**

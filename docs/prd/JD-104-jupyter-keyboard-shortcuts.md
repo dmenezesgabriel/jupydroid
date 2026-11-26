@@ -147,7 +147,10 @@ that is the decision this item inherits, and the next section resolves it.
 
 - **Whether `KEYCODE_ESCAPE` reaches Compose on the tablet.** Some builds fold Esc → Back
   before the view tree; `Ctrl+M` is bound upstream for the same act, so the fallback exists by
-  design. Measured in T2 on the device, not assumed.
+  design. Measured in T2: `input keyevent KEYCODE_ESCAPE` reaches Compose on the SM-X216B (and
+  dev36) — an unclaimed Escape in command mode matched no binding and the notebook stayed open.
+  A claimed stroke still consumes its key-up, so a build that does translate never sees the
+  release — the fallback stays real for hardware keyboards the demo cannot reach.
 - **What Unexpected Keyboard's Enter sends.** `sendKeyEvent` arrives at `onPreviewKeyEvent`
   and the chords bind it; `commitText("\n")` would land as text in the field instead, which
   narrows what the IME half can drive. Measured on the device during T1 — the demo then drives
@@ -181,7 +184,7 @@ Every port gets a `Fake…` — unchanged: this item adds no port.
   `Ctrl+Enter` in place, `Shift+Enter` = `runAndAdvance` (head+1; at the last cell, an undoable
   default-cell insert + EDIT), `Alt+Enter` = `runAndInsert` (insert below + head+1 + EDIT,
   scrolled in). `NotebookHardwareKeyTest` drives `performKeyInput`. Closes `GAP-020`.
-- [ ] T2 — **The command-mode focus owner.** The selected cell's frame `focusable()` in
+- [x] T2 — **The command-mode focus owner.** The selected cell's frame `focusable()` in
   command mode; focus-on-frame selects (`GAP-005`'s primitive — a tap on chrome selects); the
   head cell's frame follows the selection; `Enter` → field focus → EDIT; `Escape`/`Ctrl+M` →
   frame focus → COMMAND. The ADR-0145 ring draws on the head frame. Esc-reachability measured
