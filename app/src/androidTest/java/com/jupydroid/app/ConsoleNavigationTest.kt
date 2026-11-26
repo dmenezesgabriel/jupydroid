@@ -30,6 +30,7 @@ import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.JupydroidTheme
@@ -156,7 +157,7 @@ class ConsoleNavigationTest {
 
     compose.onNodeWithContentDescription(NEW_LAUNCHER).performClick()
     waitForTag("launcher-screen")
-    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}").performClick()
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}-$DEFAULT_KERNEL_ID").performClick()
 
     waitForContentDescription("Tab: Console 2")
     compose.onAllNodesWithContentDescription("Tab: Console 1").assertCountEquals(0)
@@ -165,7 +166,7 @@ class ConsoleNavigationTest {
   private fun openLauncherConsoleCard() {
     compose.onNodeWithContentDescription(NEW_LAUNCHER).performClick()
     waitForTag("launcher-screen")
-    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}").performClick()
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}-$DEFAULT_KERNEL_ID").performClick()
   }
 
   private fun openTheNotebook() {

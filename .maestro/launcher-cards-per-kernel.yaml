@@ -1,0 +1,65 @@
+appId: com.jupydroid.app
+---
+# One launcher card per kernelspec: the driver seeds a second spec (`probe`) into base's user
+# kernels dir, so the Notebook and Console sections each draw two cards. The probe notebook card
+# records `probe` in its metadata (the driver's `run-as` read is the oracle - a screen cannot show
+# what was written), and the probe console card connects a kernel whose spec `env` carries
+# JUPYROID_PROBE - `os.environ.get` answers `yes` only on that kernel, where python3's answers `no`.
+#
+# TABLET ONLY (SM-X216B): the console half boots a real kernel; on x86_64 FakeKernelGateway echoes
+# the source and the env marker proves nothing.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+
+# The launcher auto-fills the detail area at this window, so all four kernel cards are on screen.
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_NOTEBOOK-probe"
+    timeout: 30000
+- assertVisible:
+    id: "launcher-card-NEW_NOTEBOOK-python3"
+- assertVisible:
+    id: "launcher-card-NEW_CONSOLE-python3"
+- assertVisible:
+    id: "launcher-card-NEW_CONSOLE-probe"
+- assertVisible: "Python (probe)"
+- takeScreenshot: 01-launcher-cards-per-kernel
+
+- tapOn:
+    id: "launcher-card-NEW_NOTEBOOK-probe"
+- extendedWaitUntil:
+    visible: "Tab: Untitled.ipynb"
+    timeout: 30000
+- takeScreenshot: 02-probe-notebook-open
+
+# The auto-filled launcher is not a tab once a document holds the detail area - the rail's `+`
+# (`NEW_LAUNCHER`) is the reach that exists while one is open, ConsoleNavigationTest's own point.
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_CONSOLE-probe"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_CONSOLE-probe"
+- extendedWaitUntil:
+    visible: "Tab: Console 1"
+    timeout: 120000
+- takeScreenshot: 03-probe-console-open
+
+# Single quotes for input-prompt-answers.yaml's reason: the field's auto-closing pairs type over
+# cleanly. `no` is what python3's kernel would print - `yes` exists only under probe's spec env.
+- tapOn:
+    id: "console-input-field"
+- inputText: "import os; print(os.environ.get('JUPYROID_PROBE', 'no'))"
+- tapOn: "Run"
+- extendedWaitUntil:
+    visible:
+      text: "yes"
+      childOf: {text: "Cell output"}
+    timeout: 300000
+- hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: 04-probe-console-answers-yes

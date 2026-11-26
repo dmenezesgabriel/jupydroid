@@ -14,6 +14,7 @@ import com.jupydroid.app.data.disk.DiskWorkspaceRepository
 import com.jupydroid.app.data.fake.FakeLauncherSettingsRepository
 import com.jupydroid.app.di.AppContainer
 import com.jupydroid.app.di.EnteredSpacePorts
+import com.jupydroid.app.domain.model.DEFAULT_KERNEL_ID
 import com.jupydroid.app.domain.model.LauncherSettings
 import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.console.CONSOLE_INPUT_FIELD_TAG
@@ -93,7 +94,7 @@ class ConsoleRecreationTest {
   private fun openAConsoleCard() {
     compose.onNodeWithContentDescription(NEW_LAUNCHER).performClick()
     waitForTag("launcher-screen")
-    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}").performClick()
+    compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_CONSOLE.name}-$DEFAULT_KERNEL_ID").performClick()
   }
 
   private fun waitForPrompt() {

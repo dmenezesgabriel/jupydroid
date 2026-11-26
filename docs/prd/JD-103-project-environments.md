@@ -205,8 +205,13 @@ whose "registration is the person's act" the create act preserves.
   project folder, and T2's naming gives `proj-a/.venv` → `proj-a-.venv` /
   `Python (proj-a/.venv)` for free. `envs/<project>` was rejected: a cleaner spec name but an
   env detached from the project tree that matches no reference's create convention.
-- **Whether the launcher gains a card per kernel** (T7, only if cheap). JupyterLab's own pattern
-  (`index.ts` above); our `LAUNCHER_ITEMS` collapses to one card today.
+- **Whether the launcher gains a card per kernel** (T7) is **settled: adopted** —
+  `launcherItems(specs)` draws one Notebook and one Console card per kernelspec the Space lists,
+  the default spec's first then the rest by `display_name`, each card carrying its `KernelSpec`
+  so the created notebook records it and the console's `kernelPreference` names it — the
+  reference's `args.kernelName` (`notebook-extension/src/index.ts:2597`,
+  `console-extension/src/index.ts:408`). The utility cards are unchanged, and a catalogue read
+  that fails falls back to the Space's declared kernels rather than a blank launcher.
 - **Whether the panel offers "make Space default"** — recommended no: `SpaceSettings.defaultKernel`
   and its Settings picker already own that act, and a second writer would split the rule
   `effectiveDefaultKernel` keeps in one place.
@@ -268,8 +273,9 @@ whose "registration is the person's act" the create act preserves.
 - [x] T6 — **The Environments panel.** `SidePanel.ENVIRONMENTS` end to end: enum, label, icon,
   panel UI, ViewModel, rail and `MoreRail` reach at one pane; instrumented tests for what is
   visible to press
-- [ ] T7 — **Per-kernel launcher cards** — only if the open decision adopts them; otherwise this
-  task is struck and the demo covers the picker alone
+- [x] T7 — **Per-kernel launcher cards** — adopted: a card per kernelspec in each kernel section,
+  default first then `display_name`, the card's spec recorded on the notebook and preferred by
+  the console; the open decision is settled
 - [ ] T8 — **`jupydroid-env register` — kernel creation as its own act.** An existing interpreter
   or env becomes a kernelspec every notebook's picker offers: the script's `register` verb, the
   port and panel reach the settled open decision gives it, red-first at every layer, verified on

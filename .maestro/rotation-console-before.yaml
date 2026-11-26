@@ -14,7 +14,7 @@ appId: com.jupydroid.app
 - runFlow: open-base-space.yaml
 - tapOn: "Tab: Launcher"
 - tapOn:
-    id: "launcher-card-NEW_CONSOLE"
+    id: "launcher-card-NEW_CONSOLE-python3"
 - extendedWaitUntil:
     visible: "Tab: Console 1"
     timeout: 10000

@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "/opt/gnu/python/bin/python3.12",
+    "-m",
+    "jupydroid_kernel",
+    "-f",
+    "{connection_file}",
+    "--log-level=DEBUG"
+  ],
+  "display_name": "Python (probe)",
+  "language": "python",
+  "env": {
+    "PYTHONFAULTHANDLER": "1",
+    "LD_PRELOAD": "",
+    "PYTHONUSERBASE": "/pkgs-gnu",
+    "PROOT_SIGSYS_ENOSYS": "1",
+    "PATH": "/pkgs-gnu/bin:/pkgs/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "JUPYROID_PROBE": "yes"
+  },
+  "metadata": {
+    "debugger": true
+  }
+}

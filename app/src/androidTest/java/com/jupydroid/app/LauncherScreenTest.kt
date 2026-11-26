@@ -32,7 +32,6 @@ import com.jupydroid.app.ui.AtFontScale
 import com.jupydroid.app.ui.breaksInsideAWord
 import com.jupydroid.app.ui.isCut
 import com.jupydroid.app.ui.launcher.LAUNCHER_CARD_TAG
-import com.jupydroid.app.ui.launcher.LAUNCHER_ITEMS
 import com.jupydroid.app.ui.launcher.LauncherCommand
 import com.jupydroid.app.ui.launcher.LauncherItem
 import com.jupydroid.app.ui.launcher.LauncherScreen
@@ -64,9 +63,11 @@ class LauncherScreenTest {
 
   @Test
   fun showsTheCwdAndEverySectionInRankOrder() {
+    val viewModel = viewModel()
     compose.setContent {
-      LauncherScreen(cwd = "reports", viewModel = viewModel(), onLaunched = {})
+      LauncherScreen(cwd = "reports", viewModel = viewModel, onLaunched = {})
     }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.items.value.isNotEmpty() }
 
     compose.onNodeWithText("reports").assertIsDisplayed()
     compose.onNodeWithText("Notebook").assertIsDisplayed()
@@ -89,11 +90,13 @@ class LauncherScreenTest {
   fun anEmptyCwdHeadingLeavesOneMarginRatherThanALineBetweenTwo() {
     // The tab strip above the launcher consumes the status bar's inset (`MainAreaTabStrip`), so the
     // screen is measured with it consumed, not with whatever status bar the device draws.
+    val viewModel = viewModel()
     compose.setContent {
       Box(Modifier.consumeWindowInsets(WindowInsets.statusBars)) {
-        LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {})
+        LauncherScreen(cwd = "", viewModel = viewModel, onLaunched = {})
       }
     }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.items.value.isNotEmpty() }
 
     // The reference's empty `h3` has no line box, so its two 1em margins collapse into one: the first
     // section starts one top padding plus one margin down, not 16 + 16 + a 20dp line + 16.
@@ -103,9 +106,11 @@ class LauncherScreenTest {
 
   @Test
   fun showsKernelCardsAsLetterTiles() {
+    val viewModel = viewModel()
     compose.setContent {
-      LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {})
+      LauncherScreen(cwd = "", viewModel = viewModel, onLaunched = {})
     }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.items.value.isNotEmpty() }
 
     // Both kernel cards carry the kernelspec's label - "Python 3" twice - so the sections and
     // their letter tiles are what tell a Notebook card from a Console one. The letter itself is
@@ -124,6 +129,7 @@ class LauncherScreenTest {
     compose.setContent {
       LauncherScreen(cwd = "reports", viewModel = viewModel, onLaunched = {})
     }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.items.value.isNotEmpty() }
 
     compose.onNodeWithTag("$LAUNCHER_CARD_TAG-${LauncherCommand.NEW_TEXT_FILE.name}").performClick()
 
@@ -135,12 +141,14 @@ class LauncherScreenTest {
 
   @Test
   fun everyCardKeepsItsWholeLabelAtTwiceTheFontScale() {
-    compose.setContent { AtFontScale(2f) { LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}) } }
+    val viewModel = viewModel()
+    compose.setContent { AtFontScale(2f) { LauncherScreen(cwd = "", viewModel = viewModel, onLaunched = {}) } }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.items.value.isNotEmpty() }
 
-    LAUNCHER_ITEMS.forEach { item ->
+    viewModel.items.value.forEach { item ->
       assertFalse("${item.command}'s label is cut", labelOf(item).isCut())
       assertFalse("${item.command}'s label breaks inside a word", labelOf(item).breaksInsideAWord())
-      compose.onNodeWithTag(cardTag(item)).assertHeightIsAtLeast(CARD_MINIMUM)
+      compose.onNodeWithTag(item.testTag).assertHeightIsAtLeast(CARD_MINIMUM)
     }
   }
 
@@ -148,13 +156,17 @@ class LauncherScreenTest {
   fun cardsInOneRowAreAsTallAsTheTallestAtTwiceTheFontScale() {
     // The tablet's one-pane width, which puts the four cards of the Other section in one row. The bounds
     // are the unclipped ones: the window cuts the row's foot, and a clipped height reads the same for all.
+    val viewModel = viewModel()
     compose.setContent {
       Box(Modifier.requiredWidth(TABLET_ONE_PANE_WIDTH)) {
-        AtFontScale(2f) { LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}) }
+        AtFontScale(2f) { LauncherScreen(cwd = "", viewModel = viewModel, onLaunched = {}) }
       }
     }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.items.value.isNotEmpty() }
 
-    val rows = LAUNCHER_ITEMS.map { compose.onNodeWithTag(cardTag(it)).getUnclippedBoundsInRoot() }.groupBy { it.top }
+    val rows = viewModel.items.value
+      .map { compose.onNodeWithTag(it.testTag).getUnclippedBoundsInRoot() }
+      .groupBy { it.top }
     rows.values.forEach { row ->
       val heights = row.map { it.bottom - it.top }
       assertTrue("a row's cards are $heights tall", heights.max() - heights.min() < ONE_PIXEL_TOLERANCE)
@@ -163,20 +175,21 @@ class LauncherScreenTest {
 
   @Test
   fun aCardIsASquareAtTheDefaultFontScale() {
-    compose.setContent { AtFontScale(1f) { LauncherScreen(cwd = "", viewModel = viewModel(), onLaunched = {}) } }
+    val viewModel = viewModel()
+    compose.setContent { AtFontScale(1f) { LauncherScreen(cwd = "", viewModel = viewModel, onLaunched = {}) } }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.items.value.isNotEmpty() }
 
-    LAUNCHER_ITEMS.forEach { item ->
-      compose.onNodeWithTag(cardTag(item)).assertHeightIsEqualTo(CARD_MINIMUM)
+    viewModel.items.value.forEach { item ->
+      compose.onNodeWithTag(item.testTag).assertHeightIsEqualTo(CARD_MINIMUM)
     }
   }
 
-  private fun cardTag(item: LauncherItem): String = "$LAUNCHER_CARD_TAG-${item.command.name}"
-
   /** The label's own node: the card merges its descendants, so the text is only in the unmerged tree. */
   private fun labelOf(item: LauncherItem): SemanticsNodeInteraction =
-    compose.onNode(hasText(item.label) and hasAnyAncestor(hasTestTag(cardTag(item))), useUnmergedTree = true)
+    compose.onNode(hasText(item.label) and hasAnyAncestor(hasTestTag(item.testTag)), useUnmergedTree = true)
 
   private companion object {
+    const val TIMEOUT_MILLIS = 5_000L
     val CARD_MINIMUM = 100.dp
     val ONE_PIXEL_TOLERANCE = 0.5.dp
     val TABLET_ONE_PANE_WIDTH = 800.dp

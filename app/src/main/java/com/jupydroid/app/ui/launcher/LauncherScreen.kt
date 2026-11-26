@@ -54,9 +54,6 @@ import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extension.api.MarginedAlertDialog
 import com.jupydroid.extension.api.focusRing
 
-/** What Maestro and Compose tests address - one tag per card, suffixed by its command. */
-const val LAUNCHER_CARD_TAG = "launcher-card"
-
 /** `--jp-jupyter-icon-color` (theme variables.css:444) verbatim - the Notebook letter in dark. */
 private val NOTEBOOK_LETTER_DARK = Color(0xFFF37626)
 
@@ -106,6 +103,7 @@ fun LauncherScreen(
   modifier: Modifier = Modifier,
 ) {
   val error by viewModel.error.collectAsStateWithLifecycle()
+  val items by viewModel.items.collectAsStateWithLifecycle()
   Scaffold(
     // `testTagsAsResourceId` is what the cards' LAUNCHER_CARD_TAGs ride to a Maestro flow - the
     // same line TerminalPaneScreen sets for `console-input-field`'s own reachability.
@@ -129,7 +127,7 @@ fun LauncherScreen(
       ) {
         CwdHeading(cwd)
         LauncherCategory.entries.forEach { category ->
-          LauncherSection(category) { item ->
+          LauncherSection(category, items.filter { it.category == category }) { item ->
             LauncherCard(item) { viewModel.launch(item, cwd, onLaunched) }
           }
         }
@@ -173,8 +171,11 @@ private fun CwdHeading(cwd: String) {
 /** A `jp-Launcher-section`: title row with the `border-color2` rule under it, then the cards. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LauncherSection(category: LauncherCategory, card: @Composable FlowRowScope.(LauncherItem) -> Unit) {
-  val items = LAUNCHER_ITEMS.filter { it.category == category }
+private fun LauncherSection(
+  category: LauncherCategory,
+  items: List<LauncherItem>,
+  card: @Composable FlowRowScope.(LauncherItem) -> Unit,
+) {
   if (items.isEmpty()) return
   Column(Modifier.padding(bottom = Spacing.md)) {
     // `jp-Launcher-sectionHeader`: margin-left 5px, border-bottom border-color2, margin-bottom 8px.
@@ -230,7 +231,7 @@ private fun FlowRowScope.LauncherCard(item: LauncherItem, onClick: () -> Unit) {
       .width(IntrinsicSize.Min)
       .heightIn(min = CARD_SIZE)
       .semantics { contentDescription = item.label }
-      .testTag("$LAUNCHER_CARD_TAG-${item.command.name}")
+      .testTag(item.testTag)
       .focusRing(),
     shape = MaterialTheme.shapes.extraSmall,
     color = editorPalette.cellBackground,
