@@ -1,0 +1,44 @@
+appId: com.jupydroid.app
+---
+# The terminal half of the same act the panel's Create runs: the helper is installed at
+# /usr/local/bin/jupydroid-env in every Space (JupydroidEnvHelper.install,
+# app/src/main/java/com/jupydroid/app/data/space/JupydroidEnvHelper.kt), so the terminal runs it
+# by name. `create` makes <project>/.venv with the gnu interpreter, pips ipykernel into it and
+# writes its kernelspec - but only for a top-level folder that exists, so the folder is made
+# first, in the same typed line a person would write.
+#
+# The status goes to a file in the workspace and the driver greps it: cross-cutting.md §8.6
+# forbids gating a flow's pass on `visible:` reading the terminal canvas. `>>` and `$?` rather
+# than `${…}`, which Maestro evaluates as JavaScript.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "New Launcher"
+    timeout: 10000
+- tapOn: "New Launcher"
+- extendedWaitUntil:
+    visible:
+      id: "launcher-card-NEW_TERMINAL"
+    timeout: 10000
+- tapOn:
+    id: "launcher-card-NEW_TERMINAL"
+- extendedWaitUntil:
+    visible: "Tab: Terminal .*"
+    timeout: 120000
+- waitForAnimationToEnd:
+    timeout: 15000
+# A tap settles the IME's connection before typing - the first keystrokes can race it otherwise
+# (terminal-tablet measured `ech` of `echo` eaten).
+- tapOn:
+    id: "terminal-input"
+- inputText: "mkdir -p ~/proj-c && jupydroid-env create proj-c >proj-c.txt 2>&1; echo create-rc=$? >>proj-c.txt; tail -3 proj-c.txt"
+- pressKey: Enter
+- takeScreenshot: 01-jupydroid-env-create-typed

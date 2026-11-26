@@ -74,6 +74,7 @@ nav:
   - Interface: interface.md
   - Notebooks: notebooks.md
   - Console: console.md
+  - Environments: environments.md
   - Terminal: terminal.md
   - Files: files.md
   - Search: search.md

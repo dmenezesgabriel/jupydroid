@@ -1,0 +1,57 @@
+appId: com.jupydroid.app
+---
+# Thesis is run and entered, and the Environments panel opens on its seeded project folders
+# proj-a and proj-b holding notebooks but no environment yet. Each section's Create runs
+# `jupydroid-env create <project>` - the same bytes the terminal's /usr/local/bin/jupydroid-env
+# runs (app/src/main/java/com/jupydroid/app/data/space/JupydroidEnvHelper.kt) - streaming the
+# script's output into the panel's act area, and the act ends with the environment listed *and*
+# its kernel registered, which is the only state this part waits on.
+#
+# A create is a download measured in tens of seconds; the waits carry minutes, the screenshots
+# are the evidence.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "^Environments$"
+- extendedWaitUntil:
+    visible: "Create environment for proj-a"
+    timeout: 10000
+# Two project sections and the Space's two own interpreters, and no environment anywhere: the
+# panel starts with none - `ipykernel installed` is an environment row's line, and no `.venv`
+# text exists until a create lands.
+- assertVisible: "Create environment for proj-b"
+- assertVisible: "/usr/bin/python3"
+- assertVisible: "/opt/gnu/python/bin/python3.12"
+- assertNotVisible: "ipykernel installed"
+- assertNotVisible: ".*\\.venv.*"
+- takeScreenshot: 01-environments-panel-projects-and-no-envs
+- tapOn: "Create environment for proj-a"
+- takeScreenshot: 02-creating-environment-for-proj-a
+- extendedWaitUntil:
+    visible: "Registered as kernel proj-a-.venv"
+    timeout: 300000
+- assertVisible: "proj-a/.venv"
+- assertVisible: "ipykernel installed"
+- takeScreenshot: 03-proj-a-env-made-and-kernel-registered
+# The second create waits on the first's verdict - the ViewModel refuses a concurrent one.
+- scrollUntilVisible:
+    element: "Create environment for proj-b"
+    direction: DOWN
+    timeout: 10000
+- tapOn: "Create environment for proj-b"
+- takeScreenshot: 04-creating-environment-for-proj-b
+- extendedWaitUntil:
+    visible: "Registered as kernel proj-b-.venv"
+    timeout: 300000
+- assertVisible: "proj-b/.venv"
+- takeScreenshot: 05-proj-b-env-made-and-kernel-registered

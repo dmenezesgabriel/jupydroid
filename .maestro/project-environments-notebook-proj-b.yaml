@@ -1,0 +1,50 @@
+appId: com.jupydroid.app
+---
+# proj-b's half of the demo: the seeded notebook inside proj-b picks `Python (proj-b/.venv)` in
+# its own picker and both cells run on that env's interpreter - the `%pip` pin is 0.10.0 here,
+# so the version the kernel computes, `ver=0.10.0`, is the number proj-a's env can never print.
+# The two installs never meet: each cell ran on its own environment's interpreter.
+#
+# "Run all cells" rather than the second cell's own button: `index` counts *rendered* `Run cell`
+# buttons and the count moves with the window (html-output.yaml's header). `scrollUntilVisible`
+# on the printed value is scroll and wait in one.
+- launchApp
+- extendedWaitUntil:
+    visible: "Run Thesis \\(space-1\\)"
+    timeout: 10000
+- tapOn: "Run Thesis \\(space-1\\)"
+# Stop, not an enabled Open: see `open-base-space.yaml` for why Open's own node cannot be read.
+- extendedWaitUntil:
+    visible: "Stop Thesis \\(space-1\\)"
+    timeout: 120000
+- tapOn: "Open Thesis \\(space-1\\)"
+- extendedWaitUntil:
+    visible: "proj-b"
+    timeout: 10000
+- tapOn: "proj-b"
+- extendedWaitUntil:
+    visible: "deps.ipynb"
+    timeout: 10000
+- tapOn: "deps.ipynb"
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 30000
+- tapOn: "No Kernel"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+- assertVisible: "Python \\(proj-b/\\.venv\\)"
+- takeScreenshot: 01-picker-offers-proj-b-env
+- tapOn: "Python \\(proj-b/\\.venv\\)"
+- tapOn: "^Select$"
+- extendedWaitUntil:
+    visible: "Kernel Python \\(proj-b/\\.venv\\).*"
+    timeout: 30000
+- takeScreenshot: 02-notebook-bound-to-proj-b-env
+- tapOn: "Run all cells"
+- scrollUntilVisible:
+    element:
+      text: "ver=0\\.10\\.0"
+    direction: DOWN
+    timeout: 300000
+- takeScreenshot: 03-cells-ran-under-proj-b-env

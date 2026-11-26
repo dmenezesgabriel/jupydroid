@@ -58,6 +58,7 @@ SITE_SHOT_FLOWS=(
   "portrait:$ROOT/.maestro/site-interface-one-pane-shots.yaml"
   "$ROOT/.maestro/site-notebooks-shots.yaml"
   "$ROOT/.maestro/site-console-shots.yaml"
+  "$ROOT/.maestro/site-environments-shots.yaml"
   "$ROOT/.maestro/site-terminal-shots.yaml"
   "$ROOT/.maestro/site-files-shots.yaml"
   "$ROOT/.maestro/site-files-import-shots.yaml"

@@ -14,9 +14,16 @@ appId: com.jupydroid.app
     times: 4
     commands:
       - back
+# The Space may have stopped since part 2 left it running - a process death stops it with the
+# app - so the row can read Run rather than Stop, and it is run again before it is opened.
+- runFlow:
+    when:
+      visible: "Run Thesis \\(space-1\\)"
+    commands:
+      - tapOn: "Run Thesis \\(space-1\\)"
 - extendedWaitUntil:
     visible: "Stop Thesis \\(space-1\\)"
-    timeout: 10000
+    timeout: 120000
 - tapOn: "Open Thesis \\(space-1\\)"
 # Open can land on the Launcher (which already offers the registered spec as a notebook kernel).
 # Files toggles the explorer, so it is tapped only when the explorer is not already showing.

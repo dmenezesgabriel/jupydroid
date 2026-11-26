@@ -1,0 +1,58 @@
+appId: com.jupydroid.app
+---
+# The frames the Environments page shows: the panel before a create, a create in flight, the
+# registered environment beside the launcher's new card, the kernel picker's offer and the
+# bound chip. A `takeScreenshot` name here IS the image id -
+# scripts/site-screenshots-driver.sh crops every PNG this flow takes into
+# docs-site/pages/images/<name>-<theme>.png, so the name is a published filename.
+#
+# The create runs the Space's real `jupydroid-env create` inside proot, a download measured in
+# tens of seconds - TABLET ONLY (SM-X216B), and the waits carry minutes. The workspace it
+# shoots is the one site-environments-shots-seed.sh put down: proj-a holding deps.ipynb and no
+# environment. What the create registers stays in base until the next pass's reset; the seed
+# clears a stale kernelspec of the same name so a re-run never lists one before its env exists.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- assertVisible: "Workspace"
+# The panel reads project folders off the workspace; proj-a's is the seeded one.
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "^Environments$"
+- extendedWaitUntil:
+    visible: "Create environment for proj-a"
+    timeout: 10000
+- takeScreenshot: environments-panel
+- tapOn: "Create environment for proj-a"
+- takeScreenshot: environments-creating
+- extendedWaitUntil:
+    visible: "Registered as kernel proj-a-.venv"
+    timeout: 300000
+- takeScreenshot: environments-registered
+# A notebook's picker is where the registered env is picked: back to the explorer the way the
+# rail's Files label reads, into proj-a's seeded notebook, and its No Kernel chip opens it.
+- tapOn: "^Files$"
+- extendedWaitUntil:
+    visible: "proj-a"
+    timeout: 10000
+- tapOn: "proj-a"
+- extendedWaitUntil:
+    visible: "deps.ipynb"
+    timeout: 10000
+- tapOn: "deps.ipynb"
+- extendedWaitUntil:
+    visible: "No Kernel"
+    timeout: 30000
+- tapOn: "No Kernel"
+- extendedWaitUntil:
+    visible: "Select Kernel"
+    timeout: 10000
+- takeScreenshot: environments-kernel-picker
+- tapOn: "Python \\(proj-a/\\.venv\\)"
+- tapOn: "^Select$"
+- extendedWaitUntil:
+    visible: "Kernel Python \\(proj-a/\\.venv\\).*"
+    timeout: 30000
+- takeScreenshot: environments-kernel-chip
