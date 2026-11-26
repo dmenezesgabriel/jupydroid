@@ -50,15 +50,33 @@ internal sealed interface NotebookChordIntent {
   data object RunAndInsert : NotebookChordIntent {
     override val dropsCaret = true
   }
+
+  /**
+   * `notebook:enter-edit-mode` - `Enter` on the cell. `dropsCaret = false`: the intent *places*
+   * a caret ask; the mode it opens is the focus event's, not a flag here.
+   */
+  data object EnterEditMode : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /**
+   * `notebook:enter-command-mode` - `Escape`, or `Ctrl M`. `dropsCaret = false`: the dispatch
+   * site moves focus onto the cell's frame, which destroys the field and the caret with it - no
+   * caret ask ever moves.
+   */
+  data object EnterCommandMode : NotebookChordIntent {
+    override val dropsCaret = false
+  }
 }
 
 /**
- * The edit-mode rows of `tracker.json` (`:1754-1773`), `Accel` read as `ctrl` since Android has
- * no command key - and `Ctrl` is what a chromebook's search-key- Enter chord produces, which is
- * what Jupyter's own docs call it.
+ * `tracker.json`, `Accel` read as `ctrl` since Android has no command key - and `Ctrl` is what a
+ * chromebook's search-key-Enter chord produces, which is what Jupyter's own docs call it.
  *
- * Command-mode rows belong to a later task; the table holds none yet and the resolver's
- * `mode == binding.mode` guard is what keeps that honest.
+ * The two selectors upstream calls `commandMode` and `editing` are [CellMode]s here. `Enter`
+ * upstream is scoped to `.jp-Cell:focus` rather than every descendant (`tracker.json:447`), which
+ * is a fidelity the dispatch site - not this table - reproduces, on the focus-owning check it
+ * keeps for the row.
  */
 private val NOTEBOOK_BINDINGS = listOf(
   NotebookBinding(
@@ -78,6 +96,24 @@ private val NOTEBOOK_BINDINGS = listOf(
     CellMode.EDIT,
     NotebookChord(Key.Enter, alt = true),
     NotebookChordIntent.RunAndInsert,
+  ),
+  NotebookBinding(
+    "notebook:enter-edit-mode",
+    CellMode.COMMAND,
+    NotebookChord(Key.Enter),
+    NotebookChordIntent.EnterEditMode,
+  ),
+  NotebookBinding(
+    "notebook:enter-command-mode",
+    CellMode.EDIT,
+    NotebookChord(Key.Escape),
+    NotebookChordIntent.EnterCommandMode,
+  ),
+  NotebookBinding(
+    "notebook:enter-command-mode",
+    CellMode.EDIT,
+    NotebookChord(Key.M, ctrl = true),
+    NotebookChordIntent.EnterCommandMode,
   ),
 )
 

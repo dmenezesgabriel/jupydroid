@@ -6,14 +6,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
 import com.jupydroid.app.domain.model.IndentUnit
@@ -68,6 +73,15 @@ internal fun EditorContent(
   tocHeadings: List<TocHeading>,
   /** Hoisted so the table of contents' click-to-jump drives the same list a tap does. */
   listState: LazyListState,
+  /**
+   * The one [FocusRequester] the head cell's frame attaches - hoisted for the same reason
+   * [listState] is: `enter-command-mode` and the focus-following effect are asked of it from
+   * here and from [EditorScreen]'s BackHandler, and a requester a caller cannot reach is one it
+   * cannot aim.
+   */
+  headFocus: FocusRequester,
+  /** The frame's `_evtFocusIn` report - routed to `NotebookCellSelection.activate`. */
+  onCellFrameFocused: (String) -> Unit,
   /** Told once a landing field took its caret - `NotebookCellEdits.caretLanded` wired through. */
   onCaretLanded: () -> Unit,
   /** Told once a caret-asked field took it - `NotebookCellEdits.caretTaken` wired through. */
@@ -106,6 +120,27 @@ internal fun EditorContent(
       // inside the item lambda would be both wrong and quadratic. Keyed by cell, so a heading a
       // code cell printed is counted but leaves no prefix for a markdown cell to draw.
       val headingPrefixes = tocHeadings.map { it.cellId }.zip(tocHeadings.tocPrefixes(tocNumbering)).toMap()
+      // The `.jp-Cell:focus` selector as a flag: whether the head cell's frame itself owns focus,
+      // rather than one of its descendants - a `⋮` focused inside it also surfaces chord events
+      // here, and upstream's `Enter` binding means the frame alone (`tracker.json:447`).
+      var frameOwnsFocus by remember { mutableStateOf(false) }
+      // `focusActiveCell`'s precondition as the one function: `requestFocus` throws on a requester
+      // nothing has attached, so the ask stands down on a head the list has not composed.
+      val requestHeadFocus = {
+        if (listState.composesCell(state.selectedCellId)) headFocus.requestFocus()
+      }
+      // The key codes of chords the down-stroke claimed: a claimed press is ours end to end, so
+      // its up is consumed too. An Escape up left to propagate reaches the platform's Esc→Back
+      // translation, which fires `onBackPressed` the moment command mode has already landed and
+      // no `BackHandler` stands enabled - the notebook itself backs out under the frame that
+      // just took focus.
+      val claimedKeys = remember { mutableSetOf<Int>() }
+      // `focusActiveCell` (`packages/notebook/src/actions.tsx:2585`): the head moves and focus
+      // follows it, so command mode's keys always have their owner. `selecting` is also a key,
+      // so the frame takes focus back the moment marking ends.
+      LaunchedEffect(state.selectedCellId, state.mode, state.selecting) {
+        if (state.commandFocusMayMove()) requestHeadFocus()
+      }
       // **Beside the notebook, never instead of it** - see [EditorUiState.saveFailure]. A failure to
       // save is a state that goes on being true, so it is a banner over the document rather than
       // the snackbar an export's outcome gets, and there is nothing to remember having shown.
@@ -113,12 +148,11 @@ internal fun EditorContent(
         state.saveFailure?.let { SaveFailureBanner(it) }
         LazyColumn(
           state = listState,
-          modifier = Modifier.fillMaxSize().onPreviewKeyEvent { event ->
-            // Key-down only: a chord resolves once, and the up-stroke of the same key is nothing.
-            if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-            val intent = notebookChord(state.mode, event.chord()) ?: return@onPreviewKeyEvent false
-            onNotebookChord(intent)
-            true
+          // `testTagsAsResourceId` on the list, as the launcher and terminal surfaces set it:
+          // the head frame's tag rides the accessibility dump a flow or a `uiautomator` capture
+          // reads, which is how the focus owner is named from outside the app.
+          modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }.onPreviewKeyEvent { event ->
+            dispatchNotebookKey(event, state.mode, frameOwnsFocus, claimedKeys, requestHeadFocus, onNotebookChord)
           },
         ) {
           // contentType as well as key: a code cell and a markdown cell compose to very different
@@ -191,8 +225,30 @@ internal fun EditorContent(
               caretLanding = state.caretLanding?.takeIf { it.cellId == cell.id },
               onCaretLanded = onCaretLanded,
               // The chord's caret ask names exactly one cell, filtered the way `caretLanding` is.
-              codeTakesCaret = state.cellTakingCaret == cell.id,
+              takesCaret = state.cellTakingCaret == cell.id,
               onCaretTaken = onCaretTaken,
+              modifier = Modifier
+                // `tabIndex="0"` on the active cell alone (`widget.ts:2734-2750`): only the head's
+                // frame is a focus target, so the keyboard's focus walk reaches one surface.
+                .then(
+                  if (cell.id == state.selectedCellId) {
+                    Modifier.headCellFrame(
+                      headFocus,
+                      onFocus = { self -> frameOwnsFocus = self },
+                      // `_evtFocusIn`: focus entering the cell selects it into command mode.
+                      onEnter = { onCellFrameFocused(cell.id) },
+                    )
+                  } else {
+                    Modifier
+                  },
+                )
+                // `_evtMouseDown` (`widget.ts:3565-3600`): a press the children did not take lands
+                // on the cell, which is the same activate the focus report makes - except the
+                // tap on the already-head's chrome asks the focus directly, there being no
+                // selection change left to follow.
+                .cellChromeTap(enabled = !state.selecting, cellId = cell.id) {
+                  if (cell.id == state.selectedCellId) requestHeadFocus() else onCellFrameFocused(cell.id)
+                },
             )
           }
           item(key = ADD_CELL_FOOTER_KEY, contentType = ADD_CELL_FOOTER_KEY) { AddCellFooter(onAdd = onAddCell) }
@@ -211,4 +267,62 @@ internal fun EditorContent(
       onDismiss = { conditionPrompt = null },
     )
   }
+}
+
+/**
+ * `focusActiveCell`'s precondition as the one question the effect asks: command mode is where the
+ * frame owns focus, marking is a touch surface that already cleared its own, and a caret ask is a
+ * focus about to land - moving the frame under any of them steals the focus they are owed.
+ */
+private fun EditorUiState.commandFocusMayMove(): Boolean = mode == CellMode.COMMAND &&
+  !selecting &&
+  cellTakingCaret == null &&
+  markdownTakingCaret == null &&
+  caretLanding == null
+
+/**
+ * One hardware event against the keymap. A chord claimed on its down is ours end to end, so its
+ * up is consumed with it ([claimedKeys] holds the key codes a down-stroke took): an Escape up
+ * left to propagate reaches the platform's Esc→Back translation, which fires `onBackPressed` the
+ * moment command mode has already landed and no `BackHandler` stands enabled.
+ */
+private fun dispatchNotebookKey(
+  event: KeyEvent,
+  mode: CellMode,
+  frameOwnsFocus: Boolean,
+  claimedKeys: MutableSet<Int>,
+  requestHeadFocus: () -> Unit,
+  onNotebookChord: (NotebookChordIntent) -> Unit,
+): Boolean {
+  if (event.type == KeyEventType.KeyUp) return claimedKeys.remove(event.nativeKeyEvent.keyCode)
+  return event.type == KeyEventType.KeyDown &&
+    claimNotebookKey(event, mode, frameOwnsFocus, claimedKeys, requestHeadFocus, onNotebookChord)
+}
+
+/**
+ * A key-down the list previews: resolve the chord, then claim and dispatch the intent.
+ * `.jp-Cell:focus`, not `:focus-within` (`tracker.json:447`) - Enter with a descendant control
+ * focused (a `⋮`, say) is that control's own key, so [frameOwnsFocus] gates the one intent
+ * upstream scoped to the cell node itself.
+ */
+private fun claimNotebookKey(
+  event: KeyEvent,
+  mode: CellMode,
+  frameOwnsFocus: Boolean,
+  claimedKeys: MutableSet<Int>,
+  requestHeadFocus: () -> Unit,
+  onNotebookChord: (NotebookChordIntent) -> Unit,
+): Boolean {
+  val intent = notebookChord(mode, event.chord())
+    ?.takeUnless { it == NotebookChordIntent.EnterEditMode && !frameOwnsFocus }
+    ?: return false
+  claimedKeys += event.nativeKeyEvent.keyCode
+  if (intent == NotebookChordIntent.EnterCommandMode) {
+    // Upstream "just unfocuses the editor" (`actions.tsx`'s `enterCommandMode`); where focus goes
+    // is ours to answer, and the head cell's frame is command mode's owner.
+    requestHeadFocus()
+  } else {
+    onNotebookChord(intent)
+  }
+  return true
 }

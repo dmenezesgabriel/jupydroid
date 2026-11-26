@@ -1,5 +1,7 @@
 package com.jupydroid.app.ui.editor
 
+import com.jupydroid.app.domain.model.CellKind
+
 /**
  * Selecting a cell and moving between the two [CellMode]s, as pure functions.
  *
@@ -46,6 +48,40 @@ fun EditorUiState.withMode(next: CellMode): EditorUiState {
     anchorCellId = null,
     cells = cells.map { if (it.id == editing) it.copy(sourceHidden = false) else it },
   )
+}
+
+/**
+ * What `notebook:enter-edit-mode` asks of the state (`tracker.json:443-448`).
+ *
+ * Upstream sets `widget.mode = 'edit'` and focuses the editor; here the ask is the caret, and the
+ * mode arrives with the focus event the field reports - asking for edit mode directly would mean
+ * claiming a focus that has not landed yet. A code or raw cell asks through [EditorUiState.cellTakingCaret];
+ * a markdown cell opens its editor, whose own ask is what [EditorUiState.markdownTakingCaret] is for.
+ *
+ * `activeCell!.inputHidden = false` again: entering edit on a collapsed cell expands the source
+ * the caret lands in, so the transform unhides before it asks.
+ */
+fun EditorUiState.withEditRequested(): EditorUiState {
+  val head = cells.firstOrNull { it.id == selectedCellId } ?: return this
+  val shown = copy(
+    cells = cells.map { if (it.id == head.id) it.copy(sourceHidden = false) else it },
+  )
+  return if (head.kind == CellKind.MARKDOWN) {
+    shown.withMarkdownEditorOpened(head.id)
+  } else {
+    shown.copy(cellTakingCaret = head.id)
+  }
+}
+
+/**
+ * Focus landing on a cell's frame, as a state transform - upstream's `_evtFocusIn` on `.jp-Cell`
+ * (`packages/notebook/src/widget.ts:3541-3563`): select the cell first, then the mode, and a cell
+ * node holding focus is never the editor, so the mode is command. The order matters on a cell
+ * that was being edited: upstream's own sequence leaves edit before it changes the active cell.
+ */
+fun EditorUiState.withCellActivated(cellId: String): EditorUiState {
+  if (cells.none { it.id == cellId }) return this
+  return withCellSelected(cellId).withMode(CellMode.COMMAND)
 }
 
 /**

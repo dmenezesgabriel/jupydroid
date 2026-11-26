@@ -123,9 +123,10 @@ internal fun EditorCell(
   onCaretLanded: () -> Unit = {},
   /**
    * `true` when a command asked this cell's field to take the caret - `EditorUiState.cellTakingCaret`
-   * already filtered to this cell, so only the cell a run chord made ever sees it. Code cells only.
+   * already filtered to this cell, so only the cell a run chord or an enter-edit-mode made ever
+   * sees it. Code and raw cells; a markdown cell's ask comes down [markdownTakesCaret] instead.
    */
-  codeTakesCaret: Boolean = false,
+  takesCaret: Boolean = false,
   /** Told once the field took the caret - `NotebookCellEdits.caretTaken` wired through. */
   onCaretTaken: () -> Unit = {},
   modifier: Modifier = Modifier,
@@ -243,7 +244,7 @@ internal fun EditorCell(
             indentUnit = indentUnit,
             caretLanding = caretLanding,
             onCaretLanded = onCaretLanded,
-            takesCaret = codeTakesCaret,
+            takesCaret = takesCaret,
             onCaretTaken = onCaretTaken,
             fieldName = CODE_CELL_NAME,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
@@ -279,6 +280,8 @@ internal fun EditorCell(
             lineNumbersShown = lineNumbersShown,
             codeFontSizeSp = codeFontSizeSp,
             search = search,
+            takesCaret = takesCaret,
+            onCaretTaken = onCaretTaken,
             modifier = Modifier.fillMaxWidth().cellEditorBox(editing),
           )
         }

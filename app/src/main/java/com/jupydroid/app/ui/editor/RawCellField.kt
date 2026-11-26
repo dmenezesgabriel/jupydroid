@@ -6,12 +6,15 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.sp
@@ -41,7 +44,8 @@ import com.jupydroid.app.theme.editorPalette
  * **And no focus request on arrival**, which is the one thing it would have been wrong to copy
  * from [MarkdownCellField]. That field exists only because a tap asked for it, so it takes the
  * caret; a raw cell is in this state always, so requesting focus here would take the caret away
- * from whatever was being typed every time a raw cell scrolled into view.
+ * from whatever was being typed every time a raw cell scrolled into view. [takesCaret] is the
+ * same ask the code cell's field has - a command names the cell, and only then does the caret move.
  *
  * It keeps the line-number gutter, for [MarkdownCellField]'s reason rather than the reference's
  * `raw: { lineNumbers: false }` (`packages/notebook/src/widget.ts:1349-1353`): [lineNumbers] counts
@@ -64,7 +68,11 @@ fun RawCellField(
   codeFontSizeSp: Int = CodeFontSize.DEFAULT,
   /** What the find bar found in this cell - see [CellSearchHighlight]. */
   search: CellSearchHighlight = CellSearchHighlight.NONE,
+  /** [CodeCellField]'s own pair: a command named this cell, so its field takes the caret. */
+  takesCaret: Boolean = false,
+  onCaretTaken: () -> Unit = {},
 ) {
+  val caret = remember { FocusRequester() }
   val interactions = remember { MutableInteractionSource() }
   val focused = interactions.collectIsFocusedAsState()
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -79,9 +87,16 @@ fun RawCellField(
   // reachable from it - the omission that once left it inert in a markdown cell.
   input.attachWhileFocused(state, focused.value)
 
+  // [CodeCellField]'s own ask, copied to here because `enter-edit-mode` means a raw cell too.
+  LaunchedEffect(takesCaret) {
+    if (!takesCaret) return@LaunchedEffect
+    caret.requestFocus()
+    onCaretTaken()
+  }
+
   BasicTextField(
     state = state,
-    modifier = modifier.lineNumbers(state.text, layout, numberStyle, gutter),
+    modifier = modifier.focusRequester(caret).lineNumbers(state.text, layout, numberStyle, gutter),
     onTextLayout = { getResult -> layout = getResult() },
     textStyle = sourceStyle,
     interactionSource = interactions,

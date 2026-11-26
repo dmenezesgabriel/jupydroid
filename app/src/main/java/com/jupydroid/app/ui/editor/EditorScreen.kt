@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -220,6 +221,10 @@ fun EditorScreen(
   cellInput.autoClosingBrackets = editorSettings.autoClosingBrackets
   cellInput.indentUnit = editorSettings.indentUnit
   val listState = rememberLazyListState()
+  // The command-mode focus owner, hoisted beside the list it lives in: the BackHandler and
+  // EditorContent's key intercept both ask focus of the head cell's frame, upstream's
+  // `tabIndex="0"` cell - `packages/notebook/src/widget.ts:2734-2750`.
+  val headFrame = remember { FocusRequester() }
   val scope = rememberCoroutineScope()
   // Remembered here rather than inside the Scaffold's slot, because [ExportReportSnackbar] posts
   // to it from outside that slot.
@@ -248,10 +253,14 @@ fun EditorScreen(
     )
   }
   // Back in edit mode returns to command mode instead of leaving the notebook - the touch
-  // analogue of `Escape`, which is what both references bind it to. Dropping focus is what
-  // actually does it: the field loses the caret, the keyboard goes, and the focus listener below
-  // reports the mode change, so there is one path out of edit mode rather than two.
-  BackHandler(enabled = state.mode == CellMode.EDIT) { focusManager.clearFocus() }
+  // analogue of `Escape`, which is what both references bind it to. It is the same target the
+  // `enter-command-mode` chord lands on: the head cell's frame takes focus, which blurs the
+  // field, ends the caret and reports the mode change through the one focus listener - and where
+  // a device maps KEYCODE_ESCAPE onto Back, this is also the path an Escape takes, so the two
+  // land on the same frame rather than Esc's landing on nobody.
+  BackHandler(enabled = state.mode == CellMode.EDIT) {
+    if (listState.composesCell(state.selectedCellId)) headFrame.requestFocus() else focusManager.clearFocus()
+  }
   // Back out of the marking mode before it backs out of the notebook, which is what a contextual
   // bar's close does everywhere else on Android - and the reason it is a second handler rather
   // than a branch in the one above is that the two states are exclusive: entering edit mode drops
@@ -448,6 +457,8 @@ fun EditorScreen(
               tocNumbering = editorSettings.tocNumbering(),
               tocHeadings = tocHeadings,
               listState = listState,
+              headFocus = headFrame,
+              onCellFrameFocused = viewModel.selection::activate,
               onCaretLanded = viewModel.edits::caretLanded,
               onCaretTaken = viewModel.edits::caretTaken,
               // Drop the caret first where the intent drops it - `NotebookCellsPublication`'s own
