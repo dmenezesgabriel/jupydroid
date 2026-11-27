@@ -79,12 +79,25 @@ internal class NotebookCellRuns(
   /**
    * Runs one cell - the cell header's own Run button.
    *
+   * The press selects before it runs: upstream's `_evtMouseDown` sets `activeCellIndex` and a
+   * press outside the marked run deselects it (`packages/notebook/src/widget.ts:3160-3167`), the
+   * same rule VS Code states as `focusNotebookCell` before execute
+   * (`executeActions.ts:295-297`) - `applyingFrom`'s operand rule for the one header control that
+   * did not follow it. Inside the run the head just moves; outside, the run collapses onto it.
+   *
    * A run of one through [runCells] rather than a path of its own, so a markdown cell renders here
    * exactly as it does inside a Run All and there is one place that decides what running each kind
    * of cell means. A code cell still streams its output into the state as it arrives, so a
    * long-running one shows what it has printed rather than nothing until it finishes.
    */
   fun runCell(cell: Cell) {
+    uiState.update {
+      if (cell.id in it.selectedCellIds) {
+        it.withCellSelected(cell.id)
+      } else {
+        it.withSelectionCollapsed().withCellSelected(cell.id)
+      }
+    }
     scope.launch { runCells(listOf(cell)) }
   }
 

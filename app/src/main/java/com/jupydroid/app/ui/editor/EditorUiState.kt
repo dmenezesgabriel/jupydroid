@@ -182,6 +182,17 @@ data class EditorUiState(
    */
   val cellTakingCaret: String? = null,
   /**
+   * Head moves made by a hardware key, counted rather than flagged - the same shape as
+   * [noDefinitionFound], because the screen's answer (scroll the head in and re-ask the frame's
+   * focus) is an event per move, and a second move in the same direction must still be a change.
+   *
+   * Only the key path counts: a tap that selects a cell already carries its own focus, so a
+   * *keyed* head move is the one that can land on a cell the list has not composed yet - the
+   * focus-following effect then finds no frame to aim at and the count is what re-asks once the
+   * scroll has composed it. Not persisted, like the counters beside it.
+   */
+  val headMovesByKey: Int = 0,
+  /**
    * Where a definition jump lands, or null while none is pending.
    *
    * A consumed one-shot like [markdownTakingCaret]: [NotebookCellEdits.landOnDefinition] sets

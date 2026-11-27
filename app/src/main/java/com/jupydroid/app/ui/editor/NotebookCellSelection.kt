@@ -24,6 +24,19 @@ class NotebookCellSelection(private val uiState: MutableStateFlow<EditorUiState>
   /** The four `notebook:extend-marked-cells-*` commands. */
   fun extend(reach: SelectionReach) = uiState.update { it.withSelectionExtended(reach) }
 
+  /**
+   * The same four commands reached by a hardware chord - `Shift`+arrows/`J`/`K`/`Home`/`End`.
+   * Unlike a touch extend, a key moves the *head's focus owner* with it, which is what
+   * [EditorUiState.headMovesByKey] counts and the screen's scroll-and-refocus effect answers.
+   */
+  fun extendMarkedByKey(reach: SelectionReach) = uiState.update {
+    val after = it.withSelectionExtended(reach)
+    if (after == it) it else after.copy(headMovesByKey = after.headMovesByKey + 1)
+  }
+
+  /** `notebook:move-cursor-{up,down}` - `ArrowUp`/`K`, `ArrowDown`/`J`. */
+  fun moveCursor(direction: CursorDirection) = uiState.update { it.withCursorMoved(direction) }
+
   /** `notebook:select-all`. */
   fun selectAll() = uiState.update { it.withAllCellsSelected() }
 

@@ -11,10 +11,9 @@ import org.junit.Test
  * The mode-crossing rows of JupyterLab's keybinding table
  * (`packages/notebook-extension/schema/tracker.json`, `notebook:run` /
  * `notebook:run-and-advance` / `notebook:run-and-insert` /
- * `notebook:enter-edit-mode` / `notebook:enter-command-mode`).
- *
- * The command-mode rows beyond these are a later task and are asserted absent here so the
- * table does not grow one silently.
+ * `notebook:enter-edit-mode` / `notebook:enter-command-mode`), plus the command-mode cursor
+ * rows: `notebook:move-cursor-{up,down}`, `notebook:extend-marked-cells-*` and the two
+ * `notebook:move-cursor-heading-*` commands.
  */
 class NotebookKeymapTest {
   private val edit = CellMode.EDIT
@@ -69,6 +68,109 @@ class NotebookKeymapTest {
   @Test
   fun enter_inCommand_entersEditMode() {
     assertEquals(NotebookChordIntent.EnterEditMode, notebookChord(command, NotebookChord(Key.Enter)))
+  }
+
+  /** `ArrowUp`/`K` in command mode → `notebook:move-cursor-up` (`tracker.json:523-530`). */
+  @Test
+  fun arrowUp_andK_inCommand_moveTheCursorUp() {
+    assertEquals(
+      NotebookChordIntent.SelectAbove,
+      notebookChord(command, NotebookChord(Key.DirectionUp)),
+    )
+    assertEquals(
+      NotebookChordIntent.SelectAbove,
+      notebookChord(command, NotebookChord(Key.K)),
+    )
+  }
+
+  /** `ArrowDown`/`J` in command mode → `notebook:move-cursor-down` (`tracker.json:533-540`). */
+  @Test
+  fun arrowDown_andJ_inCommand_moveTheCursorDown() {
+    assertEquals(
+      NotebookChordIntent.SelectBelow,
+      notebookChord(command, NotebookChord(Key.DirectionDown)),
+    )
+    assertEquals(
+      NotebookChordIntent.SelectBelow,
+      notebookChord(command, NotebookChord(Key.J)),
+    )
+  }
+
+  /** `ArrowLeft` → `notebook:move-cursor-heading-above-or-collapse` (`tracker.json:543-546`). */
+  @Test
+  fun arrowLeft_inCommand_selectsHeadingAboveOrCollapses() {
+    assertEquals(
+      NotebookChordIntent.SelectHeadingAboveOrCollapse,
+      notebookChord(command, NotebookChord(Key.DirectionLeft)),
+    )
+  }
+
+  /** `ArrowRight` → `notebook:move-cursor-heading-below-or-expand` (`tracker.json:548-551`). */
+  @Test
+  fun arrowRight_inCommand_selectsHeadingBelowOrExpands() {
+    assertEquals(
+      NotebookChordIntent.SelectHeadingBelowOrExpand,
+      notebookChord(command, NotebookChord(Key.DirectionRight)),
+    )
+  }
+
+  /**
+   * `Shift`+`ArrowUp`/`K` → `extend-marked-cells-above`, `Shift`+`ArrowDown`/`J` → `-below`
+   * (`tracker.json:554-572`). Shift is part of the chord, which is what separates the extends
+   * from the cursor moves the same keys carry unshifted.
+   */
+  @Test
+  fun shiftArrowsAndJK_inCommand_extendTheMarkedRun() {
+    assertEquals(
+      NotebookChordIntent.ExtendMarked(SelectionReach.ABOVE),
+      notebookChord(command, NotebookChord(Key.DirectionUp, shift = true)),
+    )
+    assertEquals(
+      NotebookChordIntent.ExtendMarked(SelectionReach.ABOVE),
+      notebookChord(command, NotebookChord(Key.K, shift = true)),
+    )
+    assertEquals(
+      NotebookChordIntent.ExtendMarked(SelectionReach.BELOW),
+      notebookChord(command, NotebookChord(Key.DirectionDown, shift = true)),
+    )
+    assertEquals(
+      NotebookChordIntent.ExtendMarked(SelectionReach.BELOW),
+      notebookChord(command, NotebookChord(Key.J, shift = true)),
+    )
+  }
+
+  /** `Shift`+`Home`/`End` → `extend-marked-cells-top`/`-bottom` (`tracker.json:575-582`). */
+  @Test
+  fun shiftHomeAndEnd_inCommand_extendToTheEnds() {
+    assertEquals(
+      NotebookChordIntent.ExtendMarked(SelectionReach.TOP),
+      notebookChord(command, NotebookChord(Key.MoveHome, shift = true)),
+    )
+    assertEquals(
+      NotebookChordIntent.ExtendMarked(SelectionReach.BOTTOM),
+      notebookChord(command, NotebookChord(Key.MoveEnd, shift = true)),
+    )
+  }
+
+  /** The cursor rows are command-scoped: every one of them stays the field's own key in edit mode. */
+  @Test
+  fun theCursorRows_doNotFireInEditMode() {
+    assertNull(notebookChord(edit, NotebookChord(Key.DirectionUp)))
+    assertNull(notebookChord(edit, NotebookChord(Key.DirectionDown)))
+    assertNull(notebookChord(edit, NotebookChord(Key.DirectionLeft)))
+    assertNull(notebookChord(edit, NotebookChord(Key.DirectionRight)))
+    assertNull(notebookChord(edit, NotebookChord(Key.J)))
+    assertNull(notebookChord(edit, NotebookChord(Key.K)))
+    assertNull(notebookChord(edit, NotebookChord(Key.J, shift = true)))
+    assertNull(notebookChord(edit, NotebookChord(Key.MoveHome, shift = true)))
+    assertNull(notebookChord(edit, NotebookChord(Key.MoveEnd, shift = true)))
+  }
+
+  /** Unshifted `Home`/`End` are bound nowhere upstream - the field's caret keeps them. */
+  @Test
+  fun bareHomeAndEnd_resolveToNothing() {
+    assertNull(notebookChord(command, NotebookChord(Key.MoveHome)))
+    assertNull(notebookChord(command, NotebookChord(Key.MoveEnd)))
   }
 
   /**

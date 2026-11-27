@@ -14,8 +14,10 @@ import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performSemanticsAction
@@ -277,6 +279,135 @@ class NotebookHardwareKeyTest {
   }
 
   /**
+   * `notebook:move-cursor-{up,down}` - `J`/`K` and the arrows on the focused frame move the head
+   * (`actions.tsx:1099-1177`), and `focusActiveCell` moves the frame - command mode's focus
+   * owner - with it.
+   */
+  @Test
+  fun jAndK_andTheArrows_onTheFrame_moveTheHead() {
+    showEditing(CELL, SECOND_CELL, THIRD_CELL)
+    field(0).performKeyInput { pressKey(Key.Escape) }
+
+    headFrame().performKeyInput { pressKey(Key.J) }
+    compose.runOnIdle { assertEquals("c2", viewModel.uiState.value.selectedCellId) }
+    assertFrameFocused()
+
+    headFrame().performKeyInput { pressKey(Key.DirectionDown) }
+    compose.runOnIdle { assertEquals("c3", viewModel.uiState.value.selectedCellId) }
+
+    headFrame().performKeyInput { pressKey(Key.K) }
+    compose.runOnIdle { assertEquals("c2", viewModel.uiState.value.selectedCellId) }
+    headFrame().performKeyInput { pressKey(Key.DirectionUp) }
+    compose.runOnIdle { assertEquals("c1", viewModel.uiState.value.selectedCellId) }
+  }
+
+  /**
+   * `notebook:extend-marked-cells-below` - `Shift`+`J` marks a run from the keys, and the *second*
+   * press extends it again. That is the case the focus owner has to survive: a marking started
+   * from keys has no field attached, so the `selecting`-driven clearFocus - meant for a field's
+   * caret - stands down for it.
+   */
+  @Test
+  fun shiftJ_marksARunAndKeepsTheFrameForTheNextExtend() {
+    showEditing(CELL, SECOND_CELL, THIRD_CELL)
+    field(0).performKeyInput { pressKey(Key.Escape) }
+
+    headFrame().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.J) } }
+    compose.runOnIdle { assertEquals(listOf("c1", "c2"), viewModel.uiState.value.selectedCellIds) }
+    assertFrameFocused()
+
+    headFrame().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.J) } }
+    compose.runOnIdle { assertEquals(listOf("c1", "c2", "c3"), viewModel.uiState.value.selectedCellIds) }
+    assertFrameFocused()
+  }
+
+  /**
+   * `notebook:move-cursor-heading-{above-or-collapse,below-or-expand}` - `ArrowLeft` first jumps
+   * to the heading of the section the head is in, then folds it under itself; `ArrowRight` opens
+   * it again (`actions.tsx:1244-1300`).
+   */
+  @Test
+  fun arrowLeft_jumpsThenCollapses_andArrowRightExpands() {
+    val heading = Cell("h", CellKind.MARKDOWN, "# Chapter")
+    showEditing(heading, CELL, SECOND_CELL)
+    field(0).performKeyInput { pressKey(Key.Escape) }
+
+    // Head on c1, a plain cell in h's section: ArrowLeft is the jump, not a fold.
+    headFrame().performKeyInput { pressKey(Key.DirectionLeft) }
+    compose.runOnIdle { assertEquals("h", viewModel.uiState.value.selectedCellId) }
+
+    headFrame().performKeyInput { pressKey(Key.DirectionLeft) }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.hiddenCellIds == setOf("c1", "c2") }
+    compose.onNodeWithText("2 cells hidden").assertIsDisplayed()
+    compose.runOnIdle { assertEquals("h", viewModel.uiState.value.selectedCellId) }
+
+    headFrame().performKeyInput { pressKey(Key.DirectionRight) }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.hiddenCellIds.isEmpty() }
+    compose.runOnIdle { assertEquals("h", viewModel.uiState.value.selectedCellId) }
+  }
+
+  /**
+   * The cursor's scan skips `isHidden` widgets (`actions.tsx:1128-1132`): `J` from the collapsed
+   * heading walks over its whole section rather than stopping on a cell nobody can see.
+   */
+  @Test
+  fun j_skipsACollapsedSection() {
+    val collapsed = Cell("h", CellKind.MARKDOWN, "# Chapter", headingCollapsed = true)
+    val next = Cell("h2", CellKind.MARKDOWN, "# Next")
+    showEditing(collapsed, CELL, SECOND_CELL, next, THIRD_CELL)
+    // The only composed field is c3's - c1/c2 are inside the collapsed section.
+    field(0).performKeyInput { pressKey(Key.Escape) }
+
+    // From c3 up to the heading, then down through it: h → h2, with c1/c2 walked over.
+    headFrame().performKeyInput { pressKey(Key.DirectionUp) }
+    compose.runOnIdle { assertEquals("h2", viewModel.uiState.value.selectedCellId) }
+    headFrame().performKeyInput { pressKey(Key.DirectionUp) }
+    compose.runOnIdle { assertEquals("h", viewModel.uiState.value.selectedCellId) }
+
+    headFrame().performKeyInput { pressKey(Key.J) }
+    compose.runOnIdle { assertEquals("h2", viewModel.uiState.value.selectedCellId) }
+  }
+
+  /**
+   * `Shift`+`End` - `extend-marked-cells-bottom` - is the far jump the headMovesByKey effect
+   * exists for: the head lands on a cell the list has not composed, so the scroll runs first and
+   * only then can the frame's focus be re-asked.
+   */
+  @Test
+  fun shiftEnd_marksToTheBottom_andScrollsTheHeadIntoView() {
+    val many = (1..30).map { Cell("c$it", CellKind.CODE, "pass") }
+    showEditing(*many.toTypedArray())
+    field(0).performKeyInput { pressKey(Key.Escape) }
+
+    headFrame().performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.MoveEnd) } }
+
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.selectedCellId == "c30" }
+    // The scroll is what makes c30 composable at all - without it this fetch throws, since the
+    // last cell is off-screen in a 30-cell notebook.
+    compose.waitUntil(TIMEOUT_MILLIS) {
+      runCatching { cellFrame("c30").fetchSemanticsNode() }.isSuccess
+    }
+    assertFrameFocused()
+  }
+
+  /**
+   * The header's Run is a press on that cell: it selects before it runs - `_evtMouseDown`'s
+   * `activeCellIndex = …` (`widget.ts:3160-3167`), which the header control alone did not do -
+   * and the frame follows the head it moved to.
+   */
+  @Test
+  fun aCellsRunButton_selectsItBeforeRunning() {
+    showEditing(CELL, SECOND_CELL)
+    field(0).performKeyInput { pressKey(Key.Escape) }
+
+    compose.onAllNodesWithContentDescription("Run cell")[1].performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.selectedCellId == "c2" }
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.executionCounts["c2"] == 1 }
+    assertFrameFocused()
+  }
+
+  /**
    * Keyboard focus on the frame draws the `focusBorder` ring - the frame's `isFocused`, not the
    * container's `hasFocus`, because a `⋮` focused inside the same cell must not ring the cell.
    */
@@ -362,6 +493,7 @@ class NotebookHardwareKeyTest {
     const val NOTEBOOK_ID = "nb-1"
     val CELL = Cell(id = "c1", kind = CellKind.CODE, source = "pass")
     val SECOND_CELL = Cell(id = "c2", kind = CellKind.CODE, source = "pass")
+    val THIRD_CELL = Cell(id = "c3", kind = CellKind.CODE, source = "pass")
     const val TIMEOUT_MILLIS = 5_000L
   }
 }

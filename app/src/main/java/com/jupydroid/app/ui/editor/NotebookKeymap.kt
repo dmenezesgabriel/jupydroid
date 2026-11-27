@@ -67,6 +67,31 @@ internal sealed interface NotebookChordIntent {
   data object EnterCommandMode : NotebookChordIntent {
     override val dropsCaret = false
   }
+
+  /** `notebook:move-cursor-up` - `ArrowUp`, `K`. */
+  data object SelectAbove : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:move-cursor-down` - `ArrowDown`, `J`. */
+  data object SelectBelow : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:move-cursor-heading-above-or-collapse` - `ArrowLeft`. */
+  data object SelectHeadingAboveOrCollapse : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:move-cursor-heading-below-or-expand` - `ArrowRight`. */
+  data object SelectHeadingBelowOrExpand : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** The four `notebook:extend-marked-cells-*` commands - `Shift`+arrows/`J`/`K`/`Home`/`End`. */
+  data class ExtendMarked(val reach: SelectionReach) : NotebookChordIntent {
+    override val dropsCaret = false
+  }
 }
 
 /**
@@ -114,6 +139,78 @@ private val NOTEBOOK_BINDINGS = listOf(
     CellMode.EDIT,
     NotebookChord(Key.M, ctrl = true),
     NotebookChordIntent.EnterCommandMode,
+  ),
+  NotebookBinding(
+    "notebook:move-cursor-up",
+    CellMode.COMMAND,
+    NotebookChord(Key.DirectionUp),
+    NotebookChordIntent.SelectAbove,
+  ),
+  NotebookBinding(
+    "notebook:move-cursor-up",
+    CellMode.COMMAND,
+    NotebookChord(Key.K),
+    NotebookChordIntent.SelectAbove,
+  ),
+  NotebookBinding(
+    "notebook:move-cursor-down",
+    CellMode.COMMAND,
+    NotebookChord(Key.DirectionDown),
+    NotebookChordIntent.SelectBelow,
+  ),
+  NotebookBinding(
+    "notebook:move-cursor-down",
+    CellMode.COMMAND,
+    NotebookChord(Key.J),
+    NotebookChordIntent.SelectBelow,
+  ),
+  NotebookBinding(
+    "notebook:move-cursor-heading-above-or-collapse",
+    CellMode.COMMAND,
+    NotebookChord(Key.DirectionLeft),
+    NotebookChordIntent.SelectHeadingAboveOrCollapse,
+  ),
+  NotebookBinding(
+    "notebook:move-cursor-heading-below-or-expand",
+    CellMode.COMMAND,
+    NotebookChord(Key.DirectionRight),
+    NotebookChordIntent.SelectHeadingBelowOrExpand,
+  ),
+  NotebookBinding(
+    "notebook:extend-marked-cells-above",
+    CellMode.COMMAND,
+    NotebookChord(Key.DirectionUp, shift = true),
+    NotebookChordIntent.ExtendMarked(SelectionReach.ABOVE),
+  ),
+  NotebookBinding(
+    "notebook:extend-marked-cells-above",
+    CellMode.COMMAND,
+    NotebookChord(Key.K, shift = true),
+    NotebookChordIntent.ExtendMarked(SelectionReach.ABOVE),
+  ),
+  NotebookBinding(
+    "notebook:extend-marked-cells-below",
+    CellMode.COMMAND,
+    NotebookChord(Key.DirectionDown, shift = true),
+    NotebookChordIntent.ExtendMarked(SelectionReach.BELOW),
+  ),
+  NotebookBinding(
+    "notebook:extend-marked-cells-below",
+    CellMode.COMMAND,
+    NotebookChord(Key.J, shift = true),
+    NotebookChordIntent.ExtendMarked(SelectionReach.BELOW),
+  ),
+  NotebookBinding(
+    "notebook:extend-marked-cells-top",
+    CellMode.COMMAND,
+    NotebookChord(Key.MoveHome, shift = true),
+    NotebookChordIntent.ExtendMarked(SelectionReach.TOP),
+  ),
+  NotebookBinding(
+    "notebook:extend-marked-cells-bottom",
+    CellMode.COMMAND,
+    NotebookChord(Key.MoveEnd, shift = true),
+    NotebookChordIntent.ExtendMarked(SelectionReach.BOTTOM),
   ),
 )
 

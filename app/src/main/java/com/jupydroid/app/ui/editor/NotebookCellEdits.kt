@@ -304,3 +304,32 @@ fun NotebookCellEdits.renameFailed(message: String) {
 fun NotebookCellEdits.caretTaken() {
   uiState.update { it.copy(cellTakingCaret = null) }
 }
+
+/**
+ * `notebook:move-cursor-heading-above-or-collapse` - `ArrowLeft` in command mode.
+ *
+ * Here rather than on [NotebookCellSelection], whose rule is "nothing here schedules a save":
+ * the collapse this can make writes `jp-MarkdownHeadingCollapsed` to the file, so it needs the
+ * save the selection object does not have. The save itself is gated on `cells` changing - a jump
+ * or a bare deselect writes nothing - which is [revealCell]'s own shape: mostly a selection
+ * command that sometimes touches a persisted flag.
+ */
+fun NotebookCellEdits.selectHeadingAboveOrCollapse() {
+  val before = uiState.value
+  val after = before.withHeadingAboveOrCollapsed()
+  if (after === before) return
+  uiState.value = after
+  if (after.cells !== before.cells) save.schedule()
+}
+
+/**
+ * `notebook:move-cursor-heading-below-or-expand` - `ArrowRight` in command mode, the mirror of
+ * [selectHeadingAboveOrCollapse]: the expand it can make is the same persisted flag.
+ */
+fun NotebookCellEdits.selectHeadingBelowOrExpand() {
+  val before = uiState.value
+  val after = before.withHeadingBelowOrExpanded()
+  if (after === before) return
+  uiState.value = after
+  if (after.cells !== before.cells) save.schedule()
+}

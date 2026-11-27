@@ -208,7 +208,7 @@ fun EditorUiState.withHeadingInserted(reach: SectionReach, newId: String): Edito
  * `determineHeadingLevel`: the cell's own level, else its parent heading's, else 1
  * (`actions.tsx:3576-3597`, and the `-1` fallbacks at `:1194` and `:1216`).
  */
-private fun EditorUiState.sectionLevelAt(at: Int): Int = cells[at].headingLevel
+internal fun EditorUiState.sectionLevelAt(at: Int): Int = cells[at].headingLevel
   ?: cells.take(at).lastOrNull { it.headingLevel != null }?.headingLevel
   ?: 1
 
@@ -275,4 +275,4 @@ private fun EditorUiState.withMarkedRunOutOfHiding(heading: String): EditorUiSta
 }
 
 /** `getHeadingInfo`'s answer for a cell that heads nothing - one past the six levels markdown has. */
-private const val NOT_A_BOUNDARY = 7
+internal const val NOT_A_BOUNDARY = 7

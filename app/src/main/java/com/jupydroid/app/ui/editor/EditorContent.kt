@@ -141,6 +141,15 @@ internal fun EditorContent(
       LaunchedEffect(state.selectedCellId, state.mode, state.selecting) {
         if (state.commandFocusMayMove()) requestHeadFocus()
       }
+      // `handleState`'s scroll half (`actions.tsx`'s `NotebookActions.handleState` →
+      // `scrollToItem(…, 'auto', …)`): a *key* moved the head, so it is scrolled in if not
+      // already fully on screen - 'auto' is a minimal align, which is the same `isFullyVisible`
+      // guard the search scroll keeps. The refocus then asks *after* the scroll resolves: the
+      // far jumps (`Shift End`, a heading leap) land on a cell the list had not composed when
+      // the focus-following effect above ran, which left every later key landing nowhere.
+      LaunchedEffect(state.headMovesByKey) {
+        state.scrollKeyMovedHead(onScreen, listState) { requestHeadFocus() }
+      }
       // **Beside the notebook, never instead of it** - see [EditorUiState.saveFailure]. A failure to
       // save is a state that goes on being true, so it is a banner over the document rather than
       // the snackbar an export's outcome gets, and there is nothing to remember having shown.
@@ -274,11 +283,34 @@ internal fun EditorContent(
  * frame owns focus, marking is a touch surface that already cleared its own, and a caret ask is a
  * focus about to land - moving the frame under any of them steals the focus they are owed.
  */
-private fun EditorUiState.commandFocusMayMove(): Boolean = mode == CellMode.COMMAND &&
-  !selecting &&
+private fun EditorUiState.commandFocusMayMove(): Boolean = commandKeyFocusMayMove() && !selecting
+
+/**
+ * [commandFocusMayMove] minus its `!selecting`: a marking started by the keys themselves still
+ * wants the frame back, or the next `Shift`+arrow has no focus owner to land on. The selecting
+ * clause stands down for the key-driven effect alone - a touch-started marking cleared focus on
+ * purpose and a key can only have reached the list while something in it was focused.
+ */
+private fun EditorUiState.commandKeyFocusMayMove(): Boolean = mode == CellMode.COMMAND &&
   cellTakingCaret == null &&
   markdownTakingCaret == null &&
   caretLanding == null
+
+/**
+ * The scroll-and-refocus one key-driven head move asks for - `handleState`'s `scrollToItem(…,
+ * 'auto', …)` half, 'auto' being the minimal align the `isFullyVisible` guard states. The
+ * refocus asks *after* the scroll resolves, because it is the far jumps' reason for existing:
+ * `Shift`+`End` lands on a cell the list had not composed when the focus-following effect ran.
+ */
+private suspend fun EditorUiState.scrollKeyMovedHead(
+  onScreen: List<Cell>,
+  listState: LazyListState,
+  requestHeadFocus: () -> Unit,
+) {
+  val at = onScreen.indexOfFirst { it.id == selectedCellId }
+  if (at >= 0 && !listState.isFullyVisible(at)) listState.animateScrollToItem(at)
+  if (commandKeyFocusMayMove()) requestHeadFocus()
+}
 
 /**
  * One hardware event against the keymap. A chord claimed on its down is ours end to end, so its
