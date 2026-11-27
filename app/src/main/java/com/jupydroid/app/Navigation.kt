@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -110,7 +111,9 @@ fun MainNavigation(
   // One strip for the six detail entries, so an entry states its screen and nothing else - the
   // strip's model is the stack and these four holders, identical for all six.
   val openDocument = rememberDocumentOpener(backStack, appContainer, openDocuments)
-  val tabbedPane: @Composable (@Composable () -> Unit) -> Unit = { content ->
+  // `content` is handed the tab's `docmanager:save-as` - see `TabbedDocumentPane`'s parameter -
+  // because the notebook's own `Ctrl Shift S` reaches the shell's dialog through it.
+  val tabbedPane: @Composable (@Composable (saveTabAs: (NavKey) -> Unit) -> Unit) -> Unit = { content ->
     TabbedDocumentPane(
       backStack,
       openDocuments,
@@ -211,26 +214,12 @@ fun MainNavigation(
   // complexity budget.
   LauncherFillEffect(backStack, appContainer.launcherSettings, twoPane, launcherIsFill)
 
-  // **A breadcrumb segment, and one copy of what it does.** JupyterLab's `this._model.cd(destination)`
-  // (`packages/filebrowser/src/crumbs.ts:415`) - so the browser has to be *showing* for the
-  // navigation to be visible, and which half of the shell that needs differs by layout. Beside the
-  // document the side area may be drawing the table of contents instead; in one window the browser
-  // is not composed at all until the open entry goes.
-  //
-  // **Both documents take this same lambda** - the notebook and the plain file editor alike -
-  // because two copies of a branch that has to agree is a defect waiting to be written, the same
-  // reason `ShellSidePane` stopped being handed the width fact twice.
-  val goToFolder: (String) -> Unit = { folder ->
-    browseRequest = folder
-    if (twoPane) {
-      sidePanel = ShownPanel.Shell(SidePanel.FILES)
-    } else {
-      // One pane, and the browser is only ever shown as the top entry: bring it forward rather
-      // than popping the document - the entries beneath are still-open tabs, so Back
-      // from the browser returns to the document exactly as activating a tab would.
-      backStack.bringBrowserForward()
-    }
-  }
+  val goToFolder: (String) -> Unit = browseToFolder(
+    twoPane,
+    { browseRequest = it },
+    { sidePanel = ShownPanel.Shell(SidePanel.FILES) },
+    backStack::bringBrowserForward,
+  )
 
   // A hoisted lambda like `goToFolder`, for the same reason: the card-to-document mapping is the
   // navigation's own, not the launcher's - and the `when` inside it must not count toward this
@@ -413,7 +402,7 @@ fun MainNavigation(
           }
         }
         entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
-          tabbedPane {
+          tabbedPane { saveTabAs ->
             EditorScreen(
               notebookId = editor.notebookId,
               notebookRepository = spacePorts.notebookRepository,
@@ -452,6 +441,9 @@ fun MainNavigation(
                 retainedConsole.session = session
                 backStack.openConsole(editor.notebookId)
               },
+              // `docmanager:save-as` (`Ctrl Shift S`) - the strip's dialog, reached with this
+              // entry's own key the way its menu reaches it.
+              onSaveAs = { saveTabAs(editor) },
               onNotebookMoved = { moved -> openDocumentPaths[editor] = moved },
               // The same request the file editor takes, because the panel does not know - and should
               // not - which of the two a path opens: `docmanager:open` decides the editor from the

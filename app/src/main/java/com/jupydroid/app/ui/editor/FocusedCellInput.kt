@@ -98,6 +98,14 @@ class FocusedCellInput {
   val focusedText: String? get() = target?.text?.toString()
 
   /**
+   * [focusedText] plus the caret, as the [CellEditorText] `notebook:split-cell-at-cursor`
+   * (`Ctrl`+`Shift`+`-`) cuts on - the field's live copy for the same debounce reason, and the
+   * caret because where to cut is the field's knowledge, never the document's.
+   */
+  val focusedEditor: CellEditorText?
+    get() = target?.let { CellEditorText(it.text.toString(), it.selection) }
+
+  /**
    * Replaces the whole text and puts the caret at the end of its first line - `updateEditor`
    * (`packages/notebook/src/history.ts:213-232`), which is what a recalled history entry does to
    * the cell being edited.

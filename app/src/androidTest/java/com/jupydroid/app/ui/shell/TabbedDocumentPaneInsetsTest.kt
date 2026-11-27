@@ -99,7 +99,7 @@ class TabbedDocumentPaneInsetsTest {
         TabbedDocumentPane(
           backStack, open, paths, tabs, emptyMap(), FakeWorkspaceRepository(), FakeWorkspaceFiles(),
           twoPane = true, closeTab, onOpenDocument = {}, documentCheckpoints = FakeDocumentCheckpoints(),
-          content = document,
+          content = { document() },
         )
       }
     }

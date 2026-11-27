@@ -109,8 +109,11 @@ class EditorViewModel(
   /**
    * The `autosave`/`autosaveInterval` pair the save machinery reads - defaulted the way
    * [openDocuments] is, so a test driving the editor alone reads the shipped defaults.
+   * `internal` rather than `private` so `notebookKey` can stay a file-level extension, for
+   * `NotebookCellEdits.uiState`'s reason: a chord dispatch is still a document act, which
+   * keeps this file its home - `viewmenu:line-numbering` writes through here.
    */
-  private val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
+  internal val editorSettings: EditorSettingsRepository = FakeEditorSettingsRepository(),
   /**
    * The Space's language server, asked for completions before the kernel - defaulted the
    * way [kernelDebugger] is, so a test driving the editor alone spawns nothing.
@@ -165,7 +168,9 @@ class EditorViewModel(
    * synchronous: `schedule()` gates at call time, and the run-end `checkpoint` lambda picks its
    * branch on the current value.
    */
-  private val settings = editorSettings.observeSettings()
+  // `internal` for the same reason as [editorSettings]: `notebookKey`'s history recall reads
+  // `accessKernelHistory` and its line-numbering toggle the value it flips.
+  internal val settings = editorSettings.observeSettings()
     .stateIn(viewModelScope, SharingStarted.Eagerly, EditorSettings())
 
   private val save = DocumentAutosave(viewModelScope, settings, { _uiState.value.dirty }) { persistence.persist() }

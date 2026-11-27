@@ -40,6 +40,15 @@ class NotebookCellSelection(private val uiState: MutableStateFlow<EditorUiState>
   /** `notebook:select-all`. */
   fun selectAll() = uiState.update { it.withAllCellsSelected() }
 
+  /**
+   * The same command reached by `Ctrl`+`A`. The head lands on the last cell, which is usually one
+   * the list has not composed, so [extendMarkedByKey]'s counting applies here too: without it the
+   * frame's focus owner is gone and every later key lands nowhere.
+   */
+  fun selectAllByKey() = uiState.update {
+    it.withAllCellsSelected().copy(headMovesByKey = it.headMovesByKey + 1)
+  }
+
   /** `notebook:deselect-all`, which is also how the mode is left. */
   fun deselectAll() = uiState.update { it.withSelectionCollapsed() }
 

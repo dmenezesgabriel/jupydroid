@@ -243,3 +243,31 @@ private suspend fun WorkspaceRepository.copyIn(fileName: String, bytes: ByteArra
   writeBytes(path, bytes)
   return path
 }
+
+/**
+ * **A breadcrumb segment, and one copy of what it does.** JupyterLab's `this._model.cd(destination)`
+ * (`packages/filebrowser/src/crumbs.ts:415`) - so the browser has to be *showing* for the
+ * navigation to be visible, and which half of the shell that needs differs by layout. Beside the
+ * document the side area may be drawing the table of contents instead; in one window the browser
+ * is not composed at all until the open entry goes.
+ *
+ * **Both documents take this same lambda** - the notebook and the plain file editor alike -
+ * because two copies of a branch that has to agree is a defect waiting to be written, the same
+ * reason `ShellSidePane` stopped being handed the width fact twice.
+ */
+internal fun browseToFolder(
+  twoPane: Boolean,
+  onBrowse: (String) -> Unit,
+  onShowFiles: () -> Unit,
+  bringBrowserForward: () -> Unit,
+): (String) -> Unit = { folder ->
+  onBrowse(folder)
+  if (twoPane) {
+    onShowFiles()
+  } else {
+    // One pane, and the browser is only ever shown as the top entry: bring it forward rather
+    // than popping the document - the entries beneath are still-open tabs, so Back
+    // from the browser returns to the document exactly as activating a tab would.
+    bringBrowserForward()
+  }
+}

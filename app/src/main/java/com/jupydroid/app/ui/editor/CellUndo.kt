@@ -114,11 +114,15 @@ fun EditorUiState.redoneCellOperation(): EditorUiState {
  * for a cell that is not running, and a run in flight re-emits into whatever is on screen.
  *
  * Ends collapsed and clamped, which is the `deselectAll()` JupyterLab does after an undo
- * (`actions.tsx:1758`, `:1779`) plus the id-based form of clamping `activeCellIndex`. Without the
- * collapse the bar above would go on counting cells the undo has just replaced.
+ * (`actions.tsx:1758`, `:1779`): the marks drop, and a head whose cell is gone takes
+ * `handleState`'s index clamp ([withHeadOnIndex]). Without the collapse the bar above would go
+ * on counting cells the undo has just replaced.
  */
 private fun EditorUiState.restoredTo(revision: NotebookRevision): EditorUiState {
   val liveSources = cells.associate { it.id to it.source } - revision.rewrote
+  // Read before the cells are swapped: the index the head sits at now, which is what it keeps
+  // when the restore removes its cell - a merge's `newId` is the case the undo meets it on.
+  val headAt = cells.indexOfFirst { it.id == selectedCellId }
   return copy(
     cells = revision.cells.map { cell -> liveSources[cell.id]?.let { cell.copy(source = it) } ?: cell },
     outputs = revision.outputs,
@@ -128,5 +132,5 @@ private fun EditorUiState.restoredTo(revision: NotebookRevision): EditorUiState 
     executions = revision.executions,
     sourceRevisions = sourceRevisions.bumping(revision.rewrote),
     dirty = true,
-  ).withSelectionCollapsed().withSelectionClamped()
+  ).withSelectionCollapsed().withSelectionClamped().withHeadOnIndex(headAt)
 }

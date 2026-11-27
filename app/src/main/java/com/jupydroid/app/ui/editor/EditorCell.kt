@@ -159,17 +159,14 @@ internal fun EditorCell(
   // move the ask underneath it.
   var symbolAsk by remember { mutableIntStateOf(0) }
   var renameAsk by remember { mutableStateOf<CellEditorText?>(null) }
-  val act: (CellAction) -> Unit = { action ->
-    when (action) {
-      CellAction.SymbolInfo -> symbolAsk++
-      CellAction.RenameSymbol -> renameSymbolTapped(
-        CellEditorText(field.text.toString(), field.selection),
-        onIdentifier = { renameAsk = it },
-        onMiss = { onCellAction(action, it) },
-      )
-      else -> onCellAction(action, CellEditorText(field.text.toString(), field.selection))
-    }
-  }
+  var pickingLevel by remember { mutableStateOf(false) }
+  val act = cellAct(
+    readText = { CellEditorText(field.text.toString(), field.selection) },
+    onSymbolAsk = { symbolAsk++ },
+    onRenameAsk = { renameAsk = it },
+    onChooseLevel = { pickingLevel = true },
+    onCellAction = onCellAction,
+  )
   // The one rule both the stripe and the editor's border hang off - see [cellIsBeingEdited].
   val editing = cellIsBeingEdited(selected, mode)
   val stripe = cellStripe(
@@ -301,6 +298,16 @@ internal fun EditorCell(
     if (hiddenBelow > 0) {
       HiddenCellsRow(count = hiddenBelow, onExpand = { act(CellAction.ToggleHeadingCollapse) })
     }
+    // The second step the accessibility context menu's `Change to heading…` row asked for - the
+    // menu opens the same surface from its own `pickingLevel`, which never leaves that composable.
+    HeadingLevelSurface(
+      expanded = pickingLevel,
+      onDismiss = { pickingLevel = false },
+      onAction = { heading ->
+        pickingLevel = false
+        act(heading)
+      },
+    )
     // The dialog the "Rename symbol…" row opened: prefilled with the identifier under the
     // frozen caret, confirming dispatches the ask with the same frozen text.
     renameAsk?.let { asked ->
@@ -314,6 +321,35 @@ internal fun EditorCell(
         onDismiss = { renameAsk = null },
       )
     }
+  }
+}
+
+/**
+ * The dispatch [EditorCell]'s three surface-answered actions go through - `SymbolInfo`,
+ * `RenameSymbol` and `ChooseHeadingLevel` are held in the cell's own state (see the asks above
+ * the call site) rather than forwarded, while everything else goes to `onCellAction` with the
+ * field's text. A builder rather than an inline `when`: the four branches took the composable
+ * past detekt's complexity cap, and the seam is a real one - which asks a surface answers
+ * itself is the dispatch's question, not the cell's drawing.
+ */
+private fun cellAct(
+  readText: () -> CellEditorText,
+  onSymbolAsk: () -> Unit,
+  onRenameAsk: (CellEditorText?) -> Unit,
+  onChooseLevel: () -> Unit,
+  onCellAction: (CellAction, CellEditorText) -> Unit,
+): (CellAction) -> Unit = { action ->
+  when (action) {
+    CellAction.SymbolInfo -> onSymbolAsk()
+    CellAction.RenameSymbol -> renameSymbolTapped(
+      readText(),
+      onIdentifier = onRenameAsk,
+      onMiss = { onCellAction(action, it) },
+    )
+    // The menu answers this row itself (`pickingLevel` in [CellActions]); the accessibility
+    // context menu's copy of the row only reaches here, and it asks for the same second step.
+    CellAction.ChooseHeadingLevel -> onChooseLevel()
+    else -> onCellAction(action, readText())
   }
 }
 

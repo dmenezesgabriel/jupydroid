@@ -7,6 +7,7 @@ import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
+import com.jupydroid.app.domain.model.CellKind
 
 /**
  * Which notebook command a key chord means, as a table mirroring JupyterLab's.
@@ -14,7 +15,8 @@ import androidx.compose.ui.input.key.key
  * `packages/notebook-extension/schema/tracker.json` is a list of `(keys, selector, command)`
  * rows - JupyterLab never grows a `switch` over key names, because the selector is half the
  * answer: the same `Ctrl`+`Enter` means run in command mode and run in edit mode. Ours is the
- * same shape with [CellMode] standing in for the CSS selector, one row per binding.
+ * same shape, [CellMode] and [NotebookChordSelector] standing in for the CSS selector, one row
+ * per binding - the rows live in `NotebookChordTable.kt`.
  */
 internal data class NotebookChord(
   val key: Key,
@@ -22,7 +24,59 @@ internal data class NotebookChord(
   val alt: Boolean = false,
   val shift: Boolean = false,
   val meta: Boolean = false,
-)
+) {
+  /** Keyboards split Enter into two keycodes; the table keys on the key, not the pad that sent it. */
+  fun normalized(): NotebookChord = if (key == Key.NumPadEnter) copy(key = Key.Enter) else this
+}
+
+/**
+ * The half of a row's selector that is not the mode: which node the CSS `:focus` lands on.
+ *
+ * `NOTEBOOK_FOCUS` is `:focus` on any descendant of the mode-qualified notebook - the command
+ * runs whoever inside the notebook owns focus. `CELL_FOCUS` is `.jp-Cell:focus`, and
+ * `MARKDOWN_CELL_FOCUS` is `.jp-MarkdownCell:focus`: the cell node *itself*, never a
+ * descendant control (a `⋮` inside it keeps its own keys).
+ */
+internal enum class NotebookChordSelector {
+  NOTEBOOK_FOCUS,
+  CELL_FOCUS,
+  MARKDOWN_CELL_FOCUS,
+}
+
+/**
+ * What a row's selector evaluates against - the focused node's shape as the dispatch site
+ * computes it.
+ *
+ * [cellFocused] is `.jp-Cell:focus` as a flag: whether the head cell's *frame* owns focus rather
+ * than one of its descendants. [headKind] is the focused cell's kind, because the head cell is
+ * the only focusable frame in command mode - `.jp-MarkdownCell:focus` can only ever be met on it.
+ */
+internal class NotebookKeyContext(val mode: CellMode, val cellFocused: Boolean, val headKind: CellKind?) {
+  fun selects(selector: NotebookChordSelector): Boolean = when (selector) {
+    NotebookChordSelector.NOTEBOOK_FOCUS -> true
+    NotebookChordSelector.CELL_FOCUS -> cellFocused
+    NotebookChordSelector.MARKDOWN_CELL_FOCUS -> cellFocused && headKind == CellKind.MARKDOWN
+  }
+}
+
+/**
+ * Lumino's `matchKeystroke` answer (`packages/apputils/src/keybinding.ts`): a stroke either
+ * completes a binding, opens one, or matches nothing.
+ *
+ * [Pending] exists because `keys` upstream is a *list* - `notebook:delete-cell` is `["D","D"]`
+ * (`tracker.json:390-395`), so the first `D` is a match-in-progress rather than a command or a
+ * miss.
+ */
+internal sealed interface NotebookChordResolution {
+  /** The stroke completed a row's `keys` - [pending] prefixed it when a sequence was open. */
+  data class Bound(val intent: NotebookChordIntent) : NotebookChordResolution
+
+  /** The stroke is the first key of a row's `keys`; the next one completes or resets it. */
+  data object Pending : NotebookChordResolution
+
+  /** No row wants the stroke - it is the field's or the platform's own key. */
+  data object Unbound : NotebookChordResolution
+}
 
 /**
  * What a resolved chord asks the notebook to do.
@@ -92,154 +146,103 @@ internal sealed interface NotebookChordIntent {
   data class ExtendMarked(val reach: SelectionReach) : NotebookChordIntent {
     override val dropsCaret = false
   }
+
+  /**
+   * The letter rows that are the cell menu's own verbs - `notebook:insert-cell-above`,
+   * `delete-cell`, `change-cell-to-*`, `{copy,cut,paste}-cell`, `merge-cell*`, `move-cell-*`,
+   * `insert-heading-*`, `change-cell-to-heading-*` and `split-cell-at-cursor` - carried as the
+   * [CellAction] the menu already dispatches, so the chord asks for what the menu asks for.
+   */
+  data class ApplyCellAction(val action: CellAction) : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:undo-cell-action` - `Z`. */
+  data object UndoCellAction : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:redo-cell-action` - `Shift Z`. */
+  data object RedoCellAction : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:select-all` - `Accel A`. */
+  data object SelectAllCells : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /**
+   * `notebook:collapse-all-headings`/`expand-all-headings` - `Ctrl Shift`+`ArrowLeft`/`ArrowRight`,
+   * two commands as one parameter.
+   */
+  data class SetAllHeadingsCollapsed(val collapsed: Boolean) : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `viewmenu:line-numbering` - `Shift L`. */
+  data object ToggleAllCellLineNumbers : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `docmanager:save` - `Accel S`, bound on `body` upstream, which is why both modes carry it. */
+  data object SaveDocument : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /**
+   * `docmanager:save-as` - `Accel Shift S`. Its dialog is the shell's, not the notebook's, so the
+   * intent climbs to the screen like [EnterCommandMode] climbs to the dispatch site.
+   */
+  data object SaveDocumentAs : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:access-previous-history-entry` - `Alt ArrowUp`. */
+  data object RecallPreviousHistoryEntry : NotebookChordIntent {
+    override val dropsCaret = false
+  }
+
+  /** `notebook:access-next-history-entry` - `Alt ArrowDown`. */
+  data object RecallNextHistoryEntry : NotebookChordIntent {
+    override val dropsCaret = false
+  }
 }
 
 /**
- * `tracker.json`, `Accel` read as `ctrl` since Android has no command key - and `Ctrl` is what a
- * chromebook's search-key-Enter chord produces, which is what Jupyter's own docs call it.
- *
- * The two selectors upstream calls `commandMode` and `editing` are [CellMode]s here. `Enter`
- * upstream is scoped to `.jp-Cell:focus` rather than every descendant (`tracker.json:447`), which
- * is a fidelity the dispatch site - not this table - reproduces, on the focus-owning check it
- * keeps for the row.
- */
-private val NOTEBOOK_BINDINGS = listOf(
-  NotebookBinding(
-    "notebook:run",
-    CellMode.EDIT,
-    NotebookChord(Key.Enter, ctrl = true),
-    NotebookChordIntent.RunSelected,
-  ),
-  NotebookBinding(
-    "notebook:run-and-advance",
-    CellMode.EDIT,
-    NotebookChord(Key.Enter, shift = true),
-    NotebookChordIntent.RunAndAdvance,
-  ),
-  NotebookBinding(
-    "notebook:run-and-insert",
-    CellMode.EDIT,
-    NotebookChord(Key.Enter, alt = true),
-    NotebookChordIntent.RunAndInsert,
-  ),
-  NotebookBinding(
-    "notebook:enter-edit-mode",
-    CellMode.COMMAND,
-    NotebookChord(Key.Enter),
-    NotebookChordIntent.EnterEditMode,
-  ),
-  NotebookBinding(
-    "notebook:enter-command-mode",
-    CellMode.EDIT,
-    NotebookChord(Key.Escape),
-    NotebookChordIntent.EnterCommandMode,
-  ),
-  NotebookBinding(
-    "notebook:enter-command-mode",
-    CellMode.EDIT,
-    NotebookChord(Key.M, ctrl = true),
-    NotebookChordIntent.EnterCommandMode,
-  ),
-  NotebookBinding(
-    "notebook:move-cursor-up",
-    CellMode.COMMAND,
-    NotebookChord(Key.DirectionUp),
-    NotebookChordIntent.SelectAbove,
-  ),
-  NotebookBinding(
-    "notebook:move-cursor-up",
-    CellMode.COMMAND,
-    NotebookChord(Key.K),
-    NotebookChordIntent.SelectAbove,
-  ),
-  NotebookBinding(
-    "notebook:move-cursor-down",
-    CellMode.COMMAND,
-    NotebookChord(Key.DirectionDown),
-    NotebookChordIntent.SelectBelow,
-  ),
-  NotebookBinding(
-    "notebook:move-cursor-down",
-    CellMode.COMMAND,
-    NotebookChord(Key.J),
-    NotebookChordIntent.SelectBelow,
-  ),
-  NotebookBinding(
-    "notebook:move-cursor-heading-above-or-collapse",
-    CellMode.COMMAND,
-    NotebookChord(Key.DirectionLeft),
-    NotebookChordIntent.SelectHeadingAboveOrCollapse,
-  ),
-  NotebookBinding(
-    "notebook:move-cursor-heading-below-or-expand",
-    CellMode.COMMAND,
-    NotebookChord(Key.DirectionRight),
-    NotebookChordIntent.SelectHeadingBelowOrExpand,
-  ),
-  NotebookBinding(
-    "notebook:extend-marked-cells-above",
-    CellMode.COMMAND,
-    NotebookChord(Key.DirectionUp, shift = true),
-    NotebookChordIntent.ExtendMarked(SelectionReach.ABOVE),
-  ),
-  NotebookBinding(
-    "notebook:extend-marked-cells-above",
-    CellMode.COMMAND,
-    NotebookChord(Key.K, shift = true),
-    NotebookChordIntent.ExtendMarked(SelectionReach.ABOVE),
-  ),
-  NotebookBinding(
-    "notebook:extend-marked-cells-below",
-    CellMode.COMMAND,
-    NotebookChord(Key.DirectionDown, shift = true),
-    NotebookChordIntent.ExtendMarked(SelectionReach.BELOW),
-  ),
-  NotebookBinding(
-    "notebook:extend-marked-cells-below",
-    CellMode.COMMAND,
-    NotebookChord(Key.J, shift = true),
-    NotebookChordIntent.ExtendMarked(SelectionReach.BELOW),
-  ),
-  NotebookBinding(
-    "notebook:extend-marked-cells-top",
-    CellMode.COMMAND,
-    NotebookChord(Key.MoveHome, shift = true),
-    NotebookChordIntent.ExtendMarked(SelectionReach.TOP),
-  ),
-  NotebookBinding(
-    "notebook:extend-marked-cells-bottom",
-    CellMode.COMMAND,
-    NotebookChord(Key.MoveEnd, shift = true),
-    NotebookChordIntent.ExtendMarked(SelectionReach.BOTTOM),
-  ),
-)
-
-/** One `tracker.json` row: the upstream command id is kept for greppability, not read. */
-private class NotebookBinding(
-  @Suppress("unused") val command: String,
-  val mode: CellMode,
-  val chord: NotebookChord,
-  val intent: NotebookChordIntent,
-)
-
-/**
- * The first binding [chord] means in [mode], or null when the key is the editor's own.
+ * The first binding [chord] means in [context]'s mode and focus, Lumino's `matchKeystroke` read:
+ * `[pending, chord]` against every `keys` first, then `chord` alone as a complete binding, then
+ * `chord` as the first key of a longer one. A miss while a sequence is open resolves the stroke
+ * fresh - upstream drops the half-matched keystrokes and retries, which is what makes `D` then
+ * `X` a cut rather than a dead key.
  *
  * A chord matches exactly on all four modifiers, so `Ctrl`+`Shift`+`Enter` is not
  * `Ctrl`+`Enter` with a stray Shift - the same rule `KeyboardShortcut.getStrokes` applies
  * upstream. Key-up events never reach here; the `onPreviewKeyEvent` call site filters on type.
  */
-internal fun notebookChord(mode: CellMode, chord: NotebookChord): NotebookChordIntent? {
-  val key = if (chord.key == Key.NumPadEnter) Key.Enter else chord.key
-  val normalized = chord.copy(key = key)
-  return NOTEBOOK_BINDINGS.firstOrNull { it.mode == mode && it.chord == normalized }?.intent
+internal fun notebookChord(
+  context: NotebookKeyContext,
+  chord: NotebookChord,
+  pending: NotebookChord? = null,
+): NotebookChordResolution {
+  val stroke = chord.normalized()
+  val sequence = pending?.normalized()?.let { listOf(it, stroke) }
+  val rows = NOTEBOOK_BINDINGS.filter { it.mode == context.mode && context.selects(it.selector) }
+  val bound = sequence?.let { seq -> rows.firstOrNull { it.keys == seq } }
+    ?: rows.firstOrNull { it.keys == listOf(stroke) }
+  return bound?.let { NotebookChordResolution.Bound(it.intent) }
+    ?: if (rows.any { it.keys.size > 1 && it.keys.first() == stroke }) {
+      NotebookChordResolution.Pending
+    } else {
+      NotebookChordResolution.Unbound
+    }
 }
 
 /**
  * What a Compose [KeyEvent] holds, modifier flags included.
  *
- * `Key.NumPadEnter` stays distinct here - [notebookChord] owns the normalisation so a caller
- * reading the chord raw still sees which pad sent it.
+ * `Key.NumPadEnter` stays distinct here - [NotebookChord.normalized] owns the normalisation so a
+ * caller reading the chord raw still sees which pad sent it.
  */
 internal fun KeyEvent.chord(): NotebookChord = NotebookChord(
   key = key,

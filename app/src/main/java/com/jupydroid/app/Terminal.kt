@@ -35,7 +35,7 @@ internal fun EntryProviderScope<NavKey>.terminalEntry(
   terminalGateway: TerminalGateway,
   terminalSettings: TerminalSettingsRepository,
   liveTabTitles: SnapshotStateMap<NavKey, String>,
-  tabbedPane: @Composable (@Composable () -> Unit) -> Unit,
+  tabbedPane: @Composable (@Composable (saveTabAs: (NavKey) -> Unit) -> Unit) -> Unit,
 ) {
   entry<Terminal>(metadata = ListDetailSceneStrategy.detailPane()) { terminal ->
     tabbedPane {
