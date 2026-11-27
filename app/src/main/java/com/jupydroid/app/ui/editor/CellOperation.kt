@@ -89,8 +89,52 @@ private fun EditorUiState.operated(action: CellAction, head: String, editor: Cel
   val current = if (action == CellAction.Split) withSource(head, editor.source) else this
   return current.transformed(action, operandOf(action), head, editor)
     .recording(before = current)
+    .withHeadLanded(before = current, action = action)
     .let { if (action.keepsTheRun) it else it.withSelectionCollapsed() }
 }
+
+/**
+ * Where the head lands after a structural operation - the reference's own two answers rather
+ * than one.
+ *
+ * The inserts and `addCells` name their result: *"The last added cell becomes the active cell"*
+ * (`actions.tsx:1568`, `activeCellIndex = prevActiveCellIndex + values.length` at `:1674`), and
+ * `insertAbove`/`insertBelow` set `activeCellIndex = newIndex` (`:541`, `:569`). So a cell the
+ * operation added is the head - and "the last added" is found by id rather than recomputed,
+ * because the paste offset over a collapsed section is [withClipboardPasted]'s fact, not a
+ * second thing to keep in step here.
+ *
+ * A head whose cell is **gone** gets `handleState`'s index clamp: the active index is kept and
+ * the cell that slid into it takes the ring (`actions.tsx:310`, which `mergeCells` and
+ * `deleteCells` both end on). Before this, a delete or merge left `selectedCellId = null` - a
+ * headless notebook `J`/`K` could not move.
+ *
+ * Everything else is unchanged on purpose: `Move`, the kind changes and the folds keep every id,
+ * so the head is already where the transform put it; `Split` and `InsertHeading` land their own
+ * (`withCellSplit`'s fragment rule, `withHeadingInserted`'s new-heading selection).
+ */
+private fun EditorUiState.withHeadLanded(before: EditorUiState, action: CellAction): EditorUiState {
+  if (!action.landsNewCell) {
+    // The gone-head case of the two landings - `handleState`'s index clamp, shared with the undo.
+    return withHeadOnIndex(before.cells.indexOfFirst { it.id == before.selectedCellId })
+  }
+  val beforeIds = before.cells.mapTo(HashSet()) { it.id }
+  val landed = cells.indexOfLast { it.id !in beforeIds }
+  return cells.getOrNull(landed)?.let { withCellSelected(it.id) } ?: this
+}
+
+/**
+ * The four operations that name their result - `insertAbove`/`insertBelow` set
+ * `activeCellIndex = newIndex` (`actions.tsx:541`, `:569`), and paste and `duplicate` both end on
+ * `addCells`, where "the last added cell becomes the active cell" (`:1459`, `:1548`, `:1680`).
+ * [withHeadLanded] reads that new cell rather than clamping the index a gone head left.
+ */
+private val CellAction.landsNewCell: Boolean
+  get() =
+    this is CellAction.Insert ||
+      this is CellAction.InsertAbove ||
+      this == CellAction.Paste ||
+      this == CellAction.Duplicate
 
 /**
  * Every cell [action] applies to, in document order - which for four of them is **more than is

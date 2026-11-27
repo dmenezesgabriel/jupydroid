@@ -176,7 +176,7 @@ class EditorViewModelTest {
   fun notebookKey_j_movesTheHeadAndCountsTheKeyMove() = runTest {
     val viewModel = loadedEditor(cells = listOf(codeCell, markdownCell, secondCodeCell))
 
-    viewModel.notebookKey(NotebookChordIntent.SelectBelow)
+    viewModel.notebookKey(NotebookChordIntent.SelectBelow, FocusedCellInput())
 
     val state = viewModel.uiState.value
     assertEquals("c2", state.selectedCellId)
@@ -188,12 +188,29 @@ class EditorViewModelTest {
   fun notebookKey_shiftJ_extendsTheRunByKey() = runTest {
     val viewModel = loadedEditor(cells = listOf(codeCell, markdownCell, secondCodeCell))
 
-    viewModel.notebookKey(NotebookChordIntent.ExtendMarked(SelectionReach.BELOW))
-    viewModel.notebookKey(NotebookChordIntent.ExtendMarked(SelectionReach.BELOW))
+    viewModel.notebookKey(NotebookChordIntent.ExtendMarked(SelectionReach.BELOW), FocusedCellInput())
+    viewModel.notebookKey(NotebookChordIntent.ExtendMarked(SelectionReach.BELOW), FocusedCellInput())
 
     val state = viewModel.uiState.value
     assertEquals(listOf("c1", "c2", "c3"), state.selectedCellIds)
     assertEquals(2, state.headMovesByKey)
+  }
+
+  /**
+   * `Ctrl A` moves the head to the last cell - the one endpoint a contiguous anchor+head model can
+   * put "all" on - which is usually a cell the list has not composed. Counting it as a key move is
+   * what `extendMarkedByKey` does for the same reason: the scroll-and-refocus effect is the only
+   * thing that brings that frame on screen and hands it back the focus the next key needs.
+   */
+  @Test
+  fun notebookKey_ctrlA_marksEveryCellAndCountsTheKeyMove() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell, markdownCell, secondCodeCell))
+
+    viewModel.notebookKey(NotebookChordIntent.SelectAllCells, FocusedCellInput())
+
+    val state = viewModel.uiState.value
+    assertEquals(listOf("c1", "c2", "c3"), state.selectedCellIds)
+    assertEquals(1, state.headMovesByKey)
   }
 
   /** `ArrowLeft` on a markdown heading folds it - and the persisted flag is what the save writes. */
@@ -201,7 +218,7 @@ class EditorViewModelTest {
   fun notebookKey_arrowLeft_onAHeading_collapsesIt() = runTest {
     val viewModel = loadedEditor(cells = listOf(markdownCell, codeCell))
 
-    viewModel.notebookKey(NotebookChordIntent.SelectHeadingAboveOrCollapse)
+    viewModel.notebookKey(NotebookChordIntent.SelectHeadingAboveOrCollapse, FocusedCellInput())
 
     val state = viewModel.uiState.value
     assertTrue(state.cells.first { it.id == "c2" }.headingCollapsed)

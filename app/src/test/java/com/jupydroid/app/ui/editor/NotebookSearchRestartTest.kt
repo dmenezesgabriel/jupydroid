@@ -47,16 +47,27 @@ class NotebookSearchRestartTest {
     assertEquals("1/2", state.value.searchCounter())
   }
 
+  /**
+   * The landing is `2/4` for the rename test's reason: `duplicate` selects the cell it made
+   * (`actions.tsx`'s `addCells`, `activeCellIndex = prevActiveCellIndex + values.length` at
+   * `:1674`), and "a"'s copy - a hit itself - sits one index under the original, so the head is
+   * beside the second match when the recompute lands.
+   */
   @Test
   fun duplicatingACellUnderAnOpenSearchCountsItsCopy() = runTest {
     val state = searchingIn(notebook)
 
     cellEditsOver(state, TestScope(testScheduler)).applyTo("a", CellAction.Duplicate)
 
-    assertEquals("1/4", state.value.searchCounter())
+    assertEquals("2/4", state.value.searchCounter())
   }
 
-  /** Undo restores cells, so the search restores what they matched. */
+  /**
+   * Undo restores cells, so the search restores what they matched. `2/3` rather than `1/3`:
+   * `deleteCells` ends on `handleState`'s index clamp (`actions.tsx:310`), leaving the head on
+   * the cell that slid into "a"'s seat - "b" - and the undo keeps it there, so the recompute
+   * lands on the next match below it.
+   */
   @Test
   fun undoingACellOperationUnderAnOpenSearchFindsAgain() = runTest {
     val state = searchingIn(notebook)
@@ -66,7 +77,7 @@ class NotebookSearchRestartTest {
 
     edits.undo()
 
-    assertEquals("1/3", state.value.searchCounter())
+    assertEquals("2/3", state.value.searchCounter())
   }
 
   /**

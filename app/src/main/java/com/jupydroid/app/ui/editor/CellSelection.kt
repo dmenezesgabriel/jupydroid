@@ -146,3 +146,16 @@ fun EditorUiState.withSelectionClamped(): EditorUiState {
   if (!alive) return copy(selectedCellId = null, anchorCellId = null, mode = CellMode.COMMAND)
   return if (anchored == anchorCellId) this else copy(anchorCellId = anchored)
 }
+
+/**
+ * `handleState`'s index clamp (`actions.tsx:310`): a head whose cell is gone keeps its *index*
+ * and takes the cell that slid into it, clamped to the list's end - `deselectAll` drops marks,
+ * never the head, so a notebook with cells always has one the keys can act on. [at] is the
+ * index the head sat at *before* the change that removed it; callers pass the pre-change list's
+ * answer.
+ */
+internal fun EditorUiState.withHeadOnIndex(at: Int): EditorUiState {
+  val headless = selectedCellId == null || cells.none { it.id == selectedCellId }
+  if (!headless || at < 0) return this
+  return cells.getOrNull(minOf(at, cells.lastIndex))?.let { withCellSelected(it.id) } ?: this
+}

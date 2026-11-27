@@ -193,7 +193,7 @@ Every port gets a `Fake…` — unchanged: this item adds no port.
   (`selectAbove`/`selectBelow`'s scan), Shift-extend (`Shift+J/K/arrows/Home/End`),
   `←`/`→` heading moves-or-collapse (`index.ts:245-248`'s pair), and the head scrolls into
   view on a key-driven move. The header's Run selects its cell first. Closes `GAP-005`.
-- [ ] T4 — **The letter set.** `A`, `B`, `D D` (pending chord), `M`, `Y`, `R`, `1`–`6`
+- [x] T4 — **The letter set.** `A`, `B`, `D D` (pending chord), `M`, `Y`, `R`, `1`–`6`
   (markdown cells only — the selector is `.jp-MarkdownCell:focus`, so a digit on a code cell
   falls through), `C`, `X`, `V`, `Z`, `Shift+Z`, `Shift+M`, `Ctrl`+`Bksp`,
   `Ctrl`+`Shift`+`M`, `Ctrl`+`Shift`+`↑`/`↓`, `Shift`+`A`/`B`, `Ctrl`+`A`, `Shift`+`L`,

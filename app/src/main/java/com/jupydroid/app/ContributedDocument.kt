@@ -75,7 +75,7 @@ internal fun MutableList<NavKey>.moveToSidePanel(
 internal fun EntryProviderScope<NavKey>.contributedDocumentEntry(
   contributions: List<DocumentContribution>,
   host: SidePanelHost,
-  tabbedPane: @Composable (@Composable () -> Unit) -> Unit,
+  tabbedPane: @Composable (@Composable (saveTabAs: (NavKey) -> Unit) -> Unit) -> Unit,
 ) {
   entry<ContributedDocument>(metadata = ListDetailSceneStrategy.detailPane()) { document ->
     tabbedPane {

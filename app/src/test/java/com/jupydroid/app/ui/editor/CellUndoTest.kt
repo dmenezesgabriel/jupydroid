@@ -102,6 +102,34 @@ class CellUndoTest {
   }
 
   /**
+   * The undo half of the landing rule an operation already gets (`withHeadLanded` in
+   * `app/src/main/java/com/jupydroid/app/ui/editor/CellOperation.kt`): the merged cell's id is
+   * minted (`withCellsMerged`'s `newId`), so the restore removes the very cell the head named,
+   * and `handleState`'s index clamp (`actions.tsx:310`) lands it on the cell that slid into its
+   * place. An id clamp alone ends on null - a headless notebook the keys cannot move.
+   */
+  @Test
+  fun undoingAMerge_landsTheHeadWhereTheMergedCellSat() {
+    val merged = stateOf("a", "b", "c")
+      .withCellSelected("b")
+      .applyingFrom("b", CellAction.Merge(MergeInto.BELOW))
+
+    assertEquals("b", merged.undoneCellOperation().selectedCellId)
+  }
+
+  /** The redo replays the merge, so the head lands back on the cell the merge made. */
+  @Test
+  fun redoingAMerge_landsTheHeadOnTheMergedCell() {
+    val redone = stateOf("a", "b", "c")
+      .withCellSelected("b")
+      .applyingFrom("b", CellAction.Merge(MergeInto.BELOW))
+      .undoneCellOperation()
+      .redoneCellOperation()
+
+    assertEquals(redone.cells[1].id, redone.selectedCellId)
+  }
+
+  /**
    * `actions.spec.ts:1059` asserts the *type* comes back. The outputs have to come with it:
    * `changeCellType` drops them (*"After change of type outputs are deleted"*), so an undo that
    * restored only the type would leave a code cell claiming a run whose results it had lost.
@@ -364,15 +392,20 @@ class CellUndoTest {
     assertTrue(state.applyingFrom("a", CellAction.Duplicate).sourceRevisions.isEmpty())
   }
 
-  /** A selection naming a cell the undo removed is worse than none - `withSelectionClamped`. */
+  /**
+   * The cell the head named is gone after the restore, but the head itself is not: `handleState`
+   * keeps the active *index*, so the cell that slid into it takes the ring (`actions.tsx:310`),
+   * clamped to the list's end. `deselectAll` upstream (`actions.tsx:1758`) drops the marks, never
+   * the head - a notebook with cells always has one the keys can act on.
+   */
   @Test
-  fun undo_dropsASelectionTheRestoreLeftPointingAtNothing() {
+  fun undo_landsTheHeadOnTheCellSlidingIntoItsPlace() {
     val inserted = stateOf("a").applyingFrom("a", CellAction.Insert(CellKind.CODE))
     val selected = inserted.withCellSelected(inserted.cells.last().id).withMode(CellMode.EDIT)
 
     val undone = selected.undoneCellOperation()
 
-    assertNull(undone.selectedCellId)
+    assertEquals("a", undone.selectedCellId)
     assertEquals(CellMode.COMMAND, undone.mode)
   }
 

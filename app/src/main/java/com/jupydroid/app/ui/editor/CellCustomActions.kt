@@ -58,17 +58,46 @@ internal fun Modifier.cellCustomActions(
     inspection,
     onAction,
   ) {
-    cellActionItems(cell, canPaste, selecting, count, inspection)
-      // The one row that stands for six is expanded here rather than opening a picker: this menu
-      // has no width to run out of and no fold, and a submenu is the worst shape to operate with
-      // TalkBack. See [headingLevelItems].
-      .flatMap { if (it.second == CellAction.ChooseHeadingLevel) headingLevelItems() else listOf(it) }
-      .map { (label, action) ->
-        CustomAccessibilityAction(label) {
-          onAction(action)
-          true
-        }
+    contextActionItems(cell, canPaste, selecting, count, inspection).map { (label, action) ->
+      CustomAccessibilityAction(label) {
+        onAction(action)
+        true
       }
+    }
   }
   return this.semantics { customActions = actions }
 }
+
+/**
+ * The labels and actions the cell's accessibility context menu offers, before they become
+ * [CustomAccessibilityAction]s.
+ *
+ * The one row that stands for six is expanded here rather than opening a picker: this menu has no
+ * width to run out of and no fold, and a submenu is the worst shape to operate with TalkBack. See
+ * [headingLevelItems]. **Except when the expansion would not fit**: Compose throws
+ * *"Can't have more than 32 custom actions for one widget"* while populating a node
+ * (`AndroidComposeViewAccessibilityDelegateCompat`), and any accessibility walk of the tree -
+ * TalkBack, a `uiautomator dump` - turns that into a crash. The fullest a code cell can get is the
+ * limit on the nose: a kernel answering the inspect rows and a non-empty clipboard add the items
+ * that take the expanded list to it. Then the row the picker stands behind stays, and the surface
+ * answers the ask the same way the menu's does.
+ */
+internal fun contextActionItems(
+  cell: Cell,
+  canPaste: Boolean,
+  selecting: Boolean,
+  count: Int,
+  inspection: Boolean,
+): List<Pair<String, CellAction>> {
+  val items = cellActionItems(cell, canPaste, selecting, count, inspection)
+  val expanded = items.flatMap {
+    if (it.second == CellAction.ChooseHeadingLevel) headingLevelItems() else listOf(it)
+  }
+  return if (expanded.size < CUSTOM_ACTION_LIMIT) expanded else items
+}
+
+/**
+ * `AndroidComposeViewAccessibilityDelegateCompat` throws *"Can't have more than 32 custom actions
+ * for one widget"* while populating a node that reaches it.
+ */
+private const val CUSTOM_ACTION_LIMIT = 32

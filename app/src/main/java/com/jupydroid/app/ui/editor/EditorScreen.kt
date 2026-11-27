@@ -1,6 +1,5 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -156,6 +155,12 @@ fun EditorScreen(
    */
   onOpenConsole: (NotebookKernelSession) -> Unit = {},
   /**
+   * `docmanager:save-as` (`Ctrl`+`Shift`+`S`): the copy's path is the shell's ask - the tab
+   * strip's `onSaveTabAs` - so the chord climbs out as this callback rather than reaching the
+   * dialog through the ViewModel. No-op where nothing above offers it, as `onOpenConsole` is.
+   */
+  onSaveAs: () -> Unit = {},
+  /**
    * Reports where the notebook lives *now*, because a rename moves it.
    *
    * The navigation key keeps the path the editor was opened under - replacing it would re-create
@@ -252,25 +257,7 @@ fun EditorScreen(
       viewModel.conflict::cancel,
     )
   }
-  // Back in edit mode returns to command mode instead of leaving the notebook - the touch
-  // analogue of `Escape`, which is what both references bind it to. It is the same target the
-  // `enter-command-mode` chord lands on: the head cell's frame takes focus, which blurs the
-  // field, ends the caret and reports the mode change through the one focus listener - and where
-  // a device maps KEYCODE_ESCAPE onto Back, this is also the path an Escape takes, so the two
-  // land on the same frame rather than Esc's landing on nobody.
-  BackHandler(enabled = state.mode == CellMode.EDIT) {
-    if (listState.composesCell(state.selectedCellId)) headFrame.requestFocus() else focusManager.clearFocus()
-  }
-  // Back out of the marking mode before it backs out of the notebook, which is what a contextual
-  // bar's close does everywhere else on Android - and the reason it is a second handler rather
-  // than a branch in the one above is that the two states are exclusive: entering edit mode drops
-  // the selection (`widget.ts:1925`), so only one of these is ever enabled.
-  BackHandler(enabled = state.selecting) { viewModel.selection.deselectAll() }
-  // And out of the find bar before it backs out of the notebook, which is the same contextual-bar
-  // rule the one above states. Its own handler rather than a branch, because the three states are
-  // exclusive: searching is asked for from the document's bar, which is not up while a run is
-  // marked, and the find box taking the caret is not a cell being edited.
-  BackHandler(enabled = state.search != null) { viewModel.search.end() }
+  EditorModalBacks(state, listState, headFrame, focusManager, viewModel)
   // Marking a run is a command-mode act (`notebook.mode = 'command'`, `actions.tsx:1326`), and in
   // this app the mode *is* where the focus is - the back handler above changes it by dropping the
   // caret rather than by setting a field, so that there is one path out of edit mode and not two.
@@ -472,7 +459,13 @@ fun EditorScreen(
               // and it has to precede the command the blur belongs to.
               onNotebookChord = { intent ->
                 if (intent.dropsCaret) focusManager.clearFocus()
-                viewModel.notebookKey(intent)
+                // `docmanager:save-as` is the shell's dialog - the one intent the screen, not
+                // the ViewModel, answers, for `EnterCommandMode`'s dispatch-site reason.
+                if (intent == NotebookChordIntent.SaveDocumentAs) {
+                  onSaveAs()
+                } else {
+                  viewModel.notebookKey(intent, cellInput)
+                }
               },
               onAddCell = { kind -> scope.launch { viewModel.edits.appendCellInView(kind, listState) } },
               modifier = Modifier.weight(1f),

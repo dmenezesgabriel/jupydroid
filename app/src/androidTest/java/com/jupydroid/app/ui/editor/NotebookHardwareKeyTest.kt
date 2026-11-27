@@ -1,22 +1,16 @@
 package com.jupydroid.app.ui.editor
 
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.click
-import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
@@ -25,31 +19,13 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.withKeyDown
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.jupydroid.app.OpenDebugStack
-import com.jupydroid.app.OpenDocumentOutline
-import com.jupydroid.app.OpenDocuments
-import com.jupydroid.app.OpenNotebookCells
-import com.jupydroid.app.data.fake.FakeDocumentSharer
 import com.jupydroid.app.data.fake.FakeEditorSettingsRepository
-import com.jupydroid.app.data.fake.FakeKernelDebugger
-import com.jupydroid.app.data.fake.FakeKernelGateway
-import com.jupydroid.app.data.fake.FakeNotebookExporter
-import com.jupydroid.app.data.fake.FakeNotebookRepository
-import com.jupydroid.app.data.fake.FakeWorkspaceRepository
-import com.jupydroid.app.domain.model.ActiveCellRuns
 import com.jupydroid.app.domain.model.Cell
 import com.jupydroid.app.domain.model.CellKind
-import com.jupydroid.app.domain.model.Notebook
 import com.jupydroid.app.theme.FocusRingEdgeProbe
-import com.jupydroid.app.theme.JupydroidTheme
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
-import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -65,12 +41,7 @@ import org.junit.runner.RunWith
  */
 @OptIn(ExperimentalTestApi::class) // `performKeyInput`'s own opt-in requirement
 @RunWith(AndroidJUnit4::class)
-class NotebookHardwareKeyTest {
-  @get:Rule val compose = createComposeRule()
-
-  private val repository = FakeNotebookRepository()
-  private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
-  private lateinit var viewModel: EditorViewModel
+class NotebookHardwareKeyTest : NotebookKeyFixture() {
 
   /**
    * `Ctrl`+`Enter` runs the cell where it stands. **The caret stays in the cell** - the classic
@@ -223,6 +194,10 @@ class NotebookHardwareKeyTest {
   fun enterOnAFocusedHeaderButton_opensItsMenu() {
     showEditing(CELL)
     field(0).performKeyInput { pressKey(Key.Escape) }
+    // The frame's focus request is still settling when this returns - a RequestFocus on the `⋮`
+    // issued now queues behind it and loses, so the button first has to wait on the transaction
+    // landing, the same observable edge the Enter below then reads.
+    assertFrameFocused()
 
     val overflow = compose.onNodeWithContentDescription("Cell actions")
     overflow.performSemanticsAction(SemanticsActions.RequestFocus)
@@ -414,86 +389,13 @@ class NotebookHardwareKeyTest {
   @Test
   fun aKeyboardFocusOnTheFrame_drawsTheRing() {
     val probe = FocusRingEdgeProbe(compose)
-    viewModel = notebookViewModel(CELL)
-    probe.show(darkTheme = false) { editorScreen(viewModel) }
+    viewModel = notebookViewModel(FakeEditorSettingsRepository(), CELL)
+    probe.show(darkTheme = false) { editorScreen(viewModel, FakeEditorSettingsRepository()) {} }
 
     compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.cells.isNotEmpty() }
     compose.runOnIdle { viewModel.selection.activate("c1") }
     compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.selectedCellId == "c1" }
 
     probe.assertKeyboardFocusDrawsTheRing(headFrame(), edgeOf = headFrame())
-  }
-
-  private fun field(index: Int) = compose.onAllNodes(hasSetTextAction())[index]
-  private fun headFrame() = compose.onNodeWithTag(HEAD_CELL_FRAME_TAG)
-  private fun cellFrame(cellId: String) = compose.onNode(SemanticsMatcher.expectValue(CellFrameIdKey, cellId))
-
-  /**
-   * The frame's own focus, waited for rather than asserted straight off: `requestFocus` settles
-   * through the focus transaction's blur-then-grant events. It is read on [FrameOwnsFocusKey]
-   * rather than `assertIsFocused`, because the framework's `focused` semantics only re-applies
-   * when the node's semantics are invalidated - and a programmatic `requestFocus` invalidates
-   * nothing, leaving the flag stale long after the target is Active.
-   */
-  private fun assertFrameFocused() {
-    compose.waitUntil(TIMEOUT_MILLIS) {
-      runCatching {
-        headFrame().fetchSemanticsNode().config[FrameOwnsFocusKey]
-      }.getOrDefault(false)
-    }
-    headFrame().assert(SemanticsMatcher.expectValue(FrameOwnsFocusKey, true))
-  }
-
-  /** The notebook open on the given cells, the first field tapped, so it is being edited. */
-  private fun showEditing(vararg cells: Cell) {
-    viewModel = notebookViewModel(*cells)
-    compose.setContent { JupydroidTheme { editorScreen(viewModel) } }
-    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.cells.isNotEmpty() }
-    field(0).performClick()
-    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.mode == CellMode.EDIT }
-  }
-
-  private fun notebookViewModel(vararg cells: Cell): EditorViewModel {
-    runBlocking { repository.saveNotebook(Notebook(NOTEBOOK_ID, "Data", "python3", cells.toList())) }
-    return EditorViewModel(
-      notebookId = NOTEBOOK_ID,
-      notebookRepository = repository,
-      workspaceRepository = FakeWorkspaceRepository(),
-      kernelGateway = FakeKernelGateway(),
-      notebookExporter = FakeNotebookExporter(),
-      applicationScope = scope,
-      activeCellRuns = ActiveCellRuns(),
-      openDocuments = OpenDocuments(),
-    )
-  }
-
-  @Composable
-  private fun editorScreen(viewModel: EditorViewModel) = EditorScreen(
-    notebookId = NOTEBOOK_ID,
-    notebookRepository = repository,
-    workspaceRepository = FakeWorkspaceRepository(),
-    kernelGateway = FakeKernelGateway(),
-    kernelDebugger = FakeKernelDebugger(),
-    notebookExporter = FakeNotebookExporter(),
-    documentSharer = FakeDocumentSharer(),
-    applicationScope = scope,
-    activeCellRuns = ActiveCellRuns(),
-    editorSettingsRepository = FakeEditorSettingsRepository(),
-    outline = OpenDocumentOutline(),
-    onShowTableOfContents = null,
-    debugPanel = OpenDebugStack(),
-    notebookCells = OpenNotebookCells(),
-    onShowDebugger = null,
-    onGoToFolder = {},
-    onBack = {},
-    viewModel = viewModel,
-  )
-
-  private companion object {
-    const val NOTEBOOK_ID = "nb-1"
-    val CELL = Cell(id = "c1", kind = CellKind.CODE, source = "pass")
-    val SECOND_CELL = Cell(id = "c2", kind = CellKind.CODE, source = "pass")
-    val THIRD_CELL = Cell(id = "c3", kind = CellKind.CODE, source = "pass")
-    const val TIMEOUT_MILLIS = 5_000L
   }
 }

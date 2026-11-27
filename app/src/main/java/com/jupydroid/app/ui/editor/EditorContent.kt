@@ -129,12 +129,8 @@ internal fun EditorContent(
       val requestHeadFocus = {
         if (listState.composesCell(state.selectedCellId)) headFocus.requestFocus()
       }
-      // The key codes of chords the down-stroke claimed: a claimed press is ours end to end, so
-      // its up is consumed too. An Escape up left to propagate reaches the platform's Esc→Back
-      // translation, which fires `onBackPressed` the moment command mode has already landed and
-      // no `BackHandler` stands enabled - the notebook itself backs out under the frame that
-      // just took focus.
-      val claimedKeys = remember { mutableSetOf<Int>() }
+      // The remembered halves of the key dispatch - see [NotebookKeyState].
+      val keyState = remember { NotebookKeyState() }
       // `focusActiveCell` (`packages/notebook/src/actions.tsx:2585`): the head moves and focus
       // follows it, so command mode's keys always have their owner. `selecting` is also a key,
       // so the frame takes focus back the moment marking ends.
@@ -161,7 +157,16 @@ internal fun EditorContent(
           // the head frame's tag rides the accessibility dump a flow or a `uiautomator` capture
           // reads, which is how the focus owner is named from outside the app.
           modifier = Modifier.fillMaxSize().semantics { testTagsAsResourceId = true }.onPreviewKeyEvent { event ->
-            dispatchNotebookKey(event, state.mode, frameOwnsFocus, claimedKeys, requestHeadFocus, onNotebookChord)
+            // The row's selector as the site answers it: the mode, `.jp-Cell:focus` as
+            // `frameOwnsFocus`, and the head cell's kind for `.jp-MarkdownCell:focus` - the head
+            // frame is the only focusable cell in command mode, so its kind is the focused
+            // cell's kind whenever `frameOwnsFocus` holds.
+            val context = NotebookKeyContext(
+              state.mode,
+              frameOwnsFocus,
+              state.cells.firstOrNull { it.id == state.selectedCellId }?.kind,
+            )
+            dispatchNotebookKey(event, context, keyState, requestHeadFocus, onNotebookChord)
           },
         ) {
           // contentType as well as key: a code cell and a markdown cell compose to very different
@@ -313,48 +318,77 @@ private suspend fun EditorUiState.scrollKeyMovedHead(
 }
 
 /**
- * One hardware event against the keymap. A chord claimed on its down is ours end to end, so its
- * up is consumed with it ([claimedKeys] holds the key codes a down-stroke took): an Escape up
- * left to propagate reaches the platform's Esc→Back translation, which fires `onBackPressed` the
+ * The two things a chord's life is carried in. [claimedKeys] holds the key codes a down-stroke
+ * took: a claimed press is ours end to end, so its up is consumed with it - an Escape up left
+ * to propagate reaches the platform's Esc→Back translation, which fires `onBackPressed` the
  * moment command mode has already landed and no `BackHandler` stands enabled.
+ *
+ * [pending] is Lumino's open sequence - the first half of a `["D","D"]`-shaped row, kept with
+ * its mode because a mode change is upstream's reset of the keystroke array and ours too.
  */
-private fun dispatchNotebookKey(
-  event: KeyEvent,
-  mode: CellMode,
-  frameOwnsFocus: Boolean,
-  claimedKeys: MutableSet<Int>,
-  requestHeadFocus: () -> Unit,
-  onNotebookChord: (NotebookChordIntent) -> Unit,
-): Boolean {
-  if (event.type == KeyEventType.KeyUp) return claimedKeys.remove(event.nativeKeyEvent.keyCode)
-  return event.type == KeyEventType.KeyDown &&
-    claimNotebookKey(event, mode, frameOwnsFocus, claimedKeys, requestHeadFocus, onNotebookChord)
+private class NotebookKeyState {
+  val claimedKeys = mutableSetOf<Int>()
+  var pending: Pair<CellMode, NotebookChord>? = null
 }
 
 /**
- * A key-down the list previews: resolve the chord, then claim and dispatch the intent.
- * `.jp-Cell:focus`, not `:focus-within` (`tracker.json:447`) - Enter with a descendant control
- * focused (a `⋮`, say) is that control's own key, so [frameOwnsFocus] gates the one intent
- * upstream scoped to the cell node itself.
+ * One hardware event against the keymap - see [NotebookKeyState] for what is remembered
+ * between events.
  */
-private fun claimNotebookKey(
+private fun dispatchNotebookKey(
   event: KeyEvent,
-  mode: CellMode,
-  frameOwnsFocus: Boolean,
-  claimedKeys: MutableSet<Int>,
+  context: NotebookKeyContext,
+  keyState: NotebookKeyState,
   requestHeadFocus: () -> Unit,
   onNotebookChord: (NotebookChordIntent) -> Unit,
 ): Boolean {
-  val intent = notebookChord(mode, event.chord())
-    ?.takeUnless { it == NotebookChordIntent.EnterEditMode && !frameOwnsFocus }
-    ?: return false
-  claimedKeys += event.nativeKeyEvent.keyCode
-  if (intent == NotebookChordIntent.EnterCommandMode) {
-    // Upstream "just unfocuses the editor" (`actions.tsx`'s `enterCommandMode`); where focus goes
-    // is ours to answer, and the head cell's frame is command mode's owner.
-    requestHeadFocus()
-  } else {
-    onNotebookChord(intent)
+  if (event.type == KeyEventType.KeyUp) return keyState.claimedKeys.remove(event.nativeKeyEvent.keyCode)
+  return event.type == KeyEventType.KeyDown &&
+    claimNotebookKey(event, context, keyState, requestHeadFocus, onNotebookChord)
+}
+
+/**
+ * A key-down the list previews: resolve the chord through [notebookChord]'s three answers, then
+ * claim and act on it. A [NotebookChordResolution.Pending] stroke is claimed without dispatch -
+ * `D` is ours while the second half of `["D","D"]` is open - and a miss drops the sequence, so
+ * the stroke resolves fresh.
+ */
+private fun claimNotebookKey(
+  event: KeyEvent,
+  context: NotebookKeyContext,
+  keyState: NotebookKeyState,
+  requestHeadFocus: () -> Unit,
+  onNotebookChord: (NotebookChordIntent) -> Unit,
+): Boolean {
+  val pending = keyState.pending?.takeIf { it.first == context.mode }?.second
+  return when (val resolved = notebookChord(context, event.chord(), pending)) {
+    NotebookChordResolution.Pending -> {
+      keyState.pending = context.mode to event.chord()
+      keyState.claimedKeys += event.nativeKeyEvent.keyCode
+      true
+    }
+    NotebookChordResolution.Unbound -> {
+      keyState.pending = null
+      false
+    }
+    is NotebookChordResolution.Bound -> {
+      keyState.pending = null
+      keyState.claimedKeys += event.nativeKeyEvent.keyCode
+      dispatchBound(intent = resolved.intent, requestHeadFocus, onNotebookChord)
+      true
+    }
   }
-  return true
+}
+
+/**
+ * A completed binding, delivered where it is owned: `enter-command-mode` "just unfocuses the
+ * editor" upstream (`actions.tsx`'s `enterCommandMode`) and where focus goes is ours to answer -
+ * the head cell's frame, which is command mode's owner. Every other intent is the ViewModel's.
+ */
+private fun dispatchBound(
+  intent: NotebookChordIntent,
+  requestHeadFocus: () -> Unit,
+  onNotebookChord: (NotebookChordIntent) -> Unit,
+) {
+  if (intent == NotebookChordIntent.EnterCommandMode) requestHeadFocus() else onNotebookChord(intent)
 }

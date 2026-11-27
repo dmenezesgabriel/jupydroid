@@ -140,7 +140,12 @@ fun TabbedDocumentPane(
   documentContributions: List<DocumentContribution> = emptyList(),
   /** Shows a panel on the side, for a contributed tab moved there - see `moveToSidePanel`. */
   onShowSidePanel: (ShownPanel) -> Unit = {},
-  content: @Composable () -> Unit,
+  /**
+   * The document, handed the tab's `docmanager:save-as` so a screen inside it - the notebook's
+   * `Ctrl`+`Shift`+`S` - reaches the same dialog the strip's Save As… opens. One lambda, because
+   * the ask is one act whoever raises it.
+   */
+  content: @Composable (saveTabAs: (NavKey) -> Unit) -> Unit,
 ) {
   // The tab a rename is being asked over - held here rather than inside a tab so the dialog
   // outlives that tab's recomposition (its own long-press is what opened the ask).
@@ -160,6 +165,9 @@ fun TabbedDocumentPane(
     onOpenDocument(copy)
   }
   val revertToCheckpoint = rememberTabRevertToCheckpoint(documentCheckpoints)
+  // `docmanager:save-as` on a key, shared by the strip's menu and the `content` lambda - a
+  // notebook's own Ctrl+Shift+S climbs out through it to the same dialog.
+  val saveTabAs: (NavKey) -> Unit = { key -> key.documentIn(openDocuments)?.let { saveAs(key, it) } }
   // The strip closes the deleted tab itself, on top or beneath, as `deleteWidgets` disposes every
   // widget on the file: a screen beneath the top is not composed to hear its file go.
   val duplicate = rememberTabDuplicate(workspaceFiles)
@@ -184,7 +192,7 @@ fun TabbedDocumentPane(
         val path = key.documentIn(openDocuments)?.path ?: key.liveDocumentPath(openDocumentPaths)
         path?.let { renaming = PendingTabRename(key, it) }
       },
-      onSaveTabAs = { key -> key.documentIn(openDocuments)?.let { saveAs(key, it) } },
+      onSaveTabAs = saveTabAs,
       onRevertTab = { key -> key.documentIn(openDocuments)?.let(revertToCheckpoint) },
       onDuplicateTab = { key -> key.documentIn(openDocuments)?.let(duplicate) },
       onDeleteTab = { key -> key.documentIn(openDocuments)?.let { delete(key, it) } },
@@ -198,7 +206,7 @@ fun TabbedDocumentPane(
       modifier = Modifier
         .weight(1f)
         .consumeWindowInsets(TopAppBarDefaults.windowInsets.only(WindowInsetsSides.Top)),
-    ) { content() }
+    ) { content(saveTabAs) }
   }
 
   // `docmanager:rename` (`docmanager-extension/schema/plugin.json:75`, bound to the tab's own
