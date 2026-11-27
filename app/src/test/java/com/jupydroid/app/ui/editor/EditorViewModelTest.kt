@@ -147,6 +147,82 @@ class EditorViewModelTest {
     assertEquals(1, viewModel.uiState.value.executionCounts["c1"])
   }
 
+  /**
+   * The header's Run is a press on *that* cell, and a press selects before it acts -
+   * upstream's `_evtMouseDown` sets `activeCellIndex` and a press outside the marked run
+   * deselects it (`packages/notebook/src/widget.ts:3160-3167`; VS Code calls
+   * `focusNotebookCell` before execute, `executeActions.ts:295-297`). Without it the run
+   * executed a cell nothing pointed at: the bar stayed on the old head.
+   */
+  @Test
+  fun runCell_outsideTheMarkedRun_collapsesTheRunOntoThatCellFirst() = runTest {
+    val fourth = secondCodeCell.copy(id = "c4", source = "print(4)")
+    val viewModel = loadedEditor(cells = listOf(codeCell, markdownCell, secondCodeCell, fourth))
+    viewModel.selection.extendTo("c3")
+
+    viewModel.kernel.runCell(fourth)
+    advanceUntilIdle()
+
+    val state = viewModel.uiState.value
+    assertEquals("c4", state.selectedCellId)
+    assertFalse(state.selecting)
+  }
+
+  /**
+   * The cursor chords reach their commands through `notebookKey` - the one door
+   * `onPreviewKeyEvent` calls once `notebookChord` has named the intent.
+   */
+  @Test
+  fun notebookKey_j_movesTheHeadAndCountsTheKeyMove() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell, markdownCell, secondCodeCell))
+
+    viewModel.notebookKey(NotebookChordIntent.SelectBelow)
+
+    val state = viewModel.uiState.value
+    assertEquals("c2", state.selectedCellId)
+    assertEquals(1, state.headMovesByKey)
+  }
+
+  /** `Shift J` extends the marked run from the head's side - twice means twice counted. */
+  @Test
+  fun notebookKey_shiftJ_extendsTheRunByKey() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell, markdownCell, secondCodeCell))
+
+    viewModel.notebookKey(NotebookChordIntent.ExtendMarked(SelectionReach.BELOW))
+    viewModel.notebookKey(NotebookChordIntent.ExtendMarked(SelectionReach.BELOW))
+
+    val state = viewModel.uiState.value
+    assertEquals(listOf("c1", "c2", "c3"), state.selectedCellIds)
+    assertEquals(2, state.headMovesByKey)
+  }
+
+  /** `ArrowLeft` on a markdown heading folds it - and the persisted flag is what the save writes. */
+  @Test
+  fun notebookKey_arrowLeft_onAHeading_collapsesIt() = runTest {
+    val viewModel = loadedEditor(cells = listOf(markdownCell, codeCell))
+
+    viewModel.notebookKey(NotebookChordIntent.SelectHeadingAboveOrCollapse)
+
+    val state = viewModel.uiState.value
+    assertTrue(state.cells.first { it.id == "c2" }.headingCollapsed)
+    assertEquals(setOf("c1"), state.hiddenCellIds)
+    assertTrue(state.dirty)
+  }
+
+  /** Inside the marked run, the press moves the head and keeps the run - `_evtMouseDown`'s rule. */
+  @Test
+  fun runCell_insideTheMarkedRun_movesTheHeadAndKeepsTheRun() = runTest {
+    val viewModel = loadedEditor(cells = listOf(codeCell, markdownCell, secondCodeCell))
+    viewModel.selection.extendTo("c3")
+
+    viewModel.kernel.runCell(markdownCell)
+    advanceUntilIdle()
+
+    val state = viewModel.uiState.value
+    assertEquals("c2", state.selectedCellId)
+    assertEquals("c1", state.anchorCellId)
+  }
+
   /** A re-run must replace the previous output, not append to it. */
   @Test
   fun runCell_replacesOutputFromAPreviousRun() = runTest {

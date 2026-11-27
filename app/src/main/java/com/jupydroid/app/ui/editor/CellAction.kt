@@ -20,6 +20,14 @@ enum class MergeInto { ABOVE, BELOW }
 enum class SelectionReach { ABOVE, BELOW, TOP, BOTTOM }
 
 /**
+ * Which way the head steps - `notebook:move-cursor-{up,down}` as one parameter.
+ *
+ * Beside [CellMove] but not it: a cursor move walks *over* the cells without touching them,
+ * which [CellMove]'s "moved past its neighbour" does not say.
+ */
+enum class CursorDirection { UP, DOWN }
+
+/**
  * Which cells a run command means - the five ranges [cellsToRun] resolves, as one parameter.
  *
  * Beside [SelectionReach] for the same reason it is beside [CellMove]: this is the vocabulary the

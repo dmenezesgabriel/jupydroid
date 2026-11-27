@@ -18,6 +18,11 @@ internal fun EditorViewModel.notebookKey(intent: NotebookChordIntent) {
     NotebookChordIntent.RunAndAdvance -> kernel.chords.runAndAdvance()
     NotebookChordIntent.RunAndInsert -> kernel.chords.runAndInsert()
     NotebookChordIntent.EnterEditMode -> selection.enterEditMode()
+    NotebookChordIntent.SelectAbove -> selection.moveCursor(CursorDirection.UP)
+    NotebookChordIntent.SelectBelow -> selection.moveCursor(CursorDirection.DOWN)
+    NotebookChordIntent.SelectHeadingAboveOrCollapse -> edits.selectHeadingAboveOrCollapse()
+    NotebookChordIntent.SelectHeadingBelowOrExpand -> edits.selectHeadingBelowOrExpand()
+    is NotebookChordIntent.ExtendMarked -> selection.extendMarkedByKey(intent.reach)
     // `enter-command-mode` is a focus move onto the cell's frame, not a state transform -
     // the dispatch site handles it where the FocusRequester lives and never calls here.
     NotebookChordIntent.EnterCommandMode -> Unit

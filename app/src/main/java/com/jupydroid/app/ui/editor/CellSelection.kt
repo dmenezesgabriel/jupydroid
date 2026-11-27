@@ -85,6 +85,51 @@ fun EditorUiState.withCellActivated(cellId: String): EditorUiState {
 }
 
 /**
+ * `notebook:move-cursor-{up,down}` - the head stepping one *visible* cell, `ArrowUp`/`K` and
+ * `ArrowDown`/`J` in command mode.
+ *
+ * `selectAbove`/`selectBelow` walk the widgets skipping `isHidden` and `inputHidden` ones
+ * (`packages/notebook/src/actions.tsx:1128-1132`), which is why the scan reads [hiddenCellIds]
+ * and [Cell.sourceHidden] rather than stepping ±1. A collapsed cell is never a stop on the way.
+ *
+ * Two rules come straight out of them, and the first is the one a first guess gets wrong:
+ *
+ * - **The edges bail before anything changes** - `selectAbove` returns on index 0 and
+ *   `selectBelow` on the last non-hidden cell (`:1110-1115`, `:1150-1155`), *before*
+ *   `deselectAll` is reached. A move that goes nowhere keeps the marked run. (`selectBelow`
+ *   there also focuses the notebook's footer, which ours does not draw as a focus target - the
+ *   head simply stays.)
+ * - **A real move deselects** - `activeCellIndex = …` then `deselectAll()` (`:1136-1140`,
+ *   `:1168-1173`). The mode is left alone, which is what lets a move out of a marked run stay a
+ *   command-mode act.
+ *
+ * Each move counts on [EditorUiState.headMovesByKey], the event the screen's scroll-and-refocus
+ * effect listens for; a step that goes nowhere counts nothing.
+ */
+fun EditorUiState.withCursorMoved(direction: CursorDirection): EditorUiState {
+  val at = cells.indexOfFirst { it.id == selectedCellId }
+  val target = if (at < 0) null else nextVisibleAt(at, direction)
+  return if (target == null) {
+    this
+  } else {
+    copy(
+      selectedCellId = cells[target].id,
+      anchorCellId = null,
+      headMovesByKey = headMovesByKey + 1,
+    )
+  }
+}
+
+/** The index [direction]'s key lands on: one cell over, skipping `sourceHidden` and folded cells. */
+private fun EditorUiState.nextVisibleAt(at: Int, direction: CursorDirection): Int? {
+  val hidden = hiddenCellIds
+  val step = if (direction == CursorDirection.UP) -1 else 1
+  return generateSequence(at + step) { it + step }
+    .takeWhile { it in cells.indices }
+    .firstOrNull { !cells[it].sourceHidden && cells[it].id !in hidden }
+}
+
+/**
  * Drops a selection whose cell is gone, and falls back to command mode when it does.
  *
  * The id-based equivalent of JupyterLab clamping `activeCellIndex` to the bounds of the cell

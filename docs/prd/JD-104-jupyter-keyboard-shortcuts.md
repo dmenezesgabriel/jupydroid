@@ -189,7 +189,7 @@ Every port gets a `Fake…` — unchanged: this item adds no port.
   head cell's frame follows the selection; `Enter` → field focus → EDIT; `Escape`/`Ctrl+M` →
   frame focus → COMMAND. The ADR-0145 ring draws on the head frame. Esc-reachability measured
   here. Closes `GAP-005`'s primitive.
-- [ ] T3 — **Cursor moves.** `J`/`K`/`↑`/`↓` step the head skipping hidden cells
+- [x] T3 — **Cursor moves.** `J`/`K`/`↑`/`↓` step the head skipping hidden cells
   (`selectAbove`/`selectBelow`'s scan), Shift-extend (`Shift+J/K/arrows/Home/End`),
   `←`/`→` heading moves-or-collapse (`index.ts:245-248`'s pair), and the head scrolls into
   view on a key-driven move. The header's Run selects its cell first. Closes `GAP-005`.

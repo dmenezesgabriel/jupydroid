@@ -279,7 +279,13 @@ fun EditorScreen(
   // keyboard up** over the selection bar with nothing to type into - and on a 320dp phone that hid
   // every cell but the first two, so the run could not be extended at all. Caught by the flow, not
   // by a test: no Compose test has an IME (the run before this).
-  LaunchedEffect(state.selecting) { if (state.selecting) focusManager.clearFocus() }
+  //
+  // Gated on a field actually holding the caret: a marking started by `Shift`+`J` from the head
+  // cell's frame has no field attached, and clearing focus there takes the frame's - the second
+  // `Shift`+arrow would land on nobody, since a key only reaches the list through a focus owner.
+  LaunchedEffect(state.selecting) {
+    if (state.selecting && cellInput.isAttached) focusManager.clearFocus()
+  }
   // The file behind this notebook was deleted, so there is nothing left to show: the reference
   // closes the widget from the manager (`deleteWidgets`), and this is the same close asked for by
   // the document, which is the only party that hears every delete.
