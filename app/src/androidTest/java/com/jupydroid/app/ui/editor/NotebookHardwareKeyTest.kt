@@ -78,6 +78,40 @@ class NotebookHardwareKeyTest : NotebookKeyFixture() {
   }
 
   /**
+   * `Shift`+`Enter` landing on a *markdown* cell keeps the same owner: the frame holds command
+   * mode's focus on it too, or the `Enter` that opens its editor has nowhere to be read from.
+   */
+  @Test
+  fun shiftEnter_ontoAMarkdownCell_focusesItsFrame() {
+    val markdown = Cell("md", CellKind.MARKDOWN, "# Keys")
+    showEditing(CELL, markdown)
+
+    field(0).performKeyInput { withKeyDown(Key.ShiftLeft) { pressKey(Key.Enter) } }
+
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.selectedCellId == "md" }
+    assertFrameFocused()
+    compose.runOnIdle { assertEquals(CellMode.COMMAND, viewModel.uiState.value.mode) }
+  }
+
+  /**
+   * `Shift`+`Enter` whose advance lands the head on a cell the list has not composed: the head
+   * has to be scrolled in and the frame's focus re-asked, the `handleState` scroll-to-item the
+   * `headMovesByKey` effect carries for key moves - a run that lands past the fold wants it too.
+   */
+  @Test
+  fun shiftEnter_ontoACellPastTheFold_scrollsItInAndFocusesIt() {
+    val many = (1..30).map { Cell("c$it", CellKind.CODE, "pass") }
+    showEditing(*many.toTypedArray())
+    // The head onto the far end, where its next cell is not composed - the fixture's `field`
+    // cannot reach past the fold, so the chord is asked the way `onNotebookChord` passes it.
+    compose.runOnIdle { viewModel.selection.activate("c29") }
+    compose.runOnIdle { viewModel.kernel.chords.runAndAdvance() }
+
+    compose.waitUntil(TIMEOUT_MILLIS) { viewModel.uiState.value.selectedCellId == "c30" }
+    assertFrameFocused()
+  }
+
+  /**
    * `Shift`+`Enter` on the last cell appends a code cell and puts the caret in it
    * (`actions.tsx:830-849` - `mode = 'edit'` once the new widget is in view).
    */
