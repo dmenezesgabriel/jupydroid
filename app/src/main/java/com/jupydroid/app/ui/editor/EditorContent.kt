@@ -133,9 +133,14 @@ internal fun EditorContent(
       val keyState = remember { NotebookKeyState() }
       // `focusActiveCell` (`packages/notebook/src/actions.tsx:2585`): the head moves and focus
       // follows it, so command mode's keys always have their owner. `selecting` is also a key,
-      // so the frame takes focus back the moment marking ends.
+      // so the frame takes focus back the moment marking ends. The scroll half rides with it,
+      // `handleState`'s `scrollToItem` on every active-cell change: a run's advance can land the
+      // head on a cell the list has not composed, where the bare ask would find no frame to aim
+      // at - and unlike a keyed move, no `headMovesByKey` count re-asks it afterwards.
       LaunchedEffect(state.selectedCellId, state.mode, state.selecting) {
-        if (state.commandFocusMayMove()) requestHeadFocus()
+        if (state.commandFocusMayMove()) {
+          state.scrollKeyMovedHead(onScreen, listState) { requestHeadFocus() }
+        }
       }
       // `handleState`'s scroll half (`actions.tsx`'s `NotebookActions.handleState` →
       // `scrollToItem(…, 'auto', …)`): a *key* moved the head, so it is scrolled in if not
