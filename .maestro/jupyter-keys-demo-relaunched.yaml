@@ -1,0 +1,37 @@
+appId: com.jupydroid.app
+---
+# The demo's kill-and-relaunch half: launchApp stops the process, and the notebook has to read
+# back every structural edit the keys made - the typed inserts, the split's second cell, the
+# merged markdown - not a rerun of them.
+#
+# What a dump cannot say (cross-cutting.md §8.6): whether a composed-but-clipped row is on
+# screen. The scroll steps take the asserts to the cells rather than trusting a node that may
+# sit below the fold.
+#
+# Seeded by scripts/jupyter-keys-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Keys.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Keys.ipynb"
+- extendedWaitUntil:
+    visible: "alpha = 1"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      text: "ins_above = 4"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "ins_above = 4"
+- scrollUntilVisible:
+    element:
+      text: "split_tail = 6"
+    direction: DOWN
+    timeout: 20000
+- assertVisible: "split_tail = 6"
+- takeScreenshot: relaunched-read-back
