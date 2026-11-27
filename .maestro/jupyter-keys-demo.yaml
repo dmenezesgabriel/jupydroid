@@ -1,0 +1,33 @@
+appId: com.jupydroid.app
+---
+# The keyboard-shortcuts demo, the open half: cold start on the build under test, the seeded Keys notebook
+# (three code cells, one markdown) opened, and the caret tapped into the middle cell - after
+# which scripts/jupyter-keys-driver.sh takes over with Unexpected Keyboard for the IME half and
+# `input keyevent`/`keycombination` for the injected one.
+#
+# What a dump cannot say here (docs/architecture/cross-cutting.md §8.6): whether the *frame*
+# holds command-mode focus, and whether a composed-but-clipped cell is on screen - the driver
+# answers both from the head-cell-frame's bounds against a text node's, and every step's
+# screenshot is evidence, not decoration.
+#
+# Seeded by scripts/jupyter-keys-driver.sh; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Keys.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Keys.ipynb"
+- extendedWaitUntil:
+    visible: "beta = 2"
+    timeout: 30000
+- takeScreenshot: 01-notebook-open
+# A tap on the middle cell's source puts the caret in it: edit mode, keyboard up, which is the
+# surface the Unexpected-Keyboard half of the demo sends its chords through.
+- tapOn: "beta = 2"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-caret-in-beta

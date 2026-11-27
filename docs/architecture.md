@@ -306,31 +306,6 @@ otherwise have. Replacing a selection is likewise left alone rather than wrapped
 bracket — that half is a decline, not a miss: wrapping is a separate feature, and half-doing it
 leaves an unmatched closer.
 
-### GAP-005 — Nothing selects a cell without editing it
-
-Focus is what selects a cell here (`EditorViewModel.cellFocusChanged`), so the head moves only with
-the caret, or as a side effect of something else: a menu opened on a cell
-(`CellOperation.kt`'s `applyingFrom`), landing on a definition or a match, or a run. JupyterLab has
-both halves. `_evtMouseDown` sets `activeCellIndex` on a press anywhere in a cell, and asks for edit
-mode only for a press *in the editor* (`jupyterlab@7f0e690680a763d3c3db5dc0231803b0ba0e1e12`
-`packages/notebook/src/widget.ts:3160-3230`). Ours has only the second.
-
-Four reference commands are missing for this one reason, measured against the code rather than a
-grep. `notebook:move-cursor-up` / `-down` are `ArrowUp`/`K` and `ArrowDown`/`J` in command mode, and
-`notebook:move-cursor-heading-above-or-collapse` / `-below-or-expand` are `ArrowLeft`/`ArrowRight`
-(`packages/notebook-extension/schema/tracker.json:523-550`). No composable in `ui/editor/` reads a
-key, so none of the four has a surface. It also affects `notebook:run-cell`: the cell header's Run
-runs its cell and leaves the head where it was, while VS Code focuses the cell first
-(`vscode@3f3380c668d07649b953eb8278354b2f263ea6ff`
-`src/vs/workbench/contrib/notebook/browser/controller/executeActions.ts:295-297`). So after
-running cell 5 with the head on cell 2, *Run Selected Cell and All Below* still means cell 2.
-
-Every head-relative command pays for it: `run-all-above`, `run-all-below`,
-`restart-and-run-to-selected` and the heading inserts are aimed by tapping into a cell, taking the
-keyboard, and dismissing it again. Closing it means a press on a cell's chrome selects it in
-command mode, as `applyingFrom` already does for the menu. The four key bindings, and the header's
-Run, then sit on that one primitive. `withCellSelected` already exists and leaves the mode alone.
-
 ### GAP-006 — Three dependency rules held only by convention
 
 Repaired where it was measured, with one correction: the documented `ui ↛ data` was already false —
@@ -461,20 +436,6 @@ pair of arrows.
 markdown branch (`NotebookCellRuns`, through `MarkdownEditing.withMarkdownRendered`), so closing
 every open markdown editor costs executing every code cell. `withMarkdownRendered` already takes a
 list of cell ids; the gap is a surface.
-
-### GAP-020 — A run never advances, so running a notebook cell by cell is a tap per cell and a scroll
-
-`notebook:run-cell-and-select-next` is `Shift Enter` and the notebook toolbar's own Run button
-(`jupyterlab@7f0e690680a763d3c3db5dc0231803b0ba0e1e12`
-`packages/notebook-extension/schema/panel.json:17-19`). `notebook:run-cell-and-insert-below` is
-`Alt Enter` and the Run menu (`schema/tracker.json:185`, `:605-622`). Both run the selection, and
-then move the head on: to the next cell, or to a new one inserted below, entering edit mode on a cell
-they had to create (`packages/notebook/src/actions.tsx:814-924`). Here, every Run leaves the head
-where it was: the cell header's `NotebookCellRuns.runCell`, and `run(RunRange.MARKED)` on the
-selection bar, which puts the head on the last cell it ran and stops. Stepping through a notebook
-is therefore a Run and a scroll per cell. Closing it is a third run command over the existing
-`cellsToRun(RunRange.MARKED)` and `withCellInserted`. The decision it carries is where the control
-goes, since this app's bar already holds Run All and the cell's own Run means *this cell*.
 
 ### GAP-021 — There is no way back to the cell that is running
 
