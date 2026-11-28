@@ -38,6 +38,7 @@ import com.jupydroid.app.ui.settings.LicencesViewModel
 import com.jupydroid.app.ui.settings.SettingsScreen
 import com.jupydroid.app.ui.shell.SidePanelRail
 import com.jupydroid.app.ui.shell.TabbedDocumentPane
+import com.jupydroid.app.ui.shell.WindowKeyRowHosted
 import com.jupydroid.app.ui.shell.anyOpenDocumentDirty
 import com.jupydroid.app.ui.shell.rememberMainAreaCloseGate
 import com.jupydroid.app.ui.shell.saveAllOpenDocuments
@@ -260,241 +261,250 @@ fun MainNavigation(
         modifier = Modifier.trailingBorder(chromePalette.activityBarBorder),
       )
     }
-    NavDisplay(
-      backStack = backStack,
-      // **Back reaches the workspace's root before it leaves the workspace.** Android's own
-      // principle: the start destination *"is also the last screen the user sees when they return
-      // to the launcher after pressing the Back button"*
-      // (`developer.android.com/guide/navigation/principles`). The browser is the workspace's root,
-      // so backing out of a one-pane Search selects Files rather than leaving for the Spaces home -
-      // and only on the browser, since over a document Back belongs to the document. Both rules
-      // live here rather than in a `BackHandler`, which loses the gesture to the display's own.
-      onBack = {
-        if (backSelectsFiles) sidePanel = ShownPanel.Shell(SidePanel.FILES) else backStack.popWorkspaceEntry(twoPane)
-      },
-      // NavDisplay's default is the saveable-state decorator ALONE, so without this the
-      // ViewModelStoreOwner inside an entry is the Activity: viewModel {} keys on the class name
-      // and hands the second notebook the first one's ViewModel, id and all.
-      //
-      // Order is load-bearing. decorateEntry folds right, so the first in the list is the
-      // outermost, and the ViewModel decorator has to sit inside the saveable one - it reads the
-      // SavedStateRegistryOwner from its surroundings.
-      entryDecorators = listOf(
-        rememberSaveableStateHolderNavEntryDecorator(),
-        rememberViewModelStoreNavEntryDecorator(),
-      ),
-      // Both entries stay entries; this only decides whether they are drawn one at a time or beside each other.
-      // `ListDetailSceneStrategy` collects the matching entries into one scene and draws each one's own `Content()`, so
-      // every decorator stays where it was - the property the hand-written strategy this replaced existed for, and the
-      // reason `NavigableListDetailPaneScaffold` is still not what this uses: it puts both panes in *one* `NavEntry`.
-      //
-      // With one partition it declines the scene (`shouldHandleSinglePaneLayout` is false by
-      // default), and NavDisplay falls through to its single-pane default.
-      //
-      // **`PopLatest`, not the library's default, and it is not a preference.** With both panes
-      // expanded, `PopUntilScaffoldValueChange` looks for an earlier destination whose scaffold
-      // value differs and never finds one - the list alone still lays out as two panes - so
-      // `getPreviousDestinationIndex` returns -1, `previousEntries` comes back empty, and the scene
-      // pops *every* entry. Measured on the tablet: back from a notebook left the app for the home
-      // screen. `PopLatest` pops exactly one, which is what
-      // `TwoPaneScene.previousEntries = entries.dropLast(1)` did.
-      sceneStrategy = rememberListDetailSceneStrategy(
-        backNavigationBehavior = BackNavigationBehavior.PopLatest,
-        directive = directive,
-      ),
-      entryProvider = entryProvider {
-        // No pane metadata, so the scene strategy declines it and the home takes the whole window.
-        entry<SpacesHome> {
-          SpacesHomeScreen(
-            spaceRepository = appContainer.spaceRepository,
-            spaceServers = appContainer.spaceServers,
-            spaceEnvironments = appContainer.spaceEnvironments,
-            stoppedKernelSpecs = appContainer.stoppedSpaceKernelSpecs,
-            spaceShell = appContainer.spaceShell,
-            harnessScripts = appContainer.harnessScripts,
-            onOpen = backStack::enterWorkspace,
-          )
-        }
-        entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
-          ShellSidePane(
-            showingPanel = showingPanel,
-            onePanePanel = onePanePanel,
-            // The one width fact, passed once. It used to arrive twice - as `showingPanel` and as a
-            // `barSelection` that was `if (twoPane) null else onePanePanel` - and the side bar's
-            // own border needed a third reading of it. Two parameters that have to agree
-            // is a defect waiting to be written; the pane decides from the fact itself.
-            twoPane = twoPane,
-            onChoosePanel = { sidePanel = it },
-            appContainer = appContainer,
-            spacePorts = spacePorts,
-            outline = outline,
-            debugStack = debugPanel,
-            notebookCells = notebookCells,
-            openDocuments = openDocuments,
-            openDocument = openDocument,
-            openDocumentPath = openDocumentPath,
-            openTabs = runningTabs,
-            onActivateTab = backStack::activateMainAreaTab,
-            // The same gate the strip's ✕ runs through - a panel row's close is the identical act.
-            onCloseTab = closeGate.closeTab,
-            saveAllEnabled = anyOpenDocumentDirty(openDocuments),
-            // On the application's scope, so closing the panel mid-sweep cannot cut a write short;
-            // on Main, because a refused save's reveal moves the back stack.
-            onSaveAllTabs = {
-              appContainer.applicationScope.launch(Dispatchers.Main) {
-                saveAllOpenDocuments(orderedTabs, openDocuments, backStack::activateMainAreaTab)
-              }
-            },
-            onOpenSession = { backStack.openRunningSession(it, orderedTabs, openDocument) },
-            // `terminal:open` - the stack's open-or-reveal reattaches to the named shell's socket.
-            onOpenTerminal = { backStack.openTerminal(it.name) },
-            browseRequest = browseRequest,
-            onBrowseRequestHandled = { browseRequest = null },
-            onRevealMatch = { match -> revealRequest = match },
-            // The bar's terminal item roots at the directory the explorer is showing - the same
-            // cwd the launcher's Terminal card gets, hoisted so both reads answer the same path.
-            onNewTerminal = { newTerminal(browsedDirectory) },
-            onOpenSettings = { backStack.openSettings() },
-            onLeaveWorkspace = closeGate.leaveWorkspace,
-            onOpenLauncher = openLauncher,
-            onBrowsedDirectory = { browsedDirectory = it },
-            browsedDirectory = browsedDirectory,
-          )
-        }
-        contributedDocumentEntry(appContainer.documentContributions, contributionHost, tabbedPane)
-        entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
-          // No onBack, no width fact: leaving a document is the strip's own act now - the ✕ at
-          // two panes, the destination-named arrow below - so a screen states only its content.
-          tabbedPane {
-            SettingsScreen(
-              editorSettingsRepository = appContainer.editorSettings,
-              themeSettingsRepository = appContainer.themeSettings,
-              appIconRepository = appContainer.appIcon,
-              applicationScope = appContainer.applicationScope,
-              onOpenLicences = { backStack.openLicences() },
-              diagnostics = viewModel { DiagnosticsViewModel(appContainer.errorLog, appContainer.errorLogSharer) },
+    // The rail is *outside* the hosted region on purpose: `WindowKeyRowHosted`'s `imePadding`
+    // shrinks everything it contains by the keyboard's height, and inside it the rail's foot
+    // rows rode the inset up over the destinations (`RailAnchoredAboveKeyboardTest`).
+    WindowKeyRowHosted(modifier = Modifier.weight(1f)) {
+      NavDisplay(
+        backStack = backStack,
+        // **Back reaches the workspace's root before it leaves the workspace.** Android's own
+        // principle: the start destination *"is also the last screen the user sees when they return
+        // to the launcher after pressing the Back button"*
+        // (`developer.android.com/guide/navigation/principles`). The browser is the workspace's root,
+        // so backing out of a one-pane Search selects Files rather than leaving for the Spaces home -
+        // and only on the browser, since over a document Back belongs to the document. Both rules
+        // live here rather than in a `BackHandler`, which loses the gesture to the display's own.
+        onBack = {
+          if (backSelectsFiles) sidePanel = ShownPanel.Shell(SidePanel.FILES) else backStack.popWorkspaceEntry(twoPane)
+        },
+        // NavDisplay's default is the saveable-state decorator ALONE, so without this the
+        // ViewModelStoreOwner inside an entry is the Activity: viewModel {} keys on the class name
+        // and hands the second notebook the first one's ViewModel, id and all.
+        //
+        // Order is load-bearing. decorateEntry folds right, so the first in the list is the
+        // outermost, and the ViewModel decorator has to sit inside the saveable one - it reads the
+        // SavedStateRegistryOwner from its surroundings.
+        entryDecorators = listOf(
+          rememberSaveableStateHolderNavEntryDecorator(),
+          rememberViewModelStoreNavEntryDecorator(),
+        ),
+        // Both entries stay entries; this only decides whether they are drawn one at a time or beside
+        // each other. `ListDetailSceneStrategy` collects the matching entries into one scene and draws
+        // each one's own `Content()`, so every decorator stays where it was - the property the
+        // hand-written strategy this replaced existed for, and the reason
+        // `NavigableListDetailPaneScaffold` is still not what this uses: it puts both panes in *one*
+        // `NavEntry`.
+        //
+        // With one partition it declines the scene (`shouldHandleSinglePaneLayout` is false by
+        // default), and NavDisplay falls through to its single-pane default.
+        //
+        // **`PopLatest`, not the library's default, and it is not a preference.** With both panes
+        // expanded, `PopUntilScaffoldValueChange` looks for an earlier destination whose scaffold
+        // value differs and never finds one - the list alone still lays out as two panes - so
+        // `getPreviousDestinationIndex` returns -1, `previousEntries` comes back empty, and the scene
+        // pops *every* entry. Measured on the tablet: back from a notebook left the app for the home
+        // screen. `PopLatest` pops exactly one, which is what
+        // `TwoPaneScene.previousEntries = entries.dropLast(1)` did.
+        sceneStrategy = rememberListDetailSceneStrategy(
+          backNavigationBehavior = BackNavigationBehavior.PopLatest,
+          directive = directive,
+        ),
+        entryProvider = entryProvider {
+          // No pane metadata, so the scene strategy declines it and the home takes the whole window.
+          entry<SpacesHome> {
+            SpacesHomeScreen(
+              spaceRepository = appContainer.spaceRepository,
+              spaceServers = appContainer.spaceServers,
+              spaceEnvironments = appContainer.spaceEnvironments,
+              stoppedKernelSpecs = appContainer.stoppedSpaceKernelSpecs,
+              spaceShell = appContainer.spaceShell,
+              harnessScripts = appContainer.harnessScripts,
+              onOpen = backStack::enterWorkspace,
             )
           }
-        }
-        entry<Licences>(metadata = ListDetailSceneStrategy.detailPane()) {
-          tabbedPane { LicencesScreen(viewModel { LicencesViewModel(appContainer.licenceDocuments) }) }
-        }
-        entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
-          tabbedPane {
-            FileEditorScreen(
-              path = file.path,
-              workspaceRepository = spacePorts.workspaceRepository,
-              workspaceWatcher = spacePorts.workspaceWatcher,
-              workspaceFiles = spacePorts.workspaceFiles,
-              applicationScope = appContainer.applicationScope,
-              editorSettingsRepository = appContainer.editorSettings,
-              // Its own entry, never the last: a file deleted from its tab is closed by the strip
-              // first, and the screen's own close on hearing it go must then find nothing to remove
-              // rather than the tab beneath (`DeletedTabTest`).
-              onBack = { backStack.remove(file) },
-              onGoToFolder = goToFolder,
-              onFileMoved = { moved -> openDocumentPaths[file] = moved },
-              reveal = revealRequest,
-              onRevealHandled = { revealRequest = null },
-              openDocuments = openDocuments,
-              opening = file.opening,
-            )
-          }
-        }
-        entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
-          tabbedPane { saveTabAs ->
-            EditorScreen(
-              notebookId = editor.notebookId,
-              notebookRepository = spacePorts.notebookRepository,
-              workspaceRepository = spacePorts.workspaceRepository,
-              workspaceWatcher = spacePorts.workspaceWatcher,
-              workspaceFiles = spacePorts.workspaceFiles,
-              kernelGateway = spacePorts.kernelGateway,
-              kernelDebugger = spacePorts.kernelDebugger,
-              kernelSessions = spacePorts.kernelSessions,
-              kernelSpecs = spacePorts.kernelSpecs,
-              space = spacePorts.space,
-              languageServer = appContainer.languageServer,
-              notebookExporter = spacePorts.notebookExporter,
-              documentSharer = spacePorts.documentSharer,
-              applicationScope = appContainer.applicationScope,
-              activeCellRuns = appContainer.activeCellRuns,
-              notebookBreakpoints = appContainer.notebookBreakpoints,
-              editorSettingsRepository = appContainer.editorSettings,
-              wheelIndex = appContainer.wheelIndex,
-              outline = outline,
-              // `toc:show-panel` where there is a side area to activate, and null where there is not -
-              // which is what puts the overlay up on a compact window instead.
-              onShowTableOfContents = { sidePanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS) }.takeIf { twoPane },
-              debugPanel = debugPanel,
-              notebookCells = notebookCells,
-              onShowDebugger = { sidePanel = ShownPanel.Shell(SidePanel.DEBUGGER) }.takeIf { twoPane },
-              onGoToFolder = goToFolder,
-              openDocument = openDocument,
-              // Its own entry, as the file editor's is: the strip may have closed it already.
-              onBack = { backStack.remove(editor) },
-              // The one width fact this screen still reads, and it decides one thing now: whether
-              // the debugger's bottom bar carries a variables toggle (a side panel already shows
-              // it at two panes). How the document is left is the strip's own act.
+          entry<Explorer>(metadata = ListDetailSceneStrategy.listPane()) {
+            ShellSidePane(
+              showingPanel = showingPanel,
+              onePanePanel = onePanePanel,
+              // The one width fact, passed once. It used to arrive twice - as `showingPanel` and as a
+              // `barSelection` that was `if (twoPane) null else onePanePanel` - and the side bar's
+              // own border needed a third reading of it. Two parameters that have to agree
+              // is a defect waiting to be written; the pane decides from the fact itself.
               twoPane = twoPane,
-              onOpenConsole = { session ->
-                retainedConsole.session = session
-                backStack.openConsole(editor.notebookId)
-              },
-              // `docmanager:save-as` (`Ctrl Shift S`) - the strip's dialog, reached with this
-              // entry's own key the way its menu reaches it.
-              onSaveAs = { saveTabAs(editor) },
-              onNotebookMoved = { moved -> openDocumentPaths[editor] = moved },
-              // The same request the file editor takes, because the panel does not know - and should
-              // not - which of the two a path opens: `docmanager:open` decides the editor from the
-              // path alone, and the match travels beside it either way.
-              reveal = revealRequest,
-              onRevealHandled = { revealRequest = null },
+              onChoosePanel = { sidePanel = it },
+              appContainer = appContainer,
+              spacePorts = spacePorts,
+              outline = outline,
+              debugStack = debugPanel,
+              notebookCells = notebookCells,
               openDocuments = openDocuments,
-              opening = editor.opening,
-              notebookExecutions = notebookExecutions,
-            )
-          }
-        }
-        terminalEntry(spacePorts.terminalGateway, appContainer.terminalSettings, liveTabTitles, tabbedPane)
-        entry<Launcher>(metadata = ListDetailSceneStrategy.detailPane()) {
-          tabbedPane {
-            LauncherScreen(
-              cwd = browsedDirectory,
-              viewModel = viewModel {
-                LauncherViewModel(
-                  spacePorts.notebookRepository,
-                  spacePorts.workspaceFiles,
-                  spacePorts.terminalGateway,
-                  spacePorts.kernelGateway,
-                  spacePorts.kernelSpecs,
-                  spacePorts.space,
-                  consoleOrdinal = retainedConsole::nextOrdinal,
-                )
+              openDocument = openDocument,
+              openDocumentPath = openDocumentPath,
+              openTabs = runningTabs,
+              onActivateTab = backStack::activateMainAreaTab,
+              // The same gate the strip's ✕ runs through - a panel row's close is the identical act.
+              onCloseTab = closeGate.closeTab,
+              saveAllEnabled = anyOpenDocumentDirty(openDocuments),
+              // On the application's scope, so closing the panel mid-sweep cannot cut a write short;
+              // on Main, because a refused save's reveal moves the back stack.
+              onSaveAllTabs = {
+                appContainer.applicationScope.launch(Dispatchers.Main) {
+                  saveAllOpenDocuments(orderedTabs, openDocuments, backStack::activateMainAreaTab)
+                }
               },
-              onLaunched = openLaunched,
+              onOpenSession = { backStack.openRunningSession(it, orderedTabs, openDocument) },
+              // `terminal:open` - the stack's open-or-reveal reattaches to the named shell's socket.
+              onOpenTerminal = { backStack.openTerminal(it.name) },
+              browseRequest = browseRequest,
+              onBrowseRequestHandled = { browseRequest = null },
+              onRevealMatch = { match -> revealRequest = match },
+              // The bar's terminal item roots at the directory the explorer is showing - the same
+              // cwd the launcher's Terminal card gets, hoisted so both reads answer the same path.
+              onNewTerminal = { newTerminal(browsedDirectory) },
+              onOpenSettings = { backStack.openSettings() },
+              onLeaveWorkspace = closeGate.leaveWorkspace,
+              onOpenLauncher = openLauncher,
+              onBrowsedDirectory = { browsedDirectory = it },
+              browsedDirectory = browsedDirectory,
             )
           }
-        }
-        entry<Console>(metadata = ListDetailSceneStrategy.detailPane()) { console ->
-          tabbedPane {
-            // Null only after a process death: the stack is restored from its Bundle, but a live
-            // kernel session cannot round-trip through one, so there is nothing to compose against.
-            retainedConsole.session?.let { session ->
-              ConsoleScreen(
-                viewModel = viewModel {
-                  ConsoleViewModel(spacePorts.kernelGateway, session, spacePorts.kernelSessions)
-                },
+          contributedDocumentEntry(appContainer.documentContributions, contributionHost, tabbedPane)
+          entry<Settings>(metadata = ListDetailSceneStrategy.detailPane()) {
+            // No onBack, no width fact: leaving a document is the strip's own act now - the ✕ at
+            // two panes, the destination-named arrow below - so a screen states only its content.
+            tabbedPane {
+              SettingsScreen(
                 editorSettingsRepository = appContainer.editorSettings,
-                sessionPath = console.sessionPath,
-                workspaceRepository = spacePorts.workspaceRepository,
-                openDocument = openDocument,
-                onGoToFolder = goToFolder,
+                themeSettingsRepository = appContainer.themeSettings,
+                appIconRepository = appContainer.appIcon,
+                applicationScope = appContainer.applicationScope,
+                onOpenLicences = { backStack.openLicences() },
+                diagnostics = viewModel { DiagnosticsViewModel(appContainer.errorLog, appContainer.errorLogSharer) },
               )
             }
           }
-        }
-      },
-    )
+          entry<Licences>(metadata = ListDetailSceneStrategy.detailPane()) {
+            tabbedPane { LicencesScreen(viewModel { LicencesViewModel(appContainer.licenceDocuments) }) }
+          }
+          entry<FileEditor>(metadata = ListDetailSceneStrategy.detailPane()) { file ->
+            tabbedPane {
+              FileEditorScreen(
+                path = file.path,
+                workspaceRepository = spacePorts.workspaceRepository,
+                workspaceWatcher = spacePorts.workspaceWatcher,
+                workspaceFiles = spacePorts.workspaceFiles,
+                applicationScope = appContainer.applicationScope,
+                editorSettingsRepository = appContainer.editorSettings,
+                // Its own entry, never the last: a file deleted from its tab is closed by the strip
+                // first, and the screen's own close on hearing it go must then find nothing to remove
+                // rather than the tab beneath (`DeletedTabTest`).
+                onBack = { backStack.remove(file) },
+                onGoToFolder = goToFolder,
+                onFileMoved = { moved -> openDocumentPaths[file] = moved },
+                reveal = revealRequest,
+                onRevealHandled = { revealRequest = null },
+                openDocuments = openDocuments,
+                opening = file.opening,
+              )
+            }
+          }
+          entry<Editor>(metadata = ListDetailSceneStrategy.detailPane()) { editor ->
+            tabbedPane { saveTabAs ->
+              EditorScreen(
+                notebookId = editor.notebookId,
+                notebookRepository = spacePorts.notebookRepository,
+                workspaceRepository = spacePorts.workspaceRepository,
+                workspaceWatcher = spacePorts.workspaceWatcher,
+                workspaceFiles = spacePorts.workspaceFiles,
+                kernelGateway = spacePorts.kernelGateway,
+                kernelDebugger = spacePorts.kernelDebugger,
+                kernelSessions = spacePorts.kernelSessions,
+                kernelSpecs = spacePorts.kernelSpecs,
+                space = spacePorts.space,
+                languageServer = appContainer.languageServer,
+                notebookExporter = spacePorts.notebookExporter,
+                documentSharer = spacePorts.documentSharer,
+                applicationScope = appContainer.applicationScope,
+                activeCellRuns = appContainer.activeCellRuns,
+                notebookBreakpoints = appContainer.notebookBreakpoints,
+                editorSettingsRepository = appContainer.editorSettings,
+                wheelIndex = appContainer.wheelIndex,
+                outline = outline,
+                // `toc:show-panel` where there is a side area to activate, and null where there is not -
+                // which is what puts the overlay up on a compact window instead.
+                onShowTableOfContents = {
+                  sidePanel = ShownPanel.Shell(SidePanel.TABLE_OF_CONTENTS)
+                }.takeIf { twoPane },
+                debugPanel = debugPanel,
+                notebookCells = notebookCells,
+                onShowDebugger = { sidePanel = ShownPanel.Shell(SidePanel.DEBUGGER) }.takeIf { twoPane },
+                onGoToFolder = goToFolder,
+                openDocument = openDocument,
+                // Its own entry, as the file editor's is: the strip may have closed it already.
+                onBack = { backStack.remove(editor) },
+                // The one width fact this screen still reads, and it decides one thing now: whether
+                // the debugger's bottom bar carries a variables toggle (a side panel already shows
+                // it at two panes). How the document is left is the strip's own act.
+                twoPane = twoPane,
+                onOpenConsole = { session ->
+                  retainedConsole.session = session
+                  backStack.openConsole(editor.notebookId)
+                },
+                // `docmanager:save-as` (`Ctrl Shift S`) - the strip's dialog, reached with this
+                // entry's own key the way its menu reaches it.
+                onSaveAs = { saveTabAs(editor) },
+                onNotebookMoved = { moved -> openDocumentPaths[editor] = moved },
+                // The same request the file editor takes, because the panel does not know - and should
+                // not - which of the two a path opens: `docmanager:open` decides the editor from the
+                // path alone, and the match travels beside it either way.
+                reveal = revealRequest,
+                onRevealHandled = { revealRequest = null },
+                openDocuments = openDocuments,
+                opening = editor.opening,
+                notebookExecutions = notebookExecutions,
+              )
+            }
+          }
+          terminalEntry(spacePorts.terminalGateway, appContainer.terminalSettings, liveTabTitles, tabbedPane)
+          entry<Launcher>(metadata = ListDetailSceneStrategy.detailPane()) {
+            tabbedPane {
+              LauncherScreen(
+                cwd = browsedDirectory,
+                viewModel = viewModel {
+                  LauncherViewModel(
+                    spacePorts.notebookRepository,
+                    spacePorts.workspaceFiles,
+                    spacePorts.terminalGateway,
+                    spacePorts.kernelGateway,
+                    spacePorts.kernelSpecs,
+                    spacePorts.space,
+                    consoleOrdinal = retainedConsole::nextOrdinal,
+                  )
+                },
+                onLaunched = openLaunched,
+              )
+            }
+          }
+          entry<Console>(metadata = ListDetailSceneStrategy.detailPane()) { console ->
+            tabbedPane {
+              // Null only after a process death: the stack is restored from its Bundle, but a live
+              // kernel session cannot round-trip through one, so there is nothing to compose against.
+              retainedConsole.session?.let { session ->
+                ConsoleScreen(
+                  viewModel = viewModel {
+                    ConsoleViewModel(spacePorts.kernelGateway, session, spacePorts.kernelSessions)
+                  },
+                  editorSettingsRepository = appContainer.editorSettings,
+                  sessionPath = console.sessionPath,
+                  workspaceRepository = spacePorts.workspaceRepository,
+                  openDocument = openDocument,
+                  onGoToFolder = goToFolder,
+                )
+              }
+            }
+          }
+        },
+      )
+    }
   }
 }
