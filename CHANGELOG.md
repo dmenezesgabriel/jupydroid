@@ -2,6 +2,40 @@
 
 <!-- version list -->
 
+## v0.5.0 (2026-11-28)
+
+### Bug Fixes
+
+- **ui**: Focus follows the head a run advanced past the fold
+  ([`223dd7e`](https://github.com/dmenezesgabriel/jupydroid/commit/223dd7e4cd1f80637c436f3aaf19160fa8da56b7))
+
+- **ui**: The rail's foot rows stay anchored when the keyboard opens
+  ([`d0614eb`](https://github.com/dmenezesgabriel/jupydroid/commit/d0614eb1bbdd07bf44e363cdee67121cf068fa4f))
+
+### Features
+
+- **ui**: Chat's key row draws the same thirty-one as the cell's
+  ([`ea040cb`](https://github.com/dmenezesgabriel/jupydroid/commit/ea040cb316b3e6f5142123f13853137aa665f921))
+
+- **ui**: Command mode gains a focus owner - the selected cell's frame
+  ([`bf84e1c`](https://github.com/dmenezesgabriel/jupydroid/commit/bf84e1c3f1612c3b178ba53bd7e6f4f91e402877))
+
+- **ui**: Command-mode keys move the cell cursor and fold headings
+  ([`6b5114f`](https://github.com/dmenezesgabriel/jupydroid/commit/6b5114fa12c9575894d2cbc37a76e5e14b0f191c))
+
+- **ui**: Command-mode letter keys run the notebook's editing set
+  ([`f45584c`](https://github.com/dmenezesgabriel/jupydroid/commit/f45584c9df90442678889f18c8e9434976a93c33))
+
+- **ui**: The cell's symbol row carries the full development set
+  ([`7e670ec`](https://github.com/dmenezesgabriel/jupydroid/commit/7e670ecdbbaf944be4af56ae4c463fce5b0a1cc7))
+
+- **ui**: The Enter run chords and the key layer that reads them
+  ([`514be5c`](https://github.com/dmenezesgabriel/jupydroid/commit/514be5cde9066ac0efd170e5c91db92ef1455c7c))
+
+- **ui**: The terminal's extra-keys row carries the symbol set too
+  ([`5a3f19b`](https://github.com/dmenezesgabriel/jupydroid/commit/5a3f19b5b4b7267679625ca06028198b7a6ca7c1))
+
+
 ## v0.4.0 (2026-11-26)
 
 ### Features
