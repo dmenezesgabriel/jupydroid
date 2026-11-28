@@ -2,6 +2,7 @@ package com.jupydroid.extensions.ai.ui
 
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import com.jupydroid.extension.api.SymbolRowKeys
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -32,6 +33,20 @@ class ChatKeyRowTypingTest {
     val typed = question.typedFromKeyRow("_")
 
     assertEquals(TextFieldValue("call _ now", selection = TextRange(6)), typed)
+  }
+
+  /**
+   * Every member of the shared set types literally - a chat's field pairs nothing, so unlike the
+   * cell's row no key can land two characters. The row drawing the set is
+   * `ChatKeyRow`'s own wiring; this pins what a tap on any of them does.
+   */
+  @Test
+  fun everyKeyInTheSharedSetTypesLiterally() {
+    for (key in SymbolRowKeys) {
+      val typed = TextFieldValue("x", selection = TextRange(1)).typedFromKeyRow(key)
+
+      assertEquals(TextFieldValue("x$key", selection = TextRange(1 + key.length)), typed)
+    }
   }
 
   @Test
