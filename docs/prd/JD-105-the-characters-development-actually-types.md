@@ -134,9 +134,13 @@ Termux's button model are what there is to work from.
 - [x] T3 — the terminal: `TerminalInputField`'s `TextFieldState` hoists to `TerminalPaneScreen`,
   `TerminalExtraKeysRow` appends the symbol keys inserting at the field's caret, and
   `TerminalExtraKeysRowTest` shows taps landing characters in the field and through the gateway.
-- [ ] T4 — the rail's bottom icons stop riding the IME inset — with the soft keyboard up they
+- [x] T4 — the rail's bottom icons stop riding the IME inset — with the soft keyboard up they
   stay anchored to the rail's bottom and never overlap the destinations above (user-reported
-  defect; RED→GREEN test then the demo asserts it).
+  defect; RED→GREEN test then the demo asserts it). `WindowKeyRowHosted` moved inside
+  `MainNavigation`'s `Row`, beside the rail instead of around it; `RailAnchoredAboveKeyboardTest`
+  holds the foot's bounds identical across the keyboard opening (RED before: the Spaces row
+  rode 427px up), and a tablet screenshot shows every destination at full height with the foot
+  at the window's bottom.
 - [ ] T5 — the demo: `.maestro/symbol-rows-demo.yaml` + `scripts/symbol-rows-driver.sh`, run on
   the `SM-X216B` (the emulator variant for the loop), evidence reviewed, and the documents
   closed — backlog shipped, ledger entry, and an ADR for the list's home in `extension-api` if

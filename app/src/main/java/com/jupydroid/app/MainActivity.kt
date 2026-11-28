@@ -10,6 +10,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -30,7 +31,6 @@ import com.jupydroid.app.import.SharedNotebook
 import com.jupydroid.app.import.sharedNotebookFrom
 import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.editor.RemoteImagesResolved
-import com.jupydroid.app.ui.shell.WindowKeyRowHosted
 
 class MainActivity : ComponentActivity() {
   /**
@@ -55,22 +55,27 @@ class MainActivity : ComponentActivity() {
     }
   }
 
-  /** Every screen, with the key row that the one being typed into publishes beneath them all. */
+  /**
+   * Every screen, with the key row that the one being typed into publishes beneath it.
+   *
+   * `WindowKeyRowHosted` is inside `MainNavigation`, beside the activity bar rather than around
+   * it: wrapped this whole Box its `imePadding` also took the keyboard's height off the rail,
+   * and the rail's foot rows rode the inset up over the destinations (`Navigation.kt`, its own
+   * comment). The snackbar pays the inset itself now, or it would sit under the keyboard.
+   */
   @Composable
   private fun AppWindow() {
     val importReports = remember { SnackbarHostState() }
-    WindowKeyRowHosted {
-      Box(Modifier.fillMaxSize()) {
-        MainNavigation(
-          appContainer = appContainer,
-          sharedNotebook = sharedNotebook,
-          onImportConsumed = { sharedNotebook = null },
-          importReports = importReports,
-        )
-        // navigationBarsPadding: under edge-to-edge the tablet's taskbar is drawn over the bottom edge,
-        // and a snackbar without it sits behind the taskbar's icons.
-        SnackbarHost(importReports, Modifier.align(Alignment.BottomCenter).navigationBarsPadding())
-      }
+    Box(Modifier.fillMaxSize()) {
+      MainNavigation(
+        appContainer = appContainer,
+        sharedNotebook = sharedNotebook,
+        onImportConsumed = { sharedNotebook = null },
+        importReports = importReports,
+      )
+      // navigationBarsPadding: under edge-to-edge the tablet's taskbar is drawn over the bottom edge,
+      // and a snackbar without it sits behind the taskbar's icons.
+      SnackbarHost(importReports, Modifier.align(Alignment.BottomCenter).navigationBarsPadding().imePadding())
     }
   }
 
