@@ -2,6 +2,20 @@
 
 <!-- version list -->
 
+## v0.6.0 (2026-11-28)
+
+### Features
+
+- **syntax**: Ipython magics are highlighted - sigil, name, and a cell body's own language
+  ([`2de4515`](https://github.com/dmenezesgabriel/jupydroid/commit/2de4515a7c444a2a498f305be88c637fd0518e7f))
+
+- **theme**: A magic-sigil colour joins the syntax palette - #569cd6 dark, #0000ff light
+  ([`7892040`](https://github.com/dmenezesgabriel/jupydroid/commit/7892040f154cbb36b2834929d8dd029ceae452f6))
+
+- **ui**: Notebook cells and the console paint ipython magics
+  ([`f6e5bda`](https://github.com/dmenezesgabriel/jupydroid/commit/f6e5bda748ec5db0338d56482491132bc0afc565))
+
+
 ## v0.5.0 (2026-11-28)
 
 ### Bug Fixes
