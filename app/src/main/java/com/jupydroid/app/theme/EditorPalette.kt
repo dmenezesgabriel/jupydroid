@@ -255,6 +255,16 @@ data class SyntaxPalette(
    * within a shade of [plain], so it would colour a variable as unstyled text.
    */
   val variable: Color,
+  /**
+   * `meta.preprocessor` - the directive marker is the closest scope the 2026 themes offer for the
+   * `%`/`%%` sigil, which `usr/lib/python3.12/site-packages/ipython_pygments_lexers.py` styles
+   * `Operator` against a magic's `Keyword` name.
+   *
+   * The more literal scope, `keyword.operator`, is unclaimed in both themes and falls through to
+   * [plain]; `keyword.other.operator` resolves to [keyword]'s value, and a sigil painted as the
+   * name it introduces tells the two apart by nothing.
+   */
+  val magic: Color,
 )
 
 /**
@@ -291,4 +301,5 @@ fun SyntaxPalette.styles(): Map<SyntaxKind, SpanStyle> = mapOf(
   SyntaxKind.MARKER to SpanStyle(color = listMarker),
   SyntaxKind.LINK to SpanStyle(color = link, textDecoration = TextDecoration.Underline),
   SyntaxKind.VARIABLE to SpanStyle(color = variable),
+  SyntaxKind.MAGIC to SpanStyle(color = magic),
 )
