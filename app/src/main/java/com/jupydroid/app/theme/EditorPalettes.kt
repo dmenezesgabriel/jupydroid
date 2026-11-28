@@ -111,6 +111,8 @@ val DarkEditorPalette: EditorPalette =
       blockQuote = Color(0xFF7EE787),
       listMarker = Color(0xFFFFA657),
       variable = Color(0xFFFFA657),
+      // `meta.preprocessor`.
+      magic = Color(0xFF569CD6),
     ),
   )
 
@@ -188,5 +190,7 @@ val LightEditorPalette: EditorPalette =
       blockQuote = Color(0xFF116329),
       listMarker = Color(0xFF953800),
       variable = Color(0xFF953800),
+      // `meta.preprocessor`.
+      magic = Color(0xFF0000FF),
     ),
   )

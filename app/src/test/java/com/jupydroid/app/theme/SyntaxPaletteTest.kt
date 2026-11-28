@@ -64,6 +64,23 @@ class SyntaxPaletteTest {
     }
   }
 
+  /**
+   * A magic line puts the sigil and the name side by side under different roles - `Operator`
+   * against `Keyword` in `usr/lib/python3.12/site-packages/ipython_pygments_lexers.py` - so the
+   * two colours have to differ or the split the kind exists for is invisible.
+   */
+  @Test
+  fun theMagicSigilIsToldApartFromTheMagicName() {
+    palettes.forEach { (name, palette) ->
+      val styles = palette.syntax.styles()
+      assertNotEquals(
+        "$name sigil and name are indistinguishable",
+        styles.getValue(SyntaxKind.MAGIC).color,
+        styles.getValue(SyntaxKind.KEYWORD).color,
+      )
+    }
+  }
+
   /** A shell script shows the Python five and its variables in one field, so all six must differ. */
   @Test
   fun theKindsShellEmitsAreMutuallyDistinct() {
@@ -114,6 +131,7 @@ class SyntaxPaletteTest {
     "markup.quote" to blockQuote,
     "punctuation.definition.list.begin.markdown" to listMarker,
     "variable" to variable,
+    "meta.preprocessor" to magic,
   )
 
   /**
@@ -208,6 +226,7 @@ class SyntaxPaletteTest {
       "markup.quote" to Color(0xFF7EE787),
       "punctuation.definition.list.begin.markdown" to Color(0xFFFFA657),
       "variable" to Color(0xFFFFA657),
+      "meta.preprocessor" to Color(0xFF569CD6),
     )
 
     /** `2026-light.json`, resolved. `constant.numeric` is the value that measures 4.42:1. */
@@ -224,6 +243,7 @@ class SyntaxPaletteTest {
       "markup.quote" to Color(0xFF116329),
       "punctuation.definition.list.begin.markdown" to Color(0xFF953800),
       "variable" to Color(0xFF953800),
+      "meta.preprocessor" to Color(0xFF0000FF),
     )
 
     /** The kinds only a markdown cell emits and that carry a colour of their own. */

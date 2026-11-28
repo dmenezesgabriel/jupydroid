@@ -31,6 +31,13 @@ enum class SyntaxKind {
 
   // Shell. An expansion or an assignment's name - what the reference's shell mode styles `def`.
   VARIABLE,
+
+  /**
+   * The `%` or `%%` that opens an IPython magic - not the magic's name, which is a [KEYWORD],
+   * per the role model of `usr/lib/python3.12/site-packages/ipython_pygments_lexers.py`, where
+   * the sigil is an `Operator` and the name a `Keyword`.
+   */
+  MAGIC,
 }
 
 /** A half-open range of the source, `[start, end)`, and what it is. */
