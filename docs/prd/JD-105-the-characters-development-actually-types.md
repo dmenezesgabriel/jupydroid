@@ -8,7 +8,9 @@ Each of the three places a developer types — a code cell, the Chat's question 
 terminal — carries the set development actually uses in the key row above the soft keyboard:
 `'`, `"`, `` ` ``, `/`, `\`, `%`, `(`, `)`, `[`, `]`, `{`, `}`, `=`, `+`, `-`, `*`, `<`, `>`,
 `_`, `:`, `;`, `&`, `|`, `~`, `^`, `#`, `@`, `!`, `?`, `,`, `.` — one tap each instead of a
-long-press through the soft keyboard's symbol pages.
+long-press through the soft keyboard's symbol pages. Each surface carries **exactly one row** —
+a single horizontally-scrolling strip in the usual tablet-symbol-row manner; never two stacked
+rows or floors, which would spend vertical space the UI does not have.
 
 ## Demo
 
