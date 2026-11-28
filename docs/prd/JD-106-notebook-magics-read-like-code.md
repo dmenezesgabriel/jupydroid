@@ -159,7 +159,7 @@ seven-regex `highlight_modes` table in `codecell.js`. It covers `%%` only; `%`-l
   IPython's own placement rules (first line col 0 for `%%`; first non-whitespace char or
   `= %name` for `%`), the name→highlighter body table, the string/comment mask, and `a % b`,
   mid-cell `%%`, indented `%%`, lone sigils and half-typed lines all staying honest.
-- [ ] T3 — `CodeCellField`'s default `highlighter` becomes `IPythonSyntax()`, which is the
+- [x] T3 — `CodeCellField`'s default `highlighter` becomes `IPythonSyntax()`, which is the
   notebook cell (`EditorCell`) and the console input (`ConsoleInputRow`) in one move;
   `FileEditorScreen` and `SpaceSettingsDialog` keep their explicit highlighters.
 - [ ] T4 — the demo: `.maestro/magics-demo.yaml` + `scripts/magics-driver.sh` +
