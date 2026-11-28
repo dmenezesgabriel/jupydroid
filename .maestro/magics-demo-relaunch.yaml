@@ -1,0 +1,23 @@
+appId: com.jupydroid.app
+---
+# The demo's second half, after the driver force-stopped the app: the notebook reopens on the
+# outputs the first run saved to disk, and the magics read the same - sigil, name and body still
+# coloured by role. Run by scripts/magics-driver.sh.
+#
+# No cell runs here: `/home/jupydroid` was computed by the kernel in part 1 and persisted into
+# the notebook, which is what makes reopening prove the save.
+- launchApp:
+    stopApp: false
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Magics.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Magics.ipynb"
+- extendedWaitUntil:
+    visible: "[\\s\\S]*home/jupydroid[\\s\\S]*"
+    timeout: 30000
+- takeScreenshot: 01-colouring-survives-a-relaunch
