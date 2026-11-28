@@ -38,7 +38,7 @@ import com.jupydroid.app.domain.model.IndentUnit
 import com.jupydroid.app.domain.port.CompletionResult
 import com.jupydroid.app.domain.port.LanguageHover
 import com.jupydroid.app.domain.port.LanguageSignatureHelp
-import com.jupydroid.app.syntax.PythonSyntax
+import com.jupydroid.app.syntax.IPythonSyntax
 import com.jupydroid.app.syntax.SyntaxHighlighter
 import com.jupydroid.app.theme.editorPalette
 import kotlinx.coroutines.delay
@@ -87,7 +87,7 @@ fun CodeCellField(
    * one number rather than a boolean a second tap could not flip back. `0` is "never asked".
    */
   symbolAsk: Int = 0,
-  highlighter: SyntaxHighlighter = remember { PythonSyntax() },
+  highlighter: SyntaxHighlighter = remember { IPythonSyntax() },
   /** `notebook:toggle-autoclosing-brackets`, universal - see [PythonTypingRules]. */
   autoClosingBrackets: Boolean = true,
   /** `indentUnit` - the level a `:` line adds - see [PythonTypingRules]. */
