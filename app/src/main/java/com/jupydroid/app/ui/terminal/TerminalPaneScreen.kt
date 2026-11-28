@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldBuffer
 import androidx.compose.foundation.text.input.TextFieldDecorator
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +47,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntSize
@@ -143,6 +145,9 @@ fun TerminalPaneScreen(
   // A handle under a finger, while which the floating toolbar is hidden, as `TextView`'s is.
   var handleHeld by remember { mutableStateOf(false) }
   val uriHandler = LocalUriHandler.current
+  // Hoisted out of `TerminalInputField` so `TerminalExtraKeysRow`'s symbol keys can edit the same
+  // buffer the soft keyboard does - the text diff then ships the character through `typeCharacters`.
+  val inputState = remember { TextFieldState() }
 
   Scaffold(
     modifier = modifier.fillMaxSize(),
@@ -171,6 +176,7 @@ fun TerminalPaneScreen(
           onTapModifier = viewModel::tapModifier,
           onLongPressModifier = viewModel::longPressModifier,
           onKey = viewModel::type,
+          onTypeText = { text -> inputState.edit { typeTextAtCaret(text) } },
         )
       }
     },
@@ -254,6 +260,7 @@ fun TerminalPaneScreen(
           },
         )
         TerminalInputField(
+          state = inputState,
           onTypedText = viewModel::typeCharacters,
           onEncodedKey = viewModel::type,
           applicationCursorKeys = { viewModel.emulator.isApplicationCursorKeys },
@@ -373,11 +380,11 @@ private val invisibleDecorator = TextFieldDecorator { }
  */
 @Composable
 private fun TerminalInputField(
+  state: TextFieldState,
   onTypedText: (String) -> Unit,
   onEncodedKey: (String) -> Unit,
   applicationCursorKeys: () -> Boolean,
 ) {
-  val state = remember { TextFieldState() }
   val field = remember { FocusRequester() }
   LaunchedEffect(Unit) { field.requestFocus() }
 
@@ -431,6 +438,17 @@ private fun TerminalInputField(
       }
       .testTag(TERMINAL_INPUT_TAG),
   )
+}
+
+/**
+ * [text] over the buffer's selection, the caret after it - what `FocusedCellInput.type` does for a
+ * cell minus its typing rules, which the terminal's field has none of (its characters go to the
+ * shell verbatim through the diff).
+ */
+private fun TextFieldBuffer.typeTextAtCaret(text: String) {
+  val at = selection.min
+  replace(at, selection.max, text)
+  selection = TextRange(at + text.length)
 }
 
 /**
