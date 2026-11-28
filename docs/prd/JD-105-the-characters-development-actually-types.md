@@ -29,7 +29,9 @@ verification sentence and `AGENTS.md` rule 2.
    order, the byte-level oracle for what the row sent the shell. On the emulator the fake
    gateway only echoes, so `cat` writes nothing there — the emulator's oracle is the input
    field's own text plus the canvas's echo, and the file oracle belongs to the tablet run.
-4. Kill and relaunch — all three rows still carry the set.
+4. With the soft keyboard up, the rail's bottom icons (home, settings) stay anchored in place —
+   today they ride the IME inset upward and overlap the destinations above them.
+5. Kill and relaunch — all three rows still carry the set.
 
 ## Who else implements this
 
@@ -124,7 +126,7 @@ Termux's button model are what there is to work from.
 
 ## Tasks
 
-- [ ] T1 — the common list lands in `extension-api` with a unit test pinning all thirty-one
+- [x] T1 — the common list lands in `extension-api` with a unit test pinning all thirty-one
   characters, and `SymbolRow`'s `TYPED_KEYS` reads it; `SymbolRowTest` covers every key typing
   into a real field (the five pairing keys asserting their pair).
 - [ ] T2 — `ChatKeyRow`'s `CHAT_KEYS` reads the shared list; a test pins the row to it and
@@ -132,7 +134,10 @@ Termux's button model are what there is to work from.
 - [ ] T3 — the terminal: `TerminalInputField`'s `TextFieldState` hoists to `TerminalPaneScreen`,
   `TerminalExtraKeysRow` appends the symbol keys inserting at the field's caret, and
   `TerminalExtraKeysRowTest` shows taps landing characters in the field and through the gateway.
-- [ ] T4 — the demo: `.maestro/symbol-rows-demo.yaml` + `scripts/symbol-rows-driver.sh`, run on
+- [ ] T4 — the rail's bottom icons stop riding the IME inset — with the soft keyboard up they
+  stay anchored to the rail's bottom and never overlap the destinations above (user-reported
+  defect; RED→GREEN test then the demo asserts it).
+- [ ] T5 — the demo: `.maestro/symbol-rows-demo.yaml` + `scripts/symbol-rows-driver.sh`, run on
   the `SM-X216B` (the emulator variant for the loop), evidence reviewed, and the documents
   closed — backlog shipped, ledger entry, and an ADR for the list's home in `extension-api` if
   it outlives the item.

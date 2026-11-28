@@ -1,0 +1,28 @@
+appId: com.jupydroid.app
+---
+# The symbol-rows demo, the notebook half: cold start on the build under test, the seeded Keys
+# notebook opened, and the caret in a code cell, so the driver can read the row's keys out of the
+# semantics tree and prove each one inserts. The Chat and terminal halves follow in the same
+# driver's later sections.
+#
+# Seeded by the driver; clearState would delete the fixture.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Keys.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Keys.ipynb"
+- extendedWaitUntil:
+    visible: "beta = 2"
+    timeout: 30000
+- takeScreenshot: 01-notebook-open
+# A tap on the middle cell's source puts the caret in it: edit mode, keyboard up, the symbol row
+# on screen - the surface every key below is read from and tapped into.
+- tapOn: "beta = 2"
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: 02-caret-in-beta
