@@ -1,6 +1,8 @@
 package com.jupydroid.app.ui.editor
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.testTag
@@ -11,9 +13,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.text.TextRange
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.jupydroid.app.theme.JupydroidTheme
 import com.jupydroid.app.ui.assertIsAtLeastMinimumTouchTarget
+import com.jupydroid.extension.api.SymbolRowKeys
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -91,6 +95,48 @@ class SymbolRowTest {
   private fun assertTyped(expected: String) {
     compose.waitUntil(timeoutMillis = REPORT_TIMEOUT_MS) { edits.isNotEmpty() }
     assertEquals(expected, edits.last())
+  }
+
+  /**
+   * The whole set, not a sample: the row's promise is that a developer never reaches for the
+   * keyboard's symbol page, and a test that samples a few keys goes green against a row still
+   * missing most of them. The field resets to `x` between keys rather than the content being
+   * re-set - a test rule's `setContent` runs once - and pairing makes one field's expected text
+   * depend on where the previous key left the caret anyway.
+   */
+  @OptIn(ExperimentalFoundationApi::class)
+  @Test
+  fun theRowTypesEveryCharacterInTheSet() {
+    val field = TextFieldState("x")
+    compose.setContent {
+      JupydroidTheme {
+        val input = remember { FocusedCellInput() }
+        Column {
+          CodeCellField(
+            state = field,
+            onSourceEdited = { edits += it },
+            modifier = androidx.compose.ui.Modifier.testTag(FIELD),
+            input = input,
+          )
+          SymbolRow(input = input)
+        }
+      }
+    }
+    compose.onNodeWithTag(FIELD).performClick()
+
+    for (key in SymbolRowKeys) {
+      compose.runOnIdle {
+        field.edit {
+          replace(0, length, "x")
+          selection = TextRange(1)
+        }
+      }
+      compose.onNodeWithText(key).performScrollTo().performClick()
+
+      compose.waitUntil(timeoutMillis = REPORT_TIMEOUT_MS) {
+        edits.lastOrNull() == "x" + key + PAIRED_WITH.getOrDefault(key, "")
+      }
+    }
   }
 
   /**
@@ -222,5 +268,8 @@ class SymbolRowTest {
     const val RECALL_NEXT = "Next kernel history entry"
     const val REPORT_TIMEOUT_MS = 2_000L
     const val DEBOUNCE_GRACE_MS = 500L
+
+    /** The partner `PythonTypingRules` closes an opener with, keyed by the opener's label. */
+    val PAIRED_WITH = mapOf("(" to ")", "[" to "]", "{" to "}", "'" to "'", "\"" to "\"")
   }
 }

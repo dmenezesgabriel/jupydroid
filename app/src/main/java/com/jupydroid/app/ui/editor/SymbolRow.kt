@@ -17,6 +17,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.extension.api.FocusRingTextButton
 import com.jupydroid.extension.api.KeyRowPublished
+import com.jupydroid.extension.api.SymbolRowKeys
 
 /**
  * [SymbolRow]'s own handle for an external driver - `CONSOLE_INPUT_FIELD_TAG`'s own precedent.
@@ -35,7 +36,8 @@ internal const val SYMBOL_ROW_TAG = "symbol_row"
  * keys a touch keyboard simply lacks - and the ones a *code* editor needs most are not letters at
  * all: `:` ends every block header, brackets and quotes come in pairs, `#` starts every comment,
  * and Tab is how a line gets its indent. On a soft keyboard each of those is two taps away behind
- * a symbols page.
+ * a symbols page. The characters themselves are [SymbolRowKeys] - the set every typing row on
+ * this app shares, so the Chat's and the terminal's rows cannot drift from this one.
  *
  * Shown only in [CellMode.EDIT], because there is nothing to type into otherwise, and it would
  * cost a row of the notebook to say so.
@@ -93,7 +95,7 @@ internal fun SymbolRow(
         SymbolKey(label = RECALL_PREVIOUS_KEY, describedAs = RECALL_PREVIOUS_ENTRY, onClick = onRecallPreviousEntry)
         SymbolKey(label = RECALL_NEXT_KEY, describedAs = RECALL_NEXT_ENTRY, onClick = onRecallNextEntry)
       }
-      TYPED_KEYS.forEach { key -> SymbolKey(label = key, onClick = { input.type(key) }) }
+      SymbolRowKeys.forEach { key -> SymbolKey(label = key, onClick = { input.type(key) }) }
       SymbolKey(label = "←", onClick = { input.moveCaret(-1) })
       SymbolKey(label = "→", onClick = { input.moveCaret(1) })
     }
@@ -154,10 +156,3 @@ internal const val RECALL_PREVIOUS_ENTRY = "Previous kernel history entry"
 
 /** `notebook:access-next-history-entry` (`:5194`) - see [RECALL_PREVIOUS_ENTRY]. */
 internal const val RECALL_NEXT_ENTRY = "Next kernel history entry"
-
-/**
- * Ordered by how often Python reaches for them, not by where a keyboard hides them: the colon
- * ends every block header, the pairs come next, then the comment hash and the underscore that
- * every snake_case name needs.
- */
-private val TYPED_KEYS = listOf(":", "(", ")", "[", "]", "{", "}", "'", "\"", "=", "#", "_")
