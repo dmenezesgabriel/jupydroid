@@ -1,0 +1,70 @@
+appId: com.jupydroid.app
+---
+# Notebook magics read like code: the seeded cells paint each magic by role - the `%`/`%%` sigil
+# in the magic colour, the name in the keyword colour, the args plain, `%%sh`'s body as shell and
+# `%%time`'s as python - then every cell runs on the kernel. The colours are measured off the
+# screenshots; the runs are the execution-unchanged half. Run by scripts/magics-driver.sh.
+#
+# TABLET ONLY (SM-X216B): the cells run - on x86_64 FakeKernelGateway echoes the source back, so
+# none of the outputs below could match, and `%%sh` would never reach a shell.
+- launchApp
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow: open-base-space.yaml
+- scrollUntilVisible:
+    element:
+      text: "Magics.ipynb"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Magics.ipynb"
+- extendedWaitUntil:
+    visible: "%pwd"
+    timeout: 30000
+# The seeded cells before anything runs: sigil, name and args in three roles, and below the fold
+# the two `%%` bodies each in their language.
+- takeScreenshot: 01-seeded-magics-coloured-by-role
+- tapOn:
+    text: "Run cell"
+    index: 0
+# Generous: the first run starts the kernel. `/home/jupydroid` is the kernel's cwd - computed,
+# in no source, and unreachable to a fake's echo.
+- extendedWaitUntil:
+    visible: "[\\s\\S]*home/jupydroid[\\s\\S]*"
+    timeout: 180000
+- tapOn:
+    text: "Run cell"
+    index: 1
+# `six` lives in the rootfs's /usr/lib python but not the kernel's /opt/gnu one, so a first run
+# installs it and later runs answer already-satisfied - either line is the kernel's own verdict.
+# The second output container on screen is pip's: `Cell output` index 1.
+- extendedWaitUntil:
+    visible:
+      text: "[\\s\\S]*(Requirement already satisfied: six|Successfully installed six)[\\s\\S]*"
+      childOf: {text: "Cell output", index: 1}
+    timeout: 90000
+# The `%%` cells sit below the fold. `Run cell` index counts *rendered* buttons and the window
+# fits two (project-environments-notebook-proj-a.yaml's measured trap), so the scroll waits on
+# the last cell's own source; at the bottom exactly `%%sh` = index 0 and `%%time` = index 1
+# render. `%%time` runs first: its output grows downward and leaves `%%sh`'s button unmoved.
+- scrollUntilVisible:
+    element:
+      text: "[\\s\\S]*%%time[\\s\\S]*"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: 02-cell-magic-bodies-in-their-languages
+- tapOn:
+    text: "Run cell"
+    index: 1
+- extendedWaitUntil:
+    visible: "[\\s\\S]*Wall time[\\s\\S]*"
+    timeout: 60000
+- tapOn:
+    text: "Run cell"
+    index: 0
+# matches-source: the `%%sh` field holds `%%sh\necho hi` as one multi-line node, so a full-match
+# on `hi` can only land on the kernel's output.
+- extendedWaitUntil:
+    visible: "hi"
+    timeout: 60000
+- assertVisible: "\\[4\\]:"
+- takeScreenshot: 03-every-magic-ran
