@@ -155,7 +155,7 @@ seven-regex `highlight_modes` table in `codecell.js`. It covers `%%` only; `%`-l
 - [x] T1 — `SyntaxKind.MAGIC`, `SyntaxPalette.magic` (`meta.preprocessor`, both themes, resolved
   through `scripts/resolve_vscode_theme.py`), the `styles()` row and `SYNTAX_SCOPES["magic"]`;
   `EditorPaletteTest` pins the values to the resolved themes.
-- [ ] T2 — `syntax/IPythonSyntax.kt` + `IPythonSyntaxTest`: `%`/`%%` sigil and name spans on
+- [x] T2 — `syntax/IPythonSyntax.kt` + `IPythonSyntaxTest`: `%`/`%%` sigil and name spans on
   IPython's own placement rules (first line col 0 for `%%`; first non-whitespace char or
   `= %name` for `%`), the name→highlighter body table, the string/comment mask, and `a % b`,
   mid-cell `%%`, indented `%%`, lone sigils and half-typed lines all staying honest.
