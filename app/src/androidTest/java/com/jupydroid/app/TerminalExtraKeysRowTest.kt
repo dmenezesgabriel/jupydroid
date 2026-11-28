@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
@@ -84,6 +85,40 @@ class TerminalExtraKeysRowTest {
 
     compose.waitUntil(TIMEOUT_MILLIS) { gateway.sent.size == 3 }
     assertEquals(listOf("\u001B[A", "\u001B[H", "\u001B[5~"), gateway.sent)
+  }
+
+  /**
+   * A symbol key types into the field the way the soft keyboard's own commit does - the character
+   * lands in the field's buffer and the text diff ships it to the shell. It must not go through
+   * `onKey`'s verbatim path, which would send the byte while the field's buffer stayed unaware of
+   * it and drifted the next backspace.
+   */
+  @Test
+  fun aSymbolKeyTypesItsCharacterIntoTheFieldAndThroughTheGateway() {
+    val gateway = openTerminalScreen()
+
+    compose.onNodeWithTag(TERMINAL_INPUT_TAG).performTextInput("ls")
+    compose.onNodeWithText("|").performScrollTo().performClick()
+
+    compose.onNodeWithTag(TERMINAL_INPUT_TAG).assert(hasText("ls|"))
+    compose.waitUntil(TIMEOUT_MILLIS) { gateway.sent.joinToString("").endsWith("|") }
+    assertEquals("ls|", gateway.sent.joinToString(""))
+  }
+
+  /**
+   * The same reason `typeCharacters` is the right path: a symbol key answers an armed Alt latch
+   * the way a typed character does - `ESC` + the character (`applyModifierLatches`) - where the
+   * row's own encoded keys are verbatim bytes a latch does not touch.
+   */
+  @Test
+  fun anArmedAltLatchReachesASymbolKeyAsTheEscapedCharacter() {
+    val gateway = openTerminalScreen()
+
+    compose.onNodeWithContentDescription("Alt").performScrollTo().performClick()
+    compose.onNodeWithText("~").performScrollTo().performClick()
+
+    compose.waitUntil(TIMEOUT_MILLIS) { gateway.sent.isNotEmpty() }
+    assertEquals(listOf("\u001B~"), gateway.sent)
   }
 
   /** The gate 3a itself names: a tapped Ctrl converts the next typed letter. */

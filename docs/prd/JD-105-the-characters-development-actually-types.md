@@ -131,7 +131,7 @@ Termux's button model are what there is to work from.
   into a real field (the five pairing keys asserting their pair).
 - [x] T2 — `ChatKeyRow`'s `CHAT_KEYS` reads the shared list; a test pins the row to it and
   `typedFromKeyRow` already argues the insert; the row's doc stops claiming the measured set.
-- [ ] T3 — the terminal: `TerminalInputField`'s `TextFieldState` hoists to `TerminalPaneScreen`,
+- [x] T3 — the terminal: `TerminalInputField`'s `TextFieldState` hoists to `TerminalPaneScreen`,
   `TerminalExtraKeysRow` appends the symbol keys inserting at the field's caret, and
   `TerminalExtraKeysRowTest` shows taps landing characters in the field and through the gateway.
 - [ ] T4 — the rail's bottom icons stop riding the IME inset — with the soft keyboard up they

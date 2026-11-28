@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
 import com.jupydroid.app.ui.editor.symbolKeyStyle
 import com.jupydroid.extension.api.FocusRingTextButton
+import com.jupydroid.extension.api.SymbolRowKeys
 
 /**
  * [TerminalExtraKeysRow]'s handle for an external driver, `SYMBOL_ROW_TAG`'s reason: Gboard carries
@@ -42,12 +43,18 @@ internal const val TERMINAL_EXTRA_KEYS_TAG = "terminal_extra_keys"
  * Ctrl and Alt **latch** rather than emit a byte themselves - Termux's own `SpecialButtonState`
  * (`extrakeys/SpecialButtonState.java`), reproduced as [TerminalModifierLatch]: a tap arms the
  * next keystroke typed on the *soft* keyboard (there is no hardware key here to hold down while
- * a letter is pressed), and a long-press locks it caps-lock style. Every other key is pre-encoded
- * through [terminalKeystroke] and sent raw via `onKey` - the exact bytes a hardware key of the
- * same name already sends, so this row adds no second encoding scheme. A latched
- * Ctrl/Alt does not modify these direct taps (there is no "Ctrl+Home" here) - only characters
- * typed on the soft keyboard go through [applyModifierLatches], `TerminalPaneViewModel.typeCharacters`'s
- * own job.
+ * a letter is pressed), and a long-press locks it caps-lock style. Esc/Tab and the arrows and
+ * navigation keys are pre-encoded through [terminalKeystroke] and sent raw via `onKey` - the
+ * exact bytes a hardware key of the same name already sends, so this row adds no second encoding
+ * scheme. A latched Ctrl/Alt does not modify those direct taps (there is no "Ctrl+Home" here).
+ *
+ * The shared symbol set (`SymbolRowKeys`, the thirty-one every typing row draws) takes the other
+ * path instead: `onTypeText` edits `TerminalInputField`'s state at its caret, the same thing a
+ * soft-keyboard commit does - so the character lands in the buffer a following backspace can
+ * edit, and the text diff ships it through `TerminalPaneViewModel.typeCharacters`, where an
+ * armed latch applies (`TerminalExtraKeysRowTest.anArmedAltLatchReachesASymbolKeyAsTheEscapedCharacter`).
+ * Routing a symbol through `onKey` instead would send the byte verbatim while the field's buffer
+ * never learned the character - the next diff would drift the field and the shell apart.
  *
  * Visible whenever [TerminalPaneScreen] is - unlike `SymbolRow`, gated on `CellMode.EDIT`, a
  * terminal has no separate view/edit mode to gate on. [TerminalPaneScreen] publishes it to the
@@ -61,6 +68,7 @@ internal const val TERMINAL_EXTRA_KEYS_TAG = "terminal_extra_keys"
  *   onTapModifier = viewModel::tapModifier,
  *   onLongPressModifier = viewModel::longPressModifier,
  *   onKey = viewModel::type,
+ *   onTypeText = { text -> inputState.edit { ... } },
  * )
  * ```
  */
@@ -71,6 +79,7 @@ internal fun TerminalExtraKeysRow(
   onTapModifier: (TerminalModifierKey) -> Unit,
   onLongPressModifier: (TerminalModifierKey) -> Unit,
   onKey: (String) -> Unit,
+  onTypeText: (String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Surface(
@@ -106,6 +115,7 @@ internal fun TerminalExtraKeysRow(
       NAVIGATION_KEYS.forEach { (label, key) ->
         ExtraKey(label = label) { onKey(sendableKey(key, applicationCursorKeys())) }
       }
+      SymbolRowKeys.forEach { key -> ExtraKey(label = key) { onTypeText(key) } }
     }
   }
 }
