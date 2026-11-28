@@ -47,6 +47,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -379,6 +381,7 @@ private fun QuestionField(
       .fillMaxWidth()
       .border(1.dp, MaterialTheme.colorScheme.outline, shape)
       .clip(shape)
+      .semantics { testTagsAsResourceId = true }
       .testTag("chat-input-box"),
   ) {
     SlashCommands(commands, question.text) { question = TextFieldValue(it.typed, TextRange(it.typed.length)) }
