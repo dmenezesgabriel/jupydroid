@@ -129,7 +129,7 @@ Termux's button model are what there is to work from.
 - [x] T1 — the common list lands in `extension-api` with a unit test pinning all thirty-one
   characters, and `SymbolRow`'s `TYPED_KEYS` reads it; `SymbolRowTest` covers every key typing
   into a real field (the five pairing keys asserting their pair).
-- [ ] T2 — `ChatKeyRow`'s `CHAT_KEYS` reads the shared list; a test pins the row to it and
+- [x] T2 — `ChatKeyRow`'s `CHAT_KEYS` reads the shared list; a test pins the row to it and
   `typedFromKeyRow` already argues the insert; the row's doc stops claiming the measured set.
 - [ ] T3 — the terminal: `TerminalInputField`'s `TextFieldState` hoists to `TerminalPaneScreen`,
   `TerminalExtraKeysRow` appends the symbol keys inserting at the field's caret, and
